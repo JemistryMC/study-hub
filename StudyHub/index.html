@@ -1,0 +1,3478 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة الإنجاز - Studio Workspace</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+        <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#c28c38">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* Teka Teki Studios Minimalist Inspired Palette */
+            --bg-color: #0c0d11;
+            --panel-bg: #14161d;
+            --card-bg: #1a1d26;
+            --card-hover: #222632;
+            --border-color: rgba(255, 255, 255, 0.07);
+            --border-hover: rgba(194, 140, 56, 0.4);
+            
+            --primary: #c28c38;
+            --primary-hover: #d99b3e;
+            --primary-gradient: linear-gradient(135deg, #c28c38, #b35e23);
+            --terracotta: #b35e23;
+            
+            --text-main: #fdfbf7;
+            --text-muted: #9ca3af;
+            
+            --mandatory-color: #f43f5e; 
+            --urgent-color: #f59e0b;    
+            --important-color: #10b981; 
+            --review-color: #8b5cf6;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Tajawal', sans-serif; }
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-color); }
+        ::-webkit-scrollbar-thumb { background: #262a36; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+        /* Minimal Studio Navbar */
+        .navbar { 
+            height: 72px; 
+            background: rgba(14, 16, 21, 0.95); 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px); 
+            padding: 0 30px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            border-bottom: 1px solid var(--border-color); 
+            z-index: 100; 
+            flex-shrink: 0; 
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25); 
+        }
+        .navbar-brand { 
+            font-size: 1.5rem; 
+            color: var(--text-main); 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            font-weight: 900; 
+            letter-spacing: 0.5px; 
+        }
+        .navbar-brand i { color: var(--primary); font-size: 1.3rem; }
+        
+        .nav-items { 
+            display: flex; 
+            gap: 6px; 
+            background: rgba(20, 22, 29, 0.8); 
+            padding: 5px; 
+            border-radius: 12px; 
+            border: 1px solid var(--border-color); 
+        }
+        .nav-item { 
+            padding: 9px 22px; 
+            border-radius: 9px; 
+            cursor: pointer; 
+            transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease; 
+            display: flex; 
+            align-items: center; 
+            gap: 9px; 
+            font-weight: 700; 
+            color: var(--text-muted); 
+            font-size: 0.95rem;
+            will-change: transform;
+        }
+        .nav-item:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
+        .nav-item.active { 
+            background: var(--primary-gradient); 
+            color: #0c0d11; 
+            font-weight: 800;
+            box-shadow: 0 4px 14px rgba(194, 140, 56, 0.35); 
+        }
+        
+        .navbar-date { 
+            color: var(--text-muted); 
+            font-size: 0.9rem; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            background: rgba(20, 22, 29, 0.6); 
+            padding: 8px 16px; 
+            border-radius: 9px; 
+            border: 1px solid var(--border-color); 
+            font-weight: 600;
+        }
+
+        /* Main Content Container & Smooth Transitions */
+        .main-content { 
+            flex: 1; 
+            padding: 26px 32px; 
+            overflow-y: auto; 
+            overflow-x: hidden; 
+            position: relative; 
+        }
+        
+        .view-section { 
+            display: none; 
+            flex-direction: column; 
+            gap: 24px; 
+            opacity: 0; 
+            transform: translate3d(0, 8px, 0); 
+            transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); 
+            will-change: opacity, transform; 
+        }
+        .view-section.active { 
+            display: flex; 
+            opacity: 1; 
+            transform: translate3d(0, 0, 0); 
+        }
+
+        .panel { 
+            background: var(--panel-bg); 
+            padding: 26px; 
+            border-radius: 18px; 
+            border: 1px solid var(--border-color); 
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3); 
+        }
+        .panel-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 22px; 
+            border-bottom: 1px solid rgba(255,255,255,0.06); 
+            padding-bottom: 16px; 
+            flex-wrap: wrap; 
+            gap: 12px; 
+        }
+        .panel-header h3 { 
+            font-size: 1.35rem; 
+            font-weight: 800; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            color: var(--text-main);
+        }
+        .panel-header h3 i { color: var(--primary); }
+
+        /* Unified Form Inputs & Minimalist Buttons */
+        input, select, textarea { 
+            padding: 12px 18px; 
+            border-radius: 11px; 
+            border: 1px solid var(--border-color); 
+            background: rgba(14, 16, 22, 0.75); 
+            color: var(--text-main); 
+            outline: none; 
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease; 
+            font-size: 0.95rem; 
+        }
+        input:focus, select:focus, textarea:focus { 
+            border-color: var(--primary); 
+            box-shadow: 0 0 0 3px rgba(194, 140, 56, 0.2); 
+            background: #0f1117; 
+        }
+        
+        .btn { 
+            padding: 11px 22px; 
+            border: none; 
+            border-radius: 11px; 
+            cursor: pointer; 
+            color: white; 
+            font-weight: 700; 
+            transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, opacity 0.18s ease; 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 8px; 
+            letter-spacing: 0.3px; 
+            font-size: 0.95rem;
+            will-change: transform;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { 
+            background: var(--primary-gradient); 
+            color: #0c0d11;
+            font-weight: 800;
+            box-shadow: 0 4px 14px rgba(194, 140, 56, 0.25); 
+        }
+        .btn-primary:hover { 
+            box-shadow: 0 6px 20px rgba(194, 140, 56, 0.45); 
+            transform: translateY(-2px); 
+        }
+        .btn-success { 
+            background: linear-gradient(135deg, var(--important-color), #059669); 
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25); 
+        }
+        .btn-success:hover { 
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45); 
+            transform: translateY(-2px); 
+        }
+        .btn-danger { 
+            background: linear-gradient(135deg, var(--mandatory-color), #e11d48); 
+            box-shadow: 0 4px 14px rgba(244, 63, 94, 0.25); 
+        }
+        .btn-danger:hover { 
+            box-shadow: 0 6px 20px rgba(244, 63, 94, 0.45); 
+            transform: translateY(-2px); 
+        }
+        .btn-outline { 
+            background: transparent; 
+            border: 1px solid var(--border-hover); 
+            color: #e5c386; 
+        }
+        .btn-outline:hover { 
+            background: rgba(194, 140, 56, 0.1); 
+            border-color: var(--primary); 
+            color: var(--text-main); 
+            transform: translateY(-1px);
+        }
+
+        .icon-btn { 
+            background: rgba(14, 16, 22, 0.7); 
+            border: 1px solid var(--border-color); 
+            color: var(--text-muted); 
+            width: 36px; 
+            height: 36px; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), color 0.18s ease, background-color 0.18s ease, border-color 0.18s ease; 
+            will-change: transform;
+        }
+        .icon-btn:hover { 
+            color: white; 
+            transform: translateY(-2px); 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
+        }
+        .icon-btn.edit:hover { background: var(--primary); border-color: var(--primary); color: #0c0d11; }
+        .icon-btn.delete:hover { background: var(--mandatory-color); border-color: var(--mandatory-color); color: white; }
+
+        .empty-state { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 42px 20px; 
+            color: var(--text-muted); 
+            text-align: center; 
+        }
+        .empty-state i { 
+            font-size: 3.2rem; 
+            margin-bottom: 16px; 
+            color: rgba(255,255,255,0.1); 
+        }
+        .empty-state h3 { font-size: 1.25rem; color: var(--text-main); margin-bottom: 6px; }
+
+        /* ================= VIEW 1: المركز (STUDIO PINBOARD CARDS) ================= */
+        .semester-summary-ribbon {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+            background: rgba(14, 16, 22, 0.75);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px 22px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+        }
+        .ribbon-kpi {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .ribbon-kpi-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+        
+        .subjects-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(295px, 1fr)); 
+            gap: 28px; 
+            padding-top: 14px;
+        }
+        
+        /* Realistic Pinned Studio Card (Teka Teki Studios Aesthetic) */
+        .subject-card { 
+            background: linear-gradient(145deg, #181b24, #14161f); 
+            padding: 24px 22px 20px 22px; 
+            border-radius: 18px; 
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 3px solid var(--primary); 
+            cursor: pointer; 
+            transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease; 
+            position: relative; 
+            box-shadow: 0 10px 24px -6px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.3);
+            will-change: transform;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 215px;
+        }
+        
+        /* 3D Golden Studio Pushpin / Thumbtack */
+        .studio-pushpin {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 22px;
+            height: 22px;
+            background: radial-gradient(circle at 35% 30%, #fef08a, #c28c38 55%, #78350f 100%);
+            border-radius: 50%;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.7), inset 0 2px 2px rgba(255, 255, 255, 0.8), inset 0 -2px 3px rgba(0, 0, 0, 0.6);
+            z-index: 15;
+            border: 1px solid rgba(0, 0, 0, 0.4);
+            pointer-events: none;
+        }
+        .studio-pushpin::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 6px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 50%;
+            filter: blur(1.5px);
+        }
+
+        /* Subtle physical pinboard micro-tilt */
+        .subject-card:nth-child(4n+1) { transform: rotate(-0.7deg); }
+        .subject-card:nth-child(4n+2) { transform: rotate(0.8deg); }
+        .subject-card:nth-child(4n+3) { transform: rotate(-0.5deg); }
+        .subject-card:nth-child(4n+4) { transform: rotate(0.6deg); }
+
+        .subject-card:hover { 
+            transform: translateY(-8px) rotate(0deg) scale(1.015) !important; 
+            box-shadow: 0 22px 40px -10px rgba(0, 0, 0, 0.65), 0 0 20px rgba(194, 140, 56, 0.25) !important; 
+            border-color: rgba(194, 140, 56, 0.45); 
+            background: #1c202b;
+        }
+
+        .sc-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .subject-emblem {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: rgba(194, 140, 56, 0.12);
+            border: 1px solid rgba(194, 140, 56, 0.25);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+        .card-actions-always {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .studio-pill {
+            font-size: 0.76rem;
+            color: #d1d5db;
+            background: rgba(14, 16, 22, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        #subject-details-view { display: none; flex-direction: column; gap: 20px; }
+        .group-card { 
+            background: var(--card-bg); 
+            padding: 22px 24px; 
+            border-radius: 16px; 
+            margin-bottom: 18px; 
+            border: 1px solid var(--border-color); 
+            box-shadow: 0 6px 18px rgba(0,0,0,0.15); 
+            transition: all 0.2s ease;
+        }
+        .group-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            cursor: pointer;
+            user-select: none;
+        }
+        .accordion-arrow {
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin-right: 8px;
+        }
+        .group-card.collapsed .accordion-arrow {
+            transform: rotate(-90deg);
+        }
+        .group-card.collapsed .lectures-list {
+            display: none;
+        }
+        .group-card:not(.collapsed) .group-header {
+            margin-bottom: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding-bottom: 12px;
+        }
+
+        .lecture-item { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 13px 16px; 
+            background: rgba(14, 16, 22, 0.55); 
+            border-radius: 12px; 
+            margin-bottom: 10px; 
+            border-right: 4px solid var(--primary); 
+            border: 1px solid rgba(255,255,255,0.04); 
+            transition: transform 0.18s ease, background-color 0.18s ease; 
+        }
+        .lecture-item:hover { 
+            transform: translateX(-4px); 
+            background: var(--card-hover); 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+        }
+        .lecture-item a { 
+            color: var(--text-main); 
+            text-decoration: none; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            flex: 1; 
+            font-size: 1.02rem; 
+            font-weight: 600; 
+        }
+        .lecture-item a:hover { color: var(--primary); }
+        .lecture-item .card-actions { display: flex; gap: 6px; }
+
+        /* ================= VIEW 2: التخطيط ================= */
+        .planner-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; flex-wrap: wrap; gap: 15px; }
+        .schedule-pills { 
+            display: flex; 
+            background: rgba(14, 16, 22, 0.8); 
+            padding: 5px; 
+            border-radius: 12px; 
+            border: 1px solid var(--border-color); 
+            gap: 6px; 
+        }
+        .sch-pill { 
+            background: transparent; 
+            border: none; 
+            color: var(--text-muted); 
+            padding: 8px 18px; 
+            border-radius: 8px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            transition: all 0.18s ease; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            font-size: 0.92rem; 
+        }
+        .sch-pill:hover { color: var(--text-main); background: rgba(255,255,255,0.06); }
+        .sch-pill.active { 
+            background: var(--primary-gradient); 
+            color: #0c0d11; 
+            font-weight: 800;
+            box-shadow: 0 4px 14px rgba(194, 140, 56, 0.35); 
+        }
+
+        .weekly-metrics-bar { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); 
+            gap: 16px; 
+            background: rgba(14, 16, 22, 0.6); 
+            padding: 18px 22px; 
+            border-radius: 16px; 
+            border: 1px solid var(--border-color); 
+            margin-bottom: 22px; 
+        }
+        .metric-box { display: flex; align-items: center; gap: 14px; }
+        .metric-box .m-icon { 
+            width: 44px; 
+            height: 44px; 
+            border-radius: 11px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 1.3rem; 
+            flex-shrink: 0; 
+        }
+        .metric-box .m-title { font-size: 0.83rem; color: var(--text-muted); font-weight: 600; margin-bottom: 2px; }
+        .metric-box .m-value { font-size: 1.4rem; font-weight: 900; color: var(--text-main); }
+        
+        .progress-bar-bg { width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; margin-top: 4px; }
+        .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #10b981, #34d399); border-radius: 10px; transition: width 0.3s ease; }
+
+        .sch-filter-bar { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 18px; 
+            flex-wrap: wrap; 
+            gap: 12px; 
+            background: rgba(14, 16, 22, 0.5); 
+            padding: 12px 18px; 
+            border-radius: 12px; 
+            border: 1px solid var(--border-color); 
+        }
+        .legend-badges { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .l-badge { font-size: 0.78rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; display: flex; align-items: center; gap: 6px; }
+        .l-badge.l-mandatory { background: rgba(244, 63, 94, 0.15); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.3); }
+        .l-badge.l-important { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .l-badge.l-urgent { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .l-badge.l-review { background: rgba(139, 92, 246, 0.15); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.3); }
+
+        .sch-subview-content { display: none; flex-direction: column; }
+        .sch-subview-content.active { display: flex; animation: subFade 0.18s ease; }
+        @keyframes subFade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Timetable Grid */
+        .time-block-calendar-container { 
+            width: 100%; 
+            border-radius: 14px; 
+            overflow-x: auto; 
+            border: 1px solid var(--border-color); 
+            background: var(--bg-color); 
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.3); 
+        }
+        .calendar-interactive-wrapper { 
+            display: grid; 
+            grid-template-columns: 85px repeat(7, minmax(145px, 1fr)); 
+            min-width: 1080px; 
+            position: relative; 
+        }
+
+        .time-header-cell { 
+            background: var(--card-bg); 
+            padding: 12px 8px; 
+            text-align: center; 
+            font-weight: 800; 
+            color: var(--text-muted); 
+            border-bottom: 1px solid var(--border-color); 
+            border-left: 1px solid var(--border-color); 
+            position: sticky; 
+            top: 0; 
+            z-index: 25; 
+            font-size: 0.92rem; 
+        }
+        .day-header-cell { 
+            background: var(--card-bg); 
+            padding: 12px 10px; 
+            text-align: center; 
+            border-bottom: 1px solid var(--border-color); 
+            border-left: 1px solid var(--border-color); 
+            position: sticky; 
+            top: 0; 
+            z-index: 25; 
+        }
+        .day-header-cell.today-col { background: #1e201b; border-bottom: 3px solid var(--primary); }
+        .day-header-cell .day-name { font-size: 1.05rem; font-weight: 800; color: var(--text-main); }
+        .day-header-cell .today-pill { display: inline-block; font-size: 0.72rem; background: var(--primary); color: #0c0d11; padding: 2px 8px; border-radius: 10px; margin-top: 3px; font-weight: 800; }
+
+        .time-col { display: flex; flex-direction: column; background: var(--card-bg); border-left: 1px solid var(--border-color); }
+        .time-hour-label { height: 60px; display: flex; align-items: flex-start; justify-content: center; padding-top: 6px; font-size: 0.8rem; color: var(--text-muted); font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.03); }
+
+        .day-col { position: relative; height: 1020px; border-left: 1px solid rgba(255,255,255,0.04); background: rgba(14, 16, 22, 0.45); }
+        .day-col.today-col { background: rgba(194, 140, 56, 0.03); }
+        
+        .hour-slot-row { height: 60px; border-bottom: 1px dashed rgba(255,255,255,0.05); position: relative; cursor: pointer; transition: background 0.12s ease; }
+        .hour-slot-row:hover { background: rgba(194, 140, 56, 0.08); }
+        .hour-slot-row:hover::after { 
+            content: "+ إضافة"; 
+            position: absolute; 
+            left: 10px; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            font-size: 0.75rem; 
+            color: var(--primary); 
+            font-weight: 800; 
+            background: rgba(14, 16, 22, 0.85); 
+            padding: 2px 8px; 
+            border-radius: 6px; 
+            pointer-events: none; 
+            border: 1px solid rgba(194,140,56,0.3); 
+        }
+
+        .session-card-block { 
+            position: absolute; 
+            left: 5px; 
+            right: 5px; 
+            border-radius: 10px; 
+            padding: 7px 10px; 
+            font-size: 0.85rem; 
+            z-index: 10; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            cursor: pointer; 
+            transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease; 
+            box-shadow: 0 4px 14px rgba(0,0,0,0.35); 
+            overflow: hidden; 
+            border: 1px solid transparent; 
+            will-change: transform;
+        }
+        .session-card-block:hover { transform: translateY(-2px); z-index: 16; box-shadow: 0 8px 24px rgba(0,0,0,0.45); }
+        
+        .session-card-block.cat-mandatory { background: linear-gradient(135deg, rgba(244, 63, 94, 0.25), rgba(190, 18, 60, 0.35)); border-color: rgba(244, 63, 94, 0.4); border-right: 4px solid var(--mandatory-color); }
+        .session-card-block.cat-important { background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(4, 120, 87, 0.35)); border-color: rgba(16, 185, 129, 0.4); border-right: 4px solid var(--important-color); }
+        .session-card-block.cat-urgent { background: linear-gradient(135deg, rgba(194, 140, 56, 0.25), rgba(179, 94, 35, 0.35)); border-color: rgba(194, 140, 56, 0.4); border-right: 4px solid var(--primary); }
+        .session-card-block.cat-review { background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(109, 40, 217, 0.35)); border-color: rgba(139, 92, 246, 0.4); border-right: 4px solid var(--review-color); }
+
+        
+        /* Fixed Recurring Routine Block (College / Lab / Non-negotiables) */
+        .session-card-block.is-fixed-routine {
+            background: linear-gradient(135deg, rgba(26, 29, 38, 0.95), rgba(18, 20, 27, 0.95));
+            border: 1px dashed rgba(194, 140, 56, 0.45);
+            border-right: 4px solid var(--primary);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+        }
+        .session-card-block.is-fixed-routine .sc-title {
+            color: #fdfbf7;
+        }
+        .fixed-badge-tag {
+            font-size: 0.72rem;
+            color: #e5c386;
+            background: rgba(194, 140, 56, 0.12);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border: 1px solid rgba(194, 140, 56, 0.25);
+        }
+
+        .session-card-block.is-done { opacity: 0.65; }
+        .session-card-block.is-done .sc-title { text-decoration: line-through; color: #94a3b8; }
+        
+        .sc-top { display: flex; justify-content: space-between; align-items: center; gap: 4px; margin-bottom: 3px; }
+        .sc-time { font-size: 0.72rem; font-weight: 800; color: rgba(255,255,255,0.9); display: flex; align-items: center; gap: 4px; }
+        .sc-subject-tag { font-size: 0.68rem; background: rgba(14, 16, 22, 0.75); padding: 2px 6px; border-radius: 4px; color: #fdfbf7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90px; border: 1px solid rgba(255,255,255,0.08); font-weight: 700; }
+        .sc-title { font-weight: 800; font-size: 0.88rem; color: white; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        
+        .sc-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 4px; }
+        .sc-check-btn { background: rgba(14, 16, 22, 0.75); border: 1px solid rgba(255,255,255,0.15); color: #cbd5e1; border-radius: 6px; padding: 2px 8px; font-size: 0.72rem; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 4px; font-weight: 700; }
+        .sc-check-btn:hover { background: var(--important-color); color: white; border-color: var(--important-color); }
+        .session-card-block.is-done .sc-check-btn { background: rgba(16, 185, 129, 0.3); color: #6ee7b7; border-color: var(--important-color); }
+        .sc-actions-btn { display: flex; gap: 4px; opacity: 0.8; }
+        .sc-actions-btn button { background: transparent; border: none; color: #94a3b8; cursor: pointer; padding: 2px 4px; font-size: 0.78rem; transition: color 0.15s; }
+        .sc-actions-btn button:hover { color: white; }
+
+        /* Today View */
+        .today-focus-wrapper { display: flex; flex-direction: column; gap: 20px; }
+        .today-banner { background: linear-gradient(135deg, rgba(194, 140, 56, 0.2), rgba(20, 22, 29, 0.9)); border: 1px solid rgba(194, 140, 56, 0.3); border-right: 5px solid var(--primary); padding: 22px 26px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .today-badge { background: var(--primary-gradient); color: #0c0d11; font-size: 0.85rem; font-weight: 800; padding: 4px 14px; border-radius: 20px; }
+
+        .next-session-hero { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; border-right: 5px solid var(--primary); }
+        .today-timeline-card { background: var(--panel-bg); border-radius: 16px; padding: 22px; border: 1px solid var(--border-color); }
+        .today-event-row { display: flex; align-items: center; justify-content: space-between; padding: 15px 18px; border-radius: 12px; background: rgba(14, 16, 22, 0.5); border: 1px solid rgba(255,255,255,0.03); transition: transform 0.15s ease, background-color 0.15s ease; gap: 15px; }
+        .today-event-row:hover { background: var(--card-bg); transform: translateX(-4px); }
+
+        /* Backlog Tasks */
+        .tasks-backlog-container { display: flex; flex-direction: column; gap: 20px; }
+        .backlog-card { background: var(--card-bg); border-radius: 14px; padding: 18px 20px; border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; gap: 12px; transition: transform 0.18s ease; position: relative; }
+        .backlog-card:hover { transform: translateY(-4px); border-color: rgba(194, 140, 56, 0.3); }
+        .backlog-card.done { opacity: 0.6; }
+        .backlog-card.done .b-title { text-decoration: line-through; color: #94a3b8; }
+
+        /* ================= VIEW 3: السجل & الإنتاجية ================= */
+        .tracker-hero-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); 
+            gap: 18px; 
+            margin-bottom: 24px; 
+        }
+        .stat-card-pro { 
+            background: var(--card-bg); 
+            padding: 22px 24px; 
+            border-radius: 16px; 
+            border: 1px solid var(--border-color); 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            gap: 12px; 
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25); 
+            transition: transform 0.18s ease, border-color 0.18s ease; 
+            will-change: transform;
+        }
+        .stat-card-pro:hover { 
+            transform: translateY(-4px); 
+            border-color: rgba(194, 140, 56, 0.4); 
+        }
+        .stat-card-pro .sc-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .stat-card-pro .sc-title { 
+            font-size: 0.9rem; 
+            color: var(--text-muted); 
+            font-weight: 700; 
+        }
+        .stat-card-pro .sc-icon { 
+            width: 42px; 
+            height: 42px; 
+            border-radius: 10px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 1.25rem; 
+        }
+        .stat-card-pro .sc-num { 
+            font-size: 2.1rem; 
+            font-weight: 900; 
+            line-height: 1; 
+            color: var(--text-main); 
+        }
+        .stat-card-pro .sc-sub { 
+            font-size: 0.8rem; 
+            color: var(--text-muted); 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+        }
+
+        .tracker-widgets-row { 
+            display: grid; 
+            grid-template-columns: 1fr 1.25fr; 
+            gap: 22px; 
+            margin-bottom: 24px; 
+        }
+        @media (max-width: 992px) { 
+            .tracker-widgets-row { grid-template-columns: 1fr; } 
+        }
+
+        /* Pomodoro Focus Timer Card */
+        .pomodoro-card { 
+            background: linear-gradient(135deg, #181b24, #13151d); 
+            border-radius: 18px; 
+            padding: 24px; 
+            border: 1px solid var(--border-color); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            text-align: center; 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3); 
+        }
+        .timer-modes { 
+            display: flex; 
+            gap: 6px; 
+            background: rgba(14, 16, 22, 0.8); 
+            padding: 4px; 
+            border-radius: 12px; 
+            margin-bottom: 20px; 
+            border: 1px solid var(--border-color); 
+        }
+        .t-mode-btn { 
+            background: transparent; 
+            border: none; 
+            color: var(--text-muted); 
+            padding: 6px 14px; 
+            border-radius: 8px; 
+            font-size: 0.82rem; 
+            font-weight: 700; 
+            cursor: pointer; 
+            transition: all 0.15s ease; 
+        }
+        .t-mode-btn.active { 
+            background: var(--primary-gradient); 
+            color: #0c0d11; 
+            font-weight: 800;
+        }
+        
+        .timer-display { 
+            font-size: 3.8rem; 
+            font-weight: 900; 
+            color: var(--text-main); 
+            letter-spacing: 2px; 
+            line-height: 1; 
+            margin: 12px 0 16px 0; 
+            font-variant-numeric: tabular-nums; 
+            text-shadow: 0 4px 20px rgba(194, 140, 56, 0.25); 
+        }
+        .timer-controls { 
+            display: flex; 
+            gap: 12px; 
+            margin-top: 10px; 
+        }
+
+        /* Analytics Card */
+        .analytics-card { 
+            background: var(--panel-bg); 
+            border-radius: 18px; 
+            padding: 24px; 
+            border: 1px solid var(--border-color); 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            gap: 18px; 
+        }
+        
+        .distribution-bar { 
+            display: flex; 
+            height: 12px; 
+            border-radius: 10px; 
+            overflow: hidden; 
+            background: rgba(255,255,255,0.06); 
+            margin: 10px 0; 
+        }
+        .dist-segment { height: 100%; transition: width 0.3s ease; }
+
+        .subject-progress-list { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            max-height: 200px; 
+            overflow-y: auto; 
+            padding-right: 4px; 
+        }
+        .subject-prog-row { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 4px; 
+        }
+        .prog-label { 
+            display: flex; 
+            justify-content: space-between; 
+            font-size: 0.85rem; 
+            font-weight: 700; 
+        }
+
+        /* Log Feed */
+        .log-item-pro { 
+            background: rgba(14, 16, 22, 0.55); 
+            padding: 16px 20px; 
+            border-radius: 12px; 
+            border: 1px solid var(--border-color); 
+            border-right: 4px solid var(--primary); 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            transition: transform 0.15s ease, background-color 0.15s ease; 
+            gap: 14px; 
+        }
+        .log-item-pro:hover { 
+            background: var(--card-bg); 
+            transform: translateX(-4px); 
+        }
+        .log-tag-badge { 
+            font-size: 0.72rem; 
+            padding: 2px 8px; 
+            border-radius: 6px; 
+            font-weight: 700; 
+        }
+
+        .data-management-bar { 
+            display: flex; 
+            gap: 20px; 
+            background: linear-gradient(to left, var(--card-bg), rgba(20, 22, 29, 0.7)); 
+            padding: 20px 24px; 
+            border-radius: 16px; 
+            margin-bottom: 24px; 
+            border: 1px solid var(--border-color); 
+            justify-content: space-between; 
+            align-items: center; 
+            border-right: 4px solid var(--primary); 
+            flex-wrap: wrap;
+        }
+
+        /* Modals & Toasts */
+        .glass-overlay { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0; 
+            background: rgba(12, 13, 17, 0.8); 
+            backdrop-filter: blur(8px); 
+            -webkit-backdrop-filter: blur(8px); 
+            z-index: 1000; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            opacity: 0; 
+            pointer-events: none; 
+            transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1); 
+        }
+        .glass-overlay.active { opacity: 1; pointer-events: auto; }
+        
+        .glass-modal { 
+            background: #171922; 
+            border: 1px solid var(--border-color); 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65); 
+            padding: 28px; 
+            border-radius: 18px; 
+            width: 90%; 
+            max-width: 440px; 
+            transform: scale(0.96) translateY(12px); 
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease; 
+            opacity: 0; 
+            will-change: transform, opacity;
+        }
+        .glass-overlay.active .glass-modal { transform: scale(1) translateY(0); opacity: 1; }
+        
+        .glass-modal h3 { margin-bottom: 14px; color: var(--text-main); display: flex; align-items: center; gap: 10px; font-size: 1.35rem; font-weight: 800; }
+        .glass-modal p { color: #cbd5e1; margin-bottom: 20px; font-size: 0.92rem; line-height: 1.5; }
+        .glass-modal input, .glass-modal select, .glass-modal textarea { width: 100%; margin-bottom: 14px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+
+        
+        /* Interactive Help Walkthrough Modal */
+        .help-tabs-nav {
+            display: flex;
+            gap: 6px;
+            background: rgba(14, 16, 22, 0.85);
+            padding: 5px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+        .help-tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .help-tab-btn:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
+        .help-tab-btn.active {
+            background: var(--primary-gradient);
+            color: #0c0d11;
+            font-weight: 800;
+        }
+        .help-tab-content { display: none; flex-direction: column; gap: 16px; max-height: 440px; overflow-y: auto; padding-right: 6px; }
+        .help-tab-content.active { display: flex; animation: subFade 0.2s ease; }
+        .help-card-row {
+            background: rgba(14, 16, 22, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px 18px;
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+        }
+        .help-icon-box {
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            background: rgba(194, 140, 56, 0.15);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .key-badge {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--primary);
+            border: 1px solid var(--border-hover);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-weight: 800;
+            font-size: 0.85rem;
+        }
+
+        .toast-container { position: fixed; bottom: 26px; left: 26px; display: flex; flex-direction: column; gap: 10px; z-index: 9999; pointer-events: none; }
+        .toast { 
+            background: #171922; 
+            color: var(--text-main); 
+            padding: 14px 22px; 
+            border-radius: 12px; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            font-weight: 600; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.45); 
+            border: 1px solid var(--border-color); 
+            animation: slideInToast 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+            pointer-events: auto; 
+        }
+        .toast.success { border-right: 4px solid var(--important-color); }
+        .toast.error { border-right: 4px solid var(--mandatory-color); }
+        .toast.fade-out { animation: fadeOutToast 0.2s ease forwards; }
+        
+        @keyframes slideInToast { from { transform: translateX(-110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOutToast { to { transform: translateX(-110%); opacity: 0; } }
+
+    </style>
+</head>
+<body>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Unified Minimalist Studio Navbar -->
+    <div class="navbar">
+        <div class="navbar-brand">
+            <i class="fa-solid fa-shapes"></i> منصة الإنجاز 
+            <span style="font-size: 0.72rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--primary); font-weight: 700; margin-right: 8px;">Studio Workspace</span>
+        </div>
+        <div class="nav-items">
+            <div class="nav-item active" onclick="switchView('subjects', this)"><i class="fa-solid fa-layer-group"></i> المركز</div>
+            <div class="nav-item" onclick="switchView('schedule', this)"><i class="fa-solid fa-calendar-days"></i> التخطيط</div>
+            <div class="nav-item" onclick="switchView('tracker', this)"><i class="fa-solid fa-chart-line"></i> السجل</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="navbar-date" id="currentDate"><i class="fa-regular fa-calendar"></i></div>
+            <button class="icon-btn help-btn" onclick="openHelpModal()" title="دليل استخدام المنصة والمساعدة (اضغط ?)" style="width: 38px; height: 38px; border-radius: 10px; background: rgba(194, 140, 56, 0.15); color: var(--primary); border: 1px solid var(--border-hover);">
+                <i class="fa-solid fa-circle-question" style="font-size: 1.15rem;"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+
+        <!-- ================= PAGE 1: المركز ================= -->
+        <div id="subjects" class="view-section active">
+            <div id="subjects-list-view">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3><i class="fa-solid fa-shapes"></i> المركز الأكاديمي للمواد</h3>
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                            <input type="text" id="searchSubjectInput" placeholder="بحث في المواد..." oninput="renderSubjectsList()" style="width: 170px; padding: 11px 14px; font-size: 0.9rem;">
+                            <input type="text" id="newSubjectName" placeholder="أدخل اسم مادة جديدة..." onkeypress="if(event.key === 'Enter') addSubject()" style="width: 220px;">
+                            <button class="btn btn-primary" onclick="addSubject()"><i class="fa-solid fa-plus"></i> إضافة مادة</button>
+                        </div>
+                    </div>
+                    <!-- Semester Summary Ribbon -->
+                    <div class="semester-summary-ribbon" id="semesterSummaryRibbon">
+                        <div class="ribbon-kpi">
+                            <div class="ribbon-kpi-icon" style="background: rgba(194, 140, 56, 0.15); color: var(--primary);"><i class="fa-solid fa-shapes"></i></div>
+                            <div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">المقررات المسجلة</div>
+                                <div style="font-size: 1.35rem; font-weight: 900; color: var(--text-main);" id="ribbonTotalSubjects">0 مادة</div>
+                            </div>
+                        </div>
+                        <div class="ribbon-kpi">
+                            <div class="ribbon-kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;"><i class="fa-solid fa-file-pdf"></i></div>
+                            <div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">إجمالي المحاضرات</div>
+                                <div style="font-size: 1.35rem; font-weight: 900; color: var(--text-main);" id="ribbonTotalLectures">0 ملف</div>
+                            </div>
+                        </div>
+                        <div class="ribbon-kpi">
+                            <div class="ribbon-kpi-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--important-color);"><i class="fa-solid fa-circle-check"></i></div>
+                            <div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">المحاضرات المكتملة</div>
+                                <div style="font-size: 1.35rem; font-weight: 900; color: var(--text-main);" id="ribbonDoneLectures">0 مكتمل</div>
+                            </div>
+                        </div>
+                        <div class="ribbon-kpi" style="flex: 1;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">نسبة الإنجاز الأكاديمي للترم</div>
+                                    <div style="font-weight: 900; color: var(--primary);" id="ribbonSemesterProgress">0%</div>
+                                </div>
+                                <div class="progress-bar-bg" style="height: 8px;">
+                                    <div class="progress-bar-fill" id="ribbonProgressBar" style="width: 0%; background: var(--primary-gradient);"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="subjects-grid" id="mainSubjectsGrid"></div>
+                </div>
+            </div>
+
+            <div id="subject-details-view">
+                <div class="panel">
+                    <div class="panel-header" style="margin-bottom: 0; border: none; padding-bottom: 0;">
+                        <div>
+                            <button class="btn btn-outline" onclick="backToSubjects()" style="margin-bottom: 14px; padding: 7px 16px;"><i class="fa-solid fa-arrow-right"></i> عودة للمركز</button>
+                            <div style="display: flex; align-items: center; gap: 14px;">
+                                <h2 id="activeSubjectTitle" style="color: transparent; background: var(--primary-gradient); -webkit-background-clip: text; background-clip: text; font-size: 2rem; font-weight: 900;">اسم المادة</h2>
+                                <button class="icon-btn edit" onclick="editCurrentSubject()" title="تعديل اسم المادة"><i class="fa-solid fa-pen"></i></button>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-success" onclick="triggerAddGroup()"><i class="fa-solid fa-layer-group"></i> قسم جديد</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="groupsContainer"></div>
+            </div>
+        </div>
+
+        <!-- ================= PAGE 2: التخطيط ================= -->
+        <div id="schedule" class="view-section">
+            <div class="panel">
+                <div class="planner-header">
+                    <div>
+                        <h2 style="font-size: 1.55rem; font-weight: 900; display: flex; align-items: center; gap: 12px; color: var(--text-main); margin-bottom: 6px;">
+                            <i class="fa-solid fa-calendar-check" style="color: var(--primary);"></i> التخطيط وجدولة الأسبوع
+                        </h2>
+                        <p style="color: var(--text-muted); font-size: 0.95rem;">توزيع الوقت الذكي، تنظيم جلسات المذاكرة المرنة، ومتابعة الإنجاز الفعلي لكل مادة.</p>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <div class="schedule-pills">
+                            <button class="sch-pill active" onclick="switchScheduleSubView('week', this)"><i class="fa-solid fa-table-cells"></i> جدول الأسبوع</button>
+                            <button class="sch-pill" onclick="switchScheduleSubView('today', this)"><i class="fa-solid fa-bullseye"></i> تركيز اليوم</button>
+                            <button class="sch-pill" onclick="switchScheduleSubView('tasks', this)"><i class="fa-solid fa-list-check"></i> أهداف الأسبوع</button>
+                        </div>
+                        <button class="btn btn-primary" onclick="openAddSessionModal()"><i class="fa-solid fa-plus"></i> جلسة جديدة</button>
+                        <button class="btn btn-outline" style="border-color: rgba(244, 63, 94, 0.4); color: #fda4af;" onclick="confirmClearSchedule()"><i class="fa-solid fa-trash-can"></i> مسح الأسبوع</button>
+                    </div>
+                </div>
+
+                <!-- Weekly Metrics Summary Banner -->
+                <div class="weekly-metrics-bar">
+                    <div class="metric-box">
+                        <div class="m-icon" style="background: rgba(194, 140, 56, 0.15); color: var(--primary);"><i class="fa-regular fa-clock"></i></div>
+                        <div>
+                            <div class="m-title">ساعات الأسبوع المخططة</div>
+                            <div class="m-value" id="weekTotalHours">0 ساعة</div>
+                        </div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="m-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--important-color);"><i class="fa-solid fa-check-double"></i></div>
+                        <div>
+                            <div class="m-title">الساعات المنجزة فعلياً</div>
+                            <div class="m-value" id="weekDoneHours">0 ساعة</div>
+                        </div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="m-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--urgent-color);"><i class="fa-solid fa-chart-line"></i></div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <div class="m-title">نسبة الالتزام الأسبوعي</div>
+                                <div style="font-weight: 800; color: var(--urgent-color);" id="weekAdherenceRate">0%</div>
+                            </div>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" id="weekProgressBar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="metric-box" style="display: flex; gap: 8px; align-items: center;">
+                        <div style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6;">
+                            <div>🏛️ كلية: <b id="weekCollegeHours" style="color: #fda4af;">0 س</b></div>
+                            <div>📖 مذاكرة: <b id="weekStudyHours" style="color: #6ee7b7;">0 س</b></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUBVIEW 1: FULL WEEK TIMETABLE -->
+                <div id="subview-week" class="sch-subview-content active">
+                    <div class="sch-filter-bar">
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 700;"><i class="fa-solid fa-filter"></i> تصفية:</span>
+                            <select id="schFilterType" onchange="renderWeekGrid()" style="padding: 8px 14px; font-size: 0.9rem;">
+                                <option value="all">جميع أنواع الجلسات</option>
+                                <option value="mandatory">محاضرات ومعامل الكلية</option>
+                                <option value="important">جلسات المذاكرة العميقة</option>
+                                <option value="urgent">كويزات وتسليمات</option>
+                                <option value="review">مراجعة وتثبيت</option>
+                            </select>
+                            <select id="schFilterSubject" onchange="renderWeekGrid()" style="padding: 8px 14px; font-size: 0.9rem;">
+                                <option value="all">جميع المواد الدراسية</option>
+                            </select>
+                        </div>
+                        <div class="legend-badges">
+                            <span class="l-badge l-mandatory"><i class="fa-solid fa-circle"></i> كلية / إجباري</span>
+                            <span class="l-badge l-important"><i class="fa-solid fa-circle"></i> مذاكرة عميقة</span>
+                            <span class="l-badge l-urgent"><i class="fa-solid fa-circle"></i> كويز / تسليم</span>
+                            <span class="l-badge l-review"><i class="fa-solid fa-circle"></i> مراجعة</span>
+                        </div>
+                    </div>
+
+                    <div class="time-block-calendar-container">
+                        <div class="calendar-interactive-wrapper" id="calendarInteractiveWrapper"></div>
+                    </div>
+                </div>
+
+                <!-- SUBVIEW 2: TODAY'S FOCUS AGENDA -->
+                <div id="subview-today" class="sch-subview-content">
+                    <div class="today-focus-wrapper">
+                        <div class="today-banner">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                                    <span class="today-badge" id="todayDayBadge">اليوم</span>
+                                    <h3 id="todayDateTitle" style="font-size: 1.5rem; font-weight: 900; color: var(--text-main);">تاريخ اليوم</h3>
+                                </div>
+                                <p style="color: #cbd5e1; font-size: 0.95rem;">خطة المهام والجلسات المجدولة لليوم لمساعدتك على التركيز دون تشتت.</p>
+                            </div>
+                            <div style="display: flex; gap: 12px; align-items: center;">
+                                <button class="btn btn-primary" onclick="openAddSessionModal(getCurrentDayIdx())"><i class="fa-solid fa-plus"></i> إضافة جلسة لليوم</button>
+                            </div>
+                        </div>
+
+                        <div id="todayNextSessionContainer"></div>
+
+                        <div class="today-timeline-card">
+                            <h4 style="font-size: 1.2rem; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between;">
+                                <span><i class="fa-solid fa-timeline" style="color: var(--primary);"></i> الجدول الزمني لليوم</span>
+                                <span id="todayCompletionCount" style="font-size: 0.9rem; color: var(--text-muted); font-weight: normal;">0 من 0 مكتمل</span>
+                            </h4>
+                            <div id="todayTimelineList" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUBVIEW 3: WEEKLY TASKS & STUDY GOALS -->
+                <div id="subview-tasks" class="sch-subview-content">
+                    <div class="tasks-backlog-container">
+                        <div class="panel-header" style="margin-bottom: 20px; border: none; padding-bottom: 0;">
+                            <div>
+                                <h3 style="font-size: 1.3rem;"><i class="fa-solid fa-list-check" style="color: var(--important-color);"></i> بنك مهام وأهداف الأسبوع</h3>
+                                <p style="color: var(--text-muted); font-size: 0.92rem; margin-top: 4px;">اكتب المهام والمذاكرات المطلوبة منك مع مدتها المقدرة، وجدولها بنقرة واحدة.</p>
+                            </div>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <input type="text" id="newTaskTitle" placeholder="أدخل اسم المهمة (مثال: حل شيت فارما)..." style="width: 250px;" onkeypress="if(event.key === 'Enter') addBacklogTask()">
+                                <select id="newTaskSubject" style="width: 160px;">
+                                    <option value="">بدون مادة</option>
+                                </select>
+                                <input type="number" id="newTaskDurationInput" min="0.25" max="24" step="0.25" value="1.5" placeholder="المدة (ساعات)..." style="width: 110px;" title="المدة المقدرة بالساعات">
+                                <button class="btn btn-success" onclick="addBacklogTask()"><i class="fa-solid fa-plus"></i> إضافة مهمة</button>
+                            </div>
+                        </div>
+                        <div id="tasksBacklogList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ================= PAGE 3: السجل والإنتاجية ================= -->
+        <div id="tracker" class="view-section">
+            
+            <!-- Quick Data Management Bar -->
+            <div class="data-management-bar">
+                <div>
+                    <h3 style="margin-bottom: 6px; display: flex; align-items: center; gap: 8px; font-size: 1.25rem;"><i class="fa-solid fa-database" style="color: var(--primary);"></i> إدارة النسخ الاحتياطي</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">احفظ بياناتك محلياً بانتظام لحمايتها أو استرجاعها على أي جهاز آخر.</p>
+                </div>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <button class="btn btn-primary" onclick="exportData()"><i class="fa-solid fa-download"></i> تصدير نسخة (JSON)</button>
+                    <button class="btn btn-outline" onclick="triggerImport()" style="color: var(--important-color); border-color: rgba(16, 185, 129, 0.3);"><i class="fa-solid fa-upload"></i> استرجاع نسخة</button>
+                    <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="importData(event)">
+                </div>
+            </div>
+
+            <!-- Productivity KPI Scorecards -->
+            <div class="tracker-hero-grid">
+                <div class="stat-card-pro" style="border-bottom: 4px solid var(--primary);">
+                    <div class="sc-header">
+                        <span class="sc-title">سلسلة الالتزام (Streak)</span>
+                        <div class="sc-icon" style="background: rgba(194, 140, 56, 0.15); color: var(--primary);"><i class="fa-solid fa-fire"></i></div>
+                    </div>
+                    <div class="sc-num" id="statStreak">0 يوم</div>
+                    <div class="sc-sub"><i class="fa-solid fa-bolt" style="color:var(--primary);"></i> <span id="statStreakMsg">ابدأ بتسجيل إنجاز اليوم!</span></div>
+                </div>
+
+                <div class="stat-card-pro" style="border-bottom: 4px solid var(--important-color);">
+                    <div class="sc-header">
+                        <span class="sc-title">ساعات الأسبوع المنفذة</span>
+                        <div class="sc-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--important-color);"><i class="fa-solid fa-stopwatch"></i></div>
+                    </div>
+                    <div class="sc-num" id="statDoneHours">0 س</div>
+                    <div class="sc-sub"><i class="fa-solid fa-circle-check" style="color:var(--important-color);"></i> من إجمالي <span id="statPlannedHours">0</span> س مخطط</div>
+                </div>
+
+                <div class="stat-card-pro" style="border-bottom: 4px solid var(--terracotta);">
+                    <div class="sc-header">
+                        <span class="sc-title">معدل الفاعلية والالتزام</span>
+                        <div class="sc-icon" style="background: rgba(179, 94, 35, 0.15); color: var(--terracotta);"><i class="fa-solid fa-bullseye"></i></div>
+                    </div>
+                    <div class="sc-num" id="statEfficiencyRate">0%</div>
+                    <div class="sc-sub"><i class="fa-solid fa-chart-line" style="color:var(--terracotta);"></i> <span id="statEfficiencyLabel">في المسار</span></div>
+                </div>
+
+                <div class="stat-card-pro" style="border-bottom: 4px solid #eab308;">
+                    <div class="sc-header">
+                        <span class="sc-title">إجمالي الإنجازات المدونة</span>
+                        <div class="sc-icon" style="background: rgba(234, 179, 8, 0.15); color: #eab308;"><i class="fa-solid fa-trophy"></i></div>
+                    </div>
+                    <div class="sc-num" id="statTotalLogs">0</div>
+                    <div class="sc-sub"><i class="fa-solid fa-medal" style="color:#eab308;"></i> سجل نجاحاتك التراكمي</div>
+                </div>
+            </div>
+
+            <!-- Two-Column Interactive Row: Pomodoro Focus Timer & Time/Subject Analytics -->
+            <div class="tracker-widgets-row">
+                
+                <!-- WIDGET 1: FOCUS / POMODORO TIMER -->
+                <div class="pomodoro-card">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                        <i class="fa-solid fa-brain" style="color: var(--primary); font-size:1.3rem;"></i>
+                        <h3 style="font-size:1.25rem; font-weight:800;">مؤقت التركيز وبومودورو</h3>
+                    </div>
+                    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:14px;">اختر مدة الجلسة وابدأ فوراً؛ يُسجل وقتك تلقائياً في السجل عند الانتهاء.</p>
+                    
+                    <div class="timer-modes">
+                        <button class="t-mode-btn active" onclick="setTimerDuration(25, this)">25 دقيقة (تركيز)</button>
+                        <button class="t-mode-btn" onclick="setTimerDuration(50, this)">50 دقيقة (عميق)</button>
+                        <button class="t-mode-btn" onclick="setTimerDuration(5, this)">5 د (استراحة)</button>
+                        <button class="t-mode-btn" onclick="setTimerDuration(15, this)">15 د (راحة مطولة)</button>
+                    </div>
+
+                    <div style="width: 100%; max-width: 260px; margin-bottom: 12px;">
+                        <select id="timerSubjectSelect" style="width: 100%; padding: 8px 12px; font-size: 0.88rem;">
+                            <option value="">بدون مادة محددة (عام)</option>
+                        </select>
+                    </div>
+
+                    <div class="timer-display" id="timerDisplay">25:00</div>
+
+                    <div class="timer-controls">
+                        <button class="btn btn-primary" id="timerStartBtn" onclick="toggleTimer()"><i class="fa-solid fa-play"></i> بدء الجلسة</button>
+                        <button class="btn btn-outline" onclick="resetTimer()"><i class="fa-solid fa-rotate-left"></i> إعادة ضبط</button>
+                    </div>
+                </div>
+
+                <!-- WIDGET 2: SUBJECT & TIME DISTRIBUTION ANALYTICS -->
+                <div class="analytics-card">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <h3 style="font-size: 1.25rem; font-weight: 800; display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-chart-pie" style="color: var(--primary);"></i> تحليل توزيع الوقت والمجهود</h3>
+                            <span style="font-size: 0.85rem; color: var(--text-muted);"><span id="analyticsTotalHours">0</span> ساعة إجمالية</span>
+                        </div>
+                        <p style="color: var(--text-muted); font-size: 0.86rem;">توزيع الساعات حسب نوع النشاط وساعات الاستذكار لكل مادة:</p>
+
+                        <!-- Stacked Distribution Bar -->
+                        <div class="distribution-bar" id="distributionBar">
+                            <div class="dist-segment" id="distMandatory" style="width: 25%; background: var(--mandatory-color);" title="كلية"></div>
+                            <div class="dist-segment" id="distImportant" style="width: 50%; background: var(--important-color);" title="مذاكرة عميقة"></div>
+                            <div class="dist-segment" id="distUrgent" style="width: 15%; background: var(--primary);" title="كويزات وتسليمات"></div>
+                            <div class="dist-segment" id="distReview" style="width: 10%; background: var(--review-color);" title="مراجعة"></div>
+                        </div>
+
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.78rem; margin-bottom: 15px;">
+                            <span><i class="fa-solid fa-square" style="color:var(--mandatory-color);"></i> كلية: <b id="distMandatoryTxt">0 س</b></span>
+                            <span><i class="fa-solid fa-square" style="color:var(--important-color);"></i> مذاكرة: <b id="distImportantTxt">0 س</b></span>
+                            <span><i class="fa-solid fa-square" style="color:var(--primary);"></i> كويزات: <b id="distUrgentTxt">0 س</b></span>
+                            <span><i class="fa-solid fa-square" style="color:var(--review-color);"></i> مراجعة: <b id="distReviewTxt">0 س</b></span>
+                        </div>
+                    </div>
+
+                    <!-- Per-Subject Hours Progress -->
+                    <div>
+                        <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; color: #cbd5e1;"><i class="fa-solid fa-book"></i> ساعات المذاكرة لكل مادة:</h4>
+                        <div class="subject-progress-list" id="subjectProgressList"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- DAILY ACHIEVEMENTS FEED -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h3><i class="fa-solid fa-trophy" style="color: var(--primary);"></i> سجل الإنجازات واليوميات الذكي</h3>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">دون كل خطوة تقدم، وراجع ما أنجزته لتغذية دافعيتك اليومية.</p>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="logSearchInput" placeholder="بحث في الإنجازات..." oninput="renderLogs()" style="width: 200px; padding: 8px 14px; font-size: 0.9rem;">
+                        <button class="btn btn-success" onclick="triggerAddLogPro()"><i class="fa-solid fa-plus"></i> تدوين إنجاز جديد</button>
+                    </div>
+                </div>
+
+                <div id="logsContainer" style="display: flex; flex-direction: column; gap: 12px;"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ================= GLASS MODALS HTML ================= -->
+    
+    <!-- Single Input Modal -->
+    <div class="glass-overlay" id="singleInputModalOverlay">
+        <div class="glass-modal">
+            <h3 id="siModalTitle"><i class="fa-solid fa-pen"></i> عنوان النافذة</h3>
+            <p id="siModalDesc" style="display:none;"></p>
+            <input type="text" id="siModalInput" placeholder="...">
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeModal('singleInputModalOverlay')" style="border-color: rgba(255,255,255,0.1); color: var(--text-muted);">إلغاء</button>
+                <button class="btn btn-primary" id="siModalSaveBtn">حفظ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Double Input Modal -->
+    <div class="glass-overlay" id="doubleInputModalOverlay">
+        <div class="glass-modal">
+            <h3 id="diModalTitle"><i class="fa-solid fa-file-pdf"></i> عنوان النافذة</h3>
+            <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">عنوان المحاضرة:</label>
+            <input type="text" id="diModalInput1" placeholder="مثال: Lec 1 - Intro">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <label style="font-size: 0.88rem; color: #cbd5e1; font-weight: 600;">مسار الداتا (Path):</label>
+                <button type="button" class="btn btn-outline" style="padding:2px 10px; font-size:0.75rem;" onclick="triggerPickLocalFile()"><i class="fa-solid fa-folder-open"></i> تصفح الجهاز</button>
+                <input type="file" id="localLectureFileInput" style="display:none;" onchange="handleLocalLectureFile(event)">
+            </div>
+            <input type="text" id="diModalInput2" placeholder="مثال: D:/Study/Lec1.pdf">
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeModal('doubleInputModalOverlay')" style="border-color: rgba(255,255,255,0.1); color: var(--text-muted);">إلغاء</button>
+                <button class="btn btn-primary" id="diModalSaveBtn">حفظ</button>
+            </div>
+        </div>
+    </div>
+
+    
+    
+    <!-- ================= INTERACTIVE FULL HELP MODAL ================= -->
+    <div class="glass-overlay" id="helpModalOverlay">
+        <div class="glass-modal" style="max-width: 680px; width: 95%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="margin: 0; font-size: 1.45rem;"><i class="fa-solid fa-compass" style="color: var(--primary);"></i> الدليل التفاعلي الكامل للمنصة</h3>
+                <button class="icon-btn" onclick="closeModal('helpModalOverlay')" title="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="help-tabs-nav">
+                <button class="help-tab-btn active" onclick="switchHelpTab('overview', this)"><i class="fa-solid fa-star"></i> البداية السريعة</button>
+                <button class="help-tab-btn" onclick="switchHelpTab('subjects', this)"><i class="fa-solid fa-layer-group"></i> المركز</button>
+                <button class="help-tab-btn" onclick="switchHelpTab('schedule', this)"><i class="fa-solid fa-calendar-days"></i> التخطيط</button>
+                <button class="help-tab-btn" onclick="switchHelpTab('tracker', this)"><i class="fa-solid fa-chart-line"></i> السجل</button>
+                <button class="help-tab-btn" onclick="switchHelpTab('shortcuts', this)"><i class="fa-solid fa-keyboard"></i> الاختصارات</button>
+            </div>
+
+            <!-- TAB 1: OVERVIEW -->
+            <div id="helpTab-overview" class="help-tab-content active">
+                <div style="background: linear-gradient(135deg, rgba(194, 140, 56, 0.15), rgba(20, 22, 29, 0.9)); border: 1px solid var(--border-hover); border-radius: 14px; padding: 18px 20px;">
+                    <h4 style="font-size: 1.1rem; color: var(--primary); margin-bottom: 6px;">مرحباً بك في منصة الإنجاز (Studio Workspace) 👋</h4>
+                    <p style="color: #cbd5e1; font-size: 0.92rem; line-height: 1.6;">تم تصميم هذه المنصة خصيصاً لتجمع بين إدارة المواد الدراسية، والجدولة الزمنية الذكية بنظام Time-Blocking، ومتابعة الإنتاجية الفائقة مع مؤقت بومودورو وسلسلة الالتزام في مكان واحد.</p>
+                </div>
+
+                <div class="help-card-row">
+                    <div class="help-icon-box">1</div>
+                    <div>
+                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 3px;">الخطوة الأولى: أضف موادك في «المركز»</div>
+                        <div style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;">أنشئ بطاقات لمواد الفصل الدراسي، وقسم كل مادة إلى وحدات/فصول وأضف ملفات المحاضرات لمتابعة تقدمك ونسبة دراستك لكل مادة.</div>
+                    </div>
+                </div>
+
+                <div class="help-card-row">
+                    <div class="help-icon-box">2</div>
+                    <div>
+                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 3px;">الخطوة الثانية: حدد التزامات الكلية في «التخطيط»</div>
+                        <div style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;">أضف مواعيد الكلية الثابتة (مثل الأحد 7 ص - 5 م) وفعل خيار <b>🔒 التزام أسبوعي ثابت</b> حتى لا تعيد كتابتها أسبوعياً ولا تؤثر على نسبة إنجاز المذاكرة.</div>
+                    </div>
+                </div>
+
+                <div class="help-card-row">
+                    <div class="help-icon-box">3</div>
+                    <div>
+                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 3px;">الخطوة الثالثة: جدول جلسات المذاكرة ونفذها عبر «السجل»</div>
+                        <div style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;">حدد أوقات المذاكرة في الجدول، واستخدم مؤقت البومودورو للتركيز العميق، واضغط «إتمام» لتوثيق نجاحاتك وزيادة سلسلة الالتزام (Streak 🔥).</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px;">
+                    <button class="btn btn-outline" style="font-size: 0.85rem; padding: 8px 16px;" onclick="loadDemoData()"><i class="fa-solid fa-wand-magic-sparkles"></i> تجربة بيانات نموذجية (Demo)</button>
+                </div>
+            </div>
+
+            <!-- TAB 2: SUBJECTS -->
+            <div id="helpTab-subjects" class="help-tab-content">
+                <div class="help-card-row">
+                    <div class="help-icon-box"><i class="fa-solid fa-plus"></i></div>
+                    <div>
+                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">إضافة مادة والبحث عنها</div>
+                        <div style="font-size: 0.88rem; color: var(--text-muted);">اكتب اسم المادة في الشريط العلوي واضغط «إضافة مادة»، أو استخدم شريط البحث لتصفية المواد فورياً.</div>
+                    </div>
+                </div>
+                <div class="help-card-row">
+                    <div class="help-icon-box"><i class="fa-solid fa-folder-tree"></i></div>
+                    <div>
+                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">الأقسام والفصول (Chapters)</div>
+                        <div style="font-size: 0.88rem; color: var(--text-muted);">اضغط على أي مادة لفتحها، ثم اضغط «قسم جديد» لتقسيم المادة إلى فصول (مثال: الشابتر 1، العملي، مراجعة الفاينال).</div>
+                    </div>
+                </div>
+                <div class="help-card-row">
+                    <div class="help-icon-box"><i class="fa-solid fa-file-pdf"></i></div>
+                    <div>
+                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">إضافة المحاضرات ومسارات الملفات</div>
+                        <div style="font-size: 0.88rem; color: var(--text-muted);">اضغط «ملف جديد» في أي قسم؛ يمكنك إدخال مسار الملف على جهازك، أو اختيار ملف وسيقوم التطبيق بملء الاسم تلقائياً.</div>
+                    </div>
+                </div>
+                <div class="help-card-row">
+                    <div class="help-icon-box"><i class="fa-solid fa-circle-check"></i></div>
+                    <div>
+                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">تشطيب المحاضرات المدروسة (Progress Tracking)</div>
+                        <div style="font-size: 0.88rem; color: var(--text-muted);">بجانب كل محاضرة توجد أيقونة دائرية؛ اضغط عليها لوضع علامة «تمت المذاكرة» لتحديث شريط إنجاز المادة فوراً.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: SCHEDULE -->
+            <div id="helpTab-schedule" class="help-tab-content">
+                <div class="help-card-row">
+                    <div class="help-icon-box"><i class="fa-solid fa-table-cells"></i></div>
+                    <div>
+                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">جدول الأسبوع (Full Week Timetable)</div>
+                        <div style="font-size: 0.88rem; color: var(--text-muted);">شبكة زمنية متصلة من 7 ص إلى 11 م. اضغط على أي خانة أو ساعة لفتح نافذة الجدولة معبأة تلقائياً بذلك اليوم والوقت.</div>
+                    </div>
+                </div>
+                <div class="help-card-row">
+                    <div class="help-icon-box"><i class="fa-solid fa-lock"></i></div>
+                    <div>
+                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">الالتزام الأسبوعي الثابت (جدول الكلية الدائم)</div>
+                        <div style="font-size: 0.88rem; color: var(--text-muted);">عند تفعيل خيار <b>التزام أسبوعي ثابت</b>، يتم حجز وقت الكلية في الجدول كروتين دائم، بدون زر تشطيب، ولا يقلل من نسبة التزامك بالمذاكرة.</div>
+                    </div>
+                </div>
+                <div class="help-card-row">
+                    <div class="help-icon-box"><i class="fa-solid fa-stopwatch"></i></div>
+                    <div>
+                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">جلسات أكثر من 4 ساعات وخانة الوقت الدقيق</div>
+                        <div style="font-size: 0.88rem; color: var(--text-muted);">يمكنك اختيار حتى 8 ساعات، أو اختيار «تحديد وقت مخصص بالظبط» لكتابة أي مدة تريدها (مثلاً 5.5 أو 10 ساعات لحضور الكلية الكامل).</div>
+                    </div>
+                </div>
+                <div class="help-card-row">
+                    <div class="help-icon-box"><i class="fa-solid fa-broom"></i></div>
+                    <div>
+                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">تفريغ الأسبوع الذكي (Clear Week)</div>
+                        <div style="font-size: 0.88rem; color: var(--text-muted);">عند الضغط على «مسح الأسبوع»، يمكنك اختيار <b>مسح جلسات المذاكرة فقط</b> للبدء بأسبوع جديد مع الحفاظ التام على جدول الكلية الثابت!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: TRACKER -->
+            <div id="helpTab-tracker" class="help-tab-content">
+                <div class="help-card-row">
+                    <div class="help-icon-box"><i class="fa-solid fa-fire"></i></div>
+                    <div>
+                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">سلسلة الالتزام (Study Streak 🔥)</div>
+                        <div style="font-size: 0.88rem; color: var(--text-muted);">عداد ذكي يرصد الأيام المتتالية التي دونت فيها إنجازات دراسية. لا تدع العداد ينقطع وحافظ على إنجاز يومي!</div>
+                    </div>
+                </div>
+                <div class="help-card-row">
+                    <div class="help-icon-box"><i class="fa-solid fa-brain"></i></div>
+                    <div>
+                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">مؤقت التركيز وبومودورو (Focus Timer)</div>
+                        <div style="font-size: 0.88rem; color: var(--text-muted);">اختر مدة الجلسة (25د تركيز، 50د عمل عميق، أو استراحة)، اربط الجلسة بالمادة، واضغط «بدء». عند انتهاء الوقت يُصدر نغمة تنبيه ويُسجل الإنجاز تلقائياً.</div>
+                    </div>
+                </div>
+                <div class="help-card-row">
+                    <div class="help-icon-box"><i class="fa-solid fa-chart-pie"></i></div>
+                    <div>
+                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">تحليلات الوقت ومتابعة المواد</div>
+                        <div style="font-size: 0.88rem; color: var(--text-muted);">شريط بياني يوضح نسب وقت الكلية والمذاكرة والكويزات، مع عداد لساعات الاستذكار لكل مادة لمعرفة المواد التي تحتاج مزيداً من الجهد.</div>
+                    </div>
+                </div>
+                <div class="help-card-row">
+                    <div class="help-icon-box"><i class="fa-solid fa-database"></i></div>
+                    <div>
+                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">النسخ الاحتياطي والأمان (Backup & Restore)</div>
+                        <div style="font-size: 0.88rem; color: var(--text-muted);">اضغط «تصدير نسخة (JSON)» لتنزيل ملف يحتوي على كل بياناتك. يمكنك استرجاعه على أي جهاز آخر بنقرة واحدة عبر «استرجاع نسخة».</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: SHORTCUTS -->
+            <div id="helpTab-shortcuts" class="help-tab-content">
+                <div class="help-card-row">
+                    <div class="help-icon-box"><i class="fa-solid fa-keyboard"></i></div>
+                    <div style="width: 100%;">
+                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 8px;">اختصارات لوحة المفاتيح للتنقل السريع:</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.88rem; color: var(--text-muted);">
+                            <div><span class="key-badge">1</span> التبديل إلى صفحة «المركز»</div>
+                            <div><span class="key-badge">2</span> التبديل إلى صفحة «التخطيط»</div>
+                            <div><span class="key-badge">3</span> التبديل إلى صفحة «السجل»</div>
+                            <div><span class="key-badge">?</span> فتح نافذة المساعدة والدليل</div>
+                            <div><span class="key-badge">n</span> إضافة جلسة جديدة فوراً</div>
+                            <div><span class="key-badge">Esc</span> إغلاق أي نافذة منبثقة</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button class="btn btn-primary" onclick="closeModal('helpModalOverlay')">فهمت ذلك، فلنبدأ!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Smart Clear Schedule Modal -->
+    <div class="glass-overlay" id="clearScheduleModalOverlay">
+        <div class="glass-modal" style="max-width: 480px;">
+            <h3 style="color: var(--primary); font-size: 1.35rem;"><i class="fa-solid fa-broom"></i> تفريغ الجدول الأسبوعي</h3>
+            <p style="font-size: 0.95rem; color: #cbd5e1; margin-bottom: 20px;">اختر ما ترغب في مسحه للبدء بأسبوع دراسي جديد:</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px;">
+                <button class="btn btn-outline" style="justify-content: flex-start; text-align: right; padding: 14px; border-color: rgba(194, 140, 56, 0.4);" onclick="executeClearSchedule('study_only')">
+                    <i class="fa-solid fa-book-open" style="color: var(--primary); font-size: 1.25rem;"></i>
+                    <div>
+                        <div style="font-weight: 800; color: var(--text-main);">مسح جلسات المذاكرة فقط (موصى به ⭐)</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">يمسح مهام المذاكرة الأسبوعية مع الحفاظ التام على جدول الكلية والالتزامات الثابتة</div>
+                    </div>
+                </button>
+                
+                <button class="btn btn-outline" style="justify-content: flex-start; text-align: right; padding: 14px; border-color: rgba(244, 63, 94, 0.4);" onclick="executeClearSchedule('all')">
+                    <i class="fa-solid fa-trash-can" style="color: var(--mandatory-color); font-size: 1.25rem;"></i>
+                    <div>
+                        <div style="font-weight: 800; color: #fda4af;">مسح الجدول بالكامل (شاملاً جدول الكلية)</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">يمسح جميع الجلسات والالتزامات الثابتة بلا استثناء</div>
+                    </div>
+                </button>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeModal('clearScheduleModalOverlay')" style="color: var(--text-muted);">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div class="glass-overlay" id="confirmModalOverlay">
+        <div class="glass-modal" style="border-color: rgba(244, 63, 94, 0.4);">
+            <h3 style="color: var(--mandatory-color); font-size: 1.4rem;"><i class="fa-solid fa-triangle-exclamation"></i> تأكيد الإجراء</h3>
+            <p id="confirmModalText" style="font-size: 0.95rem;">هل أنت متأكد من رغبتك في المتابعة؟ لا يمكن التراجع عن هذا الإجراء.</p>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeModal('confirmModalOverlay')" style="border-color: rgba(255,255,255,0.1); color: white;">تراجع</button>
+                <button class="btn btn-danger" id="confirmModalBtn">نعم، تأكيد الحذف</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Session Modal (With Exact Custom Duration & > 4 Hours Support) -->
+    <div class="glass-overlay" id="sessionModalOverlay">
+        <div class="glass-modal" style="max-width: 530px;">
+            <h3 id="sessionModalTitle"><i class="fa-solid fa-calendar-plus" style="color: var(--primary);"></i> جدولة جلسة جديدة</h3>
+            <input type="hidden" id="sessionEditId" value="">
+            
+            
+            <!-- Fixed Routine / College Schedule Toggle Card -->
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" onclick="toggleFixedCommitment()">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(194, 140, 56, 0.15); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                        <i class="fa-solid fa-lock" id="fixedToggleIcon"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight: 700; font-size: 0.92rem; color: var(--text-main);">التزام أسبوعي ثابت (حضور الكلية / معامل)</div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">روتين دائم يتكرر أسبوعياً، يحجز وقته في الجدول دون اعتباره مهمة مذاكرة منجزة</div>
+                    </div>
+                </div>
+                <input type="checkbox" id="sessionIsFixedCheckbox" style="width: 20px; height: 20px; accent-color: var(--primary); cursor: pointer;" onclick="event.stopPropagation(); handleFixedCheckboxChange();">
+            </div>
+
+            <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">عنوان الجلسة / المحاضرة:</label>
+            <input type="text" id="sessionTitleInput" placeholder="مثال: مراجعة شاملة فارماكولوجي - Autonomic Drugs">
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                <div>
+                    <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">المادة الدراسية:</label>
+                    <select id="sessionSubjectSelect" style="width: 100%;">
+                        <option value="">بدون مادة (عام)</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">اليوم:</label>
+                    <select id="sessionDaySelect" style="width: 100%;">
+                        <option value="0">الأحد</option>
+                        <option value="1">الإثنين</option>
+                        <option value="2">الثلاثاء</option>
+                        <option value="3">الأربعاء</option>
+                        <option value="4">الخميس</option>
+                        <option value="5">الجمعة</option>
+                        <option value="6">السبت</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Start Time and Duration Row -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px;">
+                <div>
+                    <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">وقت البدء:</label>
+                    <select id="sessionStartHourSelect" style="width: 100%;" onchange="updateCalculatedEndTime()"></select>
+                </div>
+                <div>
+                    <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">مدة الجلسة:</label>
+                    <select id="sessionDurationSelect" style="width: 100%;" onchange="handleDurationSelectChange()">
+                        <option value="0.5">30 دقيقة (0.5 س)</option>
+                        <option value="1" selected>1 ساعة</option>
+                        <option value="1.5">1.5 ساعة (90 دقيقة)</option>
+                        <option value="2">ساعتان</option>
+                        <option value="2.5">2.5 ساعة</option>
+                        <option value="3">3 ساعات</option>
+                        <option value="4">4 ساعات</option>
+                        <option value="5">5 ساعات</option>
+                        <option value="6">6 ساعات</option>
+                        <option value="8">8 ساعات</option>
+                        <option value="custom">⚙️ تحديد وقت مخصص بالظبط...</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Custom exact duration box (appears when 'custom' is selected or for custom hours) -->
+            <div id="customDurationBox" style="display: none; background: rgba(194, 140, 56, 0.08); border: 1px solid var(--border-hover); border-radius: 12px; padding: 12px 16px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label style="font-size: 0.85rem; color: var(--primary); font-weight: 700;">أدخل عدد الساعات بدقة:</label>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">يدعم أكثر من 4 ساعات (مثال: 5.5 أو 7 أو 10)</span>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="number" id="sessionCustomHoursInput" min="0.25" max="24" step="0.25" value="5" placeholder="عدد الساعات..." style="flex: 1; padding: 9px 14px;" oninput="updateCalculatedEndTime()">
+                    <span style="color: white; font-weight: 800; font-size: 0.95rem;">ساعة</span>
+                </div>
+            </div>
+
+            <!-- Live End-time Preview Pill -->
+            <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 8px 14px; margin-bottom: 14px; font-size: 0.85rem;">
+                <span style="color: var(--text-muted);"><i class="fa-regular fa-clock" style="color: var(--primary);"></i> التوقيت المحسوب للجلسة:</span>
+                <span id="calculatedEndTimePill" style="font-weight: 800; color: var(--primary);">من 09:00 ص إلى 10:00 ص (1 س)</span>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">نوع الجلسة والأولوية:</label>
+                <select id="sessionTypeSelect" style="width: 100%;">
+                    <option value="mandatory">🔴 إجباري / كلية (محاضرة، سكشن، معمل)</option>
+                    <option value="important" selected>🟢 مذاكرة عميقة (Deep Study / فهم واستذكار)</option>
+                    <option value="urgent">🟡 كويز أو تسليم شيت (Urgent / Deadline)</option>
+                    <option value="review">🟣 مراجعة دورية (Active Recall / حل أسئلة)</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">ملاحظات أو صفحات للمذاكرة (اختياري):</label>
+                <input type="text" id="sessionNotesInput" placeholder="مثال: مراجعة السلايدات من 15 إلى 40">
+            </div>
+
+            <div class="modal-actions" style="justify-content: space-between;">
+                <div>
+                    <button class="btn btn-danger" id="sessionDeleteBtn" style="display: none; padding: 10px 18px;" onclick="deleteSessionFromModal()"><i class="fa-solid fa-trash"></i> حذف الجلسة</button>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-outline" onclick="closeModal('sessionModalOverlay')" style="border-color: rgba(255,255,255,0.1); color: var(--text-muted);">إلغاء</button>
+                    <button class="btn btn-primary" onclick="saveSession()"><i class="fa-solid fa-check"></i> حفظ الجلسة</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rich Add Log Modal (السجل Pro) -->
+    <div class="glass-overlay" id="addLogModalOverlay">
+        <div class="glass-modal" style="max-width: 480px;">
+            <h3><i class="fa-solid fa-trophy" style="color: var(--primary);"></i> تدوين إنجاز جديد</h3>
+            <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">ما الذي أنجزته اليوم؟</label>
+            <input type="text" id="logTextInput" placeholder="مثال: إنهاء مراجعة شابتر 2 وحل 30 سؤالاً...">
+            
+            <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">المادة الدراسية (اختياري):</label>
+            <select id="logSubjectSelect" style="width: 100%;">
+                <option value="">عام / بدون مادة</option>
+            </select>
+            
+            <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">مستوى الإنجاز والشعور:</label>
+            <select id="logMoodSelect" style="width: 100%;">
+                <option value="fire">🔥 إنتاجية استثنائية (Deep Work)</option>
+                <option value="bolt" selected>⚡ إنجاز متقن وفعال</option>
+                <option value="lightbulb">💡 فهم عميق واستيعاب جديد</option>
+                <option value="book">📚 إنهاء سلايدات / صفحات</option>
+            </select>
+
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeModal('addLogModalOverlay')" style="border-color: rgba(255,255,255,0.1); color: var(--text-muted);">إلغاء</button>
+                <button class="btn btn-primary" onclick="saveLogPro()"><i class="fa-solid fa-check"></i> حفظ الإنجاز</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT ================= -->
+    <script>
+        // State variables
+        let subjects = JSON.parse(localStorage.getItem('pharmaSubjectsV4')) || [];
+        let logs = JSON.parse(localStorage.getItem('pharmaLogsV4')) || [];
+        let activeSubjectId = null;
+
+        // Schedule state
+        let currentScheduleSubView = 'week';
+        let scheduleEvents = [];
+        let scheduleBacklog = JSON.parse(localStorage.getItem('pharmaScheduleBacklogV1')) || [];
+        
+        // Focus Timer State
+        let timerDurationMinutes = 25;
+        let timerRemainingSeconds = 25 * 60;
+        let timerRunning = false;
+        let timerInterval = null;
+
+        // Current Date header
+        document.getElementById('currentDate').innerHTML += " " + new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+        // --- Custom Toast Notifications ---
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icon = type === 'success' 
+                ? '<i class="fa-solid fa-circle-check" style="color: var(--important-color); font-size: 1.2rem;"></i>' 
+                : '<i class="fa-solid fa-circle-xmark" style="color: var(--mandatory-color); font-size: 1.2rem;"></i>';
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('fade-out');
+                setTimeout(() => toast.remove(), 250);
+            }, 3000);
+        }
+
+        // --- View Switching (Smooth & Instant) ---
+        function switchView(viewId, element) {
+            document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            
+            const target = document.getElementById(viewId);
+            if(target) target.classList.add('active');
+            if(element) element.classList.add('active');
+            
+            if(viewId === 'schedule') renderSchedule();
+            if(viewId === 'tracker') updateTracker();
+        }
+
+        // --- Glass Modals Logic ---
+        function openSingleInputModal(title, placeholder, initialValue, onSave) {
+            document.getElementById('siModalTitle').innerHTML = title;
+            const input = document.getElementById('siModalInput');
+            input.placeholder = placeholder; 
+            input.value = initialValue;
+            
+            const btn = document.getElementById('siModalSaveBtn');
+            btn.onclick = function() {
+                if(input.value.trim() !== '') {
+                    onSave(input.value.trim());
+                    closeModal('singleInputModalOverlay');
+                } else {
+                    input.focus();
+                }
+            };
+            document.getElementById('singleInputModalOverlay').classList.add('active');
+            input.focus();
+        }
+
+        function openDoubleInputModal(title, val1, val2, onSave) {
+            document.getElementById('diModalTitle').innerHTML = title;
+            const in1 = document.getElementById('diModalInput1');
+            const in2 = document.getElementById('diModalInput2');
+            in1.value = val1; in2.value = val2;
+            
+            const btn = document.getElementById('diModalSaveBtn');
+            btn.onclick = function() {
+                if(in1.value.trim() !== '' && in2.value.trim() !== '') {
+                    onSave(in1.value.trim(), in2.value.trim());
+                    closeModal('doubleInputModalOverlay');
+                }
+            };
+            document.getElementById('doubleInputModalOverlay').classList.add('active');
+            in1.focus();
+        }
+
+        function openConfirmModal(message, onConfirm) {
+            document.getElementById('confirmModalText').innerText = message;
+            const btn = document.getElementById('confirmModalBtn');
+            btn.onclick = function() {
+                onConfirm();
+                closeModal('confirmModalOverlay');
+            };
+            document.getElementById('confirmModalOverlay').classList.add('active');
+        }
+
+        function closeModal(id) { 
+            const el = document.getElementById(id);
+            if(el) el.classList.remove('active'); 
+        }
+
+        // ================= PAGE 1: المركز (المواد) =================
+        function saveSubjects() { localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects)); }
+
+        function addSubject() {
+            const input = document.getElementById('newSubjectName');
+            const name = input.value.trim();
+            if(!name) return;
+            subjects.unshift({ id: Date.now(), name: name, groups: [] });
+            input.value = '';
+            saveSubjects();
+            renderSubjectsList();
+            showToast('تمت إضافة المادة بنجاح');
+        }
+
+        function triggerEditSubject(id, event) {
+            if(event) event.stopPropagation();
+            const sub = subjects.find(s => s.id === id);
+            if(!sub) return;
+            openSingleInputModal('<i class="fa-solid fa-pen"></i> تعديل اسم المادة', 'الاسم الجديد', sub.name, (newName) => {
+                sub.name = newName; saveSubjects(); renderSubjectsList(); showToast('تم التعديل بنجاح');
+            });
+        }
+
+        function triggerDeleteSubject(id, event) {
+            if(event) event.stopPropagation();
+            openConfirmModal('سيتم مسح هذه المادة نهائياً بكل فصولها ومحاضراتها.', () => {
+                subjects = subjects.filter(s => s.id !== id); saveSubjects(); renderSubjectsList(); showToast('تم حذف المادة', 'error');
+            });
+        }
+
+        function getSubjectEmblemIcon(name, idx) {
+            const lower = (name || '').toLowerCase();
+            if (lower.includes('فارما') || lower.includes('دواء') || lower.includes('أدوية')) return 'fa-capsules';
+            if (lower.includes('كيمياء') || lower.includes('عضوية') || lower.includes('تحليل')) return 'fa-flask-vial';
+            if (lower.includes('بايو') || lower.includes('حيوية') || lower.includes('جين')) return 'fa-dna';
+            if (lower.includes('صيدلانيات') || lower.includes('تراكيب') || lower.includes('صيدلة')) return 'fa-mortar-pestle';
+            if (lower.includes('إكلينيك') || lower.includes('سرير') || lower.includes('طب')) return 'fa-stethoscope';
+            if (lower.includes('ميكرو') || lower.includes('مناعة') || lower.includes('بكتير')) return 'fa-virus';
+            if (lower.includes('فيزياء') || lower.includes('رياض') || lower.includes('حاسب')) return 'fa-atom';
+            const fallbackIcons = ['fa-book-bookmark', 'fa-graduation-cap', 'fa-microscope', 'fa-notes-medical', 'fa-cubes'];
+            return fallbackIcons[idx % fallbackIcons.length];
+        }
+
+        function renderSubjectsList() {
+            const grid = document.getElementById('mainSubjectsGrid');
+            if(!grid) return;
+            grid.innerHTML = '';
+            
+            // Calculate semester summary stats
+            let grandTotalLectures = 0;
+            let grandDoneLectures = 0;
+            subjects.forEach(s => {
+                s.groups.forEach(g => {
+                    g.lectures.forEach(l => {
+                        grandTotalLectures++;
+                        if (l.completed) grandDoneLectures++;
+                    });
+                });
+            });
+            const semesterPct = grandTotalLectures > 0 ? Math.round((grandDoneLectures / grandTotalLectures) * 100) : 0;
+            
+            if (document.getElementById('ribbonTotalSubjects')) document.getElementById('ribbonTotalSubjects').innerText = `${subjects.length} مادة`;
+            if (document.getElementById('ribbonTotalLectures')) document.getElementById('ribbonTotalLectures').innerText = `${grandTotalLectures} ملف`;
+            if (document.getElementById('ribbonDoneLectures')) document.getElementById('ribbonDoneLectures').innerText = `${grandDoneLectures} مكتمل`;
+            if (document.getElementById('ribbonSemesterProgress')) document.getElementById('ribbonSemesterProgress').innerText = `${semesterPct}%`;
+            if (document.getElementById('ribbonProgressBar')) document.getElementById('ribbonProgressBar').style.width = `${semesterPct}%`;
+
+            const searchVal = document.getElementById('searchSubjectInput') ? document.getElementById('searchSubjectInput').value.trim().toLowerCase() : '';
+            const filteredSubjects = subjects.filter(s => !searchVal || s.name.toLowerCase().includes(searchVal));
+
+            if(filteredSubjects.length === 0) {
+                grid.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;"><i class="fa-solid fa-folder-open"></i><h3>${searchVal ? 'لا توجد مادة بهذا الاسم' : 'لا توجد مواد دراسية حتى الآن'}</h3><p>${searchVal ? 'جرب البحث بكلمة أخرى أو أضف المادة من الزر أعلاه.' : 'ابدأ بإضافة موادك الأكاديمية من الشريط العلوي لتنظيم ملفاتك.'}</p></div>`;
+                return;
+            }
+
+            filteredSubjects.forEach((sub, idx) => {
+                let totalLec = 0;
+                let doneLec = 0;
+                sub.groups.forEach(g => {
+                    g.lectures.forEach(l => {
+                        totalLec++;
+                        if(l.completed) doneLec++;
+                    });
+                });
+                const progressPct = totalLec > 0 ? Math.round((doneLec / totalLec) * 100) : 0;
+                const iconClass = getSubjectEmblemIcon(sub.name, idx);
+                
+                // Calculate scheduled study hours for this subject
+                let scheduledHours = 0;
+                scheduleEvents.forEach(ev => {
+                    if (String(ev.subjectId) === String(sub.id)) scheduledHours += (Number(ev.duration) || 1);
+                });
+
+                grid.innerHTML += `
+                    <div class="subject-card" onclick="openSubject(${sub.id})">
+                        <!-- 3D Studio Pushpin -->
+                        <div class="studio-pushpin"></div>
+
+                        <div>
+                            <!-- Card Top: Emblem & Actions -->
+                            <div class="sc-card-top">
+                                <div class="subject-emblem"><i class="fa-solid ${iconClass}"></i></div>
+                                <div class="card-actions-always">
+                                    <button class="icon-btn edit" onclick="triggerEditSubject(${sub.id}, event)" title="تعديل اسم المادة"><i class="fa-solid fa-pen"></i></button>
+                                    <button class="icon-btn delete" onclick="triggerDeleteSubject(${sub.id}, event)" title="حذف المادة"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </div>
+
+                            <!-- Title -->
+                            <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--text-main); margin-bottom: 12px; line-height: 1.3;">${sub.name}</h3>
+
+                            <!-- Badges -->
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+                                <span class="studio-pill"><i class="fa-solid fa-folder-tree" style="color:var(--primary);"></i> ${sub.groups.length} فصول</span>
+                                <span class="studio-pill"><i class="fa-solid fa-file-pdf" style="color:var(--primary);"></i> ${totalLec} ملفات</span>
+                                ${scheduledHours > 0 ? `<span class="studio-pill" style="border-color:rgba(194,140,56,0.3); color:#e5c386;"><i class="fa-solid fa-clock"></i> ${scheduledHours} س مجدولة</span>` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Card Bottom: Golden Progress Bar & Ratio -->
+                        <div style="margin-top: auto; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.04);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.78rem;">
+                                <span style="color: var(--text-muted); font-weight: 600;">${doneLec} من ${totalLec} محاضرات منجزة</span>
+                                <span style="font-weight: 800; color: ${progressPct === 100 ? 'var(--important-color)' : 'var(--primary)'};">${progressPct === 100 ? '🏆 مكتملة' : progressPct + '%'}</span>
+                            </div>
+                            <div class="progress-bar-bg" style="height: 6px;">
+                                <div class="progress-bar-fill" style="width: ${progressPct}%; background: ${progressPct === 100 ? 'linear-gradient(90deg, #10b981, #34d399)' : 'var(--primary-gradient)'};"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function openSubject(id) {
+            activeSubjectId = id;
+            const sub = subjects.find(s => s.id === id);
+            if(!sub) return;
+            document.getElementById('activeSubjectTitle').innerText = sub.name;
+            document.getElementById('subjects-list-view').style.display = 'none';
+            document.getElementById('subject-details-view').style.display = 'flex';
+            renderGroups();
+        }
+
+        function editCurrentSubject() {
+            const sub = subjects.find(s => s.id === activeSubjectId);
+            if(!sub) return;
+            openSingleInputModal('<i class="fa-solid fa-pen"></i> تعديل اسم المادة', 'الاسم الجديد', sub.name, (newName) => {
+                sub.name = newName; 
+                document.getElementById('activeSubjectTitle').innerText = newName; 
+                saveSubjects(); 
+                renderSubjectsList(); 
+                showToast('تم التعديل بنجاح');
+            });
+        }
+
+        function backToSubjects() {
+            activeSubjectId = null;
+            document.getElementById('subjects-list-view').style.display = 'block';
+            document.getElementById('subject-details-view').style.display = 'none';
+            renderSubjectsList();
+        }
+
+        function triggerAddGroup() {
+            openSingleInputModal('<i class="fa-solid fa-layer-group"></i> إضافة قسم/شابتر جديد', 'مثال: Chapter 1', '', (name) => {
+                const sub = subjects.find(s => s.id === activeSubjectId);
+                if(!sub) return;
+                sub.groups.push({ id: Date.now(), name: name, lectures: [] });
+                saveSubjects(); renderGroups(); showToast('تمت إضافة القسم');
+            });
+        }
+
+        function triggerEditGroup(groupId) {
+            const sub = subjects.find(s => s.id === activeSubjectId);
+            if(!sub) return;
+            const group = sub.groups.find(g => g.id === groupId);
+            if(!group) return;
+            openSingleInputModal('<i class="fa-solid fa-pen"></i> تعديل اسم القسم', 'الاسم الجديد', group.name, (newName) => {
+                group.name = newName; saveSubjects(); renderGroups(); showToast('تم التعديل بنجاح');
+            });
+        }
+
+        function triggerDeleteGroup(groupId) {
+            openConfirmModal('سيتم حذف هذا القسم ومحتوياته بالكامل.', () => {
+                const sub = subjects.find(s => s.id === activeSubjectId);
+                if(!sub) return;
+                sub.groups = sub.groups.filter(g => g.id !== groupId);
+                saveSubjects(); renderGroups(); showToast('تم حذف القسم', 'error');
+            });
+        }
+
+        function triggerAddLecture(groupId) {
+            openDoubleInputModal('<i class="fa-solid fa-file-pdf"></i> إضافة محاضرة جديدة', '', '', (title, path) => {
+                const cleanPath = path.trim().replace(/^["']|["']$/g, '');
+                const sub = subjects.find(s => s.id === activeSubjectId);
+                if(!sub) return;
+                const group = sub.groups.find(g => g.id === groupId);
+                if(!group) return;
+                group.lectures.push({ id: Date.now(), title, path: cleanPath });
+                saveSubjects(); renderGroups(); showToast('تمت إضافة المحاضرة');
+            });
+        }
+
+        function triggerEditLecture(groupId, lecId) {
+            const sub = subjects.find(s => s.id === activeSubjectId);
+            if(!sub) return;
+            const group = sub.groups.find(g => g.id === groupId);
+            if(!group) return;
+            const lec = group.lectures.find(l => l.id === lecId);
+            if(!lec) return;
+            openDoubleInputModal('<i class="fa-solid fa-pen"></i> تعديل بيانات المحاضرة', lec.title, lec.path, (newTitle, newPath) => {
+                const cleanPath = newPath.trim().replace(/^["']|["']$/g, '');
+                lec.title = newTitle; lec.path = cleanPath; saveSubjects(); renderGroups(); showToast('تم التعديل بنجاح');
+            });
+        }
+
+        function triggerDeleteLecture(groupId, lecId) {
+            openConfirmModal('سيتم مسح هذه المحاضرة من القائمة.', () => {
+                const sub = subjects.find(s => s.id === activeSubjectId);
+                if(!sub) return;
+                const group = sub.groups.find(g => g.id === groupId);
+                if(!group) return;
+                group.lectures = group.lectures.filter(l => l.id !== lecId);
+                saveSubjects(); renderGroups(); showToast('تم حذف المحاضرة', 'error');
+            });
+        }
+
+        function toggleGroupAccordion(groupId) {
+            const card = document.getElementById(`groupCard_${groupId}`);
+            if (card) {
+                card.classList.toggle('collapsed');
+            }
+        }
+
+        function renderGroups() {
+            const container = document.getElementById('groupsContainer');
+            if(!container) return;
+            container.innerHTML = '';
+            const sub = subjects.find(s => s.id === activeSubjectId);
+            if(!sub) return;
+            
+            if(sub.groups.length === 0) {
+                container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-layer-group"></i><h3>لا توجد أقسام هنا</h3><p>قم بإنشاء وحدات أو فصول دراسية للبدء في تنظيم ملفاتك.</p></div>`;
+                return;
+            }
+
+            sub.groups.forEach((g) => {
+                let gDone = 0;
+                g.lectures.forEach(l => { if (l.completed) gDone++; });
+                const gPct = g.lectures.length > 0 ? Math.round((gDone / g.lectures.length) * 100) : 0;
+
+                let html = `
+                    <div class="group-card" id="groupCard_${g.id}">
+                        <div class="group-header" onclick="toggleGroupAccordion(${g.id})">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <i class="fa-solid fa-chevron-down accordion-arrow"></i>
+                                <h3 style="color: var(--text-main); font-size: 1.25rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 10px;">
+                                    <i class="fa-solid fa-folder-open" style="color:var(--primary); font-size: 1.15rem;"></i> ${g.name}
+                                </h3>
+                                <span class="studio-pill" style="font-size: 0.72rem; margin-right: 6px;">${gDone}/${g.lectures.length} منجز (${gPct}%)</span>
+                            </div>
+                            <div class="card-actions" style="display:flex; gap:8px;" onclick="event.stopPropagation()">
+                                <button class="btn btn-outline" style="padding: 6px 14px; font-size: 0.85rem;" onclick="triggerAddLecture(${g.id})"><i class="fa-solid fa-plus"></i> ملف جديد</button>
+                                <button class="icon-btn edit" onclick="triggerEditGroup(${g.id})" title="تعديل اسم القسم"><i class="fa-solid fa-pen"></i></button>
+                                <button class="icon-btn delete" onclick="triggerDeleteGroup(${g.id})" title="حذف القسم"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="lectures-list">
+                `;
+                if(g.lectures.length === 0) {
+                    html += `<p style="color:var(--text-muted); font-size:0.9rem; padding: 12px; background: rgba(14, 16, 22, 0.4); border-radius: 10px;">هذا الفصل فارغ حالياً. اضغط «ملف جديد» لإضافة محاضراتك.</p>`;
+                } else {
+                    g.lectures.forEach(lec => {
+                        html += `
+                            <div class="lecture-item">
+                                <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                                    <button class="icon-btn" style="width: 34px; height: 34px; border-radius: 9px; background: ${lec.completed ? 'rgba(16, 185, 129, 0.2)' : 'rgba(14, 16, 22, 0.6)'}; color: ${lec.completed ? 'var(--important-color)' : 'var(--text-muted)'};" onclick="toggleLectureCompleted(${g.id}, ${lec.id})" title="${lec.completed ? 'تراجع عن دراسة المحاضرة' : 'وضع علامة تمت المذاكرة'}">
+                                        <i class="fa-solid ${lec.completed ? 'fa-circle-check' : 'fa-circle'}" style="font-size: 1.15rem;"></i>
+                                    </button>
+                                    <a href="${lec.path}" target="_blank" style="flex: 1; display: flex; align-items: center; gap: 10px;">
+                                        <i class="fa-solid fa-file-pdf" style="color: ${lec.completed ? 'var(--important-color)' : 'var(--mandatory-color)'}; font-size: 1.25rem;"></i> 
+                                        <span style="font-weight: 600; ${lec.completed ? 'text-decoration: line-through; color: #9ca3af;' : ''}">${lec.title}</span>
+                                    </a>
+                                </div>
+                                <div class="card-actions">
+                                    <button class="icon-btn edit" onclick="triggerEditLecture(${g.id}, ${lec.id})" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+                                    <button class="icon-btn delete" onclick="triggerDeleteLecture(${g.id}, ${lec.id})" title="حذف"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                html += `</div></div>`;
+                container.innerHTML += html;
+            });
+        }
+
+        // ================= PAGE 2: التخطيط (Smart Study Planner) =================
+        function initScheduleData() {
+            let rawSchedule = JSON.parse(localStorage.getItem('pharmaScheduleV4')) || {};
+            if (Array.isArray(rawSchedule)) {
+                scheduleEvents = rawSchedule;
+            } else if (rawSchedule && typeof rawSchedule === 'object') {
+                if (rawSchedule.events && Array.isArray(rawSchedule.events)) {
+                    scheduleEvents = rawSchedule.events;
+                    if (rawSchedule.backlog && Array.isArray(rawSchedule.backlog)) {
+                        scheduleBacklog = rawSchedule.backlog;
+                    }
+                } else {
+                    scheduleEvents = [];
+                    for (let key in rawSchedule) {
+                        if (key.includes('_')) {
+                            let parts = key.split('_');
+                            let d = parseInt(parts[0]);
+                            let h = parseInt(parts[1]);
+                            if (!isNaN(d) && !isNaN(h)) {
+                                scheduleEvents.push({
+                                    id: Date.now() + Math.floor(Math.random() * 100000),
+                                    title: rawSchedule[key].name || 'جلسة مذاكرة',
+                                    subjectId: '',
+                                    day: d,
+                                    startHour: h,
+                                    duration: 1,
+                                    type: rawSchedule[key].type || 'important',
+                                    completed: false,
+                                    notes: ''
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        initScheduleData();
+
+        function saveScheduleData() {
+            localStorage.setItem('pharmaScheduleV4', JSON.stringify({
+                version: 2,
+                events: scheduleEvents,
+                backlog: scheduleBacklog
+            }));
+            localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));
+        }
+
+        function getCurrentDayIdx() { return new Date().getDay(); }
+
+        function formatHourText(h) {
+            let floorH = Math.floor(h);
+            let mins = Math.round((h - floorH) * 60);
+            let minStr = mins > 0 ? `:${mins < 10 ? '0' : ''}${mins}` : ':00';
+            let period = (floorH % 24) >= 12 ? 'م' : 'ص';
+            let normH = floorH % 24;
+            let displayH = normH > 12 ? normH - 12 : (normH === 0 ? 12 : normH);
+            return `${displayH}${minStr} ${period}`;
+        }
+
+        function switchScheduleSubView(subViewId, btnElement) {
+            currentScheduleSubView = subViewId;
+            document.querySelectorAll('.sch-pill').forEach(b => b.classList.remove('active'));
+            if(btnElement) btnElement.classList.add('active');
+            
+            document.querySelectorAll('.sch-subview-content').forEach(v => v.classList.remove('active'));
+            const targetView = document.getElementById(`subview-${subViewId}`);
+            if(targetView) targetView.classList.add('active');
+            
+            renderSchedule();
+        }
+
+        function renderSchedule() {
+            populateSubjectDropdowns();
+            updateWeeklyMetrics();
+            if (currentScheduleSubView === 'week') renderWeekGrid();
+            else if (currentScheduleSubView === 'today') renderTodayView();
+            else if (currentScheduleSubView === 'tasks') renderTasksView();
+        }
+
+        function populateSubjectDropdowns() {
+            const selects = ['schFilterSubject', 'sessionSubjectSelect', 'newTaskSubject', 'timerSubjectSelect', 'logSubjectSelect'];
+            selects.forEach(selId => {
+                const el = document.getElementById(selId);
+                if (!el) return;
+                const curVal = el.value;
+                if (selId === 'schFilterSubject') {
+                    el.innerHTML = '<option value="all">جميع المواد الدراسية</option>';
+                } else {
+                    el.innerHTML = '<option value="">بدون مادة (عام)</option>';
+                }
+                subjects.forEach(sub => {
+                    el.innerHTML += `<option value="${sub.id}">${sub.name}</option>`;
+                });
+                if (curVal) el.value = curVal;
+            });
+            
+            const hourSel = document.getElementById('sessionStartHourSelect');
+            if (hourSel && hourSel.options.length === 0) {
+                hourSel.innerHTML = '';
+                for (let h = 6; h <= 23; h++) {
+                    hourSel.innerHTML += `<option value="${h}">${formatHourText(h)}</option>`;
+                }
+            }
+        }
+
+        // ================= DURATION & TIME CALCULATION HELPERS =================
+        function handleDurationSelectChange() {
+            const sel = document.getElementById('sessionDurationSelect').value;
+            const box = document.getElementById('customDurationBox');
+            if (sel === 'custom') {
+                box.style.display = 'block';
+                document.getElementById('sessionCustomHoursInput').focus();
+            } else {
+                box.style.display = 'none';
+            }
+            updateCalculatedEndTime();
+        }
+
+        function getSelectedDuration() {
+            const sel = document.getElementById('sessionDurationSelect').value;
+            if (sel === 'custom') {
+                const customVal = parseFloat(document.getElementById('sessionCustomHoursInput').value);
+                return (!isNaN(customVal) && customVal > 0) ? customVal : 1;
+            }
+            return parseFloat(sel) || 1;
+        }
+
+        function updateCalculatedEndTime() {
+            const startHour = parseFloat(document.getElementById('sessionStartHourSelect').value) || 9;
+            const duration = getSelectedDuration();
+            const endHour = startHour + duration;
+            const pill = document.getElementById('calculatedEndTimePill');
+            if (pill) {
+                pill.innerText = `من ${formatHourText(startHour)} إلى ${formatHourText(endHour)} (${duration} س)`;
+            }
+        }
+
+        function renderWeekGrid() {
+            const wrapper = document.getElementById('calendarInteractiveWrapper');
+            if (!wrapper) return;
+            
+            const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+            const todayIdx = getCurrentDayIdx();
+            const filterType = document.getElementById('schFilterType') ? document.getElementById('schFilterType').value : 'all';
+            const filterSubject = document.getElementById('schFilterSubject') ? document.getElementById('schFilterSubject').value : 'all';
+            
+            let html = '';
+            
+            html += `<div class="time-header-cell"><i class="fa-regular fa-clock"></i> الوقت</div>`;
+            days.forEach((dayName, dIdx) => {
+                const isToday = dIdx === todayIdx;
+                html += `
+                    <div class="day-header-cell ${isToday ? 'today-col' : ''}">
+                        <div class="day-name">${dayName}</div>
+                        ${isToday ? '<span class="today-pill">اليوم</span>' : ''}
+                    </div>
+                `;
+            });
+            
+            html += `<div class="time-col">`;
+            for (let h = 7; h <= 23; h++) {
+                html += `<div class="time-hour-label">${formatHourText(h)}</div>`;
+            }
+            html += `</div>`;
+            
+            days.forEach((_, dIdx) => {
+                const isToday = dIdx === todayIdx;
+                html += `<div class="day-col ${isToday ? 'today-col' : ''}" id="dayCol_${dIdx}">`;
+                
+                for (let h = 7; h <= 23; h++) {
+                    html += `<div class="hour-slot-row" onclick="openAddSessionModal(${dIdx}, ${h})" title="انقر لإضافة جلسة يوم ${days[dIdx]} الساعة ${formatHourText(h)}"></div>`;
+                }
+                
+                const dayEvents = scheduleEvents.filter(ev => {
+                    if (ev.day !== dIdx) return false;
+                    if (filterType !== 'all' && ev.type !== filterType) return false;
+                    if (filterSubject !== 'all' && String(ev.subjectId) !== String(filterSubject)) return false;
+                    return true;
+                });
+                
+                dayEvents.forEach(ev => {
+                    const topPos = Math.max(0, (ev.startHour - 7) * 60 + 2);
+                    const heightPos = Math.max(34, (ev.duration * 60) - 4);
+                    const endHour = ev.startHour + ev.duration;
+                    const timeDisplay = `${formatHourText(ev.startHour)} - ${formatHourText(endHour)}`;
+                    
+                    let subjectBadge = '';
+                    if (ev.subjectId) {
+                        const subObj = subjects.find(s => String(s.id) === String(ev.subjectId));
+                        if (subObj) {
+                            subjectBadge = `<span class="sc-subject-tag"><i class="fa-solid fa-book-bookmark" style="font-size:0.65rem;"></i> ${subObj.name}</span>`;
+                        }
+                    }
+                    
+                    const isFixed = !!ev.isFixed;
+                    const isDone = !isFixed && ev.completed;
+                    const typeClass = isFixed ? 'is-fixed-routine' : `cat-${ev.type || 'important'}`;
+                    
+                    let bottomActionHtml = '';
+                    if (isFixed) {
+                        bottomActionHtml = `
+                            <span class="fixed-badge-tag"><i class="fa-solid fa-lock"></i> جدول ثابت</span>
+                            <div class="sc-actions-btn">
+                                <button onclick="editSessionDirect(event, ${ev.id})" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteSessionDirect(event, ${ev.id})" title="حذف"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        `;
+                    } else {
+                        bottomActionHtml = `
+                            <button class="sc-check-btn" onclick="toggleCompleteSession(event, ${ev.id})">
+                                <i class="fa-solid ${isDone ? 'fa-circle-check' : 'fa-circle'}"></i> ${isDone ? 'منجز' : 'إتمام'}
+                            </button>
+                            <div class="sc-actions-btn">
+                                <button onclick="editSessionDirect(event, ${ev.id})" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteSessionDirect(event, ${ev.id})" title="حذف"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        `;
+                    }
+                    
+                    html += `
+                        <div class="session-card-block ${typeClass} ${isDone ? 'is-done' : ''}" 
+                             style="top: ${topPos}px; height: ${heightPos}px;" 
+                             onclick="handleBlockClick(event, ${ev.id})">
+                            <div class="sc-top">
+                                <span class="sc-time"><i class="fa-regular fa-clock"></i> ${timeDisplay} (${ev.duration} س)</span>
+                                ${subjectBadge}
+                            </div>
+                            <div class="sc-title" title="${ev.title}">${ev.title}</div>
+                            ${ev.notes ? `<div style="font-size:0.7rem; color:#cbd5e1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:0.85;">📝 ${ev.notes}</div>` : ''}
+                            <div class="sc-bottom">
+                                ${bottomActionHtml}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`;
+            });
+            
+            wrapper.innerHTML = html;
+        }
+
+        function renderTodayView() {
+            const todayIdx = getCurrentDayIdx();
+            const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+            
+            document.getElementById('todayDayBadge').innerText = `اليوم: ${days[todayIdx]}`;
+            document.getElementById('todayDateTitle').innerText = new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            
+            const todayEvents = scheduleEvents.filter(ev => ev.day === todayIdx).sort((a,b) => a.startHour - b.startHour);
+            const totalCount = todayEvents.length;
+            const doneCount = todayEvents.filter(e => e.completed).length;
+            
+            const studyTasks = todayEvents.filter(e => !e.isFixed);
+            const doneStudyTasks = studyTasks.filter(e => e.completed).length;
+            const fixedCount = todayEvents.filter(e => e.isFixed).length;
+            let statusText = `${doneStudyTasks} من ${studyTasks.length} مهام مذاكرة مكتملة`;
+            if (fixedCount > 0) statusText += ` (${fixedCount} التزام كلية ثابت)`;
+            document.getElementById('todayCompletionCount').innerText = statusText;
+            
+            const currentHour = new Date().getHours() + (new Date().getMinutes()/60);
+            const nextSession = todayEvents.find(e => !e.completed && (e.startHour + e.duration) > currentHour);
+            
+            const heroContainer = document.getElementById('todayNextSessionContainer');
+            if (nextSession) {
+                let subName = 'عام';
+                if (nextSession.subjectId) {
+                    const subObj = subjects.find(s => String(s.id) === String(nextSession.subjectId));
+                    if (subObj) subName = subObj.name;
+                }
+                heroContainer.innerHTML = `
+                    <div class="next-session-hero">
+                        <div>
+                            <span style="font-size:0.8rem; background:rgba(194, 140, 56, 0.2); color:var(--primary); padding:4px 12px; border-radius:20px; font-weight:800; display:inline-flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-forward"></i> الجلسة القادمة لليوم
+                            </span>
+                            <h3 style="font-size:1.35rem; color:var(--text-main); margin:10px 0 6px 0;">${nextSession.title}</h3>
+                            <p style="color:var(--text-muted); font-size:0.92rem;">
+                                <i class="fa-solid fa-book" style="color:var(--primary);"></i> ${subName} &nbsp;|&nbsp; 
+                                <i class="fa-regular fa-clock"></i> ${formatHourText(nextSession.startHour)} إلى ${formatHourText(nextSession.startHour + nextSession.duration)} (${nextSession.duration} ساعة)
+                            </p>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn btn-success" onclick="toggleCompleteSession(null, ${nextSession.id})">
+                                <i class="fa-solid fa-circle-check"></i> تم إنجاز الجلسة الآن
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else if (todayEvents.length > 0 && doneCount === totalCount) {
+                heroContainer.innerHTML = `
+                    <div class="next-session-hero" style="border-right-color: var(--important-color); background: rgba(16, 185, 129, 0.1);">
+                        <div>
+                            <h3 style="color:#6ee7b7; font-size:1.25rem;"><i class="fa-solid fa-medal"></i> رائع جداً! أنهيت جميع جلسات ومهام اليوم بنجاح 🎉</h3>
+                            <p style="color:var(--text-muted); font-size:0.9rem; margin-top:4px;">استمتع بوقتك أو راجع أهداف الأسبوع القادمة.</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                heroContainer.innerHTML = '';
+            }
+            
+            const listContainer = document.getElementById('todayTimelineList');
+            listContainer.innerHTML = '';
+            if (todayEvents.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fa-solid fa-calendar-day" style="font-size:3rem; color:var(--border-color); margin-bottom:12px;"></i>
+                        <h3>لا توجد جلسات مذاكرة مجدولة لليوم</h3>
+                        <p style="margin-bottom:15px;">يمكنك البدء بجدولة جلسة دراسية جديدة أو أخذ قسط من الراحة.</p>
+                        <button class="btn btn-primary" onclick="openAddSessionModal(${todayIdx})"><i class="fa-solid fa-plus"></i> جدولة جلسة لليوم</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            todayEvents.forEach(ev => {
+                let subName = '';
+                if (ev.subjectId) {
+                    const subObj = subjects.find(s => String(s.id) === String(ev.subjectId));
+                    if (subObj) subName = `<span class="sc-subject-tag"><i class="fa-solid fa-book"></i> ${subObj.name}</span>`;
+                }
+                const typeLabels = {
+                    mandatory: '<span style="color:#fda4af; font-weight:700;">🏛️ كلية</span>',
+                    important: '<span style="color:#6ee7b7; font-weight:700;">📖 مذاكرة عميقة</span>',
+                    urgent: '<span style="color:var(--primary); font-weight:700;">⚡ كويز / تسليم</span>',
+                    review: '<span style="color:#c4b5fd; font-weight:700;">🔄 مراجعة</span>'
+                };
+                
+                const isFixed = !!ev.isFixed;
+                const isDone = !isFixed && ev.completed;
+                let leadingBtnHtml = '';
+                if (isFixed) {
+                    leadingBtnHtml = `<div class="icon-btn" style="width:40px; height:40px; border-radius:11px; background:rgba(194, 140, 56, 0.15); color:var(--primary); pointer-events:none;"><i class="fa-solid fa-building-columns"></i></div>`;
+                } else {
+                    leadingBtnHtml = `<button class="icon-btn" style="width:40px; height:40px; border-radius:11px; background:${isDone ? 'rgba(16, 185, 129, 0.2)' : 'rgba(14, 16, 22, 0.6)'}; color:${isDone ? 'var(--important-color)' : 'var(--text-muted)'};" onclick="toggleCompleteSession(null, ${ev.id})" title="${isDone ? 'تراجع عن الإنجاز' : 'إتمام الجلسة'}"><i class="fa-solid ${isDone ? 'fa-circle-check' : 'fa-circle'}" style="font-size:1.25rem;"></i></button>`;
+                }
+                
+                let typeBadgeHtml = isFixed ? '<span class="fixed-badge-tag"><i class="fa-solid fa-lock"></i> التزام أسبوعي ثابت</span>' : (typeLabels[ev.type] || '');
+
+                listContainer.innerHTML += `
+                    <div class="today-event-row" style="${isDone ? 'opacity:0.65;' : (isFixed ? 'border-right: 4px solid var(--primary);' : '')}">
+                        <div style="display:flex; align-items:center; gap:16px;">
+                            ${leadingBtnHtml}
+                            <div>
+                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px; flex-wrap:wrap;">
+                                    <span style="font-weight:800; font-size:1.02rem; ${isDone ? 'text-decoration:line-through; color:#94a3b8;' : 'color:var(--text-main);'}">${ev.title}</span>
+                                    ${subName}
+                                    ${typeBadgeHtml}
+                                </div>
+                                <div style="font-size:0.83rem; color:var(--text-muted); display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                                    <span><i class="fa-regular fa-clock"></i> ${formatHourText(ev.startHour)} إلى ${formatHourText(ev.startHour + ev.duration)} (${ev.duration} ساعة)</span>
+                                    ${ev.notes ? `<span>📝 ${ev.notes}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button class="icon-btn edit" onclick="editSessionDirect(null, ${ev.id})" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+                            <button class="icon-btn delete" onclick="deleteSessionDirect(null, ${ev.id})" title="حذف"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderTasksView() {
+            populateSubjectDropdowns();
+            const list = document.getElementById('tasksBacklogList');
+            if (!list) return;
+            list.innerHTML = '';
+            
+            if (scheduleBacklog.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <i class="fa-solid fa-clipboard-check" style="font-size:3rem; color:var(--border-color); margin-bottom:12px;"></i>
+                        <h3>لا توجد مهام في بنك أهداف الأسبوع</h3>
+                        <p>أضف المهام والمذاكرات المطلوب إنجازها لتتمكن من جدولتها في التقويم بسهولة.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            scheduleBacklog.forEach(item => {
+                let subName = 'عام';
+                if (item.subjectId) {
+                    const subObj = subjects.find(s => String(s.id) === String(item.subjectId));
+                    if (subObj) subName = subObj.name;
+                }
+                
+                list.innerHTML += `
+                    <div class="backlog-card ${item.done ? 'done' : ''}">
+                        <div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                <span class="sc-subject-tag"><i class="fa-solid fa-book"></i> ${subName}</span>
+                                <div class="card-actions" style="position:static; opacity:1;">
+                                    <button class="icon-btn delete" style="width:28px; height:28px;" onclick="deleteBacklogTask(${item.id})"><i class="fa-solid fa-trash" style="font-size:0.75rem;"></i></button>
+                                </div>
+                            </div>
+                            <div class="b-title" style="font-size:1.02rem; font-weight:800; color:var(--text-main); margin-bottom:6px;">${item.title}</div>
+                            <div style="font-size:0.8rem; color:var(--text-muted);"><i class="fa-regular fa-clock"></i> مقدر: ${item.duration || 1} ساعة</div>
+                        </div>
+                        <div style="display:flex; gap:8px; margin-top:8px;">
+                            <button class="btn btn-outline" style="padding:6px 12px; font-size:0.83rem; flex:1;" onclick="scheduleBacklogTaskDirect(${item.id})">
+                                <i class="fa-solid fa-calendar-plus"></i> جدولة في التقويم
+                            </button>
+                            <button class="btn ${item.done ? 'btn-outline' : 'btn-success'}" style="padding:6px 12px; font-size:0.83rem;" onclick="toggleBacklogDone(${item.id})">
+                                <i class="fa-solid ${item.done ? 'fa-rotate-left' : 'fa-check'}"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function updateWeeklyMetrics() {
+            let totalCommittedHours = 0;
+            let fixedCollegeHours = 0;
+            let plannedStudyHours = 0;
+            let doneStudyHours = 0;
+            
+            scheduleEvents.forEach(ev => {
+                const dur = Number(ev.duration) || 1;
+                totalCommittedHours += dur;
+                if (ev.isFixed || ev.type === 'mandatory') {
+                    fixedCollegeHours += dur;
+                } else {
+                    plannedStudyHours += dur;
+                    if (ev.completed) doneStudyHours += dur;
+                }
+            });
+            
+            // Adherence rate is purely based on actionable study hours!
+            const adherence = plannedStudyHours > 0 ? Math.round((doneStudyHours / plannedStudyHours) * 100) : (totalCommittedHours > 0 ? 100 : 0);
+            
+            if (document.getElementById('weekTotalHours')) document.getElementById('weekTotalHours').innerText = `${totalCommittedHours} ساعة`;
+            if (document.getElementById('weekDoneHours')) document.getElementById('weekDoneHours').innerText = `${doneStudyHours} س مذاكرة`;
+            if (document.getElementById('weekAdherenceRate')) document.getElementById('weekAdherenceRate').innerText = `${adherence}%`;
+            if (document.getElementById('weekProgressBar')) document.getElementById('weekProgressBar').style.width = `${adherence}%`;
+            if (document.getElementById('weekCollegeHours')) document.getElementById('weekCollegeHours').innerText = `${fixedCollegeHours} س`;
+            if (document.getElementById('weekStudyHours')) document.getElementById('weekStudyHours').innerText = `${plannedStudyHours} س`;
+        }
+
+        // ================= OPEN / EDIT SESSION MODAL =================
+        function openAddSessionModal(dayIdx = null, startHour = null) {
+            populateSubjectDropdowns();
+            document.getElementById('sessionModalTitle').innerHTML = '<i class="fa-solid fa-calendar-plus" style="color:var(--primary);"></i> جدولة جلسة جديدة';
+            document.getElementById('sessionEditId').value = '';
+            document.getElementById('sessionTitleInput').value = '';
+            document.getElementById('sessionNotesInput').value = '';
+            document.getElementById('sessionIsFixedCheckbox').checked = false;
+            document.getElementById('fixedToggleIcon').className = 'fa-solid fa-lock-open';
+            
+            document.getElementById('sessionDurationSelect').value = '1';
+            document.getElementById('customDurationBox').style.display = 'none';
+            document.getElementById('sessionCustomHoursInput').value = '5';
+            
+            document.getElementById('sessionTypeSelect').value = 'important';
+            document.getElementById('sessionDeleteBtn').style.display = 'none';
+            
+            if (dayIdx !== null) document.getElementById('sessionDaySelect').value = String(dayIdx);
+            else document.getElementById('sessionDaySelect').value = String(getCurrentDayIdx());
+            
+            if (startHour !== null) document.getElementById('sessionStartHourSelect').value = String(startHour);
+            else document.getElementById('sessionStartHourSelect').value = '9';
+            
+            updateCalculatedEndTime();
+            document.getElementById('sessionModalOverlay').classList.add('active');
+            document.getElementById('sessionTitleInput').focus();
+        }
+
+        function editSessionDirect(event, eventId) {
+            if (event) event.stopPropagation();
+            const ev = scheduleEvents.find(e => e.id === eventId);
+            if (!ev) return;
+            
+            populateSubjectDropdowns();
+            document.getElementById('sessionModalTitle').innerHTML = '<i class="fa-solid fa-pen" style="color:var(--primary);"></i> تعديل بيانات الجلسة';
+            document.getElementById('sessionEditId').value = String(ev.id);
+            document.getElementById('sessionTitleInput').value = ev.title;
+            document.getElementById('sessionSubjectSelect').value = ev.subjectId || '';
+            document.getElementById('sessionDaySelect').value = String(ev.day);
+            document.getElementById('sessionStartHourSelect').value = String(ev.startHour);
+            
+            // Set Duration
+            const standardDurations = ['0.5', '1', '1.5', '2', '2.5', '3', '4', '5', '6', '8'];
+            const durStr = String(ev.duration);
+            if (standardDurations.includes(durStr)) {
+                document.getElementById('sessionDurationSelect').value = durStr;
+                document.getElementById('customDurationBox').style.display = 'none';
+            } else {
+                document.getElementById('sessionDurationSelect').value = 'custom';
+                document.getElementById('customDurationBox').style.display = 'block';
+                document.getElementById('sessionCustomHoursInput').value = ev.duration;
+            }
+            
+            document.getElementById('sessionTypeSelect').value = ev.type || 'important';
+            document.getElementById('sessionNotesInput').value = ev.notes || '';
+            const isEvFixed = !!ev.isFixed;
+            document.getElementById('sessionIsFixedCheckbox').checked = isEvFixed;
+            document.getElementById('fixedToggleIcon').className = isEvFixed ? 'fa-solid fa-lock' : 'fa-solid fa-lock-open';
+            document.getElementById('sessionDeleteBtn').style.display = 'inline-flex';
+            
+            updateCalculatedEndTime();
+            document.getElementById('sessionModalOverlay').classList.add('active');
+            document.getElementById('sessionTitleInput').focus();
+        }
+
+        function handleBlockClick(event, eventId) {
+            if (event.target.closest('button')) return;
+            editSessionDirect(event, eventId);
+        }
+
+        function saveSession() {
+            const title = document.getElementById('sessionTitleInput').value.trim();
+            if (!title) {
+                showToast('يرجى كتابة عنوان الجلسة', 'error');
+                document.getElementById('sessionTitleInput').focus();
+                return;
+            }
+            
+            const editId = document.getElementById('sessionEditId').value;
+            const subjectId = document.getElementById('sessionSubjectSelect').value;
+            const day = parseInt(document.getElementById('sessionDaySelect').value);
+            const startHour = parseFloat(document.getElementById('sessionStartHourSelect').value);
+            const duration = getSelectedDuration();
+            const type = document.getElementById('sessionTypeSelect').value;
+            const notes = document.getElementById('sessionNotesInput').value.trim();
+            const isFixed = document.getElementById('sessionIsFixedCheckbox').checked;
+            
+            if (editId) {
+                const ev = scheduleEvents.find(e => String(e.id) === String(editId));
+                if (ev) {
+                    ev.title = title;
+                    ev.subjectId = subjectId;
+                    ev.day = day;
+                    ev.startHour = startHour;
+                    ev.duration = duration;
+                    ev.type = type;
+                    ev.notes = notes;
+                    ev.isFixed = isFixed;
+                    if (isFixed) ev.completed = false;
+                    showToast('تم تحديث بيانات الجلسة بنجاح');
+                }
+            } else {
+                scheduleEvents.push({
+                    id: Date.now(),
+                    title,
+                    subjectId,
+                    day,
+                    startHour,
+                    duration,
+                    type,
+                    completed: false,
+                    isFixed: isFixed,
+                    notes
+                });
+                showToast(`تمت جدولة الجلسة بنجاح (${duration} س) 🎯`);
+            }
+            
+            saveScheduleData();
+            closeModal('sessionModalOverlay');
+            renderSchedule();
+        }
+
+        function deleteSessionFromModal() {
+            const editId = document.getElementById('sessionEditId').value;
+            if (!editId) return;
+            deleteSessionDirect(null, parseInt(editId));
+            closeModal('sessionModalOverlay');
+        }
+
+        function deleteSessionDirect(event, eventId) {
+            if (event) event.stopPropagation();
+            openConfirmModal('سيتم مسح هذه الجلسة من جدولك الأسبوعي.', () => {
+                scheduleEvents = scheduleEvents.filter(e => e.id !== eventId);
+                saveScheduleData();
+                renderSchedule();
+                showToast('تم حذف الجلسة', 'error');
+            });
+        }
+
+        function toggleCompleteSession(event, eventId) {
+            if (event) event.stopPropagation();
+            const ev = scheduleEvents.find(e => e.id === eventId);
+            if (!ev || ev.isFixed) return;
+            
+            ev.completed = !ev.completed;
+            saveScheduleData();
+            renderSchedule();
+            
+            if (ev.completed) {
+                showToast(`🎉 أحسنت! تم إنجاز "${ev.title}"`);
+                
+                let subName = '';
+                if (ev.subjectId) {
+                    const subObj = subjects.find(s => String(s.id) === String(ev.subjectId));
+                    if (subObj) subName = ` [${subObj.name}]`;
+                }
+                const dateStr = new Date().toLocaleDateString('ar-EG');
+                const logText = `إنجاز جلسة: ${ev.title}${subName} (${ev.duration} س)`;
+                const exists = logs.some(l => l.text === logText && l.date === dateStr);
+                if (!exists) {
+                    logs.unshift({ id: Date.now(), date: dateStr, text: logText, mood: 'fire', subjectId: ev.subjectId });
+                    saveLogs();
+                    if (document.getElementById('logsContainer')) renderLogs();
+                }
+            } else {
+                showToast('تمت إعادة فتح الجلسة');
+            }
+        }
+
+        function confirmClearSchedule() {
+            document.getElementById('clearScheduleModalOverlay').classList.add('active');
+        }
+
+        function executeClearSchedule(mode) {
+            closeModal('clearScheduleModalOverlay');
+            if (mode === 'study_only') {
+                const removedCount = scheduleEvents.filter(e => !e.isFixed).length;
+                scheduleEvents = scheduleEvents.filter(e => e.isFixed);
+                saveScheduleData();
+                renderSchedule();
+                showToast(`تم تفريغ مهام المذاكرة الأسبوعية بنجاح (جدول الكلية محفوظ ⭐)`);
+            } else {
+                scheduleEvents = [];
+                saveScheduleData();
+                renderSchedule();
+                showToast('تم تفريغ الجدول بالكامل', 'error');
+            }
+        }
+
+        function toggleFixedCommitment() {
+            const cb = document.getElementById('sessionIsFixedCheckbox');
+            cb.checked = !cb.checked;
+            handleFixedCheckboxChange();
+        }
+
+        function handleFixedCheckboxChange() {
+            const cb = document.getElementById('sessionIsFixedCheckbox');
+            const icon = document.getElementById('fixedToggleIcon');
+            const typeSelect = document.getElementById('sessionTypeSelect');
+            if (cb.checked) {
+                icon.className = 'fa-solid fa-lock';
+                typeSelect.value = 'mandatory';
+            } else {
+                icon.className = 'fa-solid fa-lock-open';
+            }
+        }
+
+        function addBacklogTask() {
+            const input = document.getElementById('newTaskTitle');
+            const subSelect = document.getElementById('newTaskSubject');
+            const durInput = document.getElementById('newTaskDurationInput');
+            const title = input.value.trim();
+            if (!title) return;
+            
+            const customDur = parseFloat(durInput.value) || 1.5;
+            
+            scheduleBacklog.unshift({
+                id: Date.now(),
+                title,
+                subjectId: subSelect.value,
+                duration: customDur,
+                done: false
+            });
+            input.value = '';
+            saveScheduleData();
+            renderTasksView();
+            showToast(`تمت إضافة المهمة (${customDur} س) إلى بنك الأسبوع`);
+        }
+
+        function toggleBacklogDone(taskId) {
+            const t = scheduleBacklog.find(item => item.id === taskId);
+            if (!t) return;
+            t.done = !t.done;
+            saveScheduleData();
+            renderTasksView();
+            showToast(t.done ? 'تم إنجاز المهمة! 🎉' : 'أعيد فتح المهمة');
+        }
+
+        function deleteBacklogTask(taskId) {
+            scheduleBacklog = scheduleBacklog.filter(t => t.id !== taskId);
+            saveScheduleData();
+            renderTasksView();
+            showToast('تم حذف المهمة', 'error');
+        }
+
+        function scheduleBacklogTaskDirect(taskId) {
+            const t = scheduleBacklog.find(item => item.id === taskId);
+            if (!t) return;
+            openAddSessionModal();
+            document.getElementById('sessionTitleInput').value = t.title;
+            if (t.subjectId) document.getElementById('sessionSubjectSelect').value = t.subjectId;
+            
+            const dur = t.duration || 1.5;
+            const standardDurations = ['0.5', '1', '1.5', '2', '2.5', '3', '4', '5', '6', '8'];
+            if (standardDurations.includes(String(dur))) {
+                document.getElementById('sessionDurationSelect').value = String(dur);
+                document.getElementById('customDurationBox').style.display = 'none';
+            } else {
+                document.getElementById('sessionDurationSelect').value = 'custom';
+                document.getElementById('customDurationBox').style.display = 'block';
+                document.getElementById('sessionCustomHoursInput').value = dur;
+            }
+            updateCalculatedEndTime();
+        }
+
+        // ================= PAGE 3: السجل ومتابعة الإنتاجية =================
+        function saveLogs() { localStorage.setItem('pharmaLogsV4', JSON.stringify(logs)); }
+
+        function playChimeSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+                osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.25); // A5
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.8);
+            } catch(e) {}
+        }
+
+        function calculateStreak() {
+            if (logs.length === 0) return 0;
+            const uniqueDates = Array.from(new Set(logs.map(l => l.date)));
+            
+            const todayStr = new Date().toLocaleDateString('ar-EG');
+            const yesterdayDate = new Date();
+            yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+            const yesterdayStr = yesterdayDate.toLocaleDateString('ar-EG');
+            
+            let streak = 0;
+            let checkDate = new Date();
+            
+            if (!uniqueDates.includes(todayStr)) {
+                if (uniqueDates.includes(yesterdayStr)) {
+                    checkDate.setDate(checkDate.getDate() - 1);
+                } else {
+                    return 0;
+                }
+            }
+            
+            while (true) {
+                const dateString = checkDate.toLocaleDateString('ar-EG');
+                if (uniqueDates.includes(dateString)) {
+                    streak++;
+                    checkDate.setDate(checkDate.getDate() - 1);
+                } else {
+                    break;
+                }
+            }
+            return streak;
+        }
+
+        function setTimerDuration(mins, btnElement) {
+            if (timerRunning) clearInterval(timerInterval);
+            timerRunning = false;
+            document.getElementById('timerStartBtn').innerHTML = '<i class="fa-solid fa-play"></i> بدء الجلسة';
+            
+            document.querySelectorAll('.t-mode-btn').forEach(b => b.classList.remove('active'));
+            if (btnElement) btnElement.classList.add('active');
+            
+            timerDurationMinutes = mins;
+            timerRemainingSeconds = mins * 60;
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(timerRemainingSeconds / 60);
+            const s = timerRemainingSeconds % 60;
+            document.getElementById('timerDisplay').innerText = `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        function toggleTimer() {
+            if (timerRunning) {
+                clearInterval(timerInterval);
+                timerRunning = false;
+                document.getElementById('timerStartBtn').innerHTML = '<i class="fa-solid fa-play"></i> استئناف';
+            } else {
+                timerRunning = true;
+                document.getElementById('timerStartBtn').innerHTML = '<i class="fa-solid fa-pause"></i> إيقاف مؤقت';
+                
+                timerInterval = setInterval(() => {
+                    if (timerRemainingSeconds > 0) {
+                        timerRemainingSeconds--;
+                        updateTimerDisplay();
+                    } else {
+                        clearInterval(timerInterval);
+                        timerRunning = false;
+                        document.getElementById('timerStartBtn').innerHTML = '<i class="fa-solid fa-play"></i> جلسة جديدة';
+                        playChimeSound();
+                        
+                        const subId = document.getElementById('timerSubjectSelect').value;
+                        let subName = '';
+                        if (subId) {
+                            const sObj = subjects.find(s => String(s.id) === String(subId));
+                            if (sObj) subName = ` [${sObj.name}]`;
+                        }
+                        const logText = `جلسة تركيز بومودورو: ${timerDurationMinutes} دقيقة${subName}`;
+                        const dateStr = new Date().toLocaleDateString('ar-EG');
+                        logs.unshift({ id: Date.now(), date: dateStr, text: logText, mood: 'fire', subjectId: subId });
+                        saveLogs();
+                        showToast(`🎉 أحسنت! أتممت ${timerDurationMinutes} دقيقة وتم تسجيل الإنجاز.`);
+                        updateTracker();
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetTimer() {
+            if (timerRunning) clearInterval(timerInterval);
+            timerRunning = false;
+            document.getElementById('timerStartBtn').innerHTML = '<i class="fa-solid fa-play"></i> بدء الجلسة';
+            timerRemainingSeconds = timerDurationMinutes * 60;
+            updateTimerDisplay();
+        }
+
+        function updateTracker() {
+            populateSubjectDropdowns();
+            
+            let total = 0, done = 0;
+            let mandatory = 0, urgent = 0, important = 0, review = 0;
+            
+            const subjectHoursMap = {};
+            subjects.forEach(s => subjectHoursMap[s.id] = { name: s.name, hours: 0, doneHours: 0 });
+            
+            scheduleEvents.forEach(ev => {
+                const dur = Number(ev.duration) || 1;
+                total += dur;
+                if (ev.completed) done += dur;
+                
+                if (ev.type === 'mandatory') mandatory += dur;
+                else if (ev.type === 'urgent') urgent += dur;
+                else if (ev.type === 'review') review += dur;
+                else important += dur;
+                
+                if (ev.subjectId && subjectHoursMap[ev.subjectId]) {
+                    subjectHoursMap[ev.subjectId].hours += dur;
+                    if (ev.completed) subjectHoursMap[ev.subjectId].doneHours += dur;
+                }
+            });
+            
+            const streak = calculateStreak();
+            document.getElementById('statStreak').innerText = `${streak} ${streak === 1 ? 'يوم' : 'أيام'}`;
+            document.getElementById('statStreakMsg').innerText = streak > 0 ? 'استمر في الحفاظ على الزخم!' : 'ابدأ بتدوين إنجاز اليوم!';
+            
+            document.getElementById('statDoneHours').innerText = `${done} س`;
+            document.getElementById('statPlannedHours').innerText = total;
+            
+            const efficiency = total > 0 ? Math.round((done / total) * 100) : 0;
+            document.getElementById('statEfficiencyRate').innerText = `${efficiency}%`;
+            document.getElementById('statEfficiencyLabel').innerText = efficiency >= 80 ? 'إنتاجية استثنائية 🔥' : (efficiency >= 50 ? 'في المسار الصحيح ⚡' : 'بإمكانك إنجاز المزيد');
+            
+            document.getElementById('statTotalLogs').innerText = logs.length;
+            
+            document.getElementById('analyticsTotalHours').innerText = total;
+            document.getElementById('distMandatoryTxt').innerText = `${mandatory} س`;
+            document.getElementById('distImportantTxt').innerText = `${important} س`;
+            document.getElementById('distUrgentTxt').innerText = `${urgent} س`;
+            document.getElementById('distReviewTxt').innerText = `${review} س`;
+            
+            const mPct = total > 0 ? (mandatory / total) * 100 : 25;
+            const iPct = total > 0 ? (important / total) * 100 : 50;
+            const uPct = total > 0 ? (urgent / total) * 100 : 15;
+            const rPct = total > 0 ? (review / total) * 100 : 10;
+            
+            document.getElementById('distMandatory').style.width = `${mPct}%`;
+            document.getElementById('distImportant').style.width = `${iPct}%`;
+            document.getElementById('distUrgent').style.width = `${uPct}%`;
+            document.getElementById('distReview').style.width = `${rPct}%`;
+            
+            const subList = document.getElementById('subjectProgressList');
+            subList.innerHTML = '';
+            const subKeys = Object.keys(subjectHoursMap);
+            if (subKeys.length === 0) {
+                subList.innerHTML = `<div style="color:var(--text-muted); font-size:0.85rem; padding:6px 0;">لم تسجل مواد دراسية في المركز بعد.</div>`;
+            } else {
+                subKeys.forEach(k => {
+                    const item = subjectHoursMap[k];
+                    const pct = item.hours > 0 ? Math.min(100, Math.round((item.doneHours / item.hours) * 100)) : 0;
+                    subList.innerHTML += `
+                        <div class="subject-prog-row">
+                            <div class="prog-label">
+                                <span style="color:var(--text-main);">${item.name}</span>
+                                <span style="color:var(--text-muted);">${item.doneHours} / ${item.hours} س (${pct}%)</span>
+                            </div>
+                            <div class="progress-bar-bg" style="height:6px;">
+                                <div class="progress-bar-fill" style="width:${pct}%;"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            renderLogs();
+        }
+
+        function triggerAddLogPro() {
+            populateSubjectDropdowns();
+            document.getElementById('logTextInput').value = '';
+            document.getElementById('addLogModalOverlay').classList.add('active');
+            document.getElementById('logTextInput').focus();
+        }
+
+        function saveLogPro() {
+            const text = document.getElementById('logTextInput').value.trim();
+            if (!text) {
+                showToast('يرجى كتابة نص الإنجاز', 'error');
+                document.getElementById('logTextInput').focus();
+                return;
+            }
+            const subId = document.getElementById('logSubjectSelect').value;
+            const mood = document.getElementById('logMoodSelect').value;
+            const dateStr = new Date().toLocaleDateString('ar-EG');
+            
+            logs.unshift({
+                id: Date.now(),
+                date: dateStr,
+                text,
+                mood,
+                subjectId: subId
+            });
+            saveLogs();
+            closeModal('addLogModalOverlay');
+            showToast('تم تدوين الإنجاز بنجاح 🏆');
+            updateTracker();
+        }
+
+        function triggerDeleteLog(id) {
+            openConfirmModal('مسح هذا الإنجاز من السجل؟', () => {
+                logs = logs.filter(l => l.id !== id);
+                saveLogs(); 
+                updateTracker();
+                showToast('تم حذف السجل', 'error');
+            });
+        }
+
+        function renderLogs() {
+            const container = document.getElementById('logsContainer');
+            if(!container) return;
+            container.innerHTML = '';
+            
+            const filterKeyword = document.getElementById('logSearchInput') ? document.getElementById('logSearchInput').value.trim().toLowerCase() : '';
+            
+            const filteredLogs = logs.filter(l => {
+                if (!filterKeyword) return true;
+                return l.text.toLowerCase().includes(filterKeyword);
+            });
+            
+            if (filteredLogs.length === 0) { 
+                container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-clipboard-list"></i><h3>لا توجد سجلات مطابقة</h3><p>قم بتدوين إنجازاتك اليومية هنا لتتبع تقدمك وزيادة حماسك.</p></div>`; 
+                return; 
+            }
+            
+            const moodIcons = {
+                fire: '<span class="log-tag-badge" style="background:rgba(244, 63, 94, 0.2); color:#fda4af;">🔥 إنتاجية استثنائية</span>',
+                bolt: '<span class="log-tag-badge" style="background:rgba(194, 140, 56, 0.2); color:var(--primary);">⚡ إنجاز متقن</span>',
+                lightbulb: '<span class="log-tag-badge" style="background:rgba(16, 185, 129, 0.2); color:#6ee7b7;">💡 استيعاب جديد</span>',
+                book: '<span class="log-tag-badge" style="background:rgba(139, 92, 246, 0.2); color:#c4b5fd;">📚 قراءة وسلايدات</span>'
+            };
+
+            filteredLogs.forEach((log) => {
+                let subTag = '';
+                if (log.subjectId) {
+                    const sObj = subjects.find(s => String(s.id) === String(log.subjectId));
+                    if (sObj) subTag = `<span class="sc-subject-tag"><i class="fa-solid fa-book"></i> ${sObj.name}</span>`;
+                }
+                
+                container.innerHTML += `
+                    <div class="log-item-pro">
+                        <div>
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+                                <span style="color: var(--text-muted); font-size: 0.82rem; display: flex; align-items: center; gap: 5px;">
+                                    <i class="fa-regular fa-calendar-check"></i> ${log.date}
+                                </span>
+                                ${subTag}
+                                ${moodIcons[log.mood] || ''}
+                            </div>
+                            <span style="font-weight: 700; font-size: 1.02rem; color: var(--text-main);">${log.text}</span>
+                        </div>
+                        <button class="icon-btn delete" onclick="triggerDeleteLog(${log.id})" title="حذف السجل"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+            });
+        }
+
+        // ================= IMPORT / EXPORT =================
+        function exportData() {
+            const data = { 
+                subjects, 
+                schedule: {
+                    version: 2,
+                    events: scheduleEvents,
+                    backlog: scheduleBacklog
+                }, 
+                logs 
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Workspace_Backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            showToast('بدأ تحميل النسخة الاحتياطية 📥');
+        }
+
+        function triggerImport() { document.getElementById('importFileInput').click(); }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if(data.subjects) { 
+                        subjects = data.subjects; 
+                        localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects)); 
+                    }
+                    if(data.schedule) {
+                        if(Array.isArray(data.schedule)) {
+                            scheduleEvents = data.schedule;
+                        } else if(data.schedule.events) {
+                            scheduleEvents = data.schedule.events;
+                            if(data.schedule.backlog) scheduleBacklog = data.schedule.backlog;
+                        } else {
+                            localStorage.setItem('pharmaScheduleV4', JSON.stringify(data.schedule));
+                            initScheduleData();
+                        }
+                        saveScheduleData();
+                    }
+                    if(data.logs) { 
+                        logs = data.logs; 
+                        localStorage.setItem('pharmaLogsV4', JSON.stringify(logs)); 
+                    }
+                    
+                    showToast('تم استرجاع البيانات بنجاح 🚀');
+                    renderSubjectsList(); 
+                    renderSchedule(); 
+                    updateTracker();
+                    event.target.value = ''; 
+                } catch(error) { 
+                    showToast('فشل الاسترجاع: الملف غير صالح', 'error'); 
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        
+        // --- Lecture Study Completion Toggle ---
+        function toggleLectureCompleted(groupId, lecId) {
+            const sub = subjects.find(s => s.id === activeSubjectId);
+            if(!sub) return;
+            const group = sub.groups.find(g => g.id === groupId);
+            if(!group) return;
+            const lec = group.lectures.find(l => l.id === lecId);
+            if(!lec) return;
+            
+            lec.completed = !lec.completed;
+            saveSubjects();
+            renderGroups();
+            renderSubjectsList();
+            
+            if (lec.completed) {
+                showToast(`🎉 أحسنت! أتممت دراسة: ${lec.title}`);
+                // Offer auto-logging to achievements
+                const dateStr = new Date().toLocaleDateString('ar-EG');
+                const logText = `إنهاء دراسة محاضرة: ${lec.title} [${sub.name}]`;
+                const exists = logs.some(l => l.text === logText && l.date === dateStr);
+                if (!exists) {
+                    logs.unshift({ id: Date.now(), date: dateStr, text: logText, mood: 'book', subjectId: sub.id });
+                    saveLogs();
+                    if (document.getElementById('logsContainer')) renderLogs();
+                }
+            } else {
+                showToast('تمت إعادة فتح المحاضرة');
+            }
+        }
+
+        // --- Local File Picker in Lecture Modal ---
+        function triggerPickLocalFile() {
+            document.getElementById('localLectureFileInput').click();
+        }
+
+        function handleLocalLectureFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const titleInput = document.getElementById('diModalInput1');
+            const pathInput = document.getElementById('diModalInput2');
+            
+            // Auto fill title if empty
+            if (!titleInput.value.trim()) {
+                const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+                titleInput.value = nameWithoutExt;
+            }
+            // Set path to file name or local file URI
+            pathInput.value = file.name;
+            showToast('تم اختيار الملف وتعبئة البيانات بنجاح 📁');
+            event.target.value = '';
+        }
+
+        // --- Interactive Help Walkthrough Modal Logic ---
+        function openHelpModal() {
+            document.getElementById('helpModalOverlay').classList.add('active');
+        }
+
+        function switchHelpTab(tabKey, btnElement) {
+            document.querySelectorAll('.help-tab-btn').forEach(b => b.classList.remove('active'));
+            if(btnElement) btnElement.classList.add('active');
+            
+            document.querySelectorAll('.help-tab-content').forEach(c => c.classList.remove('active'));
+            const target = document.getElementById(`helpTab-${tabKey}`);
+            if(target) target.classList.add('active');
+        }
+
+        // --- Global Keyboard Shortcuts (Arabic & English Keyboard Support) ---
+        window.addEventListener('keydown', (e) => {
+            // Ignore if typing inside input, textarea, or select
+            if (e.target.matches('input, textarea, select')) return;
+            // Ignore if Ctrl, Meta (Cmd), or Alt is held
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.glass-overlay.active').forEach(modal => modal.classList.remove('active'));
+            } else if (e.key === '?' || e.key === '؟' || (e.code === 'Slash' && e.shiftKey)) {
+                e.preventDefault();
+                openHelpModal();
+            } else if (e.code === 'Digit1' || e.key === '1' || e.key === '١') {
+                if (navItems[0]) switchView('subjects', navItems[0]);
+            } else if (e.code === 'Digit2' || e.key === '2' || e.key === '٢') {
+                if (navItems[1]) switchView('schedule', navItems[1]);
+            } else if (e.code === 'Digit3' || e.key === '3' || e.key === '٣') {
+                if (navItems[2]) switchView('tracker', navItems[2]);
+            } else if (e.code === 'KeyN' || e.key.toLowerCase() === 'n' || e.key === 'ى' || e.key === 'آ') {
+                e.preventDefault();
+                // Switch to schedule view if not already there, then open modal
+                if (navItems[1] && !navItems[1].classList.contains('active')) {
+                    switchView('schedule', navItems[1]);
+                }
+                openAddSessionModal();
+            }
+        });
+
+        // --- Demo Data Generator (For Testing or First-Time Exploration) ---
+        function loadDemoData() {
+            openConfirmModal('هل ترغب في تحميل بيانات نموذجية لتجربة كل مزايا المنصة؟ (يمكنك مسحها في أي وقت)', () => {
+                subjects = [
+                    {
+                        id: 101,
+                        name: 'علم الأدوية (Pharmacology I)',
+                        groups: [
+                            {
+                                id: 201,
+                                name: 'الوحدة 1: Autonomic Nervous System',
+                                lectures: [
+                                    { id: 301, title: 'Lec 1 - Cholinergic Agonists', path: 'Lec1_ANS.pdf', completed: true },
+                                    { id: 302, title: 'Lec 2 - Adrenergic Antagonists', path: 'Lec2_Adrenergic.pdf', completed: false }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        id: 102,
+                        name: 'الكيمياء الحيوية (Biochemistry)',
+                        groups: [
+                            {
+                                id: 202,
+                                name: 'الوحدة 1: Carbohydrate Metabolism',
+                                lectures: [
+                                    { id: 303, title: 'Lec 1 - Glycolysis Cycle', path: 'Biochem_Lec1.pdf', completed: true }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        id: 103,
+                        name: 'الصيدلانيات (Pharmaceutics)',
+                        groups: [
+                            {
+                                id: 203,
+                                name: 'الوحدة 1: Dosage Forms',
+                                lectures: [
+                                    { id: 304, title: 'Lec 1 - Solutions & Suspensions', path: 'Pharmaceutics_1.pdf', completed: false }
+                                ]
+                            }
+                        ]
+                    }
+                ];
+
+                scheduleEvents = [
+                    {
+                        id: 401,
+                        title: 'حضور الكلية والمعامل (يوم الأحد)',
+                        subjectId: '',
+                        day: 0,
+                        startHour: 7,
+                        duration: 10,
+                        type: 'mandatory',
+                        completed: false,
+                        isFixed: true,
+                        notes: 'المبنى الرئيسي - معمل الفارماكولوجي'
+                    },
+                    {
+                        id: 402,
+                        title: 'مذاكرة وتلخيص Adrenergic Drugs',
+                        subjectId: '101',
+                        day: 1,
+                        startHour: 17,
+                        duration: 2.5,
+                        type: 'important',
+                        completed: true,
+                        isFixed: false,
+                        notes: 'التركيز على الآلية الدوائية والجرعات'
+                    },
+                    {
+                        id: 403,
+                        title: 'حل أسئلة كويز الكيمياء الحيوية',
+                        subjectId: '102',
+                        day: 2,
+                        startHour: 19,
+                        duration: 1.5,
+                        type: 'urgent',
+                        completed: false,
+                        isFixed: false,
+                        notes: 'شيت الأيض الأسبوعي'
+                    }
+                ];
+
+                const todayStr = new Date().toLocaleDateString('ar-EG');
+                logs = [
+                    { id: 501, date: todayStr, text: 'إنهاء دراسة محاضرة: Lec 1 - Cholinergic Agonists [علم الأدوية]', mood: 'fire', subjectId: '101' },
+                    { id: 502, date: todayStr, text: 'جلسة تركيز بومودورو: 50 دقيقة [الكيمياء الحيوية]', mood: 'bolt', subjectId: '102' }
+                ];
+
+                saveSubjects();
+                saveScheduleData();
+                saveLogs();
+
+                closeModal('helpModalOverlay');
+                showToast('تم تحميل البيانات النموذجية بنجاح 🚀');
+                renderSubjectsList();
+                renderSchedule();
+                updateTracker();
+            });
+        }
+
+                // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(() => {});
+            });
+        }
+
+        // Init App
+        renderSubjectsList();
+        renderSchedule();
+        updateTracker();
+    </script>
+</body>
+</html>
