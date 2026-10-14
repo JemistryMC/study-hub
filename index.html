@@ -318,7 +318,8 @@
         }
         
         /* Realistic Pinned Studio Card (Teka Teki Studios Aesthetic) */
-        .subject-card { 
+        .subject-card {
+            contain: layout style; 
             background: linear-gradient(145deg, #181b24, #14161f); 
             padding: 24px 22px 20px 22px; 
             border-radius: 18px; 
@@ -414,7 +415,8 @@
         }
 
         #subject-details-view { display: none; flex-direction: column; gap: 20px; }
-        .group-card { 
+        .group-card {
+            contain: layout style; 
             background: var(--card-bg); 
             padding: 22px 24px; 
             border-radius: 16px; 
@@ -873,7 +875,8 @@
         }
 
         /* Log Feed */
-        .log-item-pro { 
+        .log-item-pro {
+            contain: layout style; 
             background: rgba(14, 16, 22, 0.55); 
             padding: 16px 20px; 
             border-radius: 12px; 
@@ -952,19 +955,24 @@
 
         
         
-        /* Fullscreen Embedded PDF Reader Modal */
+        /* Fullscreen Embedded PDF Studio & Graphic Tablet Annotation Engine */
+        #pdfViewerModalOverlay {
+            background: rgba(8, 9, 13, 0.96);
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
         .pdf-modal-container {
-            width: 96%;
-            max-width: 1250px;
-            height: 92vh;
-            background: #12141a;
+            width: 97%;
+            max-width: 1420px;
+            height: 94vh;
+            background: #101218;
             border: 1px solid var(--border-hover);
             border-radius: 18px;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.85);
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: width 0.2s ease, height 0.2s ease;
         }
         .pdf-modal-container.is-fullscreen {
             width: 100vw !important;
@@ -973,103 +981,288 @@
             border-radius: 0 !important;
             border: none !important;
         }
-
-        /* Synced Audio Player Floating Strip */
-        .pdf-audio-player-bar {
-            display: none;
-            align-items: center;
-            justify-content: space-between;
-            background: linear-gradient(135deg, rgba(20, 23, 32, 0.98), rgba(15, 17, 24, 0.98));
-            border-top: 1px solid var(--border-color);
-            padding: 10px 20px;
-            flex-shrink: 0;
-            gap: 15px;
-            flex-wrap: wrap;
-            box-shadow: 0 -4px 15px rgba(0,0,0,0.4);
-            z-index: 30;
-        }
-        .audio-controls-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex: 1;
-            min-width: 250px;
-        }
-        .audio-play-btn {
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            background: var(--primary-gradient);
-            color: #0c0d11;
-            font-size: 1.15rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(194, 140, 56, 0.35);
-            transition: transform 0.15s ease;
-            flex-shrink: 0;
-        }
-        .audio-play-btn:active { transform: scale(0.92); }
-        .audio-scrubber-track {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .audio-scrubber-slider {
-            flex: 1;
-            height: 6px;
-            -webkit-appearance: none;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            outline: none;
-            cursor: pointer;
-        }
-        .audio-scrubber-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            background: var(--primary);
-            cursor: pointer;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-        }
-        .audio-speed-btn {
-            background: rgba(14, 16, 22, 0.8);
-            border: 1px solid var(--border-color);
-            color: #e5c386;
-            padding: 5px 12px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            font-weight: 800;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-        .audio-speed-btn:hover { background: rgba(194, 140, 56, 0.15); border-color: var(--primary); }
         .pdf-viewer-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 14px 22px;
-            background: #171a22;
+            padding: 10px 18px;
+            background: #161922;
             border-bottom: 1px solid var(--border-color);
             flex-shrink: 0;
             gap: 12px;
+            flex-wrap: wrap;
         }
+        /* Graphic Tablet Annotation Toolbar */
+        .pdf-annotation-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            background: #12151e;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            gap: 10px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+            user-select: none;
+        }
+        .anno-tool-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(8, 10, 15, 0.75);
+            padding: 4px 8px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+        .anno-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            padding: 6px 11px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+        }
+        .anno-btn:hover {
+            color: var(--text-main);
+            background: rgba(255,255,255,0.06);
+        }
+        .anno-btn.active {
+            background: var(--primary-gradient);
+            color: #0c0d11;
+            font-weight: 800;
+            box-shadow: 0 2px 10px rgba(194, 140, 56, 0.35);
+        }
+        .anno-btn.laser-active {
+            background: linear-gradient(135deg, #ef4444, #f97316);
+            color: white;
+            font-weight: 800;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+        }
+        .anno-btn.toggle-hidden {
+            background: rgba(244, 63, 94, 0.15);
+            color: #fda4af;
+            border-color: rgba(244, 63, 94, 0.35);
+        }
+        .color-dot {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid rgba(255,255,255,0.15);
+            transition: transform 0.12s ease, border-color 0.12s ease;
+        }
+        .color-dot:hover { transform: scale(1.15); }
+        .color-dot.active {
+            border-color: white;
+            transform: scale(1.2);
+            box-shadow: 0 0 8px rgba(255,255,255,0.5);
+        }
+        .stroke-size-slider {
+            width: 75px;
+            height: 5px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        /* Scrollable PDF Pages Viewport */
         .pdf-viewer-body {
             flex: 1;
             position: relative;
-            background: #090a0d;
+            background: #090b10;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
+        .pdf-pages-scroll-container {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: auto;
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 22px;
+            scroll-behavior: auto;
+        }
+        .pdf-page-wrapper {
+            position: relative;
+            background: white;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.65);
+            border-radius: 4px;
+            overflow: hidden;
+            flex-shrink: 0;
+            user-select: none;
+            direction: ltr !important;
+            unicode-bidi: isolate;
+            text-align: left;
+        }
+        .pdf-render-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            direction: ltr !important;
+            font-kerning: normal;
+            text-rendering: geometricPrecision;
+        }
+        .pdf-ink-canvas,
+        .pdf-laser-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .pdf-ink-canvas {
+            z-index: 5;
+            transition: opacity 0.18s ease;
+        }
+        .pdf-laser-canvas {
+            z-index: 6;
+            pointer-events: none;
+        }
+        .pdf-page-wrapper.drawing-mode .pdf-ink-canvas {
+            touch-action: none;
+            cursor: crosshair;
+        }
+        .pdf-page-wrapper.pan-mode .pdf-ink-canvas {
+            touch-action: pan-x pan-y;
+            cursor: grab;
+        }
+        .pdf-page-wrapper.pan-mode .pdf-ink-canvas:active {
+            cursor: grabbing;
+        }
+        
+        /* Audio Timestamp Pins on PDF Pages */
+        .pdf-audio-pins-rail {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 12;
+            max-width: 240px;
+            pointer-events: auto;
+        }
+        .audio-pin-chip {
+            background: rgba(15, 18, 26, 0.92);
+            border: 1px solid var(--primary);
+            color: var(--text-main);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+        .audio-pin-chip:hover {
+            transform: scale(1.04);
+            background: rgba(194, 140, 56, 0.22);
+        }
+        .audio-pin-chip .pin-time {
+            color: var(--primary);
+            font-family: monospace;
+            font-weight: 800;
+        }
+        .audio-pin-chip .pin-del {
+            color: #fda4af;
+            margin-right: 4px;
+            padding: 0 3px;
+            font-size: 0.8rem;
+            opacity: 0.75;
+        }
+        .audio-pin-chip .pin-del:hover {
+            opacity: 1;
+        }
+
+        /* Quick Add Extra Note Space Button on Slide Corner */
+        .slide-extra-space-btn {
+            position: absolute;
+            bottom: 8px;
+            right: 10px;
+            background: rgba(15, 18, 26, 0.85);
+            border: 1px solid rgba(194, 140, 56, 0.4);
+            color: #e5c386;
+            padding: 3px 10px;
+            border-radius: 8px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            z-index: 10;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: background-color 0.15s ease;
+        }
+        .slide-extra-space-btn:hover {
+            background: var(--primary);
+            color: #0c0d11;
+        }
+
+        /* Attached Extra Note Sheet Beneath Slide */
+        .pdf-extra-note-sheet {
+            position: relative;
+            background-color: #fcfaf5;
+            background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+            background-size: 20px 20px;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.65);
+            border-radius: 6px;
+            border: 2px solid var(--primary);
+            overflow: hidden;
+            flex-shrink: 0;
+            user-select: none;
+            margin-top: -12px;
+        }
+        .pdf-extra-note-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: rgba(194, 140, 56, 0.14);
+            border-bottom: 1px dashed rgba(194, 140, 56, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #78350f;
+            z-index: 9;
+        }
+
+        .pdf-page-badge {
+            position: absolute;
+            bottom: 8px;
+            left: 10px;
+            background: rgba(12, 13, 17, 0.78);
+            color: #cbd5e1;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            z-index: 8;
+            pointer-events: none;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
         .pdf-frame {
             width: 100%;
             height: 100%;
             border: none;
             background: #090a0d;
+            display: none;
         }
         .pdf-fallback-box {
             display: none;
@@ -1082,61 +1275,318 @@
             gap: 16px;
         }
 
-        /* Interactive Help Walkthrough Modal */
-        .help-tabs-nav {
-            display: flex;
-            gap: 6px;
-            background: rgba(14, 16, 22, 0.85);
-            padding: 5px;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            margin-bottom: 20px;
-            overflow-x: auto;
-        }
-        .help-tab-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 0.88rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.18s ease;
-            white-space: nowrap;
+        /* Synced Audio Player Floating Strip with +5s/-5s & 300% Volume Boost */
+        .pdf-audio-player-bar {
             display: flex;
             align-items: center;
-            gap: 6px;
+            justify-content: space-between;
+            background: #141720;
+            border-top: 1px solid var(--border-color);
+            padding: 10px 18px;
+            flex-shrink: 0;
+            gap: 14px;
+            flex-wrap: wrap;
+            z-index: 30;
         }
-        .help-tab-btn:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
-        .help-tab-btn.active {
+        .audio-controls-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 260px;
+        }
+        .audio-play-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
             background: var(--primary-gradient);
             color: #0c0d11;
-            font-weight: 800;
-        }
-        .help-tab-content { display: none; flex-direction: column; gap: 16px; max-height: 440px; overflow-y: auto; padding-right: 6px; }
-        .help-tab-content.active { display: flex; animation: subFade 0.2s ease; }
-        .help-card-row {
-            background: rgba(14, 16, 22, 0.6);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 14px 18px;
-            display: flex;
-            gap: 14px;
-            align-items: flex-start;
-        }
-        .help-icon-box {
-            width: 36px;
-            height: 36px;
-            border-radius: 9px;
-            background: rgba(194, 140, 56, 0.15);
-            color: var(--primary);
+            font-size: 1.05rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1rem;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(194, 140, 56, 0.35);
+            transition: transform 0.12s ease;
             flex-shrink: 0;
-            margin-top: 2px;
+        }
+        .audio-play-btn:active { transform: scale(0.92); }
+        .seek-step-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: background-color 0.12s ease, border-color 0.12s ease;
+            flex-shrink: 0;
+        }
+        .seek-step-btn:hover {
+            background: rgba(194, 140, 56, 0.15);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .audio-scrubber-track {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 140px;
+        }
+        .audio-scrubber-slider {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            outline: none;
+            cursor: pointer;
+            padding: 0;
+            border: none;
+        }
+        .audio-scrubber-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+        }
+        .audio-speed-btn {
+            background: rgba(14, 16, 22, 0.85);
+            border: 1px solid var(--border-color);
+            color: #e5c386;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: background-color 0.12s ease;
+        }
+        .audio-speed-btn:hover { background: rgba(194, 140, 56, 0.15); border-color: var(--primary); }
+        .volume-boost-control {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(8, 10, 15, 0.75);
+            padding: 4px 10px;
+            border-radius: 9px;
+            border: 1px solid var(--border-color);
+        }
+        .volume-boost-slider {
+            width: 80px;
+            height: 5px;
+            accent-color: var(--primary);
+            cursor: pointer;
+            padding: 0;
+            border: none;
+        }
+        .boost-pct-badge {
+            font-size: 0.76rem;
+            font-weight: 800;
+            font-family: monospace;
+            min-width: 42px;
+            text-align: center;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+        .boost-pct-badge.boosted {
+            color: #fbbf24;
+            text-shadow: 0 0 8px rgba(251, 191, 36, 0.35);
+        }
+
+        /* ================= INTERACTIVE ACADEMY & VIRTUAL SANDBOX MODAL ================= */
+        .academy-modal-box {
+            max-width: 1180px !important;
+            width: 96% !important;
+            height: 90vh !important;
+            padding: 0 !important;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #10131a !important;
+            border: 1px solid var(--border-hover) !important;
+        }
+        .academy-top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 22px;
+            background: #161a24;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .academy-xp-pill {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(12, 14, 20, 0.85);
+            padding: 6px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(194, 140, 56, 0.35);
+        }
+        .academy-body-layout {
+            display: grid;
+            grid-template-columns: 270px 1fr;
+            flex: 1;
+            overflow: hidden;
+        }
+        .academy-sidebar {
+            background: #131620;
+            border-left: 1px solid var(--border-color);
+            padding: 16px 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .academy-nav-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid transparent;
+            border-radius: 12px;
+            padding: 11px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            text-align: right;
+            color: var(--text-muted);
+            transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+        .academy-nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+        .academy-nav-item.active {
+            background: rgba(194, 140, 56, 0.14);
+            border-color: var(--primary);
+            color: var(--text-main);
+        }
+        .academy-nav-item .mod-num {
+            width: 26px;
+            height: 26px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.78rem;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+        .academy-nav-item.active .mod-num {
+            background: var(--primary);
+            color: #0c0d11;
+        }
+        .academy-nav-item.completed .mod-num {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--important-color);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+        .academy-stage {
+            padding: 24px 28px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: #0d1017;
+        }
+        .academy-module-pane {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+            animation: subFade 0.2s ease;
+        }
+        .academy-module-pane.active {
+            display: flex;
+        }
+        .acad-hero-banner {
+            background: linear-gradient(135deg, rgba(194, 140, 56, 0.16), rgba(20, 24, 34, 0.95));
+            border: 1px solid rgba(194, 140, 56, 0.35);
+            border-right: 4px solid var(--primary);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .acad-section-card {
+            background: #151924;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 18px 20px;
+        }
+        .acad-section-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .acad-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 14px;
+        }
+        .acad-feature-box {
+            background: rgba(10, 12, 18, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 11px;
+            padding: 13px 15px;
+        }
+        .acad-example-box {
+            background: rgba(59, 130, 246, 0.06);
+            border: 1px solid rgba(59, 130, 246, 0.22);
+            border-right: 3px solid #60a5fa;
+            border-radius: 11px;
+            padding: 14px 16px;
+        }
+        /* Virtual Interactive Sandbox Box */
+        .acad-sandbox-container {
+            background: linear-gradient(145deg, #171c28, #11151f);
+            border: 2px dashed rgba(194, 140, 56, 0.5);
+            border-radius: 16px;
+            padding: 20px 22px;
+            position: relative;
+        }
+        .sandbox-header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--primary-gradient);
+            color: #0c0d11;
+            font-weight: 900;
+            font-size: 0.78rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+        }
+        .sandbox-interactive-area {
+            background: #0b0d13;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 12px;
+        }
+        .acad-footer-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+            margin-top: 6px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         .key-badge {
             background: rgba(255, 255, 255, 0.1);
@@ -1148,8 +1598,22 @@
             font-weight: 800;
             font-size: 0.85rem;
         }
-
-        
+        @media (max-width: 860px) {
+            .academy-body-layout {
+                grid-template-columns: 1fr;
+            }
+            .academy-sidebar {
+                flex-direction: row;
+                overflow-x: auto;
+                border-left: none;
+                border-bottom: 1px solid var(--border-color);
+                padding: 10px;
+                flex-shrink: 0;
+            }
+            .academy-nav-item {
+                min-width: 190px;
+            }
+        }
         .navbar-header-row {
             display: flex;
             align-items: center;
@@ -1380,6 +1844,12 @@
         @keyframes fadeOutToast { to { transform: translateX(-110%); opacity: 0; } }
 
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        if (window.pdfjsLib) {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
 </head>
 <body>
 
@@ -1816,59 +2286,129 @@
     <!-- ================= FULLSCREEN PDF & AUDIO SYNC VIEWER ================= -->
     <div class="glass-overlay" id="pdfViewerModalOverlay">
         <div class="pdf-modal-container" id="pdfModalContainer">
-            <!-- Header with Title, External link, Fullscreen toggle, and Close -->
+            <!-- Top Header: Title, Save Status, Zoom & Fullscreen -->
             <div class="pdf-viewer-header">
-                <div style="display: flex; align-items: center; gap: 12px; overflow: hidden; flex: 1;">
-                    <div class="help-icon-box" style="margin: 0;"><i class="fa-solid fa-file-pdf" style="color: var(--primary);"></i></div>
+                <div style="display: flex; align-items: center; gap: 10px; overflow: hidden; flex: 1;">
+                    <div class="help-icon-box" style="margin: 0; width: 34px; height: 34px;"><i class="fa-solid fa-file-pdf" style="color: var(--primary);"></i></div>
                     <div style="overflow: hidden;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <h3 id="pdfViewerTitle" style="margin: 0; font-size: 1.2rem; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">عرض المحاضرة</h3>
-                            <span id="pdfAudioStatusPill" class="studio-pill" style="display: none; background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.4); color: #93c5fd; font-size: 0.72rem;">
-                                <i class="fa-solid fa-headphones"></i> ريكورد متاح
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <h3 id="pdfViewerTitle" style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">عرض المحاضرة</h3>
+                            <span id="pdfPageCounterBadge" class="studio-pill" style="font-size: 0.72rem; color: var(--primary);">صفحة 1 / 1</span>
+                            <span id="pdfAutoSaveStatus" style="font-size: 0.72rem; color: var(--important-color); font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> حفظ تلقائي
                             </span>
                         </div>
-                        <span id="pdfViewerPathInfo" style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;"></span>
                     </div>
                 </div>
                 
-                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-                    <button class="btn btn-outline" style="padding: 7px 12px; font-size: 0.82rem;" onclick="togglePdfFullscreen()" title="تكبير الشاشة لملء الشاشة بالكامل" id="pdfFullscreenBtn">
+                <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; flex-wrap: wrap;">
+                    <!-- Zoom Controls -->
+                    <div class="anno-tool-group" style="padding: 2px 6px;">
+                        <button class="anno-btn" onclick="changePdfZoom(-0.2)" title="تصغير الصفحة"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+                        <span id="pdfZoomLevelText" style="font-size: 0.76rem; font-weight: 800; min-width: 42px; text-align: center; color: var(--text-main);">100%</span>
+                        <button class="anno-btn" onclick="changePdfZoom(0.2)" title="تكبير الصفحة"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+                    </div>
+
+                    <button class="btn btn-outline" style="padding: 6px 11px; font-size: 0.8rem; border-color: rgba(16, 185, 129, 0.45); color: #6ee7b7;" onclick="exportAnnotatedSlides()" title="تصدير أو طباعة المحاضرة شاملة كتاباتك وتلخيصاتك">
+                        <i class="fa-solid fa-file-export"></i> تصدير بالكتابة
+                    </button>
+                    <button class="btn btn-outline" style="padding: 6px 11px; font-size: 0.8rem;" onclick="togglePdfFullscreen()" title="تكبير الشاشة لملء الشاشة بالكامل" id="pdfFullscreenBtn">
                         <i class="fa-solid fa-expand" id="pdfFullscreenIcon"></i> ملء الشاشة
                     </button>
-                    <a id="pdfOpenInTabBtn" href="#" target="_blank" class="btn btn-outline" style="padding: 7px 12px; font-size: 0.82rem;" title="فتح في نافذة متصفح خارجية">
-                        <i class="fa-solid fa-arrow-up-right-from-square"></i> نافذة خارجية
+                    <a id="pdfOpenInTabBtn" href="#" target="_blank" class="btn btn-outline" style="padding: 6px 11px; font-size: 0.8rem;" title="فتح في نافذة متصفح خارجية">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> خارجي
                     </a>
-                    <button class="icon-btn" onclick="closePdfViewer()" title="إغلاق العارض"><i class="fa-solid fa-xmark"></i></button>
+                    <button class="icon-btn" onclick="closePdfViewer()" title="إغلاق العارض (Esc)"><i class="fa-solid fa-xmark"></i></button>
                 </div>
             </div>
 
-            <!-- PDF Document Frame -->
+            <!-- Graphic Tablet Annotation & Laser Toolbar -->
+            <div class="pdf-annotation-toolbar" id="pdfAnnotationToolbar">
+                <!-- Drawing Modes -->
+                <div class="anno-tool-group">
+                    <button class="anno-btn" id="toolBtn_pan" onclick="setAnnotationTool('pan')" title="وضع التصفح والتمرير (أو اضغط مطولاً على المسطرة)">
+                        <i class="fa-solid fa-hand"></i> تصفح
+                    </button>
+                    <button class="anno-btn active" id="toolBtn_pen" onclick="setAnnotationTool('pen')" title="قلم كتابة سلس للجرافيك تابلت (يرتبط بالصفحة ويحفظ تلقائياً)">
+                        <i class="fa-solid fa-pen-nib"></i> قلم كتابة
+                    </button>
+                    <button class="anno-btn" id="toolBtn_highlighter" onclick="setAnnotationTool('highlighter')" title="قلم تظليل شفاف">
+                        <i class="fa-solid fa-highlighter"></i> تظليل
+                    </button>
+                    <button class="anno-btn" id="toolBtn_laser" onclick="setAnnotationTool('laser')" title="قلم ليزر مؤقت (يُعلّم ويختفي تلقائياً بعد ثوانٍ معدودة)">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> ليزر متلاشي
+                    </button>
+                    <button class="anno-btn" id="toolBtn_eraser" onclick="setAnnotationTool('eraser')" title="ممحاة ذكية لمسح الخطوط">
+                        <i class="fa-solid fa-eraser"></i> ممحاة
+                    </button>
+                </div>
+
+                <!-- Color Palette & Stroke Width -->
+                <div class="anno-tool-group">
+                    <span class="color-dot active" style="background: #ef4444;" onclick="setAnnotationColor('#ef4444', this)" title="أحمر"></span>
+                    <span class="color-dot" style="background: #3b82f6;" onclick="setAnnotationColor('#3b82f6', this)" title="أزرق"></span>
+                    <span class="color-dot" style="background: #10b981;" onclick="setAnnotationColor('#10b981', this)" title="أخضر"></span>
+                    <span class="color-dot" style="background: #f59e0b;" onclick="setAnnotationColor('#f59e0b', this)" title="ذهبي / أصفر"></span>
+                    <span class="color-dot" style="background: #a855f7;" onclick="setAnnotationColor('#a855f7', this)" title="بنفسجي"></span>
+                    <span class="color-dot" style="background: #111827; border-color: #64748b;" onclick="setAnnotationColor('#111827', this)" title="أسود"></span>
+                    <input type="color" id="customAnnoColor" value="#ef4444" onchange="setAnnotationColor(this.value, null)" style="width: 24px; height: 24px; padding: 0; border: none; background: transparent; cursor: pointer;" title="لون مخصص">
+                    
+                    <div style="width: 1px; height: 18px; background: var(--border-color); margin: 0 4px;"></div>
+                    <i class="fa-solid fa-circle" style="font-size: 0.55rem; color: var(--text-muted);"></i>
+                    <input type="range" id="annoStrokeSize" class="stroke-size-slider" min="1" max="24" value="3" oninput="updateAnnotationSize(this.value)" title="سمك القلم">
+                    <span id="annoSizeLabel" style="font-size: 0.74rem; color: var(--text-muted); min-width: 24px;">3px</span>
+                </div>
+
+                <!-- Extra Note Sheet, Visibility Toggle, Undo & Clear Page -->
+                <div class="anno-tool-group">
+                    <button class="anno-btn" onclick="toggleExtraNoteForPage(currentActivePageNum)" title="إضافة أو إظهار ورقة تلخيص فارغة/منقطة أسفل الصفحة الحالية للكتابة بحرية">
+                        <i class="fa-solid fa-file-circle-plus" style="color: var(--primary);"></i> + ورقة تلخيص
+                    </button>
+                    <button class="anno-btn" id="toggleAnnoVisBtn" onclick="toggleAnnotationsVisibility()" title="إظهار أو إخفاء جميع الكتابات والتعليقات على الصفحات">
+                        <i class="fa-solid fa-eye" id="toggleAnnoVisIcon"></i> <span id="toggleAnnoVisText">إخفاء الكتابة</span>
+                    </button>
+                    <button class="anno-btn" onclick="undoLastStroke()" title="تراجع عن آخر خط (Ctrl+Z)">
+                        <i class="fa-solid fa-rotate-left"></i> تراجع
+                    </button>
+                    <button class="anno-btn" style="color: #fda4af;" onclick="clearCurrentPageAnnotations()" title="مسح كتابات الصفحة الحالية">
+                        <i class="fa-solid fa-trash-can"></i> مسح الصفحة
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scrollable Multi-Page PDF + Per-Page Canvas Stack -->
             <div class="pdf-viewer-body">
+                <div class="pdf-pages-scroll-container" id="pdfPagesScrollContainer">
+                    <!-- Pages rendered dynamically here via PDF.js -->
+                </div>
                 <iframe id="pdfViewerIframe" class="pdf-frame" src="about:blank"></iframe>
                 <div id="pdfFallbackBox" class="pdf-fallback-box">
-                    <i class="fa-solid fa-file-circle-exclamation" style="font-size: 3.5rem; color: var(--primary);"></i>
-                    <h3 style="font-size: 1.3rem; color: white;">المستند محلي على جهازك</h3>
-                    <p style="color: var(--text-muted); max-width: 500px; font-size: 0.92rem; line-height: 1.6;">بسبب سياسات الأمان في تطبيق الويندوز (PWA)، لا يمكن للمتصفح قراءة الملفات المحلية من القرص مباشرة بدون تحديدها. يمكنك فتحه مباشرة في نافذة خارجية أو اختيار الملف لعرضه وحفظه تلقائياً.</p>
+                    <i class="fa-solid fa-file-pen" style="font-size: 3.5rem; color: var(--primary);"></i>
+                    <h3 style="font-size: 1.3rem; color: white;">افتح ملف الـ PDF لتفعيل الكتابة بالجرافيك تابلت</h3>
+                    <p style="color: var(--text-muted); max-width: 520px; font-size: 0.92rem; line-height: 1.6;">لعرض صفحات الـ PDF والكتابة عليها مباشرة بالجرافيك تابلت مع الحفظ التلقائي لكل صفحة، اختر ملف الـ PDF من جهازك مرة واحدة فقط وسيُحفظ داخل التطبيق.</p>
                     <div style="display: flex; gap: 12px;">
-                        <button class="btn btn-primary" onclick="triggerPickLocalFileForCurrent()"><i class="fa-solid fa-folder-open"></i> اختيار الملف لعرضه فوراً</button>
+                        <button class="btn btn-primary" onclick="triggerPickLocalFileForCurrent()"><i class="fa-solid fa-folder-open"></i> اختيار ملف الـ PDF وتفعيل الكتابة</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Synced Audio Player Floating Strip (Plays Parallel to PDF) -->
+            <!-- Synced Audio Player Bar (-5s, +5s, Speed, and up to 300% Volume Booster) -->
             <div class="pdf-audio-player-bar" id="pdfAudioPlayerBar">
-                <audio id="lectureAudioElement" style="display: none;" preload="metadata"></audio>
+                <audio id="lectureAudioElement" style="display: none;" preload="metadata" crossorigin="anonymous"></audio>
                 
                 <div class="audio-controls-left">
-                    <button class="audio-play-btn" id="audioPlayPauseBtn" onclick="toggleAudioPlayPause()" title="تشغيل / إيقاف مؤقت">
+                    <button class="audio-play-btn" id="audioPlayPauseBtn" onclick="toggleAudioPlayPause()" title="تشغيل / إيقاف مؤقت للريكورد">
                         <i class="fa-solid fa-play" id="audioPlayIcon"></i>
                     </button>
                     
-                    <button class="icon-btn" style="width: 32px; height: 32px;" onclick="seekAudioRelative(-10)" title="تراجع 10 ثوانٍ">
-                        <i class="fa-solid fa-rotate-left" style="font-size: 0.75rem;"></i>
+                    <button class="seek-step-btn" onclick="seekAudioRelative(-5)" title="رجوع 5 ثوانٍ (السهم الأيسر)">
+                        <i class="fa-solid fa-backward-step"></i> -5s
                     </button>
-                    <button class="icon-btn" style="width: 32px; height: 32px;" onclick="seekAudioRelative(10)" title="تقديم 10 ثوانٍ">
-                        <i class="fa-solid fa-rotate-right" style="font-size: 0.75rem;"></i>
+                    <button class="seek-step-btn" onclick="seekAudioRelative(5)" title="تقديم 5 ثوانٍ (السهم الأيمن)">
+                        +5s <i class="fa-solid fa-forward-step"></i>
+                    </button>
+                    <button class="seek-step-btn" onclick="addAudioTimestampPin()" title="تثبيت هذه اللحظة من الريكورد كدبوس صوتي على الصفحة الحالية (اختصار P)" style="border-color: rgba(194, 140, 56, 0.45); color: #e5c386;">
+                        <i class="fa-solid fa-thumbtack"></i> تثبيت لحظة
                     </button>
 
                     <div class="audio-scrubber-track">
@@ -1878,15 +2418,22 @@
                     </div>
                 </div>
 
-                <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap;">
+                    <!-- Volume Booster (0% to 300%) -->
+                    <div class="volume-boost-control" title="تعزيز وتعلية صوت الريكورد حتى 300% للمحاضرات المنخفضة">
+                        <i class="fa-solid fa-volume-high" id="audioVolumeIcon" style="color: var(--primary); font-size: 0.85rem; cursor: pointer;" onclick="resetAudioVolumeBoost()"></i>
+                        <input type="range" id="audioVolumeBoostSlider" class="volume-boost-slider" min="0" max="300" step="5" value="100" oninput="handleAudioVolumeBoost(this.value)">
+                        <span id="audioVolumeBoostLabel" class="boost-pct-badge" onclick="cycleVolumeBoostPresets()" title="انقر للتبديل السريع (100% / 150% / 200% / 300%)">100%</span>
+                    </div>
+
                     <!-- Speed Selector Button: 1x, 1.25x, 1.5x, 1.75x, 2x -->
-                    <button class="audio-speed-btn" id="audioSpeedBtn" onclick="cycleAudioPlaybackRate()" title="تعديل سرعة التشغيل">
+                    <button class="audio-speed-btn" id="audioSpeedBtn" onclick="cycleAudioPlaybackRate()" title="تعديل سرعة الريكورد">
                         <i class="fa-solid fa-gauge-high"></i> <span id="audioSpeedText">1.0x</span>
                     </button>
 
-                    <!-- Pick Audio on the fly if not yet attached -->
-                    <button class="btn btn-outline" style="padding: 4px 10px; font-size: 0.75rem;" onclick="triggerPickAudioForCurrent()" id="audioAttachBtn" title="تغيير أو إضافة ريكورد صوتي">
-                        <i class="fa-solid fa-music"></i> ريكورد
+                    <!-- Pick / Change Audio Recording -->
+                    <button class="btn btn-outline" style="padding: 5px 10px; font-size: 0.76rem;" onclick="triggerPickAudioForCurrent()" id="audioAttachBtn" title="ربط أو تغيير ملف الريكورد الصوتي">
+                        <i class="fa-solid fa-headphones"></i> <span id="audioAttachBtnText">ربط ريكورد</span>
                     </button>
                 </div>
             </div>
@@ -1894,174 +2441,560 @@
         </div>
     </div>
 
-    <!-- ================= INTERACTIVE FULL HELP MODAL ================= -->
+    <!-- ================= INTERACTIVE FULL HELP & VIRTUAL ACADEMY MODAL ================= -->
     <div class="glass-overlay" id="helpModalOverlay">
-        <div class="glass-modal" style="max-width: 680px; width: 95%;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h3 style="margin: 0; font-size: 1.45rem;"><i class="fa-solid fa-compass" style="color: var(--primary);"></i> الدليل التفاعلي الكامل للمنصة</h3>
-                <button class="icon-btn" onclick="closeModal('helpModalOverlay')" title="إغلاق"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            
-            <div class="help-tabs-nav">
-                <button class="help-tab-btn active" onclick="switchHelpTab('overview', this)"><i class="fa-solid fa-star"></i> البداية السريعة</button>
-                <button class="help-tab-btn" onclick="switchHelpTab('subjects', this)"><i class="fa-solid fa-layer-group"></i> المركز</button>
-                <button class="help-tab-btn" onclick="switchHelpTab('schedule', this)"><i class="fa-solid fa-calendar-days"></i> التخطيط</button>
-                <button class="help-tab-btn" onclick="switchHelpTab('tracker', this)"><i class="fa-solid fa-chart-line"></i> السجل</button>
-                <button class="help-tab-btn" onclick="switchHelpTab('shortcuts', this)"><i class="fa-solid fa-keyboard"></i> الاختصارات</button>
-            </div>
-
-            <!-- TAB 1: OVERVIEW -->
-            <div id="helpTab-overview" class="help-tab-content active">
-                <div style="background: linear-gradient(135deg, rgba(194, 140, 56, 0.15), rgba(20, 22, 29, 0.9)); border: 1px solid var(--border-hover); border-radius: 14px; padding: 18px 20px;">
-                    <h4 style="font-size: 1.1rem; color: var(--primary); margin-bottom: 6px;">مرحباً بك في منصة الإنجاز (Studio Workspace) 👋</h4>
-                    <p style="color: #cbd5e1; font-size: 0.92rem; line-height: 1.6;">تم تصميم هذه المنصة خصيصاً لتجمع بين إدارة المواد الدراسية، والجدولة الزمنية الذكية بنظام Time-Blocking، ومتابعة الإنتاجية الفائقة مع مؤقت بومودورو وسلسلة الالتزام في مكان واحد.</p>
-                </div>
-
-                <div class="help-card-row">
-                    <div class="help-icon-box">1</div>
+        <div class="glass-modal academy-modal-box">
+            <!-- Top Mastery Header -->
+            <div class="academy-top-bar">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 42px; height: 42px; border-radius: 11px; background: rgba(194, 140, 56, 0.15); border: 1px solid var(--border-hover); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </div>
                     <div>
-                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 3px;">الخطوة الأولى: أضف موادك في «المركز»</div>
-                        <div style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;">أنشئ بطاقات لمواد الفصل الدراسي، وقسم كل مادة إلى وحدات/فصول وأضف ملفات المحاضرات لمتابعة تقدمك ونسبة دراستك لكل مادة.</div>
+                        <h3 style="margin: 0; font-size: 1.25rem; font-weight: 900; color: var(--text-main);">أكاديمية المنصة التفاعلية ومختبر التجربة</h3>
+                        <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">دليل شامل بالشرح والأمثلة والتجربة العملية المباشرة لكل أداة في الموقع</p>
                     </div>
                 </div>
 
-                <div class="help-card-row">
-                    <div class="help-icon-box">2</div>
-                    <div>
-                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 3px;">الخطوة الثانية: حدد التزامات الكلية في «التخطيط»</div>
-                        <div style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;">أضف مواعيد الكلية الثابتة (مثل الأحد 7 ص - 5 م) وفعل خيار <b>🔒 التزام أسبوعي ثابت</b> حتى لا تعيد كتابتها أسبوعياً ولا تؤثر على نسبة إنجاز المذاكرة.</div>
+                <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                    <div class="academy-xp-pill">
+                        <div>
+                            <div style="display: flex; justify-content: space-between; gap: 14px; font-size: 0.76rem; margin-bottom: 3px;">
+                                <span style="color: var(--text-muted); font-weight: 700;">مؤشر إتقان المنصة:</span>
+                                <span id="academyXpText" style="color: var(--primary); font-weight: 900;">0 / 600 XP (0%)</span>
+                            </div>
+                            <div class="progress-bar-bg" style="width: 170px; height: 6px; margin: 0;">
+                                <div class="progress-bar-fill" id="academyProgressBar" style="width: 0%; background: var(--primary-gradient);"></div>
+                            </div>
+                        </div>
+                        <span id="academyMasterBadge" style="display: none; background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.4); padding: 3px 8px; border-radius: 8px; font-size: 0.72rem; font-weight: 800;">🏆 خبير المنصة</span>
                     </div>
-                </div>
-
-                <div class="help-card-row">
-                    <div class="help-icon-box">3</div>
-                    <div>
-                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 3px;">الخطوة الثالثة: جدول جلسات المذاكرة ونفذها عبر «السجل»</div>
-                        <div style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;">حدد أوقات المذاكرة في الجدول، واستخدم مؤقت البومودورو للتركيز العميق، واضغط «إتمام» لتوثيق نجاحاتك وزيادة سلسلة الالتزام (Streak 🔥).</div>
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px;">
-                    <button class="btn btn-outline" style="font-size: 0.85rem; padding: 8px 16px;" onclick="loadDemoData()"><i class="fa-solid fa-wand-magic-sparkles"></i> تجربة بيانات نموذجية (Demo)</button>
+                    <button class="icon-btn" onclick="closeModal('helpModalOverlay')" title="إغلاق الأكاديمية (Esc)"><i class="fa-solid fa-xmark"></i></button>
                 </div>
             </div>
 
-            <!-- TAB 2: SUBJECTS -->
-            <div id="helpTab-subjects" class="help-tab-content">
-                <div class="help-card-row">
-                    <div class="help-icon-box"><i class="fa-solid fa-plus"></i></div>
-                    <div>
-                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">إضافة مادة والبحث عنها</div>
-                        <div style="font-size: 0.88rem; color: var(--text-muted);">اكتب اسم المادة في الشريط العلوي واضغط «إضافة مادة»، أو استخدم شريط البحث لتصفية المواد فورياً.</div>
+            <!-- Main Body: Sidebar + Stage -->
+            <div class="academy-body-layout">
+                <!-- Sidebar Navigation (6 Modules) -->
+                <div class="academy-sidebar">
+                    <div class="academy-nav-item active" id="acadNav_1" onclick="switchAcademyModule(1)">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="mod-num" id="acadBadge_1">1</div>
+                            <div>
+                                <div style="font-weight: 800; font-size: 0.86rem;">فلسفة المنصة ودورة العمل</div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">⏱️ دقيقتان • تدريب تفاعلي</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-left" style="font-size: 0.7rem; opacity: 0.5;"></i>
                     </div>
-                </div>
-                <div class="help-card-row">
-                    <div class="help-icon-box"><i class="fa-solid fa-folder-tree"></i></div>
-                    <div>
-                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">الأقسام والفصول (Chapters)</div>
-                        <div style="font-size: 0.88rem; color: var(--text-muted);">اضغط على أي مادة لفتحها، ثم اضغط «قسم جديد» لتقسيم المادة إلى فصول (مثال: الشابتر 1، العملي، مراجعة الفاينال).</div>
-                    </div>
-                </div>
-                <div class="help-card-row">
-                    <div class="help-icon-box"><i class="fa-solid fa-file-pdf"></i></div>
-                    <div>
-                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">إضافة المحاضرات ومسارات الملفات</div>
-                        <div style="font-size: 0.88rem; color: var(--text-muted);">اضغط «ملف جديد» في أي قسم؛ يمكنك إدخال مسار الملف على جهازك، أو اختيار ملف وسيقوم التطبيق بملء الاسم تلقائياً.</div>
-                    </div>
-                </div>
-                <div class="help-card-row">
-                    <div class="help-icon-box"><i class="fa-solid fa-circle-check"></i></div>
-                    <div>
-                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">تشطيب المحاضرات المدروسة (Progress Tracking)</div>
-                        <div style="font-size: 0.88rem; color: var(--text-muted);">بجانب كل محاضرة توجد أيقونة دائرية؛ اضغط عليها لوضع علامة «تمت المذاكرة» لتحديث شريط إنجاز المادة فوراً.</div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- TAB 3: SCHEDULE -->
-            <div id="helpTab-schedule" class="help-tab-content">
-                <div class="help-card-row">
-                    <div class="help-icon-box"><i class="fa-solid fa-table-cells"></i></div>
-                    <div>
-                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">جدول الأسبوع (Full Week Timetable)</div>
-                        <div style="font-size: 0.88rem; color: var(--text-muted);">شبكة زمنية متصلة من 7 ص إلى 11 م. اضغط على أي خانة أو ساعة لفتح نافذة الجدولة معبأة تلقائياً بذلك اليوم والوقت.</div>
+                    <div class="academy-nav-item" id="acadNav_2" onclick="switchAcademyModule(2)">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="mod-num" id="acadBadge_2">2</div>
+                            <div>
+                                <div style="font-weight: 800; font-size: 0.86rem;">قسم «المركز» والمراجعة</div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">⏱️ 3 دقائق • مختبر حي</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-left" style="font-size: 0.7rem; opacity: 0.5;"></i>
                     </div>
-                </div>
-                <div class="help-card-row">
-                    <div class="help-icon-box"><i class="fa-solid fa-lock"></i></div>
-                    <div>
-                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">الالتزام الأسبوعي الثابت (جدول الكلية الدائم)</div>
-                        <div style="font-size: 0.88rem; color: var(--text-muted);">عند تفعيل خيار <b>التزام أسبوعي ثابت</b>، يتم حجز وقت الكلية في الجدول كروتين دائم، بدون زر تشطيب، ولا يقلل من نسبة التزامك بالمذاكرة.</div>
-                    </div>
-                </div>
-                <div class="help-card-row">
-                    <div class="help-icon-box"><i class="fa-solid fa-stopwatch"></i></div>
-                    <div>
-                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">جلسات أكثر من 4 ساعات وخانة الوقت الدقيق</div>
-                        <div style="font-size: 0.88rem; color: var(--text-muted);">يمكنك اختيار حتى 8 ساعات، أو اختيار «تحديد وقت مخصص بالظبط» لكتابة أي مدة تريدها (مثلاً 5.5 أو 10 ساعات لحضور الكلية الكامل).</div>
-                    </div>
-                </div>
-                <div class="help-card-row">
-                    <div class="help-icon-box"><i class="fa-solid fa-broom"></i></div>
-                    <div>
-                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">تفريغ الأسبوع الذكي (Clear Week)</div>
-                        <div style="font-size: 0.88rem; color: var(--text-muted);">عند الضغط على «مسح الأسبوع»، يمكنك اختيار <b>مسح جلسات المذاكرة فقط</b> للبدء بأسبوع جديد مع الحفاظ التام على جدول الكلية الثابت!</div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- TAB 4: TRACKER -->
-            <div id="helpTab-tracker" class="help-tab-content">
-                <div class="help-card-row">
-                    <div class="help-icon-box"><i class="fa-solid fa-fire"></i></div>
-                    <div>
-                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">سلسلة الالتزام (Study Streak 🔥)</div>
-                        <div style="font-size: 0.88rem; color: var(--text-muted);">عداد ذكي يرصد الأيام المتتالية التي دونت فيها إنجازات دراسية. لا تدع العداد ينقطع وحافظ على إنجاز يومي!</div>
+                    <div class="academy-nav-item" id="acadNav_3" onclick="switchAcademyModule(3)">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="mod-num" id="acadBadge_3">3</div>
+                            <div>
+                                <div style="font-weight: 800; font-size: 0.86rem;">استوديو الـ PDF والتابلت</div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">⏱️ 3 دقائق • لوحة رسم حية</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-left" style="font-size: 0.7rem; opacity: 0.5;"></i>
                     </div>
-                </div>
-                <div class="help-card-row">
-                    <div class="help-icon-box"><i class="fa-solid fa-brain"></i></div>
-                    <div>
-                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">مؤقت التركيز وبومودورو (Focus Timer)</div>
-                        <div style="font-size: 0.88rem; color: var(--text-muted);">اختر مدة الجلسة (25د تركيز، 50د عمل عميق، أو استراحة)، اربط الجلسة بالمادة، واضغط «بدء». عند انتهاء الوقت يُصدر نغمة تنبيه ويُسجل الإنجاز تلقائياً.</div>
-                    </div>
-                </div>
-                <div class="help-card-row">
-                    <div class="help-icon-box"><i class="fa-solid fa-chart-pie"></i></div>
-                    <div>
-                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">تحليلات الوقت ومتابعة المواد</div>
-                        <div style="font-size: 0.88rem; color: var(--text-muted);">شريط بياني يوضح نسب وقت الكلية والمذاكرة والكويزات، مع عداد لساعات الاستذكار لكل مادة لمعرفة المواد التي تحتاج مزيداً من الجهد.</div>
-                    </div>
-                </div>
-                <div class="help-card-row">
-                    <div class="help-icon-box"><i class="fa-solid fa-database"></i></div>
-                    <div>
-                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">النسخ الاحتياطي والأمان (Backup & Restore)</div>
-                        <div style="font-size: 0.88rem; color: var(--text-muted);">اضغط «تصدير نسخة (JSON)» لتنزيل ملف يحتوي على كل بياناتك. يمكنك استرجاعه على أي جهاز آخر بنقرة واحدة عبر «استرجاع نسخة».</div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- TAB 5: SHORTCUTS -->
-            <div id="helpTab-shortcuts" class="help-tab-content">
-                <div class="help-card-row">
-                    <div class="help-icon-box"><i class="fa-solid fa-keyboard"></i></div>
-                    <div style="width: 100%;">
-                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 8px;">اختصارات لوحة المفاتيح للتنقل السريع:</div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.88rem; color: var(--text-muted);">
-                            <div><span class="key-badge">1</span> التبديل إلى صفحة «المركز»</div>
-                            <div><span class="key-badge">2</span> التبديل إلى صفحة «التخطيط»</div>
-                            <div><span class="key-badge">3</span> التبديل إلى صفحة «السجل»</div>
-                            <div><span class="key-badge">?</span> فتح نافذة المساعدة والدليل</div>
-                            <div><span class="key-badge">n</span> إضافة جلسة جديدة فوراً</div>
-                            <div><span class="key-badge">Esc</span> إغلاق أي نافذة منبثقة</div>
+                    <div class="academy-nav-item" id="acadNav_4" onclick="switchAcademyModule(4)">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="mod-num" id="acadBadge_4">4</div>
+                            <div>
+                                <div style="font-weight: 800; font-size: 0.86rem;">قسم «التخطيط» والجدولة</div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">⏱️ 3 دقائق • محاكي الجدول</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-left" style="font-size: 0.7rem; opacity: 0.5;"></i>
+                    </div>
+
+                    <div class="academy-nav-item" id="acadNav_5" onclick="switchAcademyModule(5)">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="mod-num" id="acadBadge_5">5</div>
+                            <div>
+                                <div style="font-weight: 800; font-size: 0.86rem;">قسم «السجل» وبومودورو</div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">⏱️ دقيقتان • محاكي التركيز</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-left" style="font-size: 0.7rem; opacity: 0.5;"></i>
+                    </div>
+
+                    <div class="academy-nav-item" id="acadNav_6" onclick="switchAcademyModule(6)">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="mod-num" id="acadBadge_6">6</div>
+                            <div>
+                                <div style="font-weight: 800; font-size: 0.86rem;">الاختصارات والأمان والـ Demo</div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">⏱️ دقيقتان • مدرب الكيبورد</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-left" style="font-size: 0.7rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+
+                <!-- Interactive Stage Content -->
+                <div class="academy-stage" id="academyStageContainer">
+
+                    <!-- ==================== MODULE 1: PHILOSOPHY & WORKFLOW ==================== -->
+                    <div class="academy-module-pane active" id="acadPane_1">
+                        <div class="acad-hero-banner">
+                            <span class="studio-pill" style="color: var(--primary); margin-bottom: 8px;">المرحلة التدريبية 1 من 6 • أساسيات النظام</span>
+                            <h2 style="font-size: 1.45rem; font-weight: 900; color: var(--text-main); margin-bottom: 8px;">لماذا صُممت «منصة الإنجاز» وكيف تعمل أركانها الثلاثة معاً؟</h2>
+                            <p style="color: #cbd5e1; font-size: 0.93rem; line-height: 1.7;">
+                                أغلب الطلاب يعانون من تشتت الأدوات: ملفات الـ PDF في مجلدات عشوائية، والريكوردات في تطبيق آخر، والجدول على ورق لا يلتزم به أحد لأن أيام الكلية الطويلة تبتلع الأسبوع. هذه المنصة تجمع كل ذلك في <b>حلقة مغلقة ذكية (Closed-Loop System)</b> مكونة من 3 غرف عمليات مترابطة: <b>المركز ⬅️ التخطيط ⬅️ السجل</b>.
+                            </p>
+                        </div>
+
+                        <div class="acad-section-card">
+                            <div class="acad-section-title"><i class="fa-solid fa-diagram-project"></i> كيف تتدفق المذاكرة داخل المنصة؟ (خطوة بخطوة)</div>
+                            <div class="acad-grid-2">
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: var(--primary); margin-bottom: 5px;">1. الخزينة الأكاديمية في «المركز»</div>
+                                    <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">تضع فيها كل موادك وفصولك وملفات الـ PDF وريكوردات الشرح. هناك تذاكر بالقلم والتابلت وتتابع نسبة انتهائك من المنهج ومؤشر المراجعة المتباعدة.</p>
+                                </div>
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: #60a5fa; margin-bottom: 5px;">2. حجز الوقت الذكي في «التخطيط»</div>
+                                    <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">تثبت فيه أولاً مواعيد الكلية الإجبارية كـ <b>جدول ثابت 🔒</b> لكي ترى بوضوح الساعات الفارغة الحقيقية المتبقية لك في الأسبوع، ثم توزع جلسات المذاكرة فيها بواقعية.</p>
+                                </div>
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: #34d399; margin-bottom: 5px;">3. التنفيذ والتحليل في «السجل»</div>
+                                    <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">عندما تبدأ المذاكرة، تشغل مؤقت بومودورو، وعندما تنهي جلسة أو محاضرة، تُسجل تلقائياً في يومياتك لترفع عداد الأيام المتتالية (Streak 🔥) وتكشف لك تحليلات التوازن أي مادة أهملتها.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="acad-example-box">
+                            <div style="font-weight: 800; color: #93c5fd; margin-bottom: 6px;"><i class="fa-solid fa-lightbulb"></i> مثال واقعي: الفرق بين التخطيط العشوائي والتخطيط بالمنصة</div>
+                            <p style="font-size: 0.86rem; color: #e2e8f0; line-height: 1.65;">
+                                • <b>الطريقة التقليدية الخاطئة:</b> يكتب الطالب "الأحد: مذاكرة 4 محاضرات فارما"، ثم يذهب للكلية من 7 صباحاً حتى 5 مساءً ويعود منهكاً فلا ينجز شيئاً ويشعر بالإحباط ويمزق الجدول.<br>
+                                • <b>طريقة منصة الإنجاز:</b> يسجل الطالب يوم الأحد من 7 ص إلى 5 م كـ <b>«🔒 التزام كلية ثابت»</b>، فيرى بصرياً أن يوم الأحد لم يتبقَّ فيه سوى ساعتين مساءً، فيضع فيهما "مراجعة خفيفة 1.5 ساعة" ويضع المذاكرة العميقة في يوم الإثنين المفتوح، فيحقق نسبة التزام 100%!
+                            </p>
+                        </div>
+
+                        <!-- Interactive Sandbox 1 -->
+                        <div class="acad-sandbox-container">
+                            <div class="sandbox-header-badge"><i class="fa-solid fa-gamepad"></i> التمرين التفاعلي الأول (+100 XP): تشخيص خطة طالب</div>
+                            <p style="font-size: 0.88rem; color: #cbd5e1; line-height: 1.5;">
+                                <b>السيناريو:</b> زميلك لديه يوم الثلاثاء حضور في الكلية والمعامل لمدة 9 ساعات، ويريد أيضاً مذاكرة محاضرة جديدة بالكامل مع سماع ريكورد الدكتور (ساعتان). أي التصرفات التالية هو الأصح داخل المنصة؟
+                            </p>
+                            <div class="sandbox-interactive-area" style="display: flex; flex-direction: column; gap: 10px;">
+                                <button class="btn btn-outline" style="justify-content: flex-start; text-align: right; font-size: 0.85rem;" onclick="checkAcadQuiz1(1, this)">
+                                    أ) يسجل الـ 9 ساعات كمهمة مذاكرة عادية، ويشطبها آخر اليوم ليرتفع معدل الإنجاز إلى 100%.
+                                </button>
+                                <button class="btn btn-outline" style="justify-content: flex-start; text-align: right; font-size: 0.85rem;" onclick="checkAcadQuiz1(2, this)">
+                                    ب) يسجل الـ 9 ساعات كـ «🔒 التزام أسبوعي ثابت»، ويربط ملف الـ PDF بالريكورد في «المركز» ويضع له جلسة مذاكرة ساعتين في وقت فراغه الحقيقي.
+                                </button>
+                                <button class="btn btn-outline" style="justify-content: flex-start; text-align: right; font-size: 0.85rem;" onclick="checkAcadQuiz1(3, this)">
+                                    ج) يترك الجدول فارغاً ويكتفي بفتح ملف الـ PDF من سطح المكتب بدون جدول.
+                                </button>
+                                <div id="acadQuiz1Feedback" style="display: none; padding: 12px; border-radius: 10px; font-size: 0.86rem; font-weight: 700; margin-top: 4px;"></div>
+                            </div>
+                        </div>
+
+                        <div class="acad-footer-nav">
+                            <span style="font-size: 0.82rem; color: var(--text-muted);">أكمل التمرين أعلاه لكسب نقاط المرحلة الأولى</span>
+                            <button class="btn btn-primary" onclick="switchAcademyModule(2)">المرحلة التالية: إتقان «المركز» <i class="fa-solid fa-arrow-left"></i></button>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="modal-actions" style="margin-top: 20px;">
-                <button class="btn btn-primary" onclick="closeModal('helpModalOverlay')">فهمت ذلك، فلنبدأ!</button>
+                    <!-- ==================== MODULE 2: SUBJECTS HUB & SPACED REPETITION ==================== -->
+                    <div class="academy-module-pane" id="acadPane_2">
+                        <div class="acad-hero-banner">
+                            <span class="studio-pill" style="color: var(--primary); margin-bottom: 8px;">المرحلة التدريبية 2 من 6 • قسم المركز</span>
+                            <h2 style="font-size: 1.45rem; font-weight: 900; color: var(--text-main); margin-bottom: 8px;">إتقان «المركز»: تنظيم المواد، الفصول، والمراجعة المتباعدة</h2>
+                            <p style="color: #cbd5e1; font-size: 0.93rem; line-height: 1.7;">
+                                صُمم قسم «المركز» ليكون لوحة المكتب الخاصة بك (Studio Pinboard). بدلاً من التوهان في المجلدات، كل مادة لها بطاقة معلقة بدبوس مذهب تعرض تقدمك، وبداخلها فصول قابلة للطي (Accordions) تحفظ محاضراتك وريكورداتك وتنبهك تلقائياً لمواعيد المراجعة.
+                            </p>
+                        </div>
+
+                        <div class="acad-section-card">
+                            <div class="acad-section-title"><i class="fa-solid fa-screwdriver-wrench"></i> شرح كل زر ومؤشر داخل «المركز»</div>
+                            <div class="acad-grid-2">
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: var(--text-main); margin-bottom: 4px;">📌 كارت المادة وشريط الترم الفوقي</div>
+                                    <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.55;">يعرض الشريط العلوي إجمالي موادك ومحاضراتك ونسبة إنجاز الترم الكلية. وكل كارت مادة يختار أيقونته تلقائياً (كبسولة للفارما، DNA للبايو، قارورة للكيمياء) ويعرض الساعات المجدولة له.</p>
+                                </div>
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: var(--text-main); margin-bottom: 4px;">📂 الفصول القابلة للطي (+ قسم جديد)</div>
+                                    <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.55;">يمكنك تقسيم كل مادة إلى وحدات مثل: (محاضرات الميدتيرم، محاضرات الفاينال، سكاشن العملي). النقر على رأس القسم يطويه أو يفتحه لمنع الزحام البصري.</p>
+                                </div>
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: #6ee7b7; margin-bottom: 4px;">✅ تشطيب المحاضرة ومؤشر المراجعة المتباعدة</div>
+                                    <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.55;">بجانب كل محاضرة دائرة تشطيب: عند الضغط عليها تُحسب المحاضرة منجزة وتُضاف لسجل يومياتك، ويبدأ عداد ذكي يحسب كم يوماً مر على دراستها.</p>
+                                </div>
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: #fcd34d; margin-bottom: 4px;">🔄 زر تجديد المراجعة (أيقونة التدوير)</div>
+                                    <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.55;">إذا مر 7 أيام على محاضرة، يتحول المؤشر للون البرتقالي <code>منذ 7 أيام - تحتاج مراجعة</code>. بمجرد مراجعتها والضغط على زر <code>🔄</code> يتجدد العداد ويزيد رقم المراجعة (#2، #3...).</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="acad-example-box">
+                            <div style="font-weight: 800; color: #93c5fd; margin-bottom: 6px;"><i class="fa-solid fa-book-medical"></i> أمثلة عملية لتنظيم المواد المختلفة</div>
+                            <p style="font-size: 0.85rem; color: #e2e8f0; line-height: 1.65;">
+                                • <b>مثال 1 (مادة مقسمة لدكتورين):</b> داخل مادة "الفارماكولوجي"، أنشئ قسماً باسم "قسم د. أحمد - Autonomic" وقسماً ثانياً باسم "قسم د. سارة - Cardiovascular" لترتيب المحاضرات بدقة.<br>
+                                • <b>مثال 2 (ليلة الامتحان):</b> افتح المادة وانظر إلى الأوسمة بجانب المحاضرات؛ المحاضرات التي تحمل وساماً برتقالياً <code>تحتاج مراجعة</code> هي التي نسيها عقلك ويجب البدء بمراجعتها فوراً!
+                            </p>
+                        </div>
+
+                        <!-- Interactive Sandbox 2: Virtual Subject & Spaced Repetition Simulator -->
+                        <div class="acad-sandbox-container">
+                            <div class="sandbox-header-badge"><i class="fa-solid fa-flask"></i> المختبر الافتراضي للمركز (+100 XP): جرّب دورة حياة المحاضرة والمراجعة المتباعدة!</div>
+                            <p style="font-size: 0.86rem; color: #cbd5e1;">
+                                نفّذ الخطوات الثلاث على المحاضرة التجريبية بالأسفل: (1) علّمها كمدروسة، (2) حاكِ مرور 8 أيام لترى تنبيه النسيان، (3) اضغط زر تجديد المراجعة!
+                            </p>
+                            <div class="sandbox-interactive-area">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                                    <div style="font-weight: 800; color: var(--text-main);"><i class="fa-solid fa-capsules" style="color: var(--primary);"></i> مادة افتراضية: علم الأدوية (Pharmacology)</div>
+                                    <span id="sb2ProgressText" class="studio-pill" style="color: var(--primary);">نسبة الإنجاز: 0%</span>
+                                </div>
+                                <div class="progress-bar-bg" style="height: 6px; margin-bottom: 14px;">
+                                    <div class="progress-bar-fill" id="sb2ProgressBar" style="width: 0%;"></div>
+                                </div>
+
+                                <!-- Simulated Lecture Row -->
+                                <div class="lecture-item" style="margin-bottom: 12px;">
+                                    <div style="display: flex; align-items: center; gap: 12px; flex: 1; flex-wrap: wrap;">
+                                        <button class="icon-btn" id="sb2CheckBtn" onclick="sb2ToggleComplete()" style="width: 36px; height: 36px;" title="الخطوة 1: اضغط لتشطيب المحاضرة">
+                                            <i class="fa-solid fa-circle" id="sb2CheckIcon"></i>
+                                        </button>
+                                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                            <i class="fa-solid fa-file-pdf" id="sb2PdfIcon" style="color: var(--mandatory-color); font-size: 1.25rem;"></i>
+                                            <span id="sb2LecTitle" style="font-weight: 700;">Lec 1 - Cholinergic Agonists & Receptors.pdf</span>
+                                            <span id="sb2SrBadge" class="studio-pill" style="display: none;"></span>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <button class="btn btn-outline" id="sb2SimDaysBtn" style="display: none; padding: 5px 10px; font-size: 0.76rem;" onclick="sb2Simulate8Days()">
+                                            <i class="fa-solid fa-forward-fast"></i> 2. محاكاة مرور 8 أيام
+                                        </button>
+                                        <button class="icon-btn" id="sb2RefreshBtn" style="display: none; color: var(--primary); border-color: var(--primary);" onclick="sb2RefreshReview()" title="الخطوة 3: تجديد المراجعة">
+                                            <i class="fa-solid fa-rotate"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="sb2StatusMsg" style="font-size: 0.83rem; color: var(--primary); font-weight: 700;">👈 ابدأ بالضغط على الدائرة بجانب اسم المحاضرة لتعليمها كـ «تمت المذاكرة».</div>
+                            </div>
+                        </div>
+
+                        <div class="acad-footer-nav">
+                            <button class="btn btn-outline" onclick="switchAcademyModule(1)"><i class="fa-solid fa-arrow-right"></i> المرحلة السابقة</button>
+                            <button class="btn btn-primary" onclick="switchAcademyModule(3)">المرحلة التالية: استوديو الـ PDF والتابلت <i class="fa-solid fa-arrow-left"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- ==================== MODULE 3: PDF STUDIO, GRAPHIC TABLET & AUDIO ==================== -->
+                    <div class="academy-module-pane" id="acadPane_3">
+                        <div class="acad-hero-banner">
+                            <span class="studio-pill" style="color: var(--primary); margin-bottom: 8px;">المرحلة التدريبية 3 من 6 • استوديو المحاضرات</span>
+                            <h2 style="font-size: 1.45rem; font-weight: 900; color: var(--text-main); margin-bottom: 8px;">استوديو الـ PDF، الجرافيك تابلت، ومشغل الريكورد المتزامن</h2>
+                            <p style="color: #cbd5e1; font-size: 0.93rem; line-height: 1.7;">
+                                عند النقر على أي محاضرة، يفتح لك استوديو متكامل يغنيك عن أي برنامج خارجي: كتابة فائقة السلاسة بالجرافيك تابلت مرتبطة بكل صفحة، قلم ليزر متلاشي للشرح والتركيز، أوراق تلخيص منقطة، ومشغل ريكورد بمضخم صوت حتى 300% ودبابيس زمنية.
+                            </p>
+                        </div>
+
+                        <div class="acad-section-card">
+                            <div class="acad-section-title"><i class="fa-solid fa-pen-nib"></i> دليل أدوات استوديو الـ PDF والريكورد بالتفصيل</div>
+                            <div class="acad-grid-2">
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: var(--primary); margin-bottom: 4px;">🖊️ قلم الكتابة والمظلل والممحاة</div>
+                                    <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.55;">يكتب بنعومة (Quadratic Curves) على كل صفحة على حدة ويحفظ تلقائياً في المتصفح. المظلل يلوّن خلف النص بشفافية، والممحاة تمسح أي خط تلمسه (أو بزر ممحاة القلم الخلفي).</p>
+                                </div>
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: #f87171; margin-bottom: 4px;">✨ قلم الليزر المتلاشي (Vanishing Laser)</div>
+                                    <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.55;">مخصص للحظات التي تقرأ فيها بتركيز أو تشرح لنفسك؛ تحوط به على الكلمة أو المخطط فيتوهج بضوء ليزر لمدة ثانيتين ثم يتلاشى ويختفي تلقائياً دون تشويه السلايد!</p>
+                                </div>
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: #6ee7b7; margin-bottom: 4px;">👁️ إخفاء الكتابة & 📄 + ورقة تلخيص</div>
+                                    <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.55;">زر <code>إخفاء الكتابة</code> يخفي ملاحظاتك مؤقتاً لتختبر ذاكرتك على السلايد الصافية. وزر <code>+ ورقة تلخيص</code> يفتح صفحة منقطة أسفل السلايد لترسم فيها الجداول بحرية.</p>
+                                </div>
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: #93c5fd; margin-bottom: 4px;">🎙️ مضخم الصوت 300% & 📌 تثبيت لحظة</div>
+                                    <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.55;">يرفع صوت تسجيلات المدرج المنخفضة حتى 3 أضعاف (300%)، مع تقديم/تأخير 5 ثوانٍ، وزر <code>📌 تثبيت لحظة</code> الذي يضع دبوساً زمنياً على السلايد يقفز بالريكورد لتلك الدقيقة فوراً.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="acad-example-box">
+                            <div style="font-weight: 800; color: #93c5fd; margin-bottom: 6px;"><i class="fa-solid fa-graduation-cap"></i> مثال تطبيقي: كيف تذاكر محاضرة صعبة في 45 دقيقة؟</div>
+                            <p style="font-size: 0.85rem; color: #e2e8f0; line-height: 1.65;">
+                                1. افتح المحاضرة وشغّل الريكورد بسرعة <code>1.25x</code> ومضخم صوت <code>150%</code>.<br>
+                                2. أثناء الاستماع، تتبع الكلام بـ <b>قلم الليزر المتلاشي</b> للحفاظ على انتباهك البصري، واكتب الملاحظات المهمة بـ <b>قلم الكتابة</b>.<br>
+                                3. عندما يشرح الدكتور جزئية معقدة، اضغط <code>📌 تثبيت لحظة</code> لتربط الدقيقة بالسلايد.<br>
+                                4. بعد الانتهاء، اضغط <code>👁️ إخفاء الكتابة</code> وحاول تسميع الملاحظات لنفسك غيباً!
+                            </p>
+                        </div>
+
+                        <!-- Interactive Sandbox 3: Live Mini Graphic Tablet & Laser Canvas -->
+                        <div class="acad-sandbox-container">
+                            <div class="sandbox-header-badge"><i class="fa-solid fa-palette"></i> مختبر الرسم والليزر التفاعلي (+100 XP): ارسم وجرّب الأدوات بنفسك الآن!</div>
+                            <p style="font-size: 0.86rem; color: #cbd5e1;">
+                                استخدم الماوس أو قلم التابلت للرسم على السلايد التجريبية بالأسفل: جرّب <b>قلم الكتابة</b>، ثم <b>الليزر المتلاشي</b> (لاحظ كيف يختفي!)، وجرّب زر <b>إخفاء الكتابة</b> و<b>تثبيت لحظة صوتية</b>.
+                            </p>
+                            <div class="sandbox-interactive-area">
+                                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
+                                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                        <button class="anno-btn active" id="sb3Tool_pen" onclick="setSb3Tool('pen')"><i class="fa-solid fa-pen-nib"></i> قلم كتابة</button>
+                                        <button class="anno-btn" id="sb3Tool_highlighter" onclick="setSb3Tool('highlighter')"><i class="fa-solid fa-highlighter"></i> تظليل</button>
+                                        <button class="anno-btn" id="sb3Tool_laser" onclick="setSb3Tool('laser')"><i class="fa-solid fa-wand-magic-sparkles"></i> ليزر متلاشي</button>
+                                        <button class="anno-btn" id="sb3VisBtn" onclick="toggleSb3Visibility()"><i class="fa-solid fa-eye"></i> إخفاء/إظهار الكتابة</button>
+                                        <button class="anno-btn" onclick="clearSb3Canvas()" style="color: #fda4af;"><i class="fa-solid fa-trash"></i> مسح</button>
+                                    </div>
+                                    <div style="display: flex; gap: 6px; align-items: center;">
+                                        <button class="seek-step-btn" onclick="addSb3AudioPin()" style="border-color: var(--primary); color: var(--primary);">
+                                            <i class="fa-solid fa-thumbtack"></i> تثبيت لحظة (14:20)
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Mini Slide Canvas Stack -->
+                                <div style="position: relative; width: 100%; height: 210px; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: inset 0 0 10px rgba(0,0,0,0.15); direction: ltr; text-align: left; user-select: none;">
+                                    <!-- Simulated Slide Content -->
+                                    <div style="padding: 18px 24px; color: #0f172a; font-family: sans-serif; pointer-events: none;">
+                                        <div style="font-size: 0.72rem; font-weight: 800; color: #c28c38; text-transform: uppercase;">Slide 4 • Pharmacokinetics</div>
+                                        <h4 style="font-size: 1.15rem; margin: 4px 0 8px 0; color: #1e293b;">First-Pass Hepatic Metabolism (Bioavailability)</h4>
+                                        <p style="font-size: 0.85rem; color: #334155; line-height: 1.5; margin-bottom: 8px;">
+                                            Drugs absorbed from the GI tract enter the <b>portal circulation</b> before reaching systemic circulation. High hepatic extraction reduces oral bioavailability (e.g., <i>Propranolol, Lidocaine, Nitroglycerin</i>).
+                                        </p>
+                                        <div style="display: inline-block; background: #f1f5f9; border-left: 3px solid #3b82f6; padding: 6px 12px; font-size: 0.8rem; color: #1e293b;">
+                                            Formula: <b>F = (AUC_oral / AUC_iv) × 100</b> — (جرّب التظليل أو الكتابة هنا بالقلم أو الليزر!)
+                                        </div>
+                                    </div>
+                                    <!-- Pins Container inside Sandbox Slide -->
+                                    <div id="sb3PinsRail" style="position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 5px; z-index: 10;"></div>
+                                    <!-- Ink Canvas -->
+                                    <canvas id="sb3InkCanvas" width="700" height="210" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; touch-action: none; cursor: crosshair; transition: opacity 0.18s ease;"></canvas>
+                                    <!-- Laser Canvas -->
+                                    <canvas id="sb3LaserCanvas" width="700" height="210" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 6; pointer-events: none;"></canvas>
+                                </div>
+                                <div id="sb3StatusMsg" style="font-size: 0.82rem; color: var(--primary); font-weight: 700; margin-top: 8px;">👈 ارسم خطاً على السلايد البيضاء أعلاه أو جرّب الليزر المتلاشي لإتمام هذا المختبر!</div>
+                            </div>
+                        </div>
+
+                        <div class="acad-footer-nav">
+                            <button class="btn btn-outline" onclick="switchAcademyModule(2)"><i class="fa-solid fa-arrow-right"></i> المرحلة السابقة</button>
+                            <button class="btn btn-primary" onclick="switchAcademyModule(4)">المرحلة التالية: إتقان «التخطيط» <i class="fa-solid fa-arrow-left"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- ==================== MODULE 4: SMART PLANNING & FIXED ROUTINES ==================== -->
+                    <div class="academy-module-pane" id="acadPane_4">
+                        <div class="acad-hero-banner">
+                            <span class="studio-pill" style="color: var(--primary); margin-bottom: 8px;">المرحلة التدريبية 4 من 6 • قسم التخطيط</span>
+                            <h2 style="font-size: 1.45rem; font-weight: 900; color: var(--text-main); margin-bottom: 8px;">إتقان «التخطيط»: الجدولة الزمنية، الالتزامات الثابتة، والتفريغ الذكي</h2>
+                            <p style="color: #cbd5e1; font-size: 0.93rem; line-height: 1.7;">
+                                صُمم قسم «التخطيط» ليقضي على الجداول الوهمية. يعتمد على منهجية <b>Time-Blocking</b> من جامعة ستانفورد، ويفصل تماماً بين الساعات الإجبارية الثابتة (حضور الكلية) وبين جلسات المذاكرة الفعلية التي تقيس إنتاجيتك الحقيقية.
+                            </p>
+                        </div>
+
+                        <div class="acad-section-card">
+                            <div class="acad-section-title"><i class="fa-solid fa-calendar-check"></i> المناظير الثلاثة والأدوات الذكية في «التخطيط»</div>
+                            <div class="acad-grid-2">
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: var(--primary); margin-bottom: 4px;">🔒 الالتزام الأسبوعي الثابت (جدول الكلية)</div>
+                                    <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.55;">عند تفعيل هذا الخيار في نافذة الجلسة، تُحجز الفترة ككتلة ثابتة بدون زر تشطيب، ولا تدخل في حساب نسبة إتمام المذاكرة، ولا تُمسح عند تفريغ الأسبوع الجديد.</p>
+                                </div>
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: #60a5fa; margin-bottom: 4px;">📅 جدول الأسبوع vs 🎯 تركيز اليوم</div>
+                                    <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.55;"><b>جدول الأسبوع</b> يمنحك رؤية شاملة للأيام السبعة، بينما <b>تركيز اليوم</b> يعزل لك مهام اليوم الحالي فقط مع بطاقة بارزة للجلسة القادمة لمنع التشتت.</p>
+                                </div>
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: #34d399; margin-bottom: 4px;">📋 بنك أهداف الأسبوع (Task Backlog)</div>
+                                    <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.55;">تكتب فيه كل المهام المطلوبة منك هذا الأسبوع مع مدتها المقدرة، ثم تضغط <code>جدولة في التقويم</code> لتحويل أي مهمة إلى جلسة في يوم وساعة محددة بنقرة واحدة.</p>
+                                </div>
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: #fda4af; margin-bottom: 4px;">🧹 تفريغ الأسبوع الذكي (Smart Clear)</div>
+                                    <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.55;">في نهاية كل أسبوع، تضغط <code>مسح الأسبوع</code> وتختار <b>مسح جلسات المذاكرة فقط ⭐</b>؛ فيُفرغ جدولك للأسبوع الجديد مع بقاء جدول الكلية الثابت في مكانه!</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Interactive Sandbox 4: Fixed vs Study Block & Smart Clear Simulator -->
+                        <div class="acad-sandbox-container">
+                            <div class="sandbox-header-badge"><i class="fa-solid fa-Sliders"></i> محاكي التخطيط الذكي (+100 XP): شاهد الفرق بين الكلية الثابتة وجلسة المذاكرة!</div>
+                            <p style="font-size: 0.86rem; color: #cbd5e1;">
+                                جرّب الأزرار الثلاثة بالترتيب وراقب كيف تتغير المؤشرات: (1) أضف حضور كلية ثابت 10 ساعات، (2) أضف جلسة مذاكرة وأتممها، (3) نفذ التفريغ الذكي للأسبوع!
+                            </p>
+                            <div class="sandbox-interactive-area">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px;">
+                                    <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; border: 1px solid var(--border-color);">
+                                        <div style="font-size: 0.75rem; color: var(--text-muted);">🏛️ ساعات الكلية الثابتة</div>
+                                        <div id="sb4CollegeHrs" style="font-size: 1.25rem; font-weight: 900; color: #fda4af;">0 س</div>
+                                    </div>
+                                    <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; border: 1px solid var(--border-color);">
+                                        <div style="font-size: 0.75rem; color: var(--text-muted);">📖 ساعات المذاكرة المخططة</div>
+                                        <div id="sb4StudyHrs" style="font-size: 1.25rem; font-weight: 900; color: #6ee7b7;">0 س</div>
+                                    </div>
+                                    <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; border: 1px solid var(--border-color);">
+                                        <div style="font-size: 0.75rem; color: var(--text-muted);">🎯 نسبة الالتزام بالمذاكرة</div>
+                                        <div id="sb4Adherence" style="font-size: 1.25rem; font-weight: 900; color: var(--primary);">0%</div>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+                                    <button class="btn btn-outline" style="padding: 8px 14px; font-size: 0.82rem;" onclick="sb4AddFixed()">
+                                        <i class="fa-solid fa-lock"></i> 1. إضافة حضور كلية ثابت (10 س)
+                                    </button>
+                                    <button class="btn btn-outline" style="padding: 8px 14px; font-size: 0.82rem;" onclick="sb4AddAndCompleteStudy()">
+                                        <i class="fa-solid fa-check-double"></i> 2. إضافة وإتمام مذاكرة فارما (2 س)
+                                    </button>
+                                    <button class="btn btn-primary" style="padding: 8px 14px; font-size: 0.82rem;" onclick="sb4SmartClear()">
+                                        <i class="fa-solid fa-broom"></i> 3. تجربة «التفريغ الذكي للأسبوع»
+                                    </button>
+                                </div>
+                                <div id="sb4SlotsList" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;"></div>
+                                <div id="sb4StatusMsg" style="font-size: 0.82rem; color: var(--primary); font-weight: 700;">👈 ابدأ بالضغط على الزر (1) لإضافة التزام الكلية الثابت.</div>
+                            </div>
+                        </div>
+
+                        <div class="acad-footer-nav">
+                            <button class="btn btn-outline" onclick="switchAcademyModule(3)"><i class="fa-solid fa-arrow-right"></i> المرحلة السابقة</button>
+                            <button class="btn btn-primary" onclick="switchAcademyModule(5)">المرحلة التالية: إتقان «السجل» وبومودورو <i class="fa-solid fa-arrow-left"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- ==================== MODULE 5: TRACKER, POMODORO & ANALYTICS ==================== -->
+                    <div class="academy-module-pane" id="acadPane_5">
+                        <div class="acad-hero-banner">
+                            <span class="studio-pill" style="color: var(--primary); margin-bottom: 8px;">المرحلة التدريبية 5 من 6 • قسم السجل والإنتاجية</span>
+                            <h2 style="font-size: 1.45rem; font-weight: 900; color: var(--text-main); margin-bottom: 8px;">إتقان «السجل»: سلسلة الالتزام، مؤقت بومودورو، وتحليلات التوازن</h2>
+                            <p style="color: #cbd5e1; font-size: 0.93rem; line-height: 1.7;">
+                                التخطيط بدون متابعة ينتهي بالنسيان. قسم «السجل» هو لوحة قيادتك النفسية والرقمية: يحفزك يومياً عبر عداد الأيام المتتالية (Streak 🔥)، ويساعدك على الدخول في حالة التركيز العميق عبر مؤقت البومودورو، ويكشف لك توزيع مجهودك بين المواد.
+                            </p>
+                        </div>
+
+                        <div class="acad-section-card">
+                            <div class="acad-section-title"><i class="fa-solid fa-chart-pie"></i> كيف تستفيد من أدوات «السجل» بأقصى درجة؟</div>
+                            <div class="acad-grid-2">
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: var(--primary); margin-bottom: 4px;">🔥 سلسلة الالتزام (Study Streak)</div>
+                                    <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.55;">تحسب عدد الأيام المتتالية التي سجلت فيها إنجازاً واحداً على الأقل (سواء بإتمام جلسة في الجدول، أو تشطيب محاضرة، أو إنهاء مؤقت بومودورو، أو تدوين إنجاز يدوي).</p>
+                                </div>
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: #60a5fa; margin-bottom: 4px;">⏱️ مؤقت التركيز وبومودورو المدمج</div>
+                                    <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.55;">اختر 25 دقيقة (تركيز) أو 50 دقيقة (عمل عميق)، وحدد المادة من القائمة المنسدلة. فور انتهاء الوقت، يصدر رنين صوتي مدمج ويُسجل الإنجاز تلقائياً في يومياتك!</p>
+                                </div>
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: #c4b5fd; margin-bottom: 4px;">📊 تحليل توزيع الوقت وساعات المواد</div>
+                                    <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.55;">يعرض شريطاً ملوناً لنسبة الكلية مقابل المذاكرة والمراجعة، وتحته أشرطة تقدم لكل مادة لتكتشف فوراً إذا كنت تذاكر مادة واحدة وتهمل بقية المواد.</p>
+                                </div>
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: #6ee7b7; margin-bottom: 4px;">🏆 سجل الإنجازات وأوسمة الشعور</div>
+                                    <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.55;">مدونة يومية تراكمية لكل ما أنجزته مع إمكانية البحث الفوري بالكلمات المفتاحية واختيار وسام الشعور (🔥 إنتاجية استثنائية، ⚡ إنجاز متقن، 💡 استيعاب جديد).</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Interactive Sandbox 5: Fast-Forward Pomodoro & Streak Simulator -->
+                        <div class="acad-sandbox-container">
+                            <div class="sandbox-header-badge"><i class="fa-solid fa-stopwatch-20"></i> محاكي البومودورو والستريك (+100 XP): شغّل جلسة تركيز مسرّعة!</div>
+                            <p style="font-size: 0.86rem; color: #cbd5e1;">
+                                اضغط على زر «بدء جلسة مسرّعة (3 ثوانٍ)» لتجربة كيف ينتهي المؤقت، ويُصدر النغمة الصوتية، ويرفع عداد الـ Streak، ويسجل الإنجاز تلقائياً!
+                            </p>
+                            <div class="sandbox-interactive-area" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                                <div style="display: flex; align-items: center; gap: 16px;">
+                                    <div id="sb5TimerText" style="font-size: 2.2rem; font-weight: 900; color: var(--primary); font-family: monospace; min-width: 90px;">25:00</div>
+                                    <div>
+                                        <div style="font-weight: 800; color: var(--text-main);">جلسة تركيز تجريبية: الكيمياء الحيوية</div>
+                                        <div id="sb5StreakBadge" style="font-size: 0.82rem; color: var(--text-muted);">🔥 سلسلة الالتزام الحالية: <b>4 أيام متتالية</b></div>
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary" id="sb5RunBtn" onclick="runSb5SimulatedPomodoro()">
+                                    <i class="fa-solid fa-bolt"></i> بدء جلسة مسرّعة (3 ثوانٍ)
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="acad-footer-nav">
+                            <button class="btn btn-outline" onclick="switchAcademyModule(4)"><i class="fa-solid fa-arrow-right"></i> المرحلة السابقة</button>
+                            <button class="btn btn-primary" onclick="switchAcademyModule(6)">المرحلة الأخيرة: الاختصارات والنسخ الاحتياطي <i class="fa-solid fa-arrow-left"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- ==================== MODULE 6: SHORTCUTS, BACKUP & DEMO DATA ==================== -->
+                    <div class="academy-module-pane" id="acadPane_6">
+                        <div class="acad-hero-banner">
+                            <span class="studio-pill" style="color: var(--primary); margin-bottom: 8px;">المرحلة التدريبية 6 من 6 • الاحتراف والأمان</span>
+                            <h2 style="font-size: 1.45rem; font-weight: 900; color: var(--text-main); margin-bottom: 8px;">اختصارات الكيبورد للمحترفين، النسخ الاحتياطي، والبيانات التجريبية</h2>
+                            <p style="color: #cbd5e1; font-size: 0.93rem; line-height: 1.7;">
+                                صُممت المنصة لتعمل بسرعة البرق عبر لوحة المفاتيح (سواء كانت لغتك الحالية العربية أو الإنجليزية)، مع نظام نسخ احتياطي محلي يحمي بياناتك ويتيح نقلها لأي جهاز.
+                            </p>
+                        </div>
+
+                        <div class="acad-section-card">
+                            <div class="acad-section-title"><i class="fa-solid fa-keyboard"></i> جدول اختصارات لوحة المفاتيح الكامل</div>
+                            <div class="acad-grid-2">
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: var(--primary); margin-bottom: 8px;">🌐 اختصارات التنقل العام (تعمل بالعربي والإنجليزي)</div>
+                                    <div style="display: flex; flex-direction: column; gap: 7px; font-size: 0.83rem; color: var(--text-muted);">
+                                        <div><span class="key-badge">1</span> أو <span class="key-badge">١</span> الانتقال الفوري إلى «المركز»</div>
+                                        <div><span class="key-badge">2</span> أو <span class="key-badge">٢</span> الانتقال الفوري إلى «التخطيط»</div>
+                                        <div><span class="key-badge">3</span> أو <span class="key-badge">٣</span> الانتقال الفوري إلى «السجل»</div>
+                                        <div><span class="key-badge">N</span> أو <span class="key-badge">ى</span> فتح نافذة إضافة جلسة جديدة فوراً</div>
+                                        <div><span class="key-badge">?</span> أو <span class="key-badge">؟</span> فتح أكاديمية المساعدة والدليل</div>
+                                    </div>
+                                </div>
+                                <div class="acad-feature-box">
+                                    <div style="font-weight: 800; color: #60a5fa; margin-bottom: 8px;">📖 اختصارات استوديو الـ PDF والريكورد</div>
+                                    <div style="display: flex; flex-direction: column; gap: 7px; font-size: 0.83rem; color: var(--text-muted);">
+                                        <div><span class="key-badge">Space</span> تشغيل / إيقاف الريكورد الصوتي مؤقتاً</div>
+                                        <div><span class="key-badge">⬅️</span> رجوع 5 ثوانٍ في الريكورد (-5s)</div>
+                                        <div><span class="key-badge">➡️</span> تقديم 5 ثوانٍ في الريكورد (+5s)</div>
+                                        <div><span class="key-badge">P</span> تثبيت اللحظة الصوتية الحالية كدبوس على السلايد</div>
+                                        <div><span class="key-badge">Ctrl + Z</span> التراجع عن آخر خط كتبته بالتابلت</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Interactive Sandbox 6: Shortcut Trainer & Demo Loader -->
+                        <div class="acad-sandbox-container">
+                            <div class="sandbox-header-badge"><i class="fa-solid fa-medal"></i> التحدي الختامي (+100 XP): اختبر اختصاراتك واحصل على وسام إتقان المنصة!</div>
+                            <p style="font-size: 0.86rem; color: #cbd5e1;">
+                                انقر على البطاقات الثلاث بالأسفل لتأكيد معرفتك بوظيفة كل اختصار وإتمام الأكاديمية بنسبة 100%:
+                            </p>
+                            <div class="sandbox-interactive-area">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 14px;">
+                                    <button class="btn btn-outline" id="sb6Key1" onclick="markSb6Key(1, this)" style="padding: 12px; font-size: 0.83rem;">
+                                        <span class="key-badge">N / ى</span> جدولة جلسة سريعة
+                                    </button>
+                                    <button class="btn btn-outline" id="sb6Key2" onclick="markSb6Key(2, this)" style="padding: 12px; font-size: 0.83rem;">
+                                        <span class="key-badge">P</span> تثبيت دبوس صوتي بالـ PDF
+                                    </button>
+                                    <button class="btn btn-outline" id="sb6Key3" onclick="markSb6Key(3, this)" style="padding: 12px; font-size: 0.83rem;">
+                                        <span class="key-badge">⬅️ / ➡️</span> تقديم وتأخير الريكورد 5ث
+                                    </button>
+                                </div>
+
+                                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06);">
+                                    <div>
+                                        <div style="font-weight: 800; color: var(--text-main); font-size: 0.9rem;">هل تريد استكشاف الموقع ببيانات جاهزة أولاً؟</div>
+                                        <div style="font-size: 0.78rem; color: var(--text-muted);">يمكنك تحميل بيانات صيدلانية نموذجية (مواد، محاضرات، جدول كلية، وسجلات) بنقرة واحدة:</div>
+                                    </div>
+                                    <button class="btn btn-outline" onclick="loadDemoData()"><i class="fa-solid fa-wand-magic-sparkles"></i> تحميل بيانات نموذجية (Demo)</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="acad-footer-nav">
+                            <button class="btn btn-outline" onclick="switchAcademyModule(5)"><i class="fa-solid fa-arrow-right"></i> المرحلة السابقة</button>
+                            <button class="btn btn-primary" onclick="closeModal('helpModalOverlay')"><i class="fa-solid fa-rocket"></i> إنهاء الأكاديمية والانطلاق للعمل!</button>
+                        </div>
+                    </div>
+
+                </div>
             </div>
         </div>
     </div>
@@ -2667,18 +3600,22 @@
                     html += `<p style="color:var(--text-muted); font-size:0.9rem; padding: 12px; background: rgba(14, 16, 22, 0.4); border-radius: 10px;">هذا الفصل فارغ حالياً. اضغط «ملف جديد» لإضافة محاضراتك.</p>`;
                 } else {
                     g.lectures.forEach(lec => {
+                        const srBadge = getSpacedRepetitionBadgeHtml(lec);
                         html += `
                             <div class="lecture-item">
-                                <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 12px; flex: 1; flex-wrap: wrap;">
                                     <button class="icon-btn" style="width: 34px; height: 34px; border-radius: 9px; background: ${lec.completed ? 'rgba(16, 185, 129, 0.2)' : 'rgba(14, 16, 22, 0.6)'}; color: ${lec.completed ? 'var(--important-color)' : 'var(--text-muted)'};" onclick="toggleLectureCompleted(${g.id}, ${lec.id})" title="${lec.completed ? 'تراجع عن دراسة المحاضرة' : 'وضع علامة تمت المذاكرة'}">
                                         <i class="fa-solid ${lec.completed ? 'fa-circle-check' : 'fa-circle'}" style="font-size: 1.15rem;"></i>
                                     </button>
-                                    <div onclick="openLectureDocument(${g.id}, ${lec.id})" style="flex: 1; display: flex; align-items: center; gap: 10px; cursor: pointer;" title="انقر لفتح واستعراض ملف المحاضرة">
+                                    <div onclick="openLectureDocument(${g.id}, ${lec.id})" style="flex: 1; display: flex; align-items: center; gap: 10px; cursor: pointer; min-width: 180px;" title="انقر لفتح واستعراض ملف المحاضرة والكتابة عليها">
                                         <i class="fa-solid fa-file-pdf" style="color: ${lec.completed ? 'var(--important-color)' : 'var(--mandatory-color)'}; font-size: 1.25rem;"></i> 
                                         <span style="font-weight: 600; ${lec.completed ? 'text-decoration: line-through; color: #9ca3af;' : ''}">${lec.title}</span>
+                                        ${lec.audioPath ? '<span class="studio-pill" style="font-size:0.68rem; color:#93c5fd; border-color:rgba(59,130,246,0.3);"><i class="fa-solid fa-headphones"></i> ريكورد</span>' : ''}
+                                        ${srBadge}
                                     </div>
                                 </div>
                                 <div class="card-actions">
+                                    ${lec.completed ? `<button class="icon-btn" style="color: var(--primary); border-color: rgba(194,140,56,0.35);" onclick="refreshLectureSpacedRepetition(${g.id}, ${lec.id}, event)" title="تسجيل مراجعة جديدة اليوم وتحديث عداد المراجعة المتباعدة"><i class="fa-solid fa-rotate"></i></button>` : ''}
                                     <button class="icon-btn edit" onclick="triggerEditLecture(${g.id}, ${lec.id})" title="تعديل"><i class="fa-solid fa-pen"></i></button>
                                     <button class="icon-btn delete" onclick="triggerDeleteLecture(${g.id}, ${lec.id})" title="حذف"><i class="fa-solid fa-trash"></i></button>
                                 </div>
@@ -3745,7 +4682,44 @@
         }
 
         
-        // --- Lecture Study Completion Toggle ---
+        // --- Lecture Study Completion & Spaced Repetition Tracker ---
+        function getSpacedRepetitionBadgeHtml(lec) {
+            if (!lec.completed) return '';
+            const studiedTs = lec.lastStudiedAt || Date.now();
+            const diffDays = Math.floor((Date.now() - studiedTs) / (1000 * 60 * 60 * 24));
+            const revCount = lec.reviewCount || 1;
+            if (diffDays <= 0) {
+                return `<span class="studio-pill" style="border-color:rgba(16,185,129,0.35); color:#6ee7b7; font-size:0.7rem;"><i class="fa-solid fa-check-double"></i> دُرست اليوم (مراجعة #${revCount})</span>`;
+            } else if (diffDays <= 6) {
+                const dayWord = diffDays === 1 ? 'أمس' : (diffDays === 2 ? 'منذ يومين' : `منذ ${diffDays} أيام`);
+                return `<span class="studio-pill" style="border-color:rgba(59,130,246,0.35); color:#93c5fd; font-size:0.7rem;"><i class="fa-regular fa-clock"></i> دُرست ${dayWord} (مراجعة #${revCount})</span>`;
+            } else {
+                return `<span class="studio-pill" style="border-color:rgba(245,158,11,0.5); background:rgba(245,158,11,0.12); color:#fcd34d; font-size:0.7rem;" title="مر أكثر من أسبوع على آخر مراجعة؛ يُنصح بتنشيط الذاكرة"><i class="fa-solid fa-rotate"></i> منذ ${diffDays} يوم - تحتاج مراجعة</span>`;
+            }
+        }
+
+        function refreshLectureSpacedRepetition(groupId, lecId, event) {
+            if (event) event.stopPropagation();
+            const sub = subjects.find(s => s.id === activeSubjectId);
+            if (!sub) return;
+            const group = sub.groups.find(g => g.id === groupId);
+            if (!group) return;
+            const lec = group.lectures.find(l => l.id === lecId);
+            if (!lec) return;
+
+            lec.lastStudiedAt = Date.now();
+            lec.reviewCount = (lec.reviewCount || 1) + 1;
+            saveSubjects();
+            renderGroups();
+
+            const dateStr = new Date().toLocaleDateString('ar-EG');
+            const logText = `مراجعة متباعدة (#${lec.reviewCount}): ${lec.title} [${sub.name}]`;
+            logs.unshift({ id: Date.now(), date: dateStr, text: logText, mood: 'bolt', subjectId: sub.id });
+            saveLogs();
+            if (document.getElementById('logsContainer')) renderLogs();
+            showToast(`🔄 تم تسجيل المراجعة رقم #${lec.reviewCount} وتجديد عداد الذاكرة!`);
+        }
+
         function toggleLectureCompleted(groupId, lecId) {
             const sub = subjects.find(s => s.id === activeSubjectId);
             if(!sub) return;
@@ -3755,13 +4729,16 @@
             if(!lec) return;
             
             lec.completed = !lec.completed;
+            if (lec.completed) {
+                lec.lastStudiedAt = Date.now();
+                lec.reviewCount = (lec.reviewCount || 0) + 1;
+            }
             saveSubjects();
             renderGroups();
             renderSubjectsList();
             
             if (lec.completed) {
                 showToast(`🎉 أحسنت! أتممت دراسة: ${lec.title}`);
-                // Offer auto-logging to achievements
                 const dateStr = new Date().toLocaleDateString('ar-EG');
                 const logText = `إنهاء دراسة محاضرة: ${lec.title} [${sub.name}]`;
                 const exists = logs.some(l => l.text === logText && l.date === dateStr);
@@ -3798,7 +4775,7 @@
         }
 
         
-        // ================= EMBEDDED PDF VIEWER & AUDIO SYNC ENGINE =================
+        // ================= EMBEDDED PDF STUDIO, GRAPHIC TABLET & AUDIO BOOST ENGINE =================
         let currentViewingLec = null;
         let dbInstance = null;
         let tempPickedPdfBlob = null;
@@ -3806,9 +4783,35 @@
         let currentAudioRates = [1.0, 1.25, 1.5, 1.75, 2.0];
         let currentAudioRateIndex = 0;
 
+        // Web Audio API Booster Nodes
+        let lectureAudioCtx = null;
+        let lectureAudioSource = null;
+        let lectureGainNode = null;
+        let currentBoostPercent = 100;
+
+        // PDF & Graphic Tablet State
+        let currentPdfDoc = null;
+        let currentPdfZoom = 1.25;
+        let currentActivePageNum = 1;
+        let totalPdfPages = 1;
+        let pageObserver = null;
+        let renderedPagesSet = new Set();
+
+        // Annotation State
+        let currentAnnoTool = 'pen'; // 'pan', 'pen', 'highlighter', 'laser', 'eraser'
+        let currentAnnoColor = '#ef4444';
+        let currentAnnoSize = 3;
+        let annotationsVisible = true;
+        // pageAnnotations: { [pageNum]: [ { tool, color, size, alpha, points: [{x, y, p}] } ] }
+        let pageAnnotations = {};
+        // laserStrokes: { [pageNum]: [ { color, size, points: [{x, y}], createdAt } ] }
+        let laserStrokes = {};
+        let laserAnimFrameId = null;
+        let autoSaveTimer = null;
+
         function initPdfDB() {
             return new Promise((resolve) => {
-                const req = indexedDB.open('WorkspaceMediaStore', 2);
+                const req = indexedDB.open('WorkspaceMediaStore', 3);
                 req.onupgradeneeded = (e) => {
                     const db = e.target.result;
                     if (!db.objectStoreNames.contains('pdfs')) {
@@ -3816,6 +4819,9 @@
                     }
                     if (!db.objectStoreNames.contains('audios')) {
                         db.createObjectStore('audios', { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains('annotations')) {
+                        db.createObjectStore('annotations', { keyPath: 'id' });
                     }
                 };
                 req.onsuccess = (e) => {
@@ -3845,7 +4851,37 @@
             });
         }
 
-        // --- File Pickers in Modal ---
+        function saveAnnotationsToDB(lecId, pagesData) {
+            if (!dbInstance || !lecId) return;
+            const statusEl = document.getElementById('pdfAutoSaveStatus');
+            if (statusEl) {
+                statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
+            }
+            if (autoSaveTimer) clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                const tx = dbInstance.transaction('annotations', 'readwrite');
+                const store = tx.objectStore('annotations');
+                store.put({ id: lecId, pages: pagesData, updatedAt: Date.now() });
+                tx.oncomplete = () => {
+                    if (statusEl) {
+                        statusEl.innerHTML = '<i class="fa-solid fa-check-double"></i> تم الحفظ تلقائياً';
+                    }
+                };
+            }, 180);
+        }
+
+        function getAnnotationsFromDB(lecId) {
+            return new Promise((resolve) => {
+                if (!dbInstance || !lecId) return resolve({});
+                const tx = dbInstance.transaction('annotations', 'readonly');
+                const store = tx.objectStore('annotations');
+                const req = store.get(lecId);
+                req.onsuccess = () => resolve(req.result && req.result.pages ? req.result.pages : {});
+                req.onerror = () => resolve({});
+            });
+        }
+
+        // --- File Pickers in Add/Edit Lecture Modal ---
         function triggerPickLocalFile() {
             document.getElementById('localLectureFileInput').click();
         }
@@ -3882,7 +4918,7 @@
             event.target.value = '';
         }
 
-        // --- Open Lecture with PDF & Audio in Parallel ---
+        // --- Open Lecture with Multi-Page PDF Studio & Synced Audio ---
         async function openLectureDocument(groupId, lecId) {
             const sub = subjects.find(s => s.id === activeSubjectId);
             if (!sub) return;
@@ -3893,16 +4929,15 @@
 
             currentViewingLec = { sub, group, lec };
             document.getElementById('pdfViewerTitle').innerText = lec.title;
-            document.getElementById('pdfViewerPathInfo').innerText = lec.path || 'مستند محلي';
 
+            const scrollContainer = document.getElementById('pdfPagesScrollContainer');
             const iframe = document.getElementById('pdfViewerIframe');
             const fallback = document.getElementById('pdfFallbackBox');
             const openInTabBtn = document.getElementById('pdfOpenInTabBtn');
-            const audioBar = document.getElementById('pdfAudioPlayerBar');
             const audioEl = document.getElementById('lectureAudioElement');
-            const audioPill = document.getElementById('pdfAudioStatusPill');
+            const attachBtnText = document.getElementById('audioAttachBtnText');
 
-            // Reset Audio
+            // Reset Audio State
             audioEl.pause();
             audioEl.src = '';
             document.getElementById('audioPlayIcon').className = 'fa-solid fa-play';
@@ -3910,12 +4945,15 @@
             document.getElementById('audioDurationTime').innerText = '00:00';
             document.getElementById('audioScrubber').value = 0;
 
+            // Load Saved Annotations for this Lecture
+            pageAnnotations = await getAnnotationsFromDB(lec.id);
+            laserStrokes = {};
+
             // Load and Attach Audio in Parallel
             const storedAudioBlob = await getMediaFromDB('audios', lec.id);
             let hasAudio = false;
             if (storedAudioBlob) {
-                const audioUrl = URL.createObjectURL(storedAudioBlob);
-                audioEl.src = audioUrl;
+                audioEl.src = URL.createObjectURL(storedAudioBlob);
                 hasAudio = true;
             } else if (lec.audioPath && (lec.audioPath.startsWith('http://') || lec.audioPath.startsWith('https://'))) {
                 audioEl.src = lec.audioPath;
@@ -3923,47 +4961,642 @@
             }
 
             if (hasAudio) {
-                audioBar.style.display = 'flex';
-                audioPill.style.display = 'inline-flex';
+                if (attachBtnText) attachBtnText.innerText = 'تغيير الريكورد';
                 setupAudioEventListeners();
             } else {
-                audioBar.style.display = 'flex'; // show bar with attach option
-                audioPill.style.display = 'none';
+                if (attachBtnText) attachBtnText.innerText = 'ربط ريكورد';
             }
 
-            // Load PDF
+            document.getElementById('pdfViewerModalOverlay').classList.add('active');
+
+            // 1. Check if PDF Blob is stored in IndexedDB
             const storedPdfBlob = await getMediaFromDB('pdfs', lec.id);
             if (storedPdfBlob) {
                 const blobUrl = URL.createObjectURL(storedPdfBlob);
-                iframe.src = blobUrl;
-                iframe.style.display = 'block';
-                fallback.style.display = 'none';
                 openInTabBtn.href = blobUrl;
                 openInTabBtn.style.display = 'inline-flex';
-                document.getElementById('pdfViewerModalOverlay').classList.add('active');
+                await renderPdfBlobInStudio(storedPdfBlob);
                 return;
             }
 
+            // 2. Check if path is a web URL
             const rawPath = (lec.path || '').trim();
             if (rawPath.startsWith('http://') || rawPath.startsWith('https://')) {
                 let embedUrl = rawPath;
                 if (rawPath.includes('drive.google.com/file/d/')) {
                     embedUrl = rawPath.replace('/view', '/preview');
                 }
+                scrollContainer.style.display = 'none';
+                fallback.style.display = 'none';
                 iframe.src = embedUrl;
                 iframe.style.display = 'block';
-                fallback.style.display = 'none';
                 openInTabBtn.href = rawPath;
                 openInTabBtn.style.display = 'inline-flex';
-                document.getElementById('pdfViewerModalOverlay').classList.add('active');
                 return;
             }
 
-            // Fallback for path string without uploaded blob
+            // 3. Prompt user to pick the local PDF once to cache it
+            scrollContainer.style.display = 'none';
             iframe.style.display = 'none';
             fallback.style.display = 'flex';
             openInTabBtn.style.display = 'none';
-            document.getElementById('pdfViewerModalOverlay').classList.add('active');
+        }
+
+        async function renderPdfBlobInStudio(pdfBlob) {
+            const scrollContainer = document.getElementById('pdfPagesScrollContainer');
+            const iframe = document.getElementById('pdfViewerIframe');
+            const fallback = document.getElementById('pdfFallbackBox');
+
+            iframe.style.display = 'none';
+            fallback.style.display = 'none';
+            scrollContainer.style.display = 'flex';
+            scrollContainer.innerHTML = '<div style="color:var(--text-muted); padding:40px; font-weight:700;"><i class="fa-solid fa-spinner fa-spin" style="color:var(--primary);"></i> جاري تجهيز صفحات المحاضرة للكتابة...</div>';
+
+            try {
+                if (!window.pdfjsLib) {
+                    throw new Error('PDF.js not loaded');
+                }
+                const arrayBuffer = await pdfBlob.arrayBuffer();
+                currentPdfDoc = await window.pdfjsLib.getDocument({
+                    data: arrayBuffer,
+                    cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+                    cMapPacked: true,
+                    standardFontDataUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/standard_fonts/'
+                }).promise;
+                totalPdfPages = currentPdfDoc.numPages;
+                currentActivePageNum = 1;
+                renderedPagesSet.clear();
+
+                document.getElementById('pdfPageCounterBadge').innerText = `صفحة 1 / ${totalPdfPages}`;
+                document.getElementById('pdfZoomLevelText').innerText = `${Math.round(currentPdfZoom * 80)}%`;
+
+                await buildPdfPagePlaceholders();
+            } catch (err) {
+                // Fallback to native iframe if PDF.js CDN is unreachable offline
+                scrollContainer.style.display = 'none';
+                iframe.src = URL.createObjectURL(pdfBlob);
+                iframe.style.display = 'block';
+            }
+        }
+
+        async function buildPdfPagePlaceholders() {
+            const scrollContainer = document.getElementById('pdfPagesScrollContainer');
+            if (!currentPdfDoc || !scrollContainer) return;
+
+            scrollContainer.innerHTML = '';
+            if (pageObserver) pageObserver.disconnect();
+
+            // Get first page dimensions as baseline
+            const firstPage = await currentPdfDoc.getPage(1);
+            const defaultViewport = firstPage.getViewport({ scale: currentPdfZoom });
+
+            const frag = document.createDocumentFragment();
+            for (let pageNum = 1; pageNum <= totalPdfPages; pageNum++) {
+                const wrapper = document.createElement('div');
+                wrapper.className = `pdf-page-wrapper ${currentAnnoTool === 'pan' ? 'pan-mode' : 'drawing-mode'}`;
+                wrapper.id = `pdfPageWrapper_${pageNum}`;
+                wrapper.dataset.pageNumber = pageNum;
+                wrapper.style.width = `${Math.floor(defaultViewport.width)}px`;
+                wrapper.style.height = `${Math.floor(defaultViewport.height)}px`;
+
+                wrapper.setAttribute('dir', 'ltr');
+
+                // 1. PDF Render Canvas
+                const pdfCanvas = document.createElement('canvas');
+                pdfCanvas.className = 'pdf-render-canvas';
+                pdfCanvas.id = `pdfRenderCanvas_${pageNum}`;
+                pdfCanvas.setAttribute('dir', 'ltr');
+
+                // 2. Permanent Ink & Highlighter Canvas
+                const inkCanvas = document.createElement('canvas');
+                inkCanvas.className = 'pdf-ink-canvas';
+                inkCanvas.id = `pdfInkCanvas_${pageNum}`;
+                inkCanvas.style.opacity = annotationsVisible ? '1' : '0';
+
+                // 3. Active Stroke & Vanishing Laser Canvas
+                const laserCanvas = document.createElement('canvas');
+                laserCanvas.className = 'pdf-laser-canvas';
+                laserCanvas.id = `pdfLaserCanvas_${pageNum}`;
+
+                // Audio Pins Rail for this page
+                const pinsRail = document.createElement('div');
+                pinsRail.className = 'pdf-audio-pins-rail';
+                pinsRail.id = `pdfAudioPinsRail_${pageNum}`;
+
+                // Quick Extra Note Sheet Button on Slide Corner
+                const extraBtn = document.createElement('button');
+                extraBtn.className = 'slide-extra-space-btn';
+                extraBtn.innerHTML = '<i class="fa-solid fa-file-circle-plus"></i> + مساحة تلخيص';
+                extraBtn.title = 'إضافة أو إظهار ورقة تلخيص منقطة أسفل هذه السلايد';
+                extraBtn.onclick = (ev) => {
+                    ev.stopPropagation();
+                    toggleExtraNoteForPage(pageNum);
+                };
+
+                // Page Number Badge
+                const badge = document.createElement('div');
+                badge.className = 'pdf-page-badge';
+                badge.innerText = `Page ${pageNum} of ${totalPdfPages}`;
+
+                wrapper.appendChild(pdfCanvas);
+                wrapper.appendChild(inkCanvas);
+                wrapper.appendChild(laserCanvas);
+                wrapper.appendChild(pinsRail);
+                wrapper.appendChild(extraBtn);
+                wrapper.appendChild(badge);
+                frag.appendChild(wrapper);
+
+                // Attach Graphic Tablet Pointer Listeners to Ink Canvas
+                attachGraphicTabletListeners(inkCanvas, laserCanvas, pageNum);
+
+                // Create Attached Extra Note Sheet Container (shown if active for this page)
+                const extraSheet = buildExtraNoteSheetDOM(pageNum, Math.floor(defaultViewport.width), Math.floor(defaultViewport.height * 0.75));
+                frag.appendChild(extraSheet);
+            }
+            scrollContainer.appendChild(frag);
+
+            // Lazy render pages near viewport for zero lag
+            pageObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const pNum = parseInt(entry.target.dataset.pageNumber);
+                    if (entry.isIntersecting) {
+                        currentActivePageNum = pNum;
+                        const badgeEl = document.getElementById('pdfPageCounterBadge');
+                        if (badgeEl) badgeEl.innerText = `صفحة ${pNum} / ${totalPdfPages}`;
+                        if (!renderedPagesSet.has(pNum)) {
+                            renderedPagesSet.add(pNum);
+                            renderSinglePdfPage(pNum);
+                        }
+                    }
+                });
+            }, {
+                root: scrollContainer,
+                rootMargin: '500px 0px',
+                threshold: 0.05
+            });
+
+            document.querySelectorAll('.pdf-page-wrapper').forEach(el => pageObserver.observe(el));
+        }
+
+        async function renderSinglePdfPage(pageNum) {
+            if (!currentPdfDoc) return;
+            try {
+                const page = await currentPdfDoc.getPage(pageNum);
+                const viewport = page.getViewport({ scale: currentPdfZoom });
+                const wrapper = document.getElementById(`pdfPageWrapper_${pageNum}`);
+                const pdfCanvas = document.getElementById(`pdfRenderCanvas_${pageNum}`);
+                const inkCanvas = document.getElementById(`pdfInkCanvas_${pageNum}`);
+                const laserCanvas = document.getElementById(`pdfLaserCanvas_${pageNum}`);
+                if (!wrapper || !pdfCanvas || !inkCanvas || !laserCanvas) return;
+
+                const cssWidth = Math.floor(viewport.width);
+                const cssHeight = Math.floor(viewport.height);
+                wrapper.style.width = `${cssWidth}px`;
+                wrapper.style.height = `${cssHeight}px`;
+
+                // Crisp HiDPI rendering
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                pdfCanvas.width = cssWidth * dpr;
+                pdfCanvas.height = cssHeight * dpr;
+                inkCanvas.width = cssWidth;
+                inkCanvas.height = cssHeight;
+                laserCanvas.width = cssWidth;
+                laserCanvas.height = cssHeight;
+
+                pdfCanvas.setAttribute('dir', 'ltr');
+                const ctx = pdfCanvas.getContext('2d', { alpha: false });
+                ctx.direction = 'ltr';
+                ctx.scale(dpr, dpr);
+
+                await page.render({
+                    canvasContext: ctx,
+                    viewport: viewport
+                }).promise;
+
+                // Redraw saved annotations and audio pins for this page
+                redrawPageAnnotations(pageNum);
+                renderAudioPinsForPage(pageNum);
+                syncExtraNoteSheetSize(pageNum, cssWidth, Math.floor(cssHeight * 0.75));
+            } catch (e) {}
+        }
+
+        function changePdfZoom(delta) {
+            if (!currentPdfDoc) return;
+            const nextZoom = Math.max(0.6, Math.min(2.6, currentPdfZoom + delta));
+            if (Math.abs(nextZoom - currentPdfZoom) < 0.05) return;
+            currentPdfZoom = nextZoom;
+            document.getElementById('pdfZoomLevelText').innerText = `${Math.round(currentPdfZoom * 80)}%`;
+            renderedPagesSet.clear();
+            buildPdfPagePlaceholders();
+        }
+
+        // ================= GRAPHIC TABLET DRAWING, LASER & ERASER ENGINE =================
+        function setAnnotationTool(toolName) {
+            currentAnnoTool = toolName;
+            document.querySelectorAll('#pdfAnnotationToolbar .anno-btn').forEach(btn => {
+                if (btn.id && btn.id.startsWith('toolBtn_')) {
+                    btn.classList.remove('active', 'laser-active');
+                }
+            });
+            const activeBtn = document.getElementById(`toolBtn_${toolName}`);
+            if (activeBtn) {
+                activeBtn.classList.add(toolName === 'laser' ? 'laser-active' : 'active');
+            }
+
+            // Update cursor and touch-action across all pages
+            document.querySelectorAll('.pdf-page-wrapper').forEach(w => {
+                if (toolName === 'pan') {
+                    w.classList.remove('drawing-mode');
+                    w.classList.add('pan-mode');
+                } else {
+                    w.classList.remove('pan-mode');
+                    w.classList.add('drawing-mode');
+                }
+            });
+        }
+
+        function setAnnotationColor(colorHex, dotEl) {
+            currentAnnoColor = colorHex;
+            document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+            if (dotEl) dotEl.classList.add('active');
+            const customPicker = document.getElementById('customAnnoColor');
+            if (customPicker && customPicker.value !== colorHex) customPicker.value = colorHex;
+            if (currentAnnoTool === 'pan' || currentAnnoTool === 'eraser') {
+                setAnnotationTool('pen');
+            }
+        }
+
+        function updateAnnotationSize(val) {
+            currentAnnoSize = parseFloat(val) || 3;
+            const lbl = document.getElementById('annoSizeLabel');
+            if (lbl) lbl.innerText = `${currentAnnoSize}px`;
+        }
+
+        function toggleAnnotationsVisibility() {
+            annotationsVisible = !annotationsVisible;
+            const btn = document.getElementById('toggleAnnoVisBtn');
+            const icon = document.getElementById('toggleAnnoVisIcon');
+            const txt = document.getElementById('toggleAnnoVisText');
+
+            document.querySelectorAll('.pdf-ink-canvas').forEach(c => {
+                c.style.opacity = annotationsVisible ? '1' : '0';
+            });
+
+            if (annotationsVisible) {
+                btn.classList.remove('toggle-hidden');
+                icon.className = 'fa-solid fa-eye';
+                txt.innerText = 'إخفاء الكتابة';
+                showToast('تم إظهار الكتابة والتعليقات 👁️');
+            } else {
+                btn.classList.add('toggle-hidden');
+                icon.className = 'fa-solid fa-eye-slash';
+                txt.innerText = 'إظهار الكتابة';
+                showToast('تم إخفاء الكتابة مؤقتاً لقراءة السلايد صافية');
+            }
+        }
+
+        function attachGraphicTabletListeners(inkCanvas, laserCanvas, pageNum) {
+            let isDrawing = false;
+            let isPanning = false;
+            let panStartX = 0, panStartY = 0, scrollStartLeft = 0, scrollStartTop = 0;
+            let currentPoints = [];
+
+            const getNormCoords = (e) => {
+                const rect = inkCanvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width;
+                const y = (e.clientY - rect.top) / rect.height;
+                const p = e.pressure && e.pressure > 0 ? e.pressure : 0.5;
+                return { x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)), p };
+            };
+
+            inkCanvas.addEventListener('pointerdown', (e) => {
+                currentActivePageNum = pageNum;
+                const badgeEl = document.getElementById('pdfPageCounterBadge');
+                if (badgeEl) badgeEl.innerText = `صفحة ${pageNum} / ${totalPdfPages}`;
+
+                // Handle Pan Mode or Middle Mouse Button
+                if (currentAnnoTool === 'pan' || e.button === 1) {
+                    isPanning = true;
+                    const scroller = document.getElementById('pdfPagesScrollContainer');
+                    panStartX = e.clientX;
+                    panStartY = e.clientY;
+                    scrollStartLeft = scroller.scrollLeft;
+                    scrollStartTop = scroller.scrollTop;
+                    inkCanvas.setPointerCapture(e.pointerId);
+                    return;
+                }
+
+                if (e.button !== 0 && e.pointerType === 'mouse') return;
+
+                // If annotations are hidden and user starts writing with pen, auto-show annotations
+                if (!annotationsVisible && (currentAnnoTool === 'pen' || currentAnnoTool === 'highlighter')) {
+                    toggleAnnotationsVisibility();
+                }
+
+                isDrawing = true;
+                inkCanvas.setPointerCapture(e.pointerId);
+                const pt = getNormCoords(e);
+                currentPoints = [pt];
+
+                // Stylus hardware eraser button support (buttons === 32)
+                const effectiveTool = (e.buttons === 32) ? 'eraser' : currentAnnoTool;
+
+                if (effectiveTool === 'eraser') {
+                    eraseAtPoint(pageNum, pt.x, pt.y);
+                } else {
+                    drawLiveStrokePreview(laserCanvas, effectiveTool, currentPoints);
+                }
+            });
+
+            inkCanvas.addEventListener('pointermove', (e) => {
+                if (isPanning) {
+                    const scroller = document.getElementById('pdfPagesScrollContainer');
+                    scroller.scrollLeft = scrollStartLeft - (e.clientX - panStartX);
+                    scroller.scrollTop = scrollStartTop - (e.clientY - panStartY);
+                    return;
+                }
+                if (!isDrawing) return;
+
+                const effectiveTool = (e.buttons === 32) ? 'eraser' : currentAnnoTool;
+
+                // Use coalesced events for high-precision 240Hz graphic tablets
+                const events = (e.getCoalescedEvents) ? e.getCoalescedEvents() : [e];
+                for (let ev of events) {
+                    const pt = getNormCoords(ev);
+                    if (effectiveTool === 'eraser') {
+                        eraseAtPoint(pageNum, pt.x, pt.y);
+                    } else {
+                        currentPoints.push(pt);
+                    }
+                }
+
+                if (effectiveTool !== 'eraser') {
+                    drawLiveStrokePreview(laserCanvas, effectiveTool, currentPoints);
+                }
+            });
+
+            const finishStroke = (e) => {
+                if (isPanning) {
+                    isPanning = false;
+                    return;
+                }
+                if (!isDrawing) return;
+                isDrawing = false;
+
+                const effectiveTool = (e.buttons === 32) ? 'eraser' : currentAnnoTool;
+
+                if (effectiveTool === 'eraser') {
+                    if (currentViewingLec) saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
+                    return;
+                }
+
+                if (currentPoints.length === 0) return;
+
+                if (effectiveTool === 'laser') {
+                    // Add to vanishing laser strokes for this page
+                    if (!laserStrokes[pageNum]) laserStrokes[pageNum] = [];
+                    laserStrokes[pageNum].push({
+                        color: currentAnnoColor,
+                        size: currentAnnoSize + 2,
+                        points: currentPoints.slice(),
+                        createdAt: performance.now()
+                    });
+                    currentPoints = [];
+                    startLaserFadeLoop();
+                    return;
+                }
+
+                // Commit permanent pen or highlighter stroke to pageAnnotations
+                if (!pageAnnotations[pageNum]) pageAnnotations[pageNum] = [];
+                const strokeObj = {
+                    tool: effectiveTool,
+                    color: currentAnnoColor,
+                    size: effectiveTool === 'highlighter' ? Math.max(14, currentAnnoSize * 4.5) : currentAnnoSize,
+                    alpha: effectiveTool === 'highlighter' ? 0.32 : 1.0,
+                    points: currentPoints.slice()
+                };
+                pageAnnotations[pageNum].push(strokeObj);
+                currentPoints = [];
+
+                // Clear live preview and draw onto permanent ink canvas
+                const lCtx = laserCanvas.getContext('2d');
+                lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+                drawSingleStrokeOnCanvas(inkCanvas.getContext('2d'), inkCanvas.width, inkCanvas.height, strokeObj);
+
+                // Auto-save to IndexedDB
+                if (currentViewingLec) {
+                    saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
+                }
+            };
+
+            inkCanvas.addEventListener('pointerup', finishStroke);
+            inkCanvas.addEventListener('pointercancel', finishStroke);
+        }
+
+        function drawSingleStrokeOnCanvas(ctx, width, height, stroke) {
+            const pts = stroke.points;
+            if (!pts || pts.length === 0) return;
+
+            ctx.save();
+            ctx.globalAlpha = stroke.alpha || 1.0;
+            ctx.strokeStyle = stroke.color;
+            ctx.fillStyle = stroke.color;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            const scaleFactor = width / 800; // normalized stroke scaling across zoom levels
+            ctx.lineWidth = Math.max(1.2, stroke.size * scaleFactor);
+
+            if (pts.length === 1) {
+                ctx.beginPath();
+                ctx.arc(pts[0].x * width, pts[0].y * height, ctx.lineWidth / 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+                return;
+            }
+
+            // Smooth Quadratic Bézier curve interpolation for silky graphic tablet handwriting
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x * width, pts[0].y * height);
+
+            for (let i = 1; i < pts.length - 1; i++) {
+                const xc = ((pts[i].x + pts[i + 1].x) / 2) * width;
+                const yc = ((pts[i].y + pts[i + 1].y) / 2) * height;
+                ctx.quadraticCurveTo(pts[i].x * width, pts[i].y * height, xc, yc);
+            }
+            const last = pts[pts.length - 1];
+            ctx.lineTo(last.x * width, last.y * height);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawLiveStrokePreview(laserCanvas, tool, points) {
+            const ctx = laserCanvas.getContext('2d');
+            ctx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+
+            // Also keep existing active laser strokes visible
+            const pageNum = parseInt(laserCanvas.id.split('_')[1]);
+            renderActiveLaserStrokesOnPage(pageNum, performance.now());
+
+            if (tool === 'laser') {
+                drawLaserGlowPath(ctx, laserCanvas.width, laserCanvas.height, points, currentAnnoColor, currentAnnoSize + 2, 1.0);
+            } else {
+                drawSingleStrokeOnCanvas(ctx, laserCanvas.width, laserCanvas.height, {
+                    tool: tool,
+                    color: currentAnnoColor,
+                    size: tool === 'highlighter' ? Math.max(14, currentAnnoSize * 4.5) : currentAnnoSize,
+                    alpha: tool === 'highlighter' ? 0.32 : 1.0,
+                    points: points
+                });
+            }
+        }
+
+        function drawLaserGlowPath(ctx, width, height, pts, color, size, alpha) {
+            if (!pts || pts.length === 0) return;
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            const scaleFactor = width / 800;
+            const baseW = Math.max(2.5, size * scaleFactor);
+
+            // Outer Laser Halo
+            ctx.shadowBlur = 14;
+            ctx.shadowColor = color;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = baseW * 1.6;
+
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x * width, pts[0].y * height);
+            for (let i = 1; i < pts.length - 1; i++) {
+                const xc = ((pts[i].x + pts[i + 1].x) / 2) * width;
+                const yc = ((pts[i].y + pts[i + 1].y) / 2) * height;
+                ctx.quadraticCurveTo(pts[i].x * width, pts[i].y * height, xc, yc);
+            }
+            if (pts.length > 1) {
+                const last = pts[pts.length - 1];
+                ctx.lineTo(last.x * width, last.y * height);
+            }
+            ctx.stroke();
+
+            // Bright Inner Core
+            ctx.shadowBlur = 4;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = baseW * 0.55;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function renderActiveLaserStrokesOnPage(pageNum, now) {
+            const laserCanvas = document.getElementById(`pdfLaserCanvas_${pageNum}`);
+            if (!laserCanvas) return;
+            const list = laserStrokes[pageNum];
+            if (!list || list.length === 0) return;
+
+            const ctx = laserCanvas.getContext('2d');
+            const HOLD_MS = 1600; // Stay bright for 1.6s
+            const FADE_MS = 900;  // Smooth fade over 0.9s
+
+            laserStrokes[pageNum] = list.filter(s => (now - s.createdAt) < (HOLD_MS + FADE_MS));
+
+            for (let s of laserStrokes[pageNum]) {
+                const age = now - s.createdAt;
+                let alpha = 1.0;
+                if (age > HOLD_MS) {
+                    alpha = Math.max(0, 1 - ((age - HOLD_MS) / FADE_MS));
+                }
+                drawLaserGlowPath(ctx, laserCanvas.width, laserCanvas.height, s.points, s.color, s.size, alpha);
+            }
+        }
+
+        function startLaserFadeLoop() {
+            if (laserAnimFrameId) return;
+            const tick = (now) => {
+                let anyRemaining = false;
+                for (let pKey in laserStrokes) {
+                    const pNum = parseInt(pKey);
+                    if (laserStrokes[pNum] && laserStrokes[pNum].length > 0) {
+                        const lc = document.getElementById(`pdfLaserCanvas_${pNum}`);
+                        if (lc) {
+                            lc.getContext('2d').clearRect(0, 0, lc.width, lc.height);
+                            renderActiveLaserStrokesOnPage(pNum, now);
+                        }
+                        if (laserStrokes[pNum].length > 0) anyRemaining = true;
+                    }
+                }
+                if (anyRemaining) {
+                    laserAnimFrameId = requestAnimationFrame(tick);
+                } else {
+                    laserAnimFrameId = null;
+                }
+            };
+            laserAnimFrameId = requestAnimationFrame(tick);
+        }
+
+        function redrawPageAnnotations(pageNum) {
+            const inkCanvas = document.getElementById(`pdfInkCanvas_${pageNum}`);
+            if (!inkCanvas) return;
+            const ctx = inkCanvas.getContext('2d');
+            ctx.clearRect(0, 0, inkCanvas.width, inkCanvas.height);
+
+            const strokes = pageAnnotations[pageNum] || [];
+            for (let s of strokes) {
+                drawSingleStrokeOnCanvas(ctx, inkCanvas.width, inkCanvas.height, s);
+            }
+        }
+
+        function eraseAtPoint(pageNum, normX, normY) {
+            const strokes = pageAnnotations[pageNum];
+            if (!strokes || strokes.length === 0) return;
+
+            const eraseRadius = 0.024; // 2.4% of page dimension
+            const rSq = eraseRadius * eraseRadius;
+            const beforeLen = strokes.length;
+
+            pageAnnotations[pageNum] = strokes.filter(stroke => {
+                for (let pt of stroke.points) {
+                    const dx = pt.x - normX;
+                    const dy = pt.y - normY;
+                    if ((dx * dx + dy * dy) <= rSq) {
+                        return false; // remove intersected stroke
+                    }
+                }
+                return true;
+            });
+
+            if (pageAnnotations[pageNum].length !== beforeLen) {
+                redrawPageAnnotations(pageNum);
+            }
+        }
+
+        function undoLastStroke() {
+            const strokes = pageAnnotations[currentActivePageNum];
+            if (!strokes || strokes.length === 0) {
+                showToast('لا توجد خطوط للتراجع عنها في هذه الصفحة', 'error');
+                return;
+            }
+            strokes.pop();
+            redrawPageAnnotations(currentActivePageNum);
+            if (currentViewingLec) {
+                saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
+            }
+        }
+
+        function clearCurrentPageAnnotations() {
+            const strokes = pageAnnotations[currentActivePageNum];
+            if (!strokes || strokes.length === 0) {
+                showToast('هذه الصفحة خالية من الكتابات بالفعل');
+                return;
+            }
+            openConfirmModal(`هل تريد مسح جميع الكتابات والتعليقات من الصفحة رقم (${currentActivePageNum})؟`, () => {
+                pageAnnotations[currentActivePageNum] = [];
+                redrawPageAnnotations(currentActivePageNum);
+                if (currentViewingLec) {
+                    saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
+                }
+                showToast(`تم مسح تعليقات الصفحة ${currentActivePageNum}`);
+            });
         }
 
         function triggerPickLocalFileForCurrent() {
@@ -3975,17 +5608,15 @@
                 const file = e.target.files[0];
                 if (!file) return;
                 saveMediaToDB('pdfs', currentViewingLec.lec.id, file);
-                const blobUrl = URL.createObjectURL(file);
-                const iframe = document.getElementById('pdfViewerIframe');
-                const fallback = document.getElementById('pdfFallbackBox');
+                currentViewingLec.lec.path = file.name;
+                saveSubjects();
+
                 const openInTabBtn = document.getElementById('pdfOpenInTabBtn');
-                
-                iframe.src = blobUrl;
-                iframe.style.display = 'block';
-                fallback.style.display = 'none';
-                openInTabBtn.href = blobUrl;
+                openInTabBtn.href = URL.createObjectURL(file);
                 openInTabBtn.style.display = 'inline-flex';
-                showToast('تم حفظ وعرض المحاضرة بنجاح 📖');
+
+                await renderPdfBlobInStudio(file);
+                showToast('تم حفظ المحاضرة وتفعيل الكتابة بالجرافيك تابلت 📖');
             };
             input.click();
         }
@@ -4004,8 +5635,11 @@
                 
                 const audioEl = document.getElementById('lectureAudioElement');
                 audioEl.src = URL.createObjectURL(file);
-                document.getElementById('pdfAudioStatusPill').style.display = 'inline-flex';
+                const attachBtnText = document.getElementById('audioAttachBtnText');
+                if (attachBtnText) attachBtnText.innerText = 'تغيير الريكورد';
+
                 setupAudioEventListeners();
+                ensureAudioBoostGraph();
                 audioEl.play();
                 document.getElementById('audioPlayIcon').className = 'fa-solid fa-pause';
                 showToast('تم ربط وتشغيل الريكورد الصوتي بالتوازي 🎙️');
@@ -4013,21 +5647,92 @@
             input.click();
         }
 
-        // --- Audio Player Controls & Speeds ---
+        // ================= AUDIO PLAYER: -5s / +5s & 300% VOLUME BOOSTER =================
+        function ensureAudioBoostGraph() {
+            const audioEl = document.getElementById('lectureAudioElement');
+            if (!audioEl) return;
+            try {
+                if (!lectureAudioCtx) {
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    lectureAudioCtx = new AudioContextClass();
+                    lectureAudioSource = lectureAudioCtx.createMediaElementSource(audioEl);
+                    lectureGainNode = lectureAudioCtx.createGain();
+                    lectureGainNode.gain.value = currentBoostPercent / 100;
+                    lectureAudioSource.connect(lectureGainNode);
+                    lectureGainNode.connect(lectureAudioCtx.destination);
+                }
+                if (lectureAudioCtx.state === 'suspended') {
+                    lectureAudioCtx.resume();
+                }
+            } catch (e) {}
+        }
+
+        function handleAudioVolumeBoost(val) {
+            currentBoostPercent = parseInt(val) || 100;
+            const label = document.getElementById('audioVolumeBoostLabel');
+            const slider = document.getElementById('audioVolumeBoostSlider');
+            const icon = document.getElementById('audioVolumeIcon');
+
+            if (slider && parseInt(slider.value) !== currentBoostPercent) {
+                slider.value = currentBoostPercent;
+            }
+            if (label) {
+                label.innerText = `${currentBoostPercent}%`;
+                if (currentBoostPercent > 100) {
+                    label.classList.add('boosted');
+                } else {
+                    label.classList.remove('boosted');
+                }
+            }
+            if (icon) {
+                if (currentBoostPercent === 0) icon.className = 'fa-solid fa-volume-xmark';
+                else if (currentBoostPercent > 150) icon.className = 'fa-solid fa-tower-broadcast';
+                else icon.className = 'fa-solid fa-volume-high';
+            }
+
+            ensureAudioBoostGraph();
+            const audioEl = document.getElementById('lectureAudioElement');
+            if (lectureGainNode) {
+                lectureGainNode.gain.value = currentBoostPercent / 100;
+                if (audioEl) audioEl.volume = 1.0;
+            } else if (audioEl) {
+                audioEl.volume = Math.min(1.0, currentBoostPercent / 100);
+            }
+        }
+
+        function cycleVolumeBoostPresets() {
+            const presets = [100, 150, 200, 300];
+            const nextIdx = (presets.indexOf(currentBoostPercent) + 1) % presets.length;
+            const nextVal = presets[nextIdx];
+            handleAudioVolumeBoost(nextVal);
+            showToast(`مستوى تضخيم الصوت: ${nextVal}% 🔊`);
+        }
+
+        function resetAudioVolumeBoost() {
+            const nextVal = currentBoostPercent === 0 ? 100 : 0;
+            handleAudioVolumeBoost(nextVal);
+        }
+
         function setupAudioEventListeners() {
             const audioEl = document.getElementById('lectureAudioElement');
             const scrubber = document.getElementById('audioScrubber');
             const curTimeEl = document.getElementById('audioCurrentTime');
             const durTimeEl = document.getElementById('audioDurationTime');
+            let lastSec = -1;
 
             audioEl.onloadedmetadata = () => {
-                scrubber.max = Math.floor(audioEl.duration);
+                scrubber.max = Math.floor(audioEl.duration || 0);
                 durTimeEl.innerText = formatAudioTime(audioEl.duration);
+                audioEl.playbackRate = currentAudioRates[currentAudioRateIndex];
             };
 
             audioEl.ontimeupdate = () => {
-                scrubber.value = Math.floor(audioEl.currentTime);
-                curTimeEl.innerText = formatAudioTime(audioEl.currentTime);
+                const curSec = Math.floor(audioEl.currentTime);
+                if (curSec !== lastSec) {
+                    lastSec = curSec;
+                    scrubber.value = curSec;
+                    curTimeEl.innerText = formatAudioTime(curSec);
+                }
             };
 
             audioEl.onended = () => {
@@ -4037,10 +5742,11 @@
 
         function toggleAudioPlayPause() {
             const audioEl = document.getElementById('lectureAudioElement');
-            if (!audioEl.src) {
+            if (!audioEl.src || audioEl.src === window.location.href) {
                 triggerPickAudioForCurrent();
                 return;
             }
+            ensureAudioBoostGraph();
             if (audioEl.paused) {
                 audioEl.play();
                 document.getElementById('audioPlayIcon').className = 'fa-solid fa-pause';
@@ -4052,8 +5758,12 @@
 
         function seekAudioRelative(seconds) {
             const audioEl = document.getElementById('lectureAudioElement');
-            if (!audioEl.src) return;
+            if (!audioEl.src || audioEl.src === window.location.href) return;
             audioEl.currentTime = Math.max(0, Math.min(audioEl.duration || 0, audioEl.currentTime + seconds));
+            const curTimeEl = document.getElementById('audioCurrentTime');
+            const scrubber = document.getElementById('audioScrubber');
+            if (curTimeEl) curTimeEl.innerText = formatAudioTime(audioEl.currentTime);
+            if (scrubber) scrubber.value = Math.floor(audioEl.currentTime);
         }
 
         function handleAudioScrubberInput() {
@@ -4061,6 +5771,7 @@
             const scrubber = document.getElementById('audioScrubber');
             if (!audioEl.src) return;
             audioEl.currentTime = scrubber.value;
+            document.getElementById('audioCurrentTime').innerText = formatAudioTime(scrubber.value);
         }
 
         function cycleAudioPlaybackRate() {
@@ -4074,8 +5785,12 @@
 
         function formatAudioTime(seconds) {
             if (isNaN(seconds) || seconds < 0) return '00:00';
-            const m = Math.floor(seconds / 60);
+            const hrs = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
             const s = Math.floor(seconds % 60);
+            if (hrs > 0) {
+                return `${hrs}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+            }
             return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
         }
 
@@ -4089,7 +5804,6 @@
             if (isFull) {
                 icon.className = 'fa-solid fa-compress';
                 btn.innerHTML = '<i class="fa-solid fa-compress"></i> تصغير';
-                // Try native browser fullscreen if available
                 if (container.requestFullscreen) {
                     container.requestFullscreen().catch(() => {});
                 }
@@ -4102,15 +5816,294 @@
             }
         }
 
-        function closePdfViewer() {
-            const iframe = document.getElementById('pdfViewerIframe');
-            iframe.src = 'about:blank';
+
+        // ================= 1. AUDIO TIMESTAMP PINS ENGINE =================
+        function addAudioTimestampPin() {
+            if (!currentViewingLec) return;
             const audioEl = document.getElementById('lectureAudioElement');
-            audioEl.pause();
-            audioEl.src = '';
+            const curSec = (audioEl && audioEl.src) ? Math.floor(audioEl.currentTime || 0) : 0;
+            const timeFormatted = formatAudioTime(curSec);
+            const targetPage = currentActivePageNum || 1;
+
+            openSingleInputModal(
+                `<i class="fa-solid fa-thumbtack" style="color:var(--primary);"></i> تثبيت لحظة صوتية (صفحة ${targetPage} - ${timeFormatted})`,
+                'اكتب عنواناً مختصراً لهذه النقطة...',
+                `نقطة شرح هامة`,
+                (noteTitle) => {
+                    if (!pageAnnotations._audioPins) pageAnnotations._audioPins = {};
+                    if (!pageAnnotations._audioPins[targetPage]) pageAnnotations._audioPins[targetPage] = [];
+                    pageAnnotations._audioPins[targetPage].push({
+                        id: Date.now(),
+                        time: curSec,
+                        label: noteTitle
+                    });
+                    renderAudioPinsForPage(targetPage);
+                    saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
+                    showToast(`📌 تم ربط الدقيقة (${timeFormatted}) بالصفحة رقم ${targetPage}`);
+                }
+            );
+        }
+
+        function renderAudioPinsForPage(pageNum) {
+            const rail = document.getElementById(`pdfAudioPinsRail_${pageNum}`);
+            if (!rail) return;
+            rail.innerHTML = '';
+            const pins = (pageAnnotations._audioPins && pageAnnotations._audioPins[pageNum]) ? pageAnnotations._audioPins[pageNum] : [];
+            pins.forEach(pin => {
+                const chip = document.createElement('div');
+                chip.className = 'audio-pin-chip';
+                chip.title = 'انقر للقفز بالريكورد إلى هذه اللحظة الصوتية فوراً';
+                chip.innerHTML = `
+                    <i class="fa-solid fa-play" style="color:var(--primary); font-size:0.68rem;"></i>
+                    <span class="pin-time">${formatAudioTime(pin.time)}</span>
+                    <span>${pin.label}</span>
+                    <span class="pin-del" title="حذف الدبوس" onclick="deleteAudioPin(event, ${pageNum}, ${pin.id})"><i class="fa-solid fa-xmark"></i></span>
+                `;
+                chip.onclick = (e) => {
+                    e.stopPropagation();
+                    jumpToAudioPin(pin.time, pin.label);
+                };
+                rail.appendChild(chip);
+            });
+        }
+
+        function jumpToAudioPin(seconds, label) {
+            const audioEl = document.getElementById('lectureAudioElement');
+            if (!audioEl || !audioEl.src || audioEl.src === window.location.href) {
+                showToast('يرجى ربط ملف الريكورد الصوتي أولاً لتشغيل هذه اللحظة', 'error');
+                return;
+            }
+            ensureAudioBoostGraph();
+            audioEl.currentTime = seconds;
+            audioEl.play();
+            document.getElementById('audioPlayIcon').className = 'fa-solid fa-pause';
+            showToast(`🎙️ الانتقال إلى: ${label} (${formatAudioTime(seconds)})`);
+        }
+
+        function deleteAudioPin(event, pageNum, pinId) {
+            if (event) event.stopPropagation();
+            if (!pageAnnotations._audioPins || !pageAnnotations._audioPins[pageNum]) return;
+            pageAnnotations._audioPins[pageNum] = pageAnnotations._audioPins[pageNum].filter(p => p.id !== pinId);
+            renderAudioPinsForPage(pageNum);
+            if (currentViewingLec) {
+                saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
+            }
+        }
+
+        // ================= 2. EXTRA NOTE SHEET / MARGIN SPACE PER SLIDE =================
+        function buildExtraNoteSheetDOM(pageNum, widthPx, heightPx) {
+            const noteKey = `note_${pageNum}`;
+            const isOpened = (pageAnnotations._extraNotes && pageAnnotations._extraNotes[pageNum]) || (pageAnnotations[noteKey] && pageAnnotations[noteKey].length > 0);
+
+            const sheet = document.createElement('div');
+            sheet.className = `pdf-extra-note-sheet pdf-page-wrapper ${currentAnnoTool === 'pan' ? 'pan-mode' : 'drawing-mode'}`;
+            sheet.id = `pdfExtraNoteWrapper_${pageNum}`;
+            sheet.style.width = `${widthPx}px`;
+            sheet.style.height = `${heightPx}px`;
+            sheet.style.display = isOpened ? 'block' : 'none';
+
+            const header = document.createElement('div');
+            header.className = 'pdf-extra-note-header';
+            header.innerHTML = `
+                <span><i class="fa-solid fa-pen-ruler"></i> مساحة تلخيص ومخططات إضافية — تابعة لصفحة (${pageNum})</span>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button onclick="clearExtraNotePage(${pageNum})" style="background:transparent; border:none; color:#b91c1c; font-weight:800; cursor:pointer; font-size:0.72rem;">مسح الورقة</button>
+                    <button onclick="toggleExtraNoteForPage(${pageNum})" style="background:transparent; border:none; color:#475569; font-weight:800; cursor:pointer; font-size:0.72rem;">إخفاء ▲</button>
+                </div>
+            `;
+
+            const inkCanvas = document.createElement('canvas');
+            inkCanvas.className = 'pdf-ink-canvas';
+            inkCanvas.id = `pdfInkCanvas_${noteKey}`;
+            inkCanvas.width = widthPx;
+            inkCanvas.height = heightPx;
+            inkCanvas.style.opacity = annotationsVisible ? '1' : '0';
+
+            const laserCanvas = document.createElement('canvas');
+            laserCanvas.className = 'pdf-laser-canvas';
+            laserCanvas.id = `pdfLaserCanvas_${noteKey}`;
+            laserCanvas.width = widthPx;
+            laserCanvas.height = heightPx;
+
+            sheet.appendChild(header);
+            sheet.appendChild(inkCanvas);
+            sheet.appendChild(laserCanvas);
+
+            attachGraphicTabletListeners(inkCanvas, laserCanvas, noteKey);
+            return sheet;
+        }
+
+        function syncExtraNoteSheetSize(pageNum, widthPx, heightPx) {
+            const noteKey = `note_${pageNum}`;
+            const sheet = document.getElementById(`pdfExtraNoteWrapper_${pageNum}`);
+            const inkCanvas = document.getElementById(`pdfInkCanvas_${noteKey}`);
+            const laserCanvas = document.getElementById(`pdfLaserCanvas_${noteKey}`);
+            if (!sheet || !inkCanvas || !laserCanvas) return;
+
+            sheet.style.width = `${widthPx}px`;
+            sheet.style.height = `${heightPx}px`;
+            inkCanvas.width = widthPx;
+            inkCanvas.height = heightPx;
+            laserCanvas.width = widthPx;
+            laserCanvas.height = heightPx;
+            redrawPageAnnotations(noteKey);
+        }
+
+        function toggleExtraNoteForPage(pageNum) {
+            const targetPage = pageNum || currentActivePageNum || 1;
+            const sheet = document.getElementById(`pdfExtraNoteWrapper_${targetPage}`);
+            if (!sheet) return;
+
+            if (!pageAnnotations._extraNotes) pageAnnotations._extraNotes = {};
+            const isHidden = sheet.style.display === 'none';
+            if (isHidden) {
+                sheet.style.display = 'block';
+                pageAnnotations._extraNotes[targetPage] = true;
+                redrawPageAnnotations(`note_${targetPage}`);
+                sheet.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                showToast(`📄 تم فتح مساحة تلخيص إضافية أسفل صفحة ${targetPage}`);
+            } else {
+                sheet.style.display = 'none';
+                pageAnnotations._extraNotes[targetPage] = false;
+                showToast(`تم طي ورقة التلخيص الإضافية لصفحة ${targetPage}`);
+            }
+            if (currentViewingLec) {
+                saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
+            }
+        }
+
+        function clearExtraNotePage(pageNum) {
+            const noteKey = `note_${pageNum}`;
+            pageAnnotations[noteKey] = [];
+            redrawPageAnnotations(noteKey);
+            if (currentViewingLec) {
+                saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
+            }
+            showToast(`تم مسح ورقة التلخيص التابعة لصفحة ${pageNum}`);
+        }
+
+        // ================= 3. EXPORT / PRINT ANNOTATED SLIDES =================
+        async function exportAnnotatedSlides() {
+            if (!currentPdfDoc || !currentViewingLec) {
+                showToast('يرجى فتح ملف PDF محلي أولاً لتصديره بالكتابة', 'error');
+                return;
+            }
+            showToast('⏳ جاري دمج كتاباتك وتلخيصاتك وتجهيز ملف التصدير...');
+
+            try {
+                const printWin = window.open('', '_blank');
+                if (!printWin) {
+                    showToast('يرجى السماح بالنوافذ المنبثقة (Pop-ups) لتصدير وطباعة الملف', 'error');
+                    return;
+                }
+
+                printWin.document.write(`
+                    <!DOCTYPE html>
+                    <html dir="rtl" lang="ar">
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>${currentViewingLec.lec.title} - نسخة مشروحة</title>
+                        <style>
+                            body { margin: 0; padding: 20px; background: #111; color: white; font-family: sans-serif; text-align: center; }
+                            .toolbar { background: #1e293b; padding: 14px 24px; border-radius: 12px; display: inline-flex; gap: 14px; align-items: center; margin-bottom: 20px; border: 1px solid #c28c38; }
+                            .btn { background: #c28c38; color: #000; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; }
+                            .page-img { display: block; max-width: 100%; height: auto; margin: 0 auto 20px auto; background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.5); page-break-after: always; }
+                            @media print {
+                                body { background: white; padding: 0; margin: 0; }
+                                .toolbar { display: none !important; }
+                                .page-img { margin: 0; box-shadow: none; width: 100%; max-height: 100vh; object-fit: contain; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="toolbar">
+                            <span>✅ تم دمج جميع كتاباتك وتلخيصاتك بنجاح!</span>
+                            <button class="btn" onclick="window.print()">🖨️ حفظ كملف PDF / طباعة الآن</button>
+                        </div>
+                        <div id="pagesContainer">جاري معالجة الصفحات...</div>
+                    </body>
+                    </html>
+                `);
+
+                const container = printWin.document.getElementById('pagesContainer');
+                container.innerHTML = '';
+
+                for (let p = 1; p <= totalPdfPages; p++) {
+                    const page = await currentPdfDoc.getPage(p);
+                    const vp = page.getViewport({ scale: 1.6 });
+                    const offCanvas = document.createElement('canvas');
+                    offCanvas.setAttribute('dir', 'ltr');
+                    offCanvas.style.direction = 'ltr';
+                    offCanvas.width = Math.floor(vp.width);
+                    offCanvas.height = Math.floor(vp.height);
+                    const ctx = offCanvas.getContext('2d');
+                    ctx.direction = 'ltr';
+
+                    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+                    // Draw saved strokes for this page
+                    const strokes = pageAnnotations[p] || [];
+                    for (let s of strokes) {
+                        drawSingleStrokeOnCanvas(ctx, offCanvas.width, offCanvas.height, s);
+                    }
+
+                    const img = printWin.document.createElement('img');
+                    img.className = 'page-img';
+                    img.src = offCanvas.toDataURL('image/jpeg', 0.92);
+                    container.appendChild(img);
+
+                    // If this page also has an active extra note sheet with strokes, export it right after
+                    const noteKey = `note_${p}`;
+                    const noteStrokes = pageAnnotations[noteKey] || [];
+                    if (noteStrokes.length > 0) {
+                        const noteCanvas = document.createElement('canvas');
+                        noteCanvas.width = offCanvas.width;
+                        noteCanvas.height = Math.floor(offCanvas.height * 0.75);
+                        const nCtx = noteCanvas.getContext('2d');
+                        nCtx.fillStyle = '#fcfaf5';
+                        nCtx.fillRect(0, 0, noteCanvas.width, noteCanvas.height);
+
+                        // Subtle header text
+                        nCtx.fillStyle = '#78350f';
+                        nCtx.font = 'bold 18px sans-serif';
+                        nCtx.fillText(`ورقة تلخيص إضافية - تابعة لصفحة (${p})`, 30, 35);
+
+                        for (let ns of noteStrokes) {
+                            drawSingleStrokeOnCanvas(nCtx, noteCanvas.width, noteCanvas.height, ns);
+                        }
+                        const noteImg = printWin.document.createElement('img');
+                        noteImg.className = 'page-img';
+                        noteImg.src = noteCanvas.toDataURL('image/jpeg', 0.92);
+                        container.appendChild(noteImg);
+                    }
+                }
+
+                printWin.document.close();
+                showToast('تم تجهيز المحاضرة المشروحة للتصدير والطباعة بنجاح 📥');
+            } catch (err) {
+                showToast('حدث خطأ أثناء تصدير الصفحات', 'error');
+            }
+        }
+
+        function closePdfViewer() {
+            if (pageObserver) pageObserver.disconnect();
+            currentPdfDoc = null;
+            renderedPagesSet.clear();
+
+            const scrollContainer = document.getElementById('pdfPagesScrollContainer');
+            if (scrollContainer) scrollContainer.innerHTML = '';
+
+            const iframe = document.getElementById('pdfViewerIframe');
+            if (iframe) iframe.src = 'about:blank';
+
+            const audioEl = document.getElementById('lectureAudioElement');
+            if (audioEl) {
+                audioEl.pause();
+                audioEl.src = '';
+            }
             
             const container = document.getElementById('pdfModalContainer');
-            if (container.classList.contains('is-fullscreen')) {
+            if (container && container.classList.contains('is-fullscreen')) {
                 container.classList.remove('is-fullscreen');
                 if (document.exitFullscreen && document.fullscreenElement) {
                     document.exitFullscreen().catch(() => {});
@@ -4119,24 +6112,374 @@
             document.getElementById('pdfViewerModalOverlay').classList.remove('active');
         }
 
-        // --- Interactive Help Walkthrough Modal Logic ---
+        // ================= INTERACTIVE ACADEMY & VIRTUAL SANDBOXES LOGIC =================
+        let completedAcademyModules = JSON.parse(localStorage.getItem('pharmaAcademyProgressV1')) || [];
+        let sb2State = { completed: false, daysSimulated: false, reviewed: false };
+        let sb3Tool = 'pen';
+        let sb3Visible = true;
+        let sb3LaserList = [];
+        let sb3LaserAnim = null;
+        let sb3Inited = false;
+        let sb4State = { hasFixed: false, hasStudyDone: false, cleared: false };
+        let sb6ClickedKeys = new Set();
+
         function openHelpModal() {
             document.getElementById('helpModalOverlay').classList.add('active');
+            updateAcademyXpUI();
+            if (!sb3Inited) {
+                initSb3MiniCanvas();
+                sb3Inited = true;
+            }
         }
 
-        function switchHelpTab(tabKey, btnElement) {
-            document.querySelectorAll('.help-tab-btn').forEach(b => b.classList.remove('active'));
-            if(btnElement) btnElement.classList.add('active');
-            
-            document.querySelectorAll('.help-tab-content').forEach(c => c.classList.remove('active'));
-            const target = document.getElementById(`helpTab-${tabKey}`);
-            if(target) target.classList.add('active');
+        function switchAcademyModule(modNum) {
+            for (let i = 1; i <= 6; i++) {
+                const nav = document.getElementById(`acadNav_${i}`);
+                const pane = document.getElementById(`acadPane_${i}`);
+                if (nav) nav.classList.toggle('active', i === modNum);
+                if (pane) pane.classList.toggle('active', i === modNum);
+            }
+            const stage = document.getElementById('academyStageContainer');
+            if (stage) stage.scrollTop = 0;
+            if (modNum === 3 && !sb3Inited) {
+                initSb3MiniCanvas();
+                sb3Inited = true;
+            }
+        }
+
+        function awardAcademyModuleXP(modNum) {
+            if (!completedAcademyModules.includes(modNum)) {
+                completedAcademyModules.push(modNum);
+                localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(completedAcademyModules));
+                playChimeSound();
+                showToast(`🌟 رائع! أتممت تدريب المرحلة (${modNum}) وكسبت +100 XP!`);
+            }
+            updateAcademyXpUI();
+        }
+
+        function updateAcademyXpUI() {
+            const count = completedAcademyModules.length;
+            const xp = count * 100;
+            const pct = Math.round((count / 6) * 100);
+            const xpTxt = document.getElementById('academyXpText');
+            const bar = document.getElementById('academyProgressBar');
+            const masterBadge = document.getElementById('academyMasterBadge');
+
+            if (xpTxt) xpTxt.innerText = `${xp} / 600 XP (${pct}%)`;
+            if (bar) bar.style.width = `${pct}%`;
+            if (masterBadge) masterBadge.style.display = count >= 6 ? 'inline-block' : 'none';
+
+            for (let i = 1; i <= 6; i++) {
+                const nav = document.getElementById(`acadNav_${i}`);
+                const badge = document.getElementById(`acadBadge_${i}`);
+                if (completedAcademyModules.includes(i)) {
+                    if (nav) nav.classList.add('completed');
+                    if (badge) badge.innerHTML = '<i class="fa-solid fa-check"></i>';
+                }
+            }
+        }
+
+        // --- Module 1 Sandbox: Scenario Quiz ---
+        function checkAcadQuiz1(choice, btnEl) {
+            const fb = document.getElementById('acadQuiz1Feedback');
+            if (!fb) return;
+            fb.style.display = 'block';
+            if (choice === 2) {
+                fb.style.background = 'rgba(16, 185, 129, 0.15)';
+                fb.style.border = '1px solid rgba(16, 185, 129, 0.4)';
+                fb.style.color = '#6ee7b7';
+                fb.innerHTML = '✅ إجابة عبقرية! فصل ساعات الكلية كـ «التزام ثابت 🔒» يحمي مؤشر إنتاجيتك من التضليل، وربط الـ PDF بالريكورد يوفر وقتك عند بدء جلسة المذاكرة.';
+                awardAcademyModuleXP(1);
+            } else {
+                fb.style.background = 'rgba(244, 63, 94, 0.15)';
+                fb.style.border = '1px solid rgba(244, 63, 94, 0.4)';
+                fb.style.color = '#fda4af';
+                fb.innerHTML = '💡 فكّر مجدداً: خلط ساعات حضور الكلية الإجبارية مع مهام المذاكرة يعطيك نسبة إنجاز وهمية! جرّب الخيار (ب).';
+            }
+        }
+
+        // --- Module 2 Sandbox: Subject & Spaced Repetition Simulator ---
+        function sb2ToggleComplete() {
+            sb2State.completed = true;
+            document.getElementById('sb2CheckBtn').style.background = 'rgba(16, 185, 129, 0.2)';
+            document.getElementById('sb2CheckBtn').style.color = 'var(--important-color)';
+            document.getElementById('sb2CheckIcon').className = 'fa-solid fa-circle-check';
+            document.getElementById('sb2PdfIcon').style.color = 'var(--important-color)';
+            document.getElementById('sb2LecTitle').style.textDecoration = 'line-through';
+            document.getElementById('sb2LecTitle').style.color = '#9ca3af';
+
+            document.getElementById('sb2ProgressBar').style.width = '100%';
+            document.getElementById('sb2ProgressText').innerText = 'نسبة الإنجاز: 100% 🏆';
+
+            const badge = document.getElementById('sb2SrBadge');
+            badge.style.display = 'inline-flex';
+            badge.style.borderColor = 'rgba(16,185,129,0.4)';
+            badge.style.color = '#6ee7b7';
+            badge.innerHTML = '<i class="fa-solid fa-check-double"></i> دُرست اليوم (مراجعة #1)';
+
+            document.getElementById('sb2SimDaysBtn').style.display = 'inline-flex';
+            document.getElementById('sb2StatusMsg').innerHTML = '👏 ممتاز! الآن اضغط على زر <b>«2. محاكاة مرور 8 أيام»</b> لترى كيف ينبهك نظام المراجعة المتباعدة.';
+        }
+
+        function sb2Simulate8Days() {
+            sb2State.daysSimulated = true;
+            const badge = document.getElementById('sb2SrBadge');
+            badge.style.borderColor = 'rgba(245,158,11,0.5)';
+            badge.style.background = 'rgba(245,158,11,0.15)';
+            badge.style.color = '#fcd34d';
+            badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> منذ 8 أيام - تحتاج مراجعة 🔄';
+
+            document.getElementById('sb2RefreshBtn').style.display = 'inline-flex';
+            document.getElementById('sb2StatusMsg').innerHTML = '🟠 لاحظ تحول الوسام للون البرتقالي التنبيهي! الآن اضغط على زر التدوير <b>🔄</b> على اليسار لتجديد المراجعة.';
+        }
+
+        function sb2RefreshReview() {
+            sb2State.reviewed = true;
+            const badge = document.getElementById('sb2SrBadge');
+            badge.style.borderColor = 'rgba(16,185,129,0.4)';
+            badge.style.background = 'transparent';
+            badge.style.color = '#6ee7b7';
+            badge.innerHTML = '<i class="fa-solid fa-check-double"></i> دُرست اليوم (مراجعة #2)';
+            document.getElementById('sb2StatusMsg').innerHTML = '🎉 أحسنت! تم تجديد عداد الذاكرة إلى (مراجعة #2) واكتملت تجربة «المركز» بنجاح!';
+            awardAcademyModuleXP(2);
+        }
+
+        // --- Module 3 Sandbox: Live Mini Graphic Tablet & Laser Canvas ---
+        function setSb3Tool(tool) {
+            sb3Tool = tool;
+            ['pen', 'highlighter', 'laser'].forEach(t => {
+                const b = document.getElementById(`sb3Tool_${t}`);
+                if (b) b.classList.remove('active', 'laser-active');
+            });
+            const active = document.getElementById(`sb3Tool_${tool}`);
+            if (active) active.classList.add(tool === 'laser' ? 'laser-active' : 'active');
+        }
+
+        function toggleSb3Visibility() {
+            sb3Visible = !sb3Visible;
+            const c = document.getElementById('sb3InkCanvas');
+            if (c) c.style.opacity = sb3Visible ? '1' : '0';
+            showToast(sb3Visible ? 'تم إظهار كتابتك على السلايد التجريبية 👁️' : 'تم إخفاء الكتابة لاختبار الاسترجاع النشط!');
+            awardAcademyModuleXP(3);
+        }
+
+        function clearSb3Canvas() {
+            const c = document.getElementById('sb3InkCanvas');
+            if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
+        }
+
+        function addSb3AudioPin() {
+            const rail = document.getElementById('sb3PinsRail');
+            if (!rail) return;
+            const chip = document.createElement('div');
+            chip.className = 'audio-pin-chip';
+            chip.innerHTML = '<i class="fa-solid fa-play" style="color:var(--primary);"></i> <span class="pin-time">14:20</span> <span>ميكانيزم Propranolol</span>';
+            chip.onclick = () => showToast('🎙️ قفز الريكورد في المحاكاة إلى الدقيقة 14:20 فوراً!');
+            rail.appendChild(chip);
+            document.getElementById('sb3StatusMsg').innerHTML = '📌 تم تثبيت الدبوس الصوتي أعلى يمين السلايد! انقر عليه لتجربته.';
+            awardAcademyModuleXP(3);
+        }
+
+        function initSb3MiniCanvas() {
+            const inkC = document.getElementById('sb3InkCanvas');
+            const lasC = document.getElementById('sb3LaserCanvas');
+            if (!inkC || !lasC) return;
+
+            let drawing = false;
+            let pts = [];
+
+            const getPt = (e) => {
+                const r = inkC.getBoundingClientRect();
+                return {
+                    x: (e.clientX - r.left) / r.width,
+                    y: (e.clientY - r.top) / r.height
+                };
+            };
+
+            inkC.addEventListener('pointerdown', (e) => {
+                drawing = true;
+                inkC.setPointerCapture(e.pointerId);
+                pts = [getPt(e)];
+            });
+
+            inkC.addEventListener('pointermove', (e) => {
+                if (!drawing) return;
+                pts.push(getPt(e));
+                const lCtx = lasC.getContext('2d');
+                lCtx.clearRect(0, 0, lasC.width, lasC.height);
+                if (sb3Tool === 'laser') {
+                    drawLaserGlowPath(lCtx, lasC.width, lasC.height, pts, '#ef4444', 4, 1.0);
+                } else {
+                    drawSingleStrokeOnCanvas(lCtx, lasC.width, lasC.height, {
+                        tool: sb3Tool,
+                        color: sb3Tool === 'highlighter' ? '#f59e0b' : '#ef4444',
+                        size: sb3Tool === 'highlighter' ? 16 : 3.5,
+                        alpha: sb3Tool === 'highlighter' ? 0.35 : 1.0,
+                        points: pts
+                    });
+                }
+            });
+
+            const endDraw = () => {
+                if (!drawing) return;
+                drawing = false;
+                if (pts.length === 0) return;
+
+                if (sb3Tool === 'laser') {
+                    sb3LaserList.push({ points: pts.slice(), createdAt: performance.now() });
+                    pts = [];
+                    if (!sb3LaserAnim) {
+                        const loop = (now) => {
+                            const lCtx = lasC.getContext('2d');
+                            lCtx.clearRect(0, 0, lasC.width, lasC.height);
+                            sb3LaserList = sb3LaserList.filter(s => (now - s.createdAt) < 2200);
+                            for (let s of sb3LaserList) {
+                                const age = now - s.createdAt;
+                                const alpha = age > 1300 ? Math.max(0, 1 - (age - 1300) / 900) : 1.0;
+                                drawLaserGlowPath(lCtx, lasC.width, lasC.height, s.points, '#ef4444', 4, alpha);
+                            }
+                            if (sb3LaserList.length > 0) sb3LaserAnim = requestAnimationFrame(loop);
+                            else sb3LaserAnim = null;
+                        };
+                        sb3LaserAnim = requestAnimationFrame(loop);
+                    }
+                } else {
+                    lasC.getContext('2d').clearRect(0, 0, lasC.width, lasC.height);
+                    drawSingleStrokeOnCanvas(inkC.getContext('2d'), inkC.width, inkC.height, {
+                        tool: sb3Tool,
+                        color: sb3Tool === 'highlighter' ? '#f59e0b' : '#ef4444',
+                        size: sb3Tool === 'highlighter' ? 16 : 3.5,
+                        alpha: sb3Tool === 'highlighter' ? 0.35 : 1.0,
+                        points: pts
+                    });
+                    pts = [];
+                }
+                document.getElementById('sb3StatusMsg').innerHTML = '✨ رائع! لاحظ سلاسة الخط واستجابة التابلت. جرّب أيضاً أداة «ليزر متلاشي» أو «تثبيت لحظة»!';
+                awardAcademyModuleXP(3);
+            };
+
+            inkC.addEventListener('pointerup', endDraw);
+            inkC.addEventListener('pointercancel', endDraw);
+        }
+
+        // --- Module 4 Sandbox: Fixed Routine vs Study Block Simulator ---
+        function sb4AddFixed() {
+            sb4State.hasFixed = true;
+            document.getElementById('sb4CollegeHrs').innerText = '10 س';
+            renderSb4Slots();
+            document.getElementById('sb4StatusMsg').innerHTML = '🔒 تم حجز 10 ساعات للكلية! لاحظ أن «نسبة الالتزام بالمذاكرة» لم تتأثر لأن حضور الكلية التزام ثابت وليس مهمة مذاكرة. اضغط الزر (2) الآن!';
+        }
+
+        function sb4AddAndCompleteStudy() {
+            sb4State.hasStudyDone = true;
+            document.getElementById('sb4StudyHrs').innerText = '2 س';
+            document.getElementById('sb4Adherence').innerText = '100% 🎯';
+            renderSb4Slots();
+            document.getElementById('sb4StatusMsg').innerHTML = '🎯 تم إنجاز ساعتين مذاكرة وارتفعت نسبة الالتزام إلى 100%! الآن اضغط الزر (3) لتجربة «التفريغ الذكي للأسبوع».';
+        }
+
+        function sb4SmartClear() {
+            if (!sb4State.hasFixed && !sb4State.hasStudyDone) {
+                sb4AddFixed();
+            }
+            sb4State.hasStudyDone = false;
+            sb4State.cleared = true;
+            document.getElementById('sb4StudyHrs').innerText = '0 س';
+            document.getElementById('sb4Adherence').innerText = '100%';
+            renderSb4Slots();
+            document.getElementById('sb4StatusMsg').innerHTML = '🌟 تم مسح مهام المذاكرة المنتهية للأسبوع الجديد بينما بقي «حضور الكلية الثابت (10 س)» محفوظاً تلقائياً دون إعادة كتابته!';
+            awardAcademyModuleXP(4);
+        }
+
+        function renderSb4Slots() {
+            const box = document.getElementById('sb4SlotsList');
+            if (!box) return;
+            box.innerHTML = '';
+            if (sb4State.hasFixed) {
+                box.innerHTML += `<div style="background:rgba(26,29,38,0.95); border:1px dashed var(--primary); border-right:4px solid var(--primary); padding:8px 12px; border-radius:8px; display:flex; justify-content:space-between; font-size:0.82rem;"><span><b>الأحد: حضور الكلية والمعامل</b> (07:00 ص - 05:00 م)</span><span class="fixed-badge-tag"><i class="fa-solid fa-lock"></i> جدول ثابت (لا يُمسح)</span></div>`;
+            }
+            if (sb4State.hasStudyDone) {
+                box.innerHTML += `<div style="background:rgba(16,185,129,0.18); border:1px solid rgba(16,185,129,0.4); border-right:4px solid var(--important-color); padding:8px 12px; border-radius:8px; display:flex; justify-content:space-between; font-size:0.82rem;"><span style="text-decoration:line-through; color:#cbd5e1;"><b>الإثنين: مذاكرة فارماكولوجي عميقة</b> (06:00 م - 08:00 م)</span><span style="color:#6ee7b7; font-weight:800;"><i class="fa-solid fa-circle-check"></i> منجز (2 س)</span></div>`;
+            }
+        }
+
+        // --- Module 5 Sandbox: Fast-Forward Pomodoro Simulator ---
+        let sb5Running = false;
+        function runSb5SimulatedPomodoro() {
+            if (sb5Running) return;
+            sb5Running = true;
+            const btn = document.getElementById('sb5RunBtn');
+            const timerEl = document.getElementById('sb5TimerText');
+            const streakEl = document.getElementById('sb5StreakBadge');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري محاكاة التركيز...';
+
+            let steps = ['20:00', '12:00', '05:00', '00:00'];
+            let i = 0;
+            const iv = setInterval(() => {
+                timerEl.innerText = steps[i];
+                i++;
+                if (i >= steps.length) {
+                    clearInterval(iv);
+                    sb5Running = false;
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> تمت الجلسة بنجاح!';
+                    streakEl.innerHTML = '🔥 سلسلة الالتزام الحالية: <b style="color:var(--important-color);">5 أيام متتالية (+1 يوم جديد 🎉)</b>';
+                    awardAcademyModuleXP(5);
+                }
+            }, 650);
+        }
+
+        // --- Module 6 Sandbox: Shortcut Trainer ---
+        function markSb6Key(kNum, btnEl) {
+            sb6ClickedKeys.add(kNum);
+            btnEl.style.borderColor = 'var(--important-color)';
+            btnEl.style.background = 'rgba(16, 185, 129, 0.15)';
+            btnEl.style.color = '#6ee7b7';
+            if (sb6ClickedKeys.size >= 3) {
+                awardAcademyModuleXP(6);
+            }
         }
 
         // --- Global Keyboard Shortcuts (Arabic & English Keyboard Support) ---
         window.addEventListener('keydown', (e) => {
             // Ignore if typing inside input, textarea, or select
             if (e.target.matches('input, textarea, select')) return;
+
+            // Shortcuts inside PDF Studio Viewer
+            const pdfOverlay = document.getElementById('pdfViewerModalOverlay');
+            if (pdfOverlay && pdfOverlay.classList.contains('active')) {
+                if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'z' || e.code === 'KeyZ')) {
+                    e.preventDefault();
+                    undoLastStroke();
+                    return;
+                }
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    seekAudioRelative(-5);
+                    return;
+                }
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    seekAudioRelative(5);
+                    return;
+                }
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    toggleAudioPlayPause();
+                    return;
+                }
+                if (e.code === 'KeyP') {
+                    e.preventDefault();
+                    addAudioTimestampPin();
+                    return;
+                }
+                if (e.key === 'Escape') {
+                    closePdfViewer();
+                    return;
+                }
+                return;
+            }
             // Ignore if Ctrl, Meta (Cmd), or Alt is held
             if (e.ctrlKey || e.metaKey || e.altKey) return;
             

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'workspace-cache-v1';
+const CACHE_NAME = 'workspace-cache-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -23,17 +23,23 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Network-first with offline cache fallback so updates appear immediately
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then((networkResponse) => {
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && event.request.method === 'GET') {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
         return networkResponse;
-      }).catch(() => {
-        return caches.match('./index.html');
-      });
-    })
+      })
+      .catch(() => {
+        return caches.match(event.request).then((cachedResponse) => {
+          return cachedResponse || caches.match('./index.html');
+        });
+      })
   );
 });
