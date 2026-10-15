@@ -1081,14 +1081,49 @@
         }
         .pdf-pages-scroll-container {
             flex: 1;
+            position: relative;
             overflow-y: auto;
             overflow-x: auto;
-            padding: 20px 16px;
+            padding: 14px 16px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 22px;
+            gap: 20px;
             scroll-behavior: auto;
+        }
+        .pdf-floating-page-nav {
+            position: absolute;
+            bottom: 16px;
+            left: 18px;
+            z-index: 25;
+            background: rgba(15, 18, 26, 0.92);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(194, 140, 56, 0.45);
+            border-radius: 999px;
+            padding: 4px 8px;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+        }
+        .pdf-floating-page-nav .nav-step-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.18s ease;
+        }
+        .pdf-floating-page-nav .nav-step-btn:hover {
+            background: rgba(194, 140, 56, 0.22);
+            border-color: var(--primary);
+            color: var(--primary);
         }
         .pdf-page-wrapper {
             position: relative;
@@ -2292,8 +2327,16 @@
                     <div class="help-icon-box" style="margin: 0; width: 34px; height: 34px;"><i class="fa-solid fa-file-pdf" style="color: var(--primary);"></i></div>
                     <div style="overflow: hidden;">
                         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                            <h3 id="pdfViewerTitle" style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">عرض المحاضرة</h3>
-                            <span id="pdfPageCounterBadge" class="studio-pill" style="font-size: 0.72rem; color: var(--primary);">صفحة 1 / 1</span>
+                            <h3 id="pdfViewerTitle" style="margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px;">عرض المحاضرة</h3>
+                            <div class="anno-tool-group" style="padding: 2px 5px; gap: 4px;" title="التنقل الدقيق بين السلايدات (أو اضغط سهم لأعلى ↑ وسهم لأسفل ↓ في الكيبورد)">
+                                <button class="anno-btn" onclick="stepPdfPage(-1)" title="السلايد / الصفحة السابقة بالضبط (سهم لأعلى ↑)" style="padding: 3px 8px;">
+                                    <i class="fa-solid fa-arrow-up"></i>
+                                </button>
+                                <span id="pdfPageCounterBadge" class="studio-pill" onclick="promptJumpToPdfPage()" title="انقر للانتقال المباشر لصفحة محددة" style="font-size: 0.73rem; color: var(--primary); cursor: pointer; min-width: 78px; text-align: center;">صفحة 1 / 1</span>
+                                <button class="anno-btn" onclick="stepPdfPage(1)" title="السلايد / الصفحة التالية بالضبط (سهم لأسفل ↓)" style="padding: 3px 8px;">
+                                    <i class="fa-solid fa-arrow-down"></i>
+                                </button>
+                            </div>
                             <span id="pdfAutoSaveStatus" style="font-size: 0.72rem; color: var(--important-color); font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
                                 <i class="fa-solid fa-cloud-arrow-up"></i> حفظ تلقائي
                             </span>
@@ -2302,11 +2345,18 @@
                 </div>
                 
                 <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; flex-wrap: wrap;">
-                    <!-- Zoom Controls -->
-                    <div class="anno-tool-group" style="padding: 2px 6px;">
-                        <button class="anno-btn" onclick="changePdfZoom(-0.2)" title="تصغير الصفحة"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
-                        <span id="pdfZoomLevelText" style="font-size: 0.76rem; font-weight: 800; min-width: 42px; text-align: center; color: var(--text-main);">100%</span>
-                        <button class="anno-btn" onclick="changePdfZoom(0.2)" title="تكبير الصفحة"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+                    <!-- Auto-Fit Alignment (Fit Height / Fit Width) & Zoom Controls -->
+                    <div class="anno-tool-group" style="padding: 2px 6px; gap: 4px;">
+                        <button class="anno-btn active" id="pdfFitHeightBtn" onclick="setPdfFitMode('height')" title="محاذاة تلقائية بالطول: احتواء كامل السلايد/الصفحة طولياً في الشاشة (اختصار: H)">
+                            <i class="fa-solid fa-arrows-up-down"></i> <span>بالطول</span>
+                        </button>
+                        <button class="anno-btn" id="pdfFitWidthBtn" onclick="setPdfFitMode('width')" title="محاذاة تلقائية بالعرض: ملء عرض الشاشة بالكامل تلقائياً (اختصار: W)">
+                            <i class="fa-solid fa-arrows-left-right"></i> <span>بالعرض</span>
+                        </button>
+                        <div style="width: 1px; height: 16px; background: var(--border-color); margin: 0 2px;"></div>
+                        <button class="anno-btn" onclick="changePdfZoom(-0.15)" title="تصغير الزوم يدوياً (-)"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+                        <span id="pdfZoomLevelText" onclick="togglePdfFitModeQuick()" title="نسبة الزوم الحالية (انقر للتبديل السريع بين المحاذاة بالطول والعرض)" style="font-size: 0.76rem; font-weight: 800; min-width: 44px; text-align: center; color: var(--text-main); cursor: pointer;">100%</span>
+                        <button class="anno-btn" onclick="changePdfZoom(0.15)" title="تكبير الزوم يدوياً (+)"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
                     </div>
 
                     <button class="btn btn-outline" style="padding: 6px 11px; font-size: 0.8rem; border-color: rgba(16, 185, 129, 0.45); color: #6ee7b7;" onclick="exportAnnotatedSlides()" title="تصدير أو طباعة المحاضرة شاملة كتاباتك وتلخيصاتك">
@@ -2380,6 +2430,16 @@
             <div class="pdf-viewer-body">
                 <div class="pdf-pages-scroll-container" id="pdfPagesScrollContainer">
                     <!-- Pages rendered dynamically here via PDF.js -->
+                </div>
+                <!-- Floating Quick Slide Stepper (Up / Down) -->
+                <div class="pdf-floating-page-nav" id="pdfFloatingPageNav">
+                    <button class="nav-step-btn" onclick="stepPdfPage(-1)" title="السلايد السابقة بالضبط (سهم لأعلى ↑)">
+                        <i class="fa-solid fa-arrow-up"></i> السابقة
+                    </button>
+                    <span id="pdfFloatingPageBadge" onclick="promptJumpToPdfPage()" title="انقر للقفز لصفحة معينة" style="font-size: 0.74rem; font-weight: 800; color: var(--primary); padding: 0 6px; cursor: pointer;">1 / 1</span>
+                    <button class="nav-step-btn" onclick="stepPdfPage(1)" title="السلايد التالية بالضبط (سهم لأسفل ↓)">
+                        التالية <i class="fa-solid fa-arrow-down"></i>
+                    </button>
                 </div>
                 <iframe id="pdfViewerIframe" class="pdf-frame" src="about:blank"></iframe>
                 <div id="pdfFallbackBox" class="pdf-fallback-box">
@@ -2949,11 +3009,11 @@
                                 <div class="acad-feature-box">
                                     <div style="font-weight: 800; color: #60a5fa; margin-bottom: 8px;">📖 اختصارات استوديو الـ PDF والريكورد</div>
                                     <div style="display: flex; flex-direction: column; gap: 7px; font-size: 0.83rem; color: var(--text-muted);">
-                                        <div><span class="key-badge">Space</span> تشغيل / إيقاف الريكورد الصوتي مؤقتاً</div>
-                                        <div><span class="key-badge">⬅️</span> رجوع 5 ثوانٍ في الريكورد (-5s)</div>
-                                        <div><span class="key-badge">➡️</span> تقديم 5 ثوانٍ في الريكورد (+5s)</div>
-                                        <div><span class="key-badge">P</span> تثبيت اللحظة الصوتية الحالية كدبوس على السلايد</div>
-                                        <div><span class="key-badge">Ctrl + Z</span> التراجع عن آخر خط كتبته بالتابلت</div>
+                                        <div><span class="key-badge">⬇️ سهم لأسفل</span> النزول للسلايد / الصفحة التالية بالضبط</div>
+                                        <div><span class="key-badge">⬆️ سهم لأعلى</span> الصعود للسلايد / الصفحة السابقة بالضبط</div>
+                                        <div><span class="key-badge">H</span> / <span class="key-badge">W</span> محاذاة الزوم تلقائياً بالطول (H) أو بالعرض (W)</div>
+                                        <div><span class="key-badge">Space</span> تشغيل / إيقاف الريكورد & <span class="key-badge">⬅️</span> <span class="key-badge">➡️</span> (±5 ثوانٍ)</div>
+                                        <div><span class="key-badge">P</span> تثبيت لحظة صوتية & <span class="key-badge">Ctrl + Z</span> تراجع الكتابة</div>
                                     </div>
                                 </div>
                             </div>
@@ -4792,10 +4852,14 @@
         // PDF & Graphic Tablet State
         let currentPdfDoc = null;
         let currentPdfZoom = 1.25;
+        let currentPdfFitMode = localStorage.getItem('pharmaPdfFitMode') || 'height'; // 'height', 'width', 'custom'
         let currentActivePageNum = 1;
         let totalPdfPages = 1;
         let pageObserver = null;
         let renderedPagesSet = new Set();
+        let isProgrammaticPageScroll = false;
+        let programmaticScrollTimer = null;
+        let pdfScrollDetectAttached = false;
 
         // Annotation State
         let currentAnnoTool = 'pen'; // 'pan', 'pen', 'highlighter', 'laser', 'eraser'
@@ -5002,14 +5066,86 @@
             openInTabBtn.style.display = 'none';
         }
 
+        function updatePdfPageCounterUI(pageNum) {
+            const p = Math.max(1, Math.min(totalPdfPages || 1, pageNum || 1));
+            currentActivePageNum = p;
+            const badgeEl = document.getElementById('pdfPageCounterBadge');
+            if (badgeEl) badgeEl.innerText = `صفحة ${p} / ${totalPdfPages}`;
+            const floatBadge = document.getElementById('pdfFloatingPageBadge');
+            if (floatBadge) floatBadge.innerText = `${p} / ${totalPdfPages}`;
+        }
+
+        function updatePdfFitButtonsUI() {
+            const hBtn = document.getElementById('pdfFitHeightBtn');
+            const wBtn = document.getElementById('pdfFitWidthBtn');
+            if (hBtn) hBtn.classList.toggle('active', currentPdfFitMode === 'height');
+            if (wBtn) wBtn.classList.toggle('active', currentPdfFitMode === 'width');
+            const zoomTxt = document.getElementById('pdfZoomLevelText');
+            if (zoomTxt) {
+                const pct = Math.round(currentPdfZoom * 100);
+                zoomTxt.innerText = `${pct}%`;
+            }
+        }
+
+        function computeScaleForPageFit(page, fitMode) {
+            const baseVp = page.getViewport({ scale: 1.0 });
+            const scrollContainer = document.getElementById('pdfPagesScrollContainer');
+            const availW = Math.max(260, (scrollContainer && scrollContainer.clientWidth ? scrollContainer.clientWidth : 960) - 36);
+            const availH = Math.max(220, (scrollContainer && scrollContainer.clientHeight ? scrollContainer.clientHeight : 640) - 28);
+            if (fitMode === 'height') {
+                return Math.max(0.25, Math.min(3.5, availH / baseVp.height));
+            }
+            if (fitMode === 'width') {
+                return Math.max(0.25, Math.min(3.5, availW / baseVp.width));
+            }
+            return currentPdfZoom;
+        }
+
+        function attachPdfScrollActivePageDetector() {
+            const scrollContainer = document.getElementById('pdfPagesScrollContainer');
+            if (!scrollContainer || pdfScrollDetectAttached) return;
+            pdfScrollDetectAttached = true;
+
+            scrollContainer.addEventListener('scroll', () => {
+                if (isProgrammaticPageScroll || !currentPdfDoc) return;
+                const containerRect = scrollContainer.getBoundingClientRect();
+                const focusY = containerRect.top + containerRect.height * 0.42;
+                let bestPage = currentActivePageNum;
+                let bestDist = Infinity;
+
+                const wrappers = scrollContainer.querySelectorAll('.pdf-page-wrapper:not(.pdf-extra-note-sheet)');
+                wrappers.forEach(w => {
+                    const pNum = parseInt(w.dataset.pageNumber);
+                    if (!pNum) return;
+                    const r = w.getBoundingClientRect();
+                    if (focusY >= r.top && focusY <= r.bottom) {
+                        bestPage = pNum;
+                        bestDist = 0;
+                    } else if (bestDist > 0) {
+                        const center = (r.top + r.bottom) / 2;
+                        const d = Math.abs(center - focusY);
+                        if (d < bestDist) {
+                            bestDist = d;
+                            bestPage = pNum;
+                        }
+                    }
+                });
+                if (bestPage !== currentActivePageNum) {
+                    updatePdfPageCounterUI(bestPage);
+                }
+            }, { passive: true });
+        }
+
         async function renderPdfBlobInStudio(pdfBlob) {
             const scrollContainer = document.getElementById('pdfPagesScrollContainer');
             const iframe = document.getElementById('pdfViewerIframe');
             const fallback = document.getElementById('pdfFallbackBox');
+            const floatNav = document.getElementById('pdfFloatingPageNav');
 
             iframe.style.display = 'none';
             fallback.style.display = 'none';
             scrollContainer.style.display = 'flex';
+            if (floatNav) floatNav.style.display = 'inline-flex';
             scrollContainer.innerHTML = '<div style="color:var(--text-muted); padding:40px; font-weight:700;"><i class="fa-solid fa-spinner fa-spin" style="color:var(--primary);"></i> جاري تجهيز صفحات المحاضرة للكتابة...</div>';
 
             try {
@@ -5027,13 +5163,22 @@
                 currentActivePageNum = 1;
                 renderedPagesSet.clear();
 
-                document.getElementById('pdfPageCounterBadge').innerText = `صفحة 1 / ${totalPdfPages}`;
-                document.getElementById('pdfZoomLevelText').innerText = `${Math.round(currentPdfZoom * 80)}%`;
+                // Calculate initial auto-fit zoom if in 'height' or 'width' mode
+                const firstPage = await currentPdfDoc.getPage(1);
+                if (currentPdfFitMode === 'height' || currentPdfFitMode === 'width') {
+                    currentPdfZoom = computeScaleForPageFit(firstPage, currentPdfFitMode);
+                }
+
+                updatePdfPageCounterUI(1);
+                updatePdfFitButtonsUI();
+                attachPdfScrollActivePageDetector();
 
                 await buildPdfPagePlaceholders();
+                goToPdfPage(1, false);
             } catch (err) {
                 // Fallback to native iframe if PDF.js CDN is unreachable offline
                 scrollContainer.style.display = 'none';
+                if (floatNav) floatNav.style.display = 'none';
                 iframe.src = URL.createObjectURL(pdfBlob);
                 iframe.style.display = 'block';
             }
@@ -5048,7 +5193,12 @@
 
             // Get first page dimensions as baseline
             const firstPage = await currentPdfDoc.getPage(1);
-            const defaultViewport = firstPage.getViewport({ scale: currentPdfZoom });
+            const baseScale = (currentPdfFitMode === 'height' || currentPdfFitMode === 'width')
+                ? computeScaleForPageFit(firstPage, currentPdfFitMode)
+                : currentPdfZoom;
+            currentPdfZoom = baseScale;
+            updatePdfFitButtonsUI();
+            const defaultViewport = firstPage.getViewport({ scale: baseScale });
 
             const frag = document.createDocumentFragment();
             for (let pageNum = 1; pageNum <= totalPdfPages; pageNum++) {
@@ -5119,10 +5269,7 @@
             pageObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     const pNum = parseInt(entry.target.dataset.pageNumber);
-                    if (entry.isIntersecting) {
-                        currentActivePageNum = pNum;
-                        const badgeEl = document.getElementById('pdfPageCounterBadge');
-                        if (badgeEl) badgeEl.innerText = `صفحة ${pNum} / ${totalPdfPages}`;
+                    if (entry.isIntersecting && pNum) {
                         if (!renderedPagesSet.has(pNum)) {
                             renderedPagesSet.add(pNum);
                             renderSinglePdfPage(pNum);
@@ -5131,18 +5278,21 @@
                 });
             }, {
                 root: scrollContainer,
-                rootMargin: '500px 0px',
-                threshold: 0.05
+                rootMargin: '600px 0px',
+                threshold: 0.01
             });
 
-            document.querySelectorAll('.pdf-page-wrapper').forEach(el => pageObserver.observe(el));
+            document.querySelectorAll('.pdf-page-wrapper:not(.pdf-extra-note-sheet)').forEach(el => pageObserver.observe(el));
         }
 
         async function renderSinglePdfPage(pageNum) {
             if (!currentPdfDoc) return;
             try {
                 const page = await currentPdfDoc.getPage(pageNum);
-                const viewport = page.getViewport({ scale: currentPdfZoom });
+                const pageScale = (currentPdfFitMode === 'height' || currentPdfFitMode === 'width')
+                    ? computeScaleForPageFit(page, currentPdfFitMode)
+                    : currentPdfZoom;
+                const viewport = page.getViewport({ scale: pageScale });
                 const wrapper = document.getElementById(`pdfPageWrapper_${pageNum}`);
                 const pdfCanvas = document.getElementById(`pdfRenderCanvas_${pageNum}`);
                 const inkCanvas = document.getElementById(`pdfInkCanvas_${pageNum}`);
@@ -5180,14 +5330,150 @@
             } catch (e) {}
         }
 
-        function changePdfZoom(delta) {
+        async function applyPdfZoomAndKeepPage(targetPage) {
             if (!currentPdfDoc) return;
-            const nextZoom = Math.max(0.6, Math.min(2.6, currentPdfZoom + delta));
-            if (Math.abs(nextZoom - currentPdfZoom) < 0.05) return;
-            currentPdfZoom = nextZoom;
-            document.getElementById('pdfZoomLevelText').innerText = `${Math.round(currentPdfZoom * 80)}%`;
+            const savedPage = Math.max(1, Math.min(totalPdfPages, targetPage || currentActivePageNum || 1));
+            const refPage = await currentPdfDoc.getPage(savedPage);
+            if (currentPdfFitMode === 'height' || currentPdfFitMode === 'width') {
+                currentPdfZoom = computeScaleForPageFit(refPage, currentPdfFitMode);
+            }
+            updatePdfFitButtonsUI();
+
+            const defaultVp = refPage.getViewport({ scale: currentPdfZoom });
+            const newW = Math.floor(defaultVp.width);
+            const newH = Math.floor(defaultVp.height);
+
+            // Resize all page wrappers in place without destroying DOM
+            for (let p = 1; p <= totalPdfPages; p++) {
+                const w = document.getElementById(`pdfPageWrapper_${p}`);
+                if (w) {
+                    w.style.width = `${newW}px`;
+                    w.style.height = `${newH}px`;
+                }
+                syncExtraNoteSheetSize(p, newW, Math.floor(newH * 0.75));
+            }
+
             renderedPagesSet.clear();
-            buildPdfPagePlaceholders();
+            renderedPagesSet.add(savedPage);
+            await renderSinglePdfPage(savedPage);
+            goToPdfPage(savedPage, false);
+
+            // Pre-render adjacent pages smoothly
+            if (savedPage + 1 <= totalPdfPages) {
+                renderedPagesSet.add(savedPage + 1);
+                renderSinglePdfPage(savedPage + 1);
+            }
+            if (savedPage - 1 >= 1) {
+                renderedPagesSet.add(savedPage - 1);
+                renderSinglePdfPage(savedPage - 1);
+            }
+        }
+
+        async function setPdfFitMode(mode, silent = false) {
+            if (!['height', 'width', 'custom'].includes(mode)) return;
+            currentPdfFitMode = mode;
+            if (mode === 'height' || mode === 'width') {
+                localStorage.setItem('pharmaPdfFitMode', mode);
+            }
+            updatePdfFitButtonsUI();
+            if (!currentPdfDoc) return;
+            await applyPdfZoomAndKeepPage(currentActivePageNum);
+            if (!silent) {
+                if (mode === 'height') showToast('↕️ تم ضبط الزوم: محاذاة تلقائية بالطول (احتواء السلايد كاملة)');
+                else if (mode === 'width') showToast('↔️ تم ضبط الزوم: محاذاة تلقائية بالعرض (ملء عرض الشاشة)');
+            }
+        }
+
+        function togglePdfFitModeQuick() {
+            const nextMode = currentPdfFitMode === 'height' ? 'width' : 'height';
+            setPdfFitMode(nextMode);
+        }
+
+        async function changePdfZoom(delta) {
+            if (!currentPdfDoc) return;
+            currentPdfFitMode = 'custom';
+            const nextZoom = Math.max(0.35, Math.min(3.5, currentPdfZoom + delta));
+            if (Math.abs(nextZoom - currentPdfZoom) < 0.03) return;
+            currentPdfZoom = nextZoom;
+            await applyPdfZoomAndKeepPage(currentActivePageNum);
+        }
+
+        function goToPdfPage(targetPage, smooth = true) {
+            if (!currentPdfDoc) return;
+            const pageNum = Math.max(1, Math.min(totalPdfPages, parseInt(targetPage) || 1));
+            const scrollContainer = document.getElementById('pdfPagesScrollContainer');
+            const wrapper = document.getElementById(`pdfPageWrapper_${pageNum}`);
+            if (!scrollContainer || !wrapper) return;
+
+            updatePdfPageCounterUI(pageNum);
+
+            // Lock scroll detector during programmatic transition so rapid Up/Down presses work deterministically
+            isProgrammaticPageScroll = true;
+            if (programmaticScrollTimer) clearTimeout(programmaticScrollTimer);
+            programmaticScrollTimer = setTimeout(() => {
+                isProgrammaticPageScroll = false;
+            }, smooth ? 420 : 80);
+
+            // Ensure target page and neighbors are rendered
+            if (!renderedPagesSet.has(pageNum)) {
+                renderedPagesSet.add(pageNum);
+                renderSinglePdfPage(pageNum);
+            }
+            if (pageNum + 1 <= totalPdfPages && !renderedPagesSet.has(pageNum + 1)) {
+                renderedPagesSet.add(pageNum + 1);
+                renderSinglePdfPage(pageNum + 1);
+            }
+            if (pageNum - 1 >= 1 && !renderedPagesSet.has(pageNum - 1)) {
+                renderedPagesSet.add(pageNum - 1);
+                renderSinglePdfPage(pageNum - 1);
+            }
+
+            // Compute exact scroll coordinate relative to scrollContainer
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const wrapperRect = wrapper.getBoundingClientRect();
+            const wrapperTopInScroll = scrollContainer.scrollTop + (wrapperRect.top - containerRect.top);
+
+            let targetScrollTop = wrapperTopInScroll - 8;
+            if (currentPdfFitMode === 'height' || wrapperRect.height <= containerRect.height - 16) {
+                // Center slide vertically in viewport when it fits height
+                const verticalPad = Math.max(0, Math.floor((containerRect.height - wrapperRect.height) / 2));
+                targetScrollTop = wrapperTopInScroll - verticalPad;
+            }
+
+            scrollContainer.scrollTo({
+                top: Math.max(0, targetScrollTop),
+                behavior: smooth ? 'smooth' : 'auto'
+            });
+        }
+
+        function stepPdfPage(delta) {
+            if (!currentPdfDoc) return;
+            const nextPage = Math.max(1, Math.min(totalPdfPages, (currentActivePageNum || 1) + delta));
+            if (nextPage === currentActivePageNum) {
+                // Even if on first or last page, snap-align it cleanly
+                goToPdfPage(nextPage, true);
+                if (delta > 0 && nextPage === totalPdfPages) showToast('وصلت إلى الصفحة الأخيرة من المحاضرة 📖');
+                else if (delta < 0 && nextPage === 1) showToast('أنت في الصفحة الأولى من المحاضرة 📖');
+                return;
+            }
+            goToPdfPage(nextPage, true);
+        }
+
+        function promptJumpToPdfPage() {
+            if (!currentPdfDoc) return;
+            openSingleInputModal(
+                `<i class="fa-solid fa-compass" style="color:var(--primary);"></i> الانتقال السريع لصفحة (1 - ${totalPdfPages})`,
+                `اكتب رقم الصفحة (من 1 إلى ${totalPdfPages})...`,
+                `${currentActivePageNum}`,
+                (val) => {
+                    const num = parseInt(val);
+                    if (isNaN(num) || num < 1 || num > totalPdfPages) {
+                        showToast(`يرجى إدخال رقم صفحة صحيح بين 1 و ${totalPdfPages}`, 'error');
+                        return;
+                    }
+                    goToPdfPage(num, true);
+                }
+            );
         }
 
         // ================= GRAPHIC TABLET DRAWING, LASER & ERASER ENGINE =================
@@ -5814,7 +6100,21 @@
                     document.exitFullscreen().catch(() => {});
                 }
             }
+            if (currentPdfDoc && (currentPdfFitMode === 'height' || currentPdfFitMode === 'width')) {
+                setTimeout(() => {
+                    applyPdfZoomAndKeepPage(currentActivePageNum);
+                }, 140);
+            }
         }
+
+        window.addEventListener('resize', () => {
+            const pdfOverlay = document.getElementById('pdfViewerModalOverlay');
+            if (pdfOverlay && pdfOverlay.classList.contains('active') && currentPdfDoc) {
+                if (currentPdfFitMode === 'height' || currentPdfFitMode === 'width') {
+                    applyPdfZoomAndKeepPage(currentActivePageNum);
+                }
+            }
+        });
 
 
         // ================= 1. AUDIO TIMESTAMP PINS ENGINE =================
@@ -6089,6 +6389,9 @@
             if (pageObserver) pageObserver.disconnect();
             currentPdfDoc = null;
             renderedPagesSet.clear();
+
+            const floatNav = document.getElementById('pdfFloatingPageNav');
+            if (floatNav) floatNav.style.display = 'none';
 
             const scrollContainer = document.getElementById('pdfPagesScrollContainer');
             if (scrollContainer) scrollContainer.innerHTML = '';
@@ -6448,10 +6751,32 @@
 
             // Shortcuts inside PDF Studio Viewer
             const pdfOverlay = document.getElementById('pdfViewerModalOverlay');
-            if (pdfOverlay && pdfOverlay.classList.contains('active')) {
+            const singleInputOpen = document.getElementById('singleInputModalOverlay')?.classList.contains('active');
+            const confirmOpen = document.getElementById('confirmModalOverlay')?.classList.contains('active');
+            if (pdfOverlay && pdfOverlay.classList.contains('active') && !singleInputOpen && !confirmOpen) {
                 if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'z' || e.code === 'KeyZ')) {
                     e.preventDefault();
                     undoLastStroke();
+                    return;
+                }
+                if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+                    e.preventDefault();
+                    stepPdfPage(1);
+                    return;
+                }
+                if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+                    e.preventDefault();
+                    stepPdfPage(-1);
+                    return;
+                }
+                if (e.key === 'Home') {
+                    e.preventDefault();
+                    goToPdfPage(1, true);
+                    return;
+                }
+                if (e.key === 'End') {
+                    e.preventDefault();
+                    goToPdfPage(totalPdfPages, true);
                     return;
                 }
                 if (e.key === 'ArrowLeft') {
@@ -6462,6 +6787,31 @@
                 if (e.key === 'ArrowRight') {
                     e.preventDefault();
                     seekAudioRelative(5);
+                    return;
+                }
+                if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.code === 'KeyH' || e.code === 'KeyV')) {
+                    e.preventDefault();
+                    setPdfFitMode('height');
+                    return;
+                }
+                if (!e.ctrlKey && !e.metaKey && !e.altKey && e.code === 'KeyW') {
+                    e.preventDefault();
+                    setPdfFitMode('width');
+                    return;
+                }
+                if (e.key === '+' || e.key === '=') {
+                    e.preventDefault();
+                    changePdfZoom(0.15);
+                    return;
+                }
+                if (e.key === '-' || e.key === '_') {
+                    e.preventDefault();
+                    changePdfZoom(-0.15);
+                    return;
+                }
+                if (!e.ctrlKey && !e.metaKey && !e.altKey && e.code === 'KeyF') {
+                    e.preventDefault();
+                    togglePdfFullscreen();
                     return;
                 }
                 if (e.code === 'Space') {
