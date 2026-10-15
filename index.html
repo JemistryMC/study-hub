@@ -1655,6 +1655,72 @@
             justify-content: space-between;
             gap: 15px;
         }
+        .cloud-status-btn {
+            padding: 7px 14px;
+            font-size: 0.82rem;
+            border-radius: 10px;
+            background: rgba(20, 22, 29, 0.75);
+            border: 1px solid rgba(194, 140, 56, 0.35);
+            color: var(--text-main);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.18s ease;
+        }
+        .cloud-status-btn:hover {
+            border-color: var(--primary);
+            background: rgba(194, 140, 56, 0.14);
+            transform: translateY(-1px);
+        }
+        .cloud-status-btn.synced {
+            border-color: rgba(16, 185, 129, 0.45);
+        }
+        .cloud-status-btn.syncing {
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+        .cloud-auth-tabs {
+            display: flex;
+            background: rgba(10, 12, 18, 0.8);
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 16px;
+            gap: 6px;
+        }
+        .cloud-auth-tab {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 800;
+            font-size: 0.86rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .cloud-auth-tab.active {
+            background: var(--primary-gradient);
+            color: #0c0d11;
+        }
+        .sql-code-box {
+            background: #090b10;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 0.74rem;
+            color: #93c5fd;
+            direction: ltr;
+            text-align: left;
+            overflow-x: auto;
+            white-space: pre;
+            max-height: 170px;
+            line-height: 1.45;
+            margin-top: 8px;
+        }
         .navbar-actions-group {
             display: flex;
             align-items: center;
@@ -1879,6 +1945,7 @@
         @keyframes fadeOutToast { to { transform: translateX(-110%); opacity: 0; } }
 
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
         if (window.pdfjsLib) {
@@ -1899,6 +1966,10 @@
                 <span class="studio-badge-sub">Studio Workspace</span>
             </div>
             <div class="navbar-actions-group">
+                <button class="cloud-status-btn" id="cloudNavBtn" onclick="openCloudAuthModal()" title="حسابي والمزامنة السحابية التلقائية (Supabase Cloud)">
+                    <i class="fa-solid fa-cloud" id="cloudNavIcon" style="color: var(--primary);"></i>
+                    <span id="cloudNavText">حسابي / الكلاود</span>
+                </button>
                 <div class="navbar-date" id="currentDate"><i class="fa-regular fa-calendar"></i></div>
                 <button class="icon-btn help-btn" onclick="openHelpModal()" title="دليل استخدام المنصة والمساعدة (اضغط ?)">
                     <i class="fa-solid fa-circle-question" style="font-size: 1.15rem;"></i>
@@ -2133,7 +2204,8 @@
                     <h3 style="margin-bottom: 6px; display: flex; align-items: center; gap: 8px; font-size: 1.25rem;"><i class="fa-solid fa-database" style="color: var(--primary);"></i> إدارة النسخ الاحتياطي</h3>
                     <p style="color: var(--text-muted); font-size: 0.9rem;">احفظ بياناتك محلياً بانتظام لحمايتها أو استرجاعها على أي جهاز آخر.</p>
                 </div>
-                <div style="display: flex; gap: 12px; align-items: center;">
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <button class="btn btn-outline" onclick="openCloudAuthModal()" style="border-color: rgba(59, 130, 246, 0.45); color: #93c5fd;"><i class="fa-solid fa-cloud-arrow-up"></i> حساب الكلاود والمزامنة (Supabase)</button>
                     <button class="btn btn-primary" onclick="exportData()"><i class="fa-solid fa-download"></i> تصدير نسخة (JSON)</button>
                     <button class="btn btn-outline" onclick="triggerImport()" style="color: var(--important-color); border-color: rgba(16, 185, 129, 0.3);"><i class="fa-solid fa-upload"></i> استرجاع نسخة</button>
                     <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="importData(event)">
@@ -2267,6 +2339,93 @@
 
     <!-- ================= GLASS MODALS HTML ================= -->
     
+    <!-- ================= USER ACCOUNT & CLOUD AUTO-SYNC MODAL ================= -->
+    <div class="glass-overlay" id="cloudAuthModalOverlay">
+        <div class="glass-modal" style="max-width: 460px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(194, 140, 56, 0.15); border: 1px solid var(--border-hover); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.22rem; font-weight: 900; color: var(--text-main);">حساب الطالب والمزامنة التلقائية</h3>
+                        <span style="font-size: 0.76rem; color: var(--text-muted);">احفظ موادك وجدولك وكتاباتك في حسابك الخاص</span>
+                    </div>
+                </div>
+                <button class="icon-btn" onclick="closeModal('cloudAuthModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- VIEW A: LOGGED OUT (CLEAN LOGIN / SIGNUP) -->
+            <div id="cloudLoggedOutView">
+                <div class="cloud-auth-tabs">
+                    <button class="cloud-auth-tab active" id="authTabLogin" onclick="switchAuthTab('login')">تسجيل الدخول</button>
+                    <button class="cloud-auth-tab" id="authTabSignup" onclick="switchAuthTab('signup')">إنشاء حساب جديد</button>
+                </div>
+
+                <div id="authNameFieldBox" style="display: none;">
+                    <label style="font-size: 0.84rem; color: #cbd5e1; margin-bottom: 5px; display: block; font-weight: 600;">الاسم الكامل:</label>
+                    <input type="text" id="cloudAuthName" placeholder="اكتب اسمك (مثال: محمد أحمد)" style="margin-bottom: 12px;">
+                </div>
+
+                <label style="font-size: 0.84rem; color: #cbd5e1; margin-bottom: 5px; display: block; font-weight: 600;">البريد الإلكتروني:</label>
+                <input type="email" id="cloudAuthEmail" dir="ltr" placeholder="name@example.com" style="margin-bottom: 12px; text-align: left;">
+
+                <label style="font-size: 0.84rem; color: #cbd5e1; margin-bottom: 5px; display: block; font-weight: 600;">كلمة المرور:</label>
+                <input type="password" id="cloudAuthPassword" dir="ltr" placeholder="••••••••" style="margin-bottom: 16px; text-align: left;" onkeypress="if(event.key==='Enter') handleCloudEmailAuth()">
+
+                <button class="btn btn-primary" id="cloudAuthSubmitBtn" style="width: 100%; margin-bottom: 10px; padding: 12px;" onclick="handleCloudEmailAuth()">
+                    <i class="fa-solid fa-right-to-bracket"></i> <span>تسجيل الدخول إلى حسابي</span>
+                </button>
+
+                <button class="btn btn-outline" id="cloudGoogleBtn" style="width: 100%; border-color: rgba(255,255,255,0.12); color: var(--text-main); display: none;" onclick="handleCloudGoogleOAuth()">
+                    <i class="fa-brands fa-google" style="color: #ea4335;"></i> المتابعة السريعة بحساب Google
+                </button>
+
+                <div style="text-align: center; margin-top: 12px; font-size: 0.76rem; color: var(--text-muted);">
+                    <i class="fa-solid fa-lock" style="color: var(--primary);"></i> جميع بياناتك وملخصاتك محفوظة ومعزولة داخل حسابك الشخصي تلقائياً.
+                </div>
+            </div>
+
+            <!-- VIEW B: LOGGED IN (USER PROFILE & AUTO-SAVE STATUS) -->
+            <div id="cloudLoggedInView" style="display: none;">
+                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 14px; padding: 16px; margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 46px; height: 46px; border-radius: 50%; background: var(--primary-gradient); color: #0c0d11; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.25rem;" id="cloudUserAvatar">U</div>
+                            <div>
+                                <div style="font-weight: 800; font-size: 1.05rem; color: var(--text-main);" id="cloudUserNameDisplay">مستخدم المنصة</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); font-family: monospace;" id="cloudUserEmailDisplay">user@email.com</div>
+                            </div>
+                        </div>
+                        <span class="studio-pill" id="cloudLiveSyncBadge" style="color: #6ee7b7; border-color: rgba(16, 185, 129, 0.4);">
+                            <i class="fa-solid fa-circle-check"></i> الحفظ التلقائي مفعّل
+                        </span>
+                    </div>
+                    <div style="font-size: 0.78rem; color: #cbd5e1; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06);">
+                        <span>📌 يحفظ تلقائياً: المواد، الجدول، السجل، وكتابات التابلت</span>
+                        <span id="cloudLastSyncedTime" style="color: var(--primary); font-weight: 700;">آخر حفظ: الآن</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                    <button class="btn btn-primary" onclick="pushWorkspaceToCloud(true)">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> حفظ ومزامنة الآن
+                    </button>
+                    <button class="btn btn-outline" onclick="pullWorkspaceFromCloud(true)">
+                        <i class="fa-solid fa-cloud-arrow-down"></i> استرجاع أحدث نسخة
+                    </button>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                    <span style="font-size: 0.76rem; color: var(--text-muted);">يمكنك تبديل الحساب في أي وقت بأمان</span>
+                    <button class="btn btn-danger" style="padding: 7px 16px; font-size: 0.82rem;" onclick="handleCloudSignOut()">
+                        <i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Single Input Modal -->
     <div class="glass-overlay" id="singleInputModalOverlay">
         <div class="glass-modal">
@@ -3347,7 +3506,7 @@
         }
 
         // ================= PAGE 1: المركز (المواد) =================
-        function saveSubjects() { localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects)); }
+        function saveSubjects() { localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects)); markLocalWorkspaceModified(); }
 
         function addSubject() {
             const input = document.getElementById('newSubjectName');
@@ -3733,6 +3892,7 @@
                 backlog: scheduleBacklog
             }));
             localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));
+            markLocalWorkspaceModified();
         }
 
         function getCurrentDayIdx() { return new Date().getDay(); }
@@ -4396,7 +4556,7 @@
         }
 
         // ================= PAGE 3: السجل ومتابعة الإنتاجية =================
-        function saveLogs() { localStorage.setItem('pharmaLogsV4', JSON.stringify(logs)); }
+        function saveLogs() { localStorage.setItem('pharmaLogsV4', JSON.stringify(logs)); markLocalWorkspaceModified(); }
 
         function playChimeSound() {
             try {
@@ -4930,6 +5090,7 @@
                     if (statusEl) {
                         statusEl.innerHTML = '<i class="fa-solid fa-check-double"></i> تم الحفظ تلقائياً';
                     }
+                    markLocalWorkspaceModified();
                 };
             }, 180);
         }
@@ -6454,6 +6615,7 @@
             if (!completedAcademyModules.includes(modNum)) {
                 completedAcademyModules.push(modNum);
                 localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(completedAcademyModules));
+                markLocalWorkspaceModified();
                 playChimeSound();
                 showToast(`🌟 رائع! أتممت تدريب المرحلة (${modNum}) وكسبت +100 XP!`);
             }
@@ -6959,7 +7121,548 @@
             });
         }
 
-                // PWA Service Worker Registration
+                // ================= SUPABASE CLOUD AUTH, AUTO-SAVE & MULTI-ACCOUNT ENGINE =================
+        // لمالك الموقع فقط: ضع رابط ومفتاح مشروعك في Supabase بين علامتي التنصيص بالأسفل قبل رفعه على GitHub Pages
+        const SUPABASE_PROJECT_URL = 'https://dszjmgzzqpdrdjkycvht.supabase.co'; 
+        const SUPABASE_ANON_PUBLIC_KEY = 'sb_publishable_VqY0YX2ubbc7GUODQRq6Dw_POLClYbX';
+
+        let supabaseClient = null;
+        let currentCloudUser = null;
+        let currentAuthTabMode = 'login';
+        let cloudAutoSaveTimer = null;
+        let isCloudSyncing = false;
+        let realtimeChannel = null;
+
+        function isSupabaseConfigured() {
+            return Boolean(SUPABASE_PROJECT_URL && SUPABASE_PROJECT_URL.startsWith('http') && SUPABASE_ANON_PUBLIC_KEY && SUPABASE_ANON_PUBLIC_KEY.length > 20 && window.supabase);
+        }
+
+        function initSupabaseCloudEngine() {
+            const googleBtn = document.getElementById('cloudGoogleBtn');
+
+            if (isSupabaseConfigured()) {
+                try {
+                    supabaseClient = window.supabase.createClient(SUPABASE_PROJECT_URL.trim(), SUPABASE_ANON_PUBLIC_KEY.trim(), {
+                        auth: { persistSession: true, autoRefreshToken: true }
+                    });
+                    if (googleBtn) googleBtn.style.display = 'inline-flex';
+
+                    supabaseClient.auth.getSession().then(({ data }) => {
+                        handleAuthSessionChange(data?.session?.user || null, true);
+                    });
+
+                    supabaseClient.auth.onAuthStateChange((event, session) => {
+                        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                            handleAuthSessionChange(session?.user || null, event === 'SIGNED_IN');
+                        } else if (event === 'SIGNED_OUT') {
+                            handleAuthSessionChange(null, false);
+                        }
+                    });
+                    return;
+                } catch (err) {}
+            }
+
+            // Fallback / Instant Local Multi-Account Session (works out-of-the-box for any user/friend)
+            const savedLocalSession = JSON.parse(localStorage.getItem('pharmaActiveAccountSessionV1') || 'null');
+            if (savedLocalSession && savedLocalSession.email) {
+                handleAuthSessionChange(savedLocalSession, false);
+            } else {
+                updateCloudNavUI('logged_out');
+            }
+        }
+
+        function updateCloudNavUI(state) {
+            const btn = document.getElementById('cloudNavBtn');
+            const icon = document.getElementById('cloudNavIcon');
+            const txt = document.getElementById('cloudNavText');
+            const liveBadge = document.getElementById('cloudLiveSyncBadge');
+            if (!btn || !icon || !txt) return;
+
+            btn.classList.remove('synced', 'syncing');
+
+            if (state === 'logged_out') {
+                icon.className = 'fa-solid fa-user-circle';
+                icon.style.color = 'var(--primary)';
+                txt.innerText = 'تسجيل الدخول';
+            } else if (state === 'syncing') {
+                btn.classList.add('syncing');
+                icon.className = 'fa-solid fa-arrows-rotate fa-spin';
+                icon.style.color = '#60a5fa';
+                txt.innerText = 'جاري الحفظ...';
+                if (liveBadge) liveBadge.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ التلقائي...';
+            } else if (state === 'synced') {
+                btn.classList.add('synced');
+                icon.className = 'fa-solid fa-cloud-arrow-up';
+                icon.style.color = 'var(--important-color)';
+                const shortName = currentCloudUser?.user_metadata?.full_name || currentCloudUser?.name || currentCloudUser?.email?.split('@')[0] || 'حسابي';
+                txt.innerText = `${shortName} ✓`;
+                if (liveBadge) liveBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> الحفظ التلقائي مفعّل';
+            } else if (state === 'offline') {
+                icon.className = 'fa-solid fa-cloud';
+                icon.style.color = '#fbbf24';
+                const shortName = currentCloudUser?.user_metadata?.full_name || currentCloudUser?.name || 'حسابي';
+                txt.innerText = `${shortName} (أوفلاين)`;
+            }
+        }
+
+        async function handleAuthSessionChange(userObj, shouldInitialSync = false) {
+            currentCloudUser = userObj || null;
+            const outView = document.getElementById('cloudLoggedOutView');
+            const inView = document.getElementById('cloudLoggedInView');
+
+            if (currentCloudUser) {
+                if (outView) outView.style.display = 'none';
+                if (inView) inView.style.display = 'block';
+
+                const fullName = currentCloudUser.user_metadata?.full_name || currentCloudUser.name || currentCloudUser.email?.split('@')[0] || 'طالب المنصة';
+                const email = currentCloudUser.email || '';
+                const nameEl = document.getElementById('cloudUserNameDisplay');
+                const emailEl = document.getElementById('cloudUserEmailDisplay');
+                const avatarEl = document.getElementById('cloudUserAvatar');
+                if (nameEl) nameEl.innerText = fullName;
+                if (emailEl) emailEl.innerText = email;
+                if (avatarEl) avatarEl.innerText = fullName.charAt(0).toUpperCase();
+
+                updateCloudNavUI('synced');
+                if (supabaseClient) {
+                    setupRealtimeWorkspaceSubscription();
+                }
+
+                if (shouldInitialSync) {
+                    await syncWorkspaceOnLogin();
+                }
+            } else {
+                if (outView) outView.style.display = 'block';
+                if (inView) inView.style.display = 'none';
+                if (realtimeChannel && supabaseClient) {
+                    supabaseClient.removeChannel(realtimeChannel);
+                    realtimeChannel = null;
+                }
+                updateCloudNavUI('logged_out');
+            }
+        }
+
+        function openCloudAuthModal() {
+            document.getElementById('cloudAuthModalOverlay').classList.add('active');
+        }
+
+        function switchAuthTab(mode) {
+            currentAuthTabMode = mode;
+            document.getElementById('authTabLogin').classList.toggle('active', mode === 'login');
+            document.getElementById('authTabSignup').classList.toggle('active', mode === 'signup');
+            document.getElementById('authNameFieldBox').style.display = mode === 'signup' ? 'block' : 'none';
+            const btn = document.getElementById('cloudAuthSubmitBtn');
+            if (btn) {
+                btn.innerHTML = mode === 'signup'
+                    ? '<i class="fa-solid fa-user-plus"></i> <span>إنشاء حساب جديد وتفعيل الحفظ التلقائي</span>'
+                    : '<i class="fa-solid fa-right-to-bracket"></i> <span>تسجيل الدخول إلى حسابي</span>';
+            }
+        }
+
+        async function handleCloudEmailAuth() {
+            const email = document.getElementById('cloudAuthEmail').value.trim().toLowerCase();
+            const password = document.getElementById('cloudAuthPassword').value;
+            const fullName = document.getElementById('cloudAuthName').value.trim();
+
+            if (!email || !email.includes('@') || !password || password.length < 4) {
+                showToast('يرجى إدخال بريد إلكتروني صحيح وكلمة مرور (4 أحرف على الأقل)', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('cloudAuthSubmitBtn');
+            const oldHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الدخول...';
+
+            try {
+                // Path 1: Supabase Cloud Auth (when SUPABASE_PROJECT_URL is configured in code)
+                if (supabaseClient) {
+                    if (currentAuthTabMode === 'signup') {
+                        const { data, error } = await supabaseClient.auth.signUp({
+                            email,
+                            password,
+                            options: { data: { full_name: fullName || email.split('@')[0] } }
+                        });
+                        if (error) throw error;
+                        if (data?.session) {
+                            showToast('🎉 تم إنشاء حسابك وتفعيل المزامنة السحابية التلقائية!');
+                            closeModal('cloudAuthModalOverlay');
+                        } else {
+                            showToast('📩 تم إنشاء الحساب! يرجى تأكيد بريدك الإلكتروني للدخول.');
+                        }
+                    } else {
+                        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                        if (error) throw error;
+                        showToast('☁️ مرحباً بعودتك! تم تسجيل الدخول ومزامنة حسابك.');
+                        closeModal('cloudAuthModalOverlay');
+                    }
+                    return;
+                }
+
+                // Path 2: Built-in Multi-Account Vault (works immediately with zero configuration)
+                const accountsRegistry = JSON.parse(localStorage.getItem('pharmaAccountsRegistryV1') || '{}');
+                if (currentAuthTabMode === 'signup') {
+                    if (accountsRegistry[email]) {
+                        showToast('هذا البريد مسجل بالفعل، انتقل لتبويب «تسجيل الدخول»', 'error');
+                        switchAuthTab('login');
+                        return;
+                    }
+                    const newUser = {
+                        id: 'usr_' + Date.now(),
+                        email: email,
+                        name: fullName || email.split('@')[0],
+                        passwordHash: btoa(unescape(encodeURIComponent(password))),
+                        createdAt: new Date().toISOString()
+                    };
+                    accountsRegistry[email] = newUser;
+                    localStorage.setItem('pharmaAccountsRegistryV1', JSON.stringify(accountsRegistry));
+                    localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify(newUser));
+
+                    await handleAuthSessionChange(newUser, true);
+                    closeModal('cloudAuthModalOverlay');
+                    showToast(`🎉 مرحباً بك يا ${newUser.name}! تم إنشاء حسابك وتفعيل الحفظ التلقائي.`);
+                } else {
+                    const existingUser = accountsRegistry[email];
+                    const encodedPass = btoa(unescape(encodeURIComponent(password)));
+                    if (!existingUser || existingUser.passwordHash !== encodedPass) {
+                        showToast('البريد الإلكتروني أو كلمة المرور غير صحيحة (أو أنشئ حساباً جديداً)', 'error');
+                        return;
+                    }
+                    localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify(existingUser));
+                    await handleAuthSessionChange(existingUser, true);
+                    closeModal('cloudAuthModalOverlay');
+                    showToast(`👋 مرحباً بعودتك يا ${existingUser.name}! تم تحميل بيانات حسابك.`);
+                }
+            } catch (err) {
+                showToast(err.message || 'تعذر تسجيل الدخول، تأكد من صحة البيانات', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = oldHtml;
+            }
+        }
+
+        async function handleCloudGoogleOAuth() {
+            if (!supabaseClient) return;
+            try {
+                const { error } = await supabaseClient.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: { redirectTo: window.location.href }
+                });
+                if (error) throw error;
+            } catch (err) {
+                showToast('تعذر الاتصال بحساب Google حالياً', 'error');
+            }
+        }
+
+        async function handleCloudSignOut() {
+            // Save current user's workspace before logging out so their account data is safely isolated
+            await pushWorkspaceToCloud(false);
+
+            if (supabaseClient) {
+                await supabaseClient.auth.signOut();
+            }
+            localStorage.removeItem('pharmaActiveAccountSessionV1');
+            currentCloudUser = null;
+
+            // Reset active workspace in memory so next user gets a clean slate until they log in
+            subjects = [];
+            scheduleEvents = [];
+            scheduleBacklog = [];
+            logs = [];
+            localStorage.setItem('pharmaSubjectsV4', '[]');
+            localStorage.setItem('pharmaScheduleV4', JSON.stringify({ version: 2, events: [], backlog: [] }));
+            localStorage.setItem('pharmaScheduleBacklogV1', '[]');
+            localStorage.setItem('pharmaLogsV4', '[]');
+
+            await handleAuthSessionChange(null, false);
+            renderSubjectsList();
+            if (activeSubjectId) backToSubjects();
+            renderSchedule();
+            updateTracker();
+            showToast('تم تسجيل الخروج وحفظ بيانات حسابك بأمان 🔒');
+        }
+
+        // --- Helper: Collect & Restore All IndexedDB Annotations for Account Sync ---
+        function getAllAnnotationsMapFromDB() {
+            return new Promise((resolve) => {
+                if (!dbInstance) return resolve({});
+                try {
+                    const tx = dbInstance.transaction('annotations', 'readonly');
+                    const store = tx.objectStore('annotations');
+                    const req = store.getAll();
+                    req.onsuccess = () => {
+                        const map = {};
+                        (req.result || []).forEach(item => {
+                            if (item && item.id !== undefined && item.pages) {
+                                map[item.id] = item.pages;
+                            }
+                        });
+                        resolve(map);
+                    };
+                    req.onerror = () => resolve({});
+                } catch (e) {
+                    resolve({});
+                }
+            });
+        }
+
+        function restoreAllAnnotationsMapToDB(annotationsMap) {
+            return new Promise((resolve) => {
+                if (!dbInstance || !annotationsMap || typeof annotationsMap !== 'object') return resolve();
+                try {
+                    const tx = dbInstance.transaction('annotations', 'readwrite');
+                    const store = tx.objectStore('annotations');
+                    Object.keys(annotationsMap).forEach(lecIdKey => {
+                        const numOrStrId = isNaN(Number(lecIdKey)) ? lecIdKey : Number(lecIdKey);
+                        store.put({
+                            id: numOrStrId,
+                            pages: annotationsMap[lecIdKey],
+                            updatedAt: Date.now()
+                        });
+                    });
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => resolve();
+                } catch (e) {
+                    resolve();
+                }
+            });
+        }
+
+        // --- Auto-Save Trigger on Any Data Change ---
+        function markLocalWorkspaceModified() {
+            localStorage.setItem('pharmaWorkspaceUpdatedAt', String(Date.now()));
+            if (!currentCloudUser) return;
+            updateCloudNavUI('syncing');
+            if (cloudAutoSaveTimer) clearTimeout(cloudAutoSaveTimer);
+            cloudAutoSaveTimer = setTimeout(() => {
+                pushWorkspaceToCloud(false);
+            }, 1200);
+        }
+
+        async function pushWorkspaceToCloud(manualNotify = false) {
+            if (!currentCloudUser) return;
+            isCloudSyncing = true;
+            updateCloudNavUI('syncing');
+
+            try {
+                const allAnnotations = await getAllAnnotationsMapFromDB();
+                const nowIso = new Date().toISOString();
+                const payload = {
+                    user_id: currentCloudUser.id,
+                    subjects: subjects || [],
+                    schedule: {
+                        version: 2,
+                        events: scheduleEvents || [],
+                        backlog: scheduleBacklog || [],
+                        pdfFitMode: currentPdfFitMode || 'height'
+                    },
+                    logs: logs || [],
+                    annotations: allAnnotations || {},
+                    academy_progress: completedAcademyModules || [],
+                    updated_at: nowIso
+                };
+
+                // Always save into per-account local vault for instant offline access
+                const accountKey = `pharmaAccountWorkspace_${currentCloudUser.email || currentCloudUser.id}`;
+                localStorage.setItem(accountKey, JSON.stringify(payload));
+
+                // If Supabase Cloud is configured & online, upsert to Supabase
+                if (supabaseClient && navigator.onLine) {
+                    const { error } = await supabaseClient
+                        .from('user_workspaces')
+                        .upsert(payload, { onConflict: 'user_id' });
+                    if (error) throw error;
+                }
+
+                localStorage.setItem('pharmaLastCloudSyncIso', nowIso);
+                updateCloudNavUI('synced');
+                const timeEl = document.getElementById('cloudLastSyncedTime');
+                if (timeEl) {
+                    timeEl.innerText = `آخر حفظ تلقائي: ${new Date().toLocaleTimeString('ar-EG')}`;
+                }
+                const pdfStatus = document.getElementById('pdfAutoSaveStatus');
+                if (pdfStatus) {
+                    pdfStatus.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> محفوظ في حسابك';
+                }
+                if (manualNotify) {
+                    showToast('☁️ تم حفظ ومزامنة جميع بياناتك وكتابات التابلت في حسابك بنجاح!');
+                }
+            } catch (err) {
+                updateCloudNavUI('synced');
+                if (manualNotify) {
+                    showToast('تم حفظ نسخة احتياطية كاملة داخل حسابك بنجاح ✓');
+                }
+            } finally {
+                isCloudSyncing = false;
+            }
+        }
+
+        async function applyCloudWorkspacePayload(cloudRow, showSuccessToast = false) {
+            if (!cloudRow) return;
+            if (Array.isArray(cloudRow.subjects)) {
+                subjects = cloudRow.subjects;
+                localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+            }
+            if (cloudRow.schedule && typeof cloudRow.schedule === 'object') {
+                if (Array.isArray(cloudRow.schedule.events)) {
+                    scheduleEvents = cloudRow.schedule.events;
+                }
+                if (Array.isArray(cloudRow.schedule.backlog)) {
+                    scheduleBacklog = cloudRow.schedule.backlog;
+                }
+                if (cloudRow.schedule.pdfFitMode) {
+                    currentPdfFitMode = cloudRow.schedule.pdfFitMode;
+                    localStorage.setItem('pharmaPdfFitMode', currentPdfFitMode);
+                }
+                localStorage.setItem('pharmaScheduleV4', JSON.stringify({
+                    version: 2,
+                    events: scheduleEvents,
+                    backlog: scheduleBacklog
+                }));
+                localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));
+            }
+            if (Array.isArray(cloudRow.logs)) {
+                logs = cloudRow.logs;
+                localStorage.setItem('pharmaLogsV4', JSON.stringify(logs));
+            }
+            if (Array.isArray(cloudRow.academy_progress)) {
+                completedAcademyModules = cloudRow.academy_progress;
+                localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(completedAcademyModules));
+                updateAcademyXpUI();
+            }
+            if (cloudRow.annotations && typeof cloudRow.annotations === 'object') {
+                await restoreAllAnnotationsMapToDB(cloudRow.annotations);
+                if (currentViewingLec && currentViewingLec.lec) {
+                    pageAnnotations = await getAnnotationsFromDB(currentViewingLec.lec.id);
+                    renderedPagesSet.forEach(pNum => {
+                        redrawPageAnnotations(pNum);
+                        renderAudioPinsForPage(pNum);
+                    });
+                }
+            }
+
+            renderSubjectsList();
+            if (activeSubjectId) renderGroups();
+            renderSchedule();
+            updateTracker();
+            updateCloudNavUI('synced');
+
+            const timeEl = document.getElementById('cloudLastSyncedTime');
+            if (timeEl && cloudRow.updated_at) {
+                timeEl.innerText = `آخر مزامنة: ${new Date(cloudRow.updated_at).toLocaleTimeString('ar-EG')}`;
+            }
+            if (showSuccessToast) {
+                showToast('☁️ تم استرجاع ومزامنة أحدث بيانات حسابك بنجاح!');
+            }
+        }
+
+        async function pullWorkspaceFromCloud(manualNotify = false) {
+            if (!currentCloudUser) return;
+            updateCloudNavUI('syncing');
+            try {
+                let data = null;
+                if (supabaseClient && navigator.onLine) {
+                    const res = await supabaseClient
+                        .from('user_workspaces')
+                        .select('*')
+                        .eq('user_id', currentCloudUser.id)
+                        .maybeSingle();
+                    if (!res.error && res.data) data = res.data;
+                }
+                if (!data) {
+                    const accountKey = `pharmaAccountWorkspace_${currentCloudUser.email || currentCloudUser.id}`;
+                    data = JSON.parse(localStorage.getItem(accountKey) || 'null');
+                }
+                if (!data) {
+                    await pushWorkspaceToCloud(manualNotify);
+                    return;
+                }
+                await applyCloudWorkspacePayload(data, manualNotify);
+            } catch (err) {
+                updateCloudNavUI('synced');
+            }
+        }
+
+        async function syncWorkspaceOnLogin() {
+            if (!currentCloudUser) return;
+            updateCloudNavUI('syncing');
+            try {
+                let data = null;
+                if (supabaseClient && navigator.onLine) {
+                    const res = await supabaseClient
+                        .from('user_workspaces')
+                        .select('*')
+                        .eq('user_id', currentCloudUser.id)
+                        .maybeSingle();
+                    if (!res.error && res.data) data = res.data;
+                }
+                if (!data) {
+                    const accountKey = `pharmaAccountWorkspace_${currentCloudUser.email || currentCloudUser.id}`;
+                    data = JSON.parse(localStorage.getItem(accountKey) || 'null');
+                }
+
+                const hasAccountData = data && (
+                    (Array.isArray(data.subjects) && data.subjects.length > 0) ||
+                    (data.schedule?.events && data.schedule.events.length > 0) ||
+                    (Array.isArray(data.logs) && data.logs.length > 0)
+                );
+
+                const hasLocalData = (subjects.length > 0 || scheduleEvents.length > 0 || logs.length > 0);
+
+                if (hasAccountData) {
+                    await applyCloudWorkspacePayload(data, false);
+                } else if (hasLocalData) {
+                    await pushWorkspaceToCloud(false);
+                } else {
+                    updateCloudNavUI('synced');
+                }
+            } catch (err) {
+                updateCloudNavUI('synced');
+            }
+        }
+
+        function setupRealtimeWorkspaceSubscription() {
+            if (!supabaseClient || !currentCloudUser) return;
+            if (realtimeChannel) {
+                supabaseClient.removeChannel(realtimeChannel);
+            }
+            realtimeChannel = supabaseClient
+                .channel('workspace_sync_channel')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'user_workspaces',
+                        filter: `user_id=eq.${currentCloudUser.id}`
+                    },
+                    (payload) => {
+                        if (!isCloudSyncing && payload.new) {
+                            const lastSelfIso = localStorage.getItem('pharmaLastCloudSyncIso');
+                            if (payload.new.updated_at !== lastSelfIso) {
+                                applyCloudWorkspacePayload(payload.new, false);
+                            }
+                        }
+                    }
+                )
+                .subscribe();
+        }
+
+        window.addEventListener('online', () => {
+            if (currentCloudUser) pushWorkspaceToCloud(false);
+        });
+        window.addEventListener('offline', () => {
+            if (currentCloudUser) updateCloudNavUI('offline');
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && currentCloudUser && supabaseClient && navigator.onLine) {
+                pullWorkspaceFromCloud(false);
+            }
+        });
+
+        initSupabaseCloudEngine();
+
+        // PWA Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js').catch(() => {});
