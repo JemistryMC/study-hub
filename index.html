@@ -2377,9 +2377,6 @@
                     <i class="fa-solid fa-right-to-bracket"></i> <span>تسجيل الدخول إلى حسابي</span>
                 </button>
 
-                <button class="btn btn-outline" id="cloudGoogleBtn" style="width: 100%; border-color: rgba(255,255,255,0.12); color: var(--text-main); display: none;" onclick="handleCloudGoogleOAuth()">
-                    <i class="fa-brands fa-google" style="color: #ea4335;"></i> المتابعة السريعة بحساب Google
-                </button>
 
                 <div style="text-align: center; margin-top: 12px; font-size: 0.76rem; color: var(--text-muted);">
                     <i class="fa-solid fa-lock" style="color: var(--primary);"></i> جميع بياناتك وملخصاتك محفوظة ومعزولة داخل حسابك الشخصي تلقائياً.
@@ -7145,7 +7142,7 @@
                     supabaseClient = window.supabase.createClient(SUPABASE_PROJECT_URL.trim(), SUPABASE_ANON_PUBLIC_KEY.trim(), {
                         auth: { persistSession: true, autoRefreshToken: true }
                     });
-                    if (googleBtn) googleBtn.style.display = 'inline-flex';
+                    
 
                     supabaseClient.auth.getSession().then(({ data }) => {
                         handleAuthSessionChange(data?.session?.user || null, true);
