@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
     <title>منصة الإنجاز - Studio Workspace</title>
     <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Aref+Ruqaa:wght@400;700&family=Caveat:wght@600;700&family=Crimson+Pro:ital,wght@0,500;0,600;0,700;1,500&family=Marhey:wght@500;600;700&family=Tajawal:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
         <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b0f17'/%3E%3Cpath d='M20 18h24a4 4 0 0 1 4 4v20a4 4 0 0 1-4 4H20a4 4 0 0 1-4-4V22a4 4 0 0 1 4-4zm4 8v4h16v-4H24zm0 10v4h10v-4H24z' fill='%232dd4bf'/%3E%3C/svg%3E">
@@ -4534,6 +4534,504 @@
             color: #cbd5e1;
         }
 
+
+        /* ================= CROSS-DEVICE OPTIMIZATION: PC, IPAD, TABLET, IPHONE & ANDROID ================= */
+        :root {
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-left: env(safe-area-inset-left, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+        }
+
+        html {
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
+        body {
+            height: 100dvh;
+            min-height: -webkit-fill-available;
+            overscroll-behavior-y: none;
+        }
+
+        /* 1. Touch-Screen Ergonomics (iPhone, Android, iPad, Tablet):
+              Always show edit/delete actions without requiring mouse hover! */
+        @media (hover: none), (pointer: coarse) {
+            .subject-card .card-actions-always,
+            .fluid-session-card .fsc-actions,
+            .notion-event-block .neb-actions {
+                opacity: 1 !important;
+            }
+            .fsc-actions button,
+            .neb-actions button {
+                width: 28px !important;
+                height: 28px !important;
+                background: rgba(15, 23, 36, 0.85) !important;
+                border: 1px solid rgba(148, 163, 184, 0.18) !important;
+                border-radius: 7px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+            .fsc-check-circle {
+                width: 22px !important;
+                height: 22px !important;
+            }
+        }
+
+        /* 2. PDF Studio Optimization across PC, iPad/Tablet, and Smartphones */
+        .pdf-modal-container {
+            width: 98vw !important;
+            max-width: 1620px !important;
+            height: 96dvh !important;
+        }
+        .pdf-modal-container.dock-collapsed .pdf-annotation-toolbar {
+            display: none !important;
+        }
+        .pdf-pages-scroll-container {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
+        .pdf-page-wrapper.pan-mode .pdf-ink-canvas {
+            touch-action: pan-x pan-y pinch-zoom !important;
+        }
+
+        /* Single-Row Horizontal Scrollable Toolbars (No vertical wrapping on Tablet/Mobile) */
+        .pdf-annotation-toolbar {
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            flex-wrap: nowrap !important;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .pdf-annotation-toolbar::-webkit-scrollbar {
+            display: none;
+        }
+        .pdf-annotation-toolbar .anno-tool-group {
+            flex-shrink: 0 !important;
+        }
+
+        /* Tablet & Mobile Full-Screen PDF Studio (<= 1024px: iPad, Android Tablet, iPhone, Android Phone) */
+        @media (max-width: 1024px) {
+            #pdfViewerModalOverlay {
+                padding: 0 !important;
+            }
+            .pdf-modal-container {
+                width: 100vw !important;
+                max-width: 100vw !important;
+                height: 100dvh !important;
+                max-height: 100dvh !important;
+                border-radius: 0 !important;
+                border: none !important;
+                padding-top: var(--safe-top);
+                padding-bottom: var(--safe-bottom);
+            }
+            .pdf-viewer-header {
+                padding: 6px 10px !important;
+                gap: 6px !important;
+            }
+            .pdf-annotation-toolbar {
+                justify-content: flex-start !important;
+                padding: 5px 10px !important;
+                gap: 8px !important;
+            }
+            .pdf-pages-scroll-container {
+                padding: 10px 8px !important;
+                gap: 14px !important;
+            }
+        }
+
+        /* Smartphone Specific PDF Studio Optimization (<= 767px: iPhone & Android) */
+        @media (max-width: 767px) {
+            .hide-on-xs {
+                display: none !important;
+            }
+            #pdfFullscreenBtn {
+                display: none !important;
+            }
+            .pdf-viewer-header {
+                display: grid !important;
+                grid-template-columns: 1fr auto !important;
+                grid-template-areas:
+                    "title actions"
+                    "controls controls" !important;
+                row-gap: 6px !important;
+                padding: 6px 8px !important;
+            }
+            .pdf-viewer-header > div:nth-child(1) {
+                grid-area: title;
+                min-width: 0 !important;
+            }
+            .pdf-viewer-header > div:nth-child(2) {
+                grid-area: controls;
+                width: 100%;
+                justify-content: space-between !important;
+                overflow-x: auto;
+                flex-wrap: nowrap !important;
+                scrollbar-width: none;
+                padding-bottom: 2px;
+            }
+            .pdf-viewer-header > div:nth-child(2)::-webkit-scrollbar {
+                display: none;
+            }
+            .pdf-viewer-header > div:nth-child(3) {
+                grid-area: actions;
+                justify-self: end;
+            }
+            #pdfViewerTitle {
+                max-width: 155px !important;
+                font-size: 0.86rem !important;
+            }
+            #pdfZenModeText {
+                display: none;
+            }
+            .pdf-pages-scroll-container {
+                padding: 6px 4px !important;
+                gap: 10px !important;
+            }
+            .pdf-floating-page-nav {
+                bottom: 10px !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                padding: 3px 8px !important;
+            }
+            .slide-extra-space-btn {
+                font-size: 0.65rem !important;
+                padding: 2px 7px !important;
+                bottom: 5px !important;
+                right: 6px !important;
+            }
+            .pdf-page-badge {
+                font-size: 0.65rem !important;
+                padding: 1px 6px !important;
+                bottom: 5px !important;
+                left: 6px !important;
+            }
+            /* Sleek Compact Mobile Audio Player Bar */
+            .pdf-audio-player-bar {
+                padding: 6px 10px !important;
+                gap: 8px !important;
+            }
+            .audio-controls-left {
+                min-width: 100% !important;
+                gap: 6px !important;
+            }
+            .seek-step-btn {
+                padding: 4px 7px !important;
+                font-size: 0.72rem !important;
+            }
+            .pdf-audio-player-bar > div:last-child {
+                width: 100%;
+                justify-content: space-between !important;
+            }
+            .pdf-more-dropdown-menu {
+                left: 0 !important;
+                right: auto !important;
+                min-width: 225px !important;
+            }
+        }
+
+        /* 3. Schedule / Planner Page Optimization across PC, iPad/Tablet, iPhone & Android */
+        /* Smooth Horizontal Swipe Ribbons for 7-Day Switcher & Filter Chips */
+        .notion-day-switcher {
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            max-width: 100%;
+        }
+        .notion-day-switcher::-webkit-scrollbar {
+            display: none;
+        }
+        .filter-chip-group {
+            overflow-x: auto;
+            flex-wrap: nowrap !important;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            max-width: 100%;
+            padding-bottom: 2px;
+        }
+        .filter-chip-group::-webkit-scrollbar {
+            display: none;
+        }
+        .filter-chip-btn {
+            flex-shrink: 0 !important;
+            white-space: nowrap !important;
+        }
+
+        /* Horizontal Swipeable 7-Column Week Board Mode (Optional on Tablet & Mobile, or Default on PC) */
+        .fluid-week-board.mobile-horizontal-board {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x mandatory;
+            gap: 12px !important;
+            padding-bottom: 10px !important;
+        }
+        .fluid-week-board.mobile-horizontal-board .fluid-day-col {
+            min-width: 265px !important;
+            max-width: 285px !important;
+            flex: 0 0 270px !important;
+            scroll-snap-align: start;
+        }
+
+        @media (min-width: 1280px) {
+            #toggleWeekBoardLayoutBtn {
+                display: none !important;
+            }
+            .fluid-week-board {
+                grid-template-columns: repeat(7, minmax(155px, 1fr)) !important;
+            }
+        }
+
+        /* iPad & Tablet Schedule Layout (768px - 1279px) */
+        @media (min-width: 768px) and (max-width: 1279px) {
+            .main-content {
+                padding: 18px 18px !important;
+            }
+            .fluid-week-board:not(.mobile-horizontal-board) {
+                grid-template-columns: repeat(auto-fill, minmax(225px, 1fr)) !important;
+                gap: 12px !important;
+            }
+            .notion-day-topbar {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 8px !important;
+            }
+            .notion-day-switcher {
+                width: 100%;
+            }
+        }
+
+        /* Smartphone Schedule & App Layout (<= 767px: iPhone & Android) */
+        @media (max-width: 767px) {
+            /* Prevent iOS Safari Auto-Zoom on Input Focus */
+            input, select, textarea {
+                font-size: 16px !important;
+            }
+
+            /* Ultra-Sleek Sticky Mobile Navbar */
+            .navbar {
+                padding: calc(8px + var(--safe-top)) 12px 8px 12px !important;
+                gap: 8px !important;
+                position: sticky;
+                top: 0;
+            }
+            .navbar-brand {
+                font-size: 1.1rem !important;
+                gap: 8px !important;
+            }
+            .cloud-status-btn {
+                padding: 5px 10px !important;
+                font-size: 0.76rem !important;
+            }
+            .nav-items {
+                width: 100% !important;
+                padding: 3px !important;
+            }
+            .nav-item {
+                padding: 7px 8px !important;
+                font-size: 0.82rem !important;
+                gap: 5px !important;
+            }
+
+            .main-content {
+                padding: 12px 10px calc(24px + var(--safe-bottom)) 10px !important;
+            }
+
+            /* Planner Top Bar & Time-Sync Banner on Mobile */
+            .planner-studio-top {
+                gap: 10px !important;
+                padding-bottom: 12px !important;
+                margin-bottom: 12px !important;
+            }
+            .planner-studio-top > div:first-child {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .schedule-pills {
+                width: 100% !important;
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 4px !important;
+            }
+            .sch-pill {
+                justify-content: center !important;
+                padding: 7px 4px !important;
+                font-size: 0.78rem !important;
+                gap: 4px !important;
+                white-space: nowrap !important;
+            }
+            .planner-studio-top > div:last-child {
+                width: 100%;
+                display: flex;
+            }
+            .planner-studio-top > div:last-child .btn-primary {
+                flex: 1;
+            }
+
+            .smart-time-sync-banner {
+                padding: 10px 12px !important;
+                gap: 10px !important;
+                margin-bottom: 12px !important;
+            }
+            #livePlannerClockText {
+                font-size: 0.82rem !important;
+            }
+            #livePlannerStatusSubtext {
+                display: none !important;
+            }
+            #livePlannerActiveSessionBox {
+                width: 100%;
+            }
+            .stsb-active-task-pill {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            /* Hourly Day View (اليوم بالساعات) on Mobile */
+            .notion-day-topbar {
+                padding: 8px 8px !important;
+                gap: 8px !important;
+            }
+            .notion-day-switcher {
+                width: 100%;
+                padding: 3px !important;
+            }
+            .notion-day-pill {
+                padding: 6px 10px !important;
+                font-size: 0.76rem !important;
+            }
+            .notion-day-topbar > div:last-child {
+                width: 100%;
+                justify-content: space-between !important;
+            }
+            .notion-time-gutter {
+                width: 54px !important;
+            }
+            .notion-gutter-hour {
+                font-size: 0.65rem !important;
+                padding-top: 4px !important;
+            }
+            .notion-event-block {
+                padding: 5px 8px !important;
+            }
+            .neb-header {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 2px !important;
+            }
+            .neb-title {
+                font-size: 0.8rem !important;
+            }
+            .neb-time-pill {
+                font-size: 0.64rem !important;
+            }
+            .notion-event-block .neb-actions {
+                position: absolute;
+                top: 4px;
+                left: 6px;
+            }
+
+            /* Smart Compact Hourly List on Mobile */
+            .smart-hourly-stream {
+                padding: 10px 8px !important;
+            }
+            .smart-hour-item {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 8px !important;
+                padding: 11px 12px !important;
+            }
+            .shi-time-col {
+                min-width: 0 !important;
+                width: 100% !important;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                border-left: none !important;
+                border-bottom: 1px solid rgba(148, 163, 184, 0.10) !important;
+                padding-left: 0 !important;
+                padding-bottom: 6px !important;
+            }
+            .shi-body-col {
+                width: 100% !important;
+            }
+            .smart-free-window {
+                padding: 8px 10px !important;
+                gap: 8px !important;
+            }
+
+            /* Full Week Board (جدول الأسبوع) on Mobile:
+               Compact Empty Days in Vertical Stack so user never scrolls past giant empty boxes! */
+            .fluid-week-board:not(.mobile-horizontal-board) {
+                grid-template-columns: 1fr !important;
+                gap: 10px !important;
+            }
+            .fluid-week-board:not(.mobile-horizontal-board) .fluid-day-col {
+                min-height: 0 !important;
+                padding: 10px 12px !important;
+            }
+            .fluid-week-board:not(.mobile-horizontal-board) .fluid-empty-day {
+                min-height: 44px !important;
+                padding: 8px 12px !important;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+            }
+            .fluid-week-board:not(.mobile-horizontal-board) .fluid-empty-day .fluid-empty-plus {
+                display: inline-block !important;
+                opacity: 1 !important;
+            }
+
+            /* Planner Filter Row on Mobile */
+            .planner-filter-pills-row {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 8px !important;
+            }
+            .planner-filter-actions-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .planner-filter-actions-right select {
+                flex: 1;
+                min-width: 130px;
+            }
+
+            /* Lecture Item in Subjects Hub on Mobile */
+            .lecture-item {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 10px !important;
+                padding: 12px !important;
+            }
+            .lecture-item .card-actions {
+                width: 100%;
+                justify-content: flex-end;
+                padding-top: 8px;
+                border-top: 1px solid rgba(255, 255, 255, 0.05);
+            }
+
+            /* Modals on Mobile: Smooth Sheet with Side-by-Side Actions */
+            .glass-modal {
+                width: 96% !important;
+                max-height: 92dvh !important;
+                padding: 18px 14px !important;
+                border-radius: 16px !important;
+            }
+            .modal-actions {
+                flex-direction: row !important;
+                flex-wrap: wrap;
+                gap: 8px !important;
+            }
+            .modal-actions button {
+                flex: 1;
+                width: auto !important;
+                min-width: 110px;
+            }
+        }
+
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -4724,10 +5222,13 @@
                             </select>
                         </div>
 
-                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <div class="planner-filter-actions-right" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                             <select id="schFilterSubject" onchange="renderWeekGrid()" style="padding: 6px 12px; font-size: 0.82rem; border-radius: 999px;">
                                 <option value="all">📚 جميع المواد الدراسية</option>
                             </select>
+                            <button class="filter-chip-btn compact-hours-btn" id="toggleWeekBoardLayoutBtn" onclick="toggleWeekBoardMobileLayout()" title="تبديل طريقة عرض جدول الأسبوع (قائمة مدمجة / أعمدة أفقية للسحب)">
+                                <i class="fa-solid fa-table-columns" id="toggleWeekBoardLayoutIcon"></i> <span id="toggleWeekBoardLayoutText">عرض أعمدة أفقية</span>
+                            </button>
                             <button class="filter-chip-btn compact-hours-btn" id="toggleHideFixedRoutineBtn" onclick="toggleHideFixedInWeek()">
                                 <i class="fa-solid fa-eye-slash"></i> <span>إخفاء الكلية مؤقتاً</span>
                             </button>
@@ -5244,23 +5745,24 @@
                         <div style="font-weight: 800; font-size: 0.88rem; color: #fbbf24; display: flex; align-items: center; gap: 7px;">
                             <i class="fa-solid fa-crown"></i> باقة VIP Pro وسحابة الملفات
                         </div>
-                        <span id="cloudMediaCountBadge" class="studio-pill" style="font-size: 0.71rem; color: #fcd34d; cursor: pointer;" onclick="openVipUpgradeModal('عرض مزايا باقة VIP Pro')">🔒 تفعيل VIP Pro</span>
+                        <span id="cloudMediaCountBadge" class="studio-pill" style="font-size: 0.71rem; color: #fcd34d; cursor: pointer;" onclick="handleCloudVipBadgeClick()">🔒 تفعيل VIP Pro</span>
                     </div>
                     <p style="font-size: 0.77rem; color: #cbd5e1; margin-bottom: 8px; line-height: 1.5;" id="cloudMediaBoxDescText">
-                        ارفع ملفات الـ PDF والتسجيلات الصوتية على حسابك لتتمكن من فتحها وسماعها مباشرة من أي جهاز آخر (لابتوب، تابلت، أو هاتف).
+                        ارفع ملفات الـ PDF والريكورد لمرة واحدة فقط (الكتابات والتلخيصات تُحفظ تلقائياً بدون إعادة رفع)، وعند الفتح من جهاز آخر حمّل ما تريده بشكل منفصل وسريع.
                     </p>
                     <div class="cloud-limits-info-strip">
-                        <span><i class="fa-solid fa-scale-balanced" style="color:#fbbf24;"></i> <b>الحد الأقصى للملف الواحد بالسحابة:</b> PDF حتى <b style="color:var(--primary);">25MB</b> • ريكورد حتى <b style="color:#38bdf8;">35MB</b></span>
+                        <span><i class="fa-solid fa-scale-balanced" style="color:#fbbf24;"></i> <b>الحد الأقصى للملف بالسحابة:</b> PDF حتى <b style="color:var(--primary);">25MB</b> • ريكورد حتى <b style="color:#38bdf8;">35MB</b></span>
                         <span id="cloudTotalStorageUsedBadge" style="color:#94a3b8; font-weight:700;">المرفوع: 0 MB</span>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                         <button class="btn btn-outline" id="btnSyncAllMediaUp" style="padding: 8px 10px; font-size: 0.78rem; border-color: rgba(56, 189, 248, 0.45); color: #38bdf8;" onclick="syncAllLocalMediaToCloud()">
-                            <i class="fa-solid fa-cloud-arrow-up"></i> رفع كل الـ PDF والريكورد للحساب
+                            <i class="fa-solid fa-cloud-arrow-up"></i> رفع الملفات غير المرفوعة
                         </button>
-                        <button class="btn btn-outline" id="btnSyncAllMediaDown" style="padding: 8px 10px; font-size: 0.78rem; border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7;" onclick="downloadAllCloudMediaToLocal()">
-                            <i class="fa-solid fa-cloud-arrow-down"></i> تنزيل ملفات الحساب للجهاز
+                        <button class="btn btn-outline" id="btnSyncAllMediaDown" style="padding: 8px 10px; font-size: 0.78rem; border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7;" onclick="toggleCloudIndividualFilesList()">
+                            <i class="fa-solid fa-list-check"></i> تحميل ملفات منفصلة للجهاز
                         </button>
                     </div>
+                    <div id="cloudIndividualFilesDrawer" style="display: none; margin-top: 10px; background: rgba(9, 13, 22, 0.88); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 11px; padding: 10px; max-height: 210px; overflow-y: auto;"></div>
                     <!-- Live Upload Progress Bar, Percentage & Speed Monitor inside Account Modal -->
                     <div class="cloud-upload-monitor-box" id="cloudMediaUploadMonitorBox">
                         <div class="cum-top-row">
@@ -5336,32 +5838,47 @@
                 </div>
             </div>
 
-            <!-- Fair Student Pricing Selector -->
-            <div class="vip-pricing-grid">
-                <div class="vip-plan-card" id="vipPlanCard_monthly" onclick="selectVipPlan('monthly')">
-                    <div style="font-size: 0.78rem; color: #cbd5e1; font-weight: 800; margin-bottom: 4px;">الباقة الشهرية</div>
-                    <div style="font-size: 1.35rem; font-weight: 900; color: var(--text-main);"><span id="vipPriceMonthlyTxt">75</span> <small style="font-size: 0.75rem; color: var(--primary);">ج.م / شهر</small></div>
-                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">مثالية لشهر الامتحانات</div>
+            <!-- Shown when user is NOT yet subscribed -->
+            <div id="vipPurchasePlansSection">
+                <div class="vip-pricing-grid">
+                    <div class="vip-plan-card" id="vipPlanCard_monthly" onclick="selectVipPlan('monthly')">
+                        <div style="font-size: 0.78rem; color: #cbd5e1; font-weight: 800; margin-bottom: 4px;">الباقة الشهرية</div>
+                        <div style="font-size: 1.35rem; font-weight: 900; color: var(--text-main);"><span id="vipPriceMonthlyTxt">75</span> <small style="font-size: 0.75rem; color: var(--primary);">ج.م / شهر</small></div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">مثالية لشهر الامتحانات</div>
+                    </div>
+                    <div class="vip-plan-card selected" id="vipPlanCard_semester" onclick="selectVipPlan('semester')">
+                        <span class="vip-best-value-tag">🔥 أوفر للطلاب (توفير 34%)</span>
+                        <div style="font-size: 0.78rem; color: #fbbf24; font-weight: 800; margin-bottom: 4px;">باقة الترم الكامل</div>
+                        <div style="font-size: 1.35rem; font-weight: 900; color: #fbbf24;"><span id="vipPriceSemesterTxt">199</span> <small style="font-size: 0.75rem; color: #fde68a;">ج.م / الترم (4 شهور)</small></div>
+                        <div style="font-size: 0.7rem; color: #cbd5e1; margin-top: 2px;">أقل من 50 ج.م في الشهر!</div>
+                    </div>
                 </div>
-                <div class="vip-plan-card selected" id="vipPlanCard_semester" onclick="selectVipPlan('semester')">
-                    <span class="vip-best-value-tag">🔥 أوفر للطلاب (توفير 34%)</span>
-                    <div style="font-size: 0.78rem; color: #fbbf24; font-weight: 800; margin-bottom: 4px;">باقة الترم الكامل</div>
-                    <div style="font-size: 1.35rem; font-weight: 900; color: #fbbf24;"><span id="vipPriceSemesterTxt">199</span> <small style="font-size: 0.75rem; color: #fde68a;">ج.م / الترم (4 شهور)</small></div>
-                    <div style="font-size: 0.7rem; color: #cbd5e1; margin-top: 2px;">أقل من 50 ج.م في الشهر!</div>
+
+                <div style="font-size: 0.73rem; color: var(--text-muted); margin-bottom: 12px;">
+                    💳 الدفع متاح بسهولة عبر <b>Vodafone Cash</b> أو <b>InstaPay</b> والتفعيل فوري لحسابك
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button type="button" class="whatsapp-cta-btn" style="width: 100%; justify-content: center; padding: 11px 16px;" onclick="requestVipMediaActivationViaWhatsApp()">
+                        <i class="fa-brands fa-whatsapp" style="font-size: 1.15rem;"></i>
+                        <span id="vipWhatsappBtnText">تفعيل باقة الترم (199 ج.م) عبر واتساب الآن</span>
+                    </button>
+                    <button type="button" class="btn btn-outline" style="width: 100%; padding: 8px; color: var(--text-muted); border-color: rgba(255,255,255,0.1); font-size: 0.82rem;" onclick="closeModal('vipMediaLockModalOverlay')">
+                        الاستمرار بالخطة المجانية حالياً
+                    </button>
                 </div>
             </div>
 
-            <div style="font-size: 0.73rem; color: var(--text-muted); margin-bottom: 12px;">
-                💳 الدفع متاح بسهولة عبر <b>Vodafone Cash</b> أو <b>InstaPay</b> والتفعيل فوري لحسابك
-            </div>
-
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-                <button type="button" class="whatsapp-cta-btn" style="width: 100%; justify-content: center; padding: 11px 16px;" onclick="requestVipMediaActivationViaWhatsApp()">
-                    <i class="fa-brands fa-whatsapp" style="font-size: 1.15rem;"></i>
-                    <span id="vipWhatsappBtnText">تفعيل باقة الترم (199 ج.م) عبر واتساب الآن</span>
-                </button>
-                <button type="button" class="btn btn-outline" style="width: 100%; padding: 8px; color: var(--text-muted); border-color: rgba(255,255,255,0.1); font-size: 0.82rem;" onclick="closeModal('vipMediaLockModalOverlay')">
-                    الاستمرار بالخطة المجانية حالياً
+            <!-- Shown when user IS ALREADY subscribed to VIP Pro -->
+            <div id="vipAlreadyActiveSection" style="display: none; background: rgba(16, 185, 129, 0.12); border: 1.5px solid rgba(16, 185, 129, 0.45); border-radius: 14px; padding: 16px; text-align: center;">
+                <div style="font-size: 1.05rem; font-weight: 900; color: #6ee7b7; margin-bottom: 6px;">
+                    <i class="fa-solid fa-circle-check"></i> أنت مشترك بالفعل في باقة VIP Pro 👑
+                </div>
+                <p style="font-size: 0.8rem; color: #e2e8f0; margin-bottom: 12px; line-height: 1.6;">
+                    حسابك مفعّل بالكامل وجميع المزايا السحابية وأدوات التصدير والتقارير الأسبوعية مفتوحة لك دون أي قيود.
+                </p>
+                <button type="button" class="btn btn-primary" style="width: 100%; padding: 10px;" onclick="closeModal('vipMediaLockModalOverlay')">
+                    <i class="fa-solid fa-check"></i> حسناً، متابعة المذاكرة
                 </button>
             </div>
         </div>
@@ -5463,8 +5980,11 @@
                     </div>
                 </div>
 
-                <!-- Left Zone: Zen Mode, More Actions Menu, Fullscreen & Close -->
-                <div style="display: flex; align-items: center; gap: 6px;">
+                <!-- Left Zone: Collapse Dock, Zen Mode, More Actions Menu, Fullscreen & Close -->
+                <div class="pdf-header-left-actions" style="display: flex; align-items: center; gap: 6px;">
+                    <button class="anno-btn" id="pdfCollapseDockBtn" onclick="togglePdfAnnotationDock()" title="إخفاء/إظهار شريط أدوات الرسم لتوسيع مساحة السلايد" style="border: 1px solid rgba(148, 163, 184, 0.2);">
+                        <i class="fa-solid fa-chevron-up" id="pdfCollapseDockIcon"></i> <span class="hide-on-xs" id="pdfCollapseDockText">طي الأدوات</span>
+                    </button>
                     <button class="anno-btn pdf-zen-toggle-btn" id="pdfZenModeBtn" onclick="togglePdfZenMode()" style="border: 1px solid rgba(16, 185, 129, 0.35); color: #6ee7b7;">
                         <i class="fa-solid fa-Seedling fa-leaf"></i> <span id="pdfZenModeText">وضع التركيز</span>
                     </button>
@@ -5477,8 +5997,8 @@
                             <button class="pdf-more-item" onclick="toggleExtraNoteForPage(currentActivePageNum); closePdfMoreMenu();">
                                 <i class="fa-solid fa-file-circle-plus" style="color: var(--primary);"></i> إضافة / إظهار ورقة تلخيص
                             </button>
-                            <button class="pdf-more-item" onclick="uploadCurrentViewingLectureMediaToCloud(); closePdfMoreMenu();">
-                                <i class="fa-solid fa-cloud-arrow-up" style="color: #38bdf8;"></i> رفع الـ PDF والريكورد على الحساب
+                            <button class="pdf-more-item" id="pdfMenuUploadCloudBtn" onclick="uploadCurrentViewingLectureMediaToCloud(); closePdfMoreMenu();">
+                                <i class="fa-solid fa-cloud-arrow-up" style="color: #38bdf8;"></i> <span id="pdfMenuUploadCloudBtnText">رفع الـ PDF والريكورد على الحساب</span>
                             </button>
                             <button class="pdf-more-item" onclick="exportAnnotatedSlides(); closePdfMoreMenu();">
                                 <i class="fa-solid fa-file-export" style="color: #6ee7b7;"></i> تصدير المحاضرة بالكتابة
@@ -7251,21 +7771,23 @@
                 tempPickedAudioBlob = null;
 
                 if (pdfBlobToUpload) {
+                    lec.cloudPdfUploaded = false;
                     saveMediaToDB('pdfs', lec.id, pdfBlobToUpload);
                 }
                 if (audioBlobToUpload) {
+                    lec.cloudAudioUploaded = false;
                     saveMediaToDB('audios', lec.id, audioBlobToUpload);
                 }
 
                 saveSubjects(); renderGroups(); showToast('تم تعديل بيانات المحاضرة بنجاح');
 
                 if (currentCloudUser && currentUserCanUploadMedia && (pdfBlobToUpload || audioBlobToUpload)) {
-                    if (pdfBlobToUpload) await uploadMediaToCloudAccount('pdfs', lec, pdfBlobToUpload, false);
-                    if (audioBlobToUpload) await uploadMediaToCloudAccount('audios', lec, audioBlobToUpload, false);
+                    if (pdfBlobToUpload) await uploadMediaToCloudAccount('pdfs', lec, pdfBlobToUpload, false, { forceReplace: true });
+                    if (audioBlobToUpload) await uploadMediaToCloudAccount('audios', lec, audioBlobToUpload, false, { forceReplace: true });
                     saveSubjects();
                     renderGroups();
                     updateCloudMediaStatsUI();
-                    showToast('☁️ تم تحديث ملفات المحاضرة على حسابك السحابي بنجاح!');
+                    showToast('☁️ تم تحديث ملفات المحاضرة الجديدة على حسابك السحابي بنجاح!');
                 }
             });
         }
@@ -7328,6 +7850,44 @@
                 } else {
                     g.lectures.forEach(lec => {
                         const srBadge = getSpacedRepetitionBadgeHtml(lec);
+                        const hasLocalPdf = localMediaCache.pdfs.has(String(lec.id));
+                        const hasLocalAudio = localMediaCache.audios.has(String(lec.id));
+                        const hasPdfDefined = Boolean(lec.path && !lec.path.startsWith('http'));
+                        const hasAudioDefined = Boolean(lec.audioPath && !lec.audioPath.startsWith('http'));
+
+                        const isPdfCloud = Boolean(lec.cloudPdfUploaded);
+                        const isAudioCloud = Boolean(lec.cloudAudioUploaded);
+
+                        // Determine if upload button should be locked/closed (already uploaded to cloud)
+                        const pdfNeedsUpload = (hasLocalPdf || hasPdfDefined) && !isPdfCloud;
+                        const audioNeedsUpload = (hasLocalAudio || hasAudioDefined) && !isAudioCloud;
+                        const isFullyUploaded = (isPdfCloud || isAudioCloud) && !pdfNeedsUpload && !audioNeedsUpload;
+
+                        let pdfBadgeHtml = '';
+                        if (isPdfCloud && !hasLocalPdf) {
+                            pdfBadgeHtml = `<button type="button" class="studio-pill" style="font-size:0.68rem; color:#061318; background:var(--primary); border:none; cursor:pointer; font-weight:800; padding:3px 10px;" onclick="downloadSingleLectureMediaItem(${g.id}, ${lec.id}, 'pdfs', event)"><i class="fa-solid fa-cloud-arrow-down"></i> تحميل الـ PDF للجهاز ${lec.cloudPdfSize ? '(' + (lec.cloudPdfSize / (1024*1024)).toFixed(1) + 'MB)' : ''}</button>`;
+                        } else if (isPdfCloud) {
+                            pdfBadgeHtml = `<span class="studio-pill" style="font-size:0.66rem; color:#6ee7b7; border-color:rgba(16,185,129,0.4);"><i class="fa-solid fa-cloud-check"></i> PDF مرفوع بالسحابة ${lec.cloudPdfSize ? '(' + (lec.cloudPdfSize / (1024*1024)).toFixed(1) + 'MB)' : ''} ✓</span>`;
+                        } else if (hasPdfDefined) {
+                            pdfBadgeHtml = `<span class="studio-pill" style="font-size:0.65rem; color:#fcd34d; border-color:rgba(245,158,11,0.32);"><i class="fa-solid fa-laptop-file"></i> PDF محلي فقط</span>`;
+                        }
+
+                        let audioBadgeHtml = '';
+                        if (isAudioCloud && !hasLocalAudio) {
+                            audioBadgeHtml = `<button type="button" class="studio-pill" style="font-size:0.68rem; color:#061318; background:#38bdf8; border:none; cursor:pointer; font-weight:800; padding:3px 10px;" onclick="downloadSingleLectureMediaItem(${g.id}, ${lec.id}, 'audios', event)"><i class="fa-solid fa-cloud-arrow-down"></i> تحميل الريكورد للجهاز ${lec.cloudAudioSize ? '(' + (lec.cloudAudioSize / (1024*1024)).toFixed(1) + 'MB)' : ''}</button>`;
+                        } else if (isAudioCloud) {
+                            audioBadgeHtml = `<span class="studio-pill" style="font-size:0.66rem; color:#38bdf8; border-color:rgba(56,189,248,0.4);"><i class="fa-solid fa-cloud-check"></i> ريكورد مرفوع بالسحابة ${lec.cloudAudioSize ? '(' + (lec.cloudAudioSize / (1024*1024)).toFixed(1) + 'MB)' : ''} ✓</span>`;
+                        } else if (lec.audioPath) {
+                            audioBadgeHtml = `<span class="studio-pill" style="font-size:0.66rem; color:#93c5fd; border-color:rgba(59,130,246,0.3);"><i class="fa-solid fa-headphones"></i> ريكورد محلي فقط</span>`;
+                        }
+
+                        let uploadActionBtnHtml = '';
+                        if (isFullyUploaded) {
+                            uploadActionBtnHtml = `<button class="icon-btn" disabled title="تم رفع المحاضرة للسحابة مسبقاً ✓ (كتاباتك على الـ PDF تُحفظ تلقائياً بدون إعادة رفع)" style="color: #6ee7b7; border-color: rgba(16,185,129,0.28); background: rgba(16,185,129,0.08); opacity: 0.5; cursor: not-allowed;"><i class="fa-solid fa-check"></i></button>`;
+                        } else {
+                            uploadActionBtnHtml = `<button class="icon-btn" title="رفع ملف المحاضرة للسحابة (لمرة واحدة فقط)" style="color: #38bdf8; border-color: rgba(56,189,248,0.35);" onclick="uploadSingleLectureMediaToCloud(${g.id}, ${lec.id}, event)"><i class="fa-solid fa-cloud-arrow-up"></i></button>`;
+                        }
+
                         html += `
                             <div class="lecture-item">
                                 <div style="display: flex; align-items: center; gap: 12px; flex: 1; flex-wrap: wrap;">
@@ -7337,19 +7897,13 @@
                                     <div onclick="openLectureDocument(${g.id}, ${lec.id})" style="flex: 1; display: flex; align-items: center; gap: 10px; cursor: pointer; min-width: 180px; flex-wrap: wrap;">
                                         <i class="fa-solid fa-file-pdf" style="color: ${lec.completed ? 'var(--important-color)' : 'var(--mandatory-color)'}; font-size: 1.25rem;"></i> 
                                         <span style="font-weight: 600; ${lec.completed ? 'text-decoration: line-through; color: #9ca3af;' : ''}">${lec.title}</span>
-                                        ${lec.cloudPdfUploaded
-                                            ? `<span class="studio-pill" style="font-size:0.66rem; color:#6ee7b7; border-color:rgba(16,185,129,0.4);"><i class="fa-solid fa-cloud-check"></i> PDF بالسحابة ${lec.cloudPdfSize ? '(' + (lec.cloudPdfSize / (1024*1024)).toFixed(1) + 'MB)' : ''} ✓</span>`
-                                            : (lec.path && !lec.path.startsWith('http') ? `<span class="studio-pill" style="font-size:0.65rem; color:#fcd34d; border-color:rgba(245,158,11,0.32);"><i class="fa-solid fa-laptop-file"></i> PDF محلي فقط</span>` : '')}
-                                        ${lec.audioPath
-                                            ? (lec.cloudAudioUploaded
-                                                ? `<span class="studio-pill" style="font-size:0.66rem; color:#38bdf8; border-color:rgba(56,189,248,0.4);"><i class="fa-solid fa-cloud-check"></i> ريكورد بالسحابة ${lec.cloudAudioSize ? '(' + (lec.cloudAudioSize / (1024*1024)).toFixed(1) + 'MB)' : ''} ✓</span>`
-                                                : `<span class="studio-pill" style="font-size:0.66rem; color:#93c5fd; border-color:rgba(59,130,246,0.3);"><i class="fa-solid fa-headphones"></i> ريكورد محلي فقط</span>`)
-                                            : ''}
+                                        ${pdfBadgeHtml}
+                                        ${audioBadgeHtml}
                                         ${srBadge}
                                     </div>
                                 </div>
                                 <div class="card-actions">
-                                    <button class="icon-btn" style="color: ${(lec.cloudPdfUploaded || lec.cloudAudioUploaded) ? '#6ee7b7' : '#38bdf8'}; border-color: rgba(56,189,248,0.3);" onclick="uploadSingleLectureMediaToCloud(${g.id}, ${lec.id}, event)"><i class="fa-solid fa-cloud-arrow-up"></i></button>
+                                    ${uploadActionBtnHtml}
                                     ${lec.completed ? `<button class="icon-btn" style="color: var(--primary); border-color: rgba(45, 212, 191,0.35);" onclick="refreshLectureSpacedRepetition(${g.id}, ${lec.id}, event)"><i class="fa-solid fa-rotate"></i></button>` : ''}
                                     <button class="icon-btn edit" onclick="triggerEditLecture(${g.id}, ${lec.id})"><i class="fa-solid fa-pen"></i></button>
                                     <button class="icon-btn delete" onclick="triggerDeleteLecture(${g.id}, ${lec.id})"><i class="fa-solid fa-trash"></i></button>
@@ -7780,7 +8334,13 @@
                 subMap.set(String(subjects[i].id), subjects[i].name);
             }
 
-            const parts = [`<div class="fluid-week-board">`];
+            const isHorizBoard = Boolean(window.weekBoardHorizontalMode);
+            const layoutBtn = document.getElementById('toggleWeekBoardLayoutBtn');
+            const layoutTxt = document.getElementById('toggleWeekBoardLayoutText');
+            if (layoutBtn) layoutBtn.classList.toggle('active', isHorizBoard);
+            if (layoutTxt) layoutTxt.innerText = isHorizBoard ? 'عرض قائمة مدمجة' : 'عرض أعمدة أفقية';
+
+            const parts = [`<div class="fluid-week-board ${isHorizBoard ? 'mobile-horizontal-board' : ''}">`];
             
             orderedDays.forEach((dayObj) => {
                 const dIdx = dayObj.dayIdx;
@@ -7975,6 +8535,12 @@
                         </button>
                     `;
                 }).join('');
+                setTimeout(() => {
+                    const actPill = switcher.querySelector('.notion-day-pill.active');
+                    if (actPill && actPill.scrollIntoView) {
+                        actPill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    }
+                }, 40);
             }
 
             const subMap = new Map();
@@ -8746,6 +9312,25 @@
             renderWeekGrid();
         }
 
+        window.weekBoardHorizontalMode = localStorage.getItem('pharmaWeekBoardHorizV1') === '1';
+
+        function toggleWeekBoardMobileLayout() {
+            window.weekBoardHorizontalMode = !window.weekBoardHorizontalMode;
+            localStorage.setItem('pharmaWeekBoardHorizV1', window.weekBoardHorizontalMode ? '1' : '0');
+            renderWeekGrid();
+            if (window.weekBoardHorizontalMode) {
+                setTimeout(() => {
+                    const todayCol = document.querySelector('.fluid-week-board.mobile-horizontal-board .fluid-day-col.is-today');
+                    if (todayCol && todayCol.scrollIntoView) {
+                        todayCol.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    }
+                }, 60);
+                showToast('↔️ تم التبديل إلى لوحة الأعمدة الأفقية (اسحب يميناً ويساراً بين الأيام)');
+            } else {
+                showToast('📱 تم التبديل إلى القائمة المدمجة السريعة');
+            }
+        }
+
         function toggleHideFixedInWeek() {
             window.hideFixedInWeekGrid = !window.hideFixedInWeekGrid;
             const btn = document.getElementById('toggleHideFixedRoutineBtn');
@@ -9501,6 +10086,50 @@
         let laserAnimFrameId = null;
         let autoSaveTimer = null;
 
+        let localMediaCache = { pdfs: new Set(), audios: new Set() };
+
+        function refreshLocalMediaCache() {
+            return new Promise((resolve) => {
+                if (!dbInstance) return resolve(localMediaCache);
+                try {
+                    const tx = dbInstance.transaction(['pdfs', 'audios'], 'readonly');
+                    const pdfReq = tx.objectStore('pdfs').getAllKeys();
+                    const audReq = tx.objectStore('audios').getAllKeys();
+                    pdfReq.onsuccess = () => {
+                        localMediaCache.pdfs = new Set((pdfReq.result || []).map(k => String(k)));
+                    };
+                    audReq.onsuccess = () => {
+                        localMediaCache.audios = new Set((audReq.result || []).map(k => String(k)));
+                    };
+                    tx.oncomplete = () => {
+                        if (activeSubjectId) renderGroups();
+                        resolve(localMediaCache);
+                    };
+                    tx.onerror = () => resolve(localMediaCache);
+                } catch (e) {
+                    resolve(localMediaCache);
+                }
+            });
+        }
+
+        function clearAllIndexedDBStores() {
+            return new Promise((resolve) => {
+                if (!dbInstance) return resolve();
+                try {
+                    const tx = dbInstance.transaction(['pdfs', 'audios', 'annotations'], 'readwrite');
+                    tx.objectStore('pdfs').clear();
+                    tx.objectStore('audios').clear();
+                    tx.objectStore('annotations').clear();
+                    localMediaCache.pdfs.clear();
+                    localMediaCache.audios.clear();
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => resolve();
+                } catch (e) {
+                    resolve();
+                }
+            });
+        }
+
         function initPdfDB() {
             return new Promise((resolve) => {
                 const req = indexedDB.open('WorkspaceMediaStore', 3);
@@ -9518,6 +10147,7 @@
                 };
                 req.onsuccess = (e) => {
                     dbInstance = e.target.result;
+                    refreshLocalMediaCache();
                     resolve(dbInstance);
                 };
                 req.onerror = () => resolve(null);
@@ -9530,6 +10160,9 @@
             const tx = dbInstance.transaction(storeName, 'readwrite');
             const store = tx.objectStore(storeName);
             store.put({ id: id, blob: fileBlob });
+            if (storeName === 'pdfs' || storeName === 'audios') {
+                localMediaCache[storeName].add(String(id));
+            }
         }
 
         function getMediaFromDB(storeName, id) {
@@ -9668,7 +10301,14 @@
 
             currentViewingLec = { sub, group, lec };
             document.getElementById('pdfViewerTitle').innerText = lec.title;
+            updatePdfMenuUploadButtonState(lec);
             startLiveLectureStudyTracking(sub, group, lec);
+
+            // On smartphones (<= 768px), default to width-fit and touch-pan mode so 1-finger scrolling works immediately without accidental lines, while Stylus (Apple Pencil / S-Pen) still draws automatically!
+            if (window.innerWidth <= 768) {
+                currentPdfFitMode = 'width';
+                setAnnotationTool('pan');
+            }
 
             const scrollContainer = document.getElementById('pdfPagesScrollContainer');
             const iframe = document.getElementById('pdfViewerIframe');
@@ -9779,8 +10419,13 @@
         function computeScaleForPageFit(page, fitMode) {
             const baseVp = page.getViewport({ scale: 1.0 });
             const scrollContainer = document.getElementById('pdfPagesScrollContainer');
-            const availW = Math.max(260, (scrollContainer && scrollContainer.clientWidth ? scrollContainer.clientWidth : 960) - 36);
-            const availH = Math.max(220, (scrollContainer && scrollContainer.clientHeight ? scrollContainer.clientHeight : 640) - 28);
+            const isMobileScreen = window.innerWidth <= 768;
+            const padW = isMobileScreen ? 10 : 32;
+            const padH = isMobileScreen ? 12 : 26;
+            const rawW = (scrollContainer && scrollContainer.clientWidth) ? scrollContainer.clientWidth : window.innerWidth;
+            const rawH = (scrollContainer && scrollContainer.clientHeight) ? scrollContainer.clientHeight : (window.innerHeight * 0.78);
+            const availW = Math.max(240, rawW - padW);
+            const availH = Math.max(200, rawH - padH);
             if (fitMode === 'height') {
                 return Math.max(0.25, Math.min(3.5, availH / baseVp.height));
             }
@@ -9788,6 +10433,19 @@
                 return Math.max(0.25, Math.min(3.5, availW / baseVp.width));
             }
             return currentPdfZoom;
+        }
+
+        function togglePdfAnnotationDock() {
+            const container = document.getElementById('pdfModalContainer');
+            const icon = document.getElementById('pdfCollapseDockIcon');
+            const txt = document.getElementById('pdfCollapseDockText');
+            if (!container) return;
+            const isCollapsed = container.classList.toggle('dock-collapsed');
+            if (icon) icon.className = isCollapsed ? 'fa-solid fa-chevron-down' : 'fa-solid fa-chevron-up';
+            if (txt) txt.innerText = isCollapsed ? 'إظهار الأدوات' : 'طي الأدوات';
+            if (currentPdfDoc && (currentPdfFitMode === 'height' || currentPdfFitMode === 'width')) {
+                setTimeout(() => applyPdfZoomAndKeepPage(currentActivePageNum), 100);
+            }
         }
 
         function attachPdfScrollActivePageDetector() {
@@ -10385,8 +11043,15 @@
                 const badgeEl = document.getElementById('pdfPageCounterBadge');
                 if (badgeEl) badgeEl.innerText = `صفحة ${pageNum} / ${totalPdfPages}`;
 
-                // Handle Pan Mode or Middle Mouse Button
-                if (currentAnnoTool === 'pan' || e.button === 1) {
+                // Smart Stylus vs Finger Touch Handling:
+                // If user is in Pan mode (تصفح):
+                // - Finger touch (pointerType === 'touch') uses native smooth browser scrolling & pinch-zoom
+                // - Mouse drag (pointerType === 'mouse') pans via JS grab
+                // - Stylus / Apple Pencil / S-Pen (pointerType === 'pen') automatically draws with the Pen!
+                if ((currentAnnoTool === 'pan' && e.pointerType !== 'pen') || e.button === 1) {
+                    if (e.pointerType === 'touch' && e.button !== 1) {
+                        return; // Let native iOS/Android inertial touch scroll & pinch-zoom handle it smoothly
+                    }
                     isPanning = true;
                     const scroller = document.getElementById('pdfPagesScrollContainer');
                     panStartX = e.clientX;
@@ -10399,14 +11064,17 @@
 
                 if (e.button !== 0 && e.pointerType === 'mouse') return;
 
+                // Stylus hardware eraser button support (buttons === 32) + Auto-Pen when using stylus in pan mode
+                const effectiveTool = (e.buttons === 32)
+                    ? 'eraser'
+                    : ((currentAnnoTool === 'pan' && e.pointerType === 'pen') ? 'pen' : currentAnnoTool);
+
                 // If annotations are hidden and user starts writing with pen or text, auto-show annotations
-                if (!annotationsVisible && (currentAnnoTool === 'pen' || currentAnnoTool === 'highlighter' || currentAnnoTool === 'text')) {
+                if (!annotationsVisible && (effectiveTool === 'pen' || effectiveTool === 'highlighter' || effectiveTool === 'text')) {
                     toggleAnnotationsVisibility();
                 }
 
                 const pt = getNormCoords(e);
-                // Stylus hardware eraser button support (buttons === 32)
-                const effectiveTool = (e.buttons === 32) ? 'eraser' : currentAnnoTool;
 
                 if (selectedTextState) {
                     deselectAllTextAnnotations();
@@ -10440,7 +11108,9 @@
                 }
                 if (!isDrawing) return;
 
-                const effectiveTool = (e.buttons === 32) ? 'eraser' : currentAnnoTool;
+                const effectiveTool = (e.buttons === 32)
+                    ? 'eraser'
+                    : ((currentAnnoTool === 'pan' && e.pointerType === 'pen') ? 'pen' : currentAnnoTool);
 
                 // Use coalesced events for high-precision 240Hz graphic tablets
                 const events = (e.getCoalescedEvents) ? e.getCoalescedEvents() : [e];
@@ -10466,7 +11136,9 @@
                 if (!isDrawing) return;
                 isDrawing = false;
 
-                const effectiveTool = (e.buttons === 32) ? 'eraser' : currentAnnoTool;
+                const effectiveTool = (e.buttons === 32)
+                    ? 'eraser'
+                    : ((currentAnnoTool === 'pan' && e.pointerType === 'pen') ? 'pen' : currentAnnoTool);
 
                 if (effectiveTool === 'eraser') {
                     if (currentViewingLec) saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
@@ -11400,13 +12072,32 @@
             }
         }
 
+        let lastPdfViewportWidth = window.innerWidth;
+        let lastPdfViewportHeight = window.innerHeight;
+        let pdfResizeDebounceTimer = null;
+
         window.addEventListener('resize', () => {
             const pdfOverlay = document.getElementById('pdfViewerModalOverlay');
-            if (pdfOverlay && pdfOverlay.classList.contains('active') && currentPdfDoc) {
-                if (currentPdfFitMode === 'height' || currentPdfFitMode === 'width') {
+            if (!pdfOverlay || !pdfOverlay.classList.contains('active') || !currentPdfDoc) return;
+
+            const newW = window.innerWidth;
+            const newH = window.innerHeight;
+            const widthChanged = Math.abs(newW - lastPdfViewportWidth) > 8;
+            const heightChanged = Math.abs(newH - lastPdfViewportHeight) > 80;
+
+            // On mobile width-fit, ignore small vertical URL-bar hide/show events so scrolling never stutters
+            if (currentPdfFitMode === 'width' && !widthChanged) return;
+            if (currentPdfFitMode === 'height' && !widthChanged && !heightChanged) return;
+
+            lastPdfViewportWidth = newW;
+            lastPdfViewportHeight = newH;
+
+            if (pdfResizeDebounceTimer) clearTimeout(pdfResizeDebounceTimer);
+            pdfResizeDebounceTimer = setTimeout(() => {
+                if (currentPdfDoc && (currentPdfFitMode === 'height' || currentPdfFitMode === 'width')) {
                     applyPdfZoomAndKeepPage(currentActivePageNum);
                 }
-            }
+            }, 180);
         });
 
 
@@ -12864,15 +13555,37 @@
             }
         }
 
+        function handleCloudVipBadgeClick() {
+            if (currentUserCanUploadMedia) {
+                showToast('👑 حسابك مشترك ومفعّل بالفعل في باقة VIP Pro! جميع المزايا السحابية مفتوحة لك.');
+                return;
+            }
+            openVipUpgradeModal('عرض مزايا باقة VIP Pro');
+        }
+
         function openVipUpgradeModal(featureLabel = 'باقة الإنجاز VIP Pro للطلاب') {
             lastTriggeredVipFeatureName = featureLabel || 'باقة الإنجاز VIP Pro';
             const badgeEl = document.getElementById('vipModalTriggeredFeatureBadge');
-            if (badgeEl) badgeEl.innerText = `👑 ميزة VIP Pro: ${lastTriggeredVipFeatureName}`;
+            if (badgeEl) {
+                badgeEl.innerText = currentUserCanUploadMedia
+                    ? '👑 حسابك مشترك ومفعّل بالفعل في VIP Pro'
+                    : `👑 ميزة VIP Pro: ${lastTriggeredVipFeatureName}`;
+            }
             const mTxt = document.getElementById('vipPriceMonthlyTxt');
             const sTxt = document.getElementById('vipPriceSemesterTxt');
             if (mTxt) mTxt.innerText = VIP_PRICING_CONFIG.monthlyPrice;
             if (sTxt) sTxt.innerText = VIP_PRICING_CONFIG.semesterPrice;
-            selectVipPlan(selectedVipPlanKey);
+
+            const purchaseSec = document.getElementById('vipPurchasePlansSection');
+            const activeSec = document.getElementById('vipAlreadyActiveSection');
+            if (currentUserCanUploadMedia) {
+                if (purchaseSec) purchaseSec.style.display = 'none';
+                if (activeSec) activeSec.style.display = 'block';
+            } else {
+                if (purchaseSec) purchaseSec.style.display = 'block';
+                if (activeSec) activeSec.style.display = 'none';
+                selectVipPlan(selectedVipPlanKey);
+            }
             document.getElementById('vipMediaLockModalOverlay').classList.add('active');
         }
 
@@ -12893,20 +13606,48 @@
             return true;
         }
 
+        function updatePdfMenuUploadButtonState(lec) {
+            const btn = document.getElementById('pdfMenuUploadCloudBtn');
+            const txt = document.getElementById('pdfMenuUploadCloudBtnText');
+            if (!btn || !txt || !lec) return;
+            const hasLocalPdf = localMediaCache.pdfs.has(String(lec.id));
+            const hasLocalAud = localMediaCache.audios.has(String(lec.id));
+            const needPdfUp = hasLocalPdf && !lec.cloudPdfUploaded;
+            const needAudUp = hasLocalAud && !lec.cloudAudioUploaded;
+            const allUploaded = (lec.cloudPdfUploaded || !hasLocalPdf) && (lec.cloudAudioUploaded || !hasLocalAud) && (lec.cloudPdfUploaded || lec.cloudAudioUploaded);
+
+            if (allUploaded && !needPdfUp && !needAudUp) {
+                btn.disabled = true;
+                btn.style.opacity = '0.55';
+                btn.style.cursor = 'not-allowed';
+                txt.innerText = 'تم رفع المحاضرة للسحابة مسبقاً ✓ (الكتابات تُحفظ تلقائياً)';
+            } else {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+                txt.innerText = 'رفع الـ PDF والريكورد على الحساب (لمرة واحدة)';
+            }
+        }
+
         function updateCloudMediaStatsUI() {
             let pdfCloudCount = 0;
             let audioCloudCount = 0;
             let totalCloudBytes = 0;
+            let unuploadedLocalCount = 0;
             subjects.forEach(s => {
                 (s.groups || []).forEach(g => {
                     (g.lectures || []).forEach(l => {
                         if (l.cloudPdfUploaded) {
                             pdfCloudCount++;
                             totalCloudBytes += (Number(l.cloudPdfSize) || 0);
+                        } else if (localMediaCache.pdfs.has(String(l.id))) {
+                            unuploadedLocalCount++;
                         }
                         if (l.cloudAudioUploaded) {
                             audioCloudCount++;
                             totalCloudBytes += (Number(l.cloudAudioSize) || 0);
+                        } else if (localMediaCache.audios.has(String(l.id))) {
+                            unuploadedLocalCount++;
                         }
                     });
                 });
@@ -12919,17 +13660,145 @@
             const badge = document.getElementById('cloudMediaCountBadge');
             if (badge) {
                 if (currentUserCanUploadMedia) {
-                    badge.style.color = '#fbbf24';
-                    badge.style.borderColor = 'rgba(245, 158, 11, 0.5)';
-                    badge.innerText = `👑 VIP Pro مفعّل • ${pdfCloudCount} PDF • ${audioCloudCount} ريكورد (${totalMB} MB)`;
+                    badge.style.color = '#6ee7b7';
+                    badge.style.borderColor = 'rgba(16, 185, 129, 0.5)';
+                    badge.style.background = 'rgba(16, 185, 129, 0.12)';
+                    badge.style.cursor = 'default';
+                    badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> أنت مشترك بالفعل في VIP Pro 👑 • ${pdfCloudCount} PDF • ${audioCloudCount} ريكورد`;
                 } else {
                     badge.style.color = '#fcd34d';
                     badge.style.borderColor = 'rgba(245, 158, 11, 0.4)';
-                    badge.innerText = '👑 ترقية لـ VIP Pro (تعرف على المزايا)';
+                    badge.style.background = 'transparent';
+                    badge.style.cursor = 'pointer';
+                    badge.innerHTML = '🔒 ترقية لـ VIP Pro (تعرف على المزايا)';
                 }
             }
+            const btnUp = document.getElementById('btnSyncAllMediaUp');
+            if (btnUp && !isBulkMediaUploading) {
+                if ((pdfCloudCount + audioCloudCount) > 0 && unuploadedLocalCount === 0) {
+                    btnUp.disabled = true;
+                    btnUp.style.opacity = '0.55';
+                    btnUp.style.cursor = 'not-allowed';
+                    btnUp.innerHTML = `<i class="fa-solid fa-check-double"></i> كل ملفاتك مرفوعة بالفعل (${pdfCloudCount + audioCloudCount} ملف ✓)`;
+                } else {
+                    btnUp.disabled = false;
+                    btnUp.style.opacity = '1';
+                    btnUp.style.cursor = 'pointer';
+                    btnUp.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> رفع الملفات الجديدة فقط للحساب${unuploadedLocalCount > 0 ? ' (' + unuploadedLocalCount + ' جديد)' : ''}`;
+                }
+            }
+            renderCloudIndividualFilesList();
             if (currentCloudUser && !isCloudSyncing && !isBulkMediaUploading) {
                 updateCloudNavUI('synced');
+            }
+        }
+
+        function toggleCloudIndividualFilesList() {
+            const drawer = document.getElementById('cloudIndividualFilesDrawer');
+            if (!drawer) return;
+            const isHidden = drawer.style.display === 'none' || !drawer.style.display;
+            drawer.style.display = isHidden ? 'block' : 'none';
+            if (isHidden) {
+                renderCloudIndividualFilesList();
+            }
+        }
+
+        function renderCloudIndividualFilesList() {
+            const listEl = document.getElementById('cloudIndividualFilesList');
+            if (!listEl) return;
+            const items = [];
+            subjects.forEach(s => {
+                (s.groups || []).forEach(g => {
+                    (g.lectures || []).forEach(l => {
+                        const hasCloudPdf = Boolean(l.cloudPdfUploaded || l.cloudPdfPath || l.cloudPdfUrl);
+                        const hasCloudAud = Boolean(l.cloudAudioUploaded || l.cloudAudioPath || l.cloudAudioUrl);
+                        if (hasCloudPdf || hasCloudAud) {
+                            const isPdfLocal = localMediaCache.pdfs.has(String(l.id));
+                            const isAudLocal = localMediaCache.audios.has(String(l.id));
+                            items.push({ sub: s, group: g, lec: l, hasCloudPdf, hasCloudAud, isPdfLocal, isAudLocal });
+                        }
+                    });
+                });
+            });
+
+            if (items.length === 0) {
+                listEl.innerHTML = `<div style="text-align:center; padding:12px; font-size:0.76rem; color:var(--text-muted);">لا توجد ملفات PDF أو ريكوردات مرفوعة على الحساب السحابي حتى الآن.</div>`;
+                return;
+            }
+
+            listEl.innerHTML = items.map(item => {
+                const { sub, group, lec, hasCloudPdf, hasCloudAud, isPdfLocal, isAudLocal } = item;
+                const pdfSizeStr = lec.cloudPdfSize ? `(${(lec.cloudPdfSize / (1024*1024)).toFixed(1)} MB)` : '';
+                const audSizeStr = lec.cloudAudioSize ? `(${(lec.cloudAudioSize / (1024*1024)).toFixed(1)} MB)` : '';
+
+                let btnsHtml = '';
+                if (hasCloudPdf) {
+                    if (isPdfLocal) {
+                        btnsHtml += `<span class="studio-pill" style="font-size:0.66rem; color:#6ee7b7; border-color:rgba(16,185,129,0.35);"><i class="fa-solid fa-check"></i> PDF محمّل بالجهاز</span>`;
+                    } else {
+                        btnsHtml += `<button type="button" class="btn btn-outline" id="cloudDlBtn_pdfs_${lec.id}" style="padding:3px 9px; font-size:0.7rem; color:var(--primary); border-color:rgba(45,212,191,0.45);" onclick="downloadSingleLectureMediaItem(${group.id}, ${lec.id}, 'pdfs', event, ${sub.id})"><i class="fa-solid fa-cloud-arrow-down"></i> تحميل PDF ${pdfSizeStr}</button>`;
+                    }
+                }
+                if (hasCloudAud) {
+                    if (isAudLocal) {
+                        btnsHtml += `<span class="studio-pill" style="font-size:0.66rem; color:#38bdf8; border-color:rgba(56,189,248,0.35);"><i class="fa-solid fa-check"></i> ريكورد محمّل بالجهاز</span>`;
+                    } else {
+                        btnsHtml += `<button type="button" class="btn btn-outline" id="cloudDlBtn_audios_${lec.id}" style="padding:3px 9px; font-size:0.7rem; color:#38bdf8; border-color:rgba(56,189,248,0.45);" onclick="downloadSingleLectureMediaItem(${group.id}, ${lec.id}, 'audios', event, ${sub.id})"><i class="fa-solid fa-cloud-arrow-down"></i> تحميل ريكورد ${audSizeStr}</button>`;
+                    }
+                }
+
+                return `
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; background:rgba(15,23,36,0.85); border:1px solid rgba(148,163,184,0.12); border-radius:9px; padding:7px 10px;">
+                        <div style="min-width:140px; flex:1;">
+                            <div style="font-size:0.78rem; font-weight:800; color:var(--text-main);">${lec.title}</div>
+                            <div style="font-size:0.68rem; color:var(--text-muted);">${sub.name} • ${group.name}</div>
+                        </div>
+                        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                            ${btnsHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function downloadSingleLectureMediaItem(groupId, lecId, storeName, event, explicitSubId = null) {
+            if (event) event.stopPropagation();
+            const targetSubId = explicitSubId !== null ? explicitSubId : activeSubjectId;
+            let targetLec = null;
+            subjects.forEach(s => {
+                if (targetSubId && String(s.id) !== String(targetSubId)) return;
+                (s.groups || []).forEach(g => {
+                    if (groupId && String(g.id) !== String(groupId)) return;
+                    (g.lectures || []).forEach(l => {
+                        if (String(l.id) === String(lecId)) targetLec = l;
+                    });
+                });
+            });
+            if (!targetLec) return;
+
+            const isPdf = storeName === 'pdfs';
+            const labelAr = isPdf ? 'ملف الـ PDF' : 'الريكورد الصوتي';
+            const btnEl = event?.currentTarget || document.getElementById(`cloudDlBtn_${storeName}_${lecId}`);
+            let origHtml = '';
+            if (btnEl) {
+                origHtml = btnEl.innerHTML;
+                btnEl.disabled = true;
+                btnEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري التحميل...`;
+            }
+
+            showToast(`📥 جاري تحميل ${labelAr} لـ «${targetLec.title}» إلى هذا الجهاز...`);
+            const blob = await downloadMediaFromCloudAccount(storeName, targetLec);
+            if (blob) {
+                localMediaCache[storeName].add(String(targetLec.id));
+                if (activeSubjectId) renderGroups();
+                updateCloudMediaStatsUI();
+                showToast(`✅ تم تحميل ${labelAr} لـ «${targetLec.title}» وحفظه على هذا الجهاز بنجاح!`);
+            } else {
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = origHtml;
+                }
+                showToast(`تعذر تحميل ${labelAr} من السحابة، تأكد من اتصالك بالإنترنت`, 'error');
             }
         }
 
@@ -13200,6 +14069,18 @@
             if (!checkCloudMediaUploadPermission(showToastMsg)) {
                 return { ok: false, reason: 'no_permission' };
             }
+            const isPdfCheck = storeName === 'pdfs';
+            const forceReplace = Boolean(queueMeta && queueMeta.forceReplace);
+            if (!forceReplace) {
+                if (isPdfCheck && lecObj.cloudPdfUploaded && lecObj.cloudPdfPath && !lecObj.cloudPdfPath.startsWith('db_fallback:')) {
+                    if (showToastMsg) showToast(`✅ ملف الـ PDF لـ «${lecObj.title}» مرفوع على السحابة بالفعل (الكتابات تُحفظ تلقائياً دون إعادة رفع)`);
+                    return { ok: true, alreadyUploaded: true };
+                }
+                if (!isPdfCheck && lecObj.cloudAudioUploaded && lecObj.cloudAudioPath && !lecObj.cloudAudioPath.startsWith('db_fallback:')) {
+                    if (showToastMsg) showToast(`✅ الريكورد الصوتي لـ «${lecObj.title}» مرفوع على السحابة بالفعل`);
+                    return { ok: true, alreadyUploaded: true };
+                }
+            }
 
             // 1. Enforce Single-File Size Limit (25MB PDF / 35MB Audio)
             const sizeCheck = validateFileCloudSizeLimit(storeName, fileBlob, lecObj.title, showToastMsg);
@@ -13427,16 +14308,25 @@
                 return;
             }
 
-            const totalItems = (pdfBlob ? 1 : 0) + (audioBlob ? 1 : 0);
+            const needPdfUpload = Boolean(pdfBlob && !lec.cloudPdfUploaded);
+            const needAudioUpload = Boolean(audioBlob && !lec.cloudAudioUploaded);
+
+            if (!needPdfUpload && !needAudioUpload) {
+                showToast('✅ هذه المحاضرة مرفوعة بالفعل على السحابة! جميع كتاباتك على الـ PDF تُحفظ تلقائياً بدون الحاجة لإعادة الرفع.');
+                renderGroups();
+                return;
+            }
+
+            const totalItems = (needPdfUpload ? 1 : 0) + (needAudioUpload ? 1 : 0);
             let curItem = 0;
             let anySuccess = false;
 
-            if (pdfBlob) {
+            if (needPdfUpload) {
                 curItem++;
-                const res1 = await uploadMediaToCloudAccount('pdfs', lec, pdfBlob, true, { index: curItem, total: totalItems, deferWorkspaceSync: Boolean(audioBlob) });
+                const res1 = await uploadMediaToCloudAccount('pdfs', lec, pdfBlob, true, { index: curItem, total: totalItems, deferWorkspaceSync: needAudioUpload });
                 if (res1 && res1.ok) anySuccess = true;
             }
-            if (audioBlob) {
+            if (needAudioUpload) {
                 curItem++;
                 const res2 = await uploadMediaToCloudAccount('audios', lec, audioBlob, true, { index: curItem, total: totalItems, deferWorkspaceSync: false });
                 if (res2 && res2.ok) anySuccess = true;
@@ -13446,6 +14336,9 @@
                 saveSubjects();
                 renderGroups();
                 updateCloudMediaStatsUI();
+                if (currentViewingLec && currentViewingLec.lec && String(currentViewingLec.lec.id) === String(lec.id)) {
+                    updatePdfMenuUploadButtonState(lec);
+                }
             }
         }
 
@@ -13461,19 +14354,27 @@
                 showToast('لا يوجد ملف PDF أو ريكورد محلي مرتبط بهذه المحاضرة حالياً', 'error');
                 return;
             }
-            const totalItems = (pdfBlob ? 1 : 0) + (audioBlob ? 1 : 0);
-            let curItem = 0;
-            if (pdfBlob) {
-                curItem++;
-                await uploadMediaToCloudAccount('pdfs', lec, pdfBlob, true, { index: curItem, total: totalItems, deferWorkspaceSync: Boolean(audioBlob) });
+            const needPdfUpload = Boolean(pdfBlob && !lec.cloudPdfUploaded);
+            const needAudioUpload = Boolean(audioBlob && !lec.cloudAudioUploaded);
+            if (!needPdfUpload && !needAudioUpload) {
+                showToast('✅ ملفات هذه المحاضرة مرفوعة بالفعل على السحابة! كتاباتك وتلخيصاتك تُحفظ تلقائياً.');
+                updatePdfMenuUploadButtonState(lec);
+                return;
             }
-            if (audioBlob) {
+            const totalItems = (needPdfUpload ? 1 : 0) + (needAudioUpload ? 1 : 0);
+            let curItem = 0;
+            if (needPdfUpload) {
+                curItem++;
+                await uploadMediaToCloudAccount('pdfs', lec, pdfBlob, true, { index: curItem, total: totalItems, deferWorkspaceSync: needAudioUpload });
+            }
+            if (needAudioUpload) {
                 curItem++;
                 await uploadMediaToCloudAccount('audios', lec, audioBlob, true, { index: curItem, total: totalItems, deferWorkspaceSync: false });
             }
             saveSubjects();
             if (activeSubjectId) renderGroups();
             updateCloudMediaStatsUI();
+            updatePdfMenuUploadButtonState(lec);
         }
 
         async function syncAllLocalMediaToCloud() {
@@ -13765,25 +14666,43 @@
                 await supabaseClient.auth.signOut();
             }
             localStorage.removeItem('pharmaActiveAccountSessionV1');
+            localStorage.removeItem('pharmaWorkspaceDirty');
+            localStorage.removeItem('pharmaWorkspaceUpdatedAt');
+            localStorage.removeItem('pharmaLastCloudSyncIso');
             currentCloudUser = null;
             currentUserCanUploadMedia = false;
 
-            // Reset active workspace in memory so next user gets a clean slate until they log in
+            // Completely reset ALL active workspace state (including weeklyReports, plannerPrefs, academy, and IndexedDB) so nothing leaks to logged-out view or a new account!
             subjects = [];
             scheduleEvents = [];
             scheduleBacklog = [];
+            weeklyReports = [];
             logs = [];
+            completedAcademyModules = [];
+            plannerPrefs = {
+                weekStartDay: 6,
+                dayStartHour: 6,
+                dayEndHour: 23,
+                autoCompletePct: 75,
+                currentWeekStartIso: getLocalIsoDate(getWeekStartDateForDate(new Date(), 6))
+            };
             localStorage.setItem('pharmaSubjectsV4', '[]');
-            localStorage.setItem('pharmaScheduleV4', JSON.stringify({ version: 2, events: [], backlog: [] }));
+            localStorage.setItem('pharmaWeeklyReportsV1', '[]');
+            localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
+            localStorage.setItem('pharmaScheduleV4', JSON.stringify({ version: 3, events: [], backlog: [], plannerPrefs: plannerPrefs, weeklyReports: [] }));
             localStorage.setItem('pharmaScheduleBacklogV1', '[]');
             localStorage.setItem('pharmaLogsV4', '[]');
+            localStorage.setItem('pharmaAcademyProgressV1', '[]');
+
+            await clearAllIndexedDBStores();
 
             await handleAuthSessionChange(null, false);
             renderSubjectsList();
             if (activeSubjectId) backToSubjects();
             renderSchedule();
             updateTracker();
-            showToast('تم تسجيل الخروج وحفظ بيانات حسابك بأمان 🔒');
+            updateCloudMediaStatsUI();
+            showToast('تم تسجيل الخروج وتفريغ بيانات الجلسة بالكامل بأمان 🔒');
         }
 
         // --- Helper: Collect & Restore All IndexedDB Annotations for Account Sync ---
@@ -13918,48 +14837,53 @@
         async function applyCloudWorkspacePayload(cloudRow, showSuccessToast = false) {
             if (!cloudRow) return;
             currentUserCanUploadMedia = Boolean(cloudRow.can_upload_media);
-            updateCloudMediaStatsUI();
-            if (Array.isArray(cloudRow.subjects)) {
-                subjects = cloudRow.subjects;
-                localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
-            }
+            subjects = Array.isArray(cloudRow.subjects) ? cloudRow.subjects : [];
+            localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+
             if (cloudRow.schedule && typeof cloudRow.schedule === 'object') {
-                if (Array.isArray(cloudRow.schedule.events)) {
-                    scheduleEvents = cloudRow.schedule.events;
-                }
-                if (Array.isArray(cloudRow.schedule.backlog)) {
-                    scheduleBacklog = cloudRow.schedule.backlog;
-                }
+                scheduleEvents = Array.isArray(cloudRow.schedule.events) ? cloudRow.schedule.events : [];
+                scheduleBacklog = Array.isArray(cloudRow.schedule.backlog) ? cloudRow.schedule.backlog : [];
                 if (cloudRow.schedule.plannerPrefs && typeof cloudRow.schedule.plannerPrefs === 'object') {
-                    plannerPrefs = Object.assign({}, plannerPrefs, cloudRow.schedule.plannerPrefs);
-                    localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
+                    plannerPrefs = Object.assign({
+                        weekStartDay: 6,
+                        dayStartHour: 6,
+                        dayEndHour: 23,
+                        autoCompletePct: 75,
+                        currentWeekStartIso: getLocalIsoDate(getWeekStartDateForDate(new Date(), 6))
+                    }, cloudRow.schedule.plannerPrefs);
                 }
-                if (Array.isArray(cloudRow.schedule.weeklyReports)) {
-                    weeklyReports = cloudRow.schedule.weeklyReports;
-                    localStorage.setItem('pharmaWeeklyReportsV1', JSON.stringify(weeklyReports));
-                }
+                localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
+                // Always overwrite weeklyReports from account payload (or empty array if none) so reports never leak between accounts
+                weeklyReports = Array.isArray(cloudRow.schedule.weeklyReports) ? cloudRow.schedule.weeklyReports : [];
+                localStorage.setItem('pharmaWeeklyReportsV1', JSON.stringify(weeklyReports));
+
                 if (cloudRow.schedule.pdfFitMode) {
                     currentPdfFitMode = cloudRow.schedule.pdfFitMode;
                     localStorage.setItem('pharmaPdfFitMode', currentPdfFitMode);
                 }
-                localStorage.setItem('pharmaScheduleV4', JSON.stringify({
-                    version: 3,
-                    events: scheduleEvents,
-                    backlog: scheduleBacklog,
-                    plannerPrefs: plannerPrefs,
-                    weeklyReports: weeklyReports
-                }));
-                localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));
+            } else {
+                scheduleEvents = [];
+                scheduleBacklog = [];
+                weeklyReports = [];
+                localStorage.setItem('pharmaWeeklyReportsV1', '[]');
             }
-            if (Array.isArray(cloudRow.logs)) {
-                logs = cloudRow.logs;
-                localStorage.setItem('pharmaLogsV4', JSON.stringify(logs));
-            }
-            if (Array.isArray(cloudRow.academy_progress)) {
-                completedAcademyModules = cloudRow.academy_progress;
-                localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(completedAcademyModules));
-                updateAcademyXpUI();
-            }
+
+            localStorage.setItem('pharmaScheduleV4', JSON.stringify({
+                version: 3,
+                events: scheduleEvents,
+                backlog: scheduleBacklog,
+                plannerPrefs: plannerPrefs,
+                weeklyReports: weeklyReports
+            }));
+            localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));
+
+            logs = Array.isArray(cloudRow.logs) ? cloudRow.logs : [];
+            localStorage.setItem('pharmaLogsV4', JSON.stringify(logs));
+
+            completedAcademyModules = Array.isArray(cloudRow.academy_progress) ? cloudRow.academy_progress : [];
+            localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(completedAcademyModules));
+            updateAcademyXpUI();
+
             if (cloudRow.annotations && typeof cloudRow.annotations === 'object') {
                 await restoreAllAnnotationsMapToDB(cloudRow.annotations);
                 if (currentViewingLec && currentViewingLec.lec) {
@@ -13970,6 +14894,9 @@
                     });
                 }
             }
+
+            await refreshLocalMediaCache();
+            updateCloudMediaStatsUI();
 
             if (cloudRow.updated_at) {
                 localStorage.setItem('pharmaLastCloudSyncIso', cloudRow.updated_at);
@@ -14022,6 +14949,26 @@
             if (!currentCloudUser) return;
             updateCloudNavUI('syncing');
             try {
+                const lastLoggedUserId = localStorage.getItem('pharmaLastActiveUserIdV1');
+                const isSwitchingDifferentUser = Boolean(lastLoggedUserId && String(lastLoggedUserId) !== String(currentCloudUser.id));
+                localStorage.setItem('pharmaLastActiveUserIdV1', String(currentCloudUser.id));
+
+                if (isSwitchingDifferentUser) {
+                    // Wipe any leftover local state from the previous user before syncing the new user
+                    subjects = [];
+                    scheduleEvents = [];
+                    scheduleBacklog = [];
+                    weeklyReports = [];
+                    logs = [];
+                    localStorage.setItem('pharmaSubjectsV4', '[]');
+                    localStorage.setItem('pharmaWeeklyReportsV1', '[]');
+                    localStorage.setItem('pharmaScheduleV4', JSON.stringify({ version: 3, events: [], backlog: [], plannerPrefs: plannerPrefs, weeklyReports: [] }));
+                    localStorage.setItem('pharmaScheduleBacklogV1', '[]');
+                    localStorage.setItem('pharmaLogsV4', '[]');
+                    localStorage.removeItem('pharmaWorkspaceDirty');
+                    await clearAllIndexedDBStores();
+                }
+
                 let data = null;
                 if (supabaseClient && navigator.onLine) {
                     const res = await supabaseClient
@@ -14039,18 +14986,7 @@
                 currentUserCanUploadMedia = Boolean(data && data.can_upload_media);
                 updateCloudMediaStatsUI();
 
-                const hasAccountData = data && (
-                    (Array.isArray(data.subjects) && data.subjects.length > 0) ||
-                    (data.schedule?.events && data.schedule.events.length > 0) ||
-                    (Array.isArray(data.logs) && data.logs.length > 0)
-                );
-
-                const hasLocalData = (subjects.length > 0 || scheduleEvents.length > 0 || logs.length > 0);
-                const isLocalDirty = localStorage.getItem('pharmaWorkspaceDirty') === '1';
-                const localUpdatedMs = Number(localStorage.getItem('pharmaWorkspaceUpdatedAt') || 0);
-                const remoteUpdatedMs = (data && data.updated_at) ? new Date(data.updated_at).getTime() : 0;
-
-                if (hasAccountData && !(isLocalDirty && hasLocalData && localUpdatedMs > remoteUpdatedMs)) {
+                if (data) {
                     await applyCloudWorkspacePayload(data, false);
                     if (!data.user_email && currentCloudUser.email && supabaseClient && navigator.onLine) {
                         await supabaseClient
@@ -14059,6 +14995,14 @@
                             .eq('user_id', currentCloudUser.id);
                     }
                 } else {
+                    // Brand new account with no cloud row yet: ensure clean empty weeklyReports if switching accounts
+                    await applyCloudWorkspacePayload({
+                        can_upload_media: false,
+                        subjects: subjects,
+                        schedule: { version: 3, events: scheduleEvents, backlog: scheduleBacklog, plannerPrefs: plannerPrefs, weeklyReports: weeklyReports },
+                        logs: logs,
+                        annotations: {}
+                    }, false);
                     await pushWorkspaceToCloud(false);
                 }
             } catch (err) {
@@ -14607,8 +15551,14 @@
             startQuickPomodoroForSubject(ev.subjectId || '');
         }
 
-        // --- Automatic Week-End Detection, Weekly Evaluation Report & Rollover ---
-        function buildWeeklyEvaluationReportObject(weekStartIsoLabel) {
+        // --- Automatic Week-End Detection, Weekly Evaluation Report (Day 1 -> Today) & Rollover ---
+        function buildWeeklyEvaluationReportObject(weekStartIsoLabel, upToTodayOnly = false) {
+            const orderedDays = getOrderedWeekDays();
+            const evaluatedDays = upToTodayOnly
+                ? orderedDays.filter(d => d.isPastDay || d.isToday)
+                : orderedDays;
+            const evaluatedDayIndices = new Set(evaluatedDays.map(d => Number(d.dayIdx)));
+
             let plannedHours = 0;
             let completedHours = 0;
             let missedHours = 0;
@@ -14619,6 +15569,8 @@
 
             scheduleEvents.forEach(ev => {
                 if (ev.isFixed || ev.type === 'mandatory') return;
+                if (upToTodayOnly && !evaluatedDayIndices.has(Number(ev.day))) return;
+
                 const dur = Number(ev.duration) || 1;
                 totalStudyTasks++;
                 plannedHours += dur;
@@ -14636,34 +15588,42 @@
             let grade = 'B';
             let gradeLabel = 'جيد ومتوازن ⚡';
             let gradeColor = '#38bdf8';
-            let coachAdvice = 'أداء جيد هذا الأسبوع! في الأسبوع الجديد حاول ربط كل جلسة بمحاضرتها في المركز ليتم رصدها تلقائياً.';
+            let coachAdvice = 'أداء جيد حتى الآن! استمر في ربط كل جلسة بمحاضرتها في المركز ليتم رصدها تلقائياً.';
 
             if (adherencePct >= 85) {
                 grade = 'A+';
                 gradeLabel = 'أداء استثنائي 🏆';
                 gradeColor = '#10b981';
-                coachAdvice = 'التزام رائع جداً بالخطة الأسبوعية! حافظ على نفس النسق في تخطيط أسبوعك الجديد.';
+                coachAdvice = 'التزام رائع جداً بالخطة منذ بداية الأسبوع وحتى اليوم! حافظ على نفس النسق.';
             } else if (adherencePct >= 70) {
                 grade = 'A';
                 gradeLabel = 'جيد جداً 🌟';
                 gradeColor = '#2dd4bf';
-                coachAdvice = 'أنجزت معظم أهدافك بنجاح. راجع المهام القليلة التي فاتتك وضعها في بداية الأسبوع الجديد.';
+                coachAdvice = 'أنجزت معظم أهدافك منذ بداية الأسبوع وحتى اليوم. راجع المهام القليلة التي فاتتك.';
             } else if (adherencePct < 50) {
                 grade = 'C';
                 gradeLabel = 'يحتاج تركيز وتعديل 🎯';
                 gradeColor = '#f59e0b';
-                coachAdvice = 'لا بأس! ابدأ الأسبوع الجديد بعدد ساعات يومية أقل وأكثر واقعية مع استغلال أوقات الفراغ بين المحاضرات.';
+                coachAdvice = 'لا بأس! ركّز في الأيام المتبقية من الأسبوع على المهام ذات الأولوية واستغل أوقات الفراغ.';
             }
 
-            const orderedDays = getOrderedWeekDays();
-            const rangeTitle = orderedDays.length === 7
-                ? `${orderedDays[0].dayName} ${orderedDays[0].dateShortStr} – ${orderedDays[6].dayName} ${orderedDays[6].dateShortStr}`
-                : (weekStartIsoLabel || new Date().toLocaleDateString('ar-EG'));
+            let rangeTitle = weekStartIsoLabel || new Date().toLocaleDateString('ar-EG');
+            if (evaluatedDays.length > 0) {
+                const firstDay = evaluatedDays[0];
+                const lastDay = evaluatedDays[evaluatedDays.length - 1];
+                if (firstDay.dayIdx === lastDay.dayIdx) {
+                    rangeTitle = `${firstDay.dayName} ${firstDay.dateShortStr} (اليوم الأول في الأسبوع)`;
+                } else {
+                    rangeTitle = `من ${firstDay.dayName} ${firstDay.dateShortStr} إلى ${lastDay.dayName} ${lastDay.dateShortStr}`;
+                }
+            }
 
             return {
                 id: Date.now(),
                 weekStartIso: weekStartIsoLabel || plannerPrefs.currentWeekStartIso || getLocalIsoDate(new Date()),
                 rangeTitle: rangeTitle,
+                isPartialWeekUpToToday: upToTodayOnly,
+                evaluatedDaysCount: evaluatedDays.length,
                 createdAtIso: new Date().toISOString(),
                 dateFormatted: new Date().toLocaleDateString('ar-EG'),
                 plannedHours: Number(plannedHours.toFixed(1)),
@@ -14705,9 +15665,15 @@
                 checkVipFeatureAccess('إصدار تقارير التقييم الأسبوعي التفصيلية الفورية');
                 return;
             }
-            const hasStudySessions = scheduleEvents.some(e => !e.isFixed && e.type !== 'mandatory');
-            if (!hasStudySessions) {
-                showToast('جدول الأسبوع الحالي لا يحتوي على جلسات مذاكرة لتقييمها بعد؛ أضف جلساتك أولاً', 'error');
+            const orderedDays = getOrderedWeekDays();
+            const evaluatedDays = orderedDays.filter(d => d.isPastDay || d.isToday);
+            const evaluatedDayIndices = new Set(evaluatedDays.map(d => Number(d.dayIdx)));
+
+            const hasStudySessionsUpToToday = scheduleEvents.some(e => !e.isFixed && e.type !== 'mandatory' && evaluatedDayIndices.has(Number(e.day)));
+            if (!hasStudySessionsUpToToday) {
+                const firstDayName = orderedDays[0] ? orderedDays[0].dayName : 'بداية الأسبوع';
+                const todayDayObj = orderedDays.find(d => d.isToday) || orderedDays[0];
+                showToast(`لا توجد جلسات مذاكرة مجدولة في الفترة من (${firstDayName}) حتى اليوم (${todayDayObj.dayName}) لتقييمها بعد`, 'error');
                 return;
             }
             const currentComputedWeekIso = getLocalIsoDate(getWeekStartDateForDate(new Date(), plannerPrefs.weekStartDay));
@@ -14715,15 +15681,34 @@
         }
 
         function finalizeWeekAndArchiveReport(oldWeekIso, newWeekIso, isAutoRollover = false) {
-            // Mark any remaining uncompleted study sessions as missed before computing final report
+            const orderedDays = getOrderedWeekDays();
+            const evaluatedDays = isAutoRollover
+                ? orderedDays
+                : orderedDays.filter(d => d.isPastDay || d.isToday);
+            const evaluatedDayIndices = new Set(evaluatedDays.map(d => Number(d.dayIdx)));
+
+            // Mark uncompleted study sessions within the evaluated range
+            const nowDecH = new Date().getHours() + (new Date().getMinutes() / 60);
             scheduleEvents.forEach(ev => {
-                if (!ev.isFixed && ev.type !== 'mandatory' && !ev.completed) {
+                if (ev.isFixed || ev.type === 'mandatory' || ev.completed) return;
+                if (isAutoRollover) {
                     ev.missed = true;
+                } else if (evaluatedDayIndices.has(Number(ev.day))) {
+                    const dObj = orderedDays.find(d => Number(d.dayIdx) === Number(ev.day));
+                    if (dObj && (dObj.isPastDay || (dObj.isToday && (nowDecH >= (Number(ev.startHour) + (Number(ev.duration) || 1)))))) {
+                        ev.missed = true;
+                    }
                 }
             });
 
-            const report = buildWeeklyEvaluationReportObject(oldWeekIso);
-            weeklyReports.unshift(report);
+            const report = buildWeeklyEvaluationReportObject(oldWeekIso, !isAutoRollover);
+            // If user already generated a partial report for the same week today, update it instead of duplicating endlessly
+            const existingIdx = weeklyReports.findIndex(r => r.weekStartIso === report.weekStartIso && r.rangeTitle === report.rangeTitle);
+            if (existingIdx >= 0) {
+                weeklyReports[existingIdx] = report;
+            } else {
+                weeklyReports.unshift(report);
+            }
 
             // Send result to Tracker Daily Log Feed as well
             const summaryLogText = `📊 تقييم الأسبوع (${report.rangeTitle}): التقدير ${report.grade} (${report.gradeLabel}) — أُنجزت ${report.completedHours} س من ${report.plannedHours} س (${report.adherencePct}%) • مكتمل: ${report.completedCount} | لم تتم: ${report.missedCount}`;
@@ -14735,15 +15720,25 @@
                 subjectId: ''
             });
 
-            // Keep fixed college schedule, clear finished/old week study tasks so user starts a fresh week
-            scheduleEvents = scheduleEvents.filter(e => e.isFixed || e.type === 'mandatory');
-            plannerPrefs.currentWeekStartIso = newWeekIso;
+            if (isAutoRollover) {
+                // Only clear schedule when the full week has actually ended automatically
+                scheduleEvents = scheduleEvents.filter(e => e.isFixed || e.type === 'mandatory');
+                plannerPrefs.currentWeekStartIso = newWeekIso;
+            }
 
             saveLogs();
             saveScheduleData();
             renderSchedule();
             updateTracker();
             openWeeklyReportSummaryModal(report, isAutoRollover);
+        }
+
+        function deleteWeeklyEvaluationReport(reportId, event) {
+            if (event) event.stopPropagation();
+            weeklyReports = weeklyReports.filter(r => String(r.id) !== String(reportId));
+            saveScheduleData();
+            renderWeeklyEvaluationsHub();
+            showToast('🗑️ تم حذف تقرير التقييم الأسبوعي');
         }
 
         function openWeeklyReportSummaryModal(report, isAutoRollover = false) {
@@ -14807,9 +15802,14 @@
                 <div class="weekly-eval-card">
                     <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
                         <span style="font-weight: 800; font-size: 0.9rem; color: var(--text-main);"><i class="fa-regular fa-calendar" style="color: var(--primary);"></i> ${rep.rangeTitle}</span>
-                        <span class="wec-grade-pill" style="background: rgba(45, 212, 191, 0.12); color: ${rep.gradeColor || 'var(--primary)'}; border: 1px solid ${rep.gradeColor || 'var(--primary)'};">
-                            ${rep.grade} • ${rep.adherencePct}%
-                        </span>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="wec-grade-pill" style="background: rgba(45, 212, 191, 0.12); color: ${rep.gradeColor || 'var(--primary)'}; border: 1px solid ${rep.gradeColor || 'var(--primary)'};">
+                                ${rep.grade} • ${rep.adherencePct}%
+                            </span>
+                            <button class="icon-btn delete" style="width: 26px; height: 26px;" onclick="deleteWeeklyEvaluationReport(${rep.id}, event)">
+                                <i class="fa-solid fa-trash" style="font-size: 0.7rem;"></i>
+                            </button>
+                        </div>
                     </div>
                     <div style="display: flex; gap: 10px; font-size: 0.77rem; color: #cbd5e1; flex-wrap: wrap;">
                         <span>✅ المنجز: <b style="color:#6ee7b7;">${rep.completedHours}/${rep.plannedHours} س</b> (${rep.completedCount} مهام)</span>
