@@ -4660,7 +4660,7 @@
                         <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.2px;">التخطيط الأسبوعي</h2>
                         <div class="schedule-pills">
                             <button class="sch-pill active" id="schPillToday" onclick="switchScheduleSubView('today', this)">
-                                <i class="fa-regular fa-clock" style="font-size: 0.8rem;"></i> الساعات (اليوم) <span class="sch-pill-badge" id="badgeCountToday">0</span>
+                                <i class="fa-regular fa-clock" style="font-size: 0.8rem;"></i> اليوم <span class="sch-pill-badge" id="badgeCountToday">0</span>
                             </button>
                             <button class="sch-pill" id="schPillWeek" onclick="switchScheduleSubView('week', this)">
                                 جدول الأسبوع <span class="sch-pill-badge" id="badgeCountWeek">0</span>
@@ -5008,7 +5008,7 @@
                             </select>
                             <div class="ambient-sound-bar">
                                 <span style="font-size: 0.75rem; color: #cbd5e1; font-weight: 700; display: flex; align-items: center; gap: 5px;">
-                                    <i class="fa-solid fa-headphones-simple" style="color: #fbbf24;"></i> عزل صوتي <span class="vip-crown-pill" style="font-size:0.6rem; padding:1px 6px;">VIP</span>
+                                    <i class="fa-solid fa-headphones-simple" style="color: var(--primary);"></i> عزل صوتي
                                 </span>
                                 <select id="pomoAmbientSoundSelect" onchange="handleAmbientSoundChange(this.value)" style="width: auto; flex: 1; max-width: 165px; padding: 4px 8px; font-size: 0.76rem; margin: 0; border-radius: 7px;">
                                     <option value="off">🔇 بدون صوت خلفية</option>
@@ -5281,14 +5281,7 @@
                     <div id="cloudMediaProgressText" style="display: none; margin-top: 8px; font-size: 0.75rem; color: var(--primary); font-weight: 700; line-height: 1.55;"></div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
-                    <button class="btn btn-primary" onclick="pushWorkspaceToCloud(true)">
-                        <i class="fa-solid fa-cloud-arrow-up"></i> حفظ ومزامنة الآن
-                    </button>
-                    <button class="btn btn-outline" onclick="pullWorkspaceFromCloud(true)">
-                        <i class="fa-solid fa-cloud-arrow-down"></i> استرجاع أحدث نسخة
-                    </button>
-                </div>
+
 
                 <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border-color);">
                     <span style="font-size: 0.76rem; color: var(--text-muted);">يمكنك تبديل الحساب في أي وقت بأمان</span>
@@ -5308,10 +5301,10 @@
             </div>
             <h3 style="justify-content: center; font-size: 1.25rem; margin-bottom: 6px; color: var(--text-main);">افتح جميع إمكانيات المنصة الاحترافية</h3>
             <p style="font-size: 0.81rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 14px;">
-                الاستخدام الأساسي وحفظ الجدول والمواد مجاني للجميع. ترقيتك لـ <b style="color:#fbbf24;">VIP Pro</b> تفتح لك 5 أدوات فائقة القوة طوال دراستك:
+                الاستخدام الأساسي وحفظ الجدول والمواد والعزل الصوتي مجاني للجميع. ترقيتك لـ <b style="color:#fbbf24;">VIP Pro</b> تفتح لك 4 أدوات فائقة القوة طوال دراستك:
             </p>
 
-            <!-- 5 High-Value VIP Features -->
+            <!-- 4 High-Value VIP Features -->
             <div class="vip-features-list">
                 <div class="vip-feat-row">
                     <div class="vip-feat-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
@@ -5335,16 +5328,9 @@
                     </div>
                 </div>
                 <div class="vip-feat-row">
-                    <div class="vip-feat-icon"><i class="fa-solid fa-headphones-simple"></i></div>
-                    <div>
-                        <div style="font-weight: 800; font-size: 0.84rem; color: var(--text-main);">4. استوديو العزل الصوتي وموجات التركيز (Pomodoro Soundscapes)</div>
-                        <div style="font-size: 0.74rem; color: var(--text-muted);">صوت مطر هادئ وموجات تركيز عميق مدمجة داخل مؤقت بومودورو لعزلك عن الضوضاء.</div>
-                    </div>
-                </div>
-                <div class="vip-feat-row">
                     <div class="vip-feat-icon"><i class="fa-solid fa-award"></i></div>
                     <div>
-                        <div style="font-weight: 800; font-size: 0.84rem; color: var(--text-main);">5. تقارير الأداء الأسبوعية الفورية + شارة التاج الذهبي 👑</div>
+                        <div style="font-weight: 800; font-size: 0.84rem; color: var(--text-main);">4. تقارير الأداء الأسبوعية الفورية + شارة التاج الذهبي 👑</div>
                         <div style="font-size: 0.74rem; color: var(--text-muted);">إصدار تقرير تقييم أسبوعك بدرجات (A+ إلى C) في أي وقت مع شارة VIP في حسابك.</div>
                     </div>
                 </div>
@@ -6082,7 +6068,7 @@
 
                             <div class="acad-deep-item">
                                 <h4><span>2. التبويب الثاني (أو عند الضغط على أي يوم): «نظام الساعات بأسلوب Notion Calendar»</span></h4>
-                                <p>بمجرد <b>الضغط على رأس أي يوم</b> في جدول الأسبوع (أو شارة <code>بالساعات</code> أو تبويب <code>الساعات (اليوم)</code>)، يفتح لك الخط الزمني المقسم بالساعات من <code>06:00 ص</code> إلى <code>11:00 م</code> لهذا اليوم، ويتميز بـ:<br>
+                                <p>بمجرد <b>الضغط على رأس أي يوم</b> في جدول الأسبوع (أو شارة <code>بالساعات</code> أو تبويب <code>  اليوم  </code>)، يفتح لك الخط الزمني المقسم بالساعات من <code>06:00 ص</code> إلى <code>11:00 م</code> لهذا اليوم، ويتميز بـ:<br>
                                 • <b>شريط أيام الأسبوع السريع بالأعلى:</b> للتنقل بين ساعات أي يوم من الأحد للسبت بضغطة واحدة.<br>
                                 • <b>خط الوقت الحي الأحمر (`الآن`):</b> يوضح أين أنت الآن في يومك بالساعة والدقيقة.<br>
                                 • <b>الإضافة بالتحويم (Hover-to-Add):</b> مرر الماوس على أي ساعة فارغة ليظهر زر <code>+ إضافة جلسة في هذه الساعة</code>.<br>
@@ -6357,8 +6343,8 @@
                         <div class="acad-deep-list">
                             <div class="acad-deep-item">
                                 <h4><span>كيف تحمي بياناتك وتنقلها بين اللابتوب والتابلت؟ (زر «حسابي / الكلاود» ودرج «النسخ والكلاود»)</span></h4>
-                                <p>1. <b>الحفظ التلقائي المحلي:</b> كل مادة وجلسة وكتابة بالقلم تُحفظ فوراً داخل متصفحك (LocalStorage + IndexedDB) وتعمل حتى بدون إنترنت.<br>
-                                2. <b>حساب الكلاود (Supabase):</b> من زر <code>حسابي / الكلاود</code> أعلى الصفحة يمكنك تسجيل حسابك ليتم رفع ومزامنة موادك وجدولك وكتاباتك تلقائياً بين أجهزتك.<br>
+                                <p>1. <b>الحفظ التلقائي المحلي:</b> كل مادة وجلسة وكتابة بالقلم تُحفظ فوراً داخل متصفحك وتعمل حتى بدون إنترنت.<br>
+                                2. <b>حساب الكلاود :</b> من زر <code>حسابي / الكلاود</code> أعلى الصفحة يمكنك تسجيل حسابك ليتم رفع ومزامنة موادك وجدولك وكتاباتك تلقائياً بين أجهزتك.<br>
                                 3. <b>تصدير واسترجاع ملف JSON:</b> من داخل صفحة السجل اضغط زر <code>النسخ والكلاود</code> لتصدير نسخة احتياطية كاملة كملف على جهازك في أي وقت.</p>
                             </div>
                         </div>
@@ -6417,11 +6403,11 @@
 
                             <div class="acad-deep-item" style="border-right-color: var(--primary);">
                                 <h4>
-                                    <span>2. ماذا سيستفيد الطالب عند تفعيل باقة VIP Pro؟ (5 مزايا استثنائية)</span>
+                                    <span>2. ماذا سيستفيد الطالب عند تفعيل باقة VIP Pro؟ (4 مزايا استثنائية)</span>
                                     <span class="acad-why-badge">القيمة الفعلية للطالب</span>
                                 </h4>
                                 <p>
-                                    عند ترقية حسابك إلى <b style="color:#fbbf24;">👑 VIP Pro</b>، تُفتح لك فوراً 5 إمكانيات متكاملة توفر عليك ساعات من المجهود طوال الترم وليلة الامتحان:
+                                    عند ترقية حسابك إلى <b style="color:#fbbf24;">👑 VIP Pro</b>، تُفتح لك فوراً 4 إمكانيات متكاملة توفر عليك ساعات من المجهود طوال الترم وليلة الامتحان:
                                 </p>
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; margin-top: 10px;">
                                     <div class="acad-feature-box">
@@ -6437,11 +6423,7 @@
                                         <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.6;">ثبّت أي عدد من اللحظات الصوتية (`📌`) فوق كل سلايد للقفز المباشر لشرح الدكتور، وافتح أوراق تلخيص منقطة أسفل أي سلايد.</div>
                                     </div>
                                     <div class="acad-feature-box">
-                                        <div style="font-weight: 800; color: #c4b5fd; margin-bottom: 4px;"><i class="fa-solid fa-headphones-simple"></i> 4. استوديو العزل الصوتي وموجات التركيز</div>
-                                        <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.6;">شغّل صوت المطر الهادئ (`🌧️`) أو موجات التركيز العميق (`🌊`) المدمجة داخل مؤقت بومودورو لعزل الضوضاء المحيطة بك تماماً.</div>
-                                    </div>
-                                    <div class="acad-feature-box" style="grid-column: 1 / -1;">
-                                        <div style="font-weight: 800; color: #f59e0b; margin-bottom: 4px;"><i class="fa-solid fa-award"></i> 5. تقارير التقييم الأسبوعي الفورية + شارة التاج الذهبي 👑</div>
+                                        <div style="font-weight: 800; color: #f59e0b; margin-bottom: 4px;"><i class="fa-solid fa-award"></i> 4. تقارير التقييم الأسبوعي الفورية + شارة التاج الذهبي 👑</div>
                                         <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.6;">أصدر تقريراً تحليلياً شاملاً لأدائك الأسبوعي بتقدير (`A+` إلى `C`) في أي لحظة بضغطة زر، مع ظهور شارة `👑 VIP` الذهبية بجانب اسمك في المنصة.</div>
                                     </div>
                                 </div>
@@ -6478,7 +6460,7 @@
                                 <i class="fa-solid fa-user-graduate"></i> صفحة مستقلة • عن المطور والتواصل المباشر
                             </span>
                             <h2 style="font-size: 1.5rem; font-weight: 900; color: var(--text-main); margin-bottom: 10px;">
-                                عن مطور المنصة — كلية الصيدلة جامعة الأزهر 🇪🇬
+                                عن مطور المنصة 
                             </h2>
                             <p style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.8;">
                                 صُممت <b>منصة الإنجاز (Studio Workspace)</b> لتكون رفيقاً عملياً منظماً لكل طالب يبحث عن الهدوء والتركيز وإتقان مذاكرته وتخطيط وقته بأعلى كفاءة.
@@ -12832,6 +12814,9 @@
         function openCloudAuthModal() {
             updateCloudMediaStatsUI();
             document.getElementById('cloudAuthModalOverlay').classList.add('active');
+            if (currentCloudUser && supabaseClient && navigator.onLine && !isCloudSyncing && !isBulkMediaUploading && localStorage.getItem('pharmaWorkspaceDirty') !== '1') {
+                pullWorkspaceFromCloud(false);
+            }
         }
 
         // ================= CLOUD MEDIA (PDF & AUDIO) UPLOAD / DOWNLOAD ENGINE (SUPABASE VIP CONTROLLED) =================
@@ -12981,15 +12966,9 @@
         }
 
         function handleAmbientSoundChange(mode) {
-            const sel = document.getElementById('pomoAmbientSoundSelect');
             if (mode === 'off') {
                 stopAmbientFocusSound();
                 showToast('🔇 تم إيقاف صوت الخلفية');
-                return;
-            }
-            if (!checkVipFeatureAccess('استوديو العزل الصوتي وموجات التركيز (Pomodoro Soundscapes)', true)) {
-                if (sel) sel.value = 'off';
-                stopAmbientFocusSound();
                 return;
             }
             stopAmbientFocusSound();
@@ -13039,11 +13018,7 @@
         }
 
         async function ensureSupabaseMediaBucket() {
-            if (!supabaseClient || storageBucketChecked) return;
             storageBucketChecked = true;
-            try {
-                await supabaseClient.storage.createBucket('lecture_media', { public: true });
-            } catch (e) {}
         }
 
         function formatUploadSpeed(bytesPerSec) {
@@ -13170,7 +13145,7 @@
                         }
                     };
 
-                    xhr.onload = () => {
+                    xhr.onload = async () => {
                         if (xhr.status >= 200 && xhr.status < 300) {
                             const elapsedSec = Math.max(0.15, (performance.now() - startTimeMs) / 1000);
                             const finalBps = fileBlob.size / elapsedSec;
@@ -13185,7 +13160,29 @@
                             }
                             resolve({ ok: true, finalBps });
                         } else {
-                            resolve({ ok: false, error: `HTTP ${xhr.status}: ${xhr.responseText || ''}` });
+                            // Try official Supabase Storage SDK upload as fallback if direct XHR failed
+                            try {
+                                const { error: sdkErr } = await supabaseClient.storage
+                                    .from('lecture_media')
+                                    .upload(storagePath, fileBlob, { upsert: true, contentType: contentType || 'application/octet-stream' });
+                                if (!sdkErr) {
+                                    const elapsedSec = Math.max(0.15, (performance.now() - startTimeMs) / 1000);
+                                    const finalBps = fileBlob.size / elapsedSec;
+                                    if (onProgressCallback) {
+                                        onProgressCallback({
+                                            pct: 100,
+                                            loaded: fileBlob.size,
+                                            total: fileBlob.size,
+                                            speedBps: finalBps,
+                                            speedText: formatUploadSpeed(finalBps)
+                                        });
+                                    }
+                                    return resolve({ ok: true, finalBps });
+                                }
+                                return resolve({ ok: false, error: sdkErr.message || `HTTP ${xhr.status}: ${xhr.responseText || ''}` });
+                            } catch (fbErr) {
+                                return resolve({ ok: false, error: `HTTP ${xhr.status}: ${xhr.responseText || ''}` });
+                            }
                         }
                     };
 
@@ -13230,6 +13227,7 @@
 
             let uploadedViaStorage = false;
             let lastSpeedText = '⚡ مكتمل';
+            let lastStorageError = '';
             const rawExt = isPdf ? 'pdf' : ((fileBlob.name && fileBlob.name.includes('.')) ? fileBlob.name.split('.').pop().replace(/[^a-zA-Z0-9]/g, '') : 'mp3');
             const ext = rawExt || (isPdf ? 'pdf' : 'mp3');
             const storagePath = `${currentCloudUser.id}/${lecObj.id}_${storeName}.${ext}`;
@@ -13277,6 +13275,8 @@
                         }
                         uploadedViaStorage = true;
                         break;
+                    } else {
+                        lastStorageError = xhrRes.error || '';
                     }
                     if (attempt === 1) {
                         await new Promise(r => setTimeout(r, 600));
@@ -13284,22 +13284,11 @@
                 }
             }
 
-            // 3. Safe Fallback for small files (<= 6 MB) if Storage bucket isn't created yet
+            // 3. Fallback when offline / local-vault mode, or surface exact Storage error when Supabase is active
             if (!uploadedViaStorage) {
-                const maxFallbackBytes = 6 * 1024 * 1024;
-                if (fileBlob.size <= maxFallbackBytes) {
+                if (!supabaseClient) {
                     try {
                         const startFb = performance.now();
-                        updateLiveUploadMonitorUI({
-                            active: true,
-                            fileName: displayFileName,
-                            pct: 45,
-                            speedText: '⚡ جاري المزامنة البديلة...',
-                            loadedBytes: Math.round(fileBlob.size * 0.45),
-                            totalBytes: fileBlob.size,
-                            queueIndex: qIndex,
-                            queueTotal: qTotal
-                        });
                         const dataUrl = await blobToDataUrl(fileBlob);
                         const mediaKey = `_cloudMedia_${storeName}_${lecObj.id}`;
                         if (dbInstance) {
@@ -13317,16 +13306,6 @@
                         }
                         const elapsedFb = Math.max(0.2, (performance.now() - startFb) / 1000);
                         lastSpeedText = formatUploadSpeed(fileBlob.size / elapsedFb);
-                        updateLiveUploadMonitorUI({
-                            active: true,
-                            fileName: displayFileName,
-                            pct: 100,
-                            speedText: lastSpeedText,
-                            loadedBytes: fileBlob.size,
-                            totalBytes: fileBlob.size,
-                            queueIndex: qIndex,
-                            queueTotal: qTotal
-                        });
                         if (isPdf) {
                             lecObj.cloudPdfUploaded = true;
                             lecObj.cloudPdfPath = `db_fallback:${mediaKey}`;
@@ -13345,9 +13324,16 @@
                         setTimeout(() => updateLiveUploadMonitorUI({ active: false }), 1500);
                     }
                     if (showToastMsg) {
-                        showToast(`تعذر رفع ${labelAr} (${sizeCheck.fileSizeMB} MB)؛ تأكد من وجود Bucket عام باسم lecture_media في Supabase Storage`, 'error');
+                        const errLower = String(lastStorageError).toLowerCase();
+                        let hint = 'شغّل كود الـ SQL الخاص بسلة lecture_media وسياسات Storage RLS في لوحة Supabase';
+                        if (errLower.includes('exceeded the maximum allowed size') || errLower.includes('payload too large') || errLower.includes('413')) {
+                            hint = 'الحد الأقصى لحجم الملف في إعدادات Bucket بـ Supabase أقل من حجم الملف؛ ارفعه إلى 50MB من SQL Editor';
+                        } else if (errLower.includes('row-level security') || errLower.includes('403') || errLower.includes('unauthorized')) {
+                            hint = 'ينقص سلة lecture_media سياسات الصلاحيات (RLS Policies) للرفع في جدول storage.objects بـ Supabase';
+                        }
+                        showToast(`تعذر رفع ${labelAr} (${sizeCheck.fileSizeMB} MB): ${hint}`, 'error');
                     }
-                    return { ok: false, reason: 'storage_bucket_error' };
+                    return { ok: false, reason: 'storage_bucket_error', error: lastStorageError };
                 }
             }
 
@@ -13769,19 +13755,7 @@
             }
         }
 
-        async function handleCloudGoogleOAuth() {
-            if (!supabaseClient) return;
-            try {
-                const cleanRedirectUrl = window.location.origin + window.location.pathname;
-                const { error } = await supabaseClient.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: { redirectTo: cleanRedirectUrl }
-                });
-                if (error) throw error;
-            } catch (err) {
-                showToast('تأكد من تفعيل Google Provider داخل لوحة Supabase أولاً', 'error');
-            }
-        }
+
 
         async function handleCloudSignOut() {
             // Save current user's workspace before logging out so their account data is safely isolated
@@ -13861,12 +13835,13 @@
         // --- Auto-Save Trigger on Any Data Change ---
         function markLocalWorkspaceModified() {
             localStorage.setItem('pharmaWorkspaceUpdatedAt', String(Date.now()));
+            localStorage.setItem('pharmaWorkspaceDirty', '1');
             if (!currentCloudUser || isBulkMediaUploading) return;
             updateCloudNavUI('syncing');
             if (cloudAutoSaveTimer) clearTimeout(cloudAutoSaveTimer);
             cloudAutoSaveTimer = setTimeout(() => {
                 if (!isBulkMediaUploading) pushWorkspaceToCloud(false);
-            }, 1200);
+            }, 600);
         }
 
         async function pushWorkspaceToCloud(manualNotify = false) {
@@ -13889,9 +13864,11 @@
                     user_email: (currentCloudUser.email || "").toLowerCase(),
                     subjects: subjects || [],
                     schedule: {
-                        version: 2,
+                        version: 3,
                         events: scheduleEvents || [],
                         backlog: scheduleBacklog || [],
+                        plannerPrefs: plannerPrefs,
+                        weeklyReports: weeklyReports || [],
                         pdfFitMode: currentPdfFitMode || 'height'
                     },
                     logs: logs || [],
@@ -13915,6 +13892,7 @@
                 }
 
                 localStorage.setItem('pharmaLastCloudSyncIso', nowIso);
+                localStorage.removeItem('pharmaWorkspaceDirty');
                 updateCloudNavUI('synced');
                 const timeEl = document.getElementById('cloudLastSyncedTime');
                 if (timeEl) {
@@ -13952,14 +13930,24 @@
                 if (Array.isArray(cloudRow.schedule.backlog)) {
                     scheduleBacklog = cloudRow.schedule.backlog;
                 }
+                if (cloudRow.schedule.plannerPrefs && typeof cloudRow.schedule.plannerPrefs === 'object') {
+                    plannerPrefs = Object.assign({}, plannerPrefs, cloudRow.schedule.plannerPrefs);
+                    localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
+                }
+                if (Array.isArray(cloudRow.schedule.weeklyReports)) {
+                    weeklyReports = cloudRow.schedule.weeklyReports;
+                    localStorage.setItem('pharmaWeeklyReportsV1', JSON.stringify(weeklyReports));
+                }
                 if (cloudRow.schedule.pdfFitMode) {
                     currentPdfFitMode = cloudRow.schedule.pdfFitMode;
                     localStorage.setItem('pharmaPdfFitMode', currentPdfFitMode);
                 }
                 localStorage.setItem('pharmaScheduleV4', JSON.stringify({
-                    version: 2,
+                    version: 3,
                     events: scheduleEvents,
-                    backlog: scheduleBacklog
+                    backlog: scheduleBacklog,
+                    plannerPrefs: plannerPrefs,
+                    weeklyReports: weeklyReports
                 }));
                 localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));
             }
@@ -13983,6 +13971,11 @@
                 }
             }
 
+            if (cloudRow.updated_at) {
+                localStorage.setItem('pharmaLastCloudSyncIso', cloudRow.updated_at);
+            }
+            localStorage.removeItem('pharmaWorkspaceDirty');
+
             renderSubjectsList();
             if (activeSubjectId) renderGroups();
             renderSchedule();
@@ -13991,7 +13984,7 @@
 
             const timeEl = document.getElementById('cloudLastSyncedTime');
             if (timeEl && cloudRow.updated_at) {
-                timeEl.innerText = `آخر مزامنة: ${new Date(cloudRow.updated_at).toLocaleTimeString('ar-EG')}`;
+                timeEl.innerText = `آخر مزامنة تلقائية: ${new Date(cloudRow.updated_at).toLocaleTimeString('ar-EG')}`;
             }
             if (showSuccessToast) {
                 showToast('☁️ تم استرجاع ومزامنة أحدث بيانات حسابك بنجاح!');
@@ -14053,8 +14046,11 @@
                 );
 
                 const hasLocalData = (subjects.length > 0 || scheduleEvents.length > 0 || logs.length > 0);
+                const isLocalDirty = localStorage.getItem('pharmaWorkspaceDirty') === '1';
+                const localUpdatedMs = Number(localStorage.getItem('pharmaWorkspaceUpdatedAt') || 0);
+                const remoteUpdatedMs = (data && data.updated_at) ? new Date(data.updated_at).getTime() : 0;
 
-                if (hasAccountData) {
+                if (hasAccountData && !(isLocalDirty && hasLocalData && localUpdatedMs > remoteUpdatedMs)) {
                     await applyCloudWorkspacePayload(data, false);
                     if (!data.user_email && currentCloudUser.email && supabaseClient && navigator.onLine) {
                         await supabaseClient
