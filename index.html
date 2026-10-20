@@ -4326,6 +4326,214 @@
             display: none !important;
         }
 
+
+        /* ================= VIP PRO MEMBERSHIP & FAIR PRICING MODAL STYLES ================= */
+        .vip-crown-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #090d16;
+            font-size: 0.68rem;
+            font-weight: 900;
+            padding: 2px 8px;
+            border-radius: 999px;
+            box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35);
+            letter-spacing: 0.3px;
+        }
+        .vip-features-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-align: right;
+            margin-bottom: 16px;
+        }
+        .vip-feat-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            background: rgba(15, 23, 36, 0.78);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            border-radius: 11px;
+            padding: 9px 12px;
+        }
+        .vip-feat-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.88rem;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .vip-pricing-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .vip-plan-card {
+            background: rgba(15, 23, 36, 0.85);
+            border: 1.5px solid rgba(148, 163, 184, 0.18);
+            border-radius: 13px;
+            padding: 12px 10px;
+            cursor: pointer;
+            transition: all 0.16s ease;
+            position: relative;
+            text-align: center;
+        }
+        .vip-plan-card:hover {
+            border-color: rgba(245, 158, 11, 0.55);
+            transform: translateY(-2px);
+        }
+        .vip-plan-card.selected {
+            background: linear-gradient(145deg, rgba(245, 158, 11, 0.16), rgba(15, 23, 36, 0.95));
+            border-color: #f59e0b;
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.22);
+        }
+        .vip-best-value-tag {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #f59e0b, #ea580c);
+            color: #090d16;
+            font-size: 0.65rem;
+            font-weight: 900;
+            padding: 2px 9px;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+        .ambient-sound-bar {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            background: rgba(11, 15, 23, 0.65);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            border-radius: 10px;
+            padding: 7px 10px;
+            margin-top: 6px;
+        }
+
+
+        /* ================= LIVE CLOUD UPLOAD PROGRESS, SPEED MONITOR & FLOATING HUD ================= */
+        .cloud-upload-monitor-box {
+            display: none;
+            background: rgba(9, 13, 22, 0.92);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-top: 10px;
+            text-align: right;
+        }
+        .cloud-upload-monitor-box.active {
+            display: block;
+            animation: subFade 0.18s ease;
+        }
+        .cum-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+        }
+        .cum-filename {
+            font-size: 0.78rem;
+            font-weight: 800;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 220px;
+        }
+        .cum-stats-pills {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: monospace;
+            font-size: 0.73rem;
+        }
+        .cum-speed-pill {
+            background: rgba(56, 189, 248, 0.16);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            padding: 1px 7px;
+            border-radius: 999px;
+            font-weight: 800;
+        }
+        .cum-pct-pill {
+            background: rgba(16, 185, 129, 0.18);
+            color: #6ee7b7;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            padding: 1px 7px;
+            border-radius: 999px;
+            font-weight: 900;
+        }
+        .cum-bar-track {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+        .cum-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #14b8a6, #38bdf8, #10b981);
+            border-radius: 999px;
+            transition: width 0.15s ease;
+        }
+        .cum-sub-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.71rem;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .floating-cloud-upload-hud {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 340px;
+            max-width: calc(100vw - 32px);
+            background: rgba(15, 21, 33, 0.97);
+            border: 1.5px solid rgba(56, 189, 248, 0.55);
+            border-radius: 14px;
+            padding: 13px 15px;
+            z-index: 9500;
+            box-shadow: 0 14px 35px rgba(0, 0, 0, 0.75);
+            display: none;
+            direction: rtl;
+        }
+        .floating-cloud-upload-hud.active {
+            display: block;
+            animation: subFade 0.2s ease;
+        }
+        .cloud-limits-info-strip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+            background: rgba(11, 15, 23, 0.65);
+            border: 1px dashed rgba(148, 163, 184, 0.2);
+            border-radius: 10px;
+            padding: 7px 11px;
+            margin-bottom: 10px;
+            font-size: 0.73rem;
+            color: #cbd5e1;
+        }
+
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -4339,6 +4547,24 @@
 
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Floating Live Cloud Upload Progress & Speed HUD -->
+    <div class="floating-cloud-upload-hud" id="floatingCloudUploadHud">
+        <div class="cum-top-row">
+            <span class="cum-filename" id="hudUploadFileName"><i class="fa-solid fa-cloud-arrow-up" style="color:#38bdf8;"></i> جاري الرفع للسحابة...</span>
+            <div class="cum-stats-pills">
+                <span class="cum-speed-pill" id="hudUploadSpeed">⚡ 0 KB/s</span>
+                <span class="cum-pct-pill" id="hudUploadPct">0%</span>
+            </div>
+        </div>
+        <div class="cum-bar-track">
+            <div class="cum-bar-fill" id="hudUploadBarFill"></div>
+        </div>
+        <div class="cum-sub-row">
+            <span id="hudUploadSizeProgress">0.0 / 0.0 MB</span>
+            <span id="hudUploadQueueCounter" style="color: var(--primary); font-weight: 700;">ملف 1 من 1</span>
+        </div>
+    </div>
 
     <!-- Unified Minimalist Studio Navbar -->
     <div class="navbar">
@@ -4777,9 +5003,19 @@
                         </div>
 
                         <div style="width: 100%; margin-bottom: 6px;">
-                            <select id="timerSubjectSelect" style="width: 100%; padding: 8px 12px; font-size: 0.83rem;">
+                            <select id="timerSubjectSelect" style="width: 100%; padding: 8px 12px; font-size: 0.83rem; margin-bottom: 6px;">
                                 <option value="">بدون مادة محددة (عام)</option>
                             </select>
+                            <div class="ambient-sound-bar">
+                                <span style="font-size: 0.75rem; color: #cbd5e1; font-weight: 700; display: flex; align-items: center; gap: 5px;">
+                                    <i class="fa-solid fa-headphones-simple" style="color: #fbbf24;"></i> عزل صوتي <span class="vip-crown-pill" style="font-size:0.6rem; padding:1px 6px;">VIP</span>
+                                </span>
+                                <select id="pomoAmbientSoundSelect" onchange="handleAmbientSoundChange(this.value)" style="width: auto; flex: 1; max-width: 165px; padding: 4px 8px; font-size: 0.76rem; margin: 0; border-radius: 7px;">
+                                    <option value="off">🔇 بدون صوت خلفية</option>
+                                    <option value="rain">🌧️ مطر هادئ للتركيز</option>
+                                    <option value="deep">🌊 موجات تركيز عميق</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -5005,14 +5241,18 @@
                 <!-- Cloud PDF & Audio Recordings Sync Box -->
                 <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(56, 189, 248, 0.32); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
-                        <div style="font-weight: 800; font-size: 0.88rem; color: #38bdf8; display: flex; align-items: center; gap: 7px;">
-                            <i class="fa-solid fa-file-Waveform fa-cloud-arrow-up"></i> سحابة ملفات الـ PDF والريكوردات الصوتية
+                        <div style="font-weight: 800; font-size: 0.88rem; color: #fbbf24; display: flex; align-items: center; gap: 7px;">
+                            <i class="fa-solid fa-crown"></i> باقة VIP Pro وسحابة الملفات
                         </div>
-                        <span id="cloudMediaCountBadge" class="studio-pill" style="font-size: 0.71rem; color: #93c5fd;">0 ملف مرفوع</span>
+                        <span id="cloudMediaCountBadge" class="studio-pill" style="font-size: 0.71rem; color: #fcd34d; cursor: pointer;" onclick="openVipUpgradeModal('عرض مزايا باقة VIP Pro')">🔒 تفعيل VIP Pro</span>
                     </div>
-                    <p style="font-size: 0.77rem; color: #cbd5e1; margin-bottom: 10px; line-height: 1.5;">
+                    <p style="font-size: 0.77rem; color: #cbd5e1; margin-bottom: 8px; line-height: 1.5;" id="cloudMediaBoxDescText">
                         ارفع ملفات الـ PDF والتسجيلات الصوتية على حسابك لتتمكن من فتحها وسماعها مباشرة من أي جهاز آخر (لابتوب، تابلت، أو هاتف).
                     </p>
+                    <div class="cloud-limits-info-strip">
+                        <span><i class="fa-solid fa-scale-balanced" style="color:#fbbf24;"></i> <b>الحد الأقصى للملف الواحد بالسحابة:</b> PDF حتى <b style="color:var(--primary);">25MB</b> • ريكورد حتى <b style="color:#38bdf8;">35MB</b></span>
+                        <span id="cloudTotalStorageUsedBadge" style="color:#94a3b8; font-weight:700;">المرفوع: 0 MB</span>
+                    </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                         <button class="btn btn-outline" id="btnSyncAllMediaUp" style="padding: 8px 10px; font-size: 0.78rem; border-color: rgba(56, 189, 248, 0.45); color: #38bdf8;" onclick="syncAllLocalMediaToCloud()">
                             <i class="fa-solid fa-cloud-arrow-up"></i> رفع كل الـ PDF والريكورد للحساب
@@ -5021,7 +5261,24 @@
                             <i class="fa-solid fa-cloud-arrow-down"></i> تنزيل ملفات الحساب للجهاز
                         </button>
                     </div>
-                    <div id="cloudMediaProgressText" style="display: none; margin-top: 8px; font-size: 0.75rem; color: var(--primary); font-weight: 700;"></div>
+                    <!-- Live Upload Progress Bar, Percentage & Speed Monitor inside Account Modal -->
+                    <div class="cloud-upload-monitor-box" id="cloudMediaUploadMonitorBox">
+                        <div class="cum-top-row">
+                            <span class="cum-filename" id="modalUploadFileName">جاري التحضير...</span>
+                            <div class="cum-stats-pills">
+                                <span class="cum-speed-pill" id="modalUploadSpeed">⚡ 0 KB/s</span>
+                                <span class="cum-pct-pill" id="modalUploadPct">0%</span>
+                            </div>
+                        </div>
+                        <div class="cum-bar-track">
+                            <div class="cum-bar-fill" id="modalUploadBarFill"></div>
+                        </div>
+                        <div class="cum-sub-row">
+                            <span id="modalUploadSizeProgress">0.0 / 0.0 MB</span>
+                            <span id="modalUploadQueueCounter" style="color: var(--primary); font-weight: 700;">ملف 1 من 1</span>
+                        </div>
+                    </div>
+                    <div id="cloudMediaProgressText" style="display: none; margin-top: 8px; font-size: 0.75rem; color: var(--primary); font-weight: 700; line-height: 1.55;"></div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
@@ -5039,6 +5296,87 @@
                         <i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comprehensive VIP Pro Membership & Fair Student Pricing Modal -->
+    <div class="glass-overlay" id="vipMediaLockModalOverlay">
+        <div class="glass-modal" style="max-width: 500px; text-align: center; border-color: rgba(245, 158, 11, 0.45); padding: 24px 22px;">
+            <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(245, 158, 11, 0.14); border: 1px solid rgba(245, 158, 11, 0.38); color: #fbbf24; padding: 4px 14px; border-radius: 999px; font-size: 0.78rem; font-weight: 900; margin-bottom: 10px;">
+                <i class="fa-solid fa-crown"></i> <span id="vipModalTriggeredFeatureBadge">باقة الإنجاز VIP Pro للطلاب</span>
+            </div>
+            <h3 style="justify-content: center; font-size: 1.25rem; margin-bottom: 6px; color: var(--text-main);">افتح جميع إمكانيات المنصة الاحترافية</h3>
+            <p style="font-size: 0.81rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 14px;">
+                الاستخدام الأساسي وحفظ الجدول والمواد مجاني للجميع. ترقيتك لـ <b style="color:#fbbf24;">VIP Pro</b> تفتح لك 5 أدوات فائقة القوة طوال دراستك:
+            </p>
+
+            <!-- 5 High-Value VIP Features -->
+            <div class="vip-features-list">
+                <div class="vip-feat-row">
+                    <div class="vip-feat-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                    <div>
+                        <div style="font-weight: 800; font-size: 0.84rem; color: var(--text-main);">1. سحابة الـ PDF والريكوردات عبر جميع أجهزتك</div>
+                        <div style="font-size: 0.74rem; color: var(--text-muted);">ارفع ملفاتك (حتى 25MB للـ PDF و35MB للريكورد) مع مؤشر حي لسرعة الرفع ونسبة المزامنة.</div>
+                    </div>
+                </div>
+                <div class="vip-feat-row">
+                    <div class="vip-feat-icon"><i class="fa-solid fa-file-export"></i></div>
+                    <div>
+                        <div style="font-weight: 800; font-size: 0.84rem; color: var(--text-main);">2. تصدير وطباعة المحاضرات المشروحة كملف PDF جاهز</div>
+                        <div style="font-size: 0.74rem; color: var(--text-muted);">ادمج خط يدك وتظليلك وورق التلخيص في ملف PDF جاهز للطباعة أو المراجعة.</div>
+                    </div>
+                </div>
+                <div class="vip-feat-row">
+                    <div class="vip-feat-icon"><i class="fa-solid fa-thumbtack"></i></div>
+                    <div>
+                        <div style="font-weight: 800; font-size: 0.84rem; color: var(--text-main);">3. دبابيس صوتية غير محدودة + ورق تلخيص إضافي</div>
+                        <div style="font-size: 0.74rem; color: var(--text-muted);">ثبّت أي عدد من اللحظات الصوتية على السلايدات وافتح أوراق تلخيص تحت كل سلايد.</div>
+                    </div>
+                </div>
+                <div class="vip-feat-row">
+                    <div class="vip-feat-icon"><i class="fa-solid fa-headphones-simple"></i></div>
+                    <div>
+                        <div style="font-weight: 800; font-size: 0.84rem; color: var(--text-main);">4. استوديو العزل الصوتي وموجات التركيز (Pomodoro Soundscapes)</div>
+                        <div style="font-size: 0.74rem; color: var(--text-muted);">صوت مطر هادئ وموجات تركيز عميق مدمجة داخل مؤقت بومودورو لعزلك عن الضوضاء.</div>
+                    </div>
+                </div>
+                <div class="vip-feat-row">
+                    <div class="vip-feat-icon"><i class="fa-solid fa-award"></i></div>
+                    <div>
+                        <div style="font-weight: 800; font-size: 0.84rem; color: var(--text-main);">5. تقارير الأداء الأسبوعية الفورية + شارة التاج الذهبي 👑</div>
+                        <div style="font-size: 0.74rem; color: var(--text-muted);">إصدار تقرير تقييم أسبوعك بدرجات (A+ إلى C) في أي وقت مع شارة VIP في حسابك.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fair Student Pricing Selector -->
+            <div class="vip-pricing-grid">
+                <div class="vip-plan-card" id="vipPlanCard_monthly" onclick="selectVipPlan('monthly')">
+                    <div style="font-size: 0.78rem; color: #cbd5e1; font-weight: 800; margin-bottom: 4px;">الباقة الشهرية</div>
+                    <div style="font-size: 1.35rem; font-weight: 900; color: var(--text-main);"><span id="vipPriceMonthlyTxt">45</span> <small style="font-size: 0.75rem; color: var(--primary);">ج.م / شهر</small></div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">مثالية لشهر الامتحانات</div>
+                </div>
+                <div class="vip-plan-card selected" id="vipPlanCard_semester" onclick="selectVipPlan('semester')">
+                    <span class="vip-best-value-tag">🔥 أوفر للطلاب (توفير 45%)</span>
+                    <div style="font-size: 0.78rem; color: #fbbf24; font-weight: 800; margin-bottom: 4px;">باقة الترم الكامل</div>
+                    <div style="font-size: 1.35rem; font-weight: 900; color: #fbbf24;"><span id="vipPriceSemesterTxt">99</span> <small style="font-size: 0.75rem; color: #fde68a;">ج.م / الترم (4 شهور)</small></div>
+                    <div style="font-size: 0.7rem; color: #cbd5e1; margin-top: 2px;">أقل من 25 ج.م في الشهر!</div>
+                </div>
+            </div>
+
+            <div style="font-size: 0.73rem; color: var(--text-muted); margin-bottom: 12px;">
+                💳 الدفع متاح بسهولة عبر <b>Vodafone Cash</b> أو <b>InstaPay</b> والتفعيل فوري لحسابك
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button type="button" class="whatsapp-cta-btn" style="width: 100%; justify-content: center; padding: 11px 16px;" onclick="requestVipMediaActivationViaWhatsApp()">
+                    <i class="fa-brands fa-whatsapp" style="font-size: 1.15rem;"></i>
+                    <span id="vipWhatsappBtnText">تفعيل باقة الترم (99 ج.م) عبر واتساب الآن</span>
+                </button>
+                <button type="button" class="btn btn-outline" style="width: 100%; padding: 8px; color: var(--text-muted); border-color: rgba(255,255,255,0.1); font-size: 0.82rem;" onclick="closeModal('vipMediaLockModalOverlay')">
+                    الاستمرار بالخطة المجانية حالياً
+                </button>
             </div>
         </div>
     </div>
@@ -5071,6 +5409,7 @@
                     <input type="file" id="localLectureFileInput" accept=".pdf,application/pdf" style="display: none;" onchange="handleLocalLectureFile(event)">
                 </div>
                 <input type="text" id="diModalInput2" placeholder="مسار ملف PDF أو رابط Google Drive..." style="font-size: 0.85rem; margin-bottom: 4px;">
+                <span id="pdfSizeStatusBadge" style="font-size: 0.72rem; color: var(--text-muted); display: block;">📏 الحد الأقصى للرفع السحابي لملف الـ PDF الواحد: <b style="color:var(--primary);">25 ميجابايت</b> (الفتح المحلي على جهازك يعمل لأي حجم).</span>
             </div>
 
             <!-- 2. Audio Recording Section -->
@@ -5081,7 +5420,7 @@
                     <input type="file" id="localAudioFileInput" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" style="display: none;" onchange="handleLocalAudioFile(event)">
                 </div>
                 <input type="text" id="diModalAudioInput" placeholder="مسار ملف الصوت أو رابط التسجيل (اختياري)..." style="font-size: 0.85rem; margin-bottom: 4px;">
-                <span id="audioStatusBadge" style="font-size: 0.73rem; color: var(--text-muted); display: block;">💡 يمكنك ربط الريكورد الصوتي لسماعه بالتوازي مع تصفح الـ PDF، ويُرفع تلقائياً على حسابك السحابي.</span>
+                <span id="audioStatusBadge" style="font-size: 0.72rem; color: var(--text-muted); display: block;">📏 الحد الأقصى للرفع السحابي للريكورد الواحد: <b style="color:#93c5fd;">35 ميجابايت</b> لضمان سرعة المزامنة وعدم امتلاء التخزين.</span>
             </div>
 
             <div class="modal-actions">
@@ -5340,7 +5679,10 @@
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <button class="btn btn-outline" style="padding: 7px 14px; font-size: 0.8rem; border-color: rgba(45, 212, 191, 0.45); color: var(--primary);" onclick="switchAcademyModule(8)">
+                    <button class="btn btn-outline" style="padding: 7px 14px; font-size: 0.8rem; border-color: rgba(245, 158, 11, 0.45); color: #fbbf24;" onclick="switchAcademyModule(8)">
+                        <i class="fa-solid fa-crown"></i> لماذا باقة VIP؟
+                    </button>
+                    <button class="btn btn-outline" style="padding: 7px 14px; font-size: 0.8rem; border-color: rgba(45, 212, 191, 0.45); color: var(--primary);" onclick="switchAcademyModule(9)">
                         <i class="fa-solid fa-user-doctor"></i> عن المطور والتواصل
                     </button>
                     <button class="btn btn-outline" style="padding: 7px 14px; font-size: 0.8rem;" onclick="loadDemoData()">
@@ -5423,9 +5765,19 @@
                         </div>
                     </div>
 
-                    <div class="academy-nav-item" id="acadNav_8" onclick="switchAcademyModule(8)" style="border-color: rgba(45, 212, 191, 0.28); background: rgba(45, 212, 191, 0.06);">
+                    <div class="academy-nav-item" id="acadNav_8" onclick="switchAcademyModule(8)" style="border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.06);">
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <div class="mod-num" id="acadBadge_8" style="background: var(--primary); color: #061318;"><i class="fa-solid fa-user-doctor" style="font-size: 0.75rem;"></i></div>
+                            <div class="mod-num" id="acadBadge_8" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #090d16;"><i class="fa-solid fa-crown" style="font-size: 0.75rem;"></i></div>
+                            <div>
+                                <div style="font-weight: 900; font-size: 0.84rem; color: #fbbf24;">لماذا باقة VIP Pro؟</div>
+                                <div style="font-size: 0.71rem; color: #fde68a;">لماذا ليست مجانية بالكامل وماذا تستفيد؟</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="academy-nav-item" id="acadNav_9" onclick="switchAcademyModule(9)" style="border-color: rgba(45, 212, 191, 0.28); background: rgba(45, 212, 191, 0.06);">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="mod-num" id="acadBadge_9" style="background: var(--primary); color: #061318;"><i class="fa-solid fa-user-doctor" style="font-size: 0.75rem;"></i></div>
                             <div>
                                 <div style="font-weight: 900; font-size: 0.84rem; color: var(--primary);">عن المطور والتواصل</div>
                                 <div style="font-size: 0.71rem; color: #cbd5e1;">كلية الصيدلة – جامعة الأزهر</div>
@@ -6006,7 +6358,7 @@
                             <div class="acad-deep-item">
                                 <h4><span>كيف تحمي بياناتك وتنقلها بين اللابتوب والتابلت؟ (زر «حسابي / الكلاود» ودرج «النسخ والكلاود»)</span></h4>
                                 <p>1. <b>الحفظ التلقائي المحلي:</b> كل مادة وجلسة وكتابة بالقلم تُحفظ فوراً داخل متصفحك (LocalStorage + IndexedDB) وتعمل حتى بدون إنترنت.<br>
-                                2. <b>حساب الكلاود :</b> من زر <code>حسابي / الكلاود</code> أعلى الصفحة يمكنك تسجيل حسابك ليتم رفع ومزامنة موادك وجدولك وكتاباتك تلقائياً بين أجهزتك.<br>
+                                2. <b>حساب الكلاود (Supabase):</b> من زر <code>حسابي / الكلاود</code> أعلى الصفحة يمكنك تسجيل حسابك ليتم رفع ومزامنة موادك وجدولك وكتاباتك تلقائياً بين أجهزتك.<br>
                                 3. <b>تصدير واسترجاع ملف JSON:</b> من داخل صفحة السجل اضغط زر <code>النسخ والكلاود</code> لتصدير نسخة احتياطية كاملة كملف على جهازك في أي وقت.</p>
                             </div>
                         </div>
@@ -6030,18 +6382,103 @@
 
                         <div class="acad-footer-nav">
                             <button class="btn btn-outline" onclick="switchAcademyModule(6)"><i class="fa-solid fa-arrow-right"></i> الفصل السابق</button>
-                            <button class="btn btn-primary" onclick="switchAcademyModule(8)">صفحة: عن المطور والتواصل <i class="fa-solid fa-arrow-left"></i></button>
+                            <button class="btn btn-primary" onclick="switchAcademyModule(8)">الفصل الثامن: لماذا باقة VIP Pro؟ <i class="fa-solid fa-arrow-left"></i></button>
                         </div>
                     </div>
 
-                    <!-- ==================== CHAPTER 8: STANDALONE PAGE - عن المطور والتواصل ==================== -->
+                    <!-- ==================== CHAPTER 8: WHY VIP PRO & STUDENT BENEFITS ==================== -->
                     <div class="academy-module-pane" id="acadPane_8">
+                        <div class="acad-hero-banner" style="border-color: rgba(245, 158, 11, 0.45); border-right: 4px solid #f59e0b; background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(18, 25, 38, 0.96));">
+                            <span class="studio-pill" style="color: #fbbf24; border-color: rgba(245, 158, 11, 0.4); margin-bottom: 8px;">
+                                <i class="fa-solid fa-crown"></i> الفصل الثامن • شفافية كاملة حول باقة VIP Pro
+                            </span>
+                            <h2 style="font-size: 1.4rem; font-weight: 900; color: var(--text-main); margin-bottom: 8px;">
+                                لماذا يوجد اشتراك VIP Pro وليس مجانياً بالكامل؟ وماذا سيستفيد الطالب فعلياً؟
+                            </h2>
+                            <p style="color: #cbd5e1; font-size: 0.92rem; line-height: 1.8;">
+                                صُممت منصة الإنجاز من طالب صيدلة لزملائه الطلاب، ولذلك حرصنا على أن تكون <b>جميع الأدوات الأساسية للمذاكرة والتخطيط مجانية 100% للأبد</b>، مع توفير باقة <b>VIP Pro</b> اختيارية بسعر رمزي جداً لتغطية تكاليف السيرفرات السحابية وتقديم أدوات احترافية فائقة. إليك كل التفاصيل بشفافية:
+                            </p>
+                        </div>
+
+                        <div class="acad-deep-list">
+                            <div class="acad-deep-item" style="border-right-color: #f59e0b;">
+                                <h4>
+                                    <span>1. لماذا ليست الميزات السحابية مجانية بالكامل؟ (تكلفة السيرفرات والتخزين)</span>
+                                    <span class="acad-why-badge" style="color: #fbbf24; border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.1);">شفافية كاملة</span>
+                                </h4>
+                                <p>
+                                    • <b>الأدوات المجانية للجميع للأبد:</b> يمكنك مجاناً إضافة كل موادك ومحاضراتك، فتح ملفات الـ PDF والريكوردات محلياً على جهازك، الكتابة بالقلم والكيبورد، تنظيم جدول الأسبوع ومسارات الساعات، استخدام المراجعة المتباعدة ومؤقت بومودورو، وحتى حفظ جدولك وموادك وكتاباتك تلقائياً في حسابك السحابي.<br>
+                                    • <b>لماذا تحتاج سحابة الملفات والمزايا المتقدمة لاشتراك رمزي؟</b> لأن رفع ملفات الـ PDF الكبيرة والتسجيلات الصوتية الطويلة وتحميلها بين عدة أجهزة (لابتوب، تابلت، موبايل) يستهلك <b>مساحة تخزين سحابية مدفوعة (Cloud Storage) ومعدل نقل بيانات (Bandwidth) مستمر على السيرفرات</b>. الاشتراك الرمزي يغطي تكلفة هذه السيرفرات ويضمن بقاء المنصة سريعة، مستقرة، و<b>خالية 100% من الإعلانات المزعجة</b>.
+                                </p>
+                                <div class="acad-why-box" style="color: #fde68a; background: rgba(245, 158, 11, 0.1);">
+                                    📏 <b>لماذا يوجد حد أقصى لحجم الملف الواحد (25MB للـ PDF و 35MB للريكورد)؟</b> لضمان العدالة بين جميع الطلاب المشتركين ومنع امتلاء السيرفر بشكل مهول من مستخدم واحد، مما يحافظ على سرعة رفع وتحميل فائقة للجميع (مع العلم أن فتح الملفات محلياً على جهازك يعمل لأي حجم بدون قيود).
+                                </div>
+                            </div>
+
+                            <div class="acad-deep-item" style="border-right-color: var(--primary);">
+                                <h4>
+                                    <span>2. ماذا سيستفيد الطالب عند تفعيل باقة VIP Pro؟ (5 مزايا استثنائية)</span>
+                                    <span class="acad-why-badge">القيمة الفعلية للطالب</span>
+                                </h4>
+                                <p>
+                                    عند ترقية حسابك إلى <b style="color:#fbbf24;">👑 VIP Pro</b>، تُفتح لك فوراً 5 إمكانيات متكاملة توفر عليك ساعات من المجهود طوال الترم وليلة الامتحان:
+                                </p>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; margin-top: 10px;">
+                                    <div class="acad-feature-box">
+                                        <div style="font-weight: 800; color: #38bdf8; margin-bottom: 4px;"><i class="fa-solid fa-cloud-arrow-up"></i> 1. سحابة الـ PDF والريكوردات عبر أجهزتك</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.6;">ارفع محاضراتك وريكورداتك مرة واحدة وافتحها فوراً من اللابتوب أو التابلت أو الموبايل في المواصلات والكلية، مع مؤشر حي لسرعة الرفع والنسبة المئوية.</div>
+                                    </div>
+                                    <div class="acad-feature-box">
+                                        <div style="font-weight: 800; color: #10b981; margin-bottom: 4px;"><i class="fa-solid fa-file-export"></i> 2. تصدير وطباعة المحاضرات المشروحة PDF</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.6;">حوّل السلايدات مدمجةً بخط يدك، تظليلك، نصوصك، وأوراق التلخيص الإضافية إلى ملف PDF جاهز للطباعة الورقية أو المراجعة السريعة.</div>
+                                    </div>
+                                    <div class="acad-feature-box">
+                                        <div style="font-weight: 800; color: #fbbf24; margin-bottom: 4px;"><i class="fa-solid fa-thumbtack"></i> 3. دبابيس صوتية غير محدودة + ورق تلخيص</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.6;">ثبّت أي عدد من اللحظات الصوتية (`📌`) فوق كل سلايد للقفز المباشر لشرح الدكتور، وافتح أوراق تلخيص منقطة أسفل أي سلايد.</div>
+                                    </div>
+                                    <div class="acad-feature-box">
+                                        <div style="font-weight: 800; color: #c4b5fd; margin-bottom: 4px;"><i class="fa-solid fa-headphones-simple"></i> 4. استوديو العزل الصوتي وموجات التركيز</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.6;">شغّل صوت المطر الهادئ (`🌧️`) أو موجات التركيز العميق (`🌊`) المدمجة داخل مؤقت بومودورو لعزل الضوضاء المحيطة بك تماماً.</div>
+                                    </div>
+                                    <div class="acad-feature-box" style="grid-column: 1 / -1;">
+                                        <div style="font-weight: 800; color: #f59e0b; margin-bottom: 4px;"><i class="fa-solid fa-award"></i> 5. تقارير التقييم الأسبوعي الفورية + شارة التاج الذهبي 👑</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.6;">أصدر تقريراً تحليلياً شاملاً لأدائك الأسبوعي بتقدير (`A+` إلى `C`) في أي لحظة بضغطة زر، مع ظهور شارة `👑 VIP` الذهبية بجانب اسمك في المنصة.</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="acad-deep-item" style="border-right-color: #10b981;">
+                                <h4>
+                                    <span>3. تسعير طلابي عادل ورمزي (أقل من سعر ملزمة ورقية!)</span>
+                                    <span class="acad-why-badge" style="color: #6ee7b7; border-color: rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.1);">باقات مرنة</span>
+                                </h4>
+                                <p>
+                                    • <b>الباقة الشهرية (`45 ج.م / شهرياً`):</b> مناسبة جداً لتجربة جميع المزايا أو الاشتراك في شهر الامتحانات والمراجعة النهائية.<br>
+                                    • <b>باقة الترم الكامل (`99 ج.م / للترم كامل - 4 شهور` 🔥 الأكثر توفيراً):</b> بتكلفة أقل من <b>25 ج.م في الشهر</b> (توفير 45%) لترافقك طوال الفصل الدراسي والامتحانات.<br>
+                                    • <b>طريقة التفعيل السريع:</b> يتم الدفع بسهولة عبر <b>Vodafone Cash</b> أو <b>InstaPay</b> من خلال التواصل المباشر على واتساب ويتم تفعيل حسابك فوراً.
+                                </p>
+                                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+                                    <button type="button" class="btn btn-primary" style="padding: 9px 18px; font-size: 0.84rem;" onclick="closeModal('helpModalOverlay'); openVipUpgradeModal('عرض مزايا وباقات VIP Pro');">
+                                        <i class="fa-solid fa-crown"></i> استعراض باقات VIP Pro وتفعيل حسابي
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="acad-footer-nav">
+                            <button class="btn btn-outline" onclick="switchAcademyModule(7)"><i class="fa-solid fa-arrow-right"></i> الفصل السابق</button>
+                            <button class="btn btn-primary" onclick="switchAcademyModule(9)">صفحة: عن المطور والتواصل <i class="fa-solid fa-arrow-left"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- ==================== CHAPTER 9: STANDALONE PAGE - عن المطور والتواصل ==================== -->
+                    <div class="academy-module-pane" id="acadPane_9">
                         <div class="acad-hero-banner" style="padding: 24px 26px;">
                             <span class="studio-pill" style="color: var(--primary); margin-bottom: 10px;">
                                 <i class="fa-solid fa-user-graduate"></i> صفحة مستقلة • عن المطور والتواصل المباشر
                             </span>
                             <h2 style="font-size: 1.5rem; font-weight: 900; color: var(--text-main); margin-bottom: 10px;">
-                                عن مطور المنصة 
+                                عن مطور المنصة — كلية الصيدلة جامعة الأزهر 🇪🇬
                             </h2>
                             <p style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.8;">
                                 صُممت <b>منصة الإنجاز (Studio Workspace)</b> لتكون رفيقاً عملياً منظماً لكل طالب يبحث عن الهدوء والتركيز وإتقان مذاكرته وتخطيط وقته بأعلى كفاءة.
@@ -6107,7 +6544,7 @@
                         </div>
 
                         <div class="acad-footer-nav">
-                            <button class="btn btn-outline" onclick="switchAcademyModule(7)"><i class="fa-solid fa-arrow-right"></i> الفصل السابق</button>
+                            <button class="btn btn-outline" onclick="switchAcademyModule(8)"><i class="fa-solid fa-arrow-right"></i> الفصل السابق: لماذا باقة VIP؟</button>
                             <button class="btn btn-primary" onclick="closeModal('helpModalOverlay')"><i class="fa-solid fa-check-double"></i> إغلاق الدليل والانطلاق في العمل</button>
                         </div>
                     </div>
@@ -6761,8 +7198,10 @@
         function triggerAddLecture(groupId) {
             tempPickedPdfBlob = null;
             tempPickedAudioBlob = null;
+            const pdfBadge = document.getElementById('pdfSizeStatusBadge');
+            if (pdfBadge) pdfBadge.innerHTML = `📏 الحد الأقصى للرفع السحابي لملف الـ PDF الواحد: <b style="color:var(--primary);">${VIP_MEDIA_LIMITS_CONFIG.maxPdfSizeMB} ميجابايت</b> (الفتح المحلي يعمل لأي حجم).`;
             const badge = document.getElementById('audioStatusBadge');
-            if (badge) badge.innerText = '💡 يمكنك ربط الريكورد الصوتي لسماعه بالتوازي مع تصفح الـ PDF، ويُرفع تلقائياً على حسابك.';
+            if (badge) badge.innerHTML = `📏 الحد الأقصى للرفع السحابي للريكورد الواحد: <b style="color:#93c5fd;">${VIP_MEDIA_LIMITS_CONFIG.maxAudioSizeMB} ميجابايت</b> لضمان سرعة المزامنة وعدم امتلاء التخزين.`;
             document.getElementById('diModalAudioInput').value = '';
 
             openDoubleInputModal('<i class="fa-solid fa-file-pdf"></i> إضافة محاضرة جديدة', '', '', async (title, path) => {
@@ -6790,7 +7229,7 @@
 
                 saveSubjects(); renderGroups(); showToast('تمت إضافة المحاضرة والريكورد بنجاح 📑');
 
-                if (currentCloudUser && (pdfBlobToUpload || audioBlobToUpload)) {
+                if (currentCloudUser && currentUserCanUploadMedia && (pdfBlobToUpload || audioBlobToUpload)) {
                     if (pdfBlobToUpload) await uploadMediaToCloudAccount('pdfs', newLecObj, pdfBlobToUpload, false);
                     if (audioBlobToUpload) await uploadMediaToCloudAccount('audios', newLecObj, audioBlobToUpload, false);
                     saveSubjects();
@@ -6838,7 +7277,7 @@
 
                 saveSubjects(); renderGroups(); showToast('تم تعديل بيانات المحاضرة بنجاح');
 
-                if (currentCloudUser && (pdfBlobToUpload || audioBlobToUpload)) {
+                if (currentCloudUser && currentUserCanUploadMedia && (pdfBlobToUpload || audioBlobToUpload)) {
                     if (pdfBlobToUpload) await uploadMediaToCloudAccount('pdfs', lec, pdfBlobToUpload, false);
                     if (audioBlobToUpload) await uploadMediaToCloudAccount('audios', lec, audioBlobToUpload, false);
                     saveSubjects();
@@ -6916,8 +7355,14 @@
                                     <div onclick="openLectureDocument(${g.id}, ${lec.id})" style="flex: 1; display: flex; align-items: center; gap: 10px; cursor: pointer; min-width: 180px; flex-wrap: wrap;">
                                         <i class="fa-solid fa-file-pdf" style="color: ${lec.completed ? 'var(--important-color)' : 'var(--mandatory-color)'}; font-size: 1.25rem;"></i> 
                                         <span style="font-weight: 600; ${lec.completed ? 'text-decoration: line-through; color: #9ca3af;' : ''}">${lec.title}</span>
-                                        ${lec.cloudPdfUploaded ? '<span class="studio-pill" style="font-size:0.66rem; color:#6ee7b7; border-color:rgba(16,185,129,0.35);"><i class="fa-solid fa-cloud-check"></i> PDF بالكلاود</span>' : ''}
-                                        ${lec.audioPath ? `<span class="studio-pill" style="font-size:0.68rem; color:#93c5fd; border-color:rgba(59,130,246,0.3);"><i class="fa-solid fa-headphones"></i> ريكورد ${lec.cloudAudioUploaded ? '☁️' : ''}</span>` : ''}
+                                        ${lec.cloudPdfUploaded
+                                            ? `<span class="studio-pill" style="font-size:0.66rem; color:#6ee7b7; border-color:rgba(16,185,129,0.4);"><i class="fa-solid fa-cloud-check"></i> PDF بالسحابة ${lec.cloudPdfSize ? '(' + (lec.cloudPdfSize / (1024*1024)).toFixed(1) + 'MB)' : ''} ✓</span>`
+                                            : (lec.path && !lec.path.startsWith('http') ? `<span class="studio-pill" style="font-size:0.65rem; color:#fcd34d; border-color:rgba(245,158,11,0.32);"><i class="fa-solid fa-laptop-file"></i> PDF محلي فقط</span>` : '')}
+                                        ${lec.audioPath
+                                            ? (lec.cloudAudioUploaded
+                                                ? `<span class="studio-pill" style="font-size:0.66rem; color:#38bdf8; border-color:rgba(56,189,248,0.4);"><i class="fa-solid fa-cloud-check"></i> ريكورد بالسحابة ${lec.cloudAudioSize ? '(' + (lec.cloudAudioSize / (1024*1024)).toFixed(1) + 'MB)' : ''} ✓</span>`
+                                                : `<span class="studio-pill" style="font-size:0.66rem; color:#93c5fd; border-color:rgba(59,130,246,0.3);"><i class="fa-solid fa-headphones"></i> ريكورد محلي فقط</span>`)
+                                            : ''}
                                         ${srBadge}
                                     </div>
                                 </div>
@@ -9157,6 +9602,7 @@
             if (!file) return;
             const titleInput = document.getElementById('diModalInput1');
             const pathInput = document.getElementById('diModalInput2');
+            const pdfBadge = document.getElementById('pdfSizeStatusBadge');
             
             if (!titleInput.value.trim()) {
                 const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
@@ -9164,7 +9610,22 @@
             }
             pathInput.value = file.name;
             tempPickedPdfBlob = file;
-            showToast('تم تحديد ملف الـ PDF بنجاح 📑');
+
+            const sizeMB = Number((file.size / (1024 * 1024)).toFixed(2));
+            const maxMB = VIP_MEDIA_LIMITS_CONFIG.maxPdfSizeMB;
+            if (sizeMB > maxMB) {
+                if (pdfBadge) {
+                    pdfBadge.innerHTML = `⚠️ حجم الملف (<b>${sizeMB} MB</b>) أكبر من حد السحابة المسموح (<b>${maxMB} MB</b>)؛ سيُحفظ ويُفتح محلياً على جهازك فقط ولن يُرفع للكلاود.`;
+                    pdfBadge.style.color = '#fda4af';
+                }
+                showToast(`⚠️ حجم الـ PDF (${sizeMB} MB) يتجاوز حد الرفع السحابي (${maxMB} MB)؛ سيعمل محلياً على جهازك فقط`, 'error');
+            } else {
+                if (pdfBadge) {
+                    pdfBadge.innerHTML = `✅ تم اختيار الـ PDF (الحجم: <b>${sizeMB} MB</b> من أصل ${maxMB} MB مسموح للرفع السحابي)`;
+                    pdfBadge.style.color = '#6ee7b7';
+                }
+                showToast(`تم تحديد ملف الـ PDF بنجاح (${sizeMB} MB) 📑`);
+            }
             event.target.value = '';
         }
 
@@ -9179,8 +9640,22 @@
             audioInput.value = file.name;
             tempPickedAudioBlob = file;
             const badge = document.getElementById('audioStatusBadge');
-            if (badge) badge.innerHTML = `✅ تم ربط الريكورد: <b>${file.name}</b>`;
-            showToast('تم تحديد الريكورد الصوتي بنجاح 🎙️');
+            const sizeMB = Number((file.size / (1024 * 1024)).toFixed(2));
+            const maxMB = VIP_MEDIA_LIMITS_CONFIG.maxAudioSizeMB;
+
+            if (sizeMB > maxMB) {
+                if (badge) {
+                    badge.innerHTML = `⚠️ حجم الريكورد (<b>${sizeMB} MB</b>) يتجاوز حد الرفع السحابي (<b>${maxMB} MB</b>)؛ سيعمل محلياً على جهازك فقط ولن يُرفع للكلاود.`;
+                    badge.style.color = '#fda4af';
+                }
+                showToast(`⚠️ حجم الريكورد (${sizeMB} MB) أكبر من حد السحابة (${maxMB} MB)؛ سيعمل محلياً فقط`, 'error');
+            } else {
+                if (badge) {
+                    badge.innerHTML = `✅ تم ربط الريكورد: <b>${file.name}</b> (الحجم: <b>${sizeMB} MB</b> من ${maxMB} MB مسموح سحابياً)`;
+                    badge.style.color = '#6ee7b7';
+                }
+                showToast(`تم تحديد الريكورد الصوتي بنجاح (${sizeMB} MB) 🎙️`);
+            }
             event.target.value = '';
         }
 
@@ -10728,7 +11203,7 @@
                 await renderPdfBlobInStudio(file);
                 showToast('تم حفظ المحاضرة وتفعيل الكتابة بالجرافيك تابلت 📖');
 
-                if (currentCloudUser) {
+                if (currentCloudUser && currentUserCanUploadMedia) {
                     await uploadMediaToCloudAccount('pdfs', currentViewingLec.lec, file, true);
                     saveSubjects();
                     if (activeSubjectId) renderGroups();
@@ -10760,7 +11235,7 @@
                 document.getElementById('audioPlayIcon').className = 'fa-solid fa-pause';
                 showToast('تم ربط وتشغيل الريكورد الصوتي بالتوازي 🎙️');
 
-                if (currentCloudUser) {
+                if (currentCloudUser && currentUserCanUploadMedia) {
                     await uploadMediaToCloudAccount('audios', currentViewingLec.lec, file, true);
                     saveSubjects();
                     if (activeSubjectId) renderGroups();
@@ -10956,6 +11431,17 @@
         // ================= 1. AUDIO TIMESTAMP PINS ENGINE =================
         function addAudioTimestampPin() {
             if (!currentViewingLec) return;
+            const targetPageCheck = currentActivePageNum || 1;
+            let totalPinsInLecture = 0;
+            if (pageAnnotations._audioPins) {
+                Object.values(pageAnnotations._audioPins).forEach(arr => {
+                    if (Array.isArray(arr)) totalPinsInLecture += arr.length;
+                });
+            }
+            if (totalPinsInLecture >= 1 && !currentUserCanUploadMedia) {
+                checkVipFeatureAccess('الدبابيس الصوتية غير المحدودة (أكثر من دبوس واحد في المحاضرة)');
+                return;
+            }
             const audioEl = document.getElementById('lectureAudioElement');
             const curSec = (audioEl && audioEl.src) ? Math.floor(audioEl.currentTime || 0) : 0;
             const timeFormatted = formatAudioTime(curSec);
@@ -11099,6 +11585,10 @@
             if (!pageAnnotations._extraNotes) pageAnnotations._extraNotes = {};
             const isHidden = sheet.style.display === 'none';
             if (isHidden) {
+                if (!currentUserCanUploadMedia) {
+                    checkVipFeatureAccess('إضافة أوراق التلخيص والمخططات الإضافية تحت السلايدات');
+                    return;
+                }
                 sheet.style.display = 'block';
                 pageAnnotations._extraNotes[targetPage] = true;
                 redrawPageAnnotations(`note_${targetPage}`);
@@ -11126,6 +11616,10 @@
 
         // ================= 3. EXPORT / PRINT ANNOTATED SLIDES =================
         async function exportAnnotatedSlides() {
+            if (!currentUserCanUploadMedia) {
+                checkVipFeatureAccess('تصدير وطباعة المحاضرة المشروحة بالكتابة كملف PDF');
+                return;
+            }
             if (!currentPdfDoc || !currentViewingLec) {
                 showToast('يرجى فتح ملف PDF محلي أولاً لتصديره بالكتابة', 'error');
                 return;
@@ -11283,7 +11777,7 @@
         }
 
         function switchAcademyModule(modNum) {
-            for (let i = 1; i <= 8; i++) {
+            for (let i = 1; i <= 9; i++) {
                 const nav = document.getElementById(`acadNav_${i}`);
                 const pane = document.getElementById(`acadPane_${i}`);
                 if (nav) nav.classList.toggle('active', i === modNum);
@@ -12216,6 +12710,7 @@
         }
 
                 // ================= SUPABASE CLOUD AUTH, AUTO-SAVE & MULTI-ACCOUNT ENGINE =================
+        // لمالك الموقع فقط: ضع رابط ومفتاح مشروعك في Supabase بين علامتي التنصيص بالأسفل قبل رفعه على GitHub Pages
         const SUPABASE_PROJECT_URL = 'https://dszjmgzzqpdrdjkycvht.supabase.co'; 
         const SUPABASE_ANON_PUBLIC_KEY = 'sb_publishable_VqY0YX2ubbc7GUODQRq6Dw_POLClYbX';
 
@@ -12285,7 +12780,9 @@
                 icon.className = 'fa-solid fa-cloud-arrow-up';
                 icon.style.color = 'var(--important-color)';
                 const shortName = currentCloudUser?.user_metadata?.full_name || currentCloudUser?.name || currentCloudUser?.email?.split('@')[0] || 'حسابي';
-                txt.innerText = `${shortName} ✓`;
+                txt.innerHTML = currentUserCanUploadMedia
+                    ? `${shortName} <span class="vip-crown-pill"><i class="fa-solid fa-crown"></i> VIP</span>`
+                    : `${shortName} ✓`;
                 if (liveBadge) liveBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> الحفظ التلقائي مفعّل';
             } else if (state === 'offline') {
                 icon.className = 'fa-solid fa-cloud';
@@ -12337,8 +12834,9 @@
             document.getElementById('cloudAuthModalOverlay').classList.add('active');
         }
 
-        // ================= CLOUD MEDIA (PDF & AUDIO) UPLOAD / DOWNLOAD ENGINE =================
+        // ================= CLOUD MEDIA (PDF & AUDIO) UPLOAD / DOWNLOAD ENGINE (SUPABASE VIP CONTROLLED) =================
         let storageBucketChecked = false;
+        let currentUserCanUploadMedia = false;
 
         function blobToDataUrl(blob) {
             return new Promise((resolve, reject) => {
@@ -12354,20 +12852,189 @@
             return await res.blob();
         }
 
+        // إعدادات أسعار باقة VIP Pro والحد الأقصى لحجم الملف الواحد على السحابة
+        const VIP_PRICING_CONFIG = {
+            monthlyPrice: 45,    // السعر الشهري بالجنيه المصري
+            semesterPrice: 99    // سعر الترم الكامل (4 شهور) بالجنيه المصري
+        };
+        const VIP_MEDIA_LIMITS_CONFIG = {
+            maxPdfSizeMB: 25,    // الحد الأقصى لملف الـ PDF الواحد على السحابة (25 ميجا)
+            maxAudioSizeMB: 35   // الحد الأقصى للريكورد الصوتي الواحد على السحابة (35 ميجا)
+        };
+        let isBulkMediaUploading = false;
+        let selectedVipPlanKey = 'semester';
+        let lastTriggeredVipFeatureName = 'باقة الإنجاز VIP Pro';
+
+        function selectVipPlan(planKey) {
+            selectedVipPlanKey = planKey === 'monthly' ? 'monthly' : 'semester';
+            const mCard = document.getElementById('vipPlanCard_monthly');
+            const sCard = document.getElementById('vipPlanCard_semester');
+            const btnTxt = document.getElementById('vipWhatsappBtnText');
+            if (mCard) mCard.classList.toggle('selected', selectedVipPlanKey === 'monthly');
+            if (sCard) sCard.classList.toggle('selected', selectedVipPlanKey === 'semester');
+            if (btnTxt) {
+                btnTxt.innerText = selectedVipPlanKey === 'monthly'
+                    ? `تفعيل الباقة الشهرية (${VIP_PRICING_CONFIG.monthlyPrice} ج.م) عبر واتساب`
+                    : `تفعيل باقة الترم (${VIP_PRICING_CONFIG.semesterPrice} ج.م) عبر واتساب الآن`;
+            }
+        }
+
+        function openVipUpgradeModal(featureLabel = 'باقة الإنجاز VIP Pro للطلاب') {
+            lastTriggeredVipFeatureName = featureLabel || 'باقة الإنجاز VIP Pro';
+            const badgeEl = document.getElementById('vipModalTriggeredFeatureBadge');
+            if (badgeEl) badgeEl.innerText = `👑 ميزة VIP Pro: ${lastTriggeredVipFeatureName}`;
+            const mTxt = document.getElementById('vipPriceMonthlyTxt');
+            const sTxt = document.getElementById('vipPriceSemesterTxt');
+            if (mTxt) mTxt.innerText = VIP_PRICING_CONFIG.monthlyPrice;
+            if (sTxt) sTxt.innerText = VIP_PRICING_CONFIG.semesterPrice;
+            selectVipPlan(selectedVipPlanKey);
+            document.getElementById('vipMediaLockModalOverlay').classList.add('active');
+        }
+
+        function checkVipFeatureAccess(featureName = 'ميزة VIP Pro', openModalIfLocked = true) {
+            if (!currentCloudUser) {
+                if (openModalIfLocked) {
+                    openCloudAuthModal();
+                    showToast('يرجى تسجيل الدخول في «حسابي / الكلاود» أولاً', 'error');
+                }
+                return false;
+            }
+            if (!currentUserCanUploadMedia) {
+                if (openModalIfLocked) {
+                    openVipUpgradeModal(featureName);
+                }
+                return false;
+            }
+            return true;
+        }
+
         function updateCloudMediaStatsUI() {
             let pdfCloudCount = 0;
             let audioCloudCount = 0;
+            let totalCloudBytes = 0;
             subjects.forEach(s => {
                 (s.groups || []).forEach(g => {
                     (g.lectures || []).forEach(l => {
-                        if (l.cloudPdfUploaded) pdfCloudCount++;
-                        if (l.cloudAudioUploaded) audioCloudCount++;
+                        if (l.cloudPdfUploaded) {
+                            pdfCloudCount++;
+                            totalCloudBytes += (Number(l.cloudPdfSize) || 0);
+                        }
+                        if (l.cloudAudioUploaded) {
+                            audioCloudCount++;
+                            totalCloudBytes += (Number(l.cloudAudioSize) || 0);
+                        }
                     });
                 });
             });
+            const totalMB = (totalCloudBytes / (1024 * 1024)).toFixed(1);
+            const usedBadge = document.getElementById('cloudTotalStorageUsedBadge');
+            if (usedBadge) {
+                usedBadge.innerText = `المرفوع حالياً: ${pdfCloudCount + audioCloudCount} ملف (${totalMB} MB)`;
+            }
             const badge = document.getElementById('cloudMediaCountBadge');
             if (badge) {
-                badge.innerText = `${pdfCloudCount} PDF • ${audioCloudCount} ريكورد بالكلاود`;
+                if (currentUserCanUploadMedia) {
+                    badge.style.color = '#fbbf24';
+                    badge.style.borderColor = 'rgba(245, 158, 11, 0.5)';
+                    badge.innerText = `👑 VIP Pro مفعّل • ${pdfCloudCount} PDF • ${audioCloudCount} ريكورد (${totalMB} MB)`;
+                } else {
+                    badge.style.color = '#fcd34d';
+                    badge.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+                    badge.innerText = '👑 ترقية لـ VIP Pro (تعرف على المزايا)';
+                }
+            }
+            if (currentCloudUser && !isCloudSyncing && !isBulkMediaUploading) {
+                updateCloudNavUI('synced');
+            }
+        }
+
+        function checkCloudMediaUploadPermission(openModalIfLocked = true) {
+            return checkVipFeatureAccess('سحابة ملفات الـ PDF والريكوردات عبر الأجهزة', openModalIfLocked);
+        }
+
+        function requestVipMediaActivationViaWhatsApp() {
+            const email = currentCloudUser?.email || 'غير مسجل الدخول بعد';
+            const name = currentCloudUser?.user_metadata?.full_name || currentCloudUser?.name || (email.includes('@') ? email.split('@')[0] : 'طالب');
+            const planLabel = selectedVipPlanKey === 'monthly'
+                ? `الباقة الشهرية (${VIP_PRICING_CONFIG.monthlyPrice} ج.م / شهر)`
+                : `باقة الترم الكامل (${VIP_PRICING_CONFIG.semesterPrice} ج.م / 4 شهور)`;
+            const msg = `السلام عليكم يا دكتور، أرغب في الاشتراك وتفعيل باقة VIP Pro في منصة الإنجاز لحسابي:\n- الباقة المختارة: ${planLabel}\n- الاسم: ${name}\n- البريد الإلكتروني: ${email}\n(أرجو إرسال رقم فودافون كاش أو إنستا باي للتفعيل)`;
+            window.open(`https://wa.me/201552795922?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
+        }
+
+        // ================= POMODORO AMBIENT FOCUS SOUNDSCAPES (VIP PRO) =================
+        let ambientAudioCtx = null;
+        let ambientNoiseNode = null;
+        let ambientGainNode = null;
+
+        function stopAmbientFocusSound() {
+            try {
+                if (ambientNoiseNode) {
+                    ambientNoiseNode.disconnect();
+                    ambientNoiseNode = null;
+                }
+                if (ambientAudioCtx && ambientAudioCtx.state !== 'closed') {
+                    ambientAudioCtx.close();
+                }
+            } catch (e) {}
+            ambientAudioCtx = null;
+        }
+
+        function handleAmbientSoundChange(mode) {
+            const sel = document.getElementById('pomoAmbientSoundSelect');
+            if (mode === 'off') {
+                stopAmbientFocusSound();
+                showToast('🔇 تم إيقاف صوت الخلفية');
+                return;
+            }
+            if (!checkVipFeatureAccess('استوديو العزل الصوتي وموجات التركيز (Pomodoro Soundscapes)', true)) {
+                if (sel) sel.value = 'off';
+                stopAmbientFocusSound();
+                return;
+            }
+            stopAmbientFocusSound();
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                ambientAudioCtx = new AudioCtx();
+                const bufferSize = 2 * ambientAudioCtx.sampleRate;
+                const noiseBuffer = ambientAudioCtx.createBuffer(1, bufferSize, ambientAudioCtx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+
+                // Pink / Brown soothing noise synthesis for rain & deep focus
+                let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+                for (let i = 0; i < bufferSize; i++) {
+                    const white = Math.random() * 2 - 1;
+                    b0 = 0.99886 * b0 + white * 0.0555179;
+                    b1 = 0.99332 * b1 + white * 0.0750759;
+                    b2 = 0.96900 * b2 + white * 0.1538520;
+                    b3 = 0.86650 * b3 + white * 0.3104856;
+                    b4 = 0.55000 * b4 + white * 0.5329522;
+                    b5 = -0.7616 * b5 - white * 0.0168980;
+                    output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.04;
+                    b6 = white * 0.115926;
+                }
+
+                const whiteNoise = ambientAudioCtx.createBufferSource();
+                whiteNoise.buffer = noiseBuffer;
+                whiteNoise.loop = true;
+
+                const filter = ambientAudioCtx.createBiquadFilter();
+                filter.type = mode === 'rain' ? 'bandpass' : 'lowpass';
+                filter.frequency.value = mode === 'rain' ? 950 : 320;
+                filter.Q.value = mode === 'rain' ? 0.7 : 1.0;
+
+                ambientGainNode = ambientAudioCtx.createGain();
+                ambientGainNode.gain.value = mode === 'rain' ? 0.35 : 0.55;
+
+                whiteNoise.connect(filter);
+                filter.connect(ambientGainNode);
+                ambientGainNode.connect(ambientAudioCtx.destination);
+                whiteNoise.start(0);
+                ambientNoiseNode = whiteNoise;
+
+                showToast(mode === 'rain' ? '🌧️ تم تشغيل صوت المطر الهادئ للتركيز العميق' : '🌊 تم تشغيل موجات العزل والتركيز العميق');
+            } catch (e) {
+                showToast('تعذر تشغيل الصوت في المتصفح', 'error');
             }
         }
 
@@ -12379,36 +13046,218 @@
             } catch (e) {}
         }
 
-        async function uploadMediaToCloudAccount(storeName, lecObj, fileBlob, showToastMsg = true) {
-            if (!lecObj || !fileBlob) return false;
-            if (!currentCloudUser) {
-                if (showToastMsg) showToast('يرجى تسجيل الدخول في «حسابي / الكلاود» أولاً لرفع الملفات على حسابك', 'error');
-                return false;
+        function formatUploadSpeed(bytesPerSec) {
+            if (!bytesPerSec || bytesPerSec <= 0 || !isFinite(bytesPerSec)) return '⚡ جاري القياس...';
+            const mbps = bytesPerSec / (1024 * 1024);
+            if (mbps >= 1) {
+                return `⚡ ${mbps.toFixed(2)} MB/s`;
+            }
+            const kbps = Math.max(1, Math.round(bytesPerSec / 1024));
+            return `⚡ ${kbps} KB/s`;
+        }
+
+        function updateLiveUploadMonitorUI({ active, fileName, pct, speedText, loadedBytes, totalBytes, queueIndex, queueTotal }) {
+            const modalBox = document.getElementById('cloudMediaUploadMonitorBox');
+            const hudBox = document.getElementById('floatingCloudUploadHud');
+            const pdfStatus = document.getElementById('pdfAutoSaveStatus');
+
+            if (!active) {
+                if (modalBox) modalBox.classList.remove('active');
+                if (hudBox) hudBox.classList.remove('active');
+                return;
+            }
+
+            if (modalBox) modalBox.classList.add('active');
+            if (hudBox) hudBox.classList.add('active');
+
+            const safePct = Math.max(0, Math.min(100, Math.round(pct || 0)));
+            const loadedMB = ((loadedBytes || 0) / (1024 * 1024)).toFixed(2);
+            const totalMB = ((totalBytes || 0) / (1024 * 1024)).toFixed(2);
+            const sizeStr = `${loadedMB} / ${totalMB} MB`;
+            const qStr = `ملف ${queueIndex || 1} من ${queueTotal || 1}`;
+            const spd = speedText || '⚡ ...';
+
+            const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+            setTxt('modalUploadFileName', `☁️ ${fileName}`);
+            setTxt('modalUploadSpeed', spd);
+            setTxt('modalUploadPct', `${safePct}%`);
+            setTxt('modalUploadSizeProgress', sizeStr);
+            setTxt('modalUploadQueueCounter', qStr);
+            const mBar = document.getElementById('modalUploadBarFill');
+            if (mBar) mBar.style.width = `${safePct}%`;
+
+            setTxt('hudUploadFileName', `☁️ ${fileName}`);
+            setTxt('hudUploadSpeed', spd);
+            setTxt('hudUploadPct', `${safePct}%`);
+            setTxt('hudUploadSizeProgress', sizeStr);
+            setTxt('hudUploadQueueCounter', qStr);
+            const hBar = document.getElementById('hudUploadBarFill');
+            if (hBar) hBar.style.width = `${safePct}%`;
+
+            if (pdfStatus) {
+                pdfStatus.innerHTML = `<i class="fa-solid fa-cloud-arrow-up fa-fade"></i> ${safePct}% (${spd})`;
+            }
+        }
+
+        function validateFileCloudSizeLimit(storeName, fileBlob, lecTitle = '', showToastMsg = true) {
+            if (!fileBlob) return { allowed: false, reason: 'empty' };
+            const isPdf = storeName === 'pdfs';
+            const maxMB = isPdf ? VIP_MEDIA_LIMITS_CONFIG.maxPdfSizeMB : VIP_MEDIA_LIMITS_CONFIG.maxAudioSizeMB;
+            const maxBytes = maxMB * 1024 * 1024;
+            const fileSizeMB = Number((fileBlob.size / (1024 * 1024)).toFixed(2));
+            const typeAr = isPdf ? 'ملف الـ PDF' : 'الريكورد الصوتي';
+
+            if (fileBlob.size > maxBytes) {
+                if (showToastMsg) {
+                    showToast(
+                        `⚠️ حجم ${typeAr} «${lecTitle || fileBlob.name || ''}» هو (${fileSizeMB} MB) ويتجاوز الحد الأقصى المسموح للرفع السحابي (${maxMB} MB) لمنع امتلاء التخزين. الملف يعمل محلياً على جهازك، أو اضغطه قبل رفعه.`,
+                        'error'
+                    );
+                }
+                return { allowed: false, reason: 'oversized', fileSizeMB, maxMB, typeAr };
+            }
+            return { allowed: true, fileSizeMB, maxMB, typeAr };
+        }
+
+        function uploadToSupabaseStorageViaXHR(storagePath, fileBlob, contentType, onProgressCallback) {
+            return new Promise(async (resolve) => {
+                if (!supabaseClient || !navigator.onLine) return resolve({ ok: false, error: 'offline' });
+                try {
+                    await ensureSupabaseMediaBucket();
+                    const { data: sessionData } = await supabaseClient.auth.getSession();
+                    const accessToken = sessionData?.session?.access_token || SUPABASE_ANON_PUBLIC_KEY.trim();
+
+                    const encodedPath = storagePath.split('/').map(seg => encodeURIComponent(seg)).join('/');
+                    const uploadUrl = `${SUPABASE_PROJECT_URL.trim()}/storage/v1/object/lecture_media/${encodedPath}`;
+
+                    const xhr = new XMLHttpRequest();
+                    const startTimeMs = performance.now();
+                    let lastLoaded = 0;
+                    let lastTimeMs = startTimeMs;
+                    let smoothedSpeedBps = 0;
+
+                    xhr.open('POST', uploadUrl, true);
+                    xhr.timeout = 120000; // 120 seconds timeout per file so it never hangs forever
+                    xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+                    xhr.setRequestHeader('apikey', SUPABASE_ANON_PUBLIC_KEY.trim());
+                    xhr.setRequestHeader('x-upsert', 'true');
+                    xhr.setRequestHeader('Content-Type', contentType || 'application/octet-stream');
+
+                    xhr.upload.onprogress = (e) => {
+                        if (e.lengthComputable && onProgressCallback) {
+                            const nowMs = performance.now();
+                            const dtSec = Math.max(0.05, (nowMs - lastTimeMs) / 1000);
+                            const dBytes = Math.max(0, e.loaded - lastLoaded);
+                            const instantBps = dBytes / dtSec;
+                            const overallSec = Math.max(0.1, (nowMs - startTimeMs) / 1000);
+                            const avgBps = e.loaded / overallSec;
+
+                            smoothedSpeedBps = smoothedSpeedBps > 0
+                                ? (smoothedSpeedBps * 0.65 + instantBps * 0.35)
+                                : avgBps;
+
+                            lastLoaded = e.loaded;
+                            lastTimeMs = nowMs;
+
+                            const pct = Math.min(99, Math.round((e.loaded / e.total) * 100));
+                            onProgressCallback({
+                                pct,
+                                loaded: e.loaded,
+                                total: e.total,
+                                speedBps: smoothedSpeedBps,
+                                speedText: formatUploadSpeed(smoothedSpeedBps)
+                            });
+                        }
+                    };
+
+                    xhr.onload = () => {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            const elapsedSec = Math.max(0.15, (performance.now() - startTimeMs) / 1000);
+                            const finalBps = fileBlob.size / elapsedSec;
+                            if (onProgressCallback) {
+                                onProgressCallback({
+                                    pct: 100,
+                                    loaded: fileBlob.size,
+                                    total: fileBlob.size,
+                                    speedBps: finalBps,
+                                    speedText: formatUploadSpeed(finalBps)
+                                });
+                            }
+                            resolve({ ok: true, finalBps });
+                        } else {
+                            resolve({ ok: false, error: `HTTP ${xhr.status}: ${xhr.responseText || ''}` });
+                        }
+                    };
+
+                    xhr.onerror = () => resolve({ ok: false, error: 'network_error' });
+                    xhr.ontimeout = () => resolve({ ok: false, error: 'timeout' });
+                    xhr.send(fileBlob);
+                } catch (err) {
+                    resolve({ ok: false, error: err.message || 'xhr_exception' });
+                }
+            });
+        }
+
+        async function uploadMediaToCloudAccount(storeName, lecObj, fileBlob, showToastMsg = true, queueMeta = null) {
+            if (!lecObj || !fileBlob) return { ok: false, reason: 'missing_blob' };
+            if (!checkCloudMediaUploadPermission(showToastMsg)) {
+                return { ok: false, reason: 'no_permission' };
+            }
+
+            // 1. Enforce Single-File Size Limit (25MB PDF / 35MB Audio)
+            const sizeCheck = validateFileCloudSizeLimit(storeName, fileBlob, lecObj.title, showToastMsg);
+            if (!sizeCheck.allowed) {
+                return { ok: false, reason: 'oversized', sizeCheck };
             }
 
             const isPdf = storeName === 'pdfs';
             const labelAr = isPdf ? 'ملف الـ PDF' : 'الريكورد الصوتي';
-            const pdfStatus = document.getElementById('pdfAutoSaveStatus');
-            if (pdfStatus) {
-                pdfStatus.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري رفع ${labelAr} للكلاود...`;
-            }
+            const displayFileName = `${isPdf ? 'PDF' : 'ريكورد'}: ${lecObj.title}`;
+            const qIndex = queueMeta?.index || 1;
+            const qTotal = queueMeta?.total || 1;
+            const deferWorkspaceSync = Boolean(queueMeta?.deferWorkspaceSync);
+
+            updateLiveUploadMonitorUI({
+                active: true,
+                fileName: displayFileName,
+                pct: 2,
+                speedText: '⚡ جاري الاتصال...',
+                loadedBytes: 0,
+                totalBytes: fileBlob.size,
+                queueIndex: qIndex,
+                queueTotal: qTotal
+            });
 
             let uploadedViaStorage = false;
-            const ext = isPdf ? 'pdf' : ((fileBlob.name && fileBlob.name.includes('.')) ? fileBlob.name.split('.').pop() : 'mp3');
+            let lastSpeedText = '⚡ مكتمل';
+            const rawExt = isPdf ? 'pdf' : ((fileBlob.name && fileBlob.name.includes('.')) ? fileBlob.name.split('.').pop().replace(/[^a-zA-Z0-9]/g, '') : 'mp3');
+            const ext = rawExt || (isPdf ? 'pdf' : 'mp3');
             const storagePath = `${currentCloudUser.id}/${lecObj.id}_${storeName}.${ext}`;
+            const contentType = fileBlob.type || (isPdf ? 'application/pdf' : 'audio/mpeg');
 
-            // 1. Try Supabase Storage bucket ('lecture_media')
+            // 2. Upload via XHR with Live Progress & Speed (with up to 2 automatic retries on network hiccup)
             if (supabaseClient && navigator.onLine) {
-                try {
-                    await ensureSupabaseMediaBucket();
-                    const { error: upErr } = await supabaseClient.storage
-                        .from('lecture_media')
-                        .upload(storagePath, fileBlob, {
-                            upsert: true,
-                            contentType: fileBlob.type || (isPdf ? 'application/pdf' : 'audio/mpeg')
-                        });
+                for (let attempt = 1; attempt <= 2; attempt++) {
+                    const xhrRes = await uploadToSupabaseStorageViaXHR(
+                        storagePath,
+                        fileBlob,
+                        contentType,
+                        (prog) => {
+                            lastSpeedText = prog.speedText;
+                            updateLiveUploadMonitorUI({
+                                active: true,
+                                fileName: displayFileName,
+                                pct: prog.pct,
+                                speedText: prog.speedText,
+                                loadedBytes: prog.loaded,
+                                totalBytes: prog.total,
+                                queueIndex: qIndex,
+                                queueTotal: qTotal
+                            });
+                        }
+                    );
 
-                    if (!upErr) {
+                    if (xhrRes.ok) {
                         const { data: pubData } = supabaseClient.storage
                             .from('lecture_media')
                             .getPublicUrl(storagePath);
@@ -12418,23 +13267,39 @@
                             lecObj.cloudPdfPath = storagePath;
                             lecObj.cloudPdfUrl = publicUrl;
                             lecObj.cloudPdfSize = fileBlob.size;
+                            lecObj.cloudPdfSyncedAt = Date.now();
                         } else {
                             lecObj.cloudAudioUploaded = true;
                             lecObj.cloudAudioPath = storagePath;
                             lecObj.cloudAudioUrl = publicUrl;
                             lecObj.cloudAudioSize = fileBlob.size;
+                            lecObj.cloudAudioSyncedAt = Date.now();
                         }
                         uploadedViaStorage = true;
+                        break;
                     }
-                } catch (e) {}
+                    if (attempt === 1) {
+                        await new Promise(r => setTimeout(r, 600));
+                    }
+                }
             }
 
-            // 2. Fallback: Store in IndexedDB annotations store under `_cloudMedia_<storeName>_<lecId>`
-            // so `pushWorkspaceToCloud()` syncs it automatically inside `user_workspaces.annotations`!
+            // 3. Safe Fallback for small files (<= 6 MB) if Storage bucket isn't created yet
             if (!uploadedViaStorage) {
-                const maxFallbackBytes = 15 * 1024 * 1024; // 15 MB safety limit for JSONB fallback
+                const maxFallbackBytes = 6 * 1024 * 1024;
                 if (fileBlob.size <= maxFallbackBytes) {
                     try {
+                        const startFb = performance.now();
+                        updateLiveUploadMonitorUI({
+                            active: true,
+                            fileName: displayFileName,
+                            pct: 45,
+                            speedText: '⚡ جاري المزامنة البديلة...',
+                            loadedBytes: Math.round(fileBlob.size * 0.45),
+                            totalBytes: fileBlob.size,
+                            queueIndex: qIndex,
+                            queueTotal: qTotal
+                        });
                         const dataUrl = await blobToDataUrl(fileBlob);
                         const mediaKey = `_cloudMedia_${storeName}_${lecObj.id}`;
                         if (dbInstance) {
@@ -12450,38 +13315,63 @@
                                 tx.onerror = () => resolve();
                             });
                         }
+                        const elapsedFb = Math.max(0.2, (performance.now() - startFb) / 1000);
+                        lastSpeedText = formatUploadSpeed(fileBlob.size / elapsedFb);
+                        updateLiveUploadMonitorUI({
+                            active: true,
+                            fileName: displayFileName,
+                            pct: 100,
+                            speedText: lastSpeedText,
+                            loadedBytes: fileBlob.size,
+                            totalBytes: fileBlob.size,
+                            queueIndex: qIndex,
+                            queueTotal: qTotal
+                        });
                         if (isPdf) {
                             lecObj.cloudPdfUploaded = true;
                             lecObj.cloudPdfPath = `db_fallback:${mediaKey}`;
                             lecObj.cloudPdfSize = fileBlob.size;
+                            lecObj.cloudPdfSyncedAt = Date.now();
                         } else {
                             lecObj.cloudAudioUploaded = true;
                             lecObj.cloudAudioPath = `db_fallback:${mediaKey}`;
                             lecObj.cloudAudioSize = fileBlob.size;
+                            lecObj.cloudAudioSyncedAt = Date.now();
                         }
                         uploadedViaStorage = true;
                     } catch (e) {}
                 } else {
-                    if (showToastMsg) {
-                        showToast(`حجم ${labelAr} كبير (${Math.round(fileBlob.size / 1024 / 1024)}MB)؛ تأكد من تفعيل Storage Bucket باسم lecture_media في Supabase`, 'error');
+                    if (!deferWorkspaceSync) {
+                        setTimeout(() => updateLiveUploadMonitorUI({ active: false }), 1500);
                     }
-                    return false;
+                    if (showToastMsg) {
+                        showToast(`تعذر رفع ${labelAr} (${sizeCheck.fileSizeMB} MB)؛ تأكد من وجود Bucket عام باسم lecture_media في Supabase Storage`, 'error');
+                    }
+                    return { ok: false, reason: 'storage_bucket_error' };
                 }
             }
 
             if (uploadedViaStorage) {
-                saveSubjects();
-                await pushWorkspaceToCloud(false);
-                updateCloudMediaStatsUI();
+                localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+                if (!deferWorkspaceSync) {
+                    await pushWorkspaceToCloud(false);
+                    updateCloudMediaStatsUI();
+                    setTimeout(() => updateLiveUploadMonitorUI({ active: false }), 1800);
+                }
+                const pdfStatus = document.getElementById('pdfAutoSaveStatus');
                 if (pdfStatus) {
-                    pdfStatus.innerHTML = `<i class="fa-solid fa-cloud-check"></i> ${labelAr} محفوظ في حسابك ✓`;
+                    pdfStatus.innerHTML = `<i class="fa-solid fa-cloud-check"></i> ${labelAr} متزامن (100% • ${lastSpeedText}) ✓`;
                 }
                 if (showToastMsg) {
-                    showToast(`☁️ تم رفع ${labelAr} للمحاضرة «${lecObj.title}» على حسابك السحابي بنجاح!`);
+                    showToast(`☁️ تم رفع ${labelAr} «${lecObj.title}» بنجاح (100% • السرعة: ${lastSpeedText})!`);
                 }
-                return true;
+                return { ok: true, speedText: lastSpeedText };
             }
-            return false;
+
+            if (!deferWorkspaceSync) {
+                setTimeout(() => updateLiveUploadMonitorUI({ active: false }), 1500);
+            }
+            return { ok: false, reason: 'unknown' };
         }
 
         async function downloadMediaFromCloudAccount(storeName, lecObj) {
@@ -12533,9 +13423,7 @@
 
         async function uploadSingleLectureMediaToCloud(groupId, lecId, event) {
             if (event) event.stopPropagation();
-            if (!currentCloudUser) {
-                openCloudAuthModal();
-                showToast('سجّل دخولك أولاً لرفع ملفات الـ PDF والريكورد على حسابك السحابي ☁️');
+            if (!checkCloudMediaUploadPermission(true)) {
                 return;
             }
             const sub = subjects.find(s => s.id === activeSubjectId);
@@ -12553,30 +13441,31 @@
                 return;
             }
 
-            showToast(`⏳ جاري رفع ملفات «${lec.title}» إلى حسابك السحابي...`);
+            const totalItems = (pdfBlob ? 1 : 0) + (audioBlob ? 1 : 0);
+            let curItem = 0;
             let anySuccess = false;
+
             if (pdfBlob) {
-                const ok1 = await uploadMediaToCloudAccount('pdfs', lec, pdfBlob, false);
-                if (ok1) anySuccess = true;
+                curItem++;
+                const res1 = await uploadMediaToCloudAccount('pdfs', lec, pdfBlob, true, { index: curItem, total: totalItems, deferWorkspaceSync: Boolean(audioBlob) });
+                if (res1 && res1.ok) anySuccess = true;
             }
             if (audioBlob) {
-                const ok2 = await uploadMediaToCloudAccount('audios', lec, audioBlob, false);
-                if (ok2) anySuccess = true;
+                curItem++;
+                const res2 = await uploadMediaToCloudAccount('audios', lec, audioBlob, true, { index: curItem, total: totalItems, deferWorkspaceSync: false });
+                if (res2 && res2.ok) anySuccess = true;
             }
 
             if (anySuccess) {
                 saveSubjects();
                 renderGroups();
                 updateCloudMediaStatsUI();
-                showToast(`☁️ تم رفع وحفظ ملفات «${lec.title}» على حسابك بنجاح!`);
             }
         }
 
         async function uploadCurrentViewingLectureMediaToCloud() {
             if (!currentViewingLec || !currentViewingLec.lec) return;
-            if (!currentCloudUser) {
-                openCloudAuthModal();
-                showToast('سجّل دخولك أولاً لرفع المحاضرة والريكورد على حسابك ☁️');
+            if (!checkCloudMediaUploadPermission(true)) {
                 return;
             }
             const lec = currentViewingLec.lec;
@@ -12586,64 +13475,153 @@
                 showToast('لا يوجد ملف PDF أو ريكورد محلي مرتبط بهذه المحاضرة حالياً', 'error');
                 return;
             }
-            showToast(`⏳ جاري رفع ملفات «${lec.title}» على حسابك...`);
-            if (pdfBlob) await uploadMediaToCloudAccount('pdfs', lec, pdfBlob, false);
-            if (audioBlob) await uploadMediaToCloudAccount('audios', lec, audioBlob, false);
+            const totalItems = (pdfBlob ? 1 : 0) + (audioBlob ? 1 : 0);
+            let curItem = 0;
+            if (pdfBlob) {
+                curItem++;
+                await uploadMediaToCloudAccount('pdfs', lec, pdfBlob, true, { index: curItem, total: totalItems, deferWorkspaceSync: Boolean(audioBlob) });
+            }
+            if (audioBlob) {
+                curItem++;
+                await uploadMediaToCloudAccount('audios', lec, audioBlob, true, { index: curItem, total: totalItems, deferWorkspaceSync: false });
+            }
             saveSubjects();
             if (activeSubjectId) renderGroups();
             updateCloudMediaStatsUI();
-            showToast(`☁️ تم رفع الـ PDF والريكورد للمحاضرة على حسابك بنجاح!`);
         }
 
         async function syncAllLocalMediaToCloud() {
-            if (!currentCloudUser) {
-                showToast('يرجى تسجيل الدخول أولاً', 'error');
+            if (!checkCloudMediaUploadPermission(true)) {
                 return;
             }
+            if (isBulkMediaUploading) {
+                showToast('⏳ جاري رفع الملفات بالفعل، يرجى الانتظار حتى اكتمال الشريط...', 'error');
+                return;
+            }
+
             const progEl = document.getElementById('cloudMediaProgressText');
             const btnUp = document.getElementById('btnSyncAllMediaUp');
             if (progEl) {
                 progEl.style.display = 'block';
-                progEl.innerText = '⏳ جاري فحص ورفع ملفات الـ PDF والريكوردات الصوتية إلى حسابك...';
+                progEl.innerHTML = '⏳ جاري فحص جميع المحاضرات وتجهيز طابور الرفع الذكي...';
             }
             if (btnUp) btnUp.disabled = true;
+            isBulkMediaUploading = true;
+            if (cloudAutoSaveTimer) clearTimeout(cloudAutoSaveTimer);
 
-            let uploadedCount = 0;
-            let totalFound = 0;
+            try {
+                // Step 1: Collect a stable snapshot queue of all local files across all subjects
+                const queue = [];
+                let alreadySyncedCount = 0;
+                let oversizedSkippedCount = 0;
+                const oversizedNames = [];
 
-            for (const sub of subjects) {
-                for (const grp of (sub.groups || [])) {
-                    for (const lec of (grp.lectures || [])) {
-                        const pdfBlob = await getMediaFromDB('pdfs', lec.id);
-                        if (pdfBlob) {
-                            totalFound++;
-                            if (progEl) progEl.innerText = `☁️ جاري رفع PDF: ${lec.title}...`;
-                            const ok = await uploadMediaToCloudAccount('pdfs', lec, pdfBlob, false);
-                            if (ok) uploadedCount++;
-                        }
-                        const audioBlob = await getMediaFromDB('audios', lec.id);
-                        if (audioBlob) {
-                            totalFound++;
-                            if (progEl) progEl.innerText = `🎙️ جاري رفع ريكورد: ${lec.title}...`;
-                            const ok = await uploadMediaToCloudAccount('audios', lec, audioBlob, false);
-                            if (ok) uploadedCount++;
+                for (const sub of subjects) {
+                    for (const grp of (sub.groups || [])) {
+                        for (const lec of (grp.lectures || [])) {
+                            const pdfBlob = await getMediaFromDB('pdfs', lec.id);
+                            if (pdfBlob) {
+                                if (lec.cloudPdfUploaded && lec.cloudPdfPath && !lec.cloudPdfPath.startsWith('db_fallback:')) {
+                                    alreadySyncedCount++;
+                                } else {
+                                    const chk = validateFileCloudSizeLimit('pdfs', pdfBlob, lec.title, false);
+                                    if (!chk.allowed) {
+                                        oversizedSkippedCount++;
+                                        oversizedNames.push(`PDF: ${lec.title} (${chk.fileSizeMB}MB > ${chk.maxMB}MB)`);
+                                    } else {
+                                        queue.push({ storeName: 'pdfs', lec, blob: pdfBlob });
+                                    }
+                                }
+                            }
+
+                            const audioBlob = await getMediaFromDB('audios', lec.id);
+                            if (audioBlob) {
+                                if (lec.cloudAudioUploaded && lec.cloudAudioPath && !lec.cloudAudioPath.startsWith('db_fallback:')) {
+                                    alreadySyncedCount++;
+                                } else {
+                                    const chk = validateFileCloudSizeLimit('audios', audioBlob, lec.title, false);
+                                    if (!chk.allowed) {
+                                        oversizedSkippedCount++;
+                                        oversizedNames.push(`ريكورد: ${lec.title} (${chk.fileSizeMB}MB > ${chk.maxMB}MB)`);
+                                    } else {
+                                        queue.push({ storeName: 'audios', lec, blob: audioBlob });
+                                    }
+                                }
+                            }
                         }
                     }
                 }
-            }
 
-            if (btnUp) btnUp.disabled = false;
-            saveSubjects();
-            await pushWorkspaceToCloud(false);
-            if (activeSubjectId) renderGroups();
-            updateCloudMediaStatsUI();
+                if (queue.length === 0) {
+                    updateLiveUploadMonitorUI({ active: false });
+                    let msg = '';
+                    if (alreadySyncedCount > 0 && oversizedSkippedCount === 0) {
+                        msg = `✅ جميع ملفاتك المحلية المسموحة (${alreadySyncedCount} ملف) مرفوعة ومتزامنة على السحابة بالفعل ✓`;
+                        showToast(msg);
+                    } else if (oversizedSkippedCount > 0) {
+                        msg = `⚠️ متزامن مسبقاً: ${alreadySyncedCount} ملف • وتم تخطي ${oversizedSkippedCount} ملف لتجاوز الحد الأقصى (${oversizedNames.join(' ، ')})`;
+                        showToast(`تم تخطي ${oversizedSkippedCount} ملف لتجاوز الحد الأقصى المسموح للسحابة`, 'error');
+                    } else {
+                        msg = 'ℹ️ لا توجد ملفات PDF أو ريكوردات محفوظة محلياً حالياً لرفعها.';
+                        showToast('لا توجد ملفات PDF أو ريكوردات محلية حالياً لرفعها');
+                    }
+                    if (progEl) progEl.innerHTML = msg;
+                    return;
+                }
 
-            if (totalFound === 0) {
-                if (progEl) progEl.innerText = 'ℹ️ لا توجد ملفات PDF أو ريكوردات محفوظة محلياً حالياً لرفعها.';
-                showToast('لا توجد ملفات PDF أو ريكوردات محلية حالياً لرفعها');
-            } else {
-                if (progEl) progEl.innerText = `✅ تم رفع ومزامنة ${uploadedCount} من ${totalFound} ملف (PDF / ريكورد) على حسابك السحابي بنجاح!`;
-                showToast(`☁️ تم رفع ومزامنة ${uploadedCount} ملف (PDF وريكورد) على حسابك بنجاح!`);
+                // Step 2: Process the queue sequentially with isolated try/catch so it NEVER stops mid-way
+                let uploadedCount = 0;
+                let failedCount = 0;
+
+                for (let i = 0; i < queue.length; i++) {
+                    const item = queue[i];
+                    const itemNum = i + 1;
+                    const typeLabel = item.storeName === 'pdfs' ? 'PDF' : 'ريكورد';
+                    if (progEl) {
+                        progEl.innerHTML = `☁️ جاري رفع (${itemNum} من ${queue.length}): <b>${typeLabel} — ${item.lec.title}</b>...`;
+                    }
+                    try {
+                        const res = await uploadMediaToCloudAccount(
+                            item.storeName,
+                            item.lec,
+                            item.blob,
+                            false,
+                            { index: itemNum, total: queue.length, deferWorkspaceSync: true }
+                        );
+                        if (res && res.ok) {
+                            uploadedCount++;
+                            localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+                            updateCloudMediaStatsUI();
+                        } else {
+                            failedCount++;
+                        }
+                    } catch (itemErr) {
+                        failedCount++;
+                    }
+                }
+
+                // Step 3: Push workspace metadata once cleanly at the end of the batch
+                localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+                await pushWorkspaceToCloud(false);
+                if (activeSubjectId) renderGroups();
+                updateCloudMediaStatsUI();
+
+                let summaryHtml = `✅ اكتملت المزامنة: تم رفع <b>${uploadedCount}</b> من <b>${queue.length}</b> ملف جديد بنجاح!`;
+                if (alreadySyncedCount > 0) {
+                    summaryHtml += ` (بالإضافة إلى ${alreadySyncedCount} ملف متزامن مسبقاً ✓)`;
+                }
+                if (oversizedSkippedCount > 0) {
+                    summaryHtml += `<br><span style="color:#fda4af;">⚠️ تم تخطي ${oversizedSkippedCount} ملف لتجاوز الحد الأقصى (${VIP_MEDIA_LIMITS_CONFIG.maxPdfSizeMB}MB للـ PDF / ${VIP_MEDIA_LIMITS_CONFIG.maxAudioSizeMB}MB للريكورد): ${oversizedNames.join(' ، ')}</span>`;
+                }
+                if (failedCount > 0) {
+                    summaryHtml += `<br><span style="color:#fcd34d;">ℹ️ تعذر رفع ${failedCount} ملف (اضغط الزر مرة أخرى لاستكمالها تلقائياً).</span>`;
+                }
+                if (progEl) progEl.innerHTML = summaryHtml;
+                showToast(`☁️ اكتمل رفع ${uploadedCount} ملف على حسابك السحابي بنجاح!`);
+            } finally {
+                isBulkMediaUploading = false;
+                if (btnUp) btnUp.disabled = false;
+                setTimeout(() => updateLiveUploadMonitorUI({ active: false }), 2400);
             }
         }
 
@@ -12814,6 +13792,7 @@
             }
             localStorage.removeItem('pharmaActiveAccountSessionV1');
             currentCloudUser = null;
+            currentUserCanUploadMedia = false;
 
             // Reset active workspace in memory so next user gets a clean slate until they log in
             subjects = [];
@@ -12882,11 +13861,11 @@
         // --- Auto-Save Trigger on Any Data Change ---
         function markLocalWorkspaceModified() {
             localStorage.setItem('pharmaWorkspaceUpdatedAt', String(Date.now()));
-            if (!currentCloudUser) return;
+            if (!currentCloudUser || isBulkMediaUploading) return;
             updateCloudNavUI('syncing');
             if (cloudAutoSaveTimer) clearTimeout(cloudAutoSaveTimer);
             cloudAutoSaveTimer = setTimeout(() => {
-                pushWorkspaceToCloud(false);
+                if (!isBulkMediaUploading) pushWorkspaceToCloud(false);
             }, 1200);
         }
 
@@ -12897,9 +13876,17 @@
 
             try {
                 const allAnnotations = await getAllAnnotationsMapFromDB();
+                // Keep annotations lightweight so JSONB & localStorage never choke on huge binary fallback blobs
+                const lightweightAnnotations = {};
+                Object.keys(allAnnotations || {}).forEach(k => {
+                    if (!String(k).startsWith('_cloudMedia_')) {
+                        lightweightAnnotations[k] = allAnnotations[k];
+                    }
+                });
                 const nowIso = new Date().toISOString();
                 const payload = {
                     user_id: currentCloudUser.id,
+                    user_email: (currentCloudUser.email || "").toLowerCase(),
                     subjects: subjects || [],
                     schedule: {
                         version: 2,
@@ -12908,14 +13895,16 @@
                         pdfFitMode: currentPdfFitMode || 'height'
                     },
                     logs: logs || [],
-                    annotations: allAnnotations || {},
+                    annotations: lightweightAnnotations,
                     academy_progress: completedAcademyModules || [],
                     updated_at: nowIso
                 };
 
-                // Always save into per-account local vault for instant offline access
-                const accountKey = `pharmaAccountWorkspace_${currentCloudUser.email || currentCloudUser.id}`;
-                localStorage.setItem(accountKey, JSON.stringify(payload));
+                // Safely save into per-account local vault without throwing QuotaExceededError
+                try {
+                    const accountKey = `pharmaAccountWorkspace_${currentCloudUser.email || currentCloudUser.id}`;
+                    localStorage.setItem(accountKey, JSON.stringify(payload));
+                } catch (quotaErr) {}
 
                 // If Supabase Cloud is configured & online, upsert to Supabase
                 if (supabaseClient && navigator.onLine) {
@@ -12950,6 +13939,8 @@
 
         async function applyCloudWorkspacePayload(cloudRow, showSuccessToast = false) {
             if (!cloudRow) return;
+            currentUserCanUploadMedia = Boolean(cloudRow.can_upload_media);
+            updateCloudMediaStatsUI();
             if (Array.isArray(cloudRow.subjects)) {
                 subjects = cloudRow.subjects;
                 localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
@@ -13052,6 +14043,9 @@
                     data = JSON.parse(localStorage.getItem(accountKey) || 'null');
                 }
 
+                currentUserCanUploadMedia = Boolean(data && data.can_upload_media);
+                updateCloudMediaStatsUI();
+
                 const hasAccountData = data && (
                     (Array.isArray(data.subjects) && data.subjects.length > 0) ||
                     (data.schedule?.events && data.schedule.events.length > 0) ||
@@ -13062,10 +14056,14 @@
 
                 if (hasAccountData) {
                     await applyCloudWorkspacePayload(data, false);
-                } else if (hasLocalData) {
-                    await pushWorkspaceToCloud(false);
+                    if (!data.user_email && currentCloudUser.email && supabaseClient && navigator.onLine) {
+                        await supabaseClient
+                            .from('user_workspaces')
+                            .update({ user_email: currentCloudUser.email.toLowerCase() })
+                            .eq('user_id', currentCloudUser.id);
+                    }
                 } else {
-                    updateCloudNavUI('synced');
+                    await pushWorkspaceToCloud(false);
                 }
             } catch (err) {
                 updateCloudNavUI('synced');
@@ -13707,6 +14705,10 @@
         }
 
         function triggerManualWeekEvaluationAndRollover() {
+            if (!currentUserCanUploadMedia) {
+                checkVipFeatureAccess('إصدار تقارير التقييم الأسبوعي التفصيلية الفورية');
+                return;
+            }
             const hasStudySessions = scheduleEvents.some(e => !e.isFixed && e.type !== 'mandatory');
             if (!hasStudySessions) {
                 showToast('جدول الأسبوع الحالي لا يحتوي على جلسات مذاكرة لتقييمها بعد؛ أضف جلساتك أولاً', 'error');
