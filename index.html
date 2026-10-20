@@ -5340,14 +5340,14 @@
             <div class="vip-pricing-grid">
                 <div class="vip-plan-card" id="vipPlanCard_monthly" onclick="selectVipPlan('monthly')">
                     <div style="font-size: 0.78rem; color: #cbd5e1; font-weight: 800; margin-bottom: 4px;">الباقة الشهرية</div>
-                    <div style="font-size: 1.35rem; font-weight: 900; color: var(--text-main);"><span id="vipPriceMonthlyTxt">45</span> <small style="font-size: 0.75rem; color: var(--primary);">ج.م / شهر</small></div>
+                    <div style="font-size: 1.35rem; font-weight: 900; color: var(--text-main);"><span id="vipPriceMonthlyTxt">75</span> <small style="font-size: 0.75rem; color: var(--primary);">ج.م / شهر</small></div>
                     <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">مثالية لشهر الامتحانات</div>
                 </div>
                 <div class="vip-plan-card selected" id="vipPlanCard_semester" onclick="selectVipPlan('semester')">
-                    <span class="vip-best-value-tag">🔥 أوفر للطلاب (توفير 45%)</span>
+                    <span class="vip-best-value-tag">🔥 أوفر للطلاب (توفير 34%)</span>
                     <div style="font-size: 0.78rem; color: #fbbf24; font-weight: 800; margin-bottom: 4px;">باقة الترم الكامل</div>
-                    <div style="font-size: 1.35rem; font-weight: 900; color: #fbbf24;"><span id="vipPriceSemesterTxt">99</span> <small style="font-size: 0.75rem; color: #fde68a;">ج.م / الترم (4 شهور)</small></div>
-                    <div style="font-size: 0.7rem; color: #cbd5e1; margin-top: 2px;">أقل من 25 ج.م في الشهر!</div>
+                    <div style="font-size: 1.35rem; font-weight: 900; color: #fbbf24;"><span id="vipPriceSemesterTxt">199</span> <small style="font-size: 0.75rem; color: #fde68a;">ج.م / الترم (4 شهور)</small></div>
+                    <div style="font-size: 0.7rem; color: #cbd5e1; margin-top: 2px;">أقل من 50 ج.م في الشهر!</div>
                 </div>
             </div>
 
@@ -5358,7 +5358,7 @@
             <div style="display: flex; flex-direction: column; gap: 8px;">
                 <button type="button" class="whatsapp-cta-btn" style="width: 100%; justify-content: center; padding: 11px 16px;" onclick="requestVipMediaActivationViaWhatsApp()">
                     <i class="fa-brands fa-whatsapp" style="font-size: 1.15rem;"></i>
-                    <span id="vipWhatsappBtnText">تفعيل باقة الترم (99 ج.م) عبر واتساب الآن</span>
+                    <span id="vipWhatsappBtnText">تفعيل باقة الترم (199 ج.م) عبر واتساب الآن</span>
                 </button>
                 <button type="button" class="btn btn-outline" style="width: 100%; padding: 8px; color: var(--text-muted); border-color: rgba(255,255,255,0.1); font-size: 0.82rem;" onclick="closeModal('vipMediaLockModalOverlay')">
                     الاستمرار بالخطة المجانية حالياً
@@ -6435,8 +6435,8 @@
                                     <span class="acad-why-badge" style="color: #6ee7b7; border-color: rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.1);">باقات مرنة</span>
                                 </h4>
                                 <p>
-                                    • <b>الباقة الشهرية (`45 ج.م / شهرياً`):</b> مناسبة جداً لتجربة جميع المزايا أو الاشتراك في شهر الامتحانات والمراجعة النهائية.<br>
-                                    • <b>باقة الترم الكامل (`99 ج.م / للترم كامل - 4 شهور` 🔥 الأكثر توفيراً):</b> بتكلفة أقل من <b>25 ج.م في الشهر</b> (توفير 45%) لترافقك طوال الفصل الدراسي والامتحانات.<br>
+                                    • <b>الباقة الشهرية (`75 ج.م / شهرياً`):</b> مناسبة جداً لتجربة جميع المزايا أو الاشتراك في شهر الامتحانات والمراجعة النهائية.<br>
+                                    • <b>باقة الترم الكامل (`199 ج.م / للترم كامل - 4 شهور` 🔥 الأكثر توفيراً):</b> بتكلفة أقل من <b>50 ج.م في الشهر</b> (توفير 34%) لترافقك طوال الفصل الدراسي والامتحانات.<br>
                                     • <b>طريقة التفعيل السريع:</b> يتم الدفع بسهولة عبر <b>Vodafone Cash</b> أو <b>InstaPay</b> من خلال التواصل المباشر على واتساب ويتم تفعيل حسابك فوراً.
                                 </p>
                                 <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
@@ -12839,8 +12839,8 @@
 
         // إعدادات أسعار باقة VIP Pro والحد الأقصى لحجم الملف الواحد على السحابة
         const VIP_PRICING_CONFIG = {
-            monthlyPrice: 45,    // السعر الشهري بالجنيه المصري
-            semesterPrice: 99    // سعر الترم الكامل (4 شهور) بالجنيه المصري
+            monthlyPrice: 75,    // السعر الشهري بالجنيه المصري
+            semesterPrice: 199   // سعر الترم الكامل (4 شهور) بالجنيه المصري
         };
         const VIP_MEDIA_LIMITS_CONFIG = {
             maxPdfSizeMB: 25,    // الحد الأقصى لملف الـ PDF الواحد على السحابة (25 ميجا)
