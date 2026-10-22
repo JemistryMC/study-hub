@@ -3616,30 +3616,32 @@
             overflow: visible !important;
         }
 
-        /* Clean, Uncluttered 7-Column Weekly Board */
+        /* Spacious, Organized Weekly Board (Comfortable Multi-Card Grid instead of cramped 7-narrow columns) */
         .fluid-week-board {
             display: grid !important;
-            grid-template-columns: repeat(7, minmax(170px, 1fr)) !important;
-            gap: 12px !important;
-            align-items: start !important;
+            grid-template-columns: repeat(auto-fill, minmax(305px, 1fr)) !important;
+            gap: 18px !important;
+            align-items: stretch !important;
             width: 100% !important;
         }
-        @media (max-width: 1260px) {
+        @media (max-width: 767px) {
             .fluid-week-board {
-                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
             }
         }
 
         .fluid-day-col {
             contain: layout style;
             background: #121926 !important;
-            border: 1px solid rgba(148, 163, 184, 0.10) !important;
-            border-radius: 14px !important;
-            padding: 12px 11px !important;
-            min-height: 220px !important;
+            border: 1px solid rgba(148, 163, 184, 0.12) !important;
+            border-radius: 16px !important;
+            padding: 16px 16px !important;
+            min-height: 235px !important;
             display: flex !important;
             flex-direction: column !important;
-            gap: 10px !important;
+            gap: 12px !important;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22) !important;
         }
         .fluid-day-col.is-today {
             background: linear-gradient(180deg, rgba(45, 212, 191, 0.06) 0%, #121926 100%) !important;
@@ -3714,16 +3716,16 @@
             border-color: var(--primary) !important;
         }
 
-        /* Clean Session Card inside Week Column */
+        /* Spacious, Organized Session Card inside Week Column */
         .fluid-session-card {
             contain: layout style;
-            background: rgba(255, 255, 255, 0.03) !important;
-            border: 1px solid rgba(148, 163, 184, 0.09) !important;
-            border-right: 3.5px solid var(--important-color) !important;
-            border-radius: 11px !important;
-            padding: 10px 11px !important;
-            gap: 6px !important;
-            transition: background-color 0.14s ease, border-color 0.14s ease !important;
+            background: rgba(17, 24, 39, 0.75) !important;
+            border: 1px solid rgba(148, 163, 184, 0.12) !important;
+            border-right: 4px solid var(--important-color) !important;
+            border-radius: 13px !important;
+            padding: 13px 14px !important;
+            gap: 8px !important;
+            transition: background-color 0.14s ease, border-color 0.14s ease, transform 0.14s ease !important;
         }
         .fluid-session-card:hover {
             transform: none !important;
@@ -4782,11 +4784,9 @@
         }
 
         @media (min-width: 1280px) {
-            #toggleWeekBoardLayoutBtn {
-                display: none !important;
-            }
-            .fluid-week-board {
-                grid-template-columns: repeat(7, minmax(155px, 1fr)) !important;
+            .fluid-week-board:not(.mobile-horizontal-board) {
+                grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)) !important;
+                gap: 18px !important;
             }
         }
 
@@ -6427,8 +6427,8 @@
                             <button class="pdf-more-item" id="pdfMenuUploadCloudBtn" onclick="uploadCurrentViewingLectureMediaToCloud(); closePdfMoreMenu();">
                                 <i class="fa-solid fa-cloud-arrow-up" style="color: #38bdf8;"></i> <span id="pdfMenuUploadCloudBtnText">رفع الـ PDF والريكورد على الحساب</span>
                             </button>
-                            <button class="pdf-more-item" onclick="exportAnnotatedSlides(); closePdfMoreMenu();">
-                                <i class="fa-solid fa-file-export" style="color: #6ee7b7;"></i> تصدير المحاضرة بالكتابة
+                            <button class="pdf-more-item" id="pdfMenuExportPdfBtn" onclick="exportAnnotatedSlides(); closePdfMoreMenu();">
+                                <i class="fa-solid fa-file-export" id="pdfMenuExportPdfIcon" style="color: #6ee7b7;"></i> <span id="pdfMenuExportPdfText">تصدير المحاضرة بالكتابة (PDF)</span>
                             </button>
                             <a id="pdfOpenInTabBtn" href="#" target="_blank" class="pdf-more-item" onclick="closePdfMoreMenu()">
                                 <i class="fa-solid fa-arrow-up-right-from-square" style="color: #93c5fd;"></i> فتح في نافذة خارجية
@@ -6502,8 +6502,14 @@
                     <input type="color" id="customAnnoColor" value="#ef4444" onchange="setAnnotationColor(this.value, null)" style="width: 20px; height: 20px; padding: 0; border: none; background: transparent; cursor: pointer;">
                     
                     <div class="pdf-header-divider"></div>
-                    <div class="stroke-size-control-wrap" title="تغيير حجم القلم / الخط عبر السلايدر">
+                    <div class="stroke-size-control-wrap" title="التحكم في حجم القلم والخط">
+                        <button type="button" class="size-step-btn" onclick="stepAnnotationSize(-1)" title="تصغير الحجم (-)">
+                            <i class="fa-solid fa-minus"></i>
+                        </button>
                         <input type="range" id="annoStrokeSize" class="stroke-size-slider" min="1" max="24" step="0.5" value="3" oninput="updateAnnotationSize(this.value)">
+                        <button type="button" class="size-step-btn" onclick="stepAnnotationSize(1)" title="تكبير الحجم (+)">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
                         <span id="annoSizeLabel" style="font-size: 0.76rem; color: var(--primary); font-weight: 900; min-width: 34px; text-align: center;">3px</span>
                     </div>
 
@@ -6527,6 +6533,9 @@
                     </button>
                     <button class="anno-btn" id="pdfToolbarExtraNoteBtn" onclick="toggleExtraNoteForPage(currentActivePageNum)">
                         <i class="fa-solid fa-plus" id="pdfToolbarExtraNoteIcon" style="color: var(--primary);"></i> <span id="pdfToolbarExtraNoteText">تلخيص</span>
+                    </button>
+                    <button class="anno-btn" id="pdfToolbarExportPdfBtn" onclick="exportAnnotatedSlides()">
+                        <i class="fa-solid fa-file-export" id="pdfToolbarExportPdfIcon" style="color: #6ee7b7;"></i> <span id="pdfToolbarExportPdfText">استخراج PDF</span>
                     </button>
                 </div>
             </div>
@@ -6593,6 +6602,13 @@
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap;">
+                    <!-- Merged Lectures Recording Selector in Bottom Audio Bar -->
+                    <div id="mergedAudioBarPickerWrap" style="display: none; align-items: center; gap: 6px; background: rgba(9, 13, 20, 0.9); border: 1px solid rgba(45, 212, 191, 0.35); border-radius: 9px; padding: 3px 8px;">
+                        <i class="fa-solid fa-headphones" style="color: var(--primary); font-size: 0.78rem;"></i>
+                        <select id="mergedAudioBarSelect" onchange="switchMergedAudioFromBottomBar(this.value)" style="background: transparent; border: none; color: var(--text-main); font-size: 0.76rem; font-weight: 800; padding: 2px 4px; cursor: pointer; outline: none; max-width: 195px;">
+                        </select>
+                    </div>
+
                     <div class="volume-boost-control">
                         <i class="fa-solid fa-volume-high" id="audioVolumeIcon" style="color: var(--primary); font-size: 0.8rem; cursor: pointer;" onclick="resetAudioVolumeBoost()"></i>
                         <input type="range" id="audioVolumeBoostSlider" class="volume-boost-slider" min="0" max="300" step="5" value="100" style="width: 65px;" oninput="handleAudioVolumeBoost(this.value)">
@@ -6829,8 +6845,14 @@
                                 <div class="acad-why-box">💡 <b>لماذا ستحتاجه؟</b> لكي تكتشف بمجرد النظر إلى بطاقات المواد أي مادة متأخرة في نسبة التقدم وأي مادة لم تضع لها ساعات كافية في جدول الأسبوع.</div>
                             </div>
 
+                            <div class="acad-deep-item" style="border-right-color: #38bdf8;">
+                                <h4><span>3. ميزة «دمج محاضرات وريكوردات للمراجعة» من خارج العارض</span> <span class="acad-why-badge">تحديث جديد ⭐</span></h4>
+                                <p>من داخل صفحة أي مادة، اضغط على زر <b>«📚 دمج محاضرات وريكوردات للمراجعة»</b> لتفتح لك نافذة منظمة خارج عارض الـ PDF تحدد منها المحاضرات التي تريد مراجعتها معاً؛ وبضغطة واحدة تُفتح جميع سلايداتها متتالية في شاشة واحدة مع حفظ مشترك 100% لجميع تعديلاتك وأوراق التلخيص بين وضع الدمج والوضع الفردي، واختيار ريكورد أي محاضرة مباشرة من الشريط السفلي.</p>
+                                <div class="acad-why-box">💡 <b>لماذا ستحتاجها؟</b> في المراجعات المجمعة أو ليلة الامتحان يمكنك قراءة والتعديل على عدة محاضرات متتالية والتنقل بينها بأسهم الكيبورد (⬆️ / ⬇️) دون الخروج من العارض.</div>
+                            </div>
+
                             <div class="acad-deep-item">
-                                <h4><span>3. الأقسام/الفصول القابلة للطي (`+ قسم جديد` و Accordion الطيّ)</span></h4>
+                                <h4><span>4. الأقسام/الفصول القابلة للطي (`+ قسم جديد` و Accordion الطيّ)</span></h4>
                                 <p>داخل كل مادة يمكنك إنشاء أقسام غير محدودة، وبالضغط على رأس أي قسم ينطوي أو ينفتح بسلاسة مع عرض نسبة إنجاز هذا القسم تحديداً (`2/3 منجز - 67%`).</p>
                                 <div class="acad-why-box">💡 <b>لماذا ستحتاجه؟</b> عندما تدرس مادة كبيرة (12 محاضرة مثلاً)، تقسمها إلى: «محاضرات الميدتيرم»، «محاضرات الفاينال»، «العملي». وبعد انتهاء الميدتيرم تطوي قسمه بضغطة واحدة لتركز عينك على محاضرات الفاينال فقط بدون زحام!</div>
                             </div>
@@ -6925,23 +6947,22 @@
                             </div>
 
                             <div class="acad-deep-item">
-                                <h4><span>2. قلم التابلت، التظليل الشفاف، وأداة النص بالكيبورد (`T`) بالخطوط الثلاثة</span></h4>
-                                <p>يدعم القلم استجابة فورية للجرافيك تابلت والماوس، بينما تتيح لك أداة <b>«نص»</b> الكتابة بالكيبورد مع اختيار نوع الخط (<b>✍️ خط اليد، ✒️ خط رقعة، 🏛️ خط أكاديمي</b>) وسحب النص أو تكبيره وتصغيره من الدائرة الموجودة في زاويته.</p>
-                                <div class="acad-why-box">💡 <b>لماذا ستحتاجها؟</b> لتدوين كلام الدكتور الإضافي مباشرة فوق السلايد وحفظه تلقائياً، سواء كنت تستخدم قلماً إلكترونياً أو تفضل الكتابة السريعة بالكيبورد.</div>
+                                <h4><span>2. قلم التابلت فائق النعومة، التحكم بالحجم (`+` / `-` والسلايدر)، وأداة النص (`T`)</span> <span class="acad-why-badge">محدّث ⭐</span></h4>
+                                <p>تمت ترقية تنعيم القلم (`Streamline Stabilizer`) ليعطي خطاً انسيابياً ناعماً جداً، مع التحكم في سُمك القلم وحجم الخط بمرونة عبر السلايدر وأزرار (`+` / `-`) مباشرة بدون أرقام ثابتة مزدحمة، بالإضافة للكتابة بالكيبورد بثلاثة خطوط (<b>✍️ خط اليد، ✒️ خط رقعة، 🏛️ خط أكاديمي</b>).</p>
+                                <div class="acad-why-box">💡 <b>لماذا ستحتاجها؟</b> لتدوين الملاحظات بسلاسة تامة وحفظها تلقائياً في أجزاء من الثانية سواء في الوضع الفردي أو أثناء دمج المحاضرات.</div>
                             </div>
 
                             <div class="acad-deep-item">
-                                <h4><span>3. قلم الليزر المتلاشي (`ليزر`) وزر «إخفاء الكتابة» (`👁️`) و«+ ورقة تلخيص»</span></h4>
-                                <p>• <b>الليزر المتلاشي:</b> يرسم خطاً متوهجاً يختفي تلقائياً بعد ثانيتين.<br>
-                                • <b>إخفاء الكتابة:</b> يخفي كل تعليقاتك ورسوماتك مؤقتاً بضغطة واحدة ثم يعيدها.<br>
-                                • <b>+ تلخيص:</b> يفتح ورقة منقطة إضافية أسفل السلايد الحالية مباشرة.</p>
-                                <div class="acad-why-box">💡 <b>لماذا ستحتاجها؟</b> الليزر يحفظ تركيز عينك أثناء متابعة مخطط معقد؛ وزر «إخفاء الكتابة» مثالي لاختبار نفسك (تخفي الإجابات والملاحظات وتسمّع لنفسك ثم تظهرها للتأكد)؛ وورقة التلخيص تعطيك مساحة واسعة لرسم الجداول دون حشرها في هامش السلايد الضيق!</div>
+                                <h4><span>3. الليزر المستمر (`ليزر`)، «+ مساحة تلخيص»، و«استخراج PDF»</span> <span class="acad-why-badge">محدّث ⭐</span></h4>
+                                <p>• <b>الليزر المتلاشي الذكي:</b> يظل ساطعاً ومستمراً طوال فترة شرحك وكتابتك ولا يبدأ في التلاشي إلا بعد توقف يدك.<br>
+                                • <b>+ مساحة تلخيص & استخراج PDF:</b> يفتح ورق تلخيص منقط أسفل أي سلايد (محفوظ ومشترك بين الوضع الفردي ووضع الدمج مع دعم التراجع المستقل)، مع إمكانية استخراج المحاضرة بتلخيصاتها كملف PDF جاهز للطباعة (تظهر عليها علامة القفل الهادئ `🔒` في الحسابات المجانية).</p>
+                                <div class="acad-why-box">💡 <b>لماذا ستحتاجها؟</b> لتلخيص الجداول والمقارنات أسفل كل سلايد ومراجعتها من أي وضع أو طباعتها بضغطة زر.</div>
                             </div>
 
                             <div class="acad-deep-item">
-                                <h4><span>4. مشغل الريكورد المدمج + مضخم الصوت `300%` + الدبابيس الصوتية (`📌 تثبيت لحظة - P`)</span></h4>
-                                <p>يشغل ريكورد المحاضرة بالتوازي مع السلايدات، مع أزرار <code>-5s</code> و<code>+5s</code>، وتسريع حتى <code>2.0x</code>، ومضخم صوت يرفع التسجيلات المنخفضة حتى 3 أضعاف (`300%`)، وزر <b>«تثبيت لحظة»</b> الذي يضع دبوساً بالدقيقة والثانية أعلى يمين السلايد الحالية.</p>
-                                <div class="acad-why-box">💡 <b>لماذا ستحتاجها؟</b> إذا شرح الدكتور معادلة هامة في الدقيقة <code>28:40</code> على السلايد رقم 12، تضغط <code>تثبيت لحظة</code>؛ وفي ليلة الامتحان لن تبحث في ريكورد مدته ساعتان، بل ستضغط على الدبوس فوق السلايد 12 ليقفز الصوت فوراً إلى الدقيقة <code>28:40</code>!</div>
+                                <h4><span>4. مشغل الريكورد المدمج + اختيار ريكورد المحاضرة أثناء الدمج من الشريط السفلي</span> <span class="acad-why-badge">محدّث ⭐</span></h4>
+                                <p>يشغل ريكورد المحاضرة بالتوازي مع السلايدات، مع أزرار <code>-5s</code> و<code>+5s</code>، وتسريع حتى <code>2.0x</code>، ومضخم صوت حتى <code>300%</code>، وزر <b>«تثبيت لحظة»</b>. وعند فتح عدة محاضرات مدمجة معاً، تظهر لك قائمة اختيار الريكورد مباشرة داخل الشريط الصوتي السفلي للتبديل بين تسجيلات المحاضرات بسهولة.</p>
+                                <div class="acad-why-box">💡 <b>لماذا ستحتاجها؟</b> لتغيير الريكورد المشغّل في أي لحظة أثناء تصفح المحاضرات المدمجة من مكان واحد ثابت أسفل الشاشة.</div>
                             </div>
                         </div>
 
@@ -7028,9 +7049,11 @@
 
                         <div class="acad-deep-list">
                             <div class="acad-deep-item">
-                                <h4><span>1. التبويب الأول: «جدول الأسبوع» الانسيابي (Fluid Week Board)</span></h4>
-                                <p>يعرض أيام الأسبوع السبعة كأعمدة انسيابية نظيفة مرتبة زمنياً، مع فلاتر علوية سريعة حسب نوع الجلسة (مذاكرة عميقة، مراجعة، كويز، كلية/ثابت) أو حسب المادة الدراسية، وزر <b>«إخفاء الكلية مؤقتاً»</b>.</p>
-                                <div class="acad-why-box">💡 <b>لماذا ستحتاجه؟</b> لتوزع حمل مذاكرتك بالتوازن على مدار الأسبوع، وعند الضغط على «إخفاء الكلية مؤقتاً» تختفي محاضرات الكلية الإجبارية لترى جدول مذاكرتك الصافي فقط!</div>
+                                <h4><span>1. «جدول الأسبوع» المنظم المريح + التتبع الذكي للوقت والمساعد الذكي</span> <span class="acad-why-badge">تحديث جديد ⭐</span></h4>
+                                <p>• <b>جدول الأسبوع الواسع المنظم:</b> يعرض بطاقات الأيام بمساحة مريحة وواضحة غير مكدسة، مع نافذة إضافة جلسة مدمجة ومنظمة تحتوي على اختيار محاضرة أو عدة محاضرات من قائمة منسدلة نظيفة.<br>
+                                • <b>التتبع الذكي للوقت (`🧭 تتبع ذكي`):</b> بدلاً من الوقت المفتوح العادي، يتعرف النظام تلقائياً متى بدأت المذاكرة ومتى انتهيت ويحسب المدة الفعلية بدقة ويسجلها في الجدول والسجل.<br>
+                                • <b>المساعد الذكي لحفظ التقدم:</b> إذا ذاكرت جزءاً من مهمة مجدولة، يخيرك المساعد الذكي بوضوح بين: <b>حفظ وإتمام المهمة بالكامل</b> أو <b>حفظ الجزء المسجل فقط وإلغاء الجزء الباقي</b> دون تعقيد جدولك بجلسات مرحلة.</p>
+                                <div class="acad-why-box">💡 <b>لماذا ستحتاجه؟</b> يمنحك مرونة كاملة أثناء المذاكرة الواقعية دون تشتيت أو تراكم جلسات جزئية في جدولك.</div>
                             </div>
 
                             <div class="acad-deep-item">
@@ -11279,7 +11302,50 @@
         // ================= MERGED MULTI-LECTURE & AUDIO STUDIO ENGINE =================
         let currentMergedLecturesBundle = []; // Array of { sub, group, lec }
         let mergedContinuousPdfMode = false;
-        let mergedPageToLectureMap = {}; // { [globalPageNum]: { sub, group, lec, localPageNum, pdfDoc } }
+        let mergedPageToLectureMap = {}; // { [compositeKey]: { item, lecId, localPageNum, saveKey, pdfDoc, lecAnnos } }
+        let mergedSlideKeysOrder = [];   // Ordered array of slide compositeKeys ['301_p_1', '301_p_2', ...]
+
+        function syncBottomBarMergedAudioDropdown() {
+            const wrap = document.getElementById('mergedAudioBarPickerWrap');
+            const sel = document.getElementById('mergedAudioBarSelect');
+            if (!wrap || !sel) return;
+            if (!mergedContinuousPdfMode || currentMergedLecturesBundle.length <= 1) {
+                wrap.style.display = 'none';
+                return;
+            }
+            wrap.style.display = 'inline-flex';
+            const curLecId = currentViewingLec?.lec?.id;
+            sel.innerHTML = currentMergedLecturesBundle.map((item, idx) => {
+                const hasAud = Boolean(item.lec.audioPath || item.lec.cloudAudioUploaded || localMediaCache.audios.has(String(item.lec.id)));
+                const audTag = hasAud ? '🎙️' : '🔇 (بدون ريكورد)';
+                const selectedAttr = String(item.lec.id) === String(curLecId) ? 'selected' : '';
+                return `<option value="${idx}" ${selectedAttr} style="background:#141923; color:#f1f5f9;">${idx + 1}. ${item.lec.title} ${audTag}</option>`;
+            }).join('');
+        }
+
+        async function switchMergedAudioFromBottomBar(bundleIdxStr) {
+            const idx = parseInt(bundleIdxStr);
+            if (isNaN(idx) || !currentMergedLecturesBundle[idx]) return;
+            const item = currentMergedLecturesBundle[idx];
+            await activateMergedLectureAudioAndContext(item, true);
+            syncBottomBarMergedAudioDropdown();
+            showToast(`🎙️ تم اختيار ريكورد محاضرة: «${item.lec.title}»`);
+        }
+
+        function updateMergedSlideCounterUI(compositeKey) {
+            if (!mergedContinuousPdfMode || mergedSlideKeysOrder.length === 0) return;
+            currentActivePageNum = compositeKey;
+            const idx = Math.max(0, mergedSlideKeysOrder.indexOf(String(compositeKey)));
+            const total = mergedSlideKeysOrder.length;
+            const badgeEl = document.getElementById('pdfPageCounterBadge');
+            if (badgeEl) badgeEl.innerText = `صفحة ${idx + 1} / ${total}`;
+            const floatBadge = document.getElementById('pdfFloatingPageBadge');
+            if (floatBadge) floatBadge.innerText = `${idx + 1} / ${total}`;
+            const mInfo = mergedPageToLectureMap[compositeKey];
+            if (mInfo && mInfo.item) {
+                currentViewingLec = mInfo.item;
+            }
+        }
 
         function buildSubjectLecturesBundle(subObj, specificLectureIds = null) {
             if (!subObj) return [];
@@ -11620,6 +11686,7 @@
             scrollContainer.innerHTML = '<div style="color:var(--primary); padding:40px; font-weight:800; text-align:center;"><i class="fa-solid fa-layer-group fa-bounce" style="font-size:2rem; margin-bottom:10px; display:block;"></i> جاري دمج صفحات المحاضرات والريكوردات في شريط واحد متتالي...</div>';
 
             mergedPageToLectureMap = {};
+            mergedSlideKeysOrder = [];
             const frag = document.createDocumentFragment();
             let globalPageCounter = 0;
 
@@ -11639,11 +11706,9 @@
                             <div style="font-size:0.75rem; color:var(--text-muted);">${item.sub.name} • ${item.group.name}</div>
                         </div>
                     </div>
-                    <div style="display:flex; gap:8px; align-items:center;">
-                        <button type="button" class="btn btn-primary" style="padding:6px 14px; font-size:0.78rem;" onclick="activateMergedLectureAudioAndContext(currentMergedLecturesBundle[${bIdx}], true)">
-                            <i class="fa-solid fa-headphones"></i> تشغيل ريكورد هذه المحاضرة
-                        </button>
-                    </div>
+                    <span class="studio-pill" style="font-size:0.72rem; color:var(--text-muted);">
+                        <i class="fa-solid fa-book-open"></i> ${lec.title}
+                    </span>
                 `;
                 frag.appendChild(divider);
 
@@ -11686,6 +11751,7 @@
 
                         mergedPageToLectureMap[compositeKey] = { item, lecId: lec.id, localPageNum: localP, saveKey: localP, pdfDoc, lecAnnos };
                         mergedPageToLectureMap[noteCompKey] = { item, lecId: lec.id, localPageNum: localP, saveKey: `note_${localP}`, isExtraNote: true, pdfDoc, lecAnnos };
+                        mergedSlideKeysOrder.push(compositeKey);
 
                         if (globalPageCounter === 1) {
                             currentActivePageNum = compositeKey;
@@ -11773,6 +11839,16 @@
 
             scrollContainer.innerHTML = '';
             scrollContainer.appendChild(frag);
+            totalPdfPages = Math.max(1, mergedSlideKeysOrder.length);
+            const floatNav = document.getElementById('pdfFloatingPageNav');
+            if (floatNav) floatNav.style.display = mergedSlideKeysOrder.length > 0 ? 'inline-flex' : 'none';
+            if (mergedSlideKeysOrder.length > 0) {
+                if (!mergedSlideKeysOrder.includes(String(currentActivePageNum))) {
+                    currentActivePageNum = mergedSlideKeysOrder[0];
+                }
+                updateMergedSlideCounterUI(currentActivePageNum);
+            }
+            syncBottomBarMergedAudioDropdown();
             attachPdfScrollActivePageDetector();
             updatePdfFitButtonsUI();
             showToast(`📑 تم دمج (${currentMergedLecturesBundle.length}) محاضرات في شريط متتالي واحد!`);
@@ -11792,6 +11868,7 @@
                 currentMergedLecturesBundle = [{ sub, group, lec }];
                 mergedContinuousPdfMode = false;
             }
+            syncBottomBarMergedAudioDropdown();
             annotationUndoStack = [];
             lastActiveAnnotationKey = 1;
             document.getElementById('pdfViewerTitle').innerText = lec.title;
@@ -11975,11 +12052,7 @@
                 });
                 if (bestPage !== currentActivePageNum) {
                     if (mergedContinuousPdfMode) {
-                        currentActivePageNum = bestPage;
-                        const mInfo = mergedPageToLectureMap[bestPage];
-                        if (mInfo && mInfo.item) {
-                            currentViewingLec = mInfo.item;
-                        }
+                        updateMergedSlideCounterUI(bestPage);
                     } else {
                         updatePdfPageCounterUI(bestPage);
                     }
@@ -12333,11 +12406,45 @@
         }
 
         function goToPdfPage(targetPage, smooth = true) {
+            const scrollContainer = document.getElementById('pdfPagesScrollContainer');
+            if (!scrollContainer) return;
+
+            // Merged Mode Support
+            if (mergedContinuousPdfMode && mergedSlideKeysOrder.length > 0) {
+                let targetKey = String(targetPage);
+                if (!mergedSlideKeysOrder.includes(targetKey)) {
+                    const idx1Based = Math.max(1, Math.min(mergedSlideKeysOrder.length, parseInt(targetPage) || 1));
+                    targetKey = mergedSlideKeysOrder[idx1Based - 1];
+                }
+                const wrapper = document.getElementById(`pdfPageWrapper_${targetKey}`);
+                if (!wrapper) return;
+
+                updateMergedSlideCounterUI(targetKey);
+                isProgrammaticPageScroll = true;
+                if (programmaticScrollTimer) clearTimeout(programmaticScrollTimer);
+                programmaticScrollTimer = setTimeout(() => {
+                    isProgrammaticPageScroll = false;
+                }, smooth ? 420 : 80);
+
+                const containerRect = scrollContainer.getBoundingClientRect();
+                const wrapperRect = wrapper.getBoundingClientRect();
+                const wrapperTopInScroll = scrollContainer.scrollTop + (wrapperRect.top - containerRect.top);
+                let targetScrollTop = wrapperTopInScroll - 8;
+                if (currentPdfFitMode === 'height' || wrapperRect.height <= containerRect.height - 16) {
+                    const verticalPad = Math.max(0, Math.floor((containerRect.height - wrapperRect.height) / 2));
+                    targetScrollTop = wrapperTopInScroll - verticalPad;
+                }
+                scrollContainer.scrollTo({
+                    top: Math.max(0, targetScrollTop),
+                    behavior: smooth ? 'smooth' : 'auto'
+                });
+                return;
+            }
+
             if (!currentPdfDoc) return;
             const pageNum = Math.max(1, Math.min(totalPdfPages, parseInt(targetPage) || 1));
-            const scrollContainer = document.getElementById('pdfPagesScrollContainer');
             const wrapper = document.getElementById(`pdfPageWrapper_${pageNum}`);
-            if (!scrollContainer || !wrapper) return;
+            if (!wrapper) return;
 
             updatePdfPageCounterUI(pageNum);
 
@@ -12381,10 +12488,20 @@
         }
 
         function stepPdfPage(delta) {
+            if (mergedContinuousPdfMode && mergedSlideKeysOrder.length > 0) {
+                const curIdx = Math.max(0, mergedSlideKeysOrder.indexOf(String(currentActivePageNum)));
+                const nextIdx = Math.max(0, Math.min(mergedSlideKeysOrder.length - 1, curIdx + delta));
+                const nextKey = mergedSlideKeysOrder[nextIdx];
+                goToPdfPage(nextKey, true);
+                if (nextIdx === curIdx) {
+                    if (delta > 0 && nextIdx === mergedSlideKeysOrder.length - 1) showToast('وصلت إلى السلايد الأخيرة في الدمج 📖');
+                    else if (delta < 0 && nextIdx === 0) showToast('أنت في السلايد الأولى في الدمج 📖');
+                }
+                return;
+            }
             if (!currentPdfDoc) return;
-            const nextPage = Math.max(1, Math.min(totalPdfPages, (currentActivePageNum || 1) + delta));
+            const nextPage = Math.max(1, Math.min(totalPdfPages, (parseInt(currentActivePageNum) || 1) + delta));
             if (nextPage === currentActivePageNum) {
-                // Even if on first or last page, snap-align it cleanly
                 goToPdfPage(nextPage, true);
                 if (delta > 0 && nextPage === totalPdfPages) showToast('وصلت إلى الصفحة الأخيرة من المحاضرة 📖');
                 else if (delta < 0 && nextPage === 1) showToast('أنت في الصفحة الأولى من المحاضرة 📖');
@@ -12394,6 +12511,24 @@
         }
 
         function promptJumpToPdfPage() {
+            if (mergedContinuousPdfMode && mergedSlideKeysOrder.length > 0) {
+                const total = mergedSlideKeysOrder.length;
+                const curIdx = Math.max(0, mergedSlideKeysOrder.indexOf(String(currentActivePageNum))) + 1;
+                openSingleInputModal(
+                    `<i class="fa-solid fa-compass" style="color:var(--primary);"></i> الانتقال السريع لسلايد في الدمج (1 - ${total})`,
+                    `اكتب رقم السلايد (من 1 إلى ${total})...`,
+                    `${curIdx}`,
+                    (val) => {
+                        const num = parseInt(val);
+                        if (isNaN(num) || num < 1 || num > total) {
+                            showToast(`يرجى إدخال رقم صحيح بين 1 و ${total}`, 'error');
+                            return;
+                        }
+                        goToPdfPage(mergedSlideKeysOrder[num - 1], true);
+                    }
+                );
+                return;
+            }
             if (!currentPdfDoc) return;
             openSingleInputModal(
                 `<i class="fa-solid fa-compass" style="color:var(--primary);"></i> الانتقال السريع لصفحة (1 - ${totalPdfPages})`,
@@ -14158,6 +14293,22 @@
                     ? '<i class="fa-solid fa-file-circle-plus"></i> + مساحة تلخيص'
                     : '<i class="fa-solid fa-lock"></i> مساحة تلخيص';
             });
+
+            // Lock PDF Export buttons for free accounts in the exact same calm lock style
+            const expTbBtn = document.getElementById('pdfToolbarExportPdfBtn');
+            const expTbIcon = document.getElementById('pdfToolbarExportPdfIcon');
+            if (expTbBtn) {
+                expTbBtn.classList.toggle('vip-locked-extra-note', !isVip);
+                expTbBtn.title = isVip ? 'استخراج وطباعة المحاضرة المشروحة كملف PDF' : '🔒 ميزة استخراج الـ PDF مغلقة في الحساب المجاني';
+            }
+            if (expTbIcon) expTbIcon.className = isVip ? 'fa-solid fa-file-export' : 'fa-solid fa-lock';
+
+            const expMenuBtn = document.getElementById('pdfMenuExportPdfBtn');
+            const expMenuIcon = document.getElementById('pdfMenuExportPdfIcon');
+            if (expMenuBtn) {
+                expMenuBtn.classList.toggle('vip-locked-extra-note', !isVip);
+            }
+            if (expMenuIcon) expMenuIcon.className = isVip ? 'fa-solid fa-file-export' : 'fa-solid fa-lock';
         }
 
         function buildExtraNoteSheetDOM(pageNum, widthPx, heightPx, customLabel = null) {
@@ -14275,10 +14426,10 @@
         // ================= 3. EXPORT / PRINT ANNOTATED SLIDES =================
         async function exportAnnotatedSlides() {
             if (!currentUserCanUploadMedia) {
-                checkVipFeatureAccess('تصدير وطباعة المحاضرة المشروحة بالكتابة كملف PDF');
+                showToast('🔒 ميزة «استخراج وتصدير الـ PDF» مغلقة في الحساب المجاني', 'error');
                 return;
             }
-            if (!currentPdfDoc || !currentViewingLec) {
+            if ((!currentPdfDoc && !mergedContinuousPdfMode) || !currentViewingLec) {
                 showToast('يرجى فتح ملف PDF محلي أولاً لتصديره بالكتابة', 'error');
                 return;
             }
@@ -14322,8 +14473,16 @@
                 const container = printWin.document.getElementById('pagesContainer');
                 container.innerHTML = '';
 
-                for (let p = 1; p <= totalPdfPages; p++) {
-                    const page = await currentPdfDoc.getPage(p);
+                const slideKeysToExport = mergedContinuousPdfMode
+                    ? mergedSlideKeysOrder.slice()
+                    : Array.from({ length: totalPdfPages }, (_, idx) => idx + 1);
+
+                for (const p of slideKeysToExport) {
+                    const mInfo = mergedContinuousPdfMode ? mergedPageToLectureMap[p] : null;
+                    const docToUse = mergedContinuousPdfMode ? (mInfo ? mInfo.pdfDoc : null) : currentPdfDoc;
+                    const pageNumToGet = mergedContinuousPdfMode ? (mInfo ? mInfo.localPageNum : 1) : p;
+                    if (!docToUse) continue;
+                    const page = await docToUse.getPage(pageNumToGet);
                     const vp = page.getViewport({ scale: 1.6 });
                     const offCanvas = document.createElement('canvas');
                     offCanvas.setAttribute('dir', 'ltr');
