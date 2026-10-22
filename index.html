@@ -4332,84 +4332,84 @@
         }
 
 
-        /* ================= VIP PRO MEMBERSHIP & FAIR PRICING MODAL STYLES ================= */
+        /* ================= CALM & SIMPLE SUBSCRIPTION MODAL STYLES ================= */
         .vip-crown-pill {
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: #090d16;
+            background: rgba(45, 212, 191, 0.14);
+            border: 1px solid rgba(45, 212, 191, 0.3);
+            color: var(--primary);
             font-size: 0.68rem;
-            font-weight: 900;
-            padding: 2px 8px;
+            font-weight: 800;
+            padding: 1px 8px;
             border-radius: 999px;
-            box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35);
-            letter-spacing: 0.3px;
+            box-shadow: none;
         }
         .vip-features-list {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
             text-align: right;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
         .vip-feat-row {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             gap: 10px;
-            background: rgba(15, 23, 36, 0.78);
-            border: 1px solid rgba(148, 163, 184, 0.12);
-            border-radius: 11px;
-            padding: 9px 12px;
+            background: rgba(15, 23, 36, 0.55);
+            border: 1px solid rgba(148, 163, 184, 0.09);
+            border-radius: 10px;
+            padding: 8px 11px;
         }
         .vip-feat-icon {
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
-            background: rgba(245, 158, 11, 0.15);
-            color: #fbbf24;
+            width: 28px;
+            height: 28px;
+            border-radius: 7px;
+            background: rgba(45, 212, 191, 0.1);
+            color: var(--primary);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.88rem;
+            font-size: 0.82rem;
             flex-shrink: 0;
-            margin-top: 1px;
         }
         .vip-pricing-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
         }
         .vip-plan-card {
-            background: rgba(15, 23, 36, 0.85);
-            border: 1.5px solid rgba(148, 163, 184, 0.18);
-            border-radius: 13px;
+            background: rgba(15, 23, 36, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 11px;
             padding: 12px 10px;
             cursor: pointer;
-            transition: all 0.16s ease;
+            transition: border-color 0.15s ease, background-color 0.15s ease;
             position: relative;
             text-align: center;
+            box-shadow: none !important;
         }
         .vip-plan-card:hover {
-            border-color: rgba(245, 158, 11, 0.55);
-            transform: translateY(-2px);
+            border-color: rgba(45, 212, 191, 0.4);
         }
         .vip-plan-card.selected {
-            background: linear-gradient(145deg, rgba(245, 158, 11, 0.16), rgba(15, 23, 36, 0.95));
-            border-color: #f59e0b;
-            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.22);
+            background: rgba(45, 212, 191, 0.08);
+            border: 1.5px solid var(--primary);
+            box-shadow: none !important;
         }
         .vip-best-value-tag {
             position: absolute;
-            top: -10px;
+            top: -9px;
             left: 50%;
             transform: translateX(-50%);
-            background: linear-gradient(135deg, #f59e0b, #ea580c);
-            color: #090d16;
-            font-size: 0.65rem;
-            font-weight: 900;
-            padding: 2px 9px;
+            background: #1e293b;
+            border: 1px solid rgba(45, 212, 191, 0.4);
+            color: var(--primary);
+            font-size: 0.64rem;
+            font-weight: 800;
+            padding: 1px 8px;
             border-radius: 999px;
             white-space: nowrap;
         }
@@ -5037,6 +5037,401 @@
             }
         }
 
+    
+        /* ================= 8-PROBLEMS UPGRADE: MERGED STUDIO, SIZE CONTROLS, OPEN TIMER & FULLSCREEN ================= */
+        #pdfFullscreenBtn {
+            display: inline-flex !important;
+        }
+        .app-fullscreen-btn {
+            padding: 7px 12px;
+            font-size: 0.8rem;
+            border-radius: 10px;
+            background: rgba(20, 22, 29, 0.75);
+            border: 1px solid rgba(45, 212, 191, 0.3);
+            color: var(--text-main);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.16s ease;
+        }
+        .app-fullscreen-btn:hover,
+        .app-fullscreen-btn.active {
+            border-color: var(--primary);
+            background: rgba(45, 212, 191, 0.16);
+            color: var(--primary);
+        }
+        /* Ergonomic Pen/Mouse Size Controls */
+        .stroke-size-control-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(9, 12, 18, 0.85);
+            padding: 3px 7px;
+            border-radius: 9px;
+            border: 1px solid rgba(148, 163, 184, 0.16);
+        }
+        .size-step-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 7px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            font-size: 0.8rem;
+            font-weight: 900;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.12s ease;
+            touch-action: manipulation;
+        }
+        .size-step-btn:hover,
+        .size-step-btn:active {
+            background: var(--primary);
+            color: #061318;
+            border-color: var(--primary);
+        }
+        .stroke-size-slider {
+            width: 105px !important;
+            height: 8px !important;
+            accent-color: var(--primary);
+            cursor: pointer;
+            touch-action: none;
+        }
+        .stroke-size-slider::-webkit-slider-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(45, 212, 191, 0.6);
+        }
+        .size-presets-strip {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .size-preset-pill {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            color: var(--text-muted);
+            padding: 3px 7px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.12s ease;
+            touch-action: manipulation;
+        }
+        .size-preset-pill:hover,
+        .size-preset-pill.active {
+            background: rgba(45, 212, 191, 0.2);
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+        /* Merged Multi-Lecture & Audio Playlist Bar in PDF Studio */
+        .pdf-merged-lectures-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 7px 14px;
+            background: linear-gradient(90deg, rgba(16, 22, 33, 0.98), rgba(13, 18, 28, 0.98));
+            border-bottom: 1px solid rgba(45, 212, 191, 0.24);
+            overflow-x: auto;
+            flex-shrink: 0;
+            scrollbar-width: thin;
+        }
+        .pdf-modal-container.pdf-zen-mode .pdf-merged-lectures-bar {
+            display: none !important;
+        }
+        .merged-lec-tabs {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            padding-bottom: 2px;
+        }
+        .merged-lec-tab {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            color: #cbd5e1;
+            padding: 5px 11px;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            transition: all 0.14s ease;
+        }
+        .merged-lec-tab:hover {
+            border-color: rgba(45, 212, 191, 0.45);
+            color: white;
+        }
+        .merged-lec-tab.active {
+            background: var(--primary-gradient);
+            color: #061318;
+            border-color: transparent;
+            box-shadow: 0 2px 10px rgba(45, 212, 191, 0.3);
+        }
+        .merged-lec-tab .mlt-remove {
+            opacity: 0.65;
+            font-size: 0.7rem;
+            padding: 0 2px;
+        }
+        .merged-lec-tab .mlt-remove:hover {
+            opacity: 1;
+            color: #f43f5e;
+        }
+        .pdf-merged-lecture-divider {
+            width: 100%;
+            max-width: 920px;
+            background: linear-gradient(135deg, rgba(20, 184, 166, 0.18), rgba(15, 23, 36, 0.96));
+            border: 1.5px solid rgba(45, 212, 191, 0.45);
+            border-right: 5px solid var(--primary);
+            border-radius: 14px;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            color: var(--text-main);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            margin-top: 8px;
+        }
+        /* Multi-Lecture Checklist inside Session Modal */
+        .session-lectures-checklist {
+            max-height: 155px;
+            overflow-y: auto;
+            background: rgba(11, 15, 23, 0.82);
+            border: 1px solid rgba(45, 212, 191, 0.25);
+            border-radius: 10px;
+            padding: 6px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .slc-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.81rem;
+            color: #e2e8f0;
+            transition: background 0.12s ease;
+        }
+        .slc-item:hover {
+            background: rgba(45, 212, 191, 0.1);
+        }
+        .slc-item.checked {
+            background: rgba(45, 212, 191, 0.14);
+            border: 1px solid rgba(45, 212, 191, 0.35);
+            font-weight: 800;
+            color: #ffffff;
+        }
+        .slc-item input[type="checkbox"] {
+            width: 17px;
+            height: 17px;
+            margin: 0;
+            accent-color: var(--primary);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        /* Open-Ended Timer Live Badge */
+        .open-timer-live-pill {
+            background: rgba(16, 185, 129, 0.16);
+            border: 1px solid rgba(16, 185, 129, 0.45);
+            color: #6ee7b7;
+            font-size: 0.7rem;
+            font-weight: 900;
+            padding: 2px 8px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-variant-numeric: tabular-nums;
+        }
+
+    
+        /* ================= 5-REFINEMENTS UPGRADE: EXTERNAL MERGE HUB, VIP LOCKED EXTRA NOTE, COMPACT SESSION MODAL & SMART TRACKING ================= */
+        /* 1. Hide internal PDF merge bar so PDF viewer stays 100% clean */
+        #pdfMergedLecturesBar {
+            display: none !important;
+        }
+        /* Elevate secondary modals above #pdfViewerModalOverlay (z-index: 1000) so VIP & input modals NEVER hide behind PDF viewer */
+        #vipMediaLockModalOverlay,
+        #cloudAuthModalOverlay,
+        #singleInputModalOverlay,
+        #confirmModalOverlay {
+            z-index: 4000 !important;
+        }
+        /* Visually Locked Extra Note Button for Free Accounts (No Gold, No Glow, Lock Only) */
+        .vip-locked-extra-note {
+            opacity: 0.65 !important;
+            border: 1px solid rgba(148, 163, 184, 0.18) !important;
+            color: var(--text-muted) !important;
+            background: rgba(15, 23, 36, 0.72) !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+            cursor: not-allowed !important;
+        }
+        .vip-locked-extra-note:hover {
+            background: rgba(15, 23, 36, 0.85) !important;
+            color: var(--text-muted) !important;
+            border-color: rgba(148, 163, 184, 0.25) !important;
+            box-shadow: none !important;
+        }
+        .vip-locked-extra-note i {
+            color: var(--text-muted) !important;
+        }
+        /* Organized External Multi-Lecture Merge Panel in Subject Details View */
+        .subject-merge-drawer {
+            display: none;
+            background: linear-gradient(145deg, #131b2a, #0e1420);
+            border: 1.5px solid rgba(45, 212, 191, 0.4);
+            border-right: 4px solid var(--primary);
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-top: 16px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+            animation: subFade 0.18s ease;
+        }
+        .subject-merge-drawer.open {
+            display: block;
+        }
+        .smd-groups-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 12px;
+            max-height: 280px;
+            overflow-y: auto;
+            padding: 4px 2px;
+            margin: 12px 0;
+        }
+        .smd-group-box {
+            background: rgba(11, 15, 23, 0.78);
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            border-radius: 12px;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .smd-lec-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.81rem;
+            color: #e2e8f0;
+            transition: background 0.12s ease;
+        }
+        .smd-lec-row:hover {
+            background: rgba(45, 212, 191, 0.1);
+        }
+        .smd-lec-row.checked {
+            background: rgba(45, 212, 191, 0.16);
+            border: 1px solid rgba(45, 212, 191, 0.38);
+            font-weight: 800;
+            color: #ffffff;
+        }
+        .smd-lec-row input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin: 0;
+            accent-color: var(--primary);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        /* Compact & Organized Session Modal */
+        .compact-session-modal {
+            max-width: 550px !important;
+            padding: 18px 20px !important;
+        }
+        .compact-session-modal label {
+            font-size: 0.78rem !important;
+            color: #cbd5e1 !important;
+            margin-bottom: 4px !important;
+            display: block !important;
+            font-weight: 700 !important;
+        }
+        .compact-session-modal input[type="text"],
+        .compact-session-modal input[type="number"],
+        .compact-session-modal select {
+            padding: 8px 11px !important;
+            font-size: 0.84rem !important;
+            margin-bottom: 0 !important;
+            border-radius: 9px !important;
+        }
+        .csm-row-2 {
+            display: grid;
+            grid-template-columns: 1.35fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .csm-row-3 {
+            display: grid;
+            grid-template-columns: 0.95fr 0.95fr 1.3fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        @media (max-width: 600px) {
+            .csm-row-2, .csm-row-3 {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+        }
+        .csm-lectures-dropdown-wrap {
+            position: relative;
+        }
+        .csm-lectures-trigger-btn {
+            width: 100%;
+            padding: 8px 11px;
+            border-radius: 9px;
+            background: rgba(14, 16, 22, 0.85);
+            border: 1px solid rgba(45, 212, 191, 0.32);
+            color: var(--text-main);
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            text-align: right;
+        }
+        .csm-lectures-trigger-btn:hover {
+            border-color: var(--primary);
+            background: rgba(45, 212, 191, 0.08);
+        }
+        .csm-lectures-popover {
+            display: none;
+            margin-top: 6px;
+            background: #0d121c;
+            border: 1px solid rgba(45, 212, 191, 0.4);
+            border-radius: 10px;
+            padding: 8px;
+            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.65);
+        }
+        .csm-lectures-popover.open {
+            display: block;
+            animation: subFade 0.14s ease;
+        }
+
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -5077,6 +5472,10 @@
                 <span class="studio-badge-sub">Studio Workspace</span>
             </div>
             <div class="navbar-actions-group">
+                <button class="app-fullscreen-btn" id="appGlobalFullscreenBtn" onclick="toggleGlobalAppFullscreen()" title="وضع ملء الشاشة للبرنامج (Full Screen)">
+                    <i class="fa-solid fa-expand" id="appGlobalFullscreenIcon"></i>
+                    <span class="hide-on-xs" id="appGlobalFullscreenText">ملء الشاشة</span>
+                </button>
                 <button class="cloud-status-btn" id="cloudNavBtn" onclick="openCloudAuthModal()">
                     <i class="fa-solid fa-cloud" id="cloudNavIcon" style="color: var(--primary);"></i>
                     <span id="cloudNavText">حسابي / الكلاود</span>
@@ -5145,8 +5544,37 @@
                                 <button class="icon-btn edit" onclick="editCurrentSubject()"><i class="fa-solid fa-pen"></i></button>
                             </div>
                         </div>
-                        <div style="display: flex; gap: 10px;">
-                            <button class="btn btn-success" onclick="triggerAddGroup()"><i class="fa-solid fa-layer-group"></i> قسم جديد</button>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn btn-outline" id="toggleSubjectMergeDrawerBtn" onclick="toggleSubjectMergeLecturesDrawer()" style="border-color: rgba(45, 212, 191, 0.45); color: var(--primary);">
+                                <i class="fa-solid fa-layer-group"></i> دمج محاضرات وريكوردات للمراجعة
+                            </button>
+                            <button class="btn btn-success" onclick="triggerAddGroup()"><i class="fa-solid fa-plus"></i> قسم جديد</button>
+                        </div>
+                    </div>
+
+                    <!-- Organized External Multi-Lecture Merge Selector (Outside PDF Viewer) -->
+                    <div class="subject-merge-drawer" id="subjectMergeLecturesDrawer">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px solid rgba(148, 163, 184, 0.12);">
+                            <div>
+                                <h4 style="font-size: 0.98rem; font-weight: 900; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-book-open-reader" style="color: var(--primary);"></i> استوديو دمج المحاضرات والريكوردات (اختر المحاضرات التي تريد فتحها معاً)
+                                </h4>
+                                <p style="font-size: 0.77rem; color: var(--text-muted); margin: 2px 0 0 0;">حدد محاضرتين أو أكثر ليتم فتح سلايداتها وريكورداتها متتالية في شاشة واحدة منظمة مع دعم أوراق التلخيص.</p>
+                            </div>
+                            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                                <button type="button" class="ptm-btn" onclick="selectAllLecturesInMergeDrawer(true)" style="padding: 4px 10px; font-size: 0.74rem;">تحديد الكل</button>
+                                <button type="button" class="ptm-btn" onclick="selectAllLecturesInMergeDrawer(false)" style="padding: 4px 10px; font-size: 0.74rem;">إلغاء الكل</button>
+                                <button type="button" class="icon-btn" style="width: 28px; height: 28px;" onclick="toggleSubjectMergeLecturesDrawer(false)"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                        </div>
+
+                        <div class="smd-groups-grid" id="subjectMergeGroupsGrid"></div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid rgba(148, 163, 184, 0.12);">
+                            <span id="subjectMergeSelectionCounter" style="font-size: 0.8rem; color: var(--primary); font-weight: 800;">تم تحديد 0 محاضرات</span>
+                            <button type="button" class="btn btn-primary" style="padding: 8px 18px; font-size: 0.85rem;" onclick="launchSelectedLecturesMergedFromDrawer()">
+                                <i class="fa-solid fa-rocket"></i> فتح المحاضرات المختارة مدمجة الآن
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -5329,7 +5757,11 @@
                                 <div style="display: flex; align-items: center; gap: 6px; background: rgba(11, 15, 23, 0.75); border: 1px solid var(--border-color); border-radius: 10px; padding: 3px 10px;">
                                     <span style="font-size: 0.76rem; color: var(--text-muted);">المدة:</span>
                                     <input type="number" id="newTaskDurationInput" min="0.25" max="24" step="0.25" value="1.5" style="width: 60px; border: none; background: transparent; padding: 6px 4px; text-align: center; font-weight: 800;">
-                                    <span style="font-size: 0.76rem; color: var(--primary); font-weight: 700;">ساعة</span>
+                                    <span id="newTaskDurationUnitLbl" style="font-size: 0.76rem; color: var(--primary); font-weight: 700;">ساعة</span>
+                                    <label style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; color: #6ee7b7; font-weight: 800; cursor: pointer; padding-right: 6px; border-right: 1px solid rgba(255,255,255,0.1);" title="يتعرف تلقائياً متى بدأت ومتى انتهيت ويحسب المدة الفعلية">
+                                        <input type="checkbox" id="newTaskOpenDurationCheck" onchange="toggleNewTaskOpenDurationUI(this.checked)" style="width: 15px; height: 15px; margin: 0; accent-color: var(--primary);">
+                                        تتبع ذكي 🧭
+                                    </label>
                                 </div>
                                 <button class="btn btn-primary" style="padding: 10px 18px;" onclick="addBacklogTask()">
                                     <i class="fa-solid fa-plus"></i> أضف لبنك الأهداف
@@ -5800,46 +6232,38 @@
         </div>
     </div>
 
-    <!-- Comprehensive VIP Pro Membership & Fair Student Pricing Modal -->
+    <!-- Calm & Simplified Subscription Modal -->
     <div class="glass-overlay" id="vipMediaLockModalOverlay">
-        <div class="glass-modal" style="max-width: 500px; text-align: center; border-color: rgba(245, 158, 11, 0.45); padding: 24px 22px;">
-            <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(245, 158, 11, 0.14); border: 1px solid rgba(245, 158, 11, 0.38); color: #fbbf24; padding: 4px 14px; border-radius: 999px; font-size: 0.78rem; font-weight: 900; margin-bottom: 10px;">
-                <i class="fa-solid fa-crown"></i> <span id="vipModalTriggeredFeatureBadge">باقة الإنجاز VIP Pro للطلاب</span>
+        <div class="glass-modal" style="max-width: 430px; text-align: center; border-color: rgba(148, 163, 184, 0.16); background: #131822; box-shadow: 0 18px 40px rgba(0,0,0,0.6); padding: 20px 18px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(45, 212, 191, 0.1); border: 1px solid rgba(45, 212, 191, 0.25); color: var(--primary); padding: 3px 10px; border-radius: 999px; font-size: 0.74rem; font-weight: 800;">
+                    <i class="fa-solid fa-lock-open"></i> <span id="vipModalTriggeredFeatureBadge">الباقة الإضافية</span>
+                </span>
+                <button class="icon-btn" style="width: 28px; height: 28px;" onclick="closeModal('vipMediaLockModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <h3 style="justify-content: center; font-size: 1.25rem; margin-bottom: 6px; color: var(--text-main);">افتح جميع إمكانيات المنصة الاحترافية</h3>
-            <p style="font-size: 0.81rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 14px;">
-                الاستخدام الأساسي وحفظ الجدول والمواد والعزل الصوتي مجاني للجميع. ترقيتك لـ <b style="color:#fbbf24;">VIP Pro</b> تفتح لك 4 أدوات فائقة القوة طوال دراستك:
+
+            <h3 style="justify-content: flex-start; font-size: 1.1rem; margin-bottom: 4px; color: var(--text-main);">ترقية الحساب للمزايا الإضافية</h3>
+            <p style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px; text-align: right;">
+                الأدوات الأساسية للمذاكرة والتخطيط مجانية دائماً. يتيح لك الاشتراك فتح المزايا السحابية والإضافية التالية:
             </p>
 
-            <!-- 4 High-Value VIP Features -->
+            <!-- Compact 4-Item List -->
             <div class="vip-features-list">
                 <div class="vip-feat-row">
                     <div class="vip-feat-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-                    <div>
-                        <div style="font-weight: 800; font-size: 0.84rem; color: var(--text-main);">1. سحابة الـ PDF والريكوردات عبر جميع أجهزتك</div>
-                        <div style="font-size: 0.74rem; color: var(--text-muted);">ارفع ملفاتك (حتى 25MB للـ PDF و35MB للريكورد) مع مؤشر حي لسرعة الرفع ونسبة المزامنة.</div>
-                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-main); font-weight: 700;">مزامنة ملفات الـ PDF والريكوردات بين أجهزتك</div>
                 </div>
                 <div class="vip-feat-row">
                     <div class="vip-feat-icon"><i class="fa-solid fa-file-export"></i></div>
-                    <div>
-                        <div style="font-weight: 800; font-size: 0.84rem; color: var(--text-main);">2. تصدير وطباعة المحاضرات المشروحة كملف PDF جاهز</div>
-                        <div style="font-size: 0.74rem; color: var(--text-muted);">ادمج خط يدك وتظليلك وورق التلخيص في ملف PDF جاهز للطباعة أو المراجعة.</div>
-                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-main); font-weight: 700;">تصدير وطباعة المحاضرات المشروحة كملف PDF</div>
                 </div>
                 <div class="vip-feat-row">
-                    <div class="vip-feat-icon"><i class="fa-solid fa-thumbtack"></i></div>
-                    <div>
-                        <div style="font-weight: 800; font-size: 0.84rem; color: var(--text-main);">3. دبابيس صوتية غير محدودة + ورق تلخيص إضافي</div>
-                        <div style="font-size: 0.74rem; color: var(--text-muted);">ثبّت أي عدد من اللحظات الصوتية على السلايدات وافتح أوراق تلخيص تحت كل سلايد.</div>
-                    </div>
+                    <div class="vip-feat-icon"><i class="fa-solid fa-file-circle-plus"></i></div>
+                    <div style="font-size: 0.8rem; color: var(--text-main); font-weight: 700;">صفحات تلخيص إضافية ودبابيس صوتية غير محدودة</div>
                 </div>
                 <div class="vip-feat-row">
-                    <div class="vip-feat-icon"><i class="fa-solid fa-award"></i></div>
-                    <div>
-                        <div style="font-weight: 800; font-size: 0.84rem; color: var(--text-main);">4. تقارير الأداء الأسبوعية الفورية + شارة التاج الذهبي 👑</div>
-                        <div style="font-size: 0.74rem; color: var(--text-muted);">إصدار تقرير تقييم أسبوعك بدرجات (A+ إلى C) في أي وقت مع شارة VIP في حسابك.</div>
-                    </div>
+                    <div class="vip-feat-icon"><i class="fa-solid fa-chart-pie"></i></div>
+                    <div style="font-size: 0.8rem; color: var(--text-main); font-weight: 700;">إصدار تقارير التقييم الأسبوعي الفورية</div>
                 </div>
             </div>
 
@@ -5847,43 +6271,41 @@
             <div id="vipPurchasePlansSection">
                 <div class="vip-pricing-grid">
                     <div class="vip-plan-card" id="vipPlanCard_monthly" onclick="selectVipPlan('monthly')">
-                        <div style="font-size: 0.78rem; color: #cbd5e1; font-weight: 800; margin-bottom: 4px;">الباقة الشهرية</div>
-                        <div style="font-size: 1.35rem; font-weight: 900; color: var(--text-main);"><span id="vipPriceMonthlyTxt">75</span> <small style="font-size: 0.75rem; color: var(--primary);">ج.م / شهر</small></div>
-                        <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">مثالية لشهر الامتحانات</div>
+                        <div style="font-size: 0.76rem; color: var(--text-muted); font-weight: 700; margin-bottom: 3px;">شهري</div>
+                        <div style="font-size: 1.2rem; font-weight: 900; color: var(--text-main);"><span id="vipPriceMonthlyTxt">75</span> <small style="font-size: 0.72rem; color: var(--text-muted);">ج.م / شهر</small></div>
                     </div>
                     <div class="vip-plan-card selected" id="vipPlanCard_semester" onclick="selectVipPlan('semester')">
-                        <span class="vip-best-value-tag">🔥 أوفر للطلاب (توفير 34%)</span>
-                        <div style="font-size: 0.78rem; color: #fbbf24; font-weight: 800; margin-bottom: 4px;">باقة الترم الكامل</div>
-                        <div style="font-size: 1.35rem; font-weight: 900; color: #fbbf24;"><span id="vipPriceSemesterTxt">199</span> <small style="font-size: 0.75rem; color: #fde68a;">ج.م / الترم (4 شهور)</small></div>
-                        <div style="font-size: 0.7rem; color: #cbd5e1; margin-top: 2px;">أقل من 50 ج.م في الشهر!</div>
+                        <span class="vip-best-value-tag">توفير 34%</span>
+                        <div style="font-size: 0.76rem; color: var(--primary); font-weight: 700; margin-bottom: 3px;">الترم الكامل (4 شهور)</div>
+                        <div style="font-size: 1.2rem; font-weight: 900; color: var(--text-main);"><span id="vipPriceSemesterTxt">199</span> <small style="font-size: 0.72rem; color: var(--primary);">ج.م / الترم</small></div>
                     </div>
                 </div>
 
-                <div style="font-size: 0.73rem; color: var(--text-muted); margin-bottom: 12px;">
-                    💳 الدفع متاح بسهولة عبر <b>Vodafone Cash</b> أو <b>InstaPay</b> والتفعيل فوري لحسابك
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 10px;">
+                    الدفع عبر Vodafone Cash أو InstaPay والتفعيل مباشر
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <button type="button" class="whatsapp-cta-btn" style="width: 100%; justify-content: center; padding: 11px 16px;" onclick="requestVipMediaActivationViaWhatsApp()">
-                        <i class="fa-brands fa-whatsapp" style="font-size: 1.15rem;"></i>
-                        <span id="vipWhatsappBtnText">تفعيل باقة الترم (199 ج.م) عبر واتساب الآن</span>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <button type="button" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px 14px; font-size: 0.85rem; box-shadow: none;" onclick="requestVipMediaActivationViaWhatsApp()">
+                        <i class="fa-brands fa-whatsapp" style="font-size: 1rem;"></i>
+                        <span id="vipWhatsappBtnText">تفعيل باقة الترم (199 ج.م) عبر واتساب</span>
                     </button>
-                    <button type="button" class="btn btn-outline" style="width: 100%; padding: 8px; color: var(--text-muted); border-color: rgba(255,255,255,0.1); font-size: 0.82rem;" onclick="closeModal('vipMediaLockModalOverlay')">
-                        الاستمرار بالخطة المجانية حالياً
+                    <button type="button" class="btn btn-outline" style="width: 100%; padding: 7px; color: var(--text-muted); border-color: rgba(255,255,255,0.08); font-size: 0.78rem;" onclick="closeModal('vipMediaLockModalOverlay')">
+                        إغلاق
                     </button>
                 </div>
             </div>
 
-            <!-- Shown when user IS ALREADY subscribed to VIP Pro -->
-            <div id="vipAlreadyActiveSection" style="display: none; background: rgba(16, 185, 129, 0.12); border: 1.5px solid rgba(16, 185, 129, 0.45); border-radius: 14px; padding: 16px; text-align: center;">
-                <div style="font-size: 1.05rem; font-weight: 900; color: #6ee7b7; margin-bottom: 6px;">
-                    <i class="fa-solid fa-circle-check"></i> أنت مشترك بالفعل في باقة VIP Pro 👑
+            <!-- Shown when user IS ALREADY subscribed -->
+            <div id="vipAlreadyActiveSection" style="display: none; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 14px; text-align: center;">
+                <div style="font-size: 0.95rem; font-weight: 800; color: #6ee7b7; margin-bottom: 4px;">
+                    <i class="fa-solid fa-circle-check"></i> حسابك مشترك ومفعّل بالفعل
                 </div>
-                <p style="font-size: 0.8rem; color: #e2e8f0; margin-bottom: 12px; line-height: 1.6;">
-                    حسابك مفعّل بالكامل وجميع المزايا السحابية وأدوات التصدير والتقارير الأسبوعية مفتوحة لك دون أي قيود.
+                <p style="font-size: 0.78rem; color: #cbd5e1; margin-bottom: 10px; line-height: 1.5;">
+                    جميع المزايا السحابية وأدوات التصدير والتلخيص مفتوحة في حسابك.
                 </p>
-                <button type="button" class="btn btn-primary" style="width: 100%; padding: 10px;" onclick="closeModal('vipMediaLockModalOverlay')">
-                    <i class="fa-solid fa-check"></i> حسناً، متابعة المذاكرة
+                <button type="button" class="btn btn-primary" style="width: 100%; padding: 8px; box-shadow: none;" onclick="closeModal('vipMediaLockModalOverlay')">
+                    حسناً
                 </button>
             </div>
         </div>
@@ -5999,8 +6421,8 @@
                             <i class="fa-solid fa-sliders"></i> <span>خيارات</span> <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem;"></i>
                         </button>
                         <div class="pdf-more-dropdown-menu" id="pdfMoreDropdownMenu" onclick="event.stopPropagation()">
-                            <button class="pdf-more-item" onclick="toggleExtraNoteForPage(currentActivePageNum); closePdfMoreMenu();">
-                                <i class="fa-solid fa-file-circle-plus" style="color: var(--primary);"></i> إضافة / إظهار ورقة تلخيص
+                            <button class="pdf-more-item" id="pdfMenuExtraNoteBtn" onclick="toggleExtraNoteForPage(currentActivePageNum); closePdfMoreMenu();">
+                                <i class="fa-solid fa-file-circle-plus" id="pdfMenuExtraNoteIcon" style="color: var(--primary);"></i> <span id="pdfMenuExtraNoteText">إضافة / إظهار ورقة تلخيص</span>
                             </button>
                             <button class="pdf-more-item" id="pdfMenuUploadCloudBtn" onclick="uploadCurrentViewingLectureMediaToCloud(); closePdfMoreMenu();">
                                 <i class="fa-solid fa-cloud-arrow-up" style="color: #38bdf8;"></i> <span id="pdfMenuUploadCloudBtnText">رفع الـ PDF والريكورد على الحساب</span>
@@ -6023,6 +6445,24 @@
                     </button>
                     <button class="icon-btn delete" style="width: 32px; height: 32px;" onclick="closePdfViewer()">
                         <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Merged Multi-Lecture & Audio Playlist Bar (Allows switching or continuous viewing of multiple lectures & recordings) -->
+            <div class="pdf-merged-lectures-bar" id="pdfMergedLecturesBar">
+                <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+                    <span style="font-size: 0.75rem; font-weight: 900; color: var(--primary); white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;">
+                        <i class="fa-solid fa-layer-group"></i> المحاضرات المدمجة:
+                    </span>
+                    <div class="merged-lec-tabs" id="pdfMergedLecturesTabs"></div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; flex-wrap: wrap;">
+                    <select id="pdfAddLectureToMergeSelect" onchange="addLectureToMergedStudioFromSelect(this.value)" style="padding: 4px 10px; font-size: 0.75rem; border-radius: 999px; background: rgba(9, 13, 20, 0.9); border: 1px solid rgba(45, 212, 191, 0.35); color: #5eead4; font-weight: 800; cursor: pointer;">
+                        <option value="">+ دمج محاضرة أخرى معها...</option>
+                    </select>
+                    <button type="button" class="anno-btn" id="pdfMergedContinuousToggleBtn" onclick="toggleMergedContinuousPdfMode()" style="border: 1px solid rgba(45, 212, 191, 0.4); color: #99f6e4; font-size: 0.74rem !important; padding: 4px 10px !important;">
+                        <i class="fa-solid fa-scroll"></i> <span id="pdfMergedContinuousToggleTxt">دمج كل السلايدات متتالية</span>
                     </button>
                 </div>
             </div>
@@ -6062,8 +6502,10 @@
                     <input type="color" id="customAnnoColor" value="#ef4444" onchange="setAnnotationColor(this.value, null)" style="width: 20px; height: 20px; padding: 0; border: none; background: transparent; cursor: pointer;">
                     
                     <div class="pdf-header-divider"></div>
-                    <input type="range" id="annoStrokeSize" class="stroke-size-slider" min="1" max="24" value="3" style="width: 65px;" oninput="updateAnnotationSize(this.value)">
-                    <span id="annoSizeLabel" style="font-size: 0.72rem; color: var(--text-muted); min-width: 24px;">3px</span>
+                    <div class="stroke-size-control-wrap" title="تغيير حجم القلم / الخط عبر السلايدر">
+                        <input type="range" id="annoStrokeSize" class="stroke-size-slider" min="1" max="24" step="0.5" value="3" oninput="updateAnnotationSize(this.value)">
+                        <span id="annoSizeLabel" style="font-size: 0.76rem; color: var(--primary); font-weight: 900; min-width: 34px; text-align: center;">3px</span>
+                    </div>
 
                     <div id="annoFontSelectWrap" class="anno-font-select-wrap">
                         <div class="pdf-header-divider"></div>
@@ -6083,8 +6525,8 @@
                     <button class="anno-btn" id="toggleAnnoVisBtn" onclick="toggleAnnotationsVisibility()">
                         <i class="fa-solid fa-eye" id="toggleAnnoVisIcon"></i> <span id="toggleAnnoVisText">إخفاء الكتابة</span>
                     </button>
-                    <button class="anno-btn" onclick="toggleExtraNoteForPage(currentActivePageNum)">
-                        <i class="fa-solid fa-plus" style="color: var(--primary);"></i> تلخيص
+                    <button class="anno-btn" id="pdfToolbarExtraNoteBtn" onclick="toggleExtraNoteForPage(currentActivePageNum)">
+                        <i class="fa-solid fa-plus" id="pdfToolbarExtraNoteIcon" style="color: var(--primary);"></i> <span id="pdfToolbarExtraNoteText">تلخيص</span>
                     </button>
                 </div>
             </div>
@@ -7097,39 +7539,74 @@
         </div>
     </div>
 
-    <!-- Advanced Session Modal (With Exact Custom Duration & > 4 Hours Support) -->
+    <!-- Compact & Organized Session Modal (Fits on 1 Screen with Collapsible Multi-Lecture Picker & Smart Time Tracking) -->
     <div class="glass-overlay" id="sessionModalOverlay">
-        <div class="glass-modal" style="max-width: 530px;">
-            <h3 id="sessionModalTitle"><i class="fa-solid fa-calendar-plus" style="color: var(--primary);"></i> جدولة جلسة جديدة</h3>
-            <input type="hidden" id="sessionEditId" value="">
-            
-            
-            <!-- Fixed Routine / College Schedule Toggle Card -->
-            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" onclick="toggleFixedCommitment()">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(45, 212, 191, 0.15); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
-                        <i class="fa-solid fa-lock" id="fixedToggleIcon"></i>
-                    </div>
-                    <div>
-                        <div style="font-weight: 700; font-size: 0.92rem; color: var(--text-main);">التزام أسبوعي ثابت (حضور الكلية / معامل)</div>
-                        <div style="font-size: 0.78rem; color: var(--text-muted);">روتين دائم يتكرر أسبوعياً، يحجز وقته في الجدول دون اعتباره مهمة مذاكرة منجزة</div>
-                    </div>
+        <div class="glass-modal compact-session-modal">
+            <!-- Header Row: Title + Compact Fixed Routine Switch -->
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+                <h3 id="sessionModalTitle" style="margin: 0; font-size: 1.15rem;"><i class="fa-solid fa-calendar-plus" style="color: var(--primary);"></i> جدولة جلسة جديدة</h3>
+                <div style="display: inline-flex; align-items: center; gap: 7px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: 999px; padding: 4px 11px; cursor: pointer;" onclick="toggleFixedCommitment()" title="التزام أسبوعي ثابت (حضور كلية / معامل)">
+                    <i class="fa-solid fa-lock-open" id="fixedToggleIcon" style="color: var(--primary); font-size: 0.78rem;"></i>
+                    <span style="font-size: 0.76rem; font-weight: 800; color: var(--text-main);">التزام كلية ثابت</span>
+                    <input type="checkbox" id="sessionIsFixedCheckbox" style="width: 15px; height: 15px; margin: 0; accent-color: var(--primary); cursor: pointer;" onclick="event.stopPropagation(); handleFixedCheckboxChange();">
                 </div>
-                <input type="checkbox" id="sessionIsFixedCheckbox" style="width: 20px; height: 20px; accent-color: var(--primary); cursor: pointer;" onclick="event.stopPropagation(); handleFixedCheckboxChange();">
+            </div>
+            <input type="hidden" id="sessionEditId" value="">
+
+            <!-- Row 1: Title + Session Type -->
+            <div class="csm-row-2">
+                <div>
+                    <label>عنوان الجلسة / المهمة:</label>
+                    <input type="text" id="sessionTitleInput" placeholder="مثال: مذاكرة ومراجعة فارماكولوجي">
+                </div>
+                <div>
+                    <label>نوع الجلسة والأولوية:</label>
+                    <select id="sessionTypeSelect" style="width: 100%;">
+                        <option value="important" selected>🟢 مذاكرة عميقة</option>
+                        <option value="review">🟣 مراجعة وتثبيت</option>
+                        <option value="urgent">🟡 كويز / تسليم</option>
+                        <option value="mandatory">🔴 إجباري / كلية</option>
+                    </select>
+                </div>
             </div>
 
-            <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">عنوان الجلسة / المحاضرة:</label>
-            <input type="text" id="sessionTitleInput" placeholder="مثال: مراجعة شاملة فارماكولوجي - Autonomic Drugs">
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px;">
+            <!-- Row 2: Subject + Collapsible Multi-Lecture Picker -->
+            <div class="csm-row-2">
                 <div>
-                    <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">المادة الدراسية:</label>
+                    <label>المادة الدراسية:</label>
                     <select id="sessionSubjectSelect" style="width: 100%;" onchange="populateSessionLecturesDropdown()">
                         <option value="">بدون مادة (عام)</option>
                     </select>
                 </div>
+                <div class="csm-lectures-dropdown-wrap">
+                    <label>ربط بمحاضرات من «المركز» (اختياري):</label>
+                    <button type="button" class="csm-lectures-trigger-btn" id="sessionLecturesPickerBtn" onclick="toggleSessionLecturesPopover()">
+                        <span id="sessionLecturesPickerSummary" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">📚 اختر محاضرة أو عدة محاضرات...</span>
+                        <i class="fa-solid fa-chevron-down" id="sessionLecturesPickerChevron" style="font-size: 0.7rem; color: var(--primary);"></i>
+                    </button>
+                    <select id="sessionLectureSelect" style="display: none;" onchange="handleSessionLectureSelectChange()">
+                        <option value="">— اختر محاضرة —</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Collapsible Multi-Lecture Checklist Popover (Opens only when user clicks the trigger button) -->
+            <div class="csm-lectures-popover" id="sessionLecturesPopover">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 0.74rem; color: var(--primary); font-weight: 800;">حدد محاضرة أو أكثر لربطها بالجلسة:</span>
+                    <div style="display: flex; gap: 5px;">
+                        <button type="button" class="ptm-btn" onclick="toggleSelectAllSessionLectures(true)" style="font-size: 0.68rem; padding: 2px 7px;">تحديد الكل</button>
+                        <button type="button" class="ptm-btn" onclick="toggleSelectAllSessionLectures(false)" style="font-size: 0.68rem; padding: 2px 7px;">إلغاء الكل</button>
+                        <button type="button" class="ptm-btn active" onclick="toggleSessionLecturesPopover(false)" style="font-size: 0.68rem; padding: 2px 8px;">تم ✓</button>
+                    </div>
+                </div>
+                <div id="sessionLecturesChecklistBox" class="session-lectures-checklist" style="max-height: 125px;"></div>
+            </div>
+
+            <!-- Row 3: Day + Start Time + Duration / Smart Tracking -->
+            <div class="csm-row-3">
                 <div>
-                    <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">اليوم:</label>
+                    <label>اليوم:</label>
                     <select id="sessionDaySelect" style="width: 100%;">
                         <option value="0">الأحد</option>
                         <option value="1">الإثنين</option>
@@ -7140,82 +7617,57 @@
                         <option value="6">السبت</option>
                     </select>
                 </div>
-            </div>
-
-            <!-- Smart Lecture Link for Automatic Study Detection -->
-            <div style="margin-bottom: 12px; background: rgba(45, 212, 191, 0.06); border: 1px solid rgba(45, 212, 191, 0.22); border-radius: 11px; padding: 10px 12px;">
-                <label style="font-size: 0.82rem; color: var(--primary); margin-bottom: 5px; display: block; font-weight: 800;">
-                    <i class="fa-solid fa-robot"></i> ربط بمحاضرة معينة من «المركز» (للرصد والإتمام التلقائي الذكي):
-                </label>
-                <select id="sessionLectureSelect" style="width: 100%; margin-bottom: 2px; font-size: 0.85rem; padding: 8px 12px;" onchange="handleSessionLectureSelectChange()">
-                    <option value="">— اختر محاضرة ليكتشف الموقع مذاكرتك لها تلقائياً (اختياري) —</option>
-                </select>
-            </div>
-
-            <!-- Start Time and Duration Row -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px;">
                 <div>
-                    <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">وقت البدء:</label>
+                    <label id="sessionStartHourLabel">وقت البدء:</label>
                     <select id="sessionStartHourSelect" style="width: 100%;" onchange="updateCalculatedEndTime()"></select>
                 </div>
                 <div>
-                    <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">مدة الجلسة:</label>
+                    <label>المدة أو التتبع الذكي:</label>
                     <select id="sessionDurationSelect" style="width: 100%;" onchange="handleDurationSelectChange()">
+                        <option value="open">🧭 تتبع ذكي (يرصد البدء والانتهاء والمدة)</option>
                         <option value="0.5">30 دقيقة (0.5 س)</option>
                         <option value="1" selected>1 ساعة</option>
-                        <option value="1.5">1.5 ساعة (90 دقيقة)</option>
-                        <option value="2">ساعتان</option>
+                        <option value="1.5">1.5 ساعة (90 د)</option>
+                        <option value="2">ساعتان (2 س)</option>
                         <option value="2.5">2.5 ساعة</option>
                         <option value="3">3 ساعات</option>
                         <option value="4">4 ساعات</option>
                         <option value="5">5 ساعات</option>
                         <option value="6">6 ساعات</option>
                         <option value="8">8 ساعات</option>
-                        <option value="custom">⚙️ تحديد وقت مخصص بالظبط...</option>
+                        <option value="custom">⚙️ وقت مخصص...</option>
                     </select>
                 </div>
             </div>
 
-            <!-- Custom exact duration box (appears when 'custom' is selected or for custom hours) -->
-            <div id="customDurationBox" style="display: none; background: rgba(45, 212, 191, 0.08); border: 1px solid var(--border-hover); border-radius: 12px; padding: 12px 16px; margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <label style="font-size: 0.85rem; color: var(--primary); font-weight: 700;">أدخل عدد الساعات بدقة:</label>
-                    <span style="font-size: 0.75rem; color: var(--text-muted);">يدعم أكثر من 4 ساعات (مثال: 5.5 أو 7 أو 10)</span>
-                </div>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <input type="number" id="sessionCustomHoursInput" min="0.25" max="24" step="0.25" value="5" placeholder="عدد الساعات..." style="flex: 1; padding: 9px 14px;" oninput="updateCalculatedEndTime()">
-                    <span style="color: white; font-weight: 800; font-size: 0.95rem;">ساعة</span>
+            <!-- Custom exact duration box -->
+            <div id="customDurationBox" style="display: none; background: rgba(45, 212, 191, 0.08); border: 1px solid var(--border-hover); border-radius: 10px; padding: 8px 12px; margin-bottom: 10px;">
+                <div style="display: flex; gap: 10px; align-items: center; justify-content: space-between;">
+                    <span style="font-size: 0.78rem; color: var(--primary); font-weight: 800;">عدد الساعات المخصص:</span>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <input type="number" id="sessionCustomHoursInput" min="0.25" max="24" step="0.25" value="5" style="width: 90px;" oninput="updateCalculatedEndTime()">
+                        <span style="color: white; font-weight: 800; font-size: 0.82rem;">ساعة</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Live End-time Preview Pill -->
-            <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 8px 14px; margin-bottom: 14px; font-size: 0.85rem;">
-                <span style="color: var(--text-muted);"><i class="fa-regular fa-clock" style="color: var(--primary);"></i> التوقيت المحسوب للجلسة:</span>
+            <!-- Row 4: Notes + Live Summary Pill -->
+            <div style="margin-bottom: 10px;">
+                <input type="text" id="sessionNotesInput" placeholder="📝 ملاحظات سريعة أو أرقام صفحات (اختياري)..." style="width: 100%;">
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 9px; padding: 6px 12px; margin-bottom: 12px; font-size: 0.78rem; flex-wrap: wrap;">
+                <span style="color: var(--text-muted);"><i class="fa-regular fa-clock" style="color: var(--primary);"></i> نظام التوقيت:</span>
                 <span id="calculatedEndTimePill" style="font-weight: 800; color: var(--primary);">من 09:00 ص إلى 10:00 ص (1 س)</span>
             </div>
 
-            <div style="margin-bottom: 12px;">
-                <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">نوع الجلسة والأولوية:</label>
-                <select id="sessionTypeSelect" style="width: 100%;">
-                    <option value="mandatory">🔴 إجباري / كلية (محاضرة، سكشن، معمل)</option>
-                    <option value="important" selected>🟢 مذاكرة عميقة (Deep Study / فهم واستذكار)</option>
-                    <option value="urgent">🟡 كويز أو تسليم شيت (Urgent / Deadline)</option>
-                    <option value="review">🟣 مراجعة دورية (Active Recall / حل أسئلة)</option>
-                </select>
-            </div>
-
-            <div style="margin-bottom: 15px;">
-                <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">ملاحظات أو صفحات للمذاكرة (اختياري):</label>
-                <input type="text" id="sessionNotesInput" placeholder="مثال: مراجعة السلايدات من 15 إلى 40">
-            </div>
-
-            <div class="modal-actions" style="justify-content: space-between;">
+            <div class="modal-actions" style="justify-content: space-between; margin-top: 8px;">
                 <div>
-                    <button class="btn btn-danger" id="sessionDeleteBtn" style="display: none; padding: 10px 18px;" onclick="deleteSessionFromModal()"><i class="fa-solid fa-trash"></i> حذف الجلسة</button>
+                    <button class="btn btn-danger" id="sessionDeleteBtn" style="display: none; padding: 8px 14px; font-size: 0.82rem;" onclick="deleteSessionFromModal()"><i class="fa-solid fa-trash"></i> حذف</button>
                 </div>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-outline" onclick="closeModal('sessionModalOverlay')" style="border-color: rgba(255,255,255,0.1); color: var(--text-muted);">إلغاء</button>
-                    <button class="btn btn-primary" onclick="saveSession()"><i class="fa-solid fa-check"></i> حفظ الجلسة</button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-outline" onclick="closeModal('sessionModalOverlay')" style="border-color: rgba(255,255,255,0.1); color: var(--text-muted); padding: 8px 16px; font-size: 0.84rem;">إلغاء</button>
+                    <button class="btn btn-primary" onclick="saveSession()" style="padding: 8px 18px; font-size: 0.84rem;"><i class="fa-solid fa-check"></i> حفظ الجلسة</button>
                 </div>
             </div>
         </div>
@@ -7248,28 +7700,31 @@
         </div>
     </div>
 
-    <!-- Smart Partial Study / External Study Verification Modal -->
+    <!-- Smart Assistant Task Completion & Partial-Save Verification Modal -->
     <div class="glass-overlay" id="smartStudyVerifyModalOverlay">
-        <div class="glass-modal" style="max-width: 510px; border-color: rgba(45, 212, 191, 0.45);">
-            <h3 style="color: var(--primary); font-size: 1.25rem;">
-                <i class="fa-solid fa-robot"></i> المساعد الذكي للتخطيط — التحقق من إتمام المهمة
-            </h3>
-            <p id="smartVerifyModalDesc" style="font-size: 0.92rem; color: #e2e8f0; line-height: 1.65; margin-bottom: 16px;"></p>
+        <div class="glass-modal" style="max-width: 480px; border-color: rgba(45, 212, 191, 0.35); padding: 22px 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="color: var(--primary); font-size: 1.12rem; margin: 0;">
+                    <i class="fa-solid fa-compass"></i> المساعد الذكي — حفظ تقدم المهمة
+                </h3>
+                <button class="icon-btn" style="width: 28px; height: 28px;" onclick="closeModal('smartStudyVerifyModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="smartVerifyModalDesc" style="font-size: 0.86rem; color: #e2e8f0; line-height: 1.65; margin-bottom: 14px;"></div>
 
-            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
-                <button class="btn btn-primary" id="smartVerifyBtnComplete" style="justify-content: flex-start; text-align: right; padding: 12px 16px;">
-                    <i class="fa-solid fa-circle-check" style="font-size: 1.15rem;"></i>
-                    <span style="font-weight: 800;">إتمام المهمة بالكامل</span>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button class="btn btn-primary" id="smartVerifyBtnComplete" style="justify-content: flex-start; text-align: right; padding: 11px 14px; box-shadow: none;">
+                    <i class="fa-solid fa-circle-check" style="font-size: 1.05rem;"></i>
+                    <span style="font-weight: 800;" id="smartVerifyFullTitle">حفظ وإتمام المهمة بالكامل</span>
                 </button>
 
-                <button class="btn btn-outline" id="smartVerifyBtnRescheduleRem" style="justify-content: flex-start; text-align: right; padding: 12px 16px; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;">
-                    <i class="fa-solid fa-clock-rotate-left" style="font-size: 1.15rem;"></i>
-                    <span style="font-weight: 800;" id="smartVerifyRemTitle">جدولة الوقت المتبقي لاحقاً</span>
+                <button class="btn btn-outline" id="smartVerifyBtnRescheduleRem" style="justify-content: flex-start; text-align: right; padding: 11px 14px; border-color: rgba(45, 212, 191, 0.4); color: #5eead4;">
+                    <i class="fa-solid fa-Scissors fa-check-double" style="font-size: 1.05rem;"></i>
+                    <span style="font-weight: 800;" id="smartVerifyRemTitle">حفظ الجزء المسجل فقط وإلغاء الجزء الباقي</span>
                 </button>
 
-                <button class="btn btn-outline" id="smartVerifyBtnKeepOpen" style="justify-content: flex-start; text-align: right; padding: 11px 16px; border-color: rgba(255,255,255,0.12); color: #cbd5e1;">
-                    <i class="fa-regular fa-hourglass-half" style="font-size: 1.05rem;"></i>
-                    <span style="font-weight: 700;">ما زلت أذاكرها — أبقِ المهمة مفتوحة الآن</span>
+                <button class="btn btn-outline" id="smartVerifyBtnKeepOpen" style="justify-content: flex-start; text-align: right; padding: 9px 14px; border-color: rgba(255,255,255,0.1); color: var(--text-muted); font-size: 0.8rem;">
+                    <i class="fa-regular fa-hourglass-half"></i>
+                    <span style="font-weight: 700;">ما زلت أذاكرها — أبقِ المهمة مفتوحة</span>
                 </button>
             </div>
         </div>
@@ -8196,25 +8651,131 @@
             }
         }
 
-        function populateSessionLecturesDropdown(selectedLectureId = '') {
+        function populateSessionLecturesDropdown(selectedLecturesInput = '') {
             const lecSel = document.getElementById('sessionLectureSelect');
+            const checklistBox = document.getElementById('sessionLecturesChecklistBox');
             const subSel = document.getElementById('sessionSubjectSelect');
             if (!lecSel) return;
             const chosenSubId = subSel ? subSel.value : '';
+            const selectedSet = new Set(
+                Array.isArray(selectedLecturesInput)
+                    ? selectedLecturesInput.map(x => String(x))
+                    : (selectedLecturesInput ? [String(selectedLecturesInput)] : [])
+            );
+
             const opts = ['<option value="">— اختر محاضرة ليكتشف الموقع مذاكرتك لها تلقائياً (اختياري) —</option>'];
+            const checkItems = [];
 
             subjects.forEach(s => {
                 if (chosenSubId && String(s.id) !== String(chosenSubId)) return;
                 (s.groups || []).forEach(g => {
                     (g.lectures || []).forEach(l => {
                         const statusTxt = l.completed ? '✓ مكتملة' : 'قيد الدراسة';
+                        const isChecked = selectedSet.has(String(l.id));
                         opts.push(`<option value="${l.id}" data-subid="${s.id}" data-title="${l.title.replace(/"/g, '&quot;')}">${s.name} — ${l.title} (${statusTxt})</option>`);
+                        checkItems.push(`
+                            <label class="slc-item ${isChecked ? 'checked' : ''}">
+                                <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+                                    <input type="checkbox" class="session-lec-checkbox" value="${l.id}" data-subid="${s.id}" data-title="${l.title.replace(/"/g, '&quot;')}" ${isChecked ? 'checked' : ''} onchange="handleSessionLecturesChecklistChange(this)">
+                                    <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><b>${l.title}</b> <small style="color:var(--text-muted);">(${s.name} • ${g.name})</small></span>
+                                </div>
+                                <span style="font-size:0.7rem; color:${l.completed ? '#6ee7b7' : '#fcd34d'}; flex-shrink:0;">${statusTxt}</span>
+                            </label>
+                        `);
                     });
                 });
             });
+
             lecSel.innerHTML = opts.join('');
-            if (selectedLectureId) {
-                lecSel.value = String(selectedLectureId);
+            const firstSelected = Array.from(selectedSet)[0] || '';
+            if (firstSelected) lecSel.value = firstSelected;
+
+            if (checklistBox) {
+                if (checkItems.length === 0) {
+                    checklistBox.innerHTML = `<div style="padding:10px; font-size:0.78rem; color:var(--text-muted); text-align:center;">اختر مادة دراسية تحتوي على محاضرات لربط محاضرة أو عدة محاضرات معاً.</div>`;
+                } else {
+                    checklistBox.innerHTML = checkItems.join('');
+                }
+            }
+            updateSessionLecturesPickerButtonSummary();
+        }
+
+        function toggleSessionLecturesPopover(forceState = null) {
+            const pop = document.getElementById('sessionLecturesPopover');
+            const chev = document.getElementById('sessionLecturesPickerChevron');
+            if (!pop) return;
+            const willOpen = (forceState !== null) ? Boolean(forceState) : !pop.classList.contains('open');
+            pop.classList.toggle('open', willOpen);
+            if (chev) chev.className = willOpen ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
+        }
+
+        function updateSessionLecturesPickerButtonSummary() {
+            const summaryEl = document.getElementById('sessionLecturesPickerSummary');
+            if (!summaryEl) return;
+            const checkedBoxes = Array.from(document.querySelectorAll('#sessionLecturesChecklistBox .session-lec-checkbox:checked'));
+            if (checkedBoxes.length === 0) {
+                summaryEl.innerHTML = '📚 اختر محاضرة أو عدة محاضرات...';
+                summaryEl.style.color = '#cbd5e1';
+            } else if (checkedBoxes.length === 1) {
+                const t = checkedBoxes[0].getAttribute('data-title') || 'محاضرة واحدة';
+                summaryEl.innerHTML = `✅ محاضرة: ${t}`;
+                summaryEl.style.color = 'var(--primary)';
+            } else {
+                summaryEl.innerHTML = `📚 تم ربط (${checkedBoxes.length}) محاضرات معاً ✓`;
+                summaryEl.style.color = '#6ee7b7';
+            }
+        }
+
+        function getSelectedSessionLectureIds() {
+            const boxes = document.querySelectorAll('#sessionLecturesChecklistBox .session-lec-checkbox:checked');
+            const ids = Array.from(boxes).map(b => String(b.value));
+            if (ids.length > 0) return ids;
+            const lecSel = document.getElementById('sessionLectureSelect');
+            if (lecSel && lecSel.value) return [String(lecSel.value)];
+            return [];
+        }
+
+        function toggleSelectAllSessionLectures(checkAll) {
+            const boxes = document.querySelectorAll('#sessionLecturesChecklistBox .session-lec-checkbox');
+            boxes.forEach(b => {
+                b.checked = Boolean(checkAll);
+                const lbl = b.closest('.slc-item');
+                if (lbl) lbl.classList.toggle('checked', Boolean(checkAll));
+            });
+            handleSessionLecturesChecklistChange(null);
+        }
+
+        function handleSessionLecturesChecklistChange(changedBox) {
+            if (changedBox) {
+                const lbl = changedBox.closest('.slc-item');
+                if (lbl) lbl.classList.toggle('checked', changedBox.checked);
+            }
+            const checkedBoxes = Array.from(document.querySelectorAll('#sessionLecturesChecklistBox .session-lec-checkbox:checked'));
+            const lecSel = document.getElementById('sessionLectureSelect');
+            const titleIn = document.getElementById('sessionTitleInput');
+            const subSel = document.getElementById('sessionSubjectSelect');
+
+            if (lecSel) {
+                lecSel.value = checkedBoxes.length > 0 ? String(checkedBoxes[0].value) : '';
+            }
+            updateSessionLecturesPickerButtonSummary();
+            if (checkedBoxes.length > 0) {
+                const firstSubId = checkedBoxes[0].getAttribute('data-subid') || '';
+                if (firstSubId && subSel && !subSel.value) {
+                    subSel.value = String(firstSubId);
+                }
+                const titles = checkedBoxes.map(b => b.getAttribute('data-title') || '').filter(Boolean);
+                const currentTitle = titleIn ? titleIn.value.trim() : '';
+                const isAutoTitle = !currentTitle || currentTitle.startsWith('مذاكرة محاضرة:') || currentTitle.startsWith('مراجعة مدمجة:');
+                if (titleIn && isAutoTitle && titles.length > 0) {
+                    if (titles.length === 1) {
+                        titleIn.value = `مذاكرة محاضرة: ${titles[0]}`;
+                    } else if (titles.length <= 3) {
+                        titleIn.value = `مراجعة مدمجة (${titles.length} محاضرات): ${titles.join(' + ')}`;
+                    } else {
+                        titleIn.value = `مراجعة مدمجة (${titles.length} محاضرات): ${titles.slice(0, 2).join(' + ')} + ...`;
+                    }
+                }
             }
         }
 
@@ -8235,7 +8796,7 @@
             }
         }
 
-        // ================= DURATION & TIME CALCULATION HELPERS =================
+        // ================= DURATION & TIME CALCULATION HELPERS (WITH OPEN-ENDED TIME MODE) =================
         function handleDurationSelectChange() {
             const sel = document.getElementById('sessionDurationSelect').value;
             const box = document.getElementById('customDurationBox');
@@ -8248,8 +8809,16 @@
             updateCalculatedEndTime();
         }
 
+        function isSelectedDurationOpenEnded() {
+            const sel = document.getElementById('sessionDurationSelect');
+            return Boolean(sel && sel.value === 'open');
+        }
+
         function getSelectedDuration() {
             const sel = document.getElementById('sessionDurationSelect').value;
+            if (sel === 'open') {
+                return 1.5; // Visual placeholder slot height until completed, when exact elapsed time overwrites it
+            }
             if (sel === 'custom') {
                 const customVal = parseFloat(document.getElementById('sessionCustomHoursInput').value);
                 return (!isNaN(customVal) && customVal > 0) ? customVal : 1;
@@ -8259,12 +8828,18 @@
 
         function updateCalculatedEndTime() {
             const startHour = parseFloat(document.getElementById('sessionStartHourSelect').value) || 9;
+            const pill = document.getElementById('calculatedEndTimePill');
+            const startLbl = document.getElementById('sessionStartHourLabel');
+            if (!pill) return;
+            if (isSelectedDurationOpenEnded()) {
+                if (startLbl) startLbl.innerText = 'موعد التذكير المبدئي:';
+                pill.innerHTML = `<span style="color:#6ee7b7;">🧭 تتبع ذكي: سيتعرف تلقائياً متى بدأت ومتى انتهيت وكم استغرقت بالضبط!</span>`;
+                return;
+            }
+            if (startLbl) startLbl.innerText = 'وقت البدء:';
             const duration = getSelectedDuration();
             const endHour = startHour + duration;
-            const pill = document.getElementById('calculatedEndTimePill');
-            if (pill) {
-                pill.innerText = `من ${formatHourText(startHour)} إلى ${formatHourText(endHour)} (${duration} س)`;
-            }
+            pill.innerText = `من ${formatHourText(startHour)} إلى ${formatHourText(endHour)} (${duration} س)`;
         }
 
         let selectedHourlyDayIdx = new Date().getDay();
@@ -8285,20 +8860,94 @@
 
 
 
+        function formatOpenTimerElapsed(ev) {
+            const baseMins = Number(ev.actualStudiedMinutes) || 0;
+            const liveRunMins = ev.openTimerStartedAt ? Math.max(0, (Date.now() - ev.openTimerStartedAt) / 60000) : 0;
+            const totalSeconds = Math.max(0, Math.round((baseMins + liveRunMins) * 60));
+            const hrs = Math.floor(totalSeconds / 3600);
+            const mins = Math.floor((totalSeconds % 3600) / 60);
+            const secs = totalSeconds % 60;
+            if (hrs > 0) {
+                return `${hrs}:${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            }
+            return `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        function formatMinutesHumanReadable(totalMinutes) {
+            const mins = Math.max(1, Math.round(totalMinutes));
+            const h = Math.floor(mins / 60);
+            const m = mins % 60;
+            if (h > 0 && m > 0) return `${h} س و ${m} د`;
+            if (h > 0) return `${h} ساعة`;
+            return `${m} دقيقة`;
+        }
+
+        function recordSmartSessionActualStart(ev) {
+            if (!ev) return;
+            const now = new Date();
+            if (!ev.smartFirstStartedAtMs) {
+                ev.smartFirstStartedAtMs = Date.now();
+                ev.smartStartTimeFormatted = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                // Align startHour on calendar to actual start hour (rounded to nearest 15m)
+                const decH = now.getHours() + Math.round((now.getMinutes() / 60) * 4) / 4;
+                ev.startHour = Math.max(Number(plannerPrefs.dayStartHour ?? 6), Math.min(23, decH));
+            }
+            if (!ev.openTimerStartedAt) {
+                ev.openTimerStartedAt = Date.now();
+            }
+        }
+
+        function toggleOpenSessionLiveTimer(event, eventId) {
+            if (event) event.stopPropagation();
+            const ev = scheduleEvents.find(e => String(e.id) === String(eventId));
+            if (!ev || ev.completed) return;
+            if (ev.openTimerStartedAt) {
+                const deltaMins = Math.max(0, (Date.now() - ev.openTimerStartedAt) / 60000);
+                ev.actualStudiedMinutes = Number(((Number(ev.actualStudiedMinutes) || 0) + deltaMins).toFixed(2));
+                ev.openTimerStartedAt = null;
+                saveScheduleData();
+                renderSchedule();
+                showToast(`⏸️ تم إيقاف التتبع الذكي مؤقتاً (بدأت ${ev.smartStartTimeFormatted || 'الآن'} • المسجل: ${formatMinutesHumanReadable(ev.actualStudiedMinutes)})`);
+            } else {
+                ev.isOpenDuration = true;
+                recordSmartSessionActualStart(ev);
+                saveScheduleData();
+                renderSchedule();
+                showToast(`🧭 بدأ التتبع الذكي لـ «${ev.title}» الساعة ${ev.smartStartTimeFormatted}! سيسجل وقت انتهائك والمدة تلقائياً.`);
+            }
+        }
+
         function getSmartSessionBadgesAndClasses(ev, isToday, currentDecHour) {
             const isFixed = Boolean(ev.isFixed || ev.type === 'mandatory');
             const isDone = !isFixed && Boolean(ev.completed);
-            const isMissed = !isFixed && !isDone && Boolean(ev.missed);
+            const isMissed = !isFixed && !isDone && Boolean(ev.missed) && !ev.isOpenDuration;
             const endHour = Number(ev.startHour) + (Number(ev.duration) || 1);
-            const isLiveNow = isToday && !isDone && (currentDecHour >= Number(ev.startHour) && currentDecHour < endHour);
-            const studiedMins = Math.round(Number(ev.actualStudiedMinutes) || 0);
+            const isLiveNow = (isToday && !isDone && (currentDecHour >= Number(ev.startHour) && currentDecHour < endHour)) || Boolean(ev.openTimerStartedAt);
+            const studiedMins = Math.round((Number(ev.actualStudiedMinutes) || 0) + (ev.openTimerStartedAt ? (Date.now() - ev.openTimerStartedAt) / 60000 : 0));
 
             let extraCardClass = '';
             if (isLiveNow) extraCardClass = 'is-active-now';
             else if (isMissed) extraCardClass = 'is-missed';
 
+            const lecIdsArr = Array.isArray(ev.lectureIds) ? ev.lectureIds : (ev.lectureId ? [ev.lectureId] : []);
+            let multiLecBadge = '';
+            if (lecIdsArr.length > 1) {
+                multiLecBadge = `<span class="smart-status-tag tag-auto" style="background:rgba(56,189,248,0.16); color:#38bdf8; border-color:rgba(56,189,248,0.4); cursor:pointer;" onclick="event.stopPropagation(); launchScheduledSessionNow(${ev.id});" title="اضغط لفتح الـ ${lecIdsArr.length} محاضرات والريكوردات مدمجة معاً"><i class="fa-solid fa-layer-group"></i> فتح ${lecIdsArr.length} محاضرات مدمجة</span>`;
+            } else if (lecIdsArr.length === 1) {
+                multiLecBadge = `<span class="smart-status-tag tag-auto" style="background:rgba(45,212,191,0.12); color:#5eead4; border-color:rgba(45,212,191,0.3); cursor:pointer;" onclick="event.stopPropagation(); launchScheduledSessionNow(${ev.id});" title="اضغط لفتح المحاضرة وبدء التتبع الذكي"><i class="fa-solid fa-book-open"></i> فتح المحاضرة</span>`;
+            }
+
             let statusTagHtml = '';
-            if (isLiveNow) {
+            if (ev.isOpenDuration && !isDone) {
+                const timerStr = formatOpenTimerElapsed(ev);
+                const startPrefix = ev.smartStartTimeFormatted ? `بدأت ${ev.smartStartTimeFormatted} • ` : '';
+                statusTagHtml = `<span class="open-timer-live-pill" data-open-timer-ev="${ev.id}"><i class="fa-solid ${ev.openTimerStartedAt ? 'fa-compass fa-spin' : 'fa-compass'}"></i> تتبع ذكي: ${startPrefix}${timerStr}</span>`;
+            } else if (isDone && (ev.isOpenDuration || (ev.smartStartTimeFormatted && ev.smartEndTimeFormatted))) {
+                const rangeTxt = (ev.smartStartTimeFormatted && ev.smartEndTimeFormatted)
+                    ? `من ${ev.smartStartTimeFormatted} إلى ${ev.smartEndTimeFormatted} • `
+                    : '';
+                statusTagHtml = `<span class="smart-status-tag tag-auto"><i class="fa-solid fa-compass"></i> ${rangeTxt}${formatMinutesHumanReadable(ev.actualStudiedMinutes || (ev.duration * 60))}</span>`;
+            } else if (isLiveNow) {
                 statusTagHtml = `<span class="smart-status-tag tag-live"><i class="fa-solid fa-circle-dot"></i> جارية الآن</span>`;
             } else if (isDone && ev.autoCompleted) {
                 statusTagHtml = `<span class="smart-status-tag tag-auto"><i class="fa-solid fa-robot"></i> تمت تلقائياً</span>`;
@@ -8308,8 +8957,21 @@
                 statusTagHtml = `<span class="smart-status-tag tag-partial"><i class="fa-solid fa-stopwatch"></i> دُرست ${studiedMins} د</span>`;
             }
 
+            statusTagHtml = `${statusTagHtml} ${multiLecBadge}`.trim();
+
             let missedActionsHtml = '';
-            if (isMissed) {
+            if (ev.isOpenDuration && !isDone) {
+                missedActionsHtml = `
+                    <div class="missed-quick-actions" style="border-top-color: rgba(45, 212, 191, 0.22);" onclick="event.stopPropagation();">
+                        <button type="button" class="missed-act-btn" style="border-color:rgba(45,212,191,0.4); color:#5eead4;" onclick="toggleOpenSessionLiveTimer(event, ${ev.id})">
+                            <i class="fa-solid ${ev.openTimerStartedAt ? 'fa-pause' : 'fa-play'}"></i> ${ev.openTimerStartedAt ? 'إيقاف مؤقت' : (ev.smartStartTimeFormatted ? 'استئناف التتبع' : 'بدء المذاكرة الآن')}
+                        </button>
+                        <button type="button" class="missed-act-btn" style="background:rgba(16,185,129,0.2); border-color:#10b981; color:#6ee7b7;" onclick="toggleCompleteSession(event, ${ev.id})">
+                            <i class="fa-solid fa-check-double"></i> إنهاء وحفظ البداية والنهاية
+                        </button>
+                    </div>
+                `;
+            } else if (isMissed) {
                 missedActionsHtml = `
                     <div class="missed-quick-actions" onclick="event.stopPropagation();">
                         <button type="button" class="missed-act-btn" onclick="markMissedSessionDoneOffline(event, ${ev.id})">
@@ -8393,8 +9055,12 @@
                     `);
                 } else {
                     dayEvents.forEach(ev => {
-                        const endHour = ev.startHour + ev.duration;
-                        const timeDisplay = `${formatHourText(ev.startHour)} – ${formatHourText(endHour)}`;
+                        const endHour = ev.startHour + (Number(ev.duration) || 1);
+                        const timeDisplay = (ev.isOpenDuration && !ev.completed)
+                            ? (ev.smartStartTimeFormatted ? `🧭 بدأت ${ev.smartStartTimeFormatted} (جارٍ التتبع)` : `🧭 تتبع ذكي للوقت`)
+                            : ((ev.smartStartTimeFormatted && ev.smartEndTimeFormatted && ev.completed)
+                                ? `🧭 ${ev.smartStartTimeFormatted} – ${ev.smartEndTimeFormatted}`
+                                : `${formatHourText(ev.startHour)} – ${formatHourText(endHour)}`);
                         const subjectName = ev.subjectId ? (subMap.get(String(ev.subjectId)) || '') : '';
                         const smartInfo = getSmartSessionBadgesAndClasses(ev, isToday, currentDecHour);
                         const catClass = smartInfo.isFixed ? 'fluid-cat-fixed' : `fluid-cat-${ev.type || 'important'}`;
@@ -8871,7 +9537,8 @@
         // ================= OPEN / EDIT SESSION MODAL =================
         function openAddSessionModal(dayIdx = null, startHour = null) {
             populateSubjectDropdowns();
-            populateSessionLecturesDropdown('');
+            populateSessionLecturesDropdown([]);
+            toggleSessionLecturesPopover(false);
             document.getElementById('sessionModalTitle').innerHTML = '<i class="fa-solid fa-calendar-plus" style="color:var(--primary);"></i> جدولة جلسة جديدة';
             document.getElementById('sessionEditId').value = '';
             document.getElementById('sessionTitleInput').value = '';
@@ -8907,14 +9574,21 @@
             document.getElementById('sessionEditId').value = String(ev.id);
             document.getElementById('sessionTitleInput').value = ev.title;
             document.getElementById('sessionSubjectSelect').value = ev.subjectId || '';
-            populateSessionLecturesDropdown(ev.lectureId || '');
+            const existingLecIds = Array.isArray(ev.lectureIds) && ev.lectureIds.length > 0
+                ? ev.lectureIds
+                : (ev.lectureId ? [ev.lectureId] : []);
+            populateSessionLecturesDropdown(existingLecIds);
+            toggleSessionLecturesPopover(false);
             document.getElementById('sessionDaySelect').value = String(ev.day);
             document.getElementById('sessionStartHourSelect').value = String(ev.startHour);
             
-            // Set Duration
+            // Set Duration (including Open-Ended Mode)
             const standardDurations = ['0.5', '1', '1.5', '2', '2.5', '3', '4', '5', '6', '8'];
             const durStr = String(ev.duration);
-            if (standardDurations.includes(durStr)) {
+            if (ev.isOpenDuration && !ev.completed) {
+                document.getElementById('sessionDurationSelect').value = 'open';
+                document.getElementById('customDurationBox').style.display = 'none';
+            } else if (standardDurations.includes(durStr)) {
                 document.getElementById('sessionDurationSelect').value = durStr;
                 document.getElementById('customDurationBox').style.display = 'none';
             } else {
@@ -8950,9 +9624,11 @@
             
             const editId = document.getElementById('sessionEditId').value;
             const subjectId = document.getElementById('sessionSubjectSelect').value;
-            const lectureId = document.getElementById('sessionLectureSelect') ? document.getElementById('sessionLectureSelect').value : '';
+            const selectedLecIds = getSelectedSessionLectureIds();
+            const lectureId = selectedLecIds[0] || '';
             const day = parseInt(document.getElementById('sessionDaySelect').value);
             const startHour = parseFloat(document.getElementById('sessionStartHourSelect').value);
+            const isOpenDuration = isSelectedDurationOpenEnded();
             const duration = getSelectedDuration();
             const type = document.getElementById('sessionTypeSelect').value;
             const notes = document.getElementById('sessionNotesInput').value.trim();
@@ -8964,8 +9640,10 @@
                     ev.title = title;
                     ev.subjectId = subjectId;
                     ev.lectureId = lectureId;
+                    ev.lectureIds = selectedLecIds;
                     ev.day = day;
                     ev.startHour = startHour;
+                    ev.isOpenDuration = isOpenDuration;
                     ev.duration = duration;
                     ev.type = type;
                     ev.notes = notes;
@@ -8981,9 +9659,16 @@
                     title,
                     subjectId,
                     lectureId,
+                    lectureIds: selectedLecIds,
                     day,
                     startHour,
                     duration,
+                    isOpenDuration: isOpenDuration,
+                    openTimerStartedAt: null,
+                    smartFirstStartedAtMs: null,
+                    smartStartTimeFormatted: '',
+                    smartEndTimeFormatted: '',
+                    SessionCreatedAt: Date.now(),
                     type,
                     completed: false,
                     missed: false,
@@ -9001,7 +9686,11 @@
                     }
                     pendingBacklogTaskIdToLink = null;
                 }
-                showToast(`تمت جدولة الجلسة بنجاح (${duration} س) 🎯`);
+                if (isOpenDuration) {
+                    showToast(`⏱️ تمت جدولة الجلسة بـ «وقت مفتوح»! سيقوم البرنامج بحساب الوقت الفعلي وتسجيله تلقائياً عند الانتهاء.`);
+                } else {
+                    showToast(`تمت جدولة الجلسة بنجاح (${duration} س) 🎯`);
+                }
             }
             
             saveScheduleData();
@@ -9032,29 +9721,92 @@
             if (!ev || ev.isFixed) return;
             
             ev.completed = !ev.completed;
+            let openDurationSummaryTxt = '';
+
             if (ev.completed) {
                 ev.missed = false;
+                // If Smart Time Tracking mode is enabled, calculate actual Start Time, End Time & Elapsed Duration!
+                if (ev.isOpenDuration) {
+                    const nowObj = new Date();
+                    const endStr = nowObj.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                    ev.smartEndedAtMs = Date.now();
+                    ev.smartEndTimeFormatted = endStr;
+
+                    let totalMins = Number(ev.actualStudiedMinutes) || 0;
+                    if (ev.openTimerStartedAt) {
+                        totalMins += Math.max(0, (Date.now() - ev.openTimerStartedAt) / 60000);
+                        ev.openTimerStartedAt = null;
+                    } else if (totalMins < 1 && ev.smartFirstStartedAtMs) {
+                        totalMins = Math.max(1, (Date.now() - ev.smartFirstStartedAtMs) / 60000);
+                    } else if (totalMins < 1 && ev.SessionCreatedAt) {
+                        totalMins = Math.max(1, (Date.now() - ev.SessionCreatedAt) / 60000);
+                    }
+                    if (totalMins < 1) totalMins = 15;
+
+                    if (!ev.smartStartTimeFormatted) {
+                        const approxStartDate = new Date(Date.now() - Math.round(totalMins * 60000));
+                        ev.smartStartTimeFormatted = approxStartDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                        const sDec = approxStartDate.getHours() + Math.round((approxStartDate.getMinutes() / 60) * 4) / 4;
+                        ev.startHour = Math.max(Number(plannerPrefs.dayStartHour ?? 6), Math.min(23, sDec));
+                    }
+
+                    ev.actualStudiedMinutes = Number(totalMins.toFixed(1));
+                    ev.duration = Math.max(0.25, Number((totalMins / 60).toFixed(2)));
+                    openDurationSummaryTxt = `بدأت ${ev.smartStartTimeFormatted} وانتهت ${ev.smartEndTimeFormatted} — المدة: ${formatMinutesHumanReadable(totalMins)}`;
+                }
+
+                // Also mark linked lectures as completed if user finished the session
+                const lecIdsArr = Array.isArray(ev.lectureIds) && ev.lectureIds.length > 0
+                    ? ev.lectureIds.map(String)
+                    : (ev.lectureId ? [String(ev.lectureId)] : []);
+                if (lecIdsArr.length > 0) {
+                    let anyLecUpdated = false;
+                    subjects.forEach(s => {
+                        (s.groups || []).forEach(g => {
+                            (g.lectures || []).forEach(l => {
+                                if (lecIdsArr.includes(String(l.id)) && !l.completed) {
+                                    l.completed = true;
+                                    l.lastStudiedAt = Date.now();
+                                    l.reviewCount = (l.reviewCount || 0) + 1;
+                                    anyLecUpdated = true;
+                                }
+                            });
+                        });
+                    });
+                    if (anyLecUpdated) {
+                        saveSubjects();
+                        renderSubjectsList();
+                        if (activeSubjectId) renderGroups();
+                    }
+                }
             } else {
                 ev.autoCompleted = false;
             }
             saveScheduleData();
             renderSchedule();
+            updateTracker();
             
             if (ev.completed) {
-                showToast(`🎉 أحسنت! تم إنجاز "${ev.title}"`);
-                
                 let subName = '';
                 if (ev.subjectId) {
                     const subObj = subjects.find(s => String(s.id) === String(ev.subjectId));
                     if (subObj) subName = ` [${subObj.name}]`;
                 }
                 const dateStr = new Date().toLocaleDateString('ar-EG');
-                const logText = `إنجاز جلسة: ${ev.title}${subName} (${ev.duration} س)`;
+                const durLabel = ev.isOpenDuration && openDurationSummaryTxt
+                    ? `وقت مفتوح فعلي: ${openDurationSummaryTxt} (${ev.duration} س)`
+                    : `${ev.duration} س`;
+                const logText = `إنجاز جلسة: ${ev.title}${subName} (${durLabel})`;
                 const exists = logs.some(l => l.text === logText && l.date === dateStr);
                 if (!exists) {
                     logs.unshift({ id: Date.now(), date: dateStr, text: logText, mood: 'fire', subjectId: ev.subjectId });
                     saveLogs();
                     if (document.getElementById('logsContainer')) renderLogs();
+                }
+                if (ev.isOpenDuration && openDurationSummaryTxt) {
+                    showToast(`⏱️🎉 تم إنهاء الجلسة وحساب الوقت الفعلي تلقائياً: ${openDurationSummaryTxt} (${ev.duration} س) وحفظه في السجل!`);
+                } else {
+                    showToast(`🎉 أحسنت! تم إنجاز "${ev.title}"`);
                 }
             } else {
                 showToast('تمت إعادة فتح الجلسة');
@@ -9099,10 +9851,23 @@
             }
         }
 
+        function toggleNewTaskOpenDurationUI(isOpen) {
+            const durInput = document.getElementById('newTaskDurationInput');
+            const unitLbl = document.getElementById('newTaskDurationUnitLbl');
+            if (durInput) {
+                durInput.disabled = Boolean(isOpen);
+                durInput.style.opacity = isOpen ? '0.35' : '1';
+            }
+            if (unitLbl) {
+                unitLbl.innerText = isOpen ? 'تلقائي' : 'ساعة';
+            }
+        }
+
         function addBacklogTask() {
             const input = document.getElementById('newTaskTitle');
             const subSelect = document.getElementById('newTaskSubject');
             const durInput = document.getElementById('newTaskDurationInput');
+            const openCheck = document.getElementById('newTaskOpenDurationCheck');
             const title = input.value.trim();
             if (!title) {
                 showToast('يرجى كتابة اسم الهدف أولاً', 'error');
@@ -9110,23 +9875,30 @@
                 return;
             }
             
-            const customDur = parseFloat(durInput.value) || 1.5;
+            const isOpen = Boolean(openCheck && openCheck.checked);
+            const customDur = isOpen ? 1.5 : (parseFloat(durInput.value) || 1.5);
             
             scheduleBacklog.unshift({
                 id: Date.now(),
                 title,
                 subjectId: subSelect.value,
                 duration: customDur,
+                isOpenDuration: isOpen,
+                createdAtMs: Date.now(),
                 done: false,
                 scheduledDay: null,
                 scheduledHour: null,
                 linkedEventId: null
             });
             input.value = '';
+            if (openCheck) {
+                openCheck.checked = false;
+                toggleNewTaskOpenDurationUI(false);
+            }
             saveScheduleData();
             updateWeeklyMetrics();
             renderTasksView();
-            showToast(`✅ تمت إضافة الهدف (${customDur} س) إلى بنك أهداف الأسبوع`);
+            showToast(isOpen ? `⏱️ تمت إضافة الهدف بـ «وقت مفتوح» إلى بنك أهداف الأسبوع` : `✅ تمت إضافة الهدف (${customDur} س) إلى بنك أهداف الأسبوع`);
         }
 
         function toggleBacklogDone(taskId) {
@@ -9178,7 +9950,10 @@
             
             const dur = t.duration || 1.5;
             const standardDurations = ['0.5', '1', '1.5', '2', '2.5', '3', '4', '5', '6', '8'];
-            if (standardDurations.includes(String(dur))) {
+            if (t.isOpenDuration) {
+                document.getElementById('sessionDurationSelect').value = 'open';
+                document.getElementById('customDurationBox').style.display = 'none';
+            } else if (standardDurations.includes(String(dur))) {
                 document.getElementById('sessionDurationSelect').value = String(dur);
                 document.getElementById('customDurationBox').style.display = 'none';
             } else {
@@ -10161,13 +10936,22 @@
         initPdfDB();
 
         function saveMediaToDB(storeName, id, fileBlob) {
-            if (!dbInstance) return;
-            const tx = dbInstance.transaction(storeName, 'readwrite');
-            const store = tx.objectStore(storeName);
-            store.put({ id: id, blob: fileBlob });
-            if (storeName === 'pdfs' || storeName === 'audios') {
-                localMediaCache[storeName].add(String(id));
-            }
+            return new Promise((resolve) => {
+                if (!dbInstance) return resolve();
+                try {
+                    const numOrStrId = isNaN(Number(id)) ? id : Number(id);
+                    const tx = dbInstance.transaction(storeName, 'readwrite');
+                    const store = tx.objectStore(storeName);
+                    store.put({ id: numOrStrId, blob: fileBlob });
+                    if (storeName === 'pdfs' || storeName === 'audios') {
+                        localMediaCache[storeName].add(String(numOrStrId));
+                    }
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => resolve();
+                } catch (e) {
+                    resolve();
+                }
+            });
         }
 
         function getMediaFromDB(storeName, id) {
@@ -10182,25 +10966,100 @@
         }
 
         let isActivelyDrawingOnPdf = false;
-        let pendingAnnoSavePayload = null;
+        let pendingAnnoSaveMap = {};
         let annoCloudSyncTimer = null;
+        let inMemoryAnnotationsCache = {};
+        let inMemoryAnnotationsCacheLoaded = false;
+        let annotationUndoStack = [];
+        let lastActiveAnnotationKey = null;
+
+        function cloneAnnotationsSafe(obj) {
+            if (!obj || typeof obj !== 'object') return {};
+            try {
+                return JSON.parse(JSON.stringify(obj));
+            } catch (e) {
+                return Object.assign({}, obj);
+            }
+        }
+
+        function recordAnnotationUndoAction(pageKey) {
+            if (pageKey === undefined || pageKey === null) return;
+            lastActiveAnnotationKey = pageKey;
+            annotationUndoStack.push(pageKey);
+            if (annotationUndoStack.length > 300) {
+                annotationUndoStack.shift();
+            }
+        }
+
+        // Synchronize Merged Mode composite keys (`${lecId}_p_${localP}` and `note_${lecId}_p_${localP}`)
+        // back into each individual lecture's native single-lecture structure (`1`, `note_1`, `_extraNotes`, `_audioPins`)
+        function syncMergedAnnotationsToLectureRecords(specificPageKey = null) {
+            if (!mergedContinuousPdfMode || !mergedPageToLectureMap) return [];
+            const touchedLecIds = new Set();
+            const keysToSync = specificPageKey
+                ? [String(specificPageKey)]
+                : Object.keys(mergedPageToLectureMap);
+
+            keysToSync.forEach(k => {
+                const mInfo = mergedPageToLectureMap[k];
+                if (!mInfo || !mInfo.lecId || !mInfo.lecAnnos) return;
+                const localP = mInfo.localPageNum;
+                const compKey = `${mInfo.lecId}_p_${localP}`;
+                const noteCompKey = `note_${compKey}`;
+
+                if (pageAnnotations[compKey] !== undefined) {
+                    mInfo.lecAnnos[localP] = cloneAnnotationsSafe(pageAnnotations[compKey]);
+                }
+                if (pageAnnotations[noteCompKey] !== undefined) {
+                    mInfo.lecAnnos[`note_${localP}`] = cloneAnnotationsSafe(pageAnnotations[noteCompKey]);
+                }
+                if (!mInfo.lecAnnos._extraNotes) mInfo.lecAnnos._extraNotes = {};
+                if (pageAnnotations._extraNotes && pageAnnotations._extraNotes[compKey] !== undefined) {
+                    mInfo.lecAnnos._extraNotes[localP] = Boolean(pageAnnotations._extraNotes[compKey]);
+                } else if (mInfo.lecAnnos[`note_${localP}`] && mInfo.lecAnnos[`note_${localP}`].length > 0) {
+                    mInfo.lecAnnos._extraNotes[localP] = true;
+                }
+
+                if (!mInfo.lecAnnos._audioPins) mInfo.lecAnnos._audioPins = {};
+                if (pageAnnotations._audioPins && pageAnnotations._audioPins[compKey] !== undefined) {
+                    mInfo.lecAnnos._audioPins[localP] = cloneAnnotationsSafe(pageAnnotations._audioPins[compKey]);
+                }
+
+                const cleanClone = cloneAnnotationsSafe(mInfo.lecAnnos);
+                inMemoryAnnotationsCache[mInfo.lecId] = cleanClone;
+                pendingAnnoSaveMap[mInfo.lecId] = cleanClone;
+                touchedLecIds.add(mInfo.lecId);
+            });
+            return Array.from(touchedLecIds);
+        }
 
         function flushPendingAnnotationsSave(triggerCloudImmediately = false) {
             if (autoSaveTimer) {
                 clearTimeout(autoSaveTimer);
                 autoSaveTimer = null;
             }
-            if (!dbInstance || !pendingAnnoSavePayload) return;
-            const { lecId, pagesData } = pendingAnnoSavePayload;
-            pendingAnnoSavePayload = null;
+            if (mergedContinuousPdfMode) {
+                syncMergedAnnotationsToLectureRecords(null);
+            }
+            const lecIds = Object.keys(pendingAnnoSaveMap);
+            if (!dbInstance || lecIds.length === 0) return;
+
+            const entriesToSave = lecIds.map(id => {
+                const numOrStrId = isNaN(Number(id)) ? id : Number(id);
+                const data = pendingAnnoSaveMap[id];
+                delete pendingAnnoSaveMap[id];
+                inMemoryAnnotationsCache[numOrStrId] = data;
+                return { id: numOrStrId, pages: data, updatedAt: Date.now() };
+            });
+
             try {
                 const tx = dbInstance.transaction('annotations', 'readwrite');
                 const store = tx.objectStore('annotations');
-                store.put({ id: lecId, pages: pagesData, updatedAt: Date.now() });
+                entriesToSave.forEach(entry => store.put(entry));
                 tx.oncomplete = () => {
                     const statusEl = document.getElementById('pdfAutoSaveStatus');
                     if (statusEl) {
-                        statusEl.innerHTML = '<i class="fa-solid fa-check-double"></i> تم الحفظ تلقائياً';
+                        statusEl.innerHTML = '<i class="fa-solid fa-bolt" style="color:#6ee7b7;"></i> تم الحفظ فوراً ✓';
                     }
                     if (triggerCloudImmediately) {
                         if (annoCloudSyncTimer) clearTimeout(annoCloudSyncTimer);
@@ -10211,33 +11070,125 @@
                             if (!isActivelyDrawingOnPdf) {
                                 markLocalWorkspaceModified();
                             }
-                        }, 2400);
+                        }, 650);
                     }
                 };
             } catch (e) {}
         }
 
-        function saveAnnotationsToDB(lecId, pagesData) {
-            if (!dbInstance || !lecId) return;
-            pendingAnnoSavePayload = { lecId, pagesData };
+        function normalizeAndRecoverLectureAnnotations(lecId, rawPages) {
+            const pages = cloneAnnotationsSafe(rawPages || {});
+            if (!pages || typeof pages !== 'object' || String(lecId).startsWith('_cloudMedia_')) return pages;
+            const prefixSlide = `${lecId}_p_`;
+            const prefixNote = `note_${lecId}_p_`;
+            let migrated = false;
+
+            Object.keys(pages).forEach(k => {
+                if (k.startsWith(prefixSlide)) {
+                    const localP = k.slice(prefixSlide.length);
+                    if (Array.isArray(pages[k]) && pages[k].length > 0) {
+                        if (!Array.isArray(pages[localP]) || pages[localP].length === 0) {
+                            pages[localP] = pages[k];
+                        }
+                    }
+                    delete pages[k];
+                    migrated = true;
+                } else if (k.startsWith(prefixNote)) {
+                    const localP = k.slice(prefixNote.length);
+                    const targetNoteKey = `note_${localP}`;
+                    if (Array.isArray(pages[k]) && pages[k].length > 0) {
+                        if (!Array.isArray(pages[targetNoteKey]) || pages[targetNoteKey].length === 0) {
+                            pages[targetNoteKey] = pages[k];
+                        }
+                    }
+                    delete pages[k];
+                    migrated = true;
+                } else if (k.includes('_p_')) {
+                    delete pages[k];
+                    migrated = true;
+                }
+            });
+
+            if (pages._extraNotes && typeof pages._extraNotes === 'object') {
+                Object.keys(pages._extraNotes).forEach(ek => {
+                    if (ek.startsWith(prefixSlide)) {
+                        const localP = ek.slice(prefixSlide.length);
+                        if (pages._extraNotes[ek]) pages._extraNotes[localP] = true;
+                        delete pages._extraNotes[ek];
+                        migrated = true;
+                    } else if (ek.includes('_p_')) {
+                        delete pages._extraNotes[ek];
+                        migrated = true;
+                    }
+                });
+            }
+            if (pages._audioPins && typeof pages._audioPins === 'object') {
+                Object.keys(pages._audioPins).forEach(pk => {
+                    if (pk.startsWith(prefixSlide)) {
+                        const localP = pk.slice(prefixSlide.length);
+                        if (Array.isArray(pages._audioPins[pk]) && pages._audioPins[pk].length > 0) {
+                            pages._audioPins[localP] = pages._audioPins[pk];
+                        }
+                        delete pages._audioPins[pk];
+                        migrated = true;
+                    } else if (pk.includes('_p_')) {
+                        delete pages._audioPins[pk];
+                        migrated = true;
+                    }
+                });
+            }
+            if (migrated) {
+                pendingAnnoSaveMap[lecId] = cloneAnnotationsSafe(pages);
+            }
+            return pages;
+        }
+
+        function saveAnnotationsToDB(lecId, pagesData, specificPageKey = null) {
+            if (!dbInstance) return;
+            if (mergedContinuousPdfMode) {
+                syncMergedAnnotationsToLectureRecords(specificPageKey);
+            } else if (lecId && pagesData) {
+                const cleanCopy = normalizeAndRecoverLectureAnnotations(lecId, pagesData);
+                inMemoryAnnotationsCache[lecId] = cleanCopy;
+                pendingAnnoSaveMap[lecId] = cleanCopy;
+            }
+
+            const statusEl = document.getElementById('pdfAutoSaveStatus');
+            if (statusEl) {
+                statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> يحفظ...';
+            }
             if (autoSaveTimer) clearTimeout(autoSaveTimer);
             const scheduleSaveTick = () => {
                 if (isActivelyDrawingOnPdf) {
-                    autoSaveTimer = setTimeout(scheduleSaveTick, 450);
+                    autoSaveTimer = setTimeout(scheduleSaveTick, 120);
                     return;
                 }
                 flushPendingAnnotationsSave(false);
             };
-            autoSaveTimer = setTimeout(scheduleSaveTick, 750);
+            autoSaveTimer = setTimeout(scheduleSaveTick, 120);
         }
 
         function getAnnotationsFromDB(lecId) {
             return new Promise((resolve) => {
-                if (!dbInstance || !lecId) return resolve({});
+                if (!lecId) return resolve({});
+                const numOrStrId = isNaN(Number(lecId)) ? lecId : Number(lecId);
+                if (inMemoryAnnotationsCache[numOrStrId] && !String(numOrStrId).startsWith('_cloudMedia_')) {
+                    const norm = normalizeAndRecoverLectureAnnotations(numOrStrId, inMemoryAnnotationsCache[numOrStrId]);
+                    inMemoryAnnotationsCache[numOrStrId] = norm;
+                    return resolve(cloneAnnotationsSafe(norm));
+                }
+                if (!dbInstance) return resolve({});
                 const tx = dbInstance.transaction('annotations', 'readonly');
                 const store = tx.objectStore('annotations');
-                const req = store.get(lecId);
-                req.onsuccess = () => resolve(req.result && req.result.pages ? req.result.pages : {});
+                const req = store.get(numOrStrId);
+                req.onsuccess = () => {
+                    const rawPages = (req.result && req.result.pages) ? req.result.pages : {};
+                    const norm = normalizeAndRecoverLectureAnnotations(numOrStrId, rawPages);
+                    if (!String(numOrStrId).startsWith('_cloudMedia_')) {
+                        inMemoryAnnotationsCache[numOrStrId] = cloneAnnotationsSafe(norm);
+                    }
+                    resolve(cloneAnnotationsSafe(norm));
+                };
                 req.onerror = () => resolve({});
             });
         }
@@ -10325,8 +11276,510 @@
             });
         }
 
+        // ================= MERGED MULTI-LECTURE & AUDIO STUDIO ENGINE =================
+        let currentMergedLecturesBundle = []; // Array of { sub, group, lec }
+        let mergedContinuousPdfMode = false;
+        let mergedPageToLectureMap = {}; // { [globalPageNum]: { sub, group, lec, localPageNum, pdfDoc } }
+
+        function buildSubjectLecturesBundle(subObj, specificLectureIds = null) {
+            if (!subObj) return [];
+            const idSet = (Array.isArray(specificLectureIds) && specificLectureIds.length > 0)
+                ? new Set(specificLectureIds.map(String))
+                : null;
+            const list = [];
+            (subObj.groups || []).forEach(g => {
+                (g.lectures || []).forEach(l => {
+                    if (!idSet || idSet.has(String(l.id))) {
+                        list.push({ sub: subObj, group: g, lec: l });
+                    }
+                });
+            });
+            return list;
+        }
+
+        function toggleSubjectMergeLecturesDrawer(forceState = null) {
+            const drawer = document.getElementById('subjectMergeLecturesDrawer');
+            const btn = document.getElementById('toggleSubjectMergeDrawerBtn');
+            if (!drawer) return;
+            const willOpen = (forceState !== null) ? Boolean(forceState) : !drawer.classList.contains('open');
+            drawer.classList.toggle('open', willOpen);
+            if (btn) btn.classList.toggle('active', willOpen);
+            if (willOpen) {
+                renderSubjectMergeLecturesDrawer();
+            }
+        }
+
+        function renderSubjectMergeLecturesDrawer() {
+            const grid = document.getElementById('subjectMergeGroupsGrid');
+            if (!grid) return;
+            const sub = subjects.find(s => String(s.id) === String(activeSubjectId));
+            if (!sub) return;
+
+            let totalLectures = 0;
+            const groupCards = [];
+            (sub.groups || []).forEach(g => {
+                const lecs = g.lectures || [];
+                if (lecs.length === 0) return;
+                totalLectures += lecs.length;
+                const rowsHtml = lecs.map(l => {
+                    const hasAud = Boolean(l.audioPath || l.cloudAudioUploaded || localMediaCache.audios.has(String(l.id)));
+                    return `
+                        <label class="smd-lec-row checked">
+                            <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+                                <input type="checkbox" class="smd-lec-checkbox" value="${l.id}" checked onchange="handleMergeDrawerCheckboxChange(this)">
+                                <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${l.title}</span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
+                                ${hasAud ? '<i class="fa-solid fa-headphones" style="color:#38bdf8; font-size:0.72rem;" title="مرتبط بريكورد"></i>' : ''}
+                                <span style="font-size:0.68rem; color:${l.completed ? '#6ee7b7' : '#94a3b8'};">${l.completed ? '✓' : ''}</span>
+                            </div>
+                        </label>
+                    `;
+                }).join('');
+
+                groupCards.push(`
+                    <div class="smd-group-box">
+                        <div style="font-size:0.8rem; font-weight:900; color:var(--primary); padding-bottom:4px; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between;">
+                            <span><i class="fa-solid fa-folder-open"></i> ${g.name}</span>
+                            <span style="color:var(--text-muted); font-size:0.72rem;">${lecs.length} محاضرات</span>
+                        </div>
+                        ${rowsHtml}
+                    </div>
+                `);
+            });
+
+            if (totalLectures === 0) {
+                grid.innerHTML = `<div style="grid-column:1/-1; padding:16px; text-align:center; color:var(--text-muted); font-size:0.84rem;">لا توجد محاضرات مضافة في هذه المادة بعد. أضف محاضراتك أولاً ثم ادمجها هنا بضغطة زر.</div>`;
+            } else {
+                grid.innerHTML = groupCards.join('');
+            }
+            updateMergeDrawerCounter();
+        }
+
+        function handleMergeDrawerCheckboxChange(cb) {
+            if (cb) {
+                const row = cb.closest('.smd-lec-row');
+                if (row) row.classList.toggle('checked', cb.checked);
+            }
+            updateMergeDrawerCounter();
+        }
+
+        function selectAllLecturesInMergeDrawer(checkAll) {
+            document.querySelectorAll('#subjectMergeGroupsGrid .smd-lec-checkbox').forEach(cb => {
+                cb.checked = Boolean(checkAll);
+                const row = cb.closest('.smd-lec-row');
+                if (row) row.classList.toggle('checked', Boolean(checkAll));
+            });
+            updateMergeDrawerCounter();
+        }
+
+        function updateMergeDrawerCounter() {
+            const count = document.querySelectorAll('#subjectMergeGroupsGrid .smd-lec-checkbox:checked').length;
+            const counterEl = document.getElementById('subjectMergeSelectionCounter');
+            if (counterEl) {
+                counterEl.innerText = `تم تحديد ${count} محاضرات للدمج`;
+            }
+        }
+
+        async function launchSelectedLecturesMergedFromDrawer() {
+            const checkedIds = Array.from(document.querySelectorAll('#subjectMergeGroupsGrid .smd-lec-checkbox:checked')).map(cb => String(cb.value));
+            if (checkedIds.length === 0) {
+                showToast('يرجى تحديد محاضرة واحدة على الأقل لفتحها', 'error');
+                return;
+            }
+            toggleSubjectMergeLecturesDrawer(false);
+            await openMergedSubjectLecturesStudio(checkedIds, activeSubjectId);
+        }
+
+        async function openMergedSubjectLecturesStudio(specificLectureIds = null, explicitSubId = null) {
+            const targetSubId = explicitSubId !== null ? explicitSubId : activeSubjectId;
+            const sub = subjects.find(s => String(s.id) === String(targetSubId));
+            if (!sub) return;
+            const bundle = buildSubjectLecturesBundle(sub, specificLectureIds);
+            if (bundle.length === 0) {
+                showToast('لا توجد محاضرات مضافة في هذه المادة بعد لفتحها في الاستوديو المدمج', 'error');
+                return;
+            }
+            flushPendingAnnotationsSave(false);
+            currentMergedLecturesBundle = bundle;
+            activeSubjectId = sub.id;
+            const firstItem = bundle[0];
+            if (bundle.length === 1) {
+                mergedContinuousPdfMode = false;
+                await openLectureDocument(firstItem.group.id, firstItem.lec.id, false);
+                return;
+            }
+
+            // Prepare viewer directly in Merged Mode without polluting firstItem's single-lecture pageAnnotations
+            currentViewingLec = firstItem;
+            mergedContinuousPdfMode = true;
+            annotationUndoStack = [];
+            pageAnnotations = { _extraNotes: {}, _audioPins: {} };
+            laserStrokes = {};
+
+            document.getElementById('pdfViewerTitle').innerText = `دمج (${bundle.length} محاضرات) — ${sub.name}`;
+            updatePdfMenuUploadButtonState(firstItem.lec);
+            syncExtraNoteButtonsLockUI();
+            startLiveLectureStudyTracking(firstItem.sub, firstItem.group, firstItem.lec);
+
+            if (window.innerWidth <= 768) {
+                currentPdfFitMode = 'width';
+                setAnnotationTool('pan');
+            }
+
+            // Load first lecture's audio if available
+            await activateMergedLectureAudioAndContext(firstItem, false);
+            document.getElementById('pdfViewerModalOverlay').classList.add('active');
+            await renderMergedContinuousLecturesStream();
+        }
+
+        function renderMergedLecturesStudioBar() {
+            const bar = document.getElementById('pdfMergedLecturesBar');
+            const tabsBox = document.getElementById('pdfMergedLecturesTabs');
+            const addSel = document.getElementById('pdfAddLectureToMergeSelect');
+            const contBtn = document.getElementById('pdfMergedContinuousToggleBtn');
+            const contTxt = document.getElementById('pdfMergedContinuousToggleTxt');
+            if (!bar || !tabsBox || !currentViewingLec) return;
+
+            const curSub = currentViewingLec.sub;
+            if (!currentMergedLecturesBundle.some(item => String(item.lec.id) === String(currentViewingLec.lec.id))) {
+                currentMergedLecturesBundle.push(currentViewingLec);
+            }
+
+            bar.style.display = 'flex';
+            tabsBox.innerHTML = currentMergedLecturesBundle.map((item, idx) => {
+                const isAct = !mergedContinuousPdfMode && String(item.lec.id) === String(currentViewingLec.lec.id);
+                const hasAud = Boolean(item.lec.audioPath || item.lec.cloudAudioUploaded || localMediaCache.audios.has(String(item.lec.id)));
+                return `
+                    <div class="merged-lec-tab ${isAct ? 'active' : ''}" onclick="switchActiveMergedLecture(${idx})">
+                        <span>${idx + 1}. ${item.lec.title}</span>
+                        ${hasAud ? '<i class="fa-solid fa-headphones" title="يحتوي على ريكورد صوتي"></i>' : ''}
+                        ${currentMergedLecturesBundle.length > 1 ? `<span class="mlt-remove" title="إزالة من الدمج" onclick="removeLectureFromMergedStudio(event, ${idx})"><i class="fa-solid fa-xmark"></i></span>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            if (addSel && curSub) {
+                const inBundleIds = new Set(currentMergedLecturesBundle.map(x => String(x.lec.id)));
+                const opts = ['<option value="">+ دمج محاضرة أخرى معها...</option>'];
+                let availableCount = 0;
+                (curSub.groups || []).forEach(g => {
+                    (g.lectures || []).forEach(l => {
+                        if (!inBundleIds.has(String(l.id))) {
+                            availableCount++;
+                            opts.push(`<option value="${g.id}__${l.id}">+ ${l.title} (${g.name})</option>`);
+                        }
+                    });
+                });
+                if (availableCount > 1) {
+                    opts.splice(1, 0, `<option value="ALL_SUBJECT">📚 + دمج كل محاضرات المادة (${availableCount} محاضرات)</option>`);
+                }
+                addSel.innerHTML = opts.join('');
+            }
+
+            if (contBtn && contTxt) {
+                contBtn.classList.toggle('active', mergedContinuousPdfMode);
+                contTxt.innerText = mergedContinuousPdfMode
+                    ? `وضع الدمج المتتالي مفعّل (${currentMergedLecturesBundle.length} محاضرات)`
+                    : 'دمج كل السلايدات متتالية';
+            }
+        }
+
+        async function addLectureToMergedStudioFromSelect(val) {
+            const addSel = document.getElementById('pdfAddLectureToMergeSelect');
+            if (addSel) addSel.value = '';
+            if (!val || !currentViewingLec) return;
+            const sub = currentViewingLec.sub;
+            if (val === 'ALL_SUBJECT') {
+                currentMergedLecturesBundle = buildSubjectLecturesBundle(sub, null);
+                renderMergedLecturesStudioBar();
+                if (mergedContinuousPdfMode) {
+                    await renderMergedContinuousLecturesStream();
+                }
+                showToast(`📚 تم دمج جميع محاضرات «${sub.name}» (${currentMergedLecturesBundle.length} محاضرات) في الشريط العلوي!`);
+                return;
+            }
+            const [gId, lId] = String(val).split('__');
+            const group = (sub.groups || []).find(g => String(g.id) === String(gId));
+            const lec = group ? (group.lectures || []).find(l => String(l.id) === String(lId)) : null;
+            if (!group || !lec) return;
+            if (!currentMergedLecturesBundle.some(x => String(x.lec.id) === String(lec.id))) {
+                currentMergedLecturesBundle.push({ sub, group, lec });
+            }
+            renderMergedLecturesStudioBar();
+            if (mergedContinuousPdfMode) {
+                await renderMergedContinuousLecturesStream();
+            } else {
+                showToast(`✅ تمت إضافة «${lec.title}» إلى شريط المحاضرات المدمجة! اضغط عليها للتنقل الفوري أو اضغط «دمج كل السلايدات متتالية».`);
+            }
+        }
+
+        async function removeLectureFromMergedStudio(event, idx) {
+            if (event) event.stopPropagation();
+            if (currentMergedLecturesBundle.length <= 1) return;
+            const removed = currentMergedLecturesBundle.splice(idx, 1)[0];
+            if (removed && currentViewingLec && String(removed.lec.id) === String(currentViewingLec.lec.id)) {
+                const nextItem = currentMergedLecturesBundle[0];
+                await openLectureDocument(nextItem.group.id, nextItem.lec.id, true);
+            } else {
+                renderMergedLecturesStudioBar();
+                if (mergedContinuousPdfMode) await renderMergedContinuousLecturesStream();
+            }
+        }
+
+        async function switchActiveMergedLecture(idx) {
+            const item = currentMergedLecturesBundle[idx];
+            if (!item) return;
+            if (mergedContinuousPdfMode) {
+                const divEl = document.getElementById(`mergedLecDivider_${item.lec.id}`);
+                if (divEl) divEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                await activateMergedLectureAudioAndContext(item);
+                return;
+            }
+            activeSubjectId = item.sub.id;
+            await openLectureDocument(item.group.id, item.lec.id, true);
+        }
+
+        async function activateMergedLectureAudioAndContext(item, autoPlay = false) {
+            if (!item || !item.lec) return;
+            flushPendingAnnotationsSave(false);
+            currentViewingLec = item;
+            if (!mergedContinuousPdfMode) {
+                document.getElementById('pdfViewerTitle').innerText = item.lec.title;
+                pageAnnotations = await getAnnotationsFromDB(item.lec.id);
+            }
+            updatePdfMenuUploadButtonState(item.lec);
+
+            const audioEl = document.getElementById('lectureAudioElement');
+            const attachBtnText = document.getElementById('audioAttachBtnText');
+            let storedAudioBlob = await getMediaFromDB('audios', item.lec.id);
+            if (!storedAudioBlob && (item.lec.cloudAudioUploaded || item.lec.cloudAudioUrl || item.lec.cloudAudioPath)) {
+                storedAudioBlob = await downloadMediaFromCloudAccount('audios', item.lec);
+            }
+            audioEl.pause();
+            if (storedAudioBlob) {
+                audioEl.src = URL.createObjectURL(storedAudioBlob);
+                if (attachBtnText) attachBtnText.innerText = 'تغيير الريكورد';
+                setupAudioEventListeners();
+                if (autoPlay) {
+                    ensureAudioBoostGraph();
+                    audioEl.play().catch(() => {});
+                    document.getElementById('audioPlayIcon').className = 'fa-solid fa-pause';
+                }
+            } else if (item.lec.audioPath && (item.lec.audioPath.startsWith('http://') || item.lec.audioPath.startsWith('https://'))) {
+                audioEl.src = item.lec.audioPath;
+                if (attachBtnText) attachBtnText.innerText = 'تغيير الريكورد';
+                setupAudioEventListeners();
+            } else {
+                audioEl.src = '';
+                if (attachBtnText) attachBtnText.innerText = 'ربط ريكورد';
+                document.getElementById('audioPlayIcon').className = 'fa-solid fa-play';
+                document.getElementById('audioCurrentTime').innerText = '00:00';
+                document.getElementById('audioDurationTime').innerText = '00:00';
+            }
+            renderMergedLecturesStudioBar();
+        }
+
+        async function toggleMergedContinuousPdfMode() {
+            if (currentMergedLecturesBundle.length <= 1 && currentViewingLec) {
+                const allInGroup = (currentViewingLec.group?.lectures || []).map(l => ({
+                    sub: currentViewingLec.sub,
+                    group: currentViewingLec.group,
+                    lec: l
+                }));
+                if (allInGroup.length > 1) {
+                    currentMergedLecturesBundle = allInGroup;
+                } else {
+                    const allInSub = buildSubjectLecturesBundle(currentViewingLec.sub, null);
+                    if (allInSub.length > 1) {
+                        currentMergedLecturesBundle = allInSub;
+                    } else {
+                        showToast('اختر محاضرة ثانية من قائمة «+ دمج محاضرة أخرى» أولاً لدمج السلايدات متتالية', 'error');
+                        return;
+                    }
+                }
+            }
+            mergedContinuousPdfMode = !mergedContinuousPdfMode;
+            renderMergedLecturesStudioBar();
+            if (mergedContinuousPdfMode) {
+                await renderMergedContinuousLecturesStream();
+            } else if (currentViewingLec) {
+                await openLectureDocument(currentViewingLec.group.id, currentViewingLec.lec.id, true);
+            }
+        }
+
+        async function renderMergedContinuousLecturesStream() {
+            const scrollContainer = document.getElementById('pdfPagesScrollContainer');
+            const iframe = document.getElementById('pdfViewerIframe');
+            const fallback = document.getElementById('pdfFallbackBox');
+            if (!scrollContainer) return;
+
+            iframe.style.display = 'none';
+            fallback.style.display = 'none';
+            scrollContainer.style.display = 'flex';
+            scrollContainer.innerHTML = '<div style="color:var(--primary); padding:40px; font-weight:800; text-align:center;"><i class="fa-solid fa-layer-group fa-bounce" style="font-size:2rem; margin-bottom:10px; display:block;"></i> جاري دمج صفحات المحاضرات والريكوردات في شريط واحد متتالي...</div>';
+
+            mergedPageToLectureMap = {};
+            const frag = document.createDocumentFragment();
+            let globalPageCounter = 0;
+
+            for (let bIdx = 0; bIdx < currentMergedLecturesBundle.length; bIdx++) {
+                const item = currentMergedLecturesBundle[bIdx];
+                const lec = item.lec;
+                const lecAnnos = await getAnnotationsFromDB(lec.id);
+
+                const divider = document.createElement('div');
+                divider.className = 'pdf-merged-lecture-divider';
+                divider.id = `mergedLecDivider_${lec.id}`;
+                divider.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span class="studio-pill" style="background:var(--primary); color:#061318; font-weight:900;">محاضرة ${bIdx + 1} من ${currentMergedLecturesBundle.length}</span>
+                        <div>
+                            <div style="font-size:1rem; font-weight:900; color:var(--text-main);">${lec.title}</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted);">${item.sub.name} • ${item.group.name}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <button type="button" class="btn btn-primary" style="padding:6px 14px; font-size:0.78rem;" onclick="activateMergedLectureAudioAndContext(currentMergedLecturesBundle[${bIdx}], true)">
+                            <i class="fa-solid fa-headphones"></i> تشغيل ريكورد هذه المحاضرة
+                        </button>
+                    </div>
+                `;
+                frag.appendChild(divider);
+
+                let pdfBlob = await getMediaFromDB('pdfs', lec.id);
+                if (!pdfBlob && (lec.cloudPdfUploaded || lec.cloudPdfUrl || lec.cloudPdfPath)) {
+                    pdfBlob = await downloadMediaFromCloudAccount('pdfs', lec);
+                }
+
+                if (!pdfBlob || !window.pdfjsLib) {
+                    const emptyBox = document.createElement('div');
+                    emptyBox.style.cssText = 'background:#141923; border:1px dashed rgba(45,212,191,0.35); border-radius:12px; padding:22px; text-align:center; width:100%; max-width:820px;';
+                    emptyBox.innerHTML = `<div style="color:#cbd5e1; margin-bottom:10px; font-weight:700;">ملف الـ PDF لمحاضرة «${lec.title}» غير محفوظ محلياً بعد</div>
+                        <button class="btn btn-outline" style="padding:6px 14px; font-size:0.8rem;" onclick="currentViewingLec = currentMergedLecturesBundle[${bIdx}]; triggerPickLocalFileForCurrent();"><i class="fa-solid fa-folder-open"></i> اختيار ملف الـ PDF</button>`;
+                    frag.appendChild(emptyBox);
+                    continue;
+                }
+
+                try {
+                    const ab = await pdfBlob.arrayBuffer();
+                    const pdfDoc = await window.pdfjsLib.getDocument({ data: ab }).promise;
+                    const firstPage = await pdfDoc.getPage(1);
+                    const scale = computeScaleForPageFit(firstPage, currentPdfFitMode);
+                    const defVp = firstPage.getViewport({ scale });
+
+                    for (let localP = 1; localP <= pdfDoc.numPages; localP++) {
+                        globalPageCounter++;
+                        const compositeKey = `${lec.id}_p_${localP}`;
+                        const noteCompKey = `note_${compositeKey}`;
+                        if (!pageAnnotations._extraNotes) pageAnnotations._extraNotes = {};
+                        if (!pageAnnotations._audioPins) pageAnnotations._audioPins = {};
+                        pageAnnotations[compositeKey] = cloneAnnotationsSafe(lecAnnos[localP] || lecAnnos[String(localP)] || []);
+                        pageAnnotations[noteCompKey] = cloneAnnotationsSafe(lecAnnos[`note_${localP}`] || []);
+                        pageAnnotations._extraNotes[compositeKey] = Boolean(
+                            (lecAnnos._extraNotes && (lecAnnos._extraNotes[localP] || lecAnnos._extraNotes[String(localP)])) ||
+                            (pageAnnotations[noteCompKey] && pageAnnotations[noteCompKey].length > 0)
+                        );
+                        pageAnnotations._audioPins[compositeKey] = cloneAnnotationsSafe(
+                            (lecAnnos._audioPins && (lecAnnos._audioPins[localP] || lecAnnos._audioPins[String(localP)])) || []
+                        );
+
+                        mergedPageToLectureMap[compositeKey] = { item, lecId: lec.id, localPageNum: localP, saveKey: localP, pdfDoc, lecAnnos };
+                        mergedPageToLectureMap[noteCompKey] = { item, lecId: lec.id, localPageNum: localP, saveKey: `note_${localP}`, isExtraNote: true, pdfDoc, lecAnnos };
+
+                        if (globalPageCounter === 1) {
+                            currentActivePageNum = compositeKey;
+                        }
+
+                        const wrapper = document.createElement('div');
+                        wrapper.className = `pdf-page-wrapper ${currentAnnoTool === 'pan' ? 'pan-mode' : 'drawing-mode'}`;
+                        wrapper.id = `pdfPageWrapper_${compositeKey}`;
+                        wrapper.dataset.compositeKey = compositeKey;
+                        wrapper.style.width = `${Math.floor(defVp.width)}px`;
+                        wrapper.style.height = `${Math.floor(defVp.height)}px`;
+
+                        const pdfCanvas = document.createElement('canvas');
+                        pdfCanvas.className = 'pdf-render-canvas';
+                        pdfCanvas.id = `pdfRenderCanvas_${compositeKey}`;
+
+                        const inkCanvas = document.createElement('canvas');
+                        inkCanvas.className = 'pdf-ink-canvas';
+                        inkCanvas.id = `pdfInkCanvas_${compositeKey}`;
+                        inkCanvas.style.opacity = annotationsVisible ? '1' : '0';
+
+                        const laserCanvas = document.createElement('canvas');
+                        laserCanvas.className = 'pdf-laser-canvas';
+                        laserCanvas.id = `pdfLaserCanvas_${compositeKey}`;
+
+                        const textLayer = document.createElement('div');
+                        textLayer.className = 'pdf-text-layer';
+                        textLayer.id = `pdfTextLayer_${compositeKey}`;
+                        textLayer.style.opacity = annotationsVisible ? '1' : '0';
+
+                        const pinsRail = document.createElement('div');
+                        pinsRail.className = 'pdf-audio-pins-rail';
+                        pinsRail.id = `pdfAudioPinsRail_${compositeKey}`;
+
+                        // Extra Note Sheet Button on Slide Corner (Supports Merged Mode & Free Account Lock UI)
+                        const extraBtn = document.createElement('button');
+                        extraBtn.className = `slide-extra-space-btn ${!currentUserCanUploadMedia ? 'vip-locked-extra-note' : ''}`;
+                        extraBtn.innerHTML = currentUserCanUploadMedia
+                            ? '<i class="fa-solid fa-file-circle-plus"></i> + مساحة تلخيص'
+                            : '<i class="fa-solid fa-lock"></i> مساحة تلخيص';
+                        extraBtn.onclick = (ev) => {
+                            ev.stopPropagation();
+                            toggleExtraNoteForPage(compositeKey);
+                        };
+
+                        const badge = document.createElement('div');
+                        badge.className = 'pdf-page-badge';
+                        badge.innerText = `${lec.title} • Page ${localP}/${pdfDoc.numPages}`;
+
+                        wrapper.appendChild(pdfCanvas);
+                        wrapper.appendChild(inkCanvas);
+                        wrapper.appendChild(laserCanvas);
+                        wrapper.appendChild(textLayer);
+                        wrapper.appendChild(pinsRail);
+                        wrapper.appendChild(extraBtn);
+                        wrapper.appendChild(badge);
+                        frag.appendChild(wrapper);
+
+                        attachGraphicTabletListeners(inkCanvas, laserCanvas, compositeKey);
+
+                        // Append Extra Note Sheet right below each slide in the merged stream!
+                        const extraSheet = buildExtraNoteSheetDOM(compositeKey, Math.floor(defVp.width), Math.floor(defVp.height * 0.75), `${lec.title} - صفحة ${localP}`);
+                        frag.appendChild(extraSheet);
+
+                        (async (pDoc, lPage, cKey, nKey, pScale) => {
+                            try {
+                                const page = await pDoc.getPage(lPage);
+                                const vp = page.getViewport({ scale: pScale });
+                                const w = Math.floor(vp.width), h = Math.floor(vp.height);
+                                pdfCanvas.width = w; pdfCanvas.height = h;
+                                inkCanvas.width = w; inkCanvas.height = h;
+                                laserCanvas.width = w; laserCanvas.height = h;
+                                const ctx = pdfCanvas.getContext('2d', { alpha: false });
+                                ctx.fillStyle = '#ffffff';
+                                ctx.fillRect(0, 0, w, h);
+                                await page.render({ canvasContext: ctx, viewport: vp }).promise;
+                                redrawPageAnnotations(cKey);
+                                redrawPageAnnotations(nKey);
+                                renderAudioPinsForPage(cKey);
+                            } catch (e) {}
+                        })(pdfDoc, localP, compositeKey, noteCompKey, scale);
+                    }
+                } catch (e) {}
+            }
+
+            scrollContainer.innerHTML = '';
+            scrollContainer.appendChild(frag);
+            attachPdfScrollActivePageDetector();
+            updatePdfFitButtonsUI();
+            showToast(`📑 تم دمج (${currentMergedLecturesBundle.length}) محاضرات في شريط متتالي واحد!`);
+        }
+
         // --- Open Lecture with Multi-Page PDF Studio & Synced Audio (Local + Cloud Auto-Fetch) ---
-        async function openLectureDocument(groupId, lecId) {
+        async function openLectureDocument(groupId, lecId, keepMergedBundle = false) {
             const sub = subjects.find(s => s.id === activeSubjectId);
             if (!sub) return;
             const group = sub.groups.find(g => g.id === groupId);
@@ -10335,8 +11788,16 @@
             if (!lec) return;
 
             currentViewingLec = { sub, group, lec };
+            if (!keepMergedBundle) {
+                currentMergedLecturesBundle = [{ sub, group, lec }];
+                mergedContinuousPdfMode = false;
+            }
+            annotationUndoStack = [];
+            lastActiveAnnotationKey = 1;
             document.getElementById('pdfViewerTitle').innerText = lec.title;
             updatePdfMenuUploadButtonState(lec);
+            syncExtraNoteButtonsLockUI();
+            renderMergedLecturesStudioBar();
             startLiveLectureStudyTracking(sub, group, lec);
 
             // On smartphones (<= 768px), default to width-fit and touch-pan mode so 1-finger scrolling works immediately without accidental lines, while Stylus (Apple Pencil / S-Pen) still draws automatically!
@@ -10489,31 +11950,39 @@
             pdfScrollDetectAttached = true;
 
             scrollContainer.addEventListener('scroll', () => {
-                if (isProgrammaticPageScroll || !currentPdfDoc) return;
+                if (isProgrammaticPageScroll || (!currentPdfDoc && !mergedContinuousPdfMode)) return;
                 const containerRect = scrollContainer.getBoundingClientRect();
                 const focusY = containerRect.top + containerRect.height * 0.42;
                 let bestPage = currentActivePageNum;
                 let bestDist = Infinity;
 
                 const wrappers = scrollContainer.querySelectorAll('.pdf-page-wrapper:not(.pdf-extra-note-sheet)');
-                wrappers.forEach(w => {
-                    const pNum = parseInt(w.dataset.pageNumber);
-                    if (!pNum) return;
+                wrappers.forEach((w, idx) => {
+                    const pKey = mergedContinuousPdfMode ? w.dataset.compositeKey : parseInt(w.dataset.pageNumber);
+                    if (!pKey) return;
                     const r = w.getBoundingClientRect();
                     if (focusY >= r.top && focusY <= r.bottom) {
-                        bestPage = pNum;
+                        bestPage = pKey;
                         bestDist = 0;
                     } else if (bestDist > 0) {
                         const center = (r.top + r.bottom) / 2;
                         const d = Math.abs(center - focusY);
                         if (d < bestDist) {
                             bestDist = d;
-                            bestPage = pNum;
+                            bestPage = pKey;
                         }
                     }
                 });
                 if (bestPage !== currentActivePageNum) {
-                    updatePdfPageCounterUI(bestPage);
+                    if (mergedContinuousPdfMode) {
+                        currentActivePageNum = bestPage;
+                        const mInfo = mergedPageToLectureMap[bestPage];
+                        if (mInfo && mInfo.item) {
+                            currentViewingLec = mInfo.item;
+                        }
+                    } else {
+                        updatePdfPageCounterUI(bestPage);
+                    }
                 }
             }, { passive: true });
         }
@@ -10615,10 +12084,12 @@
                 pinsRail.className = 'pdf-audio-pins-rail';
                 pinsRail.id = `pdfAudioPinsRail_${pageNum}`;
 
-                // Quick Extra Note Sheet Button on Slide Corner
+                // Quick Extra Note Sheet Button on Slide Corner (Visually locked for free accounts)
                 const extraBtn = document.createElement('button');
-                extraBtn.className = 'slide-extra-space-btn';
-                extraBtn.innerHTML = '<i class="fa-solid fa-file-circle-plus"></i> + مساحة تلخيص';
+                extraBtn.className = `slide-extra-space-btn ${!currentUserCanUploadMedia ? 'vip-locked-extra-note' : ''}`;
+                extraBtn.innerHTML = currentUserCanUploadMedia
+                    ? '<i class="fa-solid fa-file-circle-plus"></i> + مساحة تلخيص'
+                    : '<i class="fa-solid fa-lock"></i> مساحة تلخيص';
                 
                 extraBtn.onclick = (ev) => {
                     ev.stopPropagation();
@@ -10820,6 +12291,15 @@
                 localStorage.setItem('pharmaPdfFitMode', mode);
             }
             updatePdfFitButtonsUI();
+            if (mergedContinuousPdfMode) {
+                flushPendingAnnotationsSave(false);
+                await renderMergedContinuousLecturesStream();
+                if (!silent) {
+                    if (mode === 'height') showToast('↕️ تم ضبط الزوم: محاذاة تلقائية بالطول');
+                    else if (mode === 'width') showToast('↔️ تم ضبط الزوم: محاذاة تلقائية بالعرض');
+                }
+                return;
+            }
             if (!currentPdfDoc) return;
             await applyPdfZoomAndKeepPage(currentActivePageNum);
             if (!silent) {
@@ -10834,6 +12314,16 @@
         }
 
         async function changePdfZoom(delta) {
+            if (mergedContinuousPdfMode) {
+                currentPdfFitMode = 'custom';
+                const nextZoom = Math.max(0.35, Math.min(3.5, currentPdfZoom + delta));
+                if (Math.abs(nextZoom - currentPdfZoom) < 0.03) return;
+                currentPdfZoom = nextZoom;
+                updatePdfFitButtonsUI();
+                flushPendingAnnotationsSave(false);
+                await renderMergedContinuousLecturesStream();
+                return;
+            }
             if (!currentPdfDoc) return;
             currentPdfFitMode = 'custom';
             const nextZoom = Math.max(0.35, Math.min(3.5, currentPdfZoom + delta));
@@ -11012,10 +12502,22 @@
             }
         }
 
+        function stepAnnotationSize(delta) {
+            const nextVal = Math.max(1, Math.min(24, Math.round((currentAnnoSize || 3) + delta)));
+            updateAnnotationSize(nextVal);
+        }
+
         function updateAnnotationSize(val) {
-            currentAnnoSize = parseFloat(val) || 3;
+            currentAnnoSize = Math.max(1, Math.min(24, parseFloat(val) || 3));
+            const slider = document.getElementById('annoStrokeSize');
+            if (slider && parseFloat(slider.value) !== currentAnnoSize) {
+                slider.value = currentAnnoSize;
+            }
             const lbl = document.getElementById('annoSizeLabel');
             if (lbl) lbl.innerText = `${currentAnnoSize}px`;
+            document.querySelectorAll('.size-preset-pill').forEach(btn => {
+                btn.classList.toggle('active', parseFloat(btn.dataset.size) === currentAnnoSize);
+            });
             if (activeFloatingTextEditor && activeFloatingTextEditor.textarea) {
                 activeFloatingTextEditor.textarea.style.fontSize = `${Math.max(13, Math.min(36, 12 + currentAnnoSize * 1.8))}px`;
             }
@@ -11109,17 +12611,20 @@
                     currentActivePageNum = pageNum;
                     const badgeEl = document.getElementById('pdfPageCounterBadge');
                     if (badgeEl) badgeEl.innerText = `صفحة ${pageNum} / ${totalPdfPages}`;
+                } else if (typeof pageNum === 'string' && !pageNum.startsWith('note_')) {
+                    currentActivePageNum = pageNum;
                 }
 
-                // Smart Stylus vs Finger Touch Handling:
-                // - Finger touch in pan mode uses native browser scroll & pinch-zoom
-                // - Mouse drag in pan mode pans via JS grab
-                // - Stylus (pen) in pan mode automatically writes with Pen
-                if ((currentAnnoTool === 'pan' && e.pointerType !== 'pen') || e.button === 1) {
+                lastActiveAnnotationKey = pageNum;
+
+                // Strict Pan/Browse Mode ('pan'): NEVER draw with stylus pen, mouse, or touch when 'تصفح' is active!
+                if (currentAnnoTool === 'pan' || e.button === 1) {
                     if (e.pointerType === 'touch' && e.button !== 1) {
-                        return;
+                        return; // Native touch scrolling
                     }
+                    e.preventDefault();
                     isPanning = true;
+                    isDrawing = false;
                     cachedScroller = document.getElementById('pdfPagesScrollContainer');
                     panStartX = e.clientX;
                     panStartY = e.clientY;
@@ -11131,9 +12636,7 @@
 
                 if (e.button !== 0 && e.pointerType === 'mouse') return;
 
-                const effectiveTool = (e.buttons === 32)
-                    ? 'eraser'
-                    : ((currentAnnoTool === 'pan' && e.pointerType === 'pen') ? 'pen' : currentAnnoTool);
+                const effectiveTool = (e.buttons === 32) ? 'eraser' : currentAnnoTool;
 
                 if (!annotationsVisible && (effectiveTool === 'pen' || effectiveTool === 'highlighter' || effectiveTool === 'text')) {
                     toggleAnnotationsVisibility();
@@ -11168,31 +12671,18 @@
                 }
 
                 if (effectiveTool === 'laser') {
-                    // User started/resumed writing with Laser: keep all existing laser strokes on the page 100% bright!
                     isLaserPointerDown = true;
                     lastLaserActivityAt = performance.now();
                     laserCanvas.style.opacity = '1';
+                    laserPageFadingState[pageNum] = false;
 
-                    const existingList = laserStrokes[pageNum];
-                    if (existingList && existingList.length > 0 && laserPageFadingState[pageNum]) {
-                        // If previous laser strokes had just started fading out, restore them to 100% brightness immediately
-                        lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
-                        for (let i = 0; i < existingList.length; i++) {
-                            const s = existingList[i];
-                            drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, s.points, s.color, s.size, 1.0);
-                        }
-                        laserPageFadingState[pageNum] = false;
+                    lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+                    const existingList = laserStrokes[pageNum] || [];
+                    for (let i = 0; i < existingList.length; i++) {
+                        const s = existingList[i];
+                        drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, s.points, s.color, s.size, 1.0);
                     }
-                    lastDrawnIdx = drawIncrementalStrokeSegments(
-                        lCtx,
-                        laserCanvas.width,
-                        laserCanvas.height,
-                        'laser',
-                        currentAnnoColor,
-                        currentAnnoSize,
-                        currentPoints,
-                        0
-                    );
+                    drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, currentPoints, currentAnnoColor, currentAnnoSize + 2, 1.0);
                     return;
                 }
 
@@ -11242,7 +12732,7 @@
                     lastLaserActivityAt = performance.now();
                 }
 
-                // Velocity-Adaptive Streamline Stabilizer: eliminates mouse stair-stepping & hand micro-tremors for silky-smooth curves
+                // Enhanced Velocity-Adaptive Streamline Stabilizer: extra-silky handwriting smoothing
                 for (let i = 0; i < events.length; i++) {
                     const rawPt = getFastNormCoords(events[i]);
                     lastRawPt = rawPt;
@@ -11251,15 +12741,26 @@
                         const dxPx = (rawPt.x - prev.x) * cachedRectW;
                         const dyPx = (rawPt.y - prev.y) * cachedRectH;
                         const distSqPx = dxPx * dxPx + dyPx * dyPx;
-                        if (distSqPx < 0.75) {
+                        if (distSqPx < 0.55) {
                             continue;
                         }
                         const distPx = Math.sqrt(distSqPx);
-                        // Smooth slow/medium handwriting strongly (0.46) while keeping fast flicks immediate (0.84)
-                        const streamlineAlpha = Math.min(0.84, Math.max(0.46, distPx / 13.5));
+                        // Increased smoothness: stronger stabilization on curves (0.32 -> 0.72)
+                        const streamlineAlpha = Math.min(0.72, Math.max(0.32, distPx / 18.5));
+                        const midX = prev.x + (rawPt.x - prev.x) * streamlineAlpha;
+                        const midY = prev.y + (rawPt.y - prev.y) * streamlineAlpha;
+                        if (currentPoints.length >= 2) {
+                            const prev2 = currentPoints[currentPoints.length - 2];
+                            // Subtle 2nd-order tension pull for ultra-clean curves
+                            currentPoints[currentPoints.length - 1] = {
+                                x: prev.x * 0.78 + ((prev2.x + midX) * 0.5) * 0.22,
+                                y: prev.y * 0.78 + ((prev2.y + midY) * 0.5) * 0.22,
+                                p: prev.p
+                            };
+                        }
                         currentPoints.push({
-                            x: prev.x + (rawPt.x - prev.x) * streamlineAlpha,
-                            y: prev.y + (rawPt.y - prev.y) * streamlineAlpha,
+                            x: midX,
+                            y: midY,
                             p: rawPt.p
                         });
                     } else {
@@ -11269,7 +12770,19 @@
 
                 if (currentPoints.length <= startLen) return;
 
-                // O(1) Incremental C1 Quadratic Bézier Segment Rendering (for both Regular Pen, Highlighter, and Laser!)
+                if (effectiveTool === 'laser') {
+                    // Render full continuous laser path so round caps NEVER overlap into bright beads/dots!
+                    lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+                    const existingList = laserStrokes[pageNum] || [];
+                    for (let i = 0; i < existingList.length; i++) {
+                        const s = existingList[i];
+                        drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, s.points, s.color, s.size, 1.0);
+                    }
+                    drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, currentPoints, currentAnnoColor, currentAnnoSize + 2, 1.0);
+                    return;
+                }
+
+                // O(1) Incremental C1 Quadratic Bézier Segment Rendering for Regular Pen & Highlighter
                 lastDrawnIdx = drawIncrementalStrokeSegments(
                     lCtx,
                     laserCanvas.width,
@@ -11295,7 +12808,14 @@
                 const effectiveTool = (e.buttons === 32) ? 'eraser' : activeToolOnStroke;
 
                 if (effectiveTool === 'eraser') {
-                    if (currentViewingLec) saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
+                    if (mergedContinuousPdfMode && mergedPageToLectureMap[pageNum]) {
+                        const mInfo = mergedPageToLectureMap[pageNum];
+                        const sKey = mInfo.saveKey !== undefined ? mInfo.saveKey : mInfo.localPageNum;
+                        mInfo.lecAnnos[sKey] = pageAnnotations[pageNum];
+                        saveAnnotationsToDB(mInfo.lecId, mInfo.lecAnnos);
+                    } else if (currentViewingLec) {
+                        saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
+                    }
                     return;
                 }
 
@@ -11315,18 +12835,6 @@
                     isLaserPointerDown = false;
                     lastLaserActivityAt = performance.now();
                     laserCanvas.style.opacity = '1';
-                    // Complete the final tip segment of the laser stroke on laserCanvas
-                    drawIncrementalStrokeSegments(
-                        lCtx,
-                        laserCanvas.width,
-                        laserCanvas.height,
-                        'laser',
-                        currentAnnoColor,
-                        currentAnnoSize,
-                        currentPoints,
-                        lastDrawnIdx,
-                        true
-                    );
                     if (!laserStrokes[pageNum]) laserStrokes[pageNum] = [];
                     laserStrokes[pageNum].push({
                         color: currentAnnoColor,
@@ -11334,6 +12842,11 @@
                         points: currentPoints.slice(),
                         createdAt: lastLaserActivityAt
                     });
+                    lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+                    for (let i = 0; i < laserStrokes[pageNum].length; i++) {
+                        const s = laserStrokes[pageNum][i];
+                        drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, s.points, s.color, s.size, 1.0);
+                    }
                     currentPoints = [];
                     lastDrawnIdx = 0;
                     lastRawPt = null;
@@ -11353,6 +12866,7 @@
                     _bbox: computeStrokeBBox(strokePoints)
                 };
                 pageAnnotations[pageNum].push(strokeObj);
+                recordAnnotationUndoAction(pageNum);
                 currentPoints = [];
                 lastDrawnIdx = 0;
                 lastRawPt = null;
@@ -11362,8 +12876,13 @@
                 lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
                 drawSingleStrokeOnCanvas(iCtx, inkCanvas.width, inkCanvas.height, strokeObj);
 
-                // Non-blocking debounced auto-save to IndexedDB
-                if (currentViewingLec) {
+                // If in continuous merged mode, persist back to that specific lecture's annotation record (supports both slide and extra note sheet!)
+                if (mergedContinuousPdfMode && mergedPageToLectureMap[pageNum]) {
+                    const mInfo = mergedPageToLectureMap[pageNum];
+                    const sKey = mInfo.saveKey !== undefined ? mInfo.saveKey : mInfo.localPageNum;
+                    mInfo.lecAnnos[sKey] = pageAnnotations[pageNum];
+                    saveAnnotationsToDB(mInfo.lecId, mInfo.lecAnnos);
+                } else if (currentViewingLec) {
                     saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
                 }
             };
@@ -11484,6 +13003,7 @@
                     selectedTextState = { pageNum, index: editIndex };
                 } else {
                     pageAnnotations[pageNum].push(textObj);
+                    recordAnnotationUndoAction(pageNum);
                     selectedTextState = { pageNum, index: pageAnnotations[pageNum].length - 1 };
                 }
                 updateFontSelectVisibility();
@@ -12039,21 +13559,21 @@
                 ctx.lineTo(last.x * width, last.y * height);
             }
 
-            // Pass 1: Wide outer neon halo
+            // Pass 1: Soft outer laser halo (balanced & clean, not overly bright)
             ctx.strokeStyle = color;
-            ctx.globalAlpha = alpha * 0.22;
-            ctx.lineWidth = baseW * 2.7;
+            ctx.globalAlpha = alpha * 0.16;
+            ctx.lineWidth = baseW * 1.95;
             ctx.stroke();
 
-            // Pass 2: Medium intense laser beam
-            ctx.globalAlpha = alpha * 0.82;
-            ctx.lineWidth = baseW * 1.4;
+            // Pass 2: Crisp main laser beam
+            ctx.globalAlpha = alpha * 0.85;
+            ctx.lineWidth = baseW * 1.1;
             ctx.stroke();
 
-            // Pass 3: White-hot inner core
+            // Pass 3: Subtle inner core
             ctx.strokeStyle = '#ffffff';
-            ctx.globalAlpha = alpha * 0.96;
-            ctx.lineWidth = baseW * 0.48;
+            ctx.globalAlpha = alpha * 0.88;
+            ctx.lineWidth = baseW * 0.34;
             ctx.stroke();
 
             ctx.restore();
@@ -12200,15 +13720,41 @@
             }
         }
 
-        function undoLastStroke() {
-            const strokes = pageAnnotations[currentActivePageNum];
+        function undoLastStroke(explicitTargetKey = null) {
+            let targetKey = explicitTargetKey;
+
+            if (!targetKey) {
+                while (annotationUndoStack.length > 0) {
+                    const candidate = annotationUndoStack.pop();
+                    if (pageAnnotations[candidate] && pageAnnotations[candidate].length > 0) {
+                        targetKey = candidate;
+                        break;
+                    }
+                }
+            }
+
+            if (!targetKey) {
+                if (lastActiveAnnotationKey && pageAnnotations[lastActiveAnnotationKey] && pageAnnotations[lastActiveAnnotationKey].length > 0) {
+                    targetKey = lastActiveAnnotationKey;
+                } else if (pageAnnotations[`note_${currentActivePageNum}`] && pageAnnotations[`note_${currentActivePageNum}`].length > 0) {
+                    targetKey = `note_${currentActivePageNum}`;
+                } else {
+                    targetKey = currentActivePageNum;
+                }
+            }
+
+            const strokes = pageAnnotations[targetKey];
             if (!strokes || strokes.length === 0) {
-                showToast('لا توجد خطوط للتراجع عنها في هذه الصفحة', 'error');
+                showToast('لا توجد كتابات للتراجع عنها في هذه الصفحة أو ورقة التلخيص', 'error');
                 return;
             }
+
             strokes.pop();
-            redrawPageAnnotations(currentActivePageNum);
-            if (currentViewingLec) {
+            redrawPageAnnotations(targetKey);
+
+            if (mergedContinuousPdfMode) {
+                saveAnnotationsToDB(null, pageAnnotations, targetKey);
+            } else if (currentViewingLec) {
                 saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
             }
         }
@@ -12231,25 +13777,35 @@
 
         function triggerPickLocalFileForCurrent() {
             if (!currentViewingLec) return;
+            const targetLecRef = currentViewingLec;
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = '.pdf,application/pdf';
             input.onchange = async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-                saveMediaToDB('pdfs', currentViewingLec.lec.id, file);
-                currentViewingLec.lec.path = file.name;
+                await saveMediaToDB('pdfs', targetLecRef.lec.id, file);
+                targetLecRef.lec.path = file.name;
                 saveSubjects();
+                if (activeSubjectId) renderGroups();
 
                 const openInTabBtn = document.getElementById('pdfOpenInTabBtn');
-                openInTabBtn.href = URL.createObjectURL(file);
-                openInTabBtn.style.display = 'inline-flex';
+                if (openInTabBtn) {
+                    openInTabBtn.href = URL.createObjectURL(file);
+                    openInTabBtn.style.display = 'inline-flex';
+                }
 
-                await renderPdfBlobInStudio(file);
-                showToast('تم حفظ المحاضرة وتفعيل الكتابة بالجرافيك تابلت 📖');
+                if (mergedContinuousPdfMode) {
+                    flushPendingAnnotationsSave(false);
+                    await renderMergedContinuousLecturesStream();
+                    showToast(`تم حفظ ملف الـ PDF في محاضرة «${targetLecRef.lec.title}» وتحديث العرض المدمج 📖`);
+                } else {
+                    await renderPdfBlobInStudio(file);
+                    showToast('تم حفظ المحاضرة وتفعيل الكتابة بالجرافيك تابلت 📖');
+                }
 
                 if (currentCloudUser && currentUserCanUploadMedia) {
-                    await uploadMediaToCloudAccount('pdfs', currentViewingLec.lec, file, true);
+                    await uploadMediaToCloudAccount('pdfs', targetLecRef.lec, file, true);
                     saveSubjects();
                     if (activeSubjectId) renderGroups();
                 }
@@ -12543,7 +14099,7 @@
                     <i class="fa-solid fa-play" style="color:var(--primary); font-size:0.68rem;"></i>
                     <span class="pin-time">${formatAudioTime(pin.time)}</span>
                     <span>${pin.label}</span>
-                    <span class="pin-del" onclick="deleteAudioPin(event, ${pageNum}, ${pin.id})"><i class="fa-solid fa-xmark"></i></span>
+                    <span class="pin-del" onclick="deleteAudioPin(event, '${pageNum}', ${pin.id})"><i class="fa-solid fa-xmark"></i></span>
                 `;
                 chip.onclick = (e) => {
                     e.stopPropagation();
@@ -12577,9 +14133,37 @@
         }
 
         // ================= 2. EXTRA NOTE SHEET / MARGIN SPACE PER SLIDE =================
-        function buildExtraNoteSheetDOM(pageNum, widthPx, heightPx) {
+        function syncExtraNoteButtonsLockUI() {
+            const isVip = Boolean(currentUserCanUploadMedia);
+            const tbBtn = document.getElementById('pdfToolbarExtraNoteBtn');
+            const tbIcon = document.getElementById('pdfToolbarExtraNoteIcon');
+            const tbTxt = document.getElementById('pdfToolbarExtraNoteText');
+            if (tbBtn) {
+                tbBtn.classList.toggle('vip-locked-extra-note', !isVip);
+                tbBtn.title = isVip ? 'إضافة مساحة تلخيص أسفل السلايد' : '🔒 ميزة مساحة التلخيص مغلقة في الحساب المجاني';
+            }
+            if (tbIcon) tbIcon.className = isVip ? 'fa-solid fa-plus' : 'fa-solid fa-lock';
+            if (tbTxt) tbTxt.innerText = 'تلخيص';
+
+            const menuBtn = document.getElementById('pdfMenuExtraNoteBtn');
+            const menuIcon = document.getElementById('pdfMenuExtraNoteIcon');
+            const menuTxt = document.getElementById('pdfMenuExtraNoteText');
+            if (menuBtn) menuBtn.classList.toggle('vip-locked-extra-note', !isVip);
+            if (menuIcon) menuIcon.className = isVip ? 'fa-solid fa-file-circle-plus' : 'fa-solid fa-lock';
+            if (menuTxt) menuTxt.innerText = 'إضافة / إظهار ورقة تلخيص';
+
+            document.querySelectorAll('.slide-extra-space-btn').forEach(btn => {
+                btn.classList.toggle('vip-locked-extra-note', !isVip);
+                btn.innerHTML = isVip
+                    ? '<i class="fa-solid fa-file-circle-plus"></i> + مساحة تلخيص'
+                    : '<i class="fa-solid fa-lock"></i> مساحة تلخيص';
+            });
+        }
+
+        function buildExtraNoteSheetDOM(pageNum, widthPx, heightPx, customLabel = null) {
             const noteKey = `note_${pageNum}`;
             const isOpened = (pageAnnotations._extraNotes && pageAnnotations._extraNotes[pageNum]) || (pageAnnotations[noteKey] && pageAnnotations[noteKey].length > 0);
+            const pageLabelTxt = customLabel || `صفحة (${pageNum})`;
 
             const sheet = document.createElement('div');
             sheet.className = `pdf-extra-note-sheet pdf-page-wrapper ${currentAnnoTool === 'pan' ? 'pan-mode' : 'drawing-mode'}`;
@@ -12591,10 +14175,11 @@
             const header = document.createElement('div');
             header.className = 'pdf-extra-note-header';
             header.innerHTML = `
-                <span><i class="fa-solid fa-pen-ruler"></i> مساحة تلخيص ومخططات إضافية — تابعة لصفحة (${pageNum})</span>
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <button onclick="clearExtraNotePage(${pageNum})" style="background:transparent; border:none; color:#b91c1c; font-weight:800; cursor:pointer; font-size:0.72rem;">مسح الورقة</button>
-                    <button onclick="toggleExtraNoteForPage(${pageNum})" style="background:transparent; border:none; color:#475569; font-weight:800; cursor:pointer; font-size:0.72rem;">إخفاء ▲</button>
+                <span><i class="fa-solid fa-pen-ruler"></i> مساحة تلخيص ومخططات إضافية — تابعة لـ ${pageLabelTxt}</span>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <button onclick="undoLastStroke('${noteKey}')" style="background:rgba(15,23,42,0.1); border:1px solid rgba(15,23,42,0.2); border-radius:6px; padding:1px 8px; color:#0f172a; font-weight:800; cursor:pointer; font-size:0.72rem;"><i class="fa-solid fa-rotate-left"></i> تراجع في التلخيص</button>
+                    <button onclick="clearExtraNotePage('${pageNum}')" style="background:transparent; border:none; color:#b91c1c; font-weight:800; cursor:pointer; font-size:0.72rem;">مسح الورقة</button>
+                    <button onclick="toggleExtraNoteForPage('${pageNum}')" style="background:transparent; border:none; color:#475569; font-weight:800; cursor:pointer; font-size:0.72rem;">إخفاء ▲</button>
                 </div>
             `;
 
@@ -12643,27 +14228,32 @@
 
         function toggleExtraNoteForPage(pageNum) {
             const targetPage = pageNum || currentActivePageNum || 1;
+            if (!currentUserCanUploadMedia) {
+                showToast('🔒 ميزة «مساحة التلخيص» مغلقة في الحساب المجاني', 'error');
+                return;
+            }
             const sheet = document.getElementById(`pdfExtraNoteWrapper_${targetPage}`);
             if (!sheet) return;
 
             if (!pageAnnotations._extraNotes) pageAnnotations._extraNotes = {};
             const isHidden = sheet.style.display === 'none';
             if (isHidden) {
-                if (!currentUserCanUploadMedia) {
-                    checkVipFeatureAccess('إضافة أوراق التلخيص والمخططات الإضافية تحت السلايدات');
-                    return;
-                }
                 sheet.style.display = 'block';
                 pageAnnotations._extraNotes[targetPage] = true;
                 redrawPageAnnotations(`note_${targetPage}`);
                 sheet.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                showToast(`📄 تم فتح مساحة تلخيص إضافية أسفل صفحة ${targetPage}`);
+                showToast(`📄 تم فتح مساحة تلخيص إضافية أسفل السلايد`);
             } else {
                 sheet.style.display = 'none';
                 pageAnnotations._extraNotes[targetPage] = false;
-                showToast(`تم طي ورقة التلخيص الإضافية لصفحة ${targetPage}`);
+                showToast(`تم طي ورقة التلخيص الإضافية`);
             }
-            if (currentViewingLec) {
+            if (mergedContinuousPdfMode && mergedPageToLectureMap[targetPage]) {
+                const mInfo = mergedPageToLectureMap[targetPage];
+                if (!mInfo.lecAnnos._extraNotes) mInfo.lecAnnos._extraNotes = {};
+                mInfo.lecAnnos._extraNotes[mInfo.localPageNum] = Boolean(pageAnnotations._extraNotes[targetPage]);
+                saveAnnotationsToDB(mInfo.lecId, mInfo.lecAnnos);
+            } else if (currentViewingLec) {
                 saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
             }
         }
@@ -12672,10 +14262,14 @@
             const noteKey = `note_${pageNum}`;
             pageAnnotations[noteKey] = [];
             redrawPageAnnotations(noteKey);
-            if (currentViewingLec) {
+            if (mergedContinuousPdfMode && mergedPageToLectureMap[pageNum]) {
+                const mInfo = mergedPageToLectureMap[pageNum];
+                mInfo.lecAnnos[`note_${mInfo.localPageNum}`] = [];
+                saveAnnotationsToDB(mInfo.lecId, mInfo.lecAnnos);
+            } else if (currentViewingLec) {
                 saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
             }
-            showToast(`تم مسح ورقة التلخيص التابعة لصفحة ${pageNum}`);
+            showToast(`تم مسح ورقة التلخيص بنجاح`);
         }
 
         // ================= 3. EXPORT / PRINT ANNOTATED SLIDES =================
@@ -14127,6 +15721,7 @@
                     btnUp.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> رفع الملفات الجديدة فقط للحساب${unuploadedLocalCount > 0 ? ' (' + unuploadedLocalCount + ' جديد)' : ''}`;
                 }
             }
+            syncExtraNoteButtonsLockUI();
             renderCloudIndividualFilesList();
             if (currentCloudUser && !isCloudSyncing && !isBulkMediaUploading) {
                 updateCloudNavUI('synced');
@@ -15147,6 +16742,9 @@
 
         // --- Helper: Collect & Restore All IndexedDB Annotations for Account Sync ---
         function getAllAnnotationsMapFromDB() {
+            if (inMemoryAnnotationsCacheLoaded) {
+                return Promise.resolve(Object.assign({}, inMemoryAnnotationsCache));
+            }
             return new Promise((resolve) => {
                 if (!dbInstance) return resolve({});
                 try {
@@ -15156,10 +16754,12 @@
                     req.onsuccess = () => {
                         const map = {};
                         (req.result || []).forEach(item => {
-                            if (item && item.id !== undefined && item.pages) {
+                            if (item && item.id !== undefined && item.pages && !String(item.id).startsWith('_cloudMedia_')) {
                                 map[item.id] = item.pages;
+                                inMemoryAnnotationsCache[item.id] = item.pages;
                             }
                         });
+                        inMemoryAnnotationsCacheLoaded = true;
                         resolve(map);
                     };
                     req.onerror = () => resolve({});
@@ -15200,7 +16800,7 @@
             if (cloudAutoSaveTimer) clearTimeout(cloudAutoSaveTimer);
             cloudAutoSaveTimer = setTimeout(() => {
                 if (!isBulkMediaUploading) pushWorkspaceToCloud(false);
-            }, 600);
+            }, 250);
         }
 
         async function pushWorkspaceToCloud(manualNotify = false) {
@@ -15510,7 +17110,8 @@
                 if (ev.isFixed || ev.type === 'mandatory' || ev.completed) return false;
                 if (onlyToday && ev.day !== todayIdx) return false;
 
-                // 1. Direct Lecture ID link
+                // 1. Direct Lecture ID or Multi-Lecture IDs link
+                if (lecIdStr && Array.isArray(ev.lectureIds) && ev.lectureIds.map(String).includes(lecIdStr)) return true;
                 if (lecIdStr && ev.lectureId && String(ev.lectureId) === lecIdStr) return true;
 
                 // 2. Title match (session title contains lecture title or vice versa)
@@ -15550,8 +17151,15 @@
                 const nowDecH = new Date().getHours() + (new Date().getMinutes() / 60);
                 candidates.sort((a, b) => Math.abs(a.startHour - nowDecH) - Math.abs(b.startHour - nowDecH));
                 const targetEv = candidates[0];
+                if (targetEv.isOpenDuration && !targetEv.openTimerStartedAt) {
+                    recordSmartSessionActualStart(targetEv);
+                }
 
                 targetEv.actualStudiedMinutes = Number(((Number(targetEv.actualStudiedMinutes) || 0) + (10 / 60)).toFixed(2));
+                if (targetEv.isOpenDuration) {
+                    saveScheduleData();
+                    return; // Open-ended sessions do not auto-terminate until the user finishes
+                }
                 const plannedMinutes = (Number(targetEv.duration) || 1) * 60;
                 const thresholdRatio = (Number(plannerPrefs.autoCompletePct) || 75) / 100;
                 const requiredMinutes = plannedMinutes * thresholdRatio;
@@ -15707,6 +17315,7 @@
             if (!ev || ev.completed) return;
             const modal = document.getElementById('smartStudyVerifyModalOverlay');
             const descEl = document.getElementById('smartVerifyModalDesc');
+            const fullTitleEl = document.getElementById('smartVerifyFullTitle');
             const remTitleEl = document.getElementById('smartVerifyRemTitle');
             const btnComplete = document.getElementById('smartVerifyBtnComplete');
             const btnResched = document.getElementById('smartVerifyBtnRescheduleRem');
@@ -15714,30 +17323,48 @@
             if (!modal || !descEl) return;
 
             const plannedMins = Math.round((Number(ev.duration) || 1) * 60);
-            const studiedMins = Math.round(Number(ev.actualStudiedMinutes) || 0);
-            const remMins = Math.max(15, plannedMins - studiedMins);
-            const remHours = Math.max(0.25, Number((remMins / 60).toFixed(2)));
+            const rawStudiedMins = Math.max(1, Math.round(Number(ev.actualStudiedMinutes) || 15));
+            const studiedMins = Math.min(plannedMins, rawStudiedMins);
+            const studiedHrs = Math.max(0.25, Number((studiedMins / 60).toFixed(2)));
+            const studiedHuman = formatMinutesHumanReadable(studiedMins);
+            const plannedHuman = formatMinutesHumanReadable(plannedMins);
+            const cancelledMins = Math.max(0, plannedMins - studiedMins);
+            const cancelledHuman = cancelledMins > 0 ? formatMinutesHumanReadable(cancelledMins) : '0 دقيقة';
 
-            if (reason === 'lecture_checked' || reason === 'in_window_check') {
-                descEl.innerHTML = `قمت بتعليم المحاضرة المرتبطة بالمهمة <b>«${ev.title}»</b> كمكتملة، ولكن الوقت المخطط لها في الجدول هو <b>${ev.duration} ساعة (${plannedMins} دقيقة)</b> والوقت المرصود داخل التطبيق هو <b>${studiedMins} دقيقة</b> (ربما ذاكرتها خارج التطبيق 📖).<br><br>ماذا ترغب أن نفعل بهذه المهمة في جدول التخطيط؟`;
-            } else if (reason === 'end_of_day') {
-                descEl.innerHTML = `انتهى وقت اليوم للمهمة <b>«${ev.title}»</b> (المخطط لها <b>${ev.duration} س</b>)، وقد رصد التطبيق مذاكرة لمدة <b>${studiedMins} دقيقة</b> فقط.<br><br>هل أتممت مذاكرتها خارج التطبيق أم ترغب في ترحيل الوقت المتبقي (${remHours} س)؟`;
-            } else {
-                descEl.innerHTML = `لاحظ المساعد الذكي أنك ذاكرت جزءاً من مهمة <b>«${ev.title}»</b> لمدة <b>${studiedMins} دقيقة</b> من أصل <b>${plannedMins} دقيقة (${ev.duration} ساعة)</b> محددة في الجدول.<br><br>هل أنهيت المهمة بالكامل (أو ذاكرت باقيها خارج التطبيق) أم نجدول لك الوقت المتبقي؟`;
+            descEl.innerHTML = `
+                <div style="margin-bottom: 10px;">
+                    رصد المساعد الذكي تقدمك في مهمة <b style="color:var(--text-main);">«${ev.title}»</b>:
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; background: rgba(11, 15, 23, 0.75); border: 1px solid rgba(148, 163, 184, 0.12); border-radius: 10px; padding: 10px;">
+                    <div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted);">الوقت المسجل فعلياً</div>
+                        <div style="font-size: 0.95rem; font-weight: 900; color: var(--primary);">${studiedHuman} (${studiedHrs} س)</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted);">الوقت المخطط أصلاً</div>
+                        <div style="font-size: 0.95rem; font-weight: 900; color: var(--text-main);">${plannedHuman} (${ev.duration} س)</div>
+                    </div>
+                </div>
+                <div style="font-size: 0.8rem; color: #cbd5e1;">اختر طريقة حفظ هذه المهمة في جدولك وسجلك:</div>
+            `;
+
+            if (fullTitleEl) {
+                fullTitleEl.innerText = `حفظ المهمة بالكامل (${ev.duration} ساعة)`;
             }
-
             if (remTitleEl) {
-                remTitleEl.innerText = `أنجزت جزءاً فقط — جدولة الوقت المتبقي (${remHours} ساعة) لاحقاً`;
+                remTitleEl.innerText = `حفظ الجزء المسجل فقط (${studiedHuman}) وإلغاء الباقي (${cancelledHuman})`;
             }
 
+            // Option 1: Save full planned task
             btnComplete.onclick = () => {
                 closeModal('smartStudyVerifyModalOverlay');
+                if (ev.openTimerStartedAt) ev.openTimerStartedAt = null;
                 ev.completed = true;
                 ev.missed = false;
                 ev.autoCompleted = true;
-                ev.completedMode = 'user_verified';
+                ev.completedMode = 'full_saved';
                 const dateStr = new Date().toLocaleDateString('ar-EG');
-                const logText = `✅ إتمام مهمة (بتأكيد المستخدم): ${ev.title} (${ev.duration} س)`;
+                const logText = `✅ إتمام المهمة بالكامل: ${ev.title} (${ev.duration} س)`;
                 if (!logs.some(l => l.text === logText && l.date === dateStr)) {
                     logs.unshift({ id: Date.now(), date: dateStr, text: logText, mood: 'bolt', subjectId: ev.subjectId || '' });
                     saveLogs();
@@ -15745,44 +17372,45 @@
                 saveScheduleData();
                 renderSchedule();
                 updateTracker();
-                showToast(`🎉 تم اعتماد إتمام المهمة «${ev.title}» بالكامل وتوثيقها في السجل!`);
+                showToast(`🎉 تم حفظ وإتمام المهمة «${ev.title}» بالكامل (${ev.duration} س)!`);
             };
 
+            // Option 2: Save ONLY the recorded part and cancel the remaining unstudied time
             btnResched.onclick = () => {
                 closeModal('smartStudyVerifyModalOverlay');
-                const studiedHrs = Math.max(0.25, Number((studiedMins / 60).toFixed(2)));
+                if (ev.openTimerStartedAt) ev.openTimerStartedAt = null;
+                const nowObj = new Date();
+                if (!ev.smartEndTimeFormatted) {
+                    ev.smartEndTimeFormatted = nowObj.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                }
+                if (!ev.smartStartTimeFormatted) {
+                    const approxStart = new Date(Date.now() - studiedMins * 60000);
+                    ev.smartStartTimeFormatted = approxStart.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                }
+                ev.actualStudiedMinutes = studiedMins;
                 ev.duration = studiedHrs;
                 ev.completed = true;
                 ev.missed = false;
+                ev.autoCompleted = true;
+                ev.completedMode = 'partial_saved_rest_cancelled';
 
-                // Create a new session for the remaining duration
-                const nextDay = (ev.day + 1) % 7;
-                scheduleEvents.push({
-                    id: Date.now() + 10,
-                    title: `استكمال: ${ev.title}`,
-                    subjectId: ev.subjectId || '',
-                    lectureId: ev.lectureId || '',
-                    day: ev.day === getCurrentDayIdx() ? ev.day : nextDay,
-                    startHour: Math.min(Number(plannerPrefs.dayEndHour || 23) - 1, Math.ceil(new Date().getHours() + 1)),
-                    duration: remHours,
-                    type: ev.type || 'important',
-                    completed: false,
-                    missed: false,
-                    actualStudiedMinutes: 0,
-                    isFixed: false,
-                    notes: 'وقت متبقي مرحّل بذكاء لاستكمال المهمة'
-                });
+                const dateStr = new Date().toLocaleDateString('ar-EG');
+                const logText = `✅ حفظ الجزء المسجل من المهمة: ${ev.title} (${studiedHuman} / ${studiedHrs} س) وإلغاء الباقي`;
+                if (!logs.some(l => l.text === logText && l.date === dateStr)) {
+                    logs.unshift({ id: Date.now(), date: dateStr, text: logText, mood: 'bolt', subjectId: ev.subjectId || '' });
+                    saveLogs();
+                }
                 saveScheduleData();
                 renderSchedule();
                 updateTracker();
-                showToast(`⏱️ تم حفظ ما أنجزته وجدولة الوقت المتبقي (${remHours} س) بنجاح!`);
+                showToast(`✓ تم حفظ الجزء المسجل فقط (${studiedHuman}) وإلغاء الوقت المتبقي من المهمة!`);
             };
 
             btnKeep.onclick = () => {
                 ev.promptedPartial = true;
                 saveScheduleData();
                 closeModal('smartStudyVerifyModalOverlay');
-                showToast('تم إبقاء المهمة مفتوحة لاستكمال مذاكرتها متى شئت 👍');
+                showToast('تم إبقاء المهمة مفتوحة لاستكمالها لاحقاً 👍');
             };
 
             modal.classList.add('active');
@@ -15963,12 +17591,39 @@
         function launchScheduledSessionNow(eventId) {
             const ev = scheduleEvents.find(e => e.id === eventId);
             if (!ev) return;
-            // If linked to a specific lecture in المركز, open it directly!
-            if (ev.lectureId) {
+            if (ev.isOpenDuration && !ev.openTimerStartedAt && !ev.completed) {
+                recordSmartSessionActualStart(ev);
+                saveScheduleData();
+            }
+            const lecIdsArr = Array.isArray(ev.lectureIds) && ev.lectureIds.length > 0
+                ? ev.lectureIds.map(String)
+                : (ev.lectureId ? [String(ev.lectureId)] : []);
+
+            // If linked to multiple lectures, open them all together in the Merged Continuous Studio!
+            if (lecIdsArr.length > 1) {
+                let targetSubId = ev.subjectId;
+                if (!targetSubId) {
+                    subjects.forEach(s => {
+                        (s.groups || []).forEach(g => {
+                            (g.lectures || []).forEach(l => {
+                                if (lecIdsArr.includes(String(l.id))) targetSubId = s.id;
+                            });
+                        });
+                    });
+                }
+                if (targetSubId) {
+                    openMergedSubjectLecturesStudio(lecIdsArr, targetSubId);
+                    return;
+                }
+            }
+
+            // If linked to a single lecture in المركز, open it directly!
+            if (lecIdsArr.length === 1) {
+                const targetLid = lecIdsArr[0];
                 for (const s of subjects) {
                     for (const g of (s.groups || [])) {
                         for (const l of (g.lectures || [])) {
-                            if (String(l.id) === String(ev.lectureId)) {
+                            if (String(l.id) === String(targetLid)) {
                                 activeSubjectId = s.id;
                                 openLectureDocument(g.id, l.id);
                                 return;
@@ -16263,9 +17918,78 @@
             `).join('');
         }
 
-        // Start Live Clock & Periodic Missed/Week Check
+        // ================= GLOBAL PWA FULLSCREEN MODE & DYNAMIC MANIFEST =================
+        function toggleGlobalAppFullscreen() {
+            const docEl = document.documentElement;
+            const isFull = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+            if (!isFull) {
+                const req = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.msRequestFullscreen;
+                if (req) {
+                    req.call(docEl).catch(() => {
+                        showToast('اضغط F11 لتفعيل ملء الشاشة الكامل في متصفحك', 'error');
+                    });
+                }
+            } else {
+                const exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+                if (exit) exit.call(document).catch(() => {});
+            }
+        }
+
+        function syncGlobalFullscreenButtonUI() {
+            const isFull = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+            const btn = document.getElementById('appGlobalFullscreenBtn');
+            const icon = document.getElementById('appGlobalFullscreenIcon');
+            const txt = document.getElementById('appGlobalFullscreenText');
+            if (btn) btn.classList.toggle('active', isFull);
+            if (icon) icon.className = isFull ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
+            if (txt) txt.innerText = isFull ? 'إنهاء ملء الشاشة' : 'ملء الشاشة';
+        }
+        document.addEventListener('fullscreenchange', syncGlobalFullscreenButtonUI);
+        document.addEventListener('webkitfullscreenchange', syncGlobalFullscreenButtonUI);
+
+        // Inject Fullscreen-Capable PWA Manifest dynamically so installed app supports fullscreen
+        (function setupFullscreenPwaManifest() {
+            try {
+                const manifestObj = {
+                    name: 'منصة الإنجاز - Studio Workspace',
+                    short_name: 'منصة الإنجاز',
+                    description: 'منصة الإنجاز الأكاديمية لإدارة المحاضرات والـ PDF والريكورد والتخطيط الذكي',
+                    lang: 'ar',
+                    dir: 'rtl',
+                    start_url: './index.html',
+                    display: 'fullscreen',
+                    display_override: ['fullscreen', 'standalone', 'window-controls-overlay'],
+                    background_color: '#0b0f17',
+                    theme_color: '#14b8a6',
+                    orientation: 'any',
+                    icons: [
+                        {
+                            src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b0f17'/%3E%3Cpath d='M20 18h24a4 4 0 0 1 4 4v20a4 4 0 0 1-4 4H20a4 4 0 0 1-4-4V22a4 4 0 0 1 4-4zm4 8v4h16v-4H24zm0 10v4h10v-4H24z' fill='%232dd4bf'/%3E%3C/svg%3E",
+                            sizes: '192x192 512x512',
+                            type: 'image/svg+xml',
+                            purpose: 'any maskable'
+                        }
+                    ]
+                };
+                const blob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
+                const manifestLink = document.querySelector('link[rel="manifest"]');
+                if (manifestLink) {
+                    manifestLink.href = URL.createObjectURL(blob);
+                }
+            } catch (e) {}
+        })();
+
+        // Start Live Clock, Open-Duration Timers & Periodic Missed/Week Check
         setInterval(() => {
             updateLiveTimeSyncBanner();
+            document.querySelectorAll('[data-open-timer-ev]').forEach(el => {
+                const evId = el.getAttribute('data-open-timer-ev');
+                const ev = scheduleEvents.find(e => String(e.id) === String(evId));
+                if (ev && !ev.completed) {
+                    const startPref = ev.smartStartTimeFormatted ? `بدأت ${ev.smartStartTimeFormatted} • ` : '';
+                    el.innerHTML = `<i class="fa-solid ${ev.openTimerStartedAt ? 'fa-compass fa-spin' : 'fa-compass'}"></i> تتبع ذكي: ${startPref}${formatOpenTimerElapsed(ev)}`;
+                }
+            });
         }, 1000);
 
         setInterval(() => {
