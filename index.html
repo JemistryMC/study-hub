@@ -5432,6 +5432,146 @@
             animation: subFade 0.14s ease;
         }
 
+    
+        /* ================= CLEANED WEEKLY GOALS & CLICK-TO-LINK MODAL + COHESIVE REPORTS UPGRADE ================= */
+        .goals-clean-header {
+            background: linear-gradient(145deg, #131b2a, #0f1623);
+            border: 1px solid rgba(45, 212, 191, 0.25);
+            border-right: 4px solid var(--primary);
+            border-radius: 16px;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .goals-top-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .goals-creation-form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: rgba(9, 13, 20, 0.65);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            border-radius: 12px;
+            padding: 10px;
+        }
+        .goals-creation-form input[type="text"] {
+            flex: 1.5;
+            min-width: 220px;
+            padding: 10px 14px;
+            border-radius: 9px;
+            background: rgba(15, 21, 32, 0.9);
+        }
+        .goals-creation-form select {
+            min-width: 170px;
+            padding: 10px 12px;
+            border-radius: 9px;
+            background: rgba(15, 21, 32, 0.9);
+        }
+        .goals-toolbar-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding-top: 4px;
+        }
+        .goals-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+            gap: 14px;
+        }
+        .backlog-card.clickable-goal-card {
+            cursor: pointer;
+            transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+        }
+        .backlog-card.clickable-goal-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(45, 212, 191, 0.5) !important;
+            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+        }
+        .goal-linked-tasks-box {
+            background: rgba(9, 13, 21, 0.72);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            border-radius: 10px;
+            padding: 9px 11px;
+            margin-top: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: border-color 0.15s ease, background-color 0.15s ease;
+        }
+        .backlog-card.clickable-goal-card:hover .goal-linked-tasks-box {
+            border-color: rgba(45, 212, 191, 0.35);
+            background: rgba(20, 184, 166, 0.06);
+        }
+        .goal-linked-task-pill {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.76rem;
+            color: #e2e8f0;
+            background: rgba(255, 255, 255, 0.03);
+            border-right: 2.5px solid var(--primary);
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+        .goal-linker-session-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 340px;
+            overflow-y: auto;
+            padding: 4px 2px;
+            margin: 10px 0;
+        }
+        .goal-linker-session-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 14px;
+            border-radius: 11px;
+            background: rgba(15, 22, 34, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            cursor: pointer;
+            transition: all 0.14s ease;
+        }
+        .goal-linker-session-item:hover {
+            border-color: rgba(45, 212, 191, 0.45);
+            background: rgba(45, 212, 191, 0.08);
+        }
+        .goal-linker-session-item.is-selected {
+            border-color: var(--primary);
+            background: rgba(45, 212, 191, 0.14);
+            box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.25);
+        }
+        .tracker-reports-grid {
+            display: grid;
+            grid-template-columns: 1.12fr 1fr;
+            gap: 18px;
+            margin-bottom: 20px;
+            align-items: stretch;
+        }
+        @media (max-width: 960px) {
+            .tracker-reports-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .tracker-kpi-strip-4 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -5703,69 +5843,59 @@
                     </div>
                 </div>
 
-                <!-- SUBVIEW 3: WEEKLY TASKS & STUDY GOALS (بنك أهداف الأسبوع) -->
+                <!-- SUBVIEW 3: WEEKLY TASKS & STUDY GOALS (بنك أهداف الأسبوع المنظم) -->
                 <div id="subview-tasks" class="sch-subview-content">
                     <div class="tasks-backlog-container">
-                        <!-- Visual 3-Step Onboarding Strip: How Weekly Goals Work -->
-                        <div class="goals-how-it-works-banner">
-                            <div class="ghw-top">
+                        <!-- Clean & Organized Header + Simple Goal Creation + Filter Bar -->
+                        <div class="goals-clean-header">
+                            <div class="goals-top-title-row">
                                 <div style="display: flex; align-items: center; gap: 10px;">
-                                    <div style="width: 34px; height: 34px; border-radius: 9px; background: rgba(45, 212, 191, 0.14); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                                    <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(45, 212, 191, 0.14); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.05rem;">
                                         <i class="fa-solid fa-bullseye"></i>
                                     </div>
                                     <div>
-                                        <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-main); margin: 0;">بنك أهداف ومهام الأسبوع — كيف تستخدم هذه الصفحة؟</h3>
-                                        <p style="color: var(--text-muted); font-size: 0.8rem; margin: 2px 0 0 0;">المكان المخصص لتفريغ المهام المطلوبة منك هذا الأسبوع قبل تحديد يوم وساعة مذاكرتها في الجدول.</p>
+                                        <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-main); margin: 0;">أهداف الأسبوع الدراسية</h3>
+                                        <p style="color: var(--text-muted); font-size: 0.79rem; margin: 2px 0 0 0;">أضف أهدافك أولاً ببساطة، وعند الضغط على أي هدف يمكنك اختيار المهمة المسجلة في جدولك لربطها وحساب ساعاتها تلقائياً.</p>
                                     </div>
                                 </div>
-                                <button class="btn btn-outline" style="padding: 6px 12px; font-size: 0.78rem; border-radius: 9px;" onclick="openHelpModal(5)">
-                                    <i class="fa-solid fa-circle-question"></i> شرح تفصيلي وأمثلة
-                                </button>
+                                <div id="tasksSummaryStatsStrip" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;"></div>
                             </div>
-                            <div class="ghw-steps-grid">
-                                <div class="ghw-step-box">
-                                    <span class="ghw-step-num">1</span>
-                                    <div>
-                                        <div style="font-weight: 800; font-size: 0.83rem; color: var(--text-main);">أضف هدفك بدون إدخال وقت</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-muted);">اكتب اسم الهدف أو اختر مهمة مسجلة مباشرة دون الحاجة لإدخال عدد الساعات يدوياً.</div>
-                                    </div>
-                                </div>
-                                <div class="ghw-step-box">
-                                    <span class="ghw-step-num">2</span>
-                                    <div>
-                                        <div style="font-weight: 800; font-size: 0.83rem; color: var(--text-main);">اربطه بمهمة (منتهية أو حالية أو مستقبلية)</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-muted);">اربط الهدف بأي جلسة في جدولك ليقرأ النظام ساعاتها الفعّالة وحالتها تلقائياً بذكاء.</div>
-                                    </div>
-                                </div>
-                                <div class="ghw-step-box">
-                                    <span class="ghw-step-num">3</span>
-                                    <div>
-                                        <div style="font-weight: 800; font-size: 0.83rem; color: var(--text-main);">تزامن تلقائي للساعات والإتمام</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-muted);">تُسجّل الساعات الفعلية للجلسة المرتبطة تلقائياً ويُعلّم الهدف كمكتمل فور إنجازها.</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <!-- Add Goal Input Bar & Smart Session Linker (Zero Manual Time Entry!) -->
-                        <div class="goals-add-bar">
-                            <div style="display: flex; gap: 10px; flex-wrap: wrap; flex: 1; align-items: center;">
-                                <input type="text" id="newTaskTitle" placeholder="اكتب هدف الأسبوع (أو اختر مهمة مسجلة بالأسفل ليُملأ الاسم والوقت تلقائياً)..." style="flex: 1.2; min-width: 220px; padding: 10px 14px;" onkeypress="if(event.key === 'Enter') addBacklogTask()">
-                                <select id="newTaskSubject" style="width: 155px; padding: 10px 12px;">
+                            <!-- Simple Step 1: Add Goal Normally Without Any Forced Link or Time Input -->
+                            <div class="goals-creation-form">
+                                <input type="text" id="newTaskTitle" placeholder="اكتب هدفاً جديداً للأسبوع (مثال: مذاكرة محاضرة 3 فارماكولوجي أو حل شيت الكيمياء)..." onkeypress="if(event.key === 'Enter') addBacklogTask()">
+                                <select id="newTaskSubject">
                                     <option value="">📚 بدون مادة (عام)</option>
                                 </select>
-                                <select id="newTaskLinkedSessionSelect" onchange="handleNewTaskLinkedSessionChange(this.value)" style="flex: 1; min-width: 235px; padding: 10px 12px; border-color: rgba(45, 212, 191, 0.38); color: #5eead4; font-weight: 700;">
-                                    <option value="">🧭 ربط بمهمة مسجلة (أو حساب الوقت تلقائياً)...</option>
-                                </select>
-                                <button class="btn btn-primary" style="padding: 10px 18px;" onclick="addBacklogTask()">
-                                    <i class="fa-solid fa-plus"></i> أضف لبنك الأهداف
+                                <button class="btn btn-primary" style="padding: 10px 20px; white-space: nowrap;" onclick="addBacklogTask()">
+                                    <i class="fa-solid fa-plus"></i> إضافة الهدف
                                 </button>
                             </div>
-                            <div id="tasksSummaryStatsStrip" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;"></div>
+
+                            <!-- Clean Filter Pills Row -->
+                            <div class="goals-toolbar-row">
+                                <div class="filter-chip-group">
+                                    <button type="button" class="filter-chip-btn active" data-goal-filter="all" onclick="setBacklogGoalsFilter('all', this)">
+                                        <i class="fa-solid fa-layer-group"></i> كل الأهداف
+                                    </button>
+                                    <button type="button" class="filter-chip-btn" data-goal-filter="unlinked" onclick="setBacklogGoalsFilter('unlinked', this)">
+                                        <i class="fa-regular fa-circle-dot" style="color: #fcd34d;"></i> غير مرتبطة بمهمة
+                                    </button>
+                                    <button type="button" class="filter-chip-btn" data-goal-filter="linked" onclick="setBacklogGoalsFilter('linked', this)">
+                                        <i class="fa-solid fa-link" style="color: #38bdf8;"></i> مرتبطة بمهمة بالجدول
+                                    </button>
+                                    <button type="button" class="filter-chip-btn" data-goal-filter="done" onclick="setBacklogGoalsFilter('done', this)">
+                                        <i class="fa-solid fa-circle-check" style="color: #10b981;"></i> المكتملة
+                                    </button>
+                                </div>
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">
+                                    <i class="fa-regular fa-hand-pointer" style="color: var(--primary);"></i> اضغط على أي بطاقة هدف لاختيار المهمة المسجلة في الجدول
+                                </span>
+                            </div>
                         </div>
 
-                        <!-- Goals Cards Grid -->
-                        <div id="tasksBacklogList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px;"></div>
+                        <!-- Organized Goals Cards Grid -->
+                        <div id="tasksBacklogList" class="goals-cards-grid"></div>
                     </div>
                 </div>
 
@@ -5856,16 +5986,16 @@
             </div>
         </div>
 
-        <!-- ================= PAGE 3: السجل والإنتاجية ================= -->
+        <!-- ================= PAGE 3: السجل والتقارير الذكية ================= -->
         <div id="tracker" class="view-section">
             
             <!-- Calm Minimalist Header -->
             <div class="tracker-top-header">
                 <div>
                     <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--text-main); margin-bottom: 2px;">
-                        السجل والبوصلة الذكية
+                        السجل والتقارير الذكية
                     </h2>
-                    <p style="color: var(--text-muted); font-size: 0.83rem;">يرشدك لما تحتاج التركيز عليه فعلاً الآن، مع مؤقت بومودورو وخلاصة إنجازك بدون تشتيت.</p>
+                    <p style="color: var(--text-muted); font-size: 0.83rem;">بوصلتك اليومية لأولويات المذاكرة، مع تقارير التقدم الفعلي وتوازن المواد وتقييمات الأسابيع بدون تشتيت.</p>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                     <button class="btn btn-primary" style="padding: 8px 16px; font-size: 0.84rem;" onclick="triggerAddLogPro()">
@@ -5899,13 +6029,13 @@
                 </div>
             </div>
 
-            <!-- SECTION 1: ACTIONABLE FOCUS COMPASS (ما الذي تحتاج استخدامه والتركيز عليه الآن فعلاً؟) -->
+            <!-- SECTION 1: ACTIONABLE FOCUS COMPASS (البوصلة الذكية) -->
             <div class="tracker-focus-compass">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <i class="fa-solid fa-compass" style="color: var(--primary); font-size: 1.15rem;"></i>
                         <div>
-                            <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-main); margin: 0;">ماذا تفعل الآن؟ (توجيه ذكي حسب أولوياتك)</h3>
+                            <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-main); margin: 0;">البوصلة الذكية — ماذا تفعل الآن حسب أولوياتك؟</h3>
                         </div>
                     </div>
                     <span class="studio-pill" id="smartAdvisorSummaryBadge" style="font-size: 0.72rem; color: var(--primary);">
@@ -5915,143 +6045,131 @@
                 <div class="smart-recs-grid" id="smartRecommendationsList"></div>
             </div>
 
-            <!-- SECTION 2: TWO-COLUMN WORKSPACE (Pomodoro Focus Timer + Clean Consolidated Progress Card) -->
-            <div class="tracker-workspace-grid">
-                
-                <!-- RIGHT COLUMN: POMODORO FOCUS STUDIO -->
-                <div class="pomodoro-card" style="justify-content: space-between; padding: 20px;">
-                    <div style="width: 100%;">
-                        <div style="display:flex; align-items:center; justify-content: center; gap:8px; margin-bottom:4px;">
-                            <i class="fa-solid fa-stopwatch" style="color: var(--primary); font-size:1.1rem;"></i>
-                            <h3 style="font-size:1.05rem; font-weight:800;">مؤقت التركيز (Pomodoro)</h3>
-                        </div>
-                        <p style="color:var(--text-muted); font-size:0.78rem; margin-bottom:12px;">اختر المادة وابدأ؛ يُوثّق الإنجاز تلقائياً فور انتهاء الجلسة.</p>
-                        
-                        <div class="timer-modes" style="margin-bottom: 12px;">
-                            <button class="t-mode-btn active" onclick="setTimerDuration(25, this)">25 د</button>
-                            <button class="t-mode-btn" onclick="setTimerDuration(50, this)">50 د</button>
-                            <button class="t-mode-btn" onclick="setTimerDuration(90, this)">90 د</button>
-                            <button class="t-mode-btn" onclick="setTimerDuration(10, this)">10 د راحة</button>
-                        </div>
-
-                        <div style="width: 100%; margin-bottom: 6px;">
-                            <select id="timerSubjectSelect" style="width: 100%; padding: 8px 12px; font-size: 0.83rem; margin-bottom: 6px;">
-                                <option value="">بدون مادة محددة (عام)</option>
-                            </select>
-                            <div class="ambient-sound-bar">
-                                <span style="font-size: 0.75rem; color: #cbd5e1; font-weight: 700; display: flex; align-items: center; gap: 5px;">
-                                    <i class="fa-solid fa-headphones-simple" style="color: var(--primary);"></i> عزل صوتي
-                                </span>
-                                <select id="pomoAmbientSoundSelect" onchange="handleAmbientSoundChange(this.value)" style="width: auto; flex: 1; max-width: 165px; padding: 4px 8px; font-size: 0.76rem; margin: 0; border-radius: 7px;">
-                                    <option value="off">🔇 بدون صوت خلفية</option>
-                                    <option value="rain">🌧️ مطر هادئ للتركيز</option>
-                                    <option value="deep">🌊 موجات تركيز عميق</option>
-                                </select>
-                            </div>
-                        </div>
+            <!-- SECTION 2: 4 COHESIVE TOP KPI CARDS -->
+            <div class="tracker-kpi-strip-4">
+                <div class="tracker-kpi-box" style="background: #121926; padding: 14px 16px; border-radius: 14px; border: 1px solid rgba(148, 163, 184, 0.1);">
+                    <span style="font-size: 0.76rem; color: var(--text-muted); font-weight: 700;">سلسلة الاستمرارية</span>
+                    <div style="display: flex; align-items: baseline; justify-content: space-between; margin: 4px 0;">
+                        <span style="font-size: 1.45rem; font-weight: 900; color: var(--text-main);" id="statStreak">0 يوم</span>
+                        <i class="fa-solid fa-fire" style="color: var(--primary); font-size: 1rem;"></i>
                     </div>
+                    <span style="font-size: 0.72rem; color: var(--text-muted);" id="statStreakMsg">سجّل إنجازاً اليوم</span>
+                </div>
 
-                    <div class="timer-display" id="timerDisplay" style="font-size: 3.3rem; margin: 10px 0;">25:00</div>
+                <div class="tracker-kpi-box" style="background: #121926; padding: 14px 16px; border-radius: 14px; border: 1px solid rgba(148, 163, 184, 0.1);">
+                    <span style="font-size: 0.76rem; color: var(--text-muted); font-weight: 700;">ساعات المذاكرة الفعّالة</span>
+                    <div style="display: flex; align-items: baseline; gap: 6px; margin: 4px 0;">
+                        <span style="font-size: 1.45rem; font-weight: 900; color: #6ee7b7;" id="statDoneHours">0 س</span>
+                        <span style="font-size: 0.78rem; color: var(--text-muted);">من <b id="statPlannedHours" style="color: var(--text-main);">0</b> س</span>
+                    </div>
+                    <span style="font-size: 0.72rem; color: var(--text-muted);" id="weekRemainingStudyTxt">خطة الأسبوع</span>
+                </div>
 
-                    <div class="timer-controls" style="width: 100%;">
-                        <button class="btn btn-primary" id="timerStartBtn" style="flex: 1; padding: 10px;" onclick="toggleTimer()"><i class="fa-solid fa-play"></i> بدء الجلسة</button>
-                        <button class="btn btn-outline" style="padding: 10px 14px;" onclick="resetTimer()"><i class="fa-solid fa-rotate-left"></i></button>
+                <div class="tracker-kpi-box" style="background: #121926; padding: 14px 16px; border-radius: 14px; border: 1px solid rgba(148, 163, 184, 0.1); cursor: pointer;" onclick="switchView('schedule', document.querySelectorAll('.nav-item')[1]); switchScheduleSubView('tasks', document.getElementById('schPillTasks'));">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.76rem; color: var(--text-muted); font-weight: 700;">إنجاز أهداف الأسبوع</span>
+                        <i class="fa-solid fa-bullseye" style="color: #38bdf8; font-size: 0.9rem;"></i>
+                    </div>
+                    <div style="display: flex; align-items: baseline; gap: 6px; margin: 4px 0;">
+                        <span style="font-size: 1.45rem; font-weight: 900; color: #38bdf8;" id="statGoalsCompletedRatio">0/0</span>
+                        <span style="font-size: 0.76rem; color: var(--text-muted);" id="statGoalsLinkedBadge">0 مرتبط</span>
+                    </div>
+                    <span style="font-size: 0.72rem; color: var(--text-muted);" id="statGoalsTimeSub">الوقت المسجل للأهداف: 0 س</span>
+                </div>
+
+                <div class="tracker-kpi-box" style="background: #121926; padding: 14px 16px; border-radius: 14px; border: 1px solid rgba(148, 163, 184, 0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.76rem; color: var(--text-muted); font-weight: 700;">مؤشر الالتزام الأسبوعي</span>
+                        <span style="font-size: 1.25rem; font-weight: 900; color: var(--primary);" id="weekAdherenceRate">0%</span>
+                    </div>
+                    <div class="progress-bar-bg" style="height: 6px; margin: 8px 0 6px 0;">
+                        <div class="progress-bar-fill" id="weekProgressBar" style="width: 0%;"></div>
+                    </div>
+                    <span style="font-size: 0.72rem; color: var(--text-muted);" id="statEfficiencyLabel">في المسار</span>
+                </div>
+            </div>
+
+            <!-- SECTION 3: TWO-COLUMN COHESIVE REPORTS GRID (Subject Mastery + Time & Daily Load Analytics) -->
+            <div class="tracker-reports-grid">
+                
+                <!-- RIGHT COLUMN: SUBJECT MASTERY & LECTURES REPORT -->
+                <div class="analytics-card" style="padding: 20px; gap: 14px;">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                            <div>
+                                <h3 style="font-size: 1.04rem; font-weight: 800; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-layer-group" style="color: var(--primary);"></i> تقرير إتقان المواد والمحاضرات
+                                </h3>
+                                <span style="font-size: 0.75rem; color: var(--text-muted);" id="statReviewAlertSub"></span>
+                            </div>
+                            <span class="studio-pill" style="font-size: 0.75rem; color: var(--primary);" id="statLecturesSummaryPill">0/0 محاضرة</span>
+                        </div>
+                        <div class="subject-progress-list" id="subjectProgressList"></div>
                     </div>
                 </div>
 
-                <!-- LEFT COLUMN: CONSOLIDATED WEEKLY PULSE & SUBJECT MASTERY -->
+                <!-- LEFT COLUMN: TIME DISTRIBUTION & 7-DAY LOAD REPORT -->
                 <div class="analytics-card" style="padding: 20px; gap: 14px;">
                     <div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-                            <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-main); margin: 0;">
-                                خلاصة التقدم وتوازن المواد
+                            <h3 style="font-size: 1.04rem; font-weight: 800; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-chart-column" style="color: #38bdf8;"></i> تحليل توزيع الوقت وحمل أيام الأسبوع
                             </h3>
-                            <span style="font-size: 0.76rem; color: var(--text-muted);" id="statLecturesSummaryPill">0/0 محاضرة</span>
+                            <span class="studio-pill" style="font-size: 0.74rem; color: #cbd5e1;">إجمالي الجدول: <b id="analyticsTotalHours" style="color: var(--primary);">0</b> س</span>
                         </div>
 
-                        <!-- 3 Essential KPIs Only -->
-                        <div class="tracker-kpi-strip">
-                            <div class="tracker-kpi-box">
-                                <span style="font-size: 0.74rem; color: var(--text-muted);">سلسلة الاستمرارية</span>
-                                <div style="display: flex; align-items: baseline; justify-content: space-between;">
-                                    <span style="font-size: 1.35rem; font-weight: 900; color: var(--text-main);" id="statStreak">0 يوم</span>
-                                    <i class="fa-solid fa-fire" style="color: var(--primary); font-size: 0.9rem;"></i>
-                                </div>
-                                <span style="font-size: 0.7rem; color: var(--text-muted);" id="statStreakMsg">سجّل إنجازاً اليوم</span>
+                        <!-- 3 Smart Time Mini-KPIs -->
+                        <div class="smart-time-kpis">
+                            <div class="smart-mini-kpi">
+                                <div style="font-size: 0.7rem; color: var(--text-muted);">صافي ساعات المذاكرة</div>
+                                <div style="font-size: 1.05rem; font-weight: 900; color: #6ee7b7; margin: 2px 0;" id="smartNetStudyHours">0 س</div>
+                                <div style="font-size: 0.66rem; color: var(--text-muted);" id="smartNetStudyPct">0% مقابل الكلية</div>
                             </div>
-
-                            <div class="tracker-kpi-box">
-                                <span style="font-size: 0.74rem; color: var(--text-muted);">ساعات المذاكرة الفعّالة</span>
-                                <div style="display: flex; align-items: baseline; gap: 6px;">
-                                    <span style="font-size: 1.35rem; font-weight: 900; color: #6ee7b7;" id="statDoneHours">0 س</span>
-                                    <span style="font-size: 0.76rem; color: var(--text-muted);">من <b id="statPlannedHours" style="color: var(--text-main);">0</b> س</span>
-                                </div>
-                                <span style="font-size: 0.7rem; color: var(--text-muted);" id="weekRemainingStudyTxt">خطة الأسبوع</span>
+                            <div class="smart-mini-kpi">
+                                <div style="font-size: 0.7rem; color: var(--text-muted);">المتوسط اليومي</div>
+                                <div style="font-size: 1.05rem; font-weight: 900; color: var(--primary); margin: 2px 0;" id="smartDailyAvgStudy">0 س/يوم</div>
+                                <div style="font-size: 0.66rem; color: var(--text-muted);" id="smartBestDayLabel">يوم الذروة</div>
                             </div>
-
-                            <div class="tracker-kpi-box">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <span style="font-size: 0.74rem; color: var(--text-muted);">الالتزام الأسبوعي</span>
-                                    <span style="font-size: 1.15rem; font-weight: 900; color: var(--primary);" id="weekAdherenceRate">0%</span>
-                                </div>
-                                <div class="progress-bar-bg" style="height: 5px; margin: 6px 0 4px 0;">
-                                    <div class="progress-bar-fill" id="weekProgressBar" style="width: 0%;"></div>
-                                </div>
-                                <span style="font-size: 0.7rem; color: var(--text-muted);" id="statEfficiencyLabel">في المسار</span>
+                            <div class="smart-mini-kpi">
+                                <div style="font-size: 0.7rem; color: var(--text-muted);">حصة المراجعة</div>
+                                <div style="font-size: 1.05rem; font-weight: 900; color: #c4b5fd; margin: 2px 0;" id="smartReviewRatio">0%</div>
+                                <div style="font-size: 0.66rem; color: var(--text-muted);" id="smartReviewAdvice">توازن المراجعة</div>
                             </div>
                         </div>
 
-                        <!-- Per-Subject Progress List -->
-                        <div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <span style="font-size: 0.8rem; font-weight: 700; color: #cbd5e1;">تقدم المواد الدراسية (المذاكرة والمحاضرات):</span>
-                                <span style="font-size: 0.72rem; color: var(--text-muted);" id="statReviewAlertSub"></span>
-                            </div>
-                            <div class="subject-progress-list" id="subjectProgressList" style="max-height: 175px;"></div>
+                        <!-- Category Breakdown Bar -->
+                        <div style="display: flex; justify-content: space-between; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 5px; flex-wrap: wrap; gap: 8px;">
+                            <span>🟢 مذاكرة عميقة: <b id="distImportantTxt" style="color:#6ee7b7;">0 س</b></span>
+                            <span>🟣 مراجعة: <b id="distReviewTxt" style="color:#c4b5fd;">0 س</b></span>
+                            <span>🟡 كويزات: <b id="distUrgentTxt" style="color:#fcd34d;">0 س</b></span>
+                            <span>🔴 كلية ثابت: <b id="distMandatoryTxt" style="color:#fda4af;">0 س</b></span>
+                        </div>
+                        <div class="distribution-bar" id="distributionBar" style="height: 8px; margin: 4px 0 14px 0;">
+                            <div class="dist-segment" id="distMandatory" style="width: 25%; background: var(--mandatory-color);"></div>
+                            <div class="dist-segment" id="distImportant" style="width: 50%; background: var(--important-color);"></div>
+                            <div class="dist-segment" id="distUrgent" style="width: 15%; background: var(--urgent-color);"></div>
+                            <div class="dist-segment" id="distReview" style="width: 10%; background: var(--review-color);"></div>
                         </div>
 
-                        <!-- Optional Collapsible Drawer for Secondary Time Charts (Zero Clutter by Default) -->
-                        <details class="calm-details-drawer">
-                            <summary>
-                                <span><i class="fa-solid fa-chart-Simple fa-chart-column" style="color: var(--primary); margin-left: 6px;"></i> عرض تفاصيل توزيع الوقت وأيام الأسبوع</span>
-                                <i class="fa-solid fa-chevron-down" style="font-size: 0.7rem;"></i>
-                            </summary>
-                            <div style="padding-top: 12px; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.05);">
-                                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
-                                    <span>مذاكرة عميقة: <b id="distImportantTxt" style="color:#6ee7b7;">0 س</b></span>
-                                    <span>مراجعة: <b id="distReviewTxt" style="color:#c4b5fd;">0 س</b></span>
-                                    <span>كويزات: <b id="distUrgentTxt" style="color:var(--primary);">0 س</b></span>
-                                    <span>كلية ثابت: <b id="distMandatoryTxt" style="color:#fda4af;">0 س</b></span>
-                                    <span>إجمالي الجدول: <b id="analyticsTotalHours">0</b> س</span>
-                                </div>
-                                <div class="distribution-bar" id="distributionBar" style="height: 7px; margin: 6px 0 12px 0;">
-                                    <div class="dist-segment" id="distMandatory" style="width: 25%; background: var(--mandatory-color);"></div>
-                                    <div class="dist-segment" id="distImportant" style="width: 50%; background: var(--important-color);"></div>
-                                    <div class="dist-segment" id="distUrgent" style="width: 15%; background: var(--primary);"></div>
-                                    <div class="dist-segment" id="distReview" style="width: 10%; background: var(--review-color);"></div>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; font-size: 0.73rem; color: var(--text-muted); margin-bottom: 4px;">
-                                    <span>توزيع المذاكرة على أيام الأسبوع:</span>
-                                    <span id="smartPeakDayInsight" style="color: var(--primary);"></span>
-                                </div>
-                                <div class="daily-bars-chart" id="dailyStudyBarsChart" style="height: 76px;"></div>
-                                <!-- Hidden synced nodes for backward compatibility -->
-                                <div style="display:none;">
-                                    <span id="weekStudyHours"></span><span id="weekDoneHours"></span>
-                                    <span id="weekCollegeHours"></span><span id="weekTotalHours"></span>
-                                    <span id="statEfficiencyRate"></span><span id="statTotalLogs"></span>
-                                    <span id="smartNetStudyHours"></span><span id="smartNetStudyPct"></span>
-                                    <span id="smartDailyAvgStudy"></span><span id="smartBestDayLabel"></span>
-                                    <span id="smartReviewRatio"></span><span id="smartReviewAdvice"></span>
-                                </div>
-                            </div>
-                        </details>
+                        <!-- 7-Day Load Bars -->
+                        <div style="display: flex; justify-content: space-between; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 4px;">
+                            <span>توزيع المذاكرة الفعّالة على أيام الأسبوع:</span>
+                            <span id="smartPeakDayInsight" style="color: var(--primary); font-weight: 700;"></span>
+                        </div>
+                        <div class="daily-bars-chart" id="dailyStudyBarsChart" style="height: 86px;"></div>
+
+                        <!-- Hidden compatibility nodes -->
+                        <div style="display:none;">
+                            <span id="weekStudyHours"></span><span id="weekDoneHours"></span>
+                            <span id="weekCollegeHours"></span><span id="weekTotalHours"></span>
+                            <span id="statEfficiencyRate"></span><span id="statTotalLogs"></span>
+                        </div>
                     </div>
                 </div>
 
             </div>
 
-            <!-- SECTION 2.5: WEEKLY EVALUATIONS & ARCHIVE HUB (تقييمات الأسابيع ونتائجها) -->
+            <!-- SECTION 4: WEEKLY EVALUATIONS & ARCHIVE HUB (تقارير وتقييمات الأسابيع الدراسية) -->
             <div class="weekly-eval-section" id="weeklyEvaluationsHubSection">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
                     <div style="display: flex; align-items: center; gap: 10px;">
@@ -6060,12 +6178,12 @@
                         </div>
                         <div>
                             <h3 style="font-size: 1.02rem; font-weight: 800; color: var(--text-main); margin: 0;">تقارير وتقييمات الأسابيع الدراسية</h3>
-                            <p style="font-size: 0.77rem; color: var(--text-muted); margin: 2px 0 0 0;">يُرسل النظام تلقائياً تقييم كل أسبوع فور انتهائه مع تحليل الساعات المنجزة والمهام الفائتة وتوجيهك لتخطيط الأسبوع الجديد.</p>
+                            <p style="font-size: 0.77rem; color: var(--text-muted); margin: 2px 0 0 0;">تحليل شامل للساعات الفعلية المنجزة، التتبع الذكي، أهداف الأسبوع المكتملة، والمهام الفائتة مع التقدير الأسبوعي.</p>
                         </div>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                         <button class="btn btn-outline" style="padding: 6px 12px; font-size: 0.78rem;" onclick="triggerManualWeekEvaluationAndRollover()">
-                            <i class="fa-solid fa-file-chart-column fa-chart-line"></i> إصدار تقييم الأسبوع الحالي الآن
+                            <i class="fa-solid fa-chart-line"></i> إصدار تقرير الأسبوع الحالي الآن
                         </button>
                         <button class="btn btn-primary" style="padding: 6px 14px; font-size: 0.78rem;" onclick="switchView('schedule', document.querySelectorAll('.nav-item')[1])">
                             <i class="fa-solid fa-calendar-plus"></i> تخطيط الأسبوع الجديد
@@ -6075,7 +6193,7 @@
                 <div class="weekly-eval-grid" id="weeklyEvaluationsListContainer"></div>
             </div>
 
-            <!-- SECTION 3: DAILY ACHIEVEMENTS FEED -->
+            <!-- SECTION 5: DAILY ACHIEVEMENTS FEED -->
             <div style="background: #12151e; border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 18px 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">
                     <div>
@@ -6712,8 +6830,8 @@
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <div class="mod-num" id="acadBadge_6">6</div>
                             <div>
-                                <div style="font-weight: 800; font-size: 0.84rem;">احتراف صفحة «السجل» والبوصلة</div>
-                                <div style="font-size: 0.71rem; color: var(--text-muted);">التوجيه الذكي، بومودورو، والمؤشرات</div>
+                                <div style="font-weight: 800; font-size: 0.84rem;">احتراف «السجل والتقارير»</div>
+                                <div style="font-size: 0.71rem; color: var(--text-muted);">البوصلة الذكية، توازن المواد، والتقارير</div>
                             </div>
                         </div>
                     </div>
@@ -6776,9 +6894,9 @@
                             </div>
 
                             <div class="acad-deep-item">
-                                <h4><span>3. صفحة «السجل» — البوصلة الذكية، بومودورو، ومؤشرات الالتزام</span> <span class="acad-why-badge">كيف تتابع إنجازك؟</span></h4>
-                                <p>بدلاً من تشتيتك بالأرقام في صفحة التخطيط، جُمعت هنا خلاصة تقدمك مع <b>«البوصلة الذكية (ماذا تفعل الآن؟)»</b> في أعلى الصفحة، وبجوارها مؤقت التركيز (Pomodoro) وسجل إنجازاتك اليومي.</p>
-                                <div class="acad-why-box">💡 <b>لماذا ستحتاجها فعلاً؟</b> عندما تجلس على المكتب وتشعر بالحيرة «بماذا أبدأ الآن؟»، تفتح السجل فتخبرك البوصلة فوراً بالمحاضرة المستحقة للمراجعة أو الجلسة القادمة، وتبدأ المؤقت بضغطة زر.</div>
+                                <h4><span>3. صفحة «السجل والتقارير» — البوصلة الذكية، تقارير المواد، وتقييمات الأسابيع</span> <span class="acad-why-badge">كيف تتابع إنجازك؟</span></h4>
+                                <p>بدلاً من تشتيتك بالأرقام في صفحة التخطيط، جُمعت هنا خلاصة تقدمك مع <b>«البوصلة الذكية (ماذا تفعل الآن؟)»</b> في أعلى الصفحة، وتقارير إتقان المواد وتوزيع الساعات على أيام الأسبوع وتقييمات الأسابيع.</p>
+                                <div class="acad-why-box">💡 <b>لماذا ستحتاجها فعلاً؟</b> عندما تجلس على المكتب وتشعر بالحيرة «بماذا أبدأ الآن؟»، تفتح السجل فتخبرك البوصلة فوراً بالمحاضرة المستحقة للمراجعة أو الجلسة القادمة وتنطلق لدراستها مباشرة.</div>
                             </div>
                         </div>
 
@@ -6786,7 +6904,7 @@
                             <div style="font-weight: 800; color: #38bdf8; margin-bottom: 6px;"><i class="fa-solid fa-lightbulb"></i> مثال واقعي متكامل: يوم طالب يستخدم المنصة بذكاء</div>
                             <p style="font-size: 0.85rem; color: #e2e8f0; line-height: 1.7;">
                                 • <b>يوم السبت مساءً:</b> يفتح الطالب قسم <b>«التخطيط»</b>، يجد مواعيد كليته الثابتة محفوظة تلقائياً، فيضغط على يوم الإثنين لفتحه بنظام الساعات (Notion Calendar)، فيلاحظ أن لديه فراغاً من 5:00 م إلى 7:30 م، فيضيف فيه جلسة «مذاكرة المحاضرة 3 فارماكولوجي».<br>
-                                • <b>يوم الإثنين الساعة 5:00 م:</b> يفتح قسم <b>«السجل»</b> فيجد البوصلة الذكية تذكّره بالجلسة، فيشغّل مؤقت بومودورو 50 دقيقة، وينتقل لـ <b>«المركز»</b> ليفتح الـ PDF مع الريكورد، يكتب ملاحظاته، ثم يعلّم المحاضرة كمكتملة؛ فتُضاف تلقائياً لسجل يومياته ويرتفع عداد استمراريته (Streak 🔥)!
+                                • <b>يوم الإثنين الساعة 5:00 م:</b> يضغط الطالب على الجلسة في الجدول فينتقل لـ <b>«المركز»</b> ليفتح الـ PDF مع الريكورد بوضع التتبع الذكي للوقت (🧭)، يكتب ملاحظاته، وعند إغلاق المحاضرة تُسجّل المدة الفعلية تلقائياً في الجدول والهدف الأسبوعي ويرتفع عداد استمراريته (Streak 🔥)!
                             </p>
                         </div>
 
@@ -7130,159 +7248,71 @@
                         </div>
                     </div>
 
-                    <!-- ==================== CHAPTER 5: MASTERING WEEKLY GOALS (أهداف الأسبوع - بنك المهام) ==================== -->
+                    <!-- ==================== CHAPTER 5: MASTERING WEEKLY GOALS (أهداف الأسبوع - الإضافة البسيطة والربط بالضغط) ==================== -->
                     <div class="academy-module-pane" id="acadPane_5">
                         <div class="acad-hero-banner">
-                            <span class="studio-pill" style="color: var(--primary); margin-bottom: 8px;">الفصل الخامس • بنك أهداف ومهام الأسبوع</span>
-                            <h2 style="font-size: 1.4rem; font-weight: 900; color: var(--text-main); margin-bottom: 8px;">كيف تعمل صفحة «أهداف الأسبوع»؟ ولماذا هي أهم خطوة قبل كتابة الجدول؟</h2>
+                            <span class="studio-pill" style="color: var(--primary); margin-bottom: 8px;">الفصل الخامس • بنك أهداف الأسبوع المنظم</span>
+                            <h2 style="font-size: 1.4rem; font-weight: 900; color: var(--text-main); margin-bottom: 8px;">كيف تعمل صفحة «أهداف الأسبوع»؟ (أضف الهدف ببساطة ثم اضغط عليه لربطه بأي مهمة)</h2>
                             <p style="color: #cbd5e1; font-size: 0.92rem; line-height: 1.75;">
-                                كثيراً ما تعرف أن لديك هذا الأسبوع (مذاكرة محاضرة فارما 3، حل شيت تكنو، ومراجعة عملي ميكرو)، لكنك <b>لا تعرف بعد في أي يوم أو أي ساعة بالضبط ستكون متفرغاً لكل مهمة</b>. هنا يأتي دور صفحة <b>«أهداف الأسبوع»</b> لتفصل بين مرحلة <b>«جمع المهام (Brain Dump)»</b> ومرحلة <b>«التوزيع بالساعة في التقويم»</b>.
+                                صُممت صفحة <b>«أهداف الأسبوع»</b> لتكون نظيفة ومرتبة تماماً؛ تفرغ فيها أهدافك المطلوبة أولاً بدون أي تعقيد أو إدخال للوقت، وعندما تضيف مهامك في الجدول ترجع لصفحة الأهداف وتضغط على الهدف لتختار المهمة التي تريد تسجيلها فيه!
                             </p>
                         </div>
 
                         <div class="acad-deep-list">
                             <div class="acad-deep-item">
-                                <h4><span>1. الفرق بين «أهداف الأسبوع» و«جدول الأسبوع»</span> <span class="acad-why-badge">لماذا قسمان؟</span></h4>
-                                <p>• <b>بنك أهداف الأسبوع:</b> قائمة انتظار مرنة (Backlog) تكتب فيها كل ما تريد إنجازه خلال الأسبوع <b>بدون تحديد يوم أو ساعة</b> (فقط اسم الهدف + المادة + المدة المقدرة بالساعات).<br>
-                                • <b>جدول الأسبوع والساعات:</b> التقويم الفعلي الذي توضع فيه الجلسات المرتبطة بيوم محدد وساعة بدء محددة.</p>
-                                <div class="acad-why-box">💡 <b>لماذا ستحتاجها فعلاً؟</b> لو حاولت يوم السبت تحديد الساعة الدقيقة لكل مهمة طوال الأسبوع سيتغير جدولك وتشعر بالإحباط؛ أما وضع المهام في «أهداف الأسبوع» أولاً فيحفظها من النسيان، وكل يوم تسحب منها مهمة وتجدولها في ساعات فراغك الحقيقية!</div>
+                                <h4><span>1. الخطوة الأولى: أضف الهدف عادي في البداية بدون ربط ولا وقت</span> <span class="acad-why-badge">سهولة تامة</span></h4>
+                                <p>في شريط الإضافة العلوي، اكتب اسم الهدف فقط (مثلاً: <code>مذاكرة محاضرة 3 فارماكولوجي</code> أو <code>إنهاء شابتر الأيض</code>) واختر المادة الدراسية ثم اضغط <b>«+ إضافة الهدف»</b> دون الانشغال بوقت أو ربط أثناء الإنشاء.</p>
+                                <div class="acad-why-box">💡 <b>لماذا هذه الطريقة أفضل؟</b> لأنك في بداية الأسبوع تريد تفريغ ما في ذهنك بسرعة في قائمة منظمة دون أن تتعطل بتفاصيل الساعات والمواعيد.</div>
                             </div>
 
                             <div class="acad-deep-item">
-                                <h4><span>2. خطوات العمل داخل صفحة «أهداف الأسبوع» (3 خطوات عملية)</span></h4>
-                                <p>• <b>الخطوة الأولى (الإضافة السريعة للبنك):</b> اكتب عنوان المهمة (مثلاً: <code>حل شيت الصيدلانيات</code>)، اختر المادة من القائمة، وحدد المدة المقدرة (مثلاً: <code>1.5</code> ساعة) ثم اضغط <b>«+ أضف لبنك الأهداف»</b>.<br>
-                                • <b>الخطوة الثانية (التحويل للتقويم بضغطة زر):</b> داخل بطاقة الهدف اضغط <b>«📅 جدولة في التقويم»</b>؛ ستفتح لك نافذة الجدولة وبها اسم المهمة والمادة والمدة مكتوبة جاهزة! ما عليك سوى اختيار اليوم والساعة والضغط على حفظ، وسيتحول وسام البطاقة تلقائياً إلى <b style="color:var(--primary);">«📅 مجدول: الإثنين 5:00 م»</b>.<br>
-                                • <b>الخطوة الثالثة (الإتمام والتوثيق التلقائي):</b> سواء ضغطت علامة <b>«✓ إتمام الهدف»</b> من داخل صفحة الأهداف أو أنهيت الجلسة من داخل جدول الأسبوع، سيتم شطب الهدف وتوثيقه تلقائياً في صفحة «السجل»!</p>
-                                <div class="acad-why-box">💡 <b>لماذا ستحتاجها؟</b> توفر عليك إعادة كتابة اسم المهمة والمادة والمدة مرتين، وتربط بين بنك أهدافك وجدولك وسجل إنجازاتك في خطوة واحدة.</div>
+                                <h4><span>2. الخطوة الثانية: اضغط على بطاقة الهدف لاختيار المهمة المسجلة في جدولك</span> <span class="acad-why-badge">تحديث ذكي ⭐</span></h4>
+                                <p>بعد أن تضيف مهمة في جدولك (أو لأي مهمة موجودة بالفعل سواء كانت <b>منتهية ✅</b> أو <b>جارية الآن 🟢</b> أو <b>مستقبلية 📅</b>)، ارجع لصفحة «أهداف الأسبوع» و<b>اضغط مباشرة على بطاقة الهدف</b>؛ ستفتح لك نافذة منظمة تعرض مهام جدولك لتختار المهمة (أو أكثر من مهمة) التي تريد تسجيلها داخل هذا الهدف.</p>
+                                <div class="acad-why-box">💡 <b>ماذا يحدث فور اختيار المهمة؟</b> يسحب الهدف تلقائياً الساعات الفعلية المرصودة لتلك المهمة ويحدث حالته فوراً (فإن كانت المهمة منتهية يُعلّم الهدف كمكتمل ويوثق ساعاته تلقائياً!).</div>
                             </div>
 
                             <div class="acad-deep-item">
-                                <h4><span>3. التكامل الذكي مع «البوصلة الذكية» في صفحة السجل</span></h4>
-                                <p>إذا أضفت أهدافاً في بنك الأسبوع ونسيت جدولتها في التقويم، ستقوم <b>البوصلة الذكية</b> في صفحة «السجل» بتنبيهك تلقائياً: <i>«لديك أهداف في بنك الأسبوع بانتظار الجدولة»</i> مع زر مباشر لجدولتها فوراً.</p>
-                                <div class="acad-why-box">💡 <b>لماذا ستحتاجها؟</b> لضمان ألا تبقى أهدافك مجرد أمنيات مكتوبة في القائمة دون تنفيذ فعلي في أيام الأسبوع.</div>
+                                <h4><span>3. التصفية السريعة والتكامل مع صفحة التقارير</span></h4>
+                                <p>يمكنك تصفية أهدافك بضغطة زر بين (<b>كل الأهداف • غير مرتبطة بمهمة • مرتبطة بمهمة بالجدول • المكتملة</b>)، وتظهر إحصائيات إنجاز أهداف الأسبوع وساعاتها المسجلة مباشرة في بطاقة التقارير بصفحة «السجل».</p>
                             </div>
-                        </div>
-
-                        <div class="acad-example-box">
-                            <div style="font-weight: 800; color: #38bdf8; margin-bottom: 6px;"><i class="fa-solid fa-lightbulb"></i> مثال واقعي: كيف يخطط طالب متفوق أسبوعه في دقيقتين؟</div>
-                            <p style="font-size: 0.85rem; color: #e2e8f0; line-height: 1.7;">
-                                يوم الجمعة مساءً، يفتح الطالب تبويب <b>«أهداف الأسبوع»</b> ويكتب 4 مهام مطلوبة منه هذا الأسبوع: (1. مذاكرة محاضرة 4 ميكرو - 2 س)، (2. تلخيص عملي تكنو - 1.5 س)، (3. حل أسئلة فارما - 1 س)، (4. مراجعة المحاضرة 1 حيوية - 1 س). مجموعها <b>5.5 ساعات</b>. في صباح الأحد يجد أن لديه ساعتين فراغ بعد الكلية الساعة 6 م، فيفتح «أهداف الأسبوع» ويضغط <b>«📅 جدولة في التقويم»</b> أمام محاضرة الميكرو ويضعها يوم الأحد 6 م!
-                            </p>
-                        </div>
-
-                        <!-- Live Sandbox for Weekly Goals -->
-                        <div class="acad-sandbox-container">
-                            <div class="sandbox-header-badge"><i class="fa-solid fa-bullseye"></i> مختبر عملي حي: جرّب دورة حياة الهدف في «أهداف الأسبوع» بيدك</div>
-                            <div class="sandbox-interactive-area">
-                                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
-                                    <button class="btn btn-outline" id="sbGoalStep1Btn" style="padding: 7px 12px; font-size: 0.8rem;" onclick="sbGoalRunStep(1)">
-                                        <i class="fa-solid fa-plus"></i> 1. أضف هدفاً لبنك الأسبوع (1.5 س)
-                                    </button>
-                                    <button class="btn btn-outline" id="sbGoalStep2Btn" style="padding: 7px 12px; font-size: 0.8rem;" onclick="sbGoalRunStep(2)">
-                                        <i class="fa-solid fa-calendar-plus"></i> 2. اضغط «جدولة في التقويم» (الإثنين 6 م)
-                                    </button>
-                                    <button class="btn btn-primary" id="sbGoalStep3Btn" style="padding: 7px 12px; font-size: 0.8rem;" onclick="sbGoalRunStep(3)">
-                                        <i class="fa-solid fa-check"></i> 3. أتمم الهدف ووثّقه في السجل
-                                    </button>
-                                </div>
-                                <div id="sbGoalPreviewCard" style="background: rgba(15, 23, 36, 0.9); border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 12px; padding: 14px 16px; margin-bottom: 8px;">
-                                    <span style="color: var(--text-muted); font-size: 0.82rem;">اضغط الزر (1) أعلاه لإضافة هدف تجريبي إلى بنك الأسبوع...</span>
-                                </div>
-                                <div id="sbGoalStatusMsg" style="font-size: 0.8rem; color: var(--primary); font-weight: 700;">👈 ابدأ بالخطوة (1) لترى كيف يعمل بنك أهداف الأسبوع خطوة بخطوة.</div>
-                            </div>
-                        </div>
-
-                        <!-- Case Study for Weekly Goals -->
-                        <div class="acad-case-card">
-                            <div class="acad-case-header"><i class="fa-solid fa-clipboard-question"></i> سؤال تطبيقي (Case 5): متى تستخدم «أهداف الأسبوع»؟</div>
-                            <div class="acad-case-question">
-                                طلب منكم الدكتور اليوم تسليم «ربورت معمل التكنو» وتجهيز «برزنتيشن الميكرو» خلال هذا الأسبوع، لكنك الآن في المواصلات ولا تعرف بعد في أي يوم أو ساعة ستكون متفرغاً للعمل عليهما. ما التصرف الأذكى داخل المنصة؟
-                            </div>
-                            <div class="acad-case-options">
-                                <button class="acad-case-btn" onclick="answerHelpCase('case_goals', false, this, 'وضع المهام في ساعات عشوائية وأنت غير متأكد من تفرغك سيجعلك تؤجلها ويتشوه جدولك! الحل الأذكى هو الخيار (ب).')">
-                                    أ) أضع المهمتين في أي ساعة عشوائية يوم الغد في جدول الأسبوع حتى لا أنساهما.
-                                </button>
-                                <button class="acad-case-btn" onclick="answerHelpCase('case_goals', true, this, 'إجابة خبيرة 100%! صفحة «أهداف الأسبوع» صُممت خصيصاً لالتقاط المهام المطلوبة فوراً مع مدتها المقدرة، وعندما يتضح جدول يومك تضغط «جدولة في التقويم» لتحويلها لجلسة في الساعة المناسبة دون إعادة كتابة بياناتها.')">
-                                    ب) أفتح تبويب «أهداف الأسبوع» وأضيف المهمتين في البنك مع مدتهما المقدرة في ثوانٍ، وعندما أعود للبيت وأرى ساعات فراغي أضغط زر «📅 جدولة في التقويم» لتحويل كل مهمة لليوم والساعة المناسبة.
-                                </button>
-                                <button class="acad-case-btn" onclick="answerHelpCase('case_goals', false, this, 'الاعتماد على الذاكرة البشرية مع ضغط الكلية هو السبب الأول لنسيان التسليمات! استخدم بنك أهداف الأسبوع كما في الخيار (ب).')">
-                                    ج) أؤجل كتابتهما في المنصة حتى نهاية الأسبوع.
-                                </button>
-                            </div>
-                            <div class="acad-case-feedback" id="feedback_case_goals"></div>
                         </div>
 
                         <div class="acad-footer-nav">
                             <button class="btn btn-outline" onclick="switchAcademyModule(4)"><i class="fa-solid fa-arrow-right"></i> الفصل السابق</button>
-                            <button class="btn btn-primary" onclick="switchAcademyModule(6)">الفصل السادس: احتراف صفحة «السجل» والبوصلة <i class="fa-solid fa-arrow-left"></i></button>
+                            <button class="btn btn-primary" onclick="switchAcademyModule(6)">الفصل السادس: احتراف «السجل والتقارير» <i class="fa-solid fa-arrow-left"></i></button>
                         </div>
                     </div>
 
-                    <!-- ==================== CHAPTER 6: MASTERING THE TRACKER, COMPASS & POMODORO ==================== -->
+                    <!-- ==================== CHAPTER 6: MASTERING THE TRACKER & REPORTS ==================== -->
                     <div class="academy-module-pane" id="acadPane_6">
                         <div class="acad-hero-banner">
-                            <span class="studio-pill" style="color: var(--primary); margin-bottom: 8px;">الفصل السادس • القيادة الذكية للإنتاجية</span>
-                            <h2 style="font-size: 1.4rem; font-weight: 900; color: var(--text-main); margin-bottom: 8px;">احتراف صفحة «السجل»: البوصلة الذكية، مؤقت بومودورو، ومؤشرات التوازن</h2>
+                            <span class="studio-pill" style="color: var(--primary); margin-bottom: 8px;">الفصل السادس • السجل والتقارير الذكية</span>
+                            <h2 style="font-size: 1.4rem; font-weight: 900; color: var(--text-main); margin-bottom: 8px;">احتراف صفحة «السجل والتقارير»: البوصلة الذكية، توازن المواد، وتقييمات الأسابيع</h2>
                             <p style="color: #cbd5e1; font-size: 0.92rem; line-height: 1.75;">
-                                أُعيد تصميم صفحة «السجل» لتكون خالية من التشتيت وتجيب فوراً عن أهم سؤال لدى كل طالب: <b>«ماذا أفعل الآن لكي أرفع إنتاجيتي؟»</b>. إليك وظيفة كل ركن فيها ولماذا ستحتاجه:
+                                صُممت صفحة «السجل والتقارير» لتعطيك قراءة دقيقة وواضحة لإنتاجيتك الفعلية وتجيب فوراً عن سؤال: <b>«أين أقف الآن وما المادة التي تحتاج تركيزي؟»</b>:
                             </p>
                         </div>
 
                         <div class="acad-deep-list">
                             <div class="acad-deep-item">
-                                <h4><span>1. البوصلة الذكية في أعلى الصفحة («ماذا تفعل الآن؟ — توجيه ذكي حسب أولوياتك»)</span></h4>
-                                <p>تحلل البوصلة بياناتك في الخلفية وتعرض لك أهم التوصيات العاجلة مرتبة بالأولوية:<br>
-                                • إذا كان لديك محاضرة مرّ عليها 7 أيام، تنبهك لمراجعتها وتفتحها لك بضغطة زر.<br>
-                                • إذا كانت هناك مادة مسجلة في المركز ولكنك نسيت جدولة أي ساعة لها هذا الأسبوع، تقترح عليك جدولتها فوراً.<br>
-                                • تعرض لك جلستك القادمة اليوم أو تذكّرك بتشغيل جلسة بومودورو لحماية سلسلة استمراريتك اليومية.</p>
-                                <div class="acad-why-box">💡 <b>لماذا ستحتاجها؟</b> لأن أصعب لحظة في المذاكرة هي أول 5 دقائق عندما تحتار بأي مادة تبدأ؛ البوصلة تختصر عليك التفكير وتعطيك زر انطلاق مباشر!</div>
+                                <h4><span>1. البوصلة الذكية في أعلى الصفحة («ماذا تفعل الآن حسب أولوياتك؟»)</span></h4>
+                                <p>تحلل البوصلة بياناتك وتعرض لك أهم التوصيات العملية مرتبة بالأولوية:<br>
+                                • تنبهك لأي محاضرة مرّ عليها 7 أيام وتفتحها لك للمراجعة المتباعدة بضغطة زر.<br>
+                                • تكشف لك أي مادة مسجلة في المركز نسيت جدولة ساعات لها هذا الأسبوع.<br>
+                                • تعرض لك جلستك القادمة اليوم وأهداف الأسبوع التي تنتظر ربطها بمهمة في الجدول.</p>
                             </div>
 
                             <div class="acad-deep-item">
-                                <h4><span>2. استوديو مؤقت التركيز (Pomodoro — 25 د / 50 د / 90 د / 10 د راحة)</span></h4>
-                                <p>اختر مدة التركيز وحدد المادة الدراسية من القائمة المنسدلة ثم اضغط <code>بدء الجلسة</code>. عند انتهاء الوقت، يصدر تنبيه صوتي هادئ ويُضاف الإنجاز تلقائياً إلى سجل يومياتك باسم المادة.</p>
-                                <div class="acad-why-box">💡 <b>لماذا ستحتاجه؟</b> تقسيم المذاكرة إلى جلسات محددة بزمن يمنع الإرهاق الذهني ويقضي على التسويف، كما يبني سجل إنجازاتك تلقائياً دون كتابة يدوية.</div>
+                                <h4><span>2. شريط المؤشرات الأربعة ولوحة التقارير المزدوجة (توازن المواد + توزيع الوقت)</span></h4>
+                                <p>• <b>المؤشرات الأربعة:</b> تعرض سلسلة الاستمرارية اليومية 🔥، وساعات المذاكرة الفعّالة (المرصودة بالتتبع الذكي 🧭)، ونسبة إنجاز أهداف الأسبوع، ومؤشر الالتزام الأسبوعي.<br>
+                                • <b>تقرير إتقان المواد والمحاضرات:</b> يعرض تقدم كل مادة من حيث الساعات المنجزة وعدد المحاضرات المكتملة مع وسام التقييم.<br>
+                                • <b>تحليل توزيع الوقت وحمل أيام الأسبوع:</b> يوضح صافي ساعات المذاكرة مقارنة بساعات الكلية الثابتة، وحصة المراجعة، ومخطط الأعمدة اليومي لاكتشاف يوم ذروة نشاطك.</p>
                             </div>
 
                             <div class="acad-deep-item">
-                                <h4><span>3. خلاصة التقدم وتوازن المواد + الدرج القابل للطي لتفاصيل الوقت</span></h4>
-                                <p>تعرض 3 أرقام رئيسية فقط (<b>سلسلة الاستمرارية 🔥، ساعات المذاكرة الفعّالة المنجزة من المخططة، ونسبة الالتزام الأسبوعي %</b>)، وتحتها أشرطة تقدم كل مادة دراسية (الساعات + المحاضرات). أما تفاصيل توزيع الساعات وحمل أيام الأسبوع فوضعت داخل درج هادئ <code>عرض تفاصيل توزيع الوقت وأيام الأسبوع</code> يفتح عند الطلب فقط.</p>
-                                <div class="acad-why-box">💡 <b>لماذا ستحتاجها؟</b> لترى الحقيقة كاملة بدون زحام: هل تذاكر مادة واحدة وتهمل الباقي؟ وهل تقترب من هدف ساعاتك الأسبوعي؟</div>
+                                <h4><span>3. تقارير وتقييمات الأسابيع الدراسية (`إصدار تقرير الأسبوع`)</span></h4>
+                                <p>في نهاية كل أسبوع (أو في أي لحظة بالضغط على زر إصدار التقرير)، يولد النظام بطاقة تقييم شاملة تحسب لك: التقدير العام (`A+` إلى `C`)، الساعات الفعلية المنجزة، عدد المهام المرصودة بالتتبع الذكي، عدد أهداف الأسبوع المكتملة، وأكثر مادة ركزت عليها.</p>
                             </div>
-                        </div>
-
-                        <!-- Live Sandbox 5: Fast-Forward Pomodoro -->
-                        <div class="acad-sandbox-container">
-                            <div class="sandbox-header-badge"><i class="fa-solid fa-stopwatch"></i> مختبر عملي حي: شغّل جلسة بومودورو مسرّعة (3 ثوانٍ) وراقب عداد الاستمرارية</div>
-                            <div class="sandbox-interactive-area" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
-                                <div style="display: flex; align-items: center; gap: 14px;">
-                                    <div id="sb5TimerText" style="font-size: 2rem; font-weight: 900; color: var(--primary); font-family: monospace; min-width: 82px;">25:00</div>
-                                    <div>
-                                        <div style="font-weight: 800; font-size: 0.9rem; color: var(--text-main);">جلسة تركيز: الكيمياء الحيوية</div>
-                                        <div id="sb5StreakBadge" style="font-size: 0.8rem; color: var(--text-muted);">🔥 سلسلة الاستمرارية: <b>4 أيام متتالية</b></div>
-                                    </div>
-                                </div>
-                                <button class="btn btn-primary" id="sb5RunBtn" style="padding: 8px 16px; font-size: 0.82rem;" onclick="runSb5SimulatedPomodoro()">
-                                    <i class="fa-solid fa-bolt"></i> محاكاة جلسة سريعة
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Case Study 5 -->
-                        <div class="acad-case-card">
-                            <div class="acad-case-header"><i class="fa-solid fa-clipboard-question"></i> سؤال تطبيقي (Case 5): اكتشاف الخلل في توازن المذاكرة</div>
-                            <div class="acad-case-question">
-                                فتحت صفحة «السجل» في منتصف الأسبوع، فلاحظت أن البوصلة الذكية تعرض تنبيهاً: «مادة الصيدلانيات بدون ساعات مذاكرة هذا الأسبوع ⚠️»، وفي بطاقة توازن المواد وجدت الفارماكولوجي 85% بينما الصيدلانيات 0%. ما الإجراء الأسرع لتصحيح مسارك من داخل صفحة السجل؟
-                            </div>
-                            <div class="acad-case-options">
-                                <button class="acad-case-btn" onclick="answerHelpCase('case5', true, this, 'برافو! أزرار البوصلة الذكية تفاعلية بالكامل؛ فزر «جدولة جلسة لـ الصيدلانيات» ينقلك مباشرة لنافذة الجدولة مع تعبئة اسم المادة تلقائياً لتوفير وقتك وضمان التوازن بين جميع موادك.')">
-                                    أ) أضغط مباشرة على زر «جدولة جلسة لـ الصيدلانيات» الموجود داخل بطاقة البوصلة الذكية، أو أختار «الصيدلانيات» في مؤقت بومودورو وأبدأ جلسة 25 دقيقة فوراً.
-                                </button>
-                                <button class="acad-case-btn" onclick="answerHelpCase('case5', false, this, 'تأجيل المادة المهملة للأسبوع القادم يسبب تراكمها قبل الامتحان! البوصلة وُجدت لتنبهك مبكراً لتدارك الأمر في نفس الأسبوع.')">
-                                    ب) أتجاهل التنبيه وأستمر في مذاكرة الفارماكولوجي فقط لأنني أحبها أكثر.
-                                </button>
-                            </div>
-                            <div class="acad-case-feedback" id="feedback_case5"></div>
                         </div>
 
                         <div class="acad-footer-nav">
@@ -7377,7 +7407,7 @@
                                     <span class="acad-why-badge" style="color: #fbbf24; border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.1);">شفافية كاملة</span>
                                 </h4>
                                 <p>
-                                    • <b>الأدوات المجانية للجميع للأبد:</b> يمكنك مجاناً إضافة كل موادك ومحاضراتك، فتح ملفات الـ PDF والريكوردات محلياً على جهازك، الكتابة بالقلم والكيبورد، تنظيم جدول الأسبوع ومسارات الساعات، استخدام المراجعة المتباعدة ومؤقت بومودورو، وحتى حفظ جدولك وموادك وكتاباتك تلقائياً في حسابك السحابي.<br>
+                                    • <b>الأدوات المجانية للجميع للأبد:</b> يمكنك مجاناً إضافة كل موادك ومحاضراتك، فتح ملفات الـ PDF والريكوردات محلياً على جهازك، الكتابة بالقلم والكيبورد، تنظيم جدول الأسبوع ومسارات الساعات، استخدام المراجعة المتباعدة والتتبع الذكي للوقت، وحتى حفظ جدولك وموادك وكتاباتك تلقائياً في حسابك السحابي.<br>
                                     • <b>لماذا تحتاج سحابة الملفات والمزايا المتقدمة لاشتراك رمزي؟</b> لأن رفع ملفات الـ PDF الكبيرة والتسجيلات الصوتية الطويلة وتحميلها بين عدة أجهزة (لابتوب، تابلت، موبايل) يستهلك <b>مساحة تخزين سحابية مدفوعة (Cloud Storage) ومعدل نقل بيانات (Bandwidth) مستمر على السيرفرات</b>. الاشتراك الرمزي يغطي تكلفة هذه السيرفرات ويضمن بقاء المنصة سريعة، مستقرة، و<b>خالية 100% من الإعلانات المزعجة</b>.
                                 </p>
                                 <div class="acad-why-box" style="color: #fde68a; background: rgba(245, 158, 11, 0.1);">
@@ -7742,6 +7772,34 @@
                 <button class="btn btn-outline" id="smartVerifyBtnKeepOpen" style="justify-content: flex-start; text-align: right; padding: 9px 14px; border-color: rgba(255,255,255,0.1); color: var(--text-muted); font-size: 0.8rem;">
                     <i class="fa-regular fa-hourglass-half"></i>
                     <span style="font-weight: 700;">ما زلت أذاكرها — أبقِ المهمة مفتوحة</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+        <!-- Click-on-Goal Task Linker Modal (ربط الهدف بمهمة مسجلة في الجدول) -->
+    <div class="glass-overlay" id="goalTaskLinkerModalOverlay">
+        <div class="glass-modal" style="max-width: 540px; border-color: rgba(45, 212, 191, 0.45); padding: 22px 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <h3 style="margin: 0; font-size: 1.15rem; color: var(--primary);">
+                    <i class="fa-solid fa-link"></i> ربط الهدف بمهمة مسجلة في الجدول
+                </h3>
+                <button class="icon-btn" style="width: 30px; height: 30px;" onclick="closeModal('goalTaskLinkerModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="goalTaskLinkerHeaderBox" style="background: rgba(11, 15, 23, 0.8); border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px;"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
+                <span style="font-size: 0.78rem; color: #cbd5e1; font-weight: 700;">اختر المهمة (أو المهام) التي تريد تسجيلها في هذا الهدف:</span>
+                <button type="button" class="ptm-btn" id="goalTaskLinkerUnlinkAllBtn" style="color: #fda4af; border-color: rgba(244,63,94,0.3); padding: 3px 9px;" onclick="unlinkAllSessionsFromActiveGoal()">
+                    <i class="fa-solid fa-link-slash"></i> إلغاء ربط المهام
+                </button>
+            </div>
+            <div class="goal-linker-session-list" id="goalTaskLinkerSessionsList"></div>
+            <div class="modal-actions" style="justify-content: space-between; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.1);">
+                <button type="button" class="btn btn-outline" id="goalTaskLinkerScheduleNewBtn" style="padding: 8px 14px; font-size: 0.82rem;">
+                    <i class="fa-solid fa-calendar-plus"></i> جدولة مهمة جديدة لهذا الهدف
+                </button>
+                <button type="button" class="btn btn-primary" style="padding: 8px 20px; font-size: 0.84rem;" onclick="closeModal('goalTaskLinkerModalOverlay')">
+                    <i class="fa-solid fa-check"></i> تم الحفظ
                 </button>
             </div>
         </div>
@@ -8504,7 +8562,7 @@
         }
         initScheduleData();
 
-        function saveScheduleData() {
+        function saveScheduleData(syncToCloud = true) {
             localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
             localStorage.setItem('pharmaWeeklyReportsV1', JSON.stringify(weeklyReports));
             localStorage.setItem('pharmaScheduleV4', JSON.stringify({
@@ -8515,7 +8573,9 @@
                 weeklyReports: weeklyReports
             }));
             localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));
-            markLocalWorkspaceModified();
+            if (syncToCloud) {
+                markLocalWorkspaceModified(false);
+            }
         }
 
         function togglePlannerSettingsDrawer(forceState = null) {
@@ -9535,6 +9595,8 @@
         }
 
         let pendingBacklogTaskIdToLink = null;
+        let currentBacklogFilterMode = 'all';
+        let activeGoalIdForTaskLinking = null;
 
         function getSessionTemporalStatusCategory(ev) {
             if (!ev) return { key: 'future', label: '📅 مستقبلية', color: '#38bdf8' };
@@ -9553,152 +9615,257 @@
             return { key: 'future', label: '📅 مستقبلية', color: '#38bdf8' };
         }
 
+        function getGoalLinkedEventsList(goalItem) {
+            if (!goalItem) return [];
+            const idSet = new Set();
+            if (Array.isArray(goalItem.linkedEventIds)) {
+                goalItem.linkedEventIds.forEach(id => { if (id) idSet.add(String(id)); });
+            }
+            if (goalItem.linkedEventId) {
+                idSet.add(String(goalItem.linkedEventId));
+            }
+            const events = [];
+            idSet.forEach(idStr => {
+                const ev = scheduleEvents.find(e => String(e.id) === idStr);
+                if (ev && !ev.isFixed && ev.type !== 'mandatory') {
+                    events.push(ev);
+                }
+            });
+            return events;
+        }
+
         function syncAllBacklogGoalsWithLinkedSessions() {
             if (!Array.isArray(scheduleBacklog)) return false;
             let changed = false;
             scheduleBacklog.forEach(item => {
                 if (!item) return;
-                let linkedEv = null;
-                if (item.linkedEventId) {
-                    linkedEv = scheduleEvents.find(e => String(e.id) === String(item.linkedEventId));
-                }
-                if (!linkedEv && item.scheduledDay !== undefined && item.scheduledDay !== null) {
-                    linkedEv = scheduleEvents.find(e => !e.isFixed && e.type !== 'mandatory' && e.title === item.title && Number(e.day) === Number(item.scheduledDay));
-                }
-                // Auto-match by exact title if unlinked and a recorded session with the same title exists
-                if (!linkedEv && !item.linkedEventId && item.title) {
-                    const normT = item.title.trim().toLowerCase();
-                    linkedEv = scheduleEvents.find(e => !e.isFixed && e.type !== 'mandatory' && (e.title || '').trim().toLowerCase() === normT);
-                }
+                const linkedEvents = getGoalLinkedEventsList(item);
+                const validIds = linkedEvents.map(e => e.id);
 
-                if (linkedEv) {
-                    const timing = getSessionDisplayTiming(linkedEv);
-                    if (String(item.linkedEventId) !== String(linkedEv.id)) {
-                        item.linkedEventId = linkedEv.id;
+                if (!Array.isArray(item.linkedEventIds) || item.linkedEventIds.length !== validIds.length) {
+                    item.linkedEventIds = validIds;
+                }
+                item.linkedEventId = validIds[0] || null;
+
+                if (linkedEvents.length > 0) {
+                    let totalHours = 0;
+                    let allDone = true;
+                    linkedEvents.forEach(ev => {
+                        const timing = getSessionDisplayTiming(ev);
+                        totalHours += timing.effectiveDurationHours;
+                        if (!ev.completed) allDone = false;
+                    });
+                    totalHours = Number(totalHours.toFixed(2));
+                    const firstEv = linkedEvents[0];
+                    if (item.scheduledDay !== firstEv.day || item.scheduledHour !== firstEv.startHour) {
+                        item.scheduledDay = firstEv.day;
+                        item.scheduledHour = firstEv.startHour;
                         changed = true;
                     }
-                    if (item.scheduledDay !== linkedEv.day || item.scheduledHour !== linkedEv.startHour) {
-                        item.scheduledDay = linkedEv.day;
-                        item.scheduledHour = linkedEv.startHour;
+                    if (!item.subjectId && firstEv.subjectId) {
+                        item.subjectId = firstEv.subjectId;
                         changed = true;
                     }
-                    if (!item.subjectId && linkedEv.subjectId) {
-                        item.subjectId = linkedEv.subjectId;
+                    if (Math.abs((Number(item.duration) || 0) - totalHours) > 0.01) {
+                        item.duration = totalHours;
                         changed = true;
                     }
-                    if (Math.abs((Number(item.duration) || 0) - timing.effectiveDurationHours) > 0.01) {
-                        item.duration = timing.effectiveDurationHours;
-                        changed = true;
-                    }
-                    item.smartDurationText = timing.durationBadgeText;
-                    item.smartTimeRangeText = timing.timeRangeText;
-                    if (linkedEv.completed && !item.done) {
+                    item.smartDurationText = formatMinutesHumanReadable(Math.round(totalHours * 60));
+                    if (allDone && !item.done) {
                         item.done = true;
                         changed = true;
+                    }
+                } else {
+                    if (item.autoTimeTracked) {
+                        item.duration = 0;
+                        item.smartDurationText = '';
                     }
                 }
             });
             return changed;
         }
 
-        function buildRecordedSessionsOptionsHtml(selectedEventId = '', defaultPlaceholder = '🔗 ربط بمهمة مسجلة بالجدول (منتهية / حالية / مستقبلية)...') {
+        function setBacklogGoalsFilter(filterKey, btnEl) {
+            currentBacklogFilterMode = filterKey || 'all';
+            document.querySelectorAll('[data-goal-filter]').forEach(b => b.classList.remove('active'));
+            if (btnEl) btnEl.classList.add('active');
+            renderTasksView();
+        }
+
+        function openGoalTaskLinkerModal(goalId, event) {
+            if (event) event.stopPropagation();
+            const goal = scheduleBacklog.find(g => String(g.id) === String(goalId));
+            if (!goal) return;
+            activeGoalIdForTaskLinking = goal.id;
+            renderGoalTaskLinkerModalContent();
+            document.getElementById('goalTaskLinkerModalOverlay').classList.add('active');
+        }
+
+        function renderGoalTaskLinkerModalContent() {
+            const goal = scheduleBacklog.find(g => String(g.id) === String(activeGoalIdForTaskLinking));
+            if (!goal) return;
+
+            const headerBox = document.getElementById('goalTaskLinkerHeaderBox');
+            const listEl = document.getElementById('goalTaskLinkerSessionsList');
+            const unlinkBtn = document.getElementById('goalTaskLinkerUnlinkAllBtn');
+            const schedNewBtn = document.getElementById('goalTaskLinkerScheduleNewBtn');
+            if (!headerBox || !listEl) return;
+
             const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+            const subObj = goal.subjectId ? subjects.find(s => String(s.id) === String(goal.subjectId)) : null;
+            const subName = subObj ? subObj.name : 'عام';
+
+            const linkedEvents = getGoalLinkedEventsList(goal);
+            const linkedIdsSet = new Set(linkedEvents.map(e => String(e.id)));
+            let totalMins = 0;
+            linkedEvents.forEach(ev => {
+                totalMins += Math.round(getSessionDisplayTiming(ev).effectiveDurationHours * 60);
+            });
+
+            if (unlinkBtn) {
+                unlinkBtn.style.display = linkedEvents.length > 0 ? 'inline-flex' : 'none';
+            }
+            if (schedNewBtn) {
+                schedNewBtn.onclick = () => {
+                    closeModal('goalTaskLinkerModalOverlay');
+                    scheduleBacklogTaskDirect(goal.id);
+                };
+            }
+
+            headerBox.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+                    <span class="fsc-sub-pill"><i class="fa-solid fa-book"></i> ${subName}</span>
+                    <span class="studio-pill" style="color:${linkedEvents.length > 0 ? 'var(--primary)' : '#fcd34d'};">
+                        ${linkedEvents.length > 0 ? `🔗 مرتبط بـ ${linkedEvents.length} مهمة • الوقت المسجل: ${formatMinutesHumanReadable(totalMins)}` : 'غير مرتبط بمهمة بعد'}
+                    </span>
+                </div>
+                <div style="font-size:1rem; font-weight:900; color:var(--text-main);">${goal.title}</div>
+            `;
+
             const studySessions = scheduleEvents.filter(e => !e.isFixed && e.type !== 'mandatory');
             if (studySessions.length === 0) {
-                return `<option value="">${defaultPlaceholder}</option><option value="" disabled>— لا توجد جلسات مذاكرة مسجلة في الجدول حالياً —</option>`;
-            }
-
-            // Sort: Current first, then Completed, then Future
-            const sorted = studySessions.slice().sort((a, b) => {
-                const catA = getSessionTemporalStatusCategory(a).key;
-                const catB = getSessionTemporalStatusCategory(b).key;
-                const order = { current: 1, completed: 2, future: 3, past_uncompleted: 4 };
-                return (order[catA] || 9) - (order[catB] || 9) || (a.day - b.day) || (a.startHour - b.startHour);
-            });
-
-            const opts = [`<option value="">${defaultPlaceholder}</option>`];
-            sorted.forEach(ev => {
-                const cat = getSessionTemporalStatusCategory(ev);
-                const timing = getSessionDisplayTiming(ev);
-                const dayName = days[Number(ev.day)] || '';
-                const selAttr = String(ev.id) === String(selectedEventId) ? 'selected' : '';
-                opts.push(`<option value="${ev.id}" ${selAttr}>${cat.label}: ${ev.title} — ${dayName} (${timing.durationBadgeText})</option>`);
-            });
-            if (selectedEventId) {
-                opts.push(`<option value="__UNLINK__">❌ إلغاء الربط بهذه المهمة</option>`);
-            }
-            return opts.join('');
-        }
-
-        function populateNewTaskLinkedSessionDropdown() {
-            const sel = document.getElementById('newTaskLinkedSessionSelect');
-            if (!sel) return;
-            const curVal = sel.value;
-            sel.innerHTML = buildRecordedSessionsOptionsHtml(curVal, '🧭 ربط بمهمة مسجلة (أو يُحسب الوقت تلقائياً)...');
-        }
-
-        function handleNewTaskLinkedSessionChange(evId) {
-            if (!evId || evId === '__UNLINK__') return;
-            const ev = scheduleEvents.find(e => String(e.id) === String(evId));
-            if (!ev) return;
-            const titleIn = document.getElementById('newTaskTitle');
-            const subSel = document.getElementById('newTaskSubject');
-            if (titleIn && !titleIn.value.trim()) {
-                titleIn.value = ev.title;
-            }
-            if (subSel && ev.subjectId) {
-                subSel.value = String(ev.subjectId);
-            }
-        }
-
-        function linkBacklogGoalToExistingSession(taskId, eventIdVal) {
-            const t = scheduleBacklog.find(item => String(item.id) === String(taskId));
-            if (!t) return;
-
-            if (!eventIdVal || eventIdVal === '__UNLINK__') {
-                t.linkedEventId = null;
-                t.scheduledDay = null;
-                t.scheduledHour = null;
-                t.smartDurationText = '';
-                t.smartTimeRangeText = '';
-                t.duration = 0;
-                saveScheduleData();
-                updateWeeklyMetrics();
-                renderTasksView();
-                showToast('تم إلغاء ربط الهدف بالمهمة المسجلة');
+                listEl.innerHTML = `
+                    <div style="text-align:center; padding:24px 14px; background:rgba(11,15,23,0.55); border:1px dashed rgba(148,163,184,0.18); border-radius:12px; color:var(--text-muted); font-size:0.84rem;">
+                        <i class="fa-regular fa-calendar-xmark" style="font-size:1.8rem; color:var(--primary); margin-bottom:8px; display:block;"></i>
+                        لا توجد مهام مذاكرة مسجلة في جدولك حالياً.<br>
+                        اضغط على <b>«جدولة مهمة جديدة لهذا الهدف»</b> بالأسفل لإضافتها في الجدول وربطها تلقائياً!
+                    </div>
+                `;
                 return;
             }
 
-            const ev = scheduleEvents.find(e => String(e.id) === String(eventIdVal));
-            if (!ev) return;
+            // Sort: Current first, then same subject as goal, then Completed, then Future
+            const sorted = studySessions.slice().sort((a, b) => {
+                const aSameSub = (goal.subjectId && String(a.subjectId) === String(goal.subjectId)) ? 0 : 1;
+                const bSameSub = (goal.subjectId && String(b.subjectId) === String(goal.subjectId)) ? 0 : 1;
+                if (aSameSub !== bSameSub) return aSameSub - bSameSub;
+                const order = { current: 1, completed: 2, future: 3, past_uncompleted: 4 };
+                const catA = getSessionTemporalStatusCategory(a).key;
+                const catB = getSessionTemporalStatusCategory(b).key;
+                return (order[catA] || 9) - (order[catB] || 9) || (a.day - b.day) || (a.startHour - b.startHour);
+            });
 
-            const timing = getSessionDisplayTiming(ev);
-            const cat = getSessionTemporalStatusCategory(ev);
+            listEl.innerHTML = sorted.map(ev => {
+                const isSelected = linkedIdsSet.has(String(ev.id));
+                const cat = getSessionTemporalStatusCategory(ev);
+                const timing = getSessionDisplayTiming(ev);
+                const dayName = days[Number(ev.day)] || '';
+                const evSub = ev.subjectId ? subjects.find(s => String(s.id) === String(ev.subjectId)) : null;
 
-            t.linkedEventId = ev.id;
-            t.scheduledDay = ev.day;
-            t.scheduledHour = ev.startHour;
-            if (ev.subjectId) t.subjectId = ev.subjectId;
-            t.duration = timing.effectiveDurationHours;
-            t.smartDurationText = timing.durationBadgeText;
-            t.smartTimeRangeText = timing.timeRangeText;
-            t.isOpenDuration = Boolean(ev.isOpenDuration);
+                return `
+                    <div class="goal-linker-session-item ${isSelected ? 'is-selected' : ''}" onclick="toggleSessionLinkForActiveGoal(${ev.id})">
+                        <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1;">
+                            <div style="width:22px; height:22px; border-radius:6px; border:1.5px solid ${isSelected ? 'var(--primary)' : 'rgba(148,163,184,0.35)'}; background:${isSelected ? 'var(--primary)' : 'transparent'}; color:${isSelected ? '#061318' : 'transparent'}; display:flex; align-items:center; justify-content:center; font-size:0.72rem; flex-shrink:0;">
+                                <i class="fa-solid fa-check"></i>
+                            </div>
+                            <div style="min-width:0; flex:1;">
+                                <div style="font-size:0.88rem; font-weight:800; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                    ${ev.title}
+                                </div>
+                                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.74rem; color:var(--text-muted); margin-top:2px;">
+                                    <span style="color:${cat.color}; font-weight:800;">${cat.label}</span>
+                                    <span>• ${dayName} (${timing.timeRangeText})</span>
+                                    ${evSub ? `<span class="fsc-sub-pill" style="font-size:0.65rem;">${evSub.name}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <span class="studio-pill" style="color:var(--primary); border-color:rgba(45,212,191,0.35); flex-shrink:0; font-size:0.74rem;">
+                            ⏱️ ${timing.durationBadgeText}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+        }
 
-            if (ev.completed) {
-                t.done = true;
+        function toggleSessionLinkForActiveGoal(eventId) {
+            const goal = scheduleBacklog.find(g => String(g.id) === String(activeGoalIdForTaskLinking));
+            if (!goal) return;
+            const currentEvents = getGoalLinkedEventsList(goal);
+            const currentIds = currentEvents.map(e => String(e.id));
+            const targetStr = String(eventId);
+
+            if (currentIds.includes(targetStr)) {
+                goal.linkedEventIds = currentIds.filter(id => id !== targetStr);
+                goal.linkedEventId = goal.linkedEventIds[0] || null;
+                if (goal.linkedEventIds.length === 0) {
+                    goal.scheduledDay = null;
+                    goal.scheduledHour = null;
+                    goal.duration = 0;
+                    goal.smartDurationText = '';
+                    goal.done = false;
+                }
+            } else {
+                currentIds.push(targetStr);
+                goal.linkedEventIds = currentIds;
+                goal.linkedEventId = currentIds[0];
             }
 
+            syncAllBacklogGoalsWithLinkedSessions();
             saveScheduleData();
             updateWeeklyMetrics();
             renderTasksView();
             updateTracker();
-            showToast(`🔗 تم ربط الهدف بـ «${ev.title}» (${cat.label}) وتسجيل وقتها الذكي تلقائياً (${timing.durationBadgeText})!`);
+            renderGoalTaskLinkerModalContent();
+
+            const ev = scheduleEvents.find(e => String(e.id) === targetStr);
+            if (ev && goal.linkedEventIds.includes(targetStr)) {
+                const timing = getSessionDisplayTiming(ev);
+                showToast(`🔗 تم تسجيل المهمة «${ev.title}» (${timing.durationBadgeText}) داخل الهدف!`);
+            } else {
+                showToast('تم إلغاء ربط المهمة من الهدف');
+            }
+        }
+
+        function unlinkAllSessionsFromActiveGoal() {
+            const goal = scheduleBacklog.find(g => String(g.id) === String(activeGoalIdForTaskLinking));
+            if (!goal) return;
+            goal.linkedEventIds = [];
+            goal.linkedEventId = null;
+            goal.scheduledDay = null;
+            goal.scheduledHour = null;
+            goal.duration = 0;
+            goal.smartDurationText = '';
+            goal.done = false;
+            saveScheduleData();
+            updateWeeklyMetrics();
+            renderTasksView();
+            updateTracker();
+            renderGoalTaskLinkerModalContent();
+            showToast('تم إلغاء ربط جميع المهام من هذا الهدف');
+        }
+
+        function linkBacklogGoalToExistingSession(taskId, eventIdVal) {
+            activeGoalIdForTaskLinking = taskId;
+            if (!eventIdVal || eventIdVal === '__UNLINK__') {
+                unlinkAllSessionsFromActiveGoal();
+            } else {
+                toggleSessionLinkForActiveGoal(eventIdVal);
+            }
         }
 
         function renderTasksView() {
             populateSubjectDropdowns();
             syncAllBacklogGoalsWithLinkedSessions();
-            populateNewTaskLinkedSessionDropdown();
 
             const list = document.getElementById('tasksBacklogList');
             if (!list) return;
@@ -9707,111 +9874,131 @@
             const subMap = new Map();
             for (let i = 0; i < subjects.length; i++) subMap.set(String(subjects[i].id), subjects[i].name);
 
-            // Update summary strip using smart recorded durations
+            // Compute summary stats
+            const totalTasks = scheduleBacklog.length;
+            const doneTasks = scheduleBacklog.filter(t => t.done).length;
+            const linkedTasksCount = scheduleBacklog.filter(t => getGoalLinkedEventsList(t).length > 0).length;
+            let totalMins = 0;
+            scheduleBacklog.forEach(t => {
+                const linkedEvs = getGoalLinkedEventsList(t);
+                if (linkedEvs.length > 0) {
+                    linkedEvs.forEach(ev => {
+                        totalMins += Math.round(getSessionDisplayTiming(ev).effectiveDurationHours * 60);
+                    });
+                } else if (Number(t.duration) > 0 && !t.autoTimeTracked) {
+                    totalMins += Math.round(Number(t.duration) * 60);
+                }
+            });
+
             const summaryStrip = document.getElementById('tasksSummaryStatsStrip');
             if (summaryStrip) {
-                const totalTasks = scheduleBacklog.length;
-                const doneTasks = scheduleBacklog.filter(t => t.done).length;
-                let totalMins = 0;
-                scheduleBacklog.forEach(t => {
-                    let linkedEv = t.linkedEventId ? scheduleEvents.find(e => String(e.id) === String(t.linkedEventId)) : null;
-                    if (linkedEv) {
-                        const timing = getSessionDisplayTiming(linkedEv);
-                        totalMins += Math.round(timing.effectiveDurationHours * 60);
-                    } else if (Number(t.duration) > 0 && !t.autoTimeTracked) {
-                        totalMins += Math.round(Number(t.duration) * 60);
-                    }
-                });
-                const totalTimeFormatted = totalMins > 0 ? formatMinutesHumanReadable(totalMins) : 'تلقائي 🧭';
+                const totalTimeFormatted = totalMins > 0 ? formatMinutesHumanReadable(totalMins) : '0 دقيقة';
                 summaryStrip.innerHTML = `
-                    <span class="studio-pill">إجمالي الأهداف: <b style="color:var(--text-main);">${totalTasks}</b></span>
-                    <span class="studio-pill">الساعات المسجلة ذكياً: <b style="color:var(--primary);">${totalTimeFormatted}</b></span>
-                    <span class="studio-pill" style="color:#6ee7b7;">المنجز: <b>${doneTasks}/${totalTasks}</b></span>
+                    <span class="studio-pill">الأهداف: <b style="color:var(--text-main);">${totalTasks}</b></span>
+                    <span class="studio-pill" style="color:#38bdf8;">مرتبط بالجدول: <b>${linkedTasksCount}</b></span>
+                    <span class="studio-pill" style="color:var(--primary);">الوقت المسجل: <b>${totalTimeFormatted}</b></span>
+                    <span class="studio-pill" style="color:#6ee7b7;">المكتمل: <b>${doneTasks}/${totalTasks}</b></span>
                 `;
             }
 
-            if (scheduleBacklog.length === 0) {
+            // Filter goals based on currentBacklogFilterMode
+            const filteredGoals = scheduleBacklog.filter(item => {
+                const hasLink = getGoalLinkedEventsList(item).length > 0;
+                if (currentBacklogFilterMode === 'unlinked') return !hasLink && !item.done;
+                if (currentBacklogFilterMode === 'linked') return hasLink;
+                if (currentBacklogFilterMode === 'done') return Boolean(item.done);
+                return true;
+            });
+
+            if (filteredGoals.length === 0) {
+                const emptyMsg = scheduleBacklog.length === 0
+                    ? 'اكتب اسم هدفك في الشريط العلوي واضغط «+ إضافة الهدف»، ثم اضغط على الهدف في أي وقت لاختيار المهمة المسجلة في جدولك.'
+                    : 'لا توجد أهداف في هذا التصنيف حالياً.';
                 list.innerHTML = `
                     <div class="empty-state" style="grid-column: 1 / -1; background: rgba(18, 25, 38, 0.55); border: 1px dashed rgba(148, 163, 184, 0.14); border-radius: 14px; padding: 34px 20px;">
-                        <i class="fa-solid fa-clipboard-check" style="font-size:2.6rem; color:var(--primary); opacity:0.6; margin-bottom:10px;"></i>
-                        <h3>بنك أهداف الأسبوع فارغ حالياً</h3>
-                        <p style="max-width: 540px; line-height: 1.6;">اكتب اسم الهدف بالأعلى أو اختر أي مهمة مسجلة في جدولك (منتهية أو حالية أو مستقبلية) ليتم ربطها وتسجيل ساعاتها تلقائياً بدون إدخال يدوي للوقت.</p>
+                        <i class="fa-solid fa-bullseye" style="font-size:2.4rem; color:var(--primary); opacity:0.6; margin-bottom:10px;"></i>
+                        <h3>${scheduleBacklog.length === 0 ? 'لا توجد أهداف أسبوعية مضافة بعد' : 'لا توجد أهداف مطابقة للفلتر'}</h3>
+                        <p style="max-width: 520px; line-height: 1.6;">${emptyMsg}</p>
                     </div>
                 `;
                 return;
             }
 
             const taskParts = [];
-            scheduleBacklog.forEach(item => {
+            filteredGoals.forEach(item => {
                 const subName = item.subjectId ? (subMap.get(String(item.subjectId)) || 'عام') : 'عام';
+                const linkedEvs = getGoalLinkedEventsList(item);
+                const isLinked = linkedEvs.length > 0;
 
-                let linkedEv = null;
-                if (item.linkedEventId) {
-                    linkedEv = scheduleEvents.find(e => String(e.id) === String(item.linkedEventId));
-                }
-                if (!linkedEv && item.scheduledDay !== undefined && item.scheduledDay !== null) {
-                    linkedEv = scheduleEvents.find(e => !e.isFixed && e.type !== 'mandatory' && e.title === item.title && e.day === item.scheduledDay);
-                }
-
-                const isScheduled = Boolean(linkedEv || (item.scheduledDay !== undefined && item.scheduledDay !== null));
-                const schedDayIdx = linkedEv ? linkedEv.day : item.scheduledDay;
-                const timing = linkedEv ? getSessionDisplayTiming(linkedEv) : null;
-                const cat = linkedEv ? getSessionTemporalStatusCategory(linkedEv) : null;
+                let goalTotalMins = 0;
+                linkedEvs.forEach(ev => {
+                    goalTotalMins += Math.round(getSessionDisplayTiming(ev).effectiveDurationHours * 60);
+                });
 
                 let statusBadgeHtml = '';
-                if (item.done || (linkedEv && linkedEv.completed)) {
-                    const doneDayTxt = (schedDayIdx >= 0 && schedDayIdx <= 6) ? ` • ${days[schedDayIdx]}` : '';
-                    statusBadgeHtml = `<span class="studio-pill" style="color:#6ee7b7; border-color:rgba(16,185,129,0.35); background:rgba(16,185,129,0.1);"><i class="fa-solid fa-circle-check"></i> مكتمل${doneDayTxt}</span>`;
-                } else if (linkedEv && cat) {
-                    statusBadgeHtml = `<span class="studio-pill" style="color:${cat.color}; border-color:rgba(56,189,248,0.35); background:rgba(56,189,248,0.1);">${cat.label}: ${days[schedDayIdx]} (${timing.timeRangeText})</span>`;
-                } else if (isScheduled && schedDayIdx >= 0 && schedDayIdx <= 6) {
-                    statusBadgeHtml = `<span class="studio-pill" style="color:#38bdf8; border-color:rgba(56,189,248,0.35); background:rgba(56,189,248,0.1);"><i class="fa-regular fa-calendar-check"></i> مجدول: ${days[schedDayIdx]}</span>`;
+                if (item.done) {
+                    statusBadgeHtml = `<span class="studio-pill" style="color:#6ee7b7; border-color:rgba(16,185,129,0.35); background:rgba(16,185,129,0.1);"><i class="fa-solid fa-circle-check"></i> مكتمل ✓</span>`;
+                } else if (isLinked) {
+                    statusBadgeHtml = `<span class="studio-pill" style="color:#38bdf8; border-color:rgba(56,189,248,0.35); background:rgba(56,189,248,0.1);"><i class="fa-solid fa-link"></i> مرتبط بـ ${linkedEvs.length === 1 ? 'مهمة' : linkedEvs.length + ' مهام'}</span>`;
                 } else {
-                    statusBadgeHtml = `<span class="studio-pill" style="color:#fcd34d; border-color:rgba(245,158,11,0.3); background:rgba(245,158,11,0.08);"><i class="fa-solid fa-compass"></i> بانتظار الربط أو الجدولة</span>`;
+                    statusBadgeHtml = `<span class="studio-pill" style="color:#fcd34d; border-color:rgba(245,158,11,0.28); background:rgba(245,158,11,0.07);"><i class="fa-regular fa-hand-pointer"></i> اضغط لربط مهمة</span>`;
                 }
 
-                let smartHoursHtml = '';
-                if (linkedEv && timing) {
-                    smartHoursHtml = `<span style="color:var(--primary); font-weight:800;"><i class="fa-solid fa-compass"></i> الوقت المسجل ذكياً: <b>${timing.durationBadgeText}</b> (${ linkedEv.completed ? 'مهمة منتهية ✓' : (cat.key === 'current' ? 'مهمة جارية الآن 🟢' : 'مهمة مجدولة 📅') })</span>`;
-                } else if (item.smartDurationText) {
-                    smartHoursHtml = `<span style="color:var(--primary); font-weight:800;"><i class="fa-solid fa-compass"></i> الوقت المسجل ذكياً: <b>${item.smartDurationText}</b></span>`;
-                } else if (Number(item.duration) > 0 && !item.autoTimeTracked) {
-                    smartHoursHtml = `<span><i class="fa-regular fa-clock" style="color:var(--primary);"></i> الوقت المسجل: <b>${formatMinutesHumanReadable(Number(item.duration) * 60)}</b></span>`;
+                let linkedSectionHtml = '';
+                if (isLinked) {
+                    const pillsHtml = linkedEvs.map(ev => {
+                        const timing = getSessionDisplayTiming(ev);
+                        const cat = getSessionTemporalStatusCategory(ev);
+                        const dName = days[Number(ev.day)] || '';
+                        return `
+                            <div class="goal-linked-task-pill">
+                                <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:700;">
+                                    <span style="color:${cat.color};">${cat.label}</span> • ${ev.title} (${dName})
+                                </span>
+                                <span style="color:var(--primary); font-weight:800; flex-shrink:0;">${timing.durationBadgeText}</span>
+                            </div>
+                        `;
+                    }).join('');
+                    linkedSectionHtml = `
+                        <div class="goal-linked-tasks-box">
+                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:var(--primary); font-weight:800;">
+                                <span><i class="fa-solid fa-compass"></i> إجمالي الوقت المسجل: <b>${formatMinutesHumanReadable(goalTotalMins)}</b></span>
+                                <span style="font-size:0.7rem; color:var(--text-muted);">اضغط للتعديل ✎</span>
+                            </div>
+                            ${pillsHtml}
+                        </div>
+                    `;
                 } else {
-                    smartHoursHtml = `<span style="color:#94a3b8;"><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary);"></i> الوقت: <b>يُسجّل تلقائياً فور ربطه بمهمة أو مذاكرته 🧭</b></span>`;
+                    linkedSectionHtml = `
+                        <div class="goal-linked-tasks-box" style="border-style:dashed; align-items:center; justify-content:center; padding:11px; text-align:center;">
+                            <span style="font-size:0.78rem; color:#94a3b8; font-weight:700;">
+                                <i class="fa-solid fa-link" style="color:var(--primary); margin-left:5px;"></i> اضغط على الهدف لاختيار المهمة المسجلة في الجدول
+                            </span>
+                        </div>
+                    `;
                 }
-
-                const selectOptionsHtml = buildRecordedSessionsOptionsHtml(
-                    linkedEv ? linkedEv.id : '',
-                    linkedEv ? `🔗 مرتبط بـ: ${linkedEv.title} (تغيير...)` : '🔗 ربط بمهمة مسجلة (منتهية / حالية / مستقبلية)...'
-                );
 
                 taskParts.push(`
-                    <div class="backlog-card ${item.done ? 'done' : (isScheduled ? 'is-scheduled' : '')}">
+                    <div class="backlog-card clickable-goal-card ${item.done ? 'done' : (isLinked ? 'is-scheduled' : '')}" onclick="openGoalTaskLinkerModal(${item.id}, event)">
                         <div>
                             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
                                 <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                                     <span class="fsc-sub-pill"><i class="fa-solid fa-book"></i> ${subName}</span>
                                     ${statusBadgeHtml}
                                 </div>
-                                <button class="icon-btn delete" style="width:28px; height:28px;" onclick="deleteBacklogTask(${item.id})"><i class="fa-solid fa-trash" style="font-size:0.74rem;"></i></button>
+                                <button class="icon-btn delete" style="width:28px; height:28px;" onclick="event.stopPropagation(); deleteBacklogTask(${item.id});"><i class="fa-solid fa-trash" style="font-size:0.74rem;"></i></button>
                             </div>
-                            <div class="b-title" style="font-size:1rem; font-weight:800; color:var(--text-main); margin-bottom:6px; line-height:1.45;">${item.title}</div>
-                            <div style="font-size:0.79rem; color:var(--text-muted); display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                                ${smartHoursHtml}
-                            </div>
-                            <!-- Direct 1-Click Link to Any Completed, Current, or Future Session in the Schedule -->
-                            <div style="margin-top:6px;">
-                                <select onchange="linkBacklogGoalToExistingSession(${item.id}, this.value)" style="width:100%; padding:7px 10px; font-size:0.77rem; border-radius:9px; background:rgba(11,15,23,0.85); border:1px solid ${linkedEv ? 'rgba(45,212,191,0.45)' : 'rgba(148,163,184,0.18)'}; color:${linkedEv ? '#5eead4' : '#cbd5e1'}; font-weight:700; cursor:pointer;">
-                                    ${selectOptionsHtml}
-                                </select>
-                            </div>
+                            <div class="b-title" style="font-size:1.02rem; font-weight:800; color:var(--text-main); margin-bottom:8px; line-height:1.45;">${item.title}</div>
+                            ${linkedSectionHtml}
                         </div>
-                        <div style="display:flex; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid rgba(148,163,184,0.08);">
-                            <button class="btn btn-outline" style="padding:7px 12px; font-size:0.8rem; flex:1;" onclick="scheduleBacklogTaskDirect(${item.id})">
-                                <i class="fa-solid fa-calendar-plus"></i> ${isScheduled ? 'تعديل الموعد بالجدول' : 'جدولة كجلسة جديدة'}
+                        <div style="display:flex; gap:6px; margin-top:10px; padding-top:10px; border-top:1px solid rgba(148,163,184,0.08);" onclick="event.stopPropagation();">
+                            <button class="btn btn-outline" style="padding:6px 10px; font-size:0.77rem; flex:1; border-color:rgba(45,212,191,0.35); color:var(--primary);" onclick="openGoalTaskLinkerModal(${item.id}, event)">
+                                <i class="fa-solid fa-link"></i> ${isLinked ? 'تغيير/إضافة مهمة' : 'ربط بمهمة'}
                             </button>
-                            <button class="btn ${item.done ? 'btn-outline' : 'btn-success'}" style="padding:7px 14px; font-size:0.8rem;" onclick="toggleBacklogDone(${item.id})">
+                            <button class="btn btn-outline" style="padding:6px 10px; font-size:0.77rem;" onclick="scheduleBacklogTaskDirect(${item.id})" title="جدولة مهمة جديدة لهذا الهدف في التقويم">
+                                <i class="fa-solid fa-calendar-plus"></i> جدولة
+                            </button>
+                            <button class="btn ${item.done ? 'btn-outline' : 'btn-success'}" style="padding:6px 12px; font-size:0.77rem;" onclick="toggleBacklogDone(${item.id})">
                                 <i class="fa-solid ${item.done ? 'fa-rotate-left' : 'fa-check'}"></i> ${item.done ? 'تراجع' : 'إتمام'}
                             </button>
                         </div>
@@ -10008,6 +10195,10 @@
                         linkedTask.scheduledDay = day;
                         linkedTask.scheduledHour = startHour;
                         linkedTask.linkedEventId = newEvId;
+                        if (!Array.isArray(linkedTask.linkedEventIds)) linkedTask.linkedEventIds = [];
+                        if (!linkedTask.linkedEventIds.map(String).includes(String(newEvId))) {
+                            linkedTask.linkedEventIds.push(newEvId);
+                        }
                     }
                     pendingBacklogTaskIdToLink = null;
                 }
@@ -10191,75 +10382,39 @@
         function addBacklogTask() {
             const input = document.getElementById('newTaskTitle');
             const subSelect = document.getElementById('newTaskSubject');
-            const linkSelect = document.getElementById('newTaskLinkedSessionSelect');
-            const selectedEvId = linkSelect ? linkSelect.value : '';
-            const linkedEv = (selectedEvId && selectedEvId !== '__UNLINK__')
-                ? scheduleEvents.find(e => String(e.id) === String(selectedEvId))
-                : null;
+            const title = input ? input.value.trim() : '';
 
-            let title = input ? input.value.trim() : '';
-            if (!title && linkedEv) {
-                title = linkedEv.title;
-            }
             if (!title) {
-                showToast('يرجى كتابة اسم الهدف أو اختيار مهمة مسجلة لربطها', 'error');
+                showToast('يرجى كتابة اسم الهدف أولاً', 'error');
                 if (input) input.focus();
                 return;
             }
 
-            // If user didn't pick from dropdown, check if a recorded session in scheduleEvents matches the title
-            const matchedEv = linkedEv || scheduleEvents.find(e =>
-                !e.isFixed && e.type !== 'mandatory' && (e.title || '').trim().toLowerCase() === title.toLowerCase()
-            );
-
-            let smartDur = 0;
-            let smartDurTxt = '';
-            let smartRangeTxt = '';
-            let isDoneNow = false;
-            let schedDay = null;
-            let schedHour = null;
-            let finalSubId = subSelect ? subSelect.value : '';
-
-            if (matchedEv) {
-                const timing = getSessionDisplayTiming(matchedEv);
-                smartDur = timing.effectiveDurationHours;
-                smartDurTxt = timing.durationBadgeText;
-                smartRangeTxt = timing.timeRangeText;
-                isDoneNow = Boolean(matchedEv.completed);
-                schedDay = matchedEv.day;
-                schedHour = matchedEv.startHour;
-                if (!finalSubId && matchedEv.subjectId) finalSubId = matchedEv.subjectId;
-            }
+            const finalSubId = subSelect ? subSelect.value : '';
 
             scheduleBacklog.unshift({
                 id: Date.now(),
                 title,
                 subjectId: finalSubId,
-                duration: smartDur,
-                smartDurationText: smartDurTxt,
-                smartTimeRangeText: smartRangeTxt,
+                duration: 0,
+                smartDurationText: '',
+                smartTimeRangeText: '',
                 isOpenDuration: true,
-                autoTimeTracked: !matchedEv,
+                autoTimeTracked: true,
                 createdAtMs: Date.now(),
-                done: isDoneNow,
-                scheduledDay: schedDay,
-                scheduledHour: schedHour,
-                linkedEventId: matchedEv ? matchedEv.id : null
+                done: false,
+                scheduledDay: null,
+                scheduledHour: null,
+                linkedEventId: null,
+                linkedEventIds: []
             });
 
             if (input) input.value = '';
-            if (linkSelect) linkSelect.value = '';
             saveScheduleData();
             updateWeeklyMetrics();
             renderTasksView();
             updateTracker();
-
-            if (matchedEv) {
-                const cat = getSessionTemporalStatusCategory(matchedEv);
-                showToast(`🔗 تمت إضافة الهدف وربطه بـ «${matchedEv.title}» (${cat.label}) وتسجيل ساعاته ذكياً (${smartDurTxt})!`);
-            } else {
-                showToast(`🧭 تمت إضافة الهدف «${title}» بدون إدخال وقت؛ سيُسجّل وقته ذكياً فور ربطه أو جدولته!`);
-            }
+            showToast(`🎯 تمت إضافة الهدف «${title}»! اضغط على الهدف في أي وقت لاختيار المهمة التي تريد تسجيلها فيه.`);
         }
 
         function toggleBacklogDone(taskId) {
@@ -10267,11 +10422,11 @@
             if (!t) return;
             t.done = !t.done;
 
-            // Also sync linked calendar event if any
-            if (t.linkedEventId) {
-                const ev = scheduleEvents.find(e => String(e.id) === String(t.linkedEventId));
-                if (ev && !ev.isFixed) ev.completed = t.done;
-            }
+            // Also sync linked calendar events if any
+            const linkedEvs = getGoalLinkedEventsList(t);
+            linkedEvs.forEach(ev => {
+                if (!ev.isFixed) ev.completed = t.done;
+            });
 
             if (t.done) {
                 let subName = '';
@@ -10279,8 +10434,9 @@
                     const sObj = subjects.find(s => String(s.id) === String(t.subjectId));
                     if (sObj) subName = ` [${sObj.name}]`;
                 }
+                const durTxt = t.smartDurationText || (Number(t.duration) > 0 ? formatMinutesHumanReadable(Math.round(Number(t.duration) * 60)) : 'مكتمل ✓');
                 const dateStr = new Date().toLocaleDateString('ar-EG');
-                const logText = `إنجاز هدف أسبوعي: ${t.title}${subName} (${t.duration || 1.5} س)`;
+                const logText = `إنجاز هدف أسبوعي: ${t.title}${subName} (${durTxt})`;
                 if (!logs.some(l => l.text === logText && l.date === dateStr)) {
                     logs.unshift({ id: Date.now(), date: dateStr, text: logText, mood: 'bolt', subjectId: t.subjectId || '' });
                     saveLogs();
@@ -10290,7 +10446,8 @@
             saveScheduleData();
             updateWeeklyMetrics();
             renderTasksView();
-            showToast(t.done ? '🎉 أحسنت! تم إتمام الهدف وتوثيقه في السجل' : 'تمت إعادة فتح الهدف');
+            updateTracker();
+            showToast(t.done ? '🎉 أحسنت! تم إتمام الهدف وتوثيقه في السجل والتقارير' : 'تمت إعادة فتح الهدف');
         }
 
         function deleteBacklogTask(taskId) {
@@ -10554,15 +10711,18 @@
         }
 
         function startQuickPomodoroForSubject(subId) {
-            const sel = document.getElementById('timerSubjectSelect');
-            if (sel && subId) sel.value = String(subId);
-            const pomoCard = document.querySelector('.pomodoro-card');
-            if (pomoCard) pomoCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            if (!timerRunning) toggleTimer();
+            if (subId) {
+                jumpToSubjectFromRec(subId);
+            } else {
+                switchView('schedule', document.querySelectorAll('.nav-item')[1]);
+            }
         }
 
         function updateTracker() {
             populateSubjectDropdowns();
+            if (typeof syncAllBacklogGoalsWithLinkedSessions === 'function') {
+                syncAllBacklogGoalsWithLinkedSessions();
+            }
             
             let totalAllHours = 0;
             let netPlannedStudyHours = 0;
@@ -10613,7 +10773,8 @@
             });
             
             scheduleEvents.forEach(ev => {
-                const dur = Number(ev.duration) || 1;
+                const timing = getSessionDisplayTiming(ev);
+                const dur = timing.effectiveDurationHours;
                 totalAllHours += dur;
                 const isFixedCollege = Boolean(ev.isFixed || ev.type === 'mandatory');
 
@@ -10633,24 +10794,49 @@
                 }
                 
                 if (ev.subjectId && subjectHoursMap[ev.subjectId] && !isFixedCollege) {
-                    subjectHoursMap[ev.subjectId].hours += dur;
-                    if (ev.completed) subjectHoursMap[ev.subjectId].doneHours += dur;
+                    subjectHoursMap[ev.subjectId].hours = Number((subjectHoursMap[ev.subjectId].hours + dur).toFixed(2));
+                    if (ev.completed) {
+                        subjectHoursMap[ev.subjectId].doneHours = Number((subjectHoursMap[ev.subjectId].doneHours + dur).toFixed(2));
+                    }
                 }
             });
             
-            // 1. Update Top KPI Cards
+            // 1. Update Top 4 KPI Cards
             const streak = calculateStreak();
-            document.getElementById('statStreak').innerText = `${streak} ${streak === 1 ? 'يوم' : 'أيام'}`;
-            document.getElementById('statStreakMsg').innerText = streak > 0 ? 'سلسلة رائعة! حافظ على شعلتك اليوم 🔥' : 'سجّل أول إنجاز اليوم لبدء السلسلة!';
+            if (document.getElementById('statStreak')) document.getElementById('statStreak').innerText = `${streak} ${streak === 1 ? 'يوم' : 'أيام'}`;
+            if (document.getElementById('statStreakMsg')) document.getElementById('statStreakMsg').innerText = streak > 0 ? 'سلسلة رائعة! حافظ على شعلتك اليوم 🔥' : 'سجّل أول إنجاز اليوم لبدء السلسلة!';
             
-            document.getElementById('statDoneHours').innerText = `${Number(netDoneStudyHours.toFixed(1))} س`;
-            document.getElementById('statPlannedHours').innerText = Number(netPlannedStudyHours.toFixed(1));
+            if (document.getElementById('statDoneHours')) document.getElementById('statDoneHours').innerText = `${Number(netDoneStudyHours.toFixed(1))} س`;
+            if (document.getElementById('statPlannedHours')) document.getElementById('statPlannedHours').innerText = Number(netPlannedStudyHours.toFixed(1));
             
+            // Weekly Goals KPI Card
+            const totalGoals = scheduleBacklog.length;
+            const doneGoals = scheduleBacklog.filter(g => g.done).length;
+            const linkedGoals = scheduleBacklog.filter(g => getGoalLinkedEventsList(g).length > 0).length;
+            let goalsTotalMins = 0;
+            scheduleBacklog.forEach(g => {
+                const evs = getGoalLinkedEventsList(g);
+                evs.forEach(e => { goalsTotalMins += Math.round(getSessionDisplayTiming(e).effectiveDurationHours * 60); });
+            });
+            if (document.getElementById('statGoalsCompletedRatio')) {
+                document.getElementById('statGoalsCompletedRatio').innerText = `${doneGoals}/${totalGoals}`;
+            }
+            if (document.getElementById('statGoalsLinkedBadge')) {
+                document.getElementById('statGoalsLinkedBadge').innerText = `${linkedGoals} مرتبط بالجدول`;
+            }
+            if (document.getElementById('statGoalsTimeSub')) {
+                document.getElementById('statGoalsTimeSub').innerText = goalsTotalMins > 0
+                    ? `الوقت المسجل للأهداف: ${formatMinutesHumanReadable(goalsTotalMins)}`
+                    : (totalGoals > 0 ? 'اضغط على أهدافك لربطها بالمهام' : 'أضف أهدافك من صفحة التخطيط');
+            }
+
             const efficiency = netPlannedStudyHours > 0 ? Math.round((netDoneStudyHours / netPlannedStudyHours) * 100) : 0;
-            document.getElementById('statEfficiencyRate').innerText = `${efficiency}%`;
-            document.getElementById('statEfficiencyLabel').innerText = efficiency >= 80 ? 'إنتاجية استثنائية 🔥' : (efficiency >= 50 ? 'أداء متوازن وجيد ⚡' : (netPlannedStudyHours > 0 ? 'فرصة لرفع التركيز اليوم 🎯' : 'لم تُجدول جلسات مذاكرة بعد'));
+            if (document.getElementById('statEfficiencyRate')) document.getElementById('statEfficiencyRate').innerText = `${efficiency}%`;
+            if (document.getElementById('statEfficiencyLabel')) {
+                document.getElementById('statEfficiencyLabel').innerText = efficiency >= 80 ? 'إنتاجية استثنائية 🔥' : (efficiency >= 50 ? 'أداء متوازن وجيد ⚡' : (netPlannedStudyHours > 0 ? 'فرصة لرفع التركيز اليوم 🎯' : 'لم تُجدول جلسات مذاكرة بعد'));
+            }
             
-            document.getElementById('statTotalLogs').innerText = logs.length;
+            if (document.getElementById('statTotalLogs')) document.getElementById('statTotalLogs').innerText = logs.length;
             const lecCompletionPct = totalLecturesCount > 0 ? Math.round((completedLecturesCount / totalLecturesCount) * 100) : 0;
             if (document.getElementById('statLecturesSummaryPill')) {
                 document.getElementById('statLecturesSummaryPill').innerText = `${completedLecturesCount}/${totalLecturesCount} محاضرة (${lecCompletionPct}%)`;
@@ -10662,21 +10848,21 @@
             }
             
             // 2. Update Smarter Time Analytics
-            document.getElementById('analyticsTotalHours').innerText = Number(totalAllHours.toFixed(1));
-            document.getElementById('distMandatoryTxt').innerText = `${Number(mandatoryHours.toFixed(1))} س`;
-            document.getElementById('distImportantTxt').innerText = `${Number(importantHours.toFixed(1))} س`;
-            document.getElementById('distUrgentTxt').innerText = `${Number(urgentHours.toFixed(1))} س`;
-            document.getElementById('distReviewTxt').innerText = `${Number(reviewHours.toFixed(1))} س`;
+            if (document.getElementById('analyticsTotalHours')) document.getElementById('analyticsTotalHours').innerText = Number(totalAllHours.toFixed(1));
+            if (document.getElementById('distMandatoryTxt')) document.getElementById('distMandatoryTxt').innerText = `${Number(mandatoryHours.toFixed(1))} س`;
+            if (document.getElementById('distImportantTxt')) document.getElementById('distImportantTxt').innerText = `${Number(importantHours.toFixed(1))} س`;
+            if (document.getElementById('distUrgentTxt')) document.getElementById('distUrgentTxt').innerText = `${Number(urgentHours.toFixed(1))} س`;
+            if (document.getElementById('distReviewTxt')) document.getElementById('distReviewTxt').innerText = `${Number(reviewHours.toFixed(1))} س`;
             
             const mPct = totalAllHours > 0 ? (mandatoryHours / totalAllHours) * 100 : 25;
             const iPct = totalAllHours > 0 ? (importantHours / totalAllHours) * 100 : 50;
             const uPct = totalAllHours > 0 ? (urgentHours / totalAllHours) * 100 : 15;
             const rPct = totalAllHours > 0 ? (reviewHours / totalAllHours) * 100 : 10;
             
-            document.getElementById('distMandatory').style.width = `${mPct}%`;
-            document.getElementById('distImportant').style.width = `${iPct}%`;
-            document.getElementById('distUrgent').style.width = `${uPct}%`;
-            document.getElementById('distReview').style.width = `${rPct}%`;
+            if (document.getElementById('distMandatory')) document.getElementById('distMandatory').style.width = `${mPct}%`;
+            if (document.getElementById('distImportant')) document.getElementById('distImportant').style.width = `${iPct}%`;
+            if (document.getElementById('distUrgent')) document.getElementById('distUrgent').style.width = `${uPct}%`;
+            if (document.getElementById('distReview')) document.getElementById('distReview').style.width = `${rPct}%`;
 
             const netStudySharePct = totalAllHours > 0 ? Math.round((netPlannedStudyHours / totalAllHours) * 100) : 0;
             const dailyAvg = Number((netPlannedStudyHours / 7).toFixed(1));
@@ -10690,20 +10876,24 @@
                 document.getElementById('smartReviewAdvice').innerText = reviewSharePct >= 20 ? 'نسبة مراجعة مثالية ✓' : 'يُنصح برفعها إلى 20%+';
             }
 
-            // 3. Render 7-Day Study Load & Completion Chart
+            // 3. Render 7-Day Study Load & Completion Chart (ordered by user's weekStartDay)
             const barsContainer = document.getElementById('dailyStudyBarsChart');
             if (barsContainer) {
+                const orderedDays = getOrderedWeekDays();
                 const barParts = [];
                 const maxDayHrs = Math.max(...dayStats.map(d => d.planned), 2);
                 let bestDayObj = null;
-                dayStats.forEach((d, idx) => {
+                orderedDays.forEach((dObj) => {
+                    const d = dayStats[dObj.dayIdx];
                     if (!bestDayObj || d.done > bestDayObj.done) bestDayObj = d;
                     const plannedH = Math.min(100, Math.round((d.planned / maxDayHrs) * 100));
                     const doneH = Math.min(100, Math.round((d.done / maxDayHrs) * 100));
-                    const isToday = idx === getCurrentDayIdx();
+                    const isToday = dObj.isToday;
+                    const dispDone = Number(d.done.toFixed(1));
+                    const dispPlan = Number(d.planned.toFixed(1));
                     barParts.push(`
                         <div class="day-bar-col">
-                            <span style="font-size: 0.65rem; color: ${d.done > 0 ? '#6ee7b7' : 'var(--text-muted)'}; font-weight: 800;">${d.done > 0 ? d.done + 'س' : (d.planned > 0 ? d.planned + 'س' : '-')}</span>
+                            <span style="font-size: 0.65rem; color: ${dispDone > 0 ? '#6ee7b7' : 'var(--text-muted)'}; font-weight: 800;">${dispDone > 0 ? dispDone + 'س' : (dispPlan > 0 ? dispPlan + 'س' : '-')}</span>
                             <div class="day-bar-track" style="${isToday ? 'border: 1px solid var(--primary);' : ''}">
                                 <div class="day-bar-fill-planned" style="height: ${plannedH}%;"></div>
                                 <div class="day-bar-fill-done" style="height: ${doneH}%;"></div>
@@ -10713,55 +10903,57 @@
                     `);
                 });
                 barsContainer.innerHTML = barParts.join('');
-                const bestDayTxt = (bestDayObj && bestDayObj.done > 0) ? `الأعلى إنجازاً: ${bestDayObj.name} (${bestDayObj.done} س)` : 'أتمم جلساتك لاكتشاف يوم ذروتك';
+                const bestDayTxt = (bestDayObj && bestDayObj.done > 0) ? `الأعلى إنجازاً: ${bestDayObj.name} (${Number(bestDayObj.done.toFixed(1))} س)` : 'أتمم جلساتك لاكتشاف يوم ذروتك';
                 if (document.getElementById('smartBestDayLabel')) document.getElementById('smartBestDayLabel').innerText = bestDayTxt;
                 if (document.getElementById('smartPeakDayInsight')) document.getElementById('smartPeakDayInsight').innerText = bestDayTxt;
             }
 
             // 4. Render Per-Subject Mastery & Time Matrix
             const subList = document.getElementById('subjectProgressList');
-            subList.innerHTML = '';
-            const subKeys = Object.keys(subjectHoursMap);
-            if (subKeys.length === 0) {
-                subList.innerHTML = `<div style="color:var(--text-muted); font-size:0.85rem; padding:6px 0;">لم تسجل مواد دراسية في «المركز» بعد.</div>`;
-            } else {
-                const subParts = [];
-                subKeys.forEach(k => {
-                    const item = subjectHoursMap[k];
-                    const timePct = item.hours > 0 ? Math.min(100, Math.round((item.doneHours / item.hours) * 100)) : 0;
-                    const lecPct = item.totalLec > 0 ? Math.round((item.doneLec / item.totalLec) * 100) : 0;
-                    const combinedScore = item.hours > 0 ? Math.round((timePct * 0.5) + (lecPct * 0.5)) : lecPct;
+            if (subList) {
+                subList.innerHTML = '';
+                const subKeys = Object.keys(subjectHoursMap);
+                if (subKeys.length === 0) {
+                    subList.innerHTML = `<div style="color:var(--text-muted); font-size:0.85rem; padding:12px 0;">لم تسجل مواد دراسية في «المركز» بعد.</div>`;
+                } else {
+                    const subParts = [];
+                    subKeys.forEach(k => {
+                        const item = subjectHoursMap[k];
+                        const timePct = item.hours > 0 ? Math.min(100, Math.round((item.doneHours / item.hours) * 100)) : 0;
+                        const lecPct = item.totalLec > 0 ? Math.round((item.doneLec / item.totalLec) * 100) : 0;
+                        const combinedScore = item.hours > 0 ? Math.round((timePct * 0.5) + (lecPct * 0.5)) : lecPct;
 
-                    let statusBadge = '';
-                    if (item.hours === 0 && item.doneLec === 0) {
-                        statusBadge = `<span class="subject-mastery-badge" style="background:rgba(244,63,94,0.15); color:#fda4af;">⚠️ تحتاج جدولة</span>`;
-                    } else if (combinedScore >= 75) {
-                        statusBadge = `<span class="subject-mastery-badge" style="background:rgba(16,185,129,0.18); color:#6ee7b7;">🏆 متقدم (${combinedScore}%)</span>`;
-                    } else if (combinedScore >= 40) {
-                        statusBadge = `<span class="subject-mastery-badge" style="background:rgba(45, 212, 191,0.18); color:var(--primary);">⚡ متوازن (${combinedScore}%)</span>`;
-                    } else {
-                        statusBadge = `<span class="subject-mastery-badge" style="background:rgba(245,158,11,0.18); color:#fcd34d;">🎯 يحتاج تركيز</span>`;
-                    }
+                        let statusBadge = '';
+                        if (item.hours === 0 && item.doneLec === 0) {
+                            statusBadge = `<span class="subject-mastery-badge" style="background:rgba(244,63,94,0.15); color:#fda4af;">⚠️ تحتاج جدولة</span>`;
+                        } else if (combinedScore >= 75) {
+                            statusBadge = `<span class="subject-mastery-badge" style="background:rgba(16,185,129,0.18); color:#6ee7b7;">🏆 متقدم (${combinedScore}%)</span>`;
+                        } else if (combinedScore >= 40) {
+                            statusBadge = `<span class="subject-mastery-badge" style="background:rgba(45, 212, 191,0.18); color:var(--primary);">⚡ متوازن (${combinedScore}%)</span>`;
+                        } else {
+                            statusBadge = `<span class="subject-mastery-badge" style="background:rgba(245,158,11,0.18); color:#fcd34d;">🎯 يحتاج تركيز</span>`;
+                        }
 
-                    subParts.push(`
-                        <div class="subject-prog-row" style="background: rgba(12, 14, 20, 0.45); padding: 8px 10px; border-radius: 9px; border: 1px solid rgba(255,255,255,0.04);">
-                            <div class="prog-label" style="align-items: center;">
-                                <span style="color:var(--text-main); font-weight:800;">${item.name}</span>
-                                <div style="display:flex; align-items:center; gap:8px;">
-                                    <span style="color:var(--text-muted); font-size:0.76rem;">⏱️ ${item.doneHours}/${item.hours}س • 📄 ${item.doneLec}/${item.totalLec} محاضرة</span>
-                                    ${statusBadge}
+                        subParts.push(`
+                            <div class="subject-prog-row" onclick="jumpToSubjectFromRec(${item.id})" style="cursor: pointer; background: rgba(12, 14, 20, 0.55); padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); transition: border-color 0.15s ease;">
+                                <div class="prog-label" style="align-items: center;">
+                                    <span style="color:var(--text-main); font-weight:800;">${item.name}</span>
+                                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                        <span style="color:var(--text-muted); font-size:0.76rem;">⏱️ ${Number(item.doneHours.toFixed(1))}/${Number(item.hours.toFixed(1))}س • 📄 ${item.doneLec}/${item.totalLec} محاضرة</span>
+                                        ${statusBadge}
+                                    </div>
+                                </div>
+                                <div class="progress-bar-bg" style="height:6px; margin-top:6px;">
+                                    <div class="progress-bar-fill" style="width:${Math.max(timePct, lecPct)}%;"></div>
                                 </div>
                             </div>
-                            <div class="progress-bar-bg" style="height:6px; margin-top:5px;">
-                                <div class="progress-bar-fill" style="width:${Math.max(timePct, lecPct)}%;"></div>
-                            </div>
-                        </div>
-                    `);
-                });
-                subList.innerHTML = subParts.join('');
+                        `);
+                    });
+                    subList.innerHTML = subParts.join('');
+                }
             }
 
-            // 5. Generate Intelligent Personalized Recommendations
+            // 5. Generate Intelligent Personalized Recommendations (No Pomodoro!)
             renderSmartRecommendations({
                 streak,
                 netPlannedStudyHours,
@@ -10814,7 +11006,6 @@
                     onClick: `quickScheduleForSubject(${targetSub.id}, 'مذاكرة محاضرة - ${targetSub.name.replace(/'/g, '')}', 'important')`
                 });
             } else if (subArray.length > 0) {
-                // Find subject with lowest lecture completion %
                 const laggingSub = subArray.slice().sort((a, b) => {
                     const pctA = a.totalLec > 0 ? (a.doneLec / a.totalLec) : 1;
                     const pctB = b.totalLec > 0 ? (b.doneLec / b.totalLec) : 1;
@@ -10827,56 +11018,43 @@
                         iconBg: 'rgba(45, 212, 191, 0.16)',
                         iconColor: 'var(--primary)',
                         title: `فرصة للتقدم في «${laggingSub.name}»`,
-                        desc: `أنهيت ${laggingSub.doneLec} من ${laggingSub.totalLec} محاضرات في هذه المادة. ابدأ جلسة تركيز لإنهاء المحاضرة التالية.`,
-                        btnText: 'بدء بومودورو 25 د للمادة',
-                        onClick: `startQuickPomodoroForSubject(${laggingSub.id})`
+                        desc: `أنهيت ${laggingSub.doneLec} من ${laggingSub.totalLec} محاضرات في هذه المادة. افتح المحاضرة التالية في استوديو الـ PDF مع التتبع الذكي.`,
+                        btnText: `فتح محاضرات ${laggingSub.name}`,
+                        onClick: `jumpToSubjectFromRec(${laggingSub.id})`
                     });
                 }
             }
 
-            // Recommendation 3: Today's Remaining Sessions or Streak Protection
-            const todayStr = new Date().toLocaleDateString('ar-EG');
-            const loggedToday = logs.some(l => l.date === todayStr);
+            // Recommendation 3: Today's Remaining Sessions
             const todayPendingEvents = scheduleEvents.filter(e => e.day === getCurrentDayIdx() && !e.isFixed && !e.completed);
-
             if (todayPendingEvents.length > 0) {
                 const nextEv = todayPendingEvents.sort((a, b) => a.startHour - b.startHour)[0];
+                const timing = getSessionDisplayTiming(nextEv);
                 recs.push({
                     priority: 'priority-medium',
-                    icon: 'fa-bullseye',
+                    icon: 'fa-calendar-check',
                     iconBg: 'rgba(59, 130, 246, 0.16)',
                     iconColor: '#93c5fd',
                     title: `لديك ${todayPendingEvents.length} مهام مجدولة لليوم قيد التنفيذ`,
-                    desc: `جلستك التالية اليوم: «${nextEv.title}» (${nextEv.duration} س) الساعة ${formatHourText(nextEv.startHour)}.`,
-                    btnText: 'الانتقال لتركيز اليوم',
+                    desc: `جلستك التالية اليوم: «${nextEv.title}» (${timing.durationBadgeText}) الساعة ${formatHourText(nextEv.startHour)}.`,
+                    btnText: 'الانتقال لجدول اليوم',
                     onClick: `switchView('schedule', document.querySelectorAll('.nav-item')[1]); switchScheduleSubView('today', document.getElementById('schPillToday'));`
-                });
-            } else if (!loggedToday) {
-                recs.push({
-                    priority: 'priority-medium',
-                    icon: 'fa-fire',
-                    iconBg: 'rgba(45, 212, 191, 0.18)',
-                    iconColor: 'var(--primary)',
-                    title: `حافظ على سلسلة التزامك اليومية (Streak 🔥)`,
-                    desc: `لم تسجّل أي إنجاز بتاريخ اليوم بعد. جلسة بومودورو واحدة (25 دقيقة) كفيلة برفع عداد التزامك!`,
-                    btnText: 'تشغيل مؤقت 25 دقيقة الآن',
-                    onClick: `startQuickPomodoroForSubject('')`
                 });
             }
 
-            // Recommendation 4: Unscheduled Backlog Tasks or Review Balance
-            const unscheduledTasks = scheduleBacklog.filter(t => !t.done);
-            if (unscheduledTasks.length > 0) {
-                const topTask = unscheduledTasks[0];
+            // Recommendation 4: Unlinked Weekly Goals in Backlog
+            const unlinkedGoals = scheduleBacklog.filter(t => !t.done && getGoalLinkedEventsList(t).length === 0);
+            if (unlinkedGoals.length > 0) {
+                const topGoal = unlinkedGoals[0];
                 recs.push({
                     priority: 'priority-good',
-                    icon: 'fa-calendar-plus',
+                    icon: 'fa-bullseye',
                     iconBg: 'rgba(16, 185, 129, 0.16)',
                     iconColor: '#6ee7b7',
-                    title: `${unscheduledTasks.length} أهداف في بنك الأسبوع بانتظار الجدولة`,
-                    desc: `المهمة «${topTask.title}» (${topTask.duration || 1.5} س) موجودة في بنك الأهداف؛ حدد لها موعداً في التقويم لضمان إنجازها.`,
-                    btnText: 'جدولة المهمة في التقويم',
-                    onClick: `switchView('schedule', document.querySelectorAll('.nav-item')[1]); scheduleBacklogTaskDirect(${topTask.id});`
+                    title: `${unlinkedGoals.length} أهداف في بنك الأسبوع بانتظار ربطها بمهمة`,
+                    desc: `الهدف «${topGoal.title}» غير مرتبط بمهمة في الجدول بعد؛ اضغط عليه لاختيار المهمة المسجلة أو جدولته.`,
+                    btnText: 'فتح أهداف الأسبوع للربط',
+                    onClick: `switchView('schedule', document.querySelectorAll('.nav-item')[1]); switchScheduleSubView('tasks', document.getElementById('schPillTasks'));`
                 });
             } else if (ctx.netPlannedStudyHours > 0 && (ctx.reviewHours / ctx.netPlannedStudyHours) < 0.15) {
                 recs.push({
@@ -10885,7 +11063,7 @@
                     iconBg: 'rgba(139, 92, 246, 0.16)',
                     iconColor: '#c4b5fd',
                     title: `تعزيز حصة المراجعة وحل الأسئلة`,
-                    desc: `ساعات المراجعة تشكل ${Math.round((ctx.reviewHours / ctx.netPlannedStudyHours) * 100)}% فقط من مذاكرتك. تخصيص 1.5 ساعة لحل الأسئلة يضاعف الاستيعاب.`,
+                    desc: `ساعات المراجعة تشكل ${Math.round((ctx.reviewHours / ctx.netPlannedStudyHours) * 100)}% فقط من مذاكرتك. تخصيص جلسة مراجعة يضاعف تثبيت المعلومات.`,
                     btnText: 'إضافة جلسة مراجعة',
                     onClick: `quickScheduleForSubject('', 'مراجعة وحل أسئلة شاملة', 'review')`
                 });
@@ -10898,7 +11076,7 @@
                     iconBg: 'rgba(16, 185, 129, 0.18)',
                     iconColor: '#6ee7b7',
                     title: 'أداؤك متوازن ومنظم بامتياز! 🌟',
-                    desc: 'جميع موادك مجدولة ومحاضراتك محدّثة. استمر بنفس الوتيرة أو دوّن إنجازاتك الجديدة.',
+                    desc: 'جميع موادك مجدولة ومحاضراتك محدّثة وأهدافك مرتبطة. استمر بنفس الوتيرة أو دوّن إنجازاتك الجديدة.',
                     btnText: 'تدوين إنجاز جديد',
                     onClick: `triggerAddLogPro()`
                 });
@@ -11421,16 +11599,18 @@
                     if (statusEl) {
                         statusEl.innerHTML = '<i class="fa-solid fa-bolt" style="color:#6ee7b7;"></i> تم الحفظ فوراً ✓';
                     }
+                    dirtyAnnotationsForCloud = true;
                     if (triggerCloudImmediately) {
                         if (annoCloudSyncTimer) clearTimeout(annoCloudSyncTimer);
-                        markLocalWorkspaceModified();
+                        markLocalWorkspaceModified(true);
                     } else {
                         if (annoCloudSyncTimer) clearTimeout(annoCloudSyncTimer);
+                        // Batch cloud PostgreSQL JSONB writes while actively annotating (10s idle window) to protect Supabase Disk IO Budget!
                         annoCloudSyncTimer = setTimeout(() => {
                             if (!isActivelyDrawingOnPdf) {
-                                markLocalWorkspaceModified();
+                                markLocalWorkspaceModified(true);
                             }
-                        }, 650);
+                        }, 10000);
                     }
                 };
             } catch (e) {}
@@ -13556,7 +13736,11 @@
 
                 // Commit permanent pen or highlighter stroke to pageAnnotations with precomputed bounding box
                 if (!pageAnnotations[pageNum]) pageAnnotations[pageNum] = [];
-                const strokePoints = currentPoints.slice();
+                const strokePoints = currentPoints.map(pt => ({
+                    x: Math.round(pt.x * 10000) / 10000,
+                    y: Math.round(pt.y * 10000) / 10000,
+                    p: Math.round((pt.p || 0.5) * 100) / 100
+                }));
                 const strokeObj = {
                     tool: effectiveTool,
                     color: currentAnnoColor,
@@ -15364,7 +15548,7 @@
             const responses = {
                 planner: '🌟 <b>لقبك: المايسترو المنظّم (The Master Planner)!</b> إنت من الناس اللي بتحب تشوف كل حاجة مرسومة بالساعة. مسطرة الساعات في صفحة التخطيط والرصد التلقائي اتفصلوا مخصوص علشانك!',
                 visual: '🎨 <b>لقبك: القناص البصري (The Visual Sniper)!</b> عينك بتلقط المعلومة من الألوان والتلخيص على السلايدات. استوديو الـ PDF والدبابيس الصوتية هيخلوا مذاكرتك متعة خالصة!',
-                sprinter: '⚡ <b>لقبك: بطل التركيز المكثف (Deep Work Hero)!</b> إنت لما بتقعد قعدة صح بتجيب المحاضرة في شوال! اعتمد على «أهداف الأسبوع» ومؤقت بومودورو 50 دقيقة وهتكسر الدنيا!'
+                sprinter: '⚡ <b>لقبك: بطل التركيز المكثف (Deep Work Hero)!</b> إنت لما بتقعد قعدة صح بتجيب المحاضرة في شوال! اعتمد على «أهداف الأسبوع» والتتبع الذكي للوقت 🧭 وهتكسر الدنيا!'
             };
             box.innerHTML = `<div style="color:#6ee7b7; font-size:0.86rem; line-height:1.6;">${responses[styleKey] || responses.planner}</div>`;
             playChimeSound();
@@ -16302,7 +16486,7 @@
                 const todayStr = new Date().toLocaleDateString('ar-EG');
                 logs = [
                     { id: 501, date: todayStr, text: 'إنهاء دراسة محاضرة: Lec 1 - Cholinergic Agonists [علم الأدوية]', mood: 'fire', subjectId: '101' },
-                    { id: 502, date: todayStr, text: 'جلسة تركيز بومودورو: 50 دقيقة [الكيمياء الحيوية]', mood: 'bolt', subjectId: '102' }
+                    { id: 502, date: todayStr, text: '🤖 إتمام ذكي تلقائي للمهمة: مراجعة Glycolysis Cycle [الكيمياء الحيوية] (1 س و 20 د)', mood: 'bolt', subjectId: '102' }
                 ];
 
                 saveSubjects();
@@ -17692,32 +17876,30 @@
             });
         }
 
-        // --- Auto-Save Trigger on Any Data Change ---
-        function markLocalWorkspaceModified() {
+        let dirtyAnnotationsForCloud = false;
+        let lastCloudPullTimestampMs = 0;
+
+        // --- Auto-Save Trigger on Any Data Change (Disk-IO Optimized) ---
+        function markLocalWorkspaceModified(includeAnnotations = false) {
+            if (includeAnnotations) dirtyAnnotationsForCloud = true;
             localStorage.setItem('pharmaWorkspaceUpdatedAt', String(Date.now()));
             localStorage.setItem('pharmaWorkspaceDirty', '1');
             if (!currentCloudUser || isBulkMediaUploading) return;
             updateCloudNavUI('syncing');
             if (cloudAutoSaveTimer) clearTimeout(cloudAutoSaveTimer);
+            // 2.5s smart debounce coalesces rapid clicks/edits into a single PostgreSQL write
             cloudAutoSaveTimer = setTimeout(() => {
                 if (!isBulkMediaUploading) pushWorkspaceToCloud(false);
-            }, 250);
+            }, 2500);
         }
 
-        async function pushWorkspaceToCloud(manualNotify = false) {
+        async function pushWorkspaceToCloud(manualNotify = false, forceIncludeAnnotations = false) {
             if (!currentCloudUser) return;
             isCloudSyncing = true;
             updateCloudNavUI('syncing');
 
             try {
-                const allAnnotations = await getAllAnnotationsMapFromDB();
-                // Keep annotations lightweight so JSONB & localStorage never choke on huge binary fallback blobs
-                const lightweightAnnotations = {};
-                Object.keys(allAnnotations || {}).forEach(k => {
-                    if (!String(k).startsWith('_cloudMedia_')) {
-                        lightweightAnnotations[k] = allAnnotations[k];
-                    }
-                });
+                const shouldSendAnnotations = Boolean(dirtyAnnotationsForCloud || forceIncludeAnnotations || manualNotify);
                 const nowIso = new Date().toISOString();
                 const payload = {
                     user_id: currentCloudUser.id,
@@ -17732,15 +17914,28 @@
                         pdfFitMode: currentPdfFitMode || 'height'
                     },
                     logs: logs || [],
-                    annotations: lightweightAnnotations,
                     academy_progress: completedAcademyModules || [],
                     updated_at: nowIso
                 };
 
+                // Only include the heavy `annotations` JSONB column when annotations actually changed!
+                // This prevents PostgreSQL from rewriting megabytes of TOAST JSONB on simple schedule/task updates.
+                if (shouldSendAnnotations) {
+                    const allAnnotations = await getAllAnnotationsMapFromDB();
+                    const lightweightAnnotations = {};
+                    Object.keys(allAnnotations || {}).forEach(k => {
+                        if (!String(k).startsWith('_cloudMedia_')) {
+                            lightweightAnnotations[k] = allAnnotations[k];
+                        }
+                    });
+                    payload.annotations = lightweightAnnotations;
+                }
+
                 // Safely save into per-account local vault without throwing QuotaExceededError
                 try {
                     const accountKey = `pharmaAccountWorkspace_${currentCloudUser.email || currentCloudUser.id}`;
-                    localStorage.setItem(accountKey, JSON.stringify(payload));
+                    const existingVault = JSON.parse(localStorage.getItem(accountKey) || '{}');
+                    localStorage.setItem(accountKey, JSON.stringify(Object.assign(existingVault, payload)));
                 } catch (quotaErr) {}
 
                 // If Supabase Cloud is configured & online, upsert to Supabase
@@ -17749,6 +17944,9 @@
                         .from('user_workspaces')
                         .upsert(payload, { onConflict: 'user_id' });
                     if (error) throw error;
+                    if (shouldSendAnnotations) {
+                        dirtyAnnotationsForCloud = false;
+                    }
                 }
 
                 localStorage.setItem('pharmaLastCloudSyncIso', nowIso);
@@ -17952,30 +18150,12 @@
         }
 
         function setupRealtimeWorkspaceSubscription() {
-            if (!supabaseClient || !currentCloudUser) return;
-            if (realtimeChannel) {
+            // Disabled postgres_changes WAL listener on user_workspaces to save 90%+ of Supabase Disk IO Budget
+            // (wal2json decoding of large JSONB rows on every update is the #1 cause of Nano Disk IO depletion).
+            if (realtimeChannel && supabaseClient) {
                 supabaseClient.removeChannel(realtimeChannel);
+                realtimeChannel = null;
             }
-            realtimeChannel = supabaseClient
-                .channel('workspace_sync_channel')
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'UPDATE',
-                        schema: 'public',
-                        table: 'user_workspaces',
-                        filter: `user_id=eq.${currentCloudUser.id}`
-                    },
-                    (payload) => {
-                        if (!isCloudSyncing && payload.new) {
-                            const lastSelfIso = localStorage.getItem('pharmaLastCloudSyncIso');
-                            if (payload.new.updated_at !== lastSelfIso) {
-                                applyCloudWorkspacePayload(payload.new, false);
-                            }
-                        }
-                    }
-                )
-                .subscribe();
         }
 
         window.addEventListener('online', () => {
@@ -17985,8 +18165,17 @@
             if (currentCloudUser) updateCloudNavUI('offline');
         });
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible' && currentCloudUser && supabaseClient && navigator.onLine) {
-                pullWorkspaceFromCloud(false);
+            if (document.visibilityState === 'hidden') {
+                // Flush any pending annotations or changes when user switches away or closes tab
+                if (dirtyAnnotationsForCloud || localStorage.getItem('pharmaWorkspaceDirty') === '1') {
+                    pushWorkspaceToCloud(false, dirtyAnnotationsForCloud);
+                }
+            } else if (document.visibilityState === 'visible' && currentCloudUser && supabaseClient && navigator.onLine) {
+                // Throttle automatic background pulls to at most once every 5 minutes to protect Disk IO
+                if (Date.now() - lastCloudPullTimestampMs > 5 * 60 * 1000 && localStorage.getItem('pharmaWorkspaceDirty') !== '1') {
+                    lastCloudPullTimestampMs = Date.now();
+                    pullWorkspaceFromCloud(false);
+                }
             }
         });
 
@@ -18095,8 +18284,9 @@
                     if (targetEv.actualStudiedMinutes >= 1) {
                         targetEv.duration = Math.max(0.25, Number((targetEv.actualStudiedMinutes / 60).toFixed(2)));
                     }
-                    saveScheduleData();
-                    return; // Open-ended Smart Tracking finishes when the user closes the viewer or completes the session
+                    // Save locally every 2s without hammering Supabase Disk IO; cloud sync happens on PDF close or completion!
+                    saveScheduleData(false);
+                    return;
                 }
 
                 const plannedMinutes = (Number(targetEv.duration) || 1) * 60;
@@ -18106,7 +18296,7 @@
                 if (targetEv.actualStudiedMinutes >= requiredMinutes && !targetEv.completed) {
                     autoCompleteScheduledSessionSmart(targetEv, lec, sub);
                 } else {
-                    saveScheduleData();
+                    saveScheduleData(false);
                 }
             }, 2000);
         }
@@ -18650,6 +18840,9 @@
 
         // --- Automatic Week-End Detection, Weekly Evaluation Report (Day 1 -> Today) & Rollover ---
         function buildWeeklyEvaluationReportObject(weekStartIsoLabel, upToTodayOnly = false) {
+            if (typeof syncAllBacklogGoalsWithLinkedSessions === 'function') {
+                syncAllBacklogGoalsWithLinkedSessions();
+            }
             const orderedDays = getOrderedWeekDays();
             const evaluatedDays = upToTodayOnly
                 ? orderedDays.filter(d => d.isPastDay || d.isToday)
@@ -18663,45 +18856,66 @@
             let completedCount = 0;
             let autoCompletedCount = 0;
             let missedCount = 0;
+            const subHoursCount = {};
 
             scheduleEvents.forEach(ev => {
                 if (ev.isFixed || ev.type === 'mandatory') return;
                 if (upToTodayOnly && !evaluatedDayIndices.has(Number(ev.day))) return;
 
-                const dur = Number(ev.duration) || 1;
+                const timing = getSessionDisplayTiming(ev);
+                const dur = timing.effectiveDurationHours;
                 totalStudyTasks++;
                 plannedHours += dur;
                 if (ev.completed) {
                     completedHours += dur;
                     completedCount++;
-                    if (ev.autoCompleted) autoCompletedCount++;
+                    if (ev.autoCompleted || ev.isOpenDuration) autoCompletedCount++;
+                    if (ev.subjectId) {
+                        subHoursCount[ev.subjectId] = (subHoursCount[ev.subjectId] || 0) + dur;
+                    }
                 } else {
                     missedHours += dur;
                     missedCount++;
                 }
             });
 
-            const adherencePct = plannedHours > 0 ? Math.round((completedHours / plannedHours) * 100) : 0;
+            // Top studied subject
+            let topSubjectName = 'متنوع';
+            let maxSubHrs = 0;
+            Object.keys(subHoursCount).forEach(sId => {
+                if (subHoursCount[sId] > maxSubHrs) {
+                    maxSubHrs = subHoursCount[sId];
+                    const sObj = subjects.find(s => String(s.id) === String(sId));
+                    if (sObj) topSubjectName = `${sObj.name} (${Number(maxSubHrs.toFixed(1))} س)`;
+                }
+            });
+
+            // Weekly Goals metrics
+            const goalsTotalCount = scheduleBacklog.length;
+            const goalsCompletedCount = scheduleBacklog.filter(g => g.done).length;
+            const goalsLinkedCount = scheduleBacklog.filter(g => getGoalLinkedEventsList(g).length > 0).length;
+
+            const adherencePct = plannedHours > 0 ? Math.round((completedHours / plannedHours) * 100) : (goalsTotalCount > 0 ? Math.round((goalsCompletedCount / goalsTotalCount) * 100) : 0);
             let grade = 'B';
             let gradeLabel = 'جيد ومتوازن ⚡';
             let gradeColor = '#38bdf8';
-            let coachAdvice = 'أداء جيد حتى الآن! استمر في ربط كل جلسة بمحاضرتها في المركز ليتم رصدها تلقائياً.';
+            let coachAdvice = 'أداء جيد ومتوازن! استمر في ربط أهداف الأسبوع بمهام جدولك ليتم تتبع ساعاتها تلقائياً.';
 
             if (adherencePct >= 85) {
                 grade = 'A+';
                 gradeLabel = 'أداء استثنائي 🏆';
                 gradeColor = '#10b981';
-                coachAdvice = 'التزام رائع جداً بالخطة منذ بداية الأسبوع وحتى اليوم! حافظ على نفس النسق.';
+                coachAdvice = 'التزام رائع جداً بالخطة وأهداف الأسبوع! حافظ على نفس النسق في الأسبوع القادم.';
             } else if (adherencePct >= 70) {
                 grade = 'A';
                 gradeLabel = 'جيد جداً 🌟';
                 gradeColor = '#2dd4bf';
-                coachAdvice = 'أنجزت معظم أهدافك منذ بداية الأسبوع وحتى اليوم. راجع المهام القليلة التي فاتتك.';
+                coachAdvice = 'أنجزت معظم مهامك وأهدافك بفاعلية عالية. راجع المهام القليلة المتبقية لتصل للعلامة الكاملة.';
             } else if (adherencePct < 50) {
                 grade = 'C';
                 gradeLabel = 'يحتاج تركيز وتعديل 🎯';
                 gradeColor = '#f59e0b';
-                coachAdvice = 'لا بأس! ركّز في الأيام المتبقية من الأسبوع على المهام ذات الأولوية واستغل أوقات الفراغ.';
+                coachAdvice = 'ركّز في الأيام القادمة على ربط كل هدف أسبوعي بمهمة محددة في الجدول واستغلال التتبع الذكي للوقت.';
             }
 
             let rangeTitle = weekStartIsoLabel || new Date().toLocaleDateString('ar-EG');
@@ -18730,6 +18944,10 @@
                 completedCount,
                 autoCompletedCount,
                 missedCount,
+                goalsTotalCount,
+                goalsCompletedCount,
+                goalsLinkedCount,
+                topSubjectName,
                 adherencePct,
                 grade,
                 gradeLabel,
@@ -18746,7 +18964,6 @@
                 return;
             }
             if (currentComputedWeekIso > plannerPrefs.currentWeekStartIso) {
-                // Week has automatically ended and a new week has begun!
                 const hasAnyStudySessions = scheduleEvents.some(e => !e.isFixed && e.type !== 'mandatory');
                 if (hasAnyStudySessions) {
                     finalizeWeekAndArchiveReport(plannerPrefs.currentWeekStartIso, currentComputedWeekIso, true);
@@ -18767,10 +18984,10 @@
             const evaluatedDayIndices = new Set(evaluatedDays.map(d => Number(d.dayIdx)));
 
             const hasStudySessionsUpToToday = scheduleEvents.some(e => !e.isFixed && e.type !== 'mandatory' && evaluatedDayIndices.has(Number(e.day)));
-            if (!hasStudySessionsUpToToday) {
+            if (!hasStudySessionsUpToToday && scheduleBacklog.length === 0) {
                 const firstDayName = orderedDays[0] ? orderedDays[0].dayName : 'بداية الأسبوع';
                 const todayDayObj = orderedDays.find(d => d.isToday) || orderedDays[0];
-                showToast(`لا توجد جلسات مذاكرة مجدولة في الفترة من (${firstDayName}) حتى اليوم (${todayDayObj.dayName}) لتقييمها بعد`, 'error');
+                showToast(`لا توجد جلسات مذاكرة أو أهداف أسبوعية في الفترة من (${firstDayName}) حتى اليوم (${todayDayObj.dayName}) لتقييمها بعد`, 'error');
                 return;
             }
             const currentComputedWeekIso = getLocalIsoDate(getWeekStartDateForDate(new Date(), plannerPrefs.weekStartDay));
@@ -18784,7 +19001,6 @@
                 : orderedDays.filter(d => d.isPastDay || d.isToday);
             const evaluatedDayIndices = new Set(evaluatedDays.map(d => Number(d.dayIdx)));
 
-            // Mark uncompleted study sessions within the evaluated range
             const nowDecH = new Date().getHours() + (new Date().getMinutes() / 60);
             scheduleEvents.forEach(ev => {
                 if (ev.isFixed || ev.type === 'mandatory' || ev.completed) return;
@@ -18799,7 +19015,6 @@
             });
 
             const report = buildWeeklyEvaluationReportObject(oldWeekIso, !isAutoRollover);
-            // If user already generated a partial report for the same week today, update it instead of duplicating endlessly
             const existingIdx = weeklyReports.findIndex(r => r.weekStartIso === report.weekStartIso && r.rangeTitle === report.rangeTitle);
             if (existingIdx >= 0) {
                 weeklyReports[existingIdx] = report;
@@ -18807,8 +19022,8 @@
                 weeklyReports.unshift(report);
             }
 
-            // Send result to Tracker Daily Log Feed as well
-            const summaryLogText = `📊 تقييم الأسبوع (${report.rangeTitle}): التقدير ${report.grade} (${report.gradeLabel}) — أُنجزت ${report.completedHours} س من ${report.plannedHours} س (${report.adherencePct}%) • مكتمل: ${report.completedCount} | لم تتم: ${report.missedCount}`;
+            const goalsTxt = (report.goalsTotalCount !== undefined) ? ` • أهداف الأسبوع: ${report.goalsCompletedCount}/${report.goalsTotalCount}` : '';
+            const summaryLogText = `📊 تقييم الأسبوع (${report.rangeTitle}): التقدير ${report.grade} (${report.gradeLabel}) — أُنجزت ${report.completedHours} س من ${report.plannedHours} س (${report.adherencePct}%)${goalsTxt} • مكتمل: ${report.completedCount} | لم تتم: ${report.missedCount}`;
             logs.unshift({
                 id: Date.now() + 1,
                 date: report.dateFormatted,
@@ -18818,7 +19033,6 @@
             });
 
             if (isAutoRollover) {
-                // Only clear schedule when the full week has actually ended automatically
                 scheduleEvents = scheduleEvents.filter(e => e.isFixed || e.type === 'mandatory');
                 plannerPrefs.currentWeekStartIso = newWeekIso;
             }
@@ -18838,16 +19052,26 @@
             showToast('🗑️ تم حذف تقرير التقييم الأسبوعي');
         }
 
+        function viewArchivedWeeklyReportById(reportId, event) {
+            if (event) event.stopPropagation();
+            const rep = weeklyReports.find(r => String(r.id) === String(reportId));
+            if (rep) openWeeklyReportSummaryModal(rep, false);
+        }
+
         function openWeeklyReportSummaryModal(report, isAutoRollover = false) {
             const modal = document.getElementById('weeklyReportModalOverlay');
             const body = document.getElementById('weeklyReportModalBody');
             if (!modal || !body || !report) return;
 
+            const goalsRatio = (report.goalsTotalCount !== undefined)
+                ? `${report.goalsCompletedCount || 0} / ${report.goalsTotalCount || 0}`
+                : `${scheduleBacklog.filter(g => g.done).length} / ${scheduleBacklog.length}`;
+
             body.innerHTML = `
-                <div style="background: rgba(15, 23, 36, 0.9); border: 1px solid rgba(45, 212, 191, 0.3); border-radius: 14px; padding: 16px; margin-bottom: 14px;">
+                <div style="background: rgba(15, 23, 36, 0.92); border: 1px solid rgba(45, 212, 191, 0.32); border-radius: 14px; padding: 16px; margin-bottom: 14px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
                         <div>
-                            <div style="font-size: 0.78rem; color: var(--text-muted);">${isAutoRollover ? '🔔 انتهى الأسبوع تلقائياً وبدأ أسبوع جديد' : '📋 تقرير تقييم الأسبوع الدراسي'}</div>
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">${isAutoRollover ? '🔔 انتهى الأسبوع تلقائياً وبدأ أسبوع جديد' : '📋 تقرير تقييم الأداء الأسبوعي'}</div>
                             <div style="font-size: 1.05rem; font-weight: 900; color: var(--text-main);">${report.rangeTitle}</div>
                         </div>
                         <span class="wec-grade-pill" style="background: rgba(45, 212, 191, 0.16); color: ${report.gradeColor}; border: 1px solid ${report.gradeColor};">
@@ -18855,27 +19079,33 @@
                         </span>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; text-align: center;">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; text-align: center;">
                         <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px;">
-                            <div style="font-size: 0.72rem; color: var(--text-muted);">ساعات المذاكرة المنجزة</div>
-                            <div style="font-size: 1.15rem; font-weight: 900; color: #6ee7b7;">${report.completedHours} / ${report.plannedHours} س</div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">ساعات المذاكرة الفعّالة</div>
+                            <div style="font-size: 1.12rem; font-weight: 900; color: #6ee7b7;">${report.completedHours} / ${report.plannedHours} س</div>
                         </div>
                         <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px;">
-                            <div style="font-size: 0.72rem; color: var(--text-muted);">مهام مكتملة (منها تلقائي 🤖)</div>
-                            <div style="font-size: 1.15rem; font-weight: 900; color: var(--primary);">${report.completedCount} (${report.autoCompletedCount} 🤖)</div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">مهام مكتملة (منها تتبع ذكي 🧭)</div>
+                            <div style="font-size: 1.12rem; font-weight: 900; color: var(--primary);">${report.completedCount} (${report.autoCompletedCount || 0} 🧭)</div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px;">
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">أهداف الأسبوع المنجزة</div>
+                            <div style="font-size: 1.12rem; font-weight: 900; color: #38bdf8;">${goalsRatio}</div>
                         </div>
                         <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px;">
                             <div style="font-size: 0.72rem; color: var(--text-muted);">مهام لم تتم ❌</div>
-                            <div style="font-size: 1.15rem; font-weight: 900; color: #fda4af;">${report.missedCount} (${report.missedHours} س)</div>
+                            <div style="font-size: 1.12rem; font-weight: 900; color: #fda4af;">${report.missedCount} (${report.missedHours} س)</div>
                         </div>
                     </div>
 
+                    ${report.topSubjectName ? `<div style="font-size:0.79rem; color:#cbd5e1; margin-bottom:10px;">🏆 <b>المادة الأكثر دراسة في هذه الفترة:</b> <span style="color:var(--primary); font-weight:800;">${report.topSubjectName}</span></div>` : ''}
+
                     <div style="font-size: 0.84rem; color: #e2e8f0; background: rgba(20, 184, 166, 0.08); border-right: 3px solid var(--primary); padding: 10px 12px; border-radius: 8px; line-height: 1.6;">
-                        💡 <b>تقييم وتوصية النظام للأسبوع الجديد:</b> ${report.coachAdvice}
+                        💡 <b>توصية النظام:</b> ${report.coachAdvice}
                     </div>
                 </div>
-                <p style="font-size: 0.85rem; color: #cbd5e1; margin: 0; text-align: center;">
-                    ✅ تم إرسال نسخة كاملة من تقييم الأسبوع إلى <b>«صفحة السجل»</b> وتجهيز جدولك النظيف (مع الاحتفاظ بمواعيد الكلية الثابتة) لتبدأ التخطيط لأسبوعك الجديد!
+                <p style="font-size: 0.82rem; color: #cbd5e1; margin: 0; text-align: center;">
+                    ✅ تم حفظ نسخة من هذا التقرير في قسم <b>«تقارير وتقييمات الأسابيع»</b> بصفحة السجل.
                 </p>
             `;
             modal.classList.add('active');
@@ -18889,14 +19119,18 @@
                 container.innerHTML = `
                     <div style="grid-column: 1 / -1; background: rgba(11, 15, 23, 0.55); border: 1px dashed rgba(148, 163, 184, 0.16); border-radius: 12px; padding: 18px; text-align: center; color: var(--text-muted); font-size: 0.83rem;">
                         <i class="fa-solid fa-calendar-check" style="color: var(--primary); font-size: 1.3rem; margin-bottom: 6px; display: block;"></i>
-                        سيظهر هنا تلقائياً تقييم كل أسبوع فور انتهائه (أو يمكنك الضغط على <b>«إصدار تقييم الأسبوع الحالي الآن»</b> بالأعلى لتجربته فوراً).
+                        سيظهر هنا تلقائياً تقرير تقييم كل أسبوع فور انتهائه (أو يمكنك الضغط على <b>«إصدار تقرير الأسبوع الحالي الآن»</b> بالأعلى).
                     </div>
                 `;
                 return;
             }
 
-            container.innerHTML = weeklyReports.slice(0, 6).map(rep => `
-                <div class="weekly-eval-card">
+            container.innerHTML = weeklyReports.slice(0, 6).map(rep => {
+                const goalsInfo = (rep.goalsTotalCount !== undefined)
+                    ? `<span>🎯 الأهداف: <b style="color:#38bdf8;">${rep.goalsCompletedCount || 0}/${rep.goalsTotalCount || 0}</b></span>`
+                    : '';
+                return `
+                <div class="weekly-eval-card" style="cursor: pointer;" onclick="viewArchivedWeeklyReportById(${rep.id}, event)">
                     <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
                         <span style="font-weight: 800; font-size: 0.9rem; color: var(--text-main);"><i class="fa-regular fa-calendar" style="color: var(--primary);"></i> ${rep.rangeTitle}</span>
                         <div style="display: flex; align-items: center; gap: 6px;">
@@ -18909,15 +19143,16 @@
                         </div>
                     </div>
                     <div style="display: flex; gap: 10px; font-size: 0.77rem; color: #cbd5e1; flex-wrap: wrap;">
-                        <span>✅ المنجز: <b style="color:#6ee7b7;">${rep.completedHours}/${rep.plannedHours} س</b> (${rep.completedCount} مهام)</span>
-                        <span>🤖 رصد ذكي: <b>${rep.autoCompletedCount || 0}</b></span>
+                        <span>✅ الساعات: <b style="color:#6ee7b7;">${rep.completedHours}/${rep.plannedHours} س</b> (${rep.completedCount} مهام)</span>
+                        ${goalsInfo}
+                        <span>🧭 تتبع ذكي: <b>${rep.autoCompletedCount || 0}</b></span>
                         <span>❌ لم تتم: <b style="color:#fda4af;">${rep.missedCount}</b></span>
                     </div>
                     <div style="font-size: 0.77rem; color: var(--text-muted); line-height: 1.5; background: rgba(255,255,255,0.02); padding: 7px 10px; border-radius: 8px;">
                         ${rep.coachAdvice}
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         // ================= GLOBAL PWA FULLSCREEN MODE & DYNAMIC MANIFEST =================
