@@ -5726,43 +5726,37 @@
                                 <div class="ghw-step-box">
                                     <span class="ghw-step-num">1</span>
                                     <div>
-                                        <div style="font-weight: 800; font-size: 0.83rem; color: var(--text-main);">فرّغ مهامك بدون توقيت</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-muted);">اكتب كل محاضرة أو شيت مطلوب منك هذا الأسبوع وحدد مدته التقريبية.</div>
+                                        <div style="font-weight: 800; font-size: 0.83rem; color: var(--text-main);">أضف هدفك بدون إدخال وقت</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted);">اكتب اسم الهدف أو اختر مهمة مسجلة مباشرة دون الحاجة لإدخال عدد الساعات يدوياً.</div>
                                     </div>
                                 </div>
                                 <div class="ghw-step-box">
                                     <span class="ghw-step-num">2</span>
                                     <div>
-                                        <div style="font-weight: 800; font-size: 0.83rem; color: var(--text-main);">حوّل الهدف إلى جلسة بالجدول</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-muted);">اضغط <b>«📅 جدولة في التقويم»</b> داخل كارت الهدف لوضعه في يوم وساعة محددة.</div>
+                                        <div style="font-weight: 800; font-size: 0.83rem; color: var(--text-main);">اربطه بمهمة (منتهية أو حالية أو مستقبلية)</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted);">اربط الهدف بأي جلسة في جدولك ليقرأ النظام ساعاتها الفعّالة وحالتها تلقائياً بذكاء.</div>
                                     </div>
                                 </div>
                                 <div class="ghw-step-box">
                                     <span class="ghw-step-num">3</span>
                                     <div>
-                                        <div style="font-weight: 800; font-size: 0.83rem; color: var(--text-main);">أتمم ووثّق في السجل</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-muted);">عند الانتهاء اضغط <b>«✓ إتمام الهدف»</b> ليُشطب ويُضاف لسجل إنجازاتك تلقائياً.</div>
+                                        <div style="font-weight: 800; font-size: 0.83rem; color: var(--text-main);">تزامن تلقائي للساعات والإتمام</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted);">تُسجّل الساعات الفعلية للجلسة المرتبطة تلقائياً ويُعلّم الهدف كمكتمل فور إنجازها.</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Add Goal Input Bar & Live Counter Summary -->
+                        <!-- Add Goal Input Bar & Smart Session Linker (Zero Manual Time Entry!) -->
                         <div class="goals-add-bar">
                             <div style="display: flex; gap: 10px; flex-wrap: wrap; flex: 1; align-items: center;">
-                                <input type="text" id="newTaskTitle" placeholder="اكتب هدفاً جديداً للأسبوع (مثال: مذاكرة المحاضرة 3 فارما / حل شيت تكنو)..." style="flex: 1; min-width: 240px; padding: 10px 14px;" onkeypress="if(event.key === 'Enter') addBacklogTask()">
-                                <select id="newTaskSubject" style="width: 165px; padding: 10px 12px;">
+                                <input type="text" id="newTaskTitle" placeholder="اكتب هدف الأسبوع (أو اختر مهمة مسجلة بالأسفل ليُملأ الاسم والوقت تلقائياً)..." style="flex: 1.2; min-width: 220px; padding: 10px 14px;" onkeypress="if(event.key === 'Enter') addBacklogTask()">
+                                <select id="newTaskSubject" style="width: 155px; padding: 10px 12px;">
                                     <option value="">📚 بدون مادة (عام)</option>
                                 </select>
-                                <div style="display: flex; align-items: center; gap: 6px; background: rgba(11, 15, 23, 0.75); border: 1px solid var(--border-color); border-radius: 10px; padding: 3px 10px;">
-                                    <span style="font-size: 0.76rem; color: var(--text-muted);">المدة:</span>
-                                    <input type="number" id="newTaskDurationInput" min="0.25" max="24" step="0.25" value="1.5" style="width: 60px; border: none; background: transparent; padding: 6px 4px; text-align: center; font-weight: 800;">
-                                    <span id="newTaskDurationUnitLbl" style="font-size: 0.76rem; color: var(--primary); font-weight: 700;">ساعة</span>
-                                    <label style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; color: #6ee7b7; font-weight: 800; cursor: pointer; padding-right: 6px; border-right: 1px solid rgba(255,255,255,0.1);" title="يتعرف تلقائياً متى بدأت ومتى انتهيت ويحسب المدة الفعلية">
-                                        <input type="checkbox" id="newTaskOpenDurationCheck" onchange="toggleNewTaskOpenDurationUI(this.checked)" style="width: 15px; height: 15px; margin: 0; accent-color: var(--primary);">
-                                        تتبع ذكي 🧭
-                                    </label>
-                                </div>
+                                <select id="newTaskLinkedSessionSelect" onchange="handleNewTaskLinkedSessionChange(this.value)" style="flex: 1; min-width: 235px; padding: 10px 12px; border-color: rgba(45, 212, 191, 0.38); color: #5eead4; font-weight: 700;">
+                                    <option value="">🧭 ربط بمهمة مسجلة (أو حساب الوقت تلقائياً)...</option>
+                                </select>
                                 <button class="btn btn-primary" style="padding: 10px 18px;" onclick="addBacklogTask()">
                                     <i class="fa-solid fa-plus"></i> أضف لبنك الأهداف
                                 </button>
@@ -8596,13 +8590,123 @@
         function getCurrentDayIdx() { return new Date().getDay(); }
 
         function formatHourText(h) {
-            let floorH = Math.floor(h);
-            let mins = Math.round((h - floorH) * 60);
-            let minStr = mins > 0 ? `:${mins < 10 ? '0' : ''}${mins}` : ':00';
-            let period = (floorH % 24) >= 12 ? 'م' : 'ص';
-            let normH = floorH % 24;
-            let displayH = normH > 12 ? normH - 12 : (normH === 0 ? 12 : normH);
+            const totalMins = Math.round((Number(h) || 0) * 60);
+            const floorH = Math.floor(totalMins / 60);
+            const mins = ((totalMins % 60) + 60) % 60;
+            const minStr = mins > 0 ? `:${mins < 10 ? '0' : ''}${mins}` : ':00';
+            const normH = ((floorH % 24) + 24) % 24;
+            const period = normH >= 12 ? 'م' : 'ص';
+            const displayH = normH > 12 ? normH - 12 : (normH === 0 ? 12 : normH);
             return `${displayH}${minStr} ${period}`;
+        }
+
+        function syncSmartSessionActualDuration(ev, finalizeEndNow = false) {
+            if (!ev) return;
+            if (ev.openTimerStartedAt) {
+                const deltaMins = Math.max(0, (Date.now() - ev.openTimerStartedAt) / 60000);
+                ev.actualStudiedMinutes = Number(((Number(ev.actualStudiedMinutes) || 0) + deltaMins).toFixed(2));
+                ev.openTimerStartedAt = finalizeEndNow ? null : Date.now();
+            }
+            const studiedMins = Number(ev.actualStudiedMinutes) || 0;
+            if (ev.isOpenDuration && studiedMins > 0) {
+                ev.duration = Math.max(0.1, Number((studiedMins / 60).toFixed(2)));
+            }
+            if (finalizeEndNow && (ev.isOpenDuration || ev.autoCompleted) && studiedMins > 0) {
+                if (ev.isOpenDuration) {
+                    ev.duration = Math.max(0.1, Number((studiedMins / 60).toFixed(2)));
+                }
+                const endMs = ev.smartEndedAtMs || ev.completedAt || Date.now();
+                if (!ev.smartEndTimeFormatted) {
+                    ev.smartEndTimeFormatted = new Date(endMs).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                }
+                if (!ev.smartStartTimeFormatted) {
+                    const startMs = ev.smartFirstStartedAtMs || (endMs - Math.round(studiedMins * 60000));
+                    const startDate = new Date(startMs);
+                    ev.smartStartTimeFormatted = startDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                }
+            }
+        }
+
+        function normalizeSmartTrackedSessions() {
+            let changed = false;
+            if (!Array.isArray(scheduleEvents)) return false;
+            scheduleEvents.forEach(ev => {
+                if (!ev || ev.isFixed || ev.type === 'mandatory') return;
+                const studiedMins = Number(ev.actualStudiedMinutes) || 0;
+                if (ev.completed && ev.openTimerStartedAt) {
+                    const endRef = ev.completedAt || Date.now();
+                    const extraMins = Math.max(0, (endRef - ev.openTimerStartedAt) / 60000);
+                    if (studiedMins < 1 && extraMins > 0) {
+                        ev.actualStudiedMinutes = Number(extraMins.toFixed(1));
+                    }
+                    ev.openTimerStartedAt = null;
+                    changed = true;
+                }
+                const finalMins = Number(ev.actualStudiedMinutes) || 0;
+                // Fix sessions where Smart Tracking recorded actualStudiedMinutes (e.g. 2h 14m = 134m) but duration stayed at the 1.5h placeholder
+                if (finalMins >= 1 && (ev.isOpenDuration || (ev.completed && ev.autoCompleted && Number(ev.duration) === 1.5 && Math.abs(finalMins - 90) > 2))) {
+                    const exactHrs = Math.max(0.1, Number((finalMins / 60).toFixed(2)));
+                    if (!ev.isOpenDuration) ev.isOpenDuration = true;
+                    if (Math.abs((Number(ev.duration) || 1.5) - exactHrs) > 0.02) {
+                        ev.duration = exactHrs;
+                        changed = true;
+                    }
+                    if (ev.completed && (!ev.smartStartTimeFormatted || !ev.smartEndTimeFormatted)) {
+                        const startDec = Number(ev.startHour) || 13;
+                        const endDec = startDec + (finalMins / 60);
+                        if (!ev.smartStartTimeFormatted) ev.smartStartTimeFormatted = formatHourText(startDec);
+                        if (!ev.smartEndTimeFormatted) ev.smartEndTimeFormatted = formatHourText(endDec);
+                        changed = true;
+                    }
+                }
+            });
+            if (changed) {
+                localStorage.setItem('pharmaScheduleV4', JSON.stringify({
+                    version: 3,
+                    events: scheduleEvents,
+                    backlog: scheduleBacklog,
+                    plannerPrefs: plannerPrefs,
+                    weeklyReports: weeklyReports
+                }));
+            }
+            return changed;
+        }
+
+        function getSessionDisplayTiming(ev) {
+            const startH = Number(ev.startHour) || 9;
+            const liveExtraMins = (!ev.completed && ev.openTimerStartedAt)
+                ? Math.max(0, (Date.now() - ev.openTimerStartedAt) / 60000)
+                : 0;
+            const totalStudiedMins = (Number(ev.actualStudiedMinutes) || 0) + liveExtraMins;
+            const hasSmartActual = (ev.isOpenDuration || ev.completedMode === 'partial_saved_rest_cancelled') && totalStudiedMins >= 1;
+
+            const effectiveDurationHours = hasSmartActual
+                ? Math.max(0.25, Number((totalStudiedMins / 60).toFixed(2)))
+                : Math.max(0.25, Number(ev.duration) || 1);
+
+            const exactEndH = hasSmartActual
+                ? (startH + (totalStudiedMins / 60))
+                : (startH + effectiveDurationHours);
+
+            const durationBadgeText = hasSmartActual
+                ? formatMinutesHumanReadable(totalStudiedMins)
+                : `${Number(effectiveDurationHours.toFixed(2))} س`;
+
+            let timeRangeText = `${formatHourText(startH)} – ${formatHourText(exactEndH)}`;
+            if (ev.isOpenDuration && !ev.completed && totalStudiedMins < 1) {
+                timeRangeText = ev.smartStartTimeFormatted
+                    ? `🧭 بدأت ${ev.smartStartTimeFormatted} (جارٍ التتبع)`
+                    : `🧭 تتبع ذكي للوقت`;
+            }
+            return {
+                startH,
+                exactEndH,
+                effectiveDurationHours,
+                durationBadgeText,
+                timeRangeText,
+                hasSmartActual,
+                totalStudiedMins
+            };
         }
 
         function switchScheduleSubView(subViewId, btnElement) {
@@ -8618,6 +8722,10 @@
         }
 
         function renderSchedule() {
+            normalizeSmartTrackedSessions();
+            if (typeof syncAllBacklogGoalsWithLinkedSessions === 'function') {
+                syncAllBacklogGoalsWithLinkedSessions();
+            }
             syncPlannerPrefsUI();
             checkWeeklyCycleAndRollover();
             evaluatePastAndTodayMissedSessions(false);
@@ -9048,6 +9156,7 @@
                 dayEvents.forEach(e => {
                     if (!e.isFixed && e.type !== 'mandatory') dayStudyHours += (Number(e.duration) || 1);
                 });
+                dayStudyHours = Number(dayStudyHours.toFixed(1));
 
                 parts.push(`
                     <div class="fluid-day-col ${isToday ? 'is-today' : ''}">
@@ -9078,12 +9187,7 @@
                     `);
                 } else {
                     dayEvents.forEach(ev => {
-                        const endHour = ev.startHour + (Number(ev.duration) || 1);
-                        const timeDisplay = (ev.isOpenDuration && !ev.completed)
-                            ? (ev.smartStartTimeFormatted ? `🧭 بدأت ${ev.smartStartTimeFormatted} (جارٍ التتبع)` : `🧭 تتبع ذكي للوقت`)
-                            : ((ev.smartStartTimeFormatted && ev.smartEndTimeFormatted && ev.completed)
-                                ? `🧭 ${ev.smartStartTimeFormatted} – ${ev.smartEndTimeFormatted}`
-                                : `${formatHourText(ev.startHour)} – ${formatHourText(endHour)}`);
+                        const timing = getSessionDisplayTiming(ev);
                         const subjectName = ev.subjectId ? (subMap.get(String(ev.subjectId)) || '') : '';
                         const smartInfo = getSmartSessionBadgesAndClasses(ev, isToday, currentDecHour);
                         const catClass = smartInfo.isFixed ? 'fluid-cat-fixed' : `fluid-cat-${ev.type || 'important'}`;
@@ -9091,7 +9195,7 @@
                         parts.push(`
                             <div class="fluid-session-card ${catClass} ${smartInfo.isDone ? 'is-done' : ''} ${smartInfo.extraCardClass}" onclick="handleBlockClick(event, ${ev.id})">
                                 <div class="fsc-top">
-                                    <span class="fsc-time">${timeDisplay} (${ev.duration}س)</span>
+                                    <span class="fsc-time">${timing.timeRangeText} (${timing.durationBadgeText})</span>
                                     <div class="fsc-actions">
                                         <button onclick="editSessionDirect(event, ${ev.id})"><i class="fa-solid fa-pen"></i></button>
                                         <button onclick="deleteSessionDirect(event, ${ev.id})"><i class="fa-solid fa-trash"></i></button>
@@ -9289,9 +9393,10 @@
                     pushFreeWindow(START_HOUR, END_HOUR);
                 } else {
                     dayEvents.forEach(ev => {
-                        const evStart = Math.max(START_HOUR, Number(ev.startHour) || 9);
-                        const evDur = Math.max(0.5, Number(ev.duration) || 1);
-                        const evEnd = evStart + evDur;
+                        const timing = getSessionDisplayTiming(ev);
+                        const evStart = Math.max(START_HOUR, timing.startH);
+                        const evDur = Math.max(0.25, timing.effectiveDurationHours);
+                        const evEnd = timing.exactEndH;
 
                         if (evStart > cursorH + 0.25) {
                             pushFreeWindow(cursorH, evStart);
@@ -9304,8 +9409,8 @@
                         streamParts.push(`
                             <div class="smart-hour-item ${catClass} ${smartInfo.isDone ? 'is-done' : ''} ${smartInfo.extraCardClass}" onclick="handleBlockClick(event, ${ev.id})">
                                 <div class="shi-time-col">
-                                    <span class="shi-time-range">${formatHourText(evStart)} – ${formatHourText(evEnd)}</span>
-                                    <span class="shi-dur-badge">${smartInfo.isFixed ? '🔒 التزام ثابت' : '⏱️ مدة الجلسة'} • ${evDur} س</span>
+                                    <span class="shi-time-range">${timing.timeRangeText}</span>
+                                    <span class="shi-dur-badge">${smartInfo.isFixed ? '🔒 التزام ثابت' : '⏱️ مدة الجلسة'} • ${timing.durationBadgeText}</span>
                                 </div>
                                 <div class="shi-body-col">
                                     <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
@@ -9371,8 +9476,9 @@
             const positionedEvents = computeNotionOverlapColumns(dayEvents);
             let eventsHtml = '';
             positionedEvents.forEach(ev => {
-                const clampedStart = Math.max(START_HOUR, Math.min(END_HOUR + 0.5, Number(ev.startHour) || 9));
-                const dur = Math.max(0.5, Number(ev.duration) || 1);
+                const timing = getSessionDisplayTiming(ev);
+                const clampedStart = Math.max(START_HOUR, Math.min(END_HOUR + 0.5, timing.startH));
+                const dur = Math.max(0.5, timing.effectiveDurationHours);
                 const topPx = Math.round((clampedStart - START_HOUR) * HOUR_HEIGHT) + 2;
                 const heightPx = Math.max(36, Math.round(dur * HOUR_HEIGHT) - 4);
 
@@ -9386,7 +9492,7 @@
                 const isDone = smartInfo.isDone;
                 const catClass = isFixed ? 'neb-mandatory' : `neb-${ev.type || 'important'}`;
                 const subName = ev.subjectId ? (subMap.get(String(ev.subjectId)) || '') : '';
-                const timeRangeStr = `${formatHourText(ev.startHour)} – ${formatHourText(ev.startHour + dur)} (${dur} س)`;
+                const timeRangeStr = `${timing.timeRangeText} (${timing.durationBadgeText})`;
 
                 eventsHtml += `
                     <div class="notion-event-block ${catClass} ${isDone ? 'is-done' : ''} ${smartInfo.extraCardClass}"
@@ -9430,8 +9536,170 @@
 
         let pendingBacklogTaskIdToLink = null;
 
+        function getSessionTemporalStatusCategory(ev) {
+            if (!ev) return { key: 'future', label: '📅 مستقبلية', color: '#38bdf8' };
+            if (ev.completed) return { key: 'completed', label: '✅ منتهية', color: '#6ee7b7' };
+            const now = new Date();
+            const todayIdx = now.getDay();
+            const curDecH = now.getHours() + (now.getMinutes() / 60);
+            const timing = getSessionDisplayTiming(ev);
+            const isLive = Boolean(ev.openTimerStartedAt) || (Number(ev.day) === todayIdx && curDecH >= timing.startH && curDecH <= timing.exactEndH);
+            if (isLive) return { key: 'current', label: '🟢 جارية الآن', color: '#2dd4bf' };
+            const orderedDays = getOrderedWeekDays();
+            const dObj = orderedDays.find(d => Number(d.dayIdx) === Number(ev.day));
+            if (dObj && (dObj.isPastDay || (dObj.isToday && curDecH > timing.exactEndH))) {
+                return { key: 'past_uncompleted', label: '⏳ سابقة', color: '#fcd34d' };
+            }
+            return { key: 'future', label: '📅 مستقبلية', color: '#38bdf8' };
+        }
+
+        function syncAllBacklogGoalsWithLinkedSessions() {
+            if (!Array.isArray(scheduleBacklog)) return false;
+            let changed = false;
+            scheduleBacklog.forEach(item => {
+                if (!item) return;
+                let linkedEv = null;
+                if (item.linkedEventId) {
+                    linkedEv = scheduleEvents.find(e => String(e.id) === String(item.linkedEventId));
+                }
+                if (!linkedEv && item.scheduledDay !== undefined && item.scheduledDay !== null) {
+                    linkedEv = scheduleEvents.find(e => !e.isFixed && e.type !== 'mandatory' && e.title === item.title && Number(e.day) === Number(item.scheduledDay));
+                }
+                // Auto-match by exact title if unlinked and a recorded session with the same title exists
+                if (!linkedEv && !item.linkedEventId && item.title) {
+                    const normT = item.title.trim().toLowerCase();
+                    linkedEv = scheduleEvents.find(e => !e.isFixed && e.type !== 'mandatory' && (e.title || '').trim().toLowerCase() === normT);
+                }
+
+                if (linkedEv) {
+                    const timing = getSessionDisplayTiming(linkedEv);
+                    if (String(item.linkedEventId) !== String(linkedEv.id)) {
+                        item.linkedEventId = linkedEv.id;
+                        changed = true;
+                    }
+                    if (item.scheduledDay !== linkedEv.day || item.scheduledHour !== linkedEv.startHour) {
+                        item.scheduledDay = linkedEv.day;
+                        item.scheduledHour = linkedEv.startHour;
+                        changed = true;
+                    }
+                    if (!item.subjectId && linkedEv.subjectId) {
+                        item.subjectId = linkedEv.subjectId;
+                        changed = true;
+                    }
+                    if (Math.abs((Number(item.duration) || 0) - timing.effectiveDurationHours) > 0.01) {
+                        item.duration = timing.effectiveDurationHours;
+                        changed = true;
+                    }
+                    item.smartDurationText = timing.durationBadgeText;
+                    item.smartTimeRangeText = timing.timeRangeText;
+                    if (linkedEv.completed && !item.done) {
+                        item.done = true;
+                        changed = true;
+                    }
+                }
+            });
+            return changed;
+        }
+
+        function buildRecordedSessionsOptionsHtml(selectedEventId = '', defaultPlaceholder = '🔗 ربط بمهمة مسجلة بالجدول (منتهية / حالية / مستقبلية)...') {
+            const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+            const studySessions = scheduleEvents.filter(e => !e.isFixed && e.type !== 'mandatory');
+            if (studySessions.length === 0) {
+                return `<option value="">${defaultPlaceholder}</option><option value="" disabled>— لا توجد جلسات مذاكرة مسجلة في الجدول حالياً —</option>`;
+            }
+
+            // Sort: Current first, then Completed, then Future
+            const sorted = studySessions.slice().sort((a, b) => {
+                const catA = getSessionTemporalStatusCategory(a).key;
+                const catB = getSessionTemporalStatusCategory(b).key;
+                const order = { current: 1, completed: 2, future: 3, past_uncompleted: 4 };
+                return (order[catA] || 9) - (order[catB] || 9) || (a.day - b.day) || (a.startHour - b.startHour);
+            });
+
+            const opts = [`<option value="">${defaultPlaceholder}</option>`];
+            sorted.forEach(ev => {
+                const cat = getSessionTemporalStatusCategory(ev);
+                const timing = getSessionDisplayTiming(ev);
+                const dayName = days[Number(ev.day)] || '';
+                const selAttr = String(ev.id) === String(selectedEventId) ? 'selected' : '';
+                opts.push(`<option value="${ev.id}" ${selAttr}>${cat.label}: ${ev.title} — ${dayName} (${timing.durationBadgeText})</option>`);
+            });
+            if (selectedEventId) {
+                opts.push(`<option value="__UNLINK__">❌ إلغاء الربط بهذه المهمة</option>`);
+            }
+            return opts.join('');
+        }
+
+        function populateNewTaskLinkedSessionDropdown() {
+            const sel = document.getElementById('newTaskLinkedSessionSelect');
+            if (!sel) return;
+            const curVal = sel.value;
+            sel.innerHTML = buildRecordedSessionsOptionsHtml(curVal, '🧭 ربط بمهمة مسجلة (أو يُحسب الوقت تلقائياً)...');
+        }
+
+        function handleNewTaskLinkedSessionChange(evId) {
+            if (!evId || evId === '__UNLINK__') return;
+            const ev = scheduleEvents.find(e => String(e.id) === String(evId));
+            if (!ev) return;
+            const titleIn = document.getElementById('newTaskTitle');
+            const subSel = document.getElementById('newTaskSubject');
+            if (titleIn && !titleIn.value.trim()) {
+                titleIn.value = ev.title;
+            }
+            if (subSel && ev.subjectId) {
+                subSel.value = String(ev.subjectId);
+            }
+        }
+
+        function linkBacklogGoalToExistingSession(taskId, eventIdVal) {
+            const t = scheduleBacklog.find(item => String(item.id) === String(taskId));
+            if (!t) return;
+
+            if (!eventIdVal || eventIdVal === '__UNLINK__') {
+                t.linkedEventId = null;
+                t.scheduledDay = null;
+                t.scheduledHour = null;
+                t.smartDurationText = '';
+                t.smartTimeRangeText = '';
+                t.duration = 0;
+                saveScheduleData();
+                updateWeeklyMetrics();
+                renderTasksView();
+                showToast('تم إلغاء ربط الهدف بالمهمة المسجلة');
+                return;
+            }
+
+            const ev = scheduleEvents.find(e => String(e.id) === String(eventIdVal));
+            if (!ev) return;
+
+            const timing = getSessionDisplayTiming(ev);
+            const cat = getSessionTemporalStatusCategory(ev);
+
+            t.linkedEventId = ev.id;
+            t.scheduledDay = ev.day;
+            t.scheduledHour = ev.startHour;
+            if (ev.subjectId) t.subjectId = ev.subjectId;
+            t.duration = timing.effectiveDurationHours;
+            t.smartDurationText = timing.durationBadgeText;
+            t.smartTimeRangeText = timing.timeRangeText;
+            t.isOpenDuration = Boolean(ev.isOpenDuration);
+
+            if (ev.completed) {
+                t.done = true;
+            }
+
+            saveScheduleData();
+            updateWeeklyMetrics();
+            renderTasksView();
+            updateTracker();
+            showToast(`🔗 تم ربط الهدف بـ «${ev.title}» (${cat.label}) وتسجيل وقتها الذكي تلقائياً (${timing.durationBadgeText})!`);
+        }
+
         function renderTasksView() {
             populateSubjectDropdowns();
+            syncAllBacklogGoalsWithLinkedSessions();
+            populateNewTaskLinkedSessionDropdown();
+
             const list = document.getElementById('tasksBacklogList');
             if (!list) return;
 
@@ -9439,16 +9707,25 @@
             const subMap = new Map();
             for (let i = 0; i < subjects.length; i++) subMap.set(String(subjects[i].id), subjects[i].name);
 
-            // Update summary strip
+            // Update summary strip using smart recorded durations
             const summaryStrip = document.getElementById('tasksSummaryStatsStrip');
             if (summaryStrip) {
                 const totalTasks = scheduleBacklog.length;
                 const doneTasks = scheduleBacklog.filter(t => t.done).length;
-                let totalHrs = 0;
-                scheduleBacklog.forEach(t => { totalHrs += (Number(t.duration) || 1.5); });
+                let totalMins = 0;
+                scheduleBacklog.forEach(t => {
+                    let linkedEv = t.linkedEventId ? scheduleEvents.find(e => String(e.id) === String(t.linkedEventId)) : null;
+                    if (linkedEv) {
+                        const timing = getSessionDisplayTiming(linkedEv);
+                        totalMins += Math.round(timing.effectiveDurationHours * 60);
+                    } else if (Number(t.duration) > 0 && !t.autoTimeTracked) {
+                        totalMins += Math.round(Number(t.duration) * 60);
+                    }
+                });
+                const totalTimeFormatted = totalMins > 0 ? formatMinutesHumanReadable(totalMins) : 'تلقائي 🧭';
                 summaryStrip.innerHTML = `
                     <span class="studio-pill">إجمالي الأهداف: <b style="color:var(--text-main);">${totalTasks}</b></span>
-                    <span class="studio-pill">مجموع الساعات: <b style="color:var(--primary);">${Number(totalHrs.toFixed(1))} س</b></span>
+                    <span class="studio-pill">الساعات المسجلة ذكياً: <b style="color:var(--primary);">${totalTimeFormatted}</b></span>
                     <span class="studio-pill" style="color:#6ee7b7;">المنجز: <b>${doneTasks}/${totalTasks}</b></span>
                 `;
             }
@@ -9458,7 +9735,7 @@
                     <div class="empty-state" style="grid-column: 1 / -1; background: rgba(18, 25, 38, 0.55); border: 1px dashed rgba(148, 163, 184, 0.14); border-radius: 14px; padding: 34px 20px;">
                         <i class="fa-solid fa-clipboard-check" style="font-size:2.6rem; color:var(--primary); opacity:0.6; margin-bottom:10px;"></i>
                         <h3>بنك أهداف الأسبوع فارغ حالياً</h3>
-                        <p style="max-width: 520px; line-height: 1.6;">اكتب في الشريط أعلاه أي محاضرة أو شيت أو مراجعة تريد إنجازها هذا الأسبوع واضغط <b>«+ أضف لبنك الأهداف»</b>، ثم حوّلها إلى جلسة مجدولة بالساعة وقتما تشاء.</p>
+                        <p style="max-width: 540px; line-height: 1.6;">اكتب اسم الهدف بالأعلى أو اختر أي مهمة مسجلة في جدولك (منتهية أو حالية أو مستقبلية) ليتم ربطها وتسجيل ساعاتها تلقائياً بدون إدخال يدوي للوقت.</p>
                     </div>
                 `;
                 return;
@@ -9468,27 +9745,46 @@
             scheduleBacklog.forEach(item => {
                 const subName = item.subjectId ? (subMap.get(String(item.subjectId)) || 'عام') : 'عام';
 
-                // Check if linked to an existing calendar event
                 let linkedEv = null;
                 if (item.linkedEventId) {
                     linkedEv = scheduleEvents.find(e => String(e.id) === String(item.linkedEventId));
                 }
                 if (!linkedEv && item.scheduledDay !== undefined && item.scheduledDay !== null) {
-                    linkedEv = scheduleEvents.find(e => e.title === item.title && e.day === item.scheduledDay);
+                    linkedEv = scheduleEvents.find(e => !e.isFixed && e.type !== 'mandatory' && e.title === item.title && e.day === item.scheduledDay);
                 }
 
                 const isScheduled = Boolean(linkedEv || (item.scheduledDay !== undefined && item.scheduledDay !== null));
                 const schedDayIdx = linkedEv ? linkedEv.day : item.scheduledDay;
-                const schedHour = linkedEv ? linkedEv.startHour : (item.scheduledHour || 9);
+                const timing = linkedEv ? getSessionDisplayTiming(linkedEv) : null;
+                const cat = linkedEv ? getSessionTemporalStatusCategory(linkedEv) : null;
 
                 let statusBadgeHtml = '';
-                if (item.done) {
-                    statusBadgeHtml = `<span class="studio-pill" style="color:#6ee7b7; border-color:rgba(16,185,129,0.35); background:rgba(16,185,129,0.1);"><i class="fa-solid fa-circle-check"></i> تم الإنجاز</span>`;
+                if (item.done || (linkedEv && linkedEv.completed)) {
+                    const doneDayTxt = (schedDayIdx >= 0 && schedDayIdx <= 6) ? ` • ${days[schedDayIdx]}` : '';
+                    statusBadgeHtml = `<span class="studio-pill" style="color:#6ee7b7; border-color:rgba(16,185,129,0.35); background:rgba(16,185,129,0.1);"><i class="fa-solid fa-circle-check"></i> مكتمل${doneDayTxt}</span>`;
+                } else if (linkedEv && cat) {
+                    statusBadgeHtml = `<span class="studio-pill" style="color:${cat.color}; border-color:rgba(56,189,248,0.35); background:rgba(56,189,248,0.1);">${cat.label}: ${days[schedDayIdx]} (${timing.timeRangeText})</span>`;
                 } else if (isScheduled && schedDayIdx >= 0 && schedDayIdx <= 6) {
-                    statusBadgeHtml = `<span class="studio-pill" style="color:#38bdf8; border-color:rgba(56,189,248,0.35); background:rgba(56,189,248,0.1);"><i class="fa-regular fa-calendar-check"></i> مجدول: ${days[schedDayIdx]} (${formatHourText(schedHour)})</span>`;
+                    statusBadgeHtml = `<span class="studio-pill" style="color:#38bdf8; border-color:rgba(56,189,248,0.35); background:rgba(56,189,248,0.1);"><i class="fa-regular fa-calendar-check"></i> مجدول: ${days[schedDayIdx]}</span>`;
                 } else {
-                    statusBadgeHtml = `<span class="studio-pill" style="color:#fcd34d; border-color:rgba(245,158,11,0.3); background:rgba(245,158,11,0.08);"><i class="fa-regular fa-clock"></i> في الانتظار (غير مجدول)</span>`;
+                    statusBadgeHtml = `<span class="studio-pill" style="color:#fcd34d; border-color:rgba(245,158,11,0.3); background:rgba(245,158,11,0.08);"><i class="fa-solid fa-compass"></i> بانتظار الربط أو الجدولة</span>`;
                 }
+
+                let smartHoursHtml = '';
+                if (linkedEv && timing) {
+                    smartHoursHtml = `<span style="color:var(--primary); font-weight:800;"><i class="fa-solid fa-compass"></i> الوقت المسجل ذكياً: <b>${timing.durationBadgeText}</b> (${ linkedEv.completed ? 'مهمة منتهية ✓' : (cat.key === 'current' ? 'مهمة جارية الآن 🟢' : 'مهمة مجدولة 📅') })</span>`;
+                } else if (item.smartDurationText) {
+                    smartHoursHtml = `<span style="color:var(--primary); font-weight:800;"><i class="fa-solid fa-compass"></i> الوقت المسجل ذكياً: <b>${item.smartDurationText}</b></span>`;
+                } else if (Number(item.duration) > 0 && !item.autoTimeTracked) {
+                    smartHoursHtml = `<span><i class="fa-regular fa-clock" style="color:var(--primary);"></i> الوقت المسجل: <b>${formatMinutesHumanReadable(Number(item.duration) * 60)}</b></span>`;
+                } else {
+                    smartHoursHtml = `<span style="color:#94a3b8;"><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary);"></i> الوقت: <b>يُسجّل تلقائياً فور ربطه بمهمة أو مذاكرته 🧭</b></span>`;
+                }
+
+                const selectOptionsHtml = buildRecordedSessionsOptionsHtml(
+                    linkedEv ? linkedEv.id : '',
+                    linkedEv ? `🔗 مرتبط بـ: ${linkedEv.title} (تغيير...)` : '🔗 ربط بمهمة مسجلة (منتهية / حالية / مستقبلية)...'
+                );
 
                 taskParts.push(`
                     <div class="backlog-card ${item.done ? 'done' : (isScheduled ? 'is-scheduled' : '')}">
@@ -9501,15 +9797,21 @@
                                 <button class="icon-btn delete" style="width:28px; height:28px;" onclick="deleteBacklogTask(${item.id})"><i class="fa-solid fa-trash" style="font-size:0.74rem;"></i></button>
                             </div>
                             <div class="b-title" style="font-size:1rem; font-weight:800; color:var(--text-main); margin-bottom:6px; line-height:1.45;">${item.title}</div>
-                            <div style="font-size:0.79rem; color:var(--text-muted); display:flex; align-items:center; gap:10px;">
-                                <span><i class="fa-regular fa-clock" style="color:var(--primary);"></i> المدة المقدرة: <b>${item.duration || 1.5} ساعة</b></span>
+                            <div style="font-size:0.79rem; color:var(--text-muted); display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                                ${smartHoursHtml}
+                            </div>
+                            <!-- Direct 1-Click Link to Any Completed, Current, or Future Session in the Schedule -->
+                            <div style="margin-top:6px;">
+                                <select onchange="linkBacklogGoalToExistingSession(${item.id}, this.value)" style="width:100%; padding:7px 10px; font-size:0.77rem; border-radius:9px; background:rgba(11,15,23,0.85); border:1px solid ${linkedEv ? 'rgba(45,212,191,0.45)' : 'rgba(148,163,184,0.18)'}; color:${linkedEv ? '#5eead4' : '#cbd5e1'}; font-weight:700; cursor:pointer;">
+                                    ${selectOptionsHtml}
+                                </select>
                             </div>
                         </div>
-                        <div style="display:flex; gap:8px; margin-top:12px; padding-top:10px; border-top:1px solid rgba(148,163,184,0.08);">
-                            <button class="btn btn-outline" style="padding:7px 12px; font-size:0.81rem; flex:1;" onclick="scheduleBacklogTaskDirect(${item.id})">
-                                <i class="fa-solid fa-calendar-plus"></i> ${isScheduled ? 'تغيير موعد الجدولة' : 'جدولة في التقويم'}
+                        <div style="display:flex; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid rgba(148,163,184,0.08);">
+                            <button class="btn btn-outline" style="padding:7px 12px; font-size:0.8rem; flex:1;" onclick="scheduleBacklogTaskDirect(${item.id})">
+                                <i class="fa-solid fa-calendar-plus"></i> ${isScheduled ? 'تعديل الموعد بالجدول' : 'جدولة كجلسة جديدة'}
                             </button>
-                            <button class="btn ${item.done ? 'btn-outline' : 'btn-success'}" style="padding:7px 14px; font-size:0.81rem;" onclick="toggleBacklogDone(${item.id})">
+                            <button class="btn ${item.done ? 'btn-outline' : 'btn-success'}" style="padding:7px 14px; font-size:0.8rem;" onclick="toggleBacklogDone(${item.id})">
                                 <i class="fa-solid ${item.done ? 'fa-rotate-left' : 'fa-check'}"></i> ${item.done ? 'تراجع' : 'إتمام'}
                             </button>
                         </div>
@@ -9889,39 +10191,75 @@
         function addBacklogTask() {
             const input = document.getElementById('newTaskTitle');
             const subSelect = document.getElementById('newTaskSubject');
-            const durInput = document.getElementById('newTaskDurationInput');
-            const openCheck = document.getElementById('newTaskOpenDurationCheck');
-            const title = input.value.trim();
+            const linkSelect = document.getElementById('newTaskLinkedSessionSelect');
+            const selectedEvId = linkSelect ? linkSelect.value : '';
+            const linkedEv = (selectedEvId && selectedEvId !== '__UNLINK__')
+                ? scheduleEvents.find(e => String(e.id) === String(selectedEvId))
+                : null;
+
+            let title = input ? input.value.trim() : '';
+            if (!title && linkedEv) {
+                title = linkedEv.title;
+            }
             if (!title) {
-                showToast('يرجى كتابة اسم الهدف أولاً', 'error');
-                input.focus();
+                showToast('يرجى كتابة اسم الهدف أو اختيار مهمة مسجلة لربطها', 'error');
+                if (input) input.focus();
                 return;
             }
-            
-            const isOpen = Boolean(openCheck && openCheck.checked);
-            const customDur = isOpen ? 1.5 : (parseFloat(durInput.value) || 1.5);
-            
+
+            // If user didn't pick from dropdown, check if a recorded session in scheduleEvents matches the title
+            const matchedEv = linkedEv || scheduleEvents.find(e =>
+                !e.isFixed && e.type !== 'mandatory' && (e.title || '').trim().toLowerCase() === title.toLowerCase()
+            );
+
+            let smartDur = 0;
+            let smartDurTxt = '';
+            let smartRangeTxt = '';
+            let isDoneNow = false;
+            let schedDay = null;
+            let schedHour = null;
+            let finalSubId = subSelect ? subSelect.value : '';
+
+            if (matchedEv) {
+                const timing = getSessionDisplayTiming(matchedEv);
+                smartDur = timing.effectiveDurationHours;
+                smartDurTxt = timing.durationBadgeText;
+                smartRangeTxt = timing.timeRangeText;
+                isDoneNow = Boolean(matchedEv.completed);
+                schedDay = matchedEv.day;
+                schedHour = matchedEv.startHour;
+                if (!finalSubId && matchedEv.subjectId) finalSubId = matchedEv.subjectId;
+            }
+
             scheduleBacklog.unshift({
                 id: Date.now(),
                 title,
-                subjectId: subSelect.value,
-                duration: customDur,
-                isOpenDuration: isOpen,
+                subjectId: finalSubId,
+                duration: smartDur,
+                smartDurationText: smartDurTxt,
+                smartTimeRangeText: smartRangeTxt,
+                isOpenDuration: true,
+                autoTimeTracked: !matchedEv,
                 createdAtMs: Date.now(),
-                done: false,
-                scheduledDay: null,
-                scheduledHour: null,
-                linkedEventId: null
+                done: isDoneNow,
+                scheduledDay: schedDay,
+                scheduledHour: schedHour,
+                linkedEventId: matchedEv ? matchedEv.id : null
             });
-            input.value = '';
-            if (openCheck) {
-                openCheck.checked = false;
-                toggleNewTaskOpenDurationUI(false);
-            }
+
+            if (input) input.value = '';
+            if (linkSelect) linkSelect.value = '';
             saveScheduleData();
             updateWeeklyMetrics();
             renderTasksView();
-            showToast(isOpen ? `⏱️ تمت إضافة الهدف بـ «وقت مفتوح» إلى بنك أهداف الأسبوع` : `✅ تمت إضافة الهدف (${customDur} س) إلى بنك أهداف الأسبوع`);
+            updateTracker();
+
+            if (matchedEv) {
+                const cat = getSessionTemporalStatusCategory(matchedEv);
+                showToast(`🔗 تمت إضافة الهدف وربطه بـ «${matchedEv.title}» (${cat.label}) وتسجيل ساعاته ذكياً (${smartDurTxt})!`);
+            } else {
+                showToast(`🧭 تمت إضافة الهدف «${title}» بدون إدخال وقت؛ سيُسجّل وقته ذكياً فور ربطه أو جدولته!`);
+            }
         }
 
         function toggleBacklogDone(taskId) {
@@ -9966,24 +10304,23 @@
         function scheduleBacklogTaskDirect(taskId) {
             const t = scheduleBacklog.find(item => item.id === taskId);
             if (!t) return;
+            if (t.linkedEventId) {
+                const existingEv = scheduleEvents.find(e => String(e.id) === String(t.linkedEventId));
+                if (existingEv) {
+                    editSessionDirect(null, existingEv.id);
+                    return;
+                }
+            }
             pendingBacklogTaskIdToLink = t.id;
             openAddSessionModal(t.scheduledDay !== null && t.scheduledDay !== undefined ? t.scheduledDay : getCurrentDayIdx(), t.scheduledHour || 17);
             document.getElementById('sessionTitleInput').value = t.title;
-            if (t.subjectId) document.getElementById('sessionSubjectSelect').value = t.subjectId;
-            
-            const dur = t.duration || 1.5;
-            const standardDurations = ['0.5', '1', '1.5', '2', '2.5', '3', '4', '5', '6', '8'];
-            if (t.isOpenDuration) {
-                document.getElementById('sessionDurationSelect').value = 'open';
-                document.getElementById('customDurationBox').style.display = 'none';
-            } else if (standardDurations.includes(String(dur))) {
-                document.getElementById('sessionDurationSelect').value = String(dur);
-                document.getElementById('customDurationBox').style.display = 'none';
-            } else {
-                document.getElementById('sessionDurationSelect').value = 'custom';
-                document.getElementById('customDurationBox').style.display = 'block';
-                document.getElementById('sessionCustomHoursInput').value = dur;
+            if (t.subjectId) {
+                document.getElementById('sessionSubjectSelect').value = t.subjectId;
+                populateSessionLecturesDropdown([]);
             }
+            // Default to Smart Time Tracking ('open') so user never has to enter time manually!
+            document.getElementById('sessionDurationSelect').value = 'open';
+            document.getElementById('customDurationBox').style.display = 'none';
             updateCalculatedEndTime();
         }
 
@@ -11753,7 +12090,7 @@
                         mergedPageToLectureMap[noteCompKey] = { item, lecId: lec.id, localPageNum: localP, saveKey: `note_${localP}`, isExtraNote: true, pdfDoc, lecAnnos };
                         mergedSlideKeysOrder.push(compositeKey);
 
-                        if (globalPageCounter === 1) {
+                        if (globalPageCounter === 1 && !currentActivePageNum) {
                             currentActivePageNum = compositeKey;
                         }
 
@@ -11847,6 +12184,7 @@
                     currentActivePageNum = mergedSlideKeysOrder[0];
                 }
                 updateMergedSlideCounterUI(currentActivePageNum);
+                setTimeout(() => goToPdfPage(currentActivePageNum, false), 40);
             }
             syncBottomBarMergedAudioDropdown();
             attachPdfScrollActivePageDetector();
@@ -12307,74 +12645,301 @@
             }
         }
 
-        async function applyPdfZoomAndKeepPage(targetPage) {
+        let activeZoomAnchorState = null;
+        let activeZoomAnchorClearTimer = null;
+
+        // Live DOM inspection to detect the exact page and intra-page vertical offset currently visible to the user
+        function captureLiveVisiblePdfPageAnchor() {
+            const scrollContainer = document.getElementById('pdfPagesScrollContainer');
+            if (!scrollContainer) {
+                return { pageKey: currentActivePageNum || 1, offsetRatio: 0 };
+            }
+            // If user is clicking zoom buttons rapidly in a burst, preserve the anchor captured at the start of the burst
+            if (activeZoomAnchorState) {
+                return activeZoomAnchorState;
+            }
+
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const focusY = containerRect.top + containerRect.height * 0.38;
+            let bestKey = currentActivePageNum || (mergedContinuousPdfMode ? (mergedSlideKeysOrder[0] || 1) : 1);
+            let bestWrapper = null;
+            let bestDist = Infinity;
+
+            const wrappers = scrollContainer.querySelectorAll('.pdf-page-wrapper:not(.pdf-extra-note-sheet)');
+            wrappers.forEach(w => {
+                const pKey = mergedContinuousPdfMode ? w.dataset.compositeKey : parseInt(w.dataset.pageNumber);
+                if (!pKey) return;
+                const r = w.getBoundingClientRect();
+                if (focusY >= r.top && focusY <= r.bottom) {
+                    bestKey = pKey;
+                    bestWrapper = w;
+                    bestDist = 0;
+                } else if (bestDist > 0) {
+                    const center = (r.top + r.bottom) * 0.5;
+                    const d = Math.abs(center - focusY);
+                    if (d < bestDist) {
+                        bestDist = d;
+                        bestKey = pKey;
+                        bestWrapper = w;
+                    }
+                }
+            });
+
+            if (!bestWrapper) {
+                bestWrapper = document.getElementById(`pdfPageWrapper_${bestKey}`);
+            }
+
+            let offsetRatio = 0;
+            if (bestWrapper) {
+                const wRect = bestWrapper.getBoundingClientRect();
+                if (wRect.height > 0) {
+                    offsetRatio = Math.max(-0.2, Math.min(0.95, (containerRect.top - wRect.top) / wRect.height));
+                }
+            }
+
+            const anchor = { pageKey: bestKey, offsetRatio };
+            activeZoomAnchorState = anchor;
+            if (activeZoomAnchorClearTimer) clearTimeout(activeZoomAnchorClearTimer);
+            activeZoomAnchorClearTimer = setTimeout(() => {
+                activeZoomAnchorState = null;
+            }, 450);
+            return anchor;
+        }
+
+        function lockScrollContainerToPageAnchor(pageKey, offsetRatio = 0) {
+            const scrollContainer = document.getElementById('pdfPagesScrollContainer');
+            const wrapper = document.getElementById(`pdfPageWrapper_${pageKey}`);
+            if (!scrollContainer || !wrapper) return;
+
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const wrapperRect = wrapper.getBoundingClientRect();
+            const wrapperTopInScroll = scrollContainer.scrollTop + (wrapperRect.top - containerRect.top);
+
+            let targetScrollTop = wrapperTopInScroll - 8;
+            if (currentPdfFitMode === 'height' || wrapperRect.height <= containerRect.height - 16) {
+                const verticalPad = Math.max(0, Math.floor((containerRect.height - wrapperRect.height) / 2));
+                targetScrollTop = wrapperTopInScroll - verticalPad;
+            } else if (Math.abs(offsetRatio) > 0.01) {
+                targetScrollTop = wrapperTopInScroll + Math.round(offsetRatio * wrapperRect.height);
+            }
+            scrollContainer.scrollTop = Math.max(0, targetScrollTop);
+        }
+
+        async function renderSingleMergedSlideAtZoom(compositeKey) {
+            const mInfo = mergedPageToLectureMap[compositeKey];
+            if (!mInfo || !mInfo.pdfDoc) return;
+            const wrapper = document.getElementById(`pdfPageWrapper_${compositeKey}`);
+            const pdfCanvas = document.getElementById(`pdfRenderCanvas_${compositeKey}`);
+            const inkCanvas = document.getElementById(`pdfInkCanvas_${compositeKey}`);
+            const laserCanvas = document.getElementById(`pdfLaserCanvas_${compositeKey}`);
+            if (!wrapper || !pdfCanvas || !inkCanvas || !laserCanvas) return;
+
+            try {
+                const page = await mInfo.pdfDoc.getPage(mInfo.localPageNum);
+                const pageScale = (currentPdfFitMode === 'height' || currentPdfFitMode === 'width')
+                    ? computeScaleForPageFit(page, currentPdfFitMode)
+                    : currentPdfZoom;
+                const pageRotation = (typeof page.rotate === 'number') ? ((page.rotate % 360) + 360) % 360 : 0;
+                const vp = page.getViewport({ scale: pageScale, rotation: pageRotation });
+                const w = Math.max(1, Math.floor(vp.width));
+                const h = Math.max(1, Math.floor(vp.height));
+
+                wrapper.style.width = `${w}px`;
+                wrapper.style.height = `${h}px`;
+
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                const renderVp = page.getViewport({ scale: pageScale * dpr, rotation: pageRotation });
+                const targetW = Math.max(1, Math.floor(renderVp.width));
+                const targetH = Math.max(1, Math.floor(renderVp.height));
+
+                const offCanvas = document.createElement('canvas');
+                offCanvas.width = targetW;
+                offCanvas.height = targetH;
+                const offCtx = offCanvas.getContext('2d', { alpha: false });
+                offCtx.fillStyle = '#ffffff';
+                offCtx.fillRect(0, 0, targetW, targetH);
+                await page.render({ canvasContext: offCtx, viewport: renderVp }).promise;
+
+                pdfCanvas.width = targetW;
+                pdfCanvas.height = targetH;
+                const visCtx = pdfCanvas.getContext('2d', { alpha: false });
+                visCtx.drawImage(offCanvas, 0, 0);
+
+                inkCanvas.width = w;
+                inkCanvas.height = h;
+                laserCanvas.width = w;
+                laserCanvas.height = h;
+
+                redrawPageAnnotations(compositeKey);
+                syncExtraNoteSheetSize(compositeKey, w, Math.floor(h * 0.75));
+                renderAudioPinsForPage(compositeKey);
+            } catch (e) {}
+        }
+
+        async function applyMergedPdfZoomAndKeepPage(explicitPageKey = null, explicitOffsetRatio = null) {
+            if (!mergedContinuousPdfMode || mergedSlideKeysOrder.length === 0) return;
+            const myZoomToken = ++pdfZoomSessionToken;
+
+            const anchor = (explicitPageKey && mergedSlideKeysOrder.includes(String(explicitPageKey)))
+                ? { pageKey: String(explicitPageKey), offsetRatio: explicitOffsetRatio || 0 }
+                : captureLiveVisiblePdfPageAnchor();
+
+            const savedKey = mergedSlideKeysOrder.includes(String(anchor.pageKey))
+                ? String(anchor.pageKey)
+                : mergedSlideKeysOrder[0];
+            const offsetRatio = anchor.offsetRatio || 0;
+
+            const mInfo = mergedPageToLectureMap[savedKey] || mergedPageToLectureMap[mergedSlideKeysOrder[0]];
+            if (!mInfo || !mInfo.pdfDoc) return;
+
+            isProgrammaticPageScroll = true;
+            if (programmaticScrollTimer) clearTimeout(programmaticScrollTimer);
+
+            try {
+                const refPage = await mInfo.pdfDoc.getPage(mInfo.localPageNum || 1);
+                if (myZoomToken !== pdfZoomSessionToken) return;
+
+                if (currentPdfFitMode === 'height' || currentPdfFitMode === 'width') {
+                    currentPdfZoom = computeScaleForPageFit(refPage, currentPdfFitMode);
+                }
+                updatePdfFitButtonsUI();
+
+                const pageRotation = (typeof refPage.rotate === 'number') ? ((refPage.rotate % 360) + 360) % 360 : 0;
+                const defaultVp = refPage.getViewport({ scale: currentPdfZoom, rotation: pageRotation });
+                const newW = Math.max(1, Math.floor(defaultVp.width));
+                const newH = Math.max(1, Math.floor(defaultVp.height));
+
+                // Synchronously resize all wrappers and immediately lock scrollTop in the SAME frame (zero jump to page 1!)
+                for (let i = 0; i < mergedSlideKeysOrder.length; i++) {
+                    const k = mergedSlideKeysOrder[i];
+                    const w = document.getElementById(`pdfPageWrapper_${k}`);
+                    if (w) {
+                        w.style.width = `${newW}px`;
+                        w.style.height = `${newH}px`;
+                    }
+                    syncExtraNoteSheetSize(k, newW, Math.floor(newH * 0.75));
+                }
+
+                updateMergedSlideCounterUI(savedKey);
+                lockScrollContainerToPageAnchor(savedKey, offsetRatio);
+
+                await renderSingleMergedSlideAtZoom(savedKey);
+                if (myZoomToken !== pdfZoomSessionToken) return;
+                lockScrollContainerToPageAnchor(savedKey, offsetRatio);
+
+                // Re-render remaining slides smoothly in background starting from neighbors
+                const curIdx = Math.max(0, mergedSlideKeysOrder.indexOf(savedKey));
+                const neighborIndices = [curIdx - 1, curIdx + 1, curIdx - 2, curIdx + 2];
+                for (const ni of neighborIndices) {
+                    if (ni >= 0 && ni < mergedSlideKeysOrder.length) {
+                        renderSingleMergedSlideAtZoom(mergedSlideKeysOrder[ni]);
+                    }
+                }
+                setTimeout(() => {
+                    if (myZoomToken !== pdfZoomSessionToken) return;
+                    mergedSlideKeysOrder.forEach((k, idx) => {
+                        if (Math.abs(idx - curIdx) > 2) {
+                            renderSingleMergedSlideAtZoom(k);
+                        }
+                    });
+                }, 120);
+            } finally {
+                programmaticScrollTimer = setTimeout(() => {
+                    isProgrammaticPageScroll = false;
+                }, 150);
+            }
+        }
+
+        async function applyPdfZoomAndKeepPage(targetPage = null, explicitOffsetRatio = null) {
+            if (mergedContinuousPdfMode) {
+                await applyMergedPdfZoomAndKeepPage(targetPage, explicitOffsetRatio);
+                return;
+            }
             if (!currentPdfDoc) return;
+
+            const anchor = (typeof targetPage === 'number' && explicitOffsetRatio !== null)
+                ? { pageKey: targetPage, offsetRatio: explicitOffsetRatio }
+                : captureLiveVisiblePdfPageAnchor();
+
+            const savedPage = Math.max(1, Math.min(totalPdfPages, parseInt(anchor.pageKey || targetPage || currentActivePageNum) || 1));
+            const offsetRatio = anchor.offsetRatio || 0;
+
             const myZoomToken = ++pdfZoomSessionToken;
             cancelAllActivePdfRenderTasks();
 
-            const savedPage = Math.max(1, Math.min(totalPdfPages, targetPage || currentActivePageNum || 1));
-            const refPage = await currentPdfDoc.getPage(savedPage);
-            if (myZoomToken !== pdfZoomSessionToken || !currentPdfDoc) return;
-
-            if (currentPdfFitMode === 'height' || currentPdfFitMode === 'width') {
-                currentPdfZoom = computeScaleForPageFit(refPage, currentPdfFitMode);
-            }
-            updatePdfFitButtonsUI();
-
-            const pageRotation = (typeof refPage.rotate === 'number') ? ((refPage.rotate % 360) + 360) % 360 : 0;
-            const defaultVp = refPage.getViewport({ scale: currentPdfZoom, rotation: pageRotation });
-            const newW = Math.max(1, Math.floor(defaultVp.width));
-            const newH = Math.max(1, Math.floor(defaultVp.height));
-
-            // Temporarily lock scroll observer while resizing placeholders
             isProgrammaticPageScroll = true;
+            if (programmaticScrollTimer) clearTimeout(programmaticScrollTimer);
 
-            for (let p = 1; p <= totalPdfPages; p++) {
-                const w = document.getElementById(`pdfPageWrapper_${p}`);
-                if (w) {
-                    w.style.width = `${newW}px`;
-                    w.style.height = `${newH}px`;
+            try {
+                const refPage = await currentPdfDoc.getPage(savedPage);
+                if (myZoomToken !== pdfZoomSessionToken || !currentPdfDoc) return;
+
+                if (currentPdfFitMode === 'height' || currentPdfFitMode === 'width') {
+                    currentPdfZoom = computeScaleForPageFit(refPage, currentPdfFitMode);
                 }
-                syncExtraNoteSheetSize(p, newW, Math.floor(newH * 0.75));
-            }
+                updatePdfFitButtonsUI();
 
-            renderedPagesSet.clear();
-            renderedPagesSet.add(savedPage);
-            if (savedPage + 1 <= totalPdfPages) renderedPagesSet.add(savedPage + 1);
-            if (savedPage - 1 >= 1) renderedPagesSet.add(savedPage - 1);
+                const pageRotation = (typeof refPage.rotate === 'number') ? ((refPage.rotate % 360) + 360) % 360 : 0;
+                const defaultVp = refPage.getViewport({ scale: currentPdfZoom, rotation: pageRotation });
+                const newW = Math.max(1, Math.floor(defaultVp.width));
+                const newH = Math.max(1, Math.floor(defaultVp.height));
 
-            await renderSinglePdfPage(savedPage);
-            if (myZoomToken !== pdfZoomSessionToken || !currentPdfDoc) return;
+                // Synchronously resize all wrappers AND immediately update scrollTop in the SAME frame before awaiting!
+                for (let p = 1; p <= totalPdfPages; p++) {
+                    const w = document.getElementById(`pdfPageWrapper_${p}`);
+                    if (w) {
+                        w.style.width = `${newW}px`;
+                        w.style.height = `${newH}px`;
+                    }
+                    syncExtraNoteSheetSize(p, newW, Math.floor(newH * 0.75));
+                }
 
-            goToPdfPage(savedPage, false);
+                updatePdfPageCounterUI(savedPage);
+                lockScrollContainerToPageAnchor(savedPage, offsetRatio);
 
-            // Render adjacent pages smoothly in background
-            if (savedPage + 1 <= totalPdfPages) {
-                renderSinglePdfPage(savedPage + 1);
-            }
-            if (savedPage - 1 >= 1) {
-                renderSinglePdfPage(savedPage - 1);
+                renderedPagesSet.clear();
+                renderedPagesSet.add(savedPage);
+                if (savedPage + 1 <= totalPdfPages) renderedPagesSet.add(savedPage + 1);
+                if (savedPage - 1 >= 1) renderedPagesSet.add(savedPage - 1);
+
+                await renderSinglePdfPage(savedPage);
+                if (myZoomToken !== pdfZoomSessionToken || !currentPdfDoc) return;
+
+                // Re-anchor scroll position after exact page render completes
+                lockScrollContainerToPageAnchor(savedPage, offsetRatio);
+
+                // Render adjacent pages smoothly in background
+                if (savedPage + 1 <= totalPdfPages) {
+                    renderSinglePdfPage(savedPage + 1);
+                }
+                if (savedPage - 1 >= 1) {
+                    renderSinglePdfPage(savedPage - 1);
+                }
+            } finally {
+                programmaticScrollTimer = setTimeout(() => {
+                    isProgrammaticPageScroll = false;
+                }, 150);
             }
         }
 
         async function setPdfFitMode(mode, silent = false) {
             if (!['height', 'width', 'custom'].includes(mode)) return;
+            const anchor = captureLiveVisiblePdfPageAnchor();
             currentPdfFitMode = mode;
             if (mode === 'height' || mode === 'width') {
                 localStorage.setItem('pharmaPdfFitMode', mode);
             }
             updatePdfFitButtonsUI();
             if (mergedContinuousPdfMode) {
-                flushPendingAnnotationsSave(false);
-                await renderMergedContinuousLecturesStream();
+                await applyMergedPdfZoomAndKeepPage(anchor.pageKey, mode === 'height' ? 0 : anchor.offsetRatio);
                 if (!silent) {
-                    if (mode === 'height') showToast('↕️ تم ضبط الزوم: محاذاة تلقائية بالطول');
-                    else if (mode === 'width') showToast('↔️ تم ضبط الزوم: محاذاة تلقائية بالعرض');
+                    if (mode === 'height') showToast('↕️ تم ضبط الزوم: محاذاة تلقائية بالطول (مع البقاء في نفس الصفحة)');
+                    else if (mode === 'width') showToast('↔️ تم ضبط الزوم: محاذاة تلقائية بالعرض (مع البقاء في نفس الصفحة)');
                 }
                 return;
             }
             if (!currentPdfDoc) return;
-            await applyPdfZoomAndKeepPage(currentActivePageNum);
+            await applyPdfZoomAndKeepPage(anchor.pageKey, mode === 'height' ? 0 : anchor.offsetRatio);
             if (!silent) {
                 if (mode === 'height') showToast('↕️ تم ضبط الزوم: محاذاة تلقائية بالطول (احتواء السلايد كاملة)');
                 else if (mode === 'width') showToast('↔️ تم ضبط الزوم: محاذاة تلقائية بالعرض (ملء عرض الشاشة)');
@@ -12387,14 +12952,14 @@
         }
 
         async function changePdfZoom(delta) {
+            const anchor = captureLiveVisiblePdfPageAnchor();
             if (mergedContinuousPdfMode) {
                 currentPdfFitMode = 'custom';
                 const nextZoom = Math.max(0.35, Math.min(3.5, currentPdfZoom + delta));
                 if (Math.abs(nextZoom - currentPdfZoom) < 0.03) return;
                 currentPdfZoom = nextZoom;
                 updatePdfFitButtonsUI();
-                flushPendingAnnotationsSave(false);
-                await renderMergedContinuousLecturesStream();
+                await applyMergedPdfZoomAndKeepPage(anchor.pageKey, anchor.offsetRatio);
                 return;
             }
             if (!currentPdfDoc) return;
@@ -12402,7 +12967,7 @@
             const nextZoom = Math.max(0.35, Math.min(3.5, currentPdfZoom + delta));
             if (Math.abs(nextZoom - currentPdfZoom) < 0.03) return;
             currentPdfZoom = nextZoom;
-            await applyPdfZoomAndKeepPage(currentActivePageNum);
+            await applyPdfZoomAndKeepPage(anchor.pageKey, anchor.offsetRatio);
         }
 
         function goToPdfPage(targetPage, smooth = true) {
@@ -14423,7 +14988,109 @@
             showToast(`تم مسح ورقة التلخيص بنجاح`);
         }
 
-        // ================= 3. EXPORT / PRINT ANNOTATED SLIDES =================
+        // ================= 3. DIRECT MULTI-PAGE PDF BINARY EXPORT ENGINE =================
+        function dataUrlToUint8Bytes(dataUrl) {
+            const parts = String(dataUrl || '').split(',');
+            const base64 = parts.length > 1 ? parts[1] : '';
+            const binStr = atob(base64);
+            const len = binStr.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binStr.charCodeAt(i);
+            }
+            return bytes;
+        }
+
+        function buildMultiPagePdfFromJpegs(pages) {
+            const encoder = new TextEncoder();
+            const chunks = [];
+            let offset = 0;
+            const offsets = [];
+
+            const pushStr = (str) => {
+                const bytes = encoder.encode(str);
+                chunks.push(bytes);
+                offset += bytes.length;
+            };
+            const pushBytes = (bytes) => {
+                chunks.push(bytes);
+                offset += bytes.length;
+            };
+            const startObj = (id) => {
+                offsets[id] = offset;
+                pushStr(`${id} 0 obj\n`);
+            };
+            const endObj = () => {
+                pushStr(`\nendobj\n`);
+            };
+
+            // Standard PDF-1.4 Header
+            pushStr('%PDF-1.4\n%\xFF\xFF\xFF\xFF\n');
+
+            const numPages = pages.length;
+            const totalObjs = 2 + numPages * 3;
+
+            // 1: Catalog
+            startObj(1);
+            pushStr('<< /Type /Catalog /Pages 2 0 R >>');
+            endObj();
+
+            // 2: Pages Tree
+            const kidsRef = pages.map((_, i) => `${3 + i * 3} 0 R`).join(' ');
+            startObj(2);
+            pushStr(`<< /Type /Pages /Kids [ ${kidsRef} ] /Count ${numPages} >>`);
+            endObj();
+
+            for (let i = 0; i < numPages; i++) {
+                const p = pages[i];
+                const pageObjId = 3 + i * 3;
+                const contentObjId = 4 + i * 3;
+                const imageObjId = 5 + i * 3;
+
+                const wPx = Math.max(1, Math.round(p.width));
+                const hPx = Math.max(1, Math.round(p.height));
+                // Convert pixel dimensions to standard PDF points (0.75 pt/px)
+                const pageW = Number((wPx * 0.75).toFixed(2));
+                const pageH = Number((hPx * 0.75).toFixed(2));
+
+                const contentStream = `q\n${pageW} 0 0 ${pageH} 0 0 cm\n/Im${i} Do\nQ\n`;
+                const contentBytes = encoder.encode(contentStream);
+
+                startObj(pageObjId);
+                pushStr(`<< /Type /Page /Parent 2 0 R /MediaBox [ 0 0 ${pageW} ${pageH} ] /Resources << /XObject << /Im${i} ${imageObjId} 0 R >> >> /Contents ${contentObjId} 0 R >>`);
+                endObj();
+
+                startObj(contentObjId);
+                pushStr(`<< /Length ${contentBytes.length} >>\nstream\n`);
+                pushBytes(contentBytes);
+                pushStr('\nendstream');
+                endObj();
+
+                startObj(imageObjId);
+                pushStr(`<< /Type /XObject /Subtype /Image /Width ${wPx} /Height ${hPx} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${p.jpegBytes.length} >>\nstream\n`);
+                pushBytes(p.jpegBytes);
+                pushStr('\nendstream');
+                endObj();
+            }
+
+            const xrefOffset = offset;
+            pushStr(`xref\n0 ${totalObjs + 1}\n`);
+            pushStr('0000000000 65535 f \n');
+            for (let id = 1; id <= totalObjs; id++) {
+                const offStr = String(offsets[id] || 0).padStart(10, '0');
+                pushStr(`${offStr} 00000 n \n`);
+            }
+            pushStr(`trailer\n<< /Size ${totalObjs + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`);
+
+            const out = new Uint8Array(offset);
+            let pos = 0;
+            for (const c of chunks) {
+                out.set(c, pos);
+                pos += c.length;
+            }
+            return out;
+        }
+
         async function exportAnnotatedSlides() {
             if (!currentUserCanUploadMedia) {
                 showToast('🔒 ميزة «استخراج وتصدير الـ PDF» مغلقة في الحساب المجاني', 'error');
@@ -14433,108 +15100,183 @@
                 showToast('يرجى فتح ملف PDF محلي أولاً لتصديره بالكتابة', 'error');
                 return;
             }
-            showToast('⏳ جاري دمج كتاباتك وتلخيصاتك وتجهيز ملف التصدير...');
+
+            // Ensure any in-progress text editor or merged annotations are committed first
+            if (activeFloatingTextEditor) {
+                commitOrCloseFloatingTextEditor(true);
+            }
+            flushPendingAnnotationsSave(false);
+
+            const statusEl = document.getElementById('pdfAutoSaveStatus');
+            showToast('⏳ جاري معالجة السلايدات ودمج كتاباتك وتلخيصاتك في ملف PDF مباشر...');
 
             try {
-                const printWin = window.open('', '_blank');
-                if (!printWin) {
-                    showToast('يرجى السماح بالنوافذ المنبثقة (Pop-ups) لتصدير وطباعة الملف', 'error');
-                    return;
-                }
-
-                printWin.document.write(`
-                    <!DOCTYPE html>
-                    <html dir="rtl" lang="ar">
-                    <head>
-                        <meta charset="UTF-8">
-                        <title>${currentViewingLec.lec.title} - نسخة مشروحة</title>
-                        <style>
-                            body { margin: 0; padding: 20px; background: #111; color: white; font-family: sans-serif; text-align: center; }
-                            .toolbar { background: #1e293b; padding: 14px 24px; border-radius: 12px; display: inline-flex; gap: 14px; align-items: center; margin-bottom: 20px; border: 1px solid #14b8a6; }
-                            .btn { background: #14b8a6; color: #000; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; }
-                            .page-img { display: block; max-width: 100%; height: auto; margin: 0 auto 20px auto; background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.5); page-break-after: always; }
-                            @media print {
-                                body { background: white; padding: 0; margin: 0; }
-                                .toolbar { display: none !important; }
-                                .page-img { margin: 0; box-shadow: none; width: 100%; max-height: 100vh; object-fit: contain; }
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="toolbar">
-                            <span>✅ تم دمج جميع كتاباتك وتلخيصاتك بنجاح!</span>
-                            <button class="btn" onclick="window.print()">🖨️ حفظ كملف PDF / طباعة الآن</button>
-                        </div>
-                        <div id="pagesContainer">جاري معالجة الصفحات...</div>
-                    </body>
-                    </html>
-                `);
-
-                const container = printWin.document.getElementById('pagesContainer');
-                container.innerHTML = '';
-
                 const slideKeysToExport = mergedContinuousPdfMode
                     ? mergedSlideKeysOrder.slice()
                     : Array.from({ length: totalPdfPages }, (_, idx) => idx + 1);
 
-                for (const p of slideKeysToExport) {
+                if (slideKeysToExport.length === 0) {
+                    showToast('لا توجد صفحات متاحة للتصدير في هذا المستند', 'error');
+                    return;
+                }
+
+                const pdfPagesData = [];
+
+                for (let idx = 0; idx < slideKeysToExport.length; idx++) {
+                    const p = slideKeysToExport[idx];
+                    if (statusEl) {
+                        statusEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:var(--primary);"></i> جاري تصدير صفحة ${idx + 1} / ${slideKeysToExport.length}...`;
+                    }
+
                     const mInfo = mergedContinuousPdfMode ? mergedPageToLectureMap[p] : null;
                     const docToUse = mergedContinuousPdfMode ? (mInfo ? mInfo.pdfDoc : null) : currentPdfDoc;
                     const pageNumToGet = mergedContinuousPdfMode ? (mInfo ? mInfo.localPageNum : 1) : p;
-                    if (!docToUse) continue;
-                    const page = await docToUse.getPage(pageNumToGet);
-                    const vp = page.getViewport({ scale: 1.6 });
-                    const offCanvas = document.createElement('canvas');
+
+                    let offCanvas = document.createElement('canvas');
                     offCanvas.setAttribute('dir', 'ltr');
                     offCanvas.style.direction = 'ltr';
-                    offCanvas.width = Math.floor(vp.width);
-                    offCanvas.height = Math.floor(vp.height);
-                    const ctx = offCanvas.getContext('2d');
-                    ctx.direction = 'ltr';
+                    let renderedOk = false;
 
-                    await page.render({ canvasContext: ctx, viewport: vp }).promise;
-
-                    // Draw saved strokes & text for this page
-                    const strokes = pageAnnotations[p] || [];
-                    for (let s of strokes) {
-                        drawSingleStrokeOnCanvas(ctx, offCanvas.width, offCanvas.height, s, true);
+                    if (docToUse) {
+                        try {
+                            const page = await docToUse.getPage(pageNumToGet);
+                            const pageRotation = (typeof page.rotate === 'number') ? ((page.rotate % 360) + 360) % 360 : 0;
+                            const vp = page.getViewport({ scale: 1.65, rotation: pageRotation });
+                            offCanvas.width = Math.max(1, Math.floor(vp.width));
+                            offCanvas.height = Math.max(1, Math.floor(vp.height));
+                            const ctx = offCanvas.getContext('2d', { alpha: false });
+                            ctx.setTransform(1, 0, 0, 1, 0, 0);
+                            ctx.direction = 'ltr';
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(0, 0, offCanvas.width, offCanvas.height);
+                            await page.render({ canvasContext: ctx, viewport: vp }).promise;
+                            renderedOk = true;
+                        } catch (pageErr) {}
                     }
 
-                    const img = printWin.document.createElement('img');
-                    img.className = 'page-img';
-                    img.src = offCanvas.toDataURL('image/jpeg', 0.92);
-                    container.appendChild(img);
+                    // Fallback to DOM canvas if offscreen getPage failed
+                    if (!renderedOk) {
+                        const domPdfCanvas = document.getElementById(`pdfRenderCanvas_${p}`);
+                        if (domPdfCanvas && domPdfCanvas.width > 0 && domPdfCanvas.height > 0) {
+                            offCanvas.width = domPdfCanvas.width;
+                            offCanvas.height = domPdfCanvas.height;
+                            const ctx = offCanvas.getContext('2d', { alpha: false });
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(0, 0, offCanvas.width, offCanvas.height);
+                            ctx.drawImage(domPdfCanvas, 0, 0);
+                            renderedOk = true;
+                        }
+                    }
 
-                    // If this page also has an active extra note sheet with strokes, export it right after
+                    if (!renderedOk) continue;
+
+                    // Draw saved pen/highlighter strokes & keyboard text annotations for this slide
+                    const ctx = offCanvas.getContext('2d');
+                    let strokes = pageAnnotations[p];
+                    if ((!strokes || strokes.length === 0) && mInfo && mInfo.lecAnnos) {
+                        strokes = mInfo.lecAnnos[mInfo.localPageNum] || [];
+                    }
+                    if (Array.isArray(strokes)) {
+                        for (const s of strokes) {
+                            drawSingleStrokeOnCanvas(ctx, offCanvas.width, offCanvas.height, s, true);
+                        }
+                    }
+
+                    const slideJpegUrl = offCanvas.toDataURL('image/jpeg', 0.92);
+                    pdfPagesData.push({
+                        width: offCanvas.width,
+                        height: offCanvas.height,
+                        jpegBytes: dataUrlToUint8Bytes(slideJpegUrl)
+                    });
+
+                    // Check if this slide also has an Extra Note Sheet (either with strokes or explicitly opened)
                     const noteKey = `note_${p}`;
-                    const noteStrokes = pageAnnotations[noteKey] || [];
-                    if (noteStrokes.length > 0) {
+                    let noteStrokes = pageAnnotations[noteKey];
+                    if ((!noteStrokes || noteStrokes.length === 0) && mInfo && mInfo.lecAnnos) {
+                        noteStrokes = mInfo.lecAnnos[`note_${mInfo.localPageNum}`] || [];
+                    }
+                    const isExtraOpened = Boolean(
+                        (pageAnnotations._extraNotes && pageAnnotations._extraNotes[p]) ||
+                        (mInfo && mInfo.lecAnnos && mInfo.lecAnnos._extraNotes && mInfo.lecAnnos._extraNotes[mInfo.localPageNum])
+                    );
+
+                    if ((Array.isArray(noteStrokes) && noteStrokes.length > 0) || isExtraOpened) {
                         const noteCanvas = document.createElement('canvas');
                         noteCanvas.width = offCanvas.width;
-                        noteCanvas.height = Math.floor(offCanvas.height * 0.75);
-                        const nCtx = noteCanvas.getContext('2d');
+                        noteCanvas.height = Math.max(1, Math.floor(offCanvas.height * 0.75));
+                        const nCtx = noteCanvas.getContext('2d', { alpha: false });
+
+                        // Warm cream paper background
                         nCtx.fillStyle = '#fcfaf5';
                         nCtx.fillRect(0, 0, noteCanvas.width, noteCanvas.height);
 
-                        // Subtle header text
-                        nCtx.fillStyle = '#78350f';
-                        nCtx.font = 'bold 18px sans-serif';
-                        nCtx.fillText(`ورقة تلخيص إضافية - تابعة لصفحة (${p})`, 30, 35);
-
-                        for (let ns of noteStrokes) {
-                            drawSingleStrokeOnCanvas(nCtx, noteCanvas.width, noteCanvas.height, ns, true);
+                        // Subtle dotted grid pattern
+                        nCtx.fillStyle = '#cbd5e1';
+                        const stepPx = Math.max(18, Math.round(noteCanvas.width / 45));
+                        for (let gx = stepPx; gx < noteCanvas.width; gx += stepPx) {
+                            for (let gy = stepPx + 36; gy < noteCanvas.height; gy += stepPx) {
+                                nCtx.fillRect(gx, gy, 2, 2);
+                            }
                         }
-                        const noteImg = printWin.document.createElement('img');
-                        noteImg.className = 'page-img';
-                        noteImg.src = noteCanvas.toDataURL('image/jpeg', 0.92);
-                        container.appendChild(noteImg);
+
+                        // Header band
+                        nCtx.fillStyle = 'rgba(45, 212, 191, 0.16)';
+                        nCtx.fillRect(0, 0, noteCanvas.width, 40);
+                        nCtx.fillStyle = '#0f766e';
+                        nCtx.font = 'bold 18px Tajawal, sans-serif';
+                        const pageLabel = mInfo
+                            ? `${mInfo.item.lec.title} - صفحة ${mInfo.localPageNum}`
+                            : `صفحة ${p}`;
+                        nCtx.fillText(`ورقة تلخيص وملاحظات إضافية — ${pageLabel}`, 24, 26);
+
+                        if (Array.isArray(noteStrokes)) {
+                            for (const ns of noteStrokes) {
+                                drawSingleStrokeOnCanvas(nCtx, noteCanvas.width, noteCanvas.height, ns, true);
+                            }
+                        }
+
+                        const noteJpegUrl = noteCanvas.toDataURL('image/jpeg', 0.92);
+                        pdfPagesData.push({
+                            width: noteCanvas.width,
+                            height: noteCanvas.height,
+                            jpegBytes: dataUrlToUint8Bytes(noteJpegUrl)
+                        });
                     }
                 }
 
-                printWin.document.close();
-                showToast('تم تجهيز المحاضرة المشروحة للتصدير والطباعة بنجاح 📥');
+                if (pdfPagesData.length === 0) {
+                    showToast('تعذر استخراج صفحات الـ PDF، يرجى التأكد من تحميل الملف أولاً', 'error');
+                    return;
+                }
+
+                const pdfBinaryBytes = buildMultiPagePdfFromJpegs(pdfPagesData);
+                const pdfBlob = new Blob([pdfBinaryBytes], { type: 'application/pdf' });
+                const downloadUrl = URL.createObjectURL(pdfBlob);
+
+                const rawTitle = mergedContinuousPdfMode
+                    ? `${currentViewingLec.sub?.name || 'محاضرات'}_مدمجة_مشروحة`
+                    : `${currentViewingLec.lec?.title || 'محاضرة'}_مشروحة`;
+                const safeFileName = rawTitle.replace(/[\\/:*?"<>|]+/g, '_').trim() || 'محاضرة_مشروحة';
+
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = `${safeFileName}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                setTimeout(() => {
+                    link.remove();
+                    URL.revokeObjectURL(downloadUrl);
+                }, 4000);
+
+                if (statusEl) {
+                    statusEl.innerHTML = '<i class="fa-solid fa-file-circle-check" style="color:#6ee7b7;"></i> تم تصدير الـ PDF بنجاح ✓';
+                }
+                showToast(`📥 تم تصدير وتحميل ملف الـ PDF المشروح (${pdfPagesData.length} صفحة) بنجاح!`);
             } catch (err) {
-                showToast('حدث خطأ أثناء تصدير الصفحات', 'error');
+                if (statusEl) {
+                    statusEl.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> حفظ تلقائي';
+                }
+                showToast('حدث خطأ أثناء تصدير ملف الـ PDF', 'error');
             }
         }
 
@@ -17287,9 +18029,30 @@
             });
         }
 
+        let lastStudyTrackTickMs = 0;
+
         function startLiveLectureStudyTracking(sub, group, lec) {
             if (activePdfStudyTrackerInterval) clearInterval(activePdfStudyTrackerInterval);
-            activePdfStudySessionStartMs = Date.now();
+            const nowMs = Date.now();
+            activePdfStudySessionStartMs = nowMs;
+            lastStudyTrackTickMs = nowMs;
+
+            // Immediate zero-delay activation on lecture open
+            let initCandidates = findMatchingScheduledSessionsForLecture(lec, sub?.id, true);
+            if (initCandidates.length === 0) {
+                initCandidates = findMatchingScheduledSessionsForLecture(lec, sub?.id, false);
+            }
+            if (initCandidates.length > 0) {
+                const nowDecH = new Date().getHours() + (new Date().getMinutes() / 60);
+                initCandidates.sort((a, b) => Math.abs(a.startHour - nowDecH) - Math.abs(b.startHour - nowDecH));
+                const firstEv = initCandidates[0];
+                if (firstEv.isOpenDuration) {
+                    recordSmartSessionActualStart(firstEv);
+                    // We track via lastStudyTrackTickMs directly into actualStudiedMinutes, so clear openTimerStartedAt to avoid double-counting
+                    firstEv.openTimerStartedAt = null;
+                    saveScheduleData();
+                }
+            }
 
             activePdfStudyTrackerInterval = setInterval(() => {
                 const pdfOverlay = document.getElementById('pdfViewerModalOverlay');
@@ -17299,26 +18062,43 @@
                     return;
                 }
 
-                // Find matching scheduled session (prefer today's session, else any day this week)
+                const curMs = Date.now();
+                const deltaMins = Math.max(0, (curMs - (lastStudyTrackTickMs || curMs)) / 60000);
+                lastStudyTrackTickMs = curMs;
+                if (deltaMins <= 0) return;
+
                 let candidates = findMatchingScheduledSessionsForLecture(lec, sub?.id, true);
                 if (candidates.length === 0) {
                     candidates = findMatchingScheduledSessionsForLecture(lec, sub?.id, false);
                 }
                 if (candidates.length === 0) return;
 
-                // Pick the session closest to current hour
                 const nowDecH = new Date().getHours() + (new Date().getMinutes() / 60);
                 candidates.sort((a, b) => Math.abs(a.startHour - nowDecH) - Math.abs(b.startHour - nowDecH));
                 const targetEv = candidates[0];
-                if (targetEv.isOpenDuration && !targetEv.openTimerStartedAt) {
-                    recordSmartSessionActualStart(targetEv);
+
+                if (targetEv.openTimerStartedAt) {
+                    // Fold any external manual start timestamp once so there is zero double-counting
+                    const extDelta = Math.max(0, (curMs - targetEv.openTimerStartedAt) / 60000);
+                    targetEv.actualStudiedMinutes = Number(((Number(targetEv.actualStudiedMinutes) || 0) + extDelta).toFixed(2));
+                    targetEv.openTimerStartedAt = null;
+                } else {
+                    targetEv.actualStudiedMinutes = Number(((Number(targetEv.actualStudiedMinutes) || 0) + deltaMins).toFixed(2));
                 }
 
-                targetEv.actualStudiedMinutes = Number(((Number(targetEv.actualStudiedMinutes) || 0) + (10 / 60)).toFixed(2));
                 if (targetEv.isOpenDuration) {
+                    if (!targetEv.smartFirstStartedAtMs) {
+                        recordSmartSessionActualStart(targetEv);
+                        targetEv.openTimerStartedAt = null;
+                    }
+                    // Dynamically sync ev.duration to the actual studied time so it NEVER stays stuck at 1.5h
+                    if (targetEv.actualStudiedMinutes >= 1) {
+                        targetEv.duration = Math.max(0.25, Number((targetEv.actualStudiedMinutes / 60).toFixed(2)));
+                    }
                     saveScheduleData();
-                    return; // Open-ended sessions do not auto-terminate until the user finishes
+                    return; // Open-ended Smart Tracking finishes when the user closes the viewer or completes the session
                 }
+
                 const plannedMinutes = (Number(targetEv.duration) || 1) * 60;
                 const thresholdRatio = (Number(plannerPrefs.autoCompletePct) || 75) / 100;
                 const requiredMinutes = plannedMinutes * thresholdRatio;
@@ -17328,7 +18108,7 @@
                 } else {
                     saveScheduleData();
                 }
-            }, 10000);
+            }, 2000);
         }
 
         function stopLiveLectureStudyTracking(closingLecRef) {
@@ -17337,10 +18117,15 @@
                 activePdfStudyTrackerInterval = null;
             }
             if (!closingLecRef || !closingLecRef.lec) return;
-            const elapsedSessionMins = activePdfStudySessionStartMs > 0
-                ? Math.max(0, (Date.now() - activePdfStudySessionStartMs) / 60000)
+            const nowMs = Date.now();
+            const unrecordedTickMins = lastStudyTrackTickMs > 0
+                ? Math.max(0, (nowMs - lastStudyTrackTickMs) / 60000)
+                : 0;
+            const totalElapsedSessionMins = activePdfStudySessionStartMs > 0
+                ? Math.max(0, (nowMs - activePdfStudySessionStartMs) / 60000)
                 : 0;
             activePdfStudySessionStartMs = 0;
+            lastStudyTrackTickMs = 0;
 
             const { sub, lec } = closingLecRef;
             let candidates = findMatchingScheduledSessionsForLecture(lec, sub?.id, true);
@@ -17350,19 +18135,38 @@
             if (candidates.length === 0) return;
 
             const targetEv = candidates[0];
-            if (elapsedSessionMins >= 0.15 && (Number(targetEv.actualStudiedMinutes) || 0) < elapsedSessionMins) {
-                targetEv.actualStudiedMinutes = Number(elapsedSessionMins.toFixed(1));
+            if (targetEv.openTimerStartedAt) {
+                const extDelta = Math.max(0, (nowMs - targetEv.openTimerStartedAt) / 60000);
+                targetEv.actualStudiedMinutes = Number(((Number(targetEv.actualStudiedMinutes) || 0) + extDelta).toFixed(2));
+                targetEv.openTimerStartedAt = null;
+            } else if (unrecordedTickMins > 0) {
+                targetEv.actualStudiedMinutes = Number(((Number(targetEv.actualStudiedMinutes) || 0) + unrecordedTickMins).toFixed(2));
+            }
+            if (totalElapsedSessionMins >= 0.15 && (Number(targetEv.actualStudiedMinutes) || 0) < totalElapsedSessionMins) {
+                targetEv.actualStudiedMinutes = Number(totalElapsedSessionMins.toFixed(2));
+            }
+
+            const studiedSoFar = Number(targetEv.actualStudiedMinutes) || 0;
+
+            // If Smart Time Tracking (isOpenDuration) is active: automatically save & complete with the exact studied duration!
+            if (targetEv.isOpenDuration) {
+                if (studiedSoFar >= 0.5 && !targetEv.completed) {
+                    syncSmartSessionActualDuration(targetEv, true);
+                    autoCompleteScheduledSessionSmart(targetEv, lec, sub);
+                } else {
+                    saveScheduleData();
+                    renderSchedule();
+                }
+                return;
             }
 
             const plannedMinutes = (Number(targetEv.duration) || 1) * 60;
             const thresholdRatio = (Number(plannerPrefs.autoCompletePct) || 75) / 100;
             const requiredMinutes = plannedMinutes * thresholdRatio;
-            const studiedSoFar = Number(targetEv.actualStudiedMinutes) || 0;
 
             if (studiedSoFar >= requiredMinutes && !targetEv.completed) {
                 autoCompleteScheduledSessionSmart(targetEv, lec, sub);
-            } else if (!targetEv.completed) {
-                // User opened/studied the scheduled lecture but didn't spend full required time inside the app
+            } else if (!targetEv.completed && studiedSoFar >= 0.25) {
                 openSmartStudyVerifyModal(targetEv, 'pdf_closed', lec, sub);
             }
         }
@@ -17375,18 +18179,25 @@
             if (candidates.length === 0) return;
 
             const targetEv = candidates[0];
+            syncSmartSessionActualDuration(targetEv, false);
+            const studiedMins = Number(targetEv.actualStudiedMinutes) || 0;
+
+            if (targetEv.isOpenDuration && studiedMins >= 0.5) {
+                syncSmartSessionActualDuration(targetEv, true);
+                autoCompleteScheduledSessionSmart(targetEv, lec, sub);
+                return;
+            }
+
             const now = new Date();
             const isToday = targetEv.day === now.getDay();
             const curDecH = now.getHours() + (now.getMinutes() / 60);
             const inScheduledTimeWindow = isToday && curDecH >= (targetEv.startHour - 0.5) && curDecH <= (targetEv.startHour + targetEv.duration + 1);
             const plannedMinutes = (Number(targetEv.duration) || 1) * 60;
             const requiredMinutes = plannedMinutes * ((Number(plannerPrefs.autoCompletePct) || 75) / 100);
-            const studiedMins = Number(targetEv.actualStudiedMinutes) || 0;
 
             if (studiedMins >= requiredMinutes) {
                 autoCompleteScheduledSessionSmart(targetEv, lec, sub);
             } else {
-                // Ask the user since they marked the lecture completed without full tracked app time (may have studied offline!)
                 openSmartStudyVerifyModal(targetEv, inScheduledTimeWindow ? 'in_window_check' : 'lecture_checked', lec, sub);
             }
         }
@@ -17401,6 +18212,11 @@
 
             const targetEv = candidates[0];
             targetEv.actualStudiedMinutes = Number(((Number(targetEv.actualStudiedMinutes) || 0) + Number(pomoMinutes)).toFixed(1));
+            if (targetEv.isOpenDuration) {
+                syncSmartSessionActualDuration(targetEv, true);
+                autoCompleteScheduledSessionSmart(targetEv, null, subjects.find(s => String(s.id) === String(targetEv.subjectId)));
+                return;
+            }
             const plannedMinutes = (Number(targetEv.duration) || 1) * 60;
             const requiredMinutes = plannedMinutes * ((Number(plannerPrefs.autoCompletePct) || 75) / 100);
 
@@ -17415,19 +18231,37 @@
 
         function autoCompleteScheduledSessionSmart(ev, lecObj = null, subObj = null) {
             if (!ev || ev.completed) return;
+            ev.completedAt = Date.now();
+            ev.smartEndedAtMs = ev.completedAt;
+            syncSmartSessionActualDuration(ev, true);
+
+            const studiedMins = Number(ev.actualStudiedMinutes) || 0;
+            if (studiedMins >= 1 && ev.isOpenDuration) {
+                ev.duration = Math.max(0.25, Number((studiedMins / 60).toFixed(2)));
+            }
+
             ev.completed = true;
             ev.missed = false;
             ev.autoCompleted = true;
-            ev.completedAt = Date.now();
 
-            // Also mark linked lecture in المركز as completed if not already
-            if (!lecObj && ev.lectureId) {
+            // Mark ALL linked lectures (both single lectureId and multi-lecture lectureIds) in المركز as completed
+            const linkedIds = Array.isArray(ev.lectureIds) && ev.lectureIds.length > 0
+                ? ev.lectureIds.map(String)
+                : (ev.lectureId ? [String(ev.lectureId)] : []);
+
+            let anySubjectUpdated = false;
+            if (linkedIds.length > 0) {
                 subjects.forEach(s => {
                     (s.groups || []).forEach(g => {
                         (g.lectures || []).forEach(l => {
-                            if (String(l.id) === String(ev.lectureId)) {
-                                lecObj = l;
-                                subObj = s;
+                            if (linkedIds.includes(String(l.id))) {
+                                if (!subObj) subObj = s;
+                                if (!l.completed) {
+                                    l.completed = true;
+                                    l.lastStudiedAt = Date.now();
+                                    l.reviewCount = (l.reviewCount || 0) + 1;
+                                    anySubjectUpdated = true;
+                                }
                             }
                         });
                     });
@@ -17437,6 +18271,9 @@
                 lecObj.completed = true;
                 lecObj.lastStudiedAt = Date.now();
                 lecObj.reviewCount = (lecObj.reviewCount || 0) + 1;
+                anySubjectUpdated = true;
+            }
+            if (anySubjectUpdated) {
                 saveSubjects();
                 renderSubjectsList();
                 if (activeSubjectId) renderGroups();
@@ -17446,12 +18283,18 @@
             scheduleBacklog.forEach(t => {
                 if (String(t.linkedEventId) === String(ev.id) || (t.title === ev.title && !t.done)) {
                     t.done = true;
+                    if (ev.isOpenDuration && studiedMins >= 1) {
+                        t.duration = ev.duration;
+                    }
                 }
             });
 
+            const humanDurationLabel = (ev.isOpenDuration && studiedMins >= 1)
+                ? formatMinutesHumanReadable(studiedMins)
+                : `${ev.duration} س`;
             const dateStr = new Date().toLocaleDateString('ar-EG');
             const subLabel = subObj ? ` [${subObj.name}]` : '';
-            const logText = `🤖 إتمام ذكي تلقائي للمهمة: ${ev.title}${subLabel} (${ev.duration} س)`;
+            const logText = `🤖 إتمام ذكي تلقائي للمهمة: ${ev.title}${subLabel} (${humanDurationLabel})`;
             if (!logs.some(l => l.text === logText && l.date === dateStr)) {
                 logs.unshift({
                     id: Date.now(),
@@ -17467,7 +18310,7 @@
             renderSchedule();
             updateTracker();
             playChimeSound();
-            showToast(`🤖 رائع! اكتشف النظام مذاكرتك لـ «${ev.title}» في الوقت المحدد وتم تعليمها كمكتملة تلقائياً!`);
+            showToast(`🤖 تم حفظ وإتمام «${ev.title}» تلقائياً بالوقت الفعلي (${humanDurationLabel}) في الجدول والسجل!`);
         }
 
         function openSmartStudyVerifyModal(ev, reason = 'partial', lecObj = null, subObj = null) {
