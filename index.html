@@ -11059,6 +11059,12 @@
             }
         }
 
+        let isLaserPointerDown = false;
+        let lastLaserActivityAt = 0;
+        let laserPageFadingState = {};
+        const LASER_HOLD_AFTER_STOP_MS = 1250; // Laser stays 100% bright until user stops writing for 1.25s
+        const LASER_FADE_DURATION_MS = 650;    // Smooth fade-out after user stops writing
+
         function attachGraphicTabletListeners(inkCanvas, laserCanvas, pageNum) {
             let isDrawing = false;
             let isPanning = false;
@@ -11066,6 +11072,7 @@
             let currentPoints = [];
             let lastDrawnIdx = 0;
             let activeToolOnStroke = 'pen';
+            let lastRawPt = null;
 
             // Cached bounding box & 2D contexts per stroke to eliminate synchronous layout thrashing (0 reflows during pointermove!)
             let cachedRectLeft = 0;
@@ -11150,26 +11157,62 @@
                 isDrawing = true;
                 isActivelyDrawingOnPdf = true;
                 activeToolOnStroke = effectiveTool;
+                lastRawPt = pt;
                 try { inkCanvas.setPointerCapture(e.pointerId); } catch (err) {}
                 currentPoints = [pt];
                 lastDrawnIdx = 0;
 
                 if (effectiveTool === 'eraser') {
                     eraseAtPoint(pageNum, pt.x, pt.y);
-                } else {
-                    const hasFadingLaser = Boolean(laserStrokes[pageNum] && laserStrokes[pageNum].length > 0);
-                    if (effectiveTool === 'highlighter' && !hasFadingLaser) {
-                        laserCanvas.style.opacity = '0.32';
-                    } else {
-                        laserCanvas.style.opacity = '1';
-                    }
-                    if (!hasFadingLaser) {
-                        // O(1) instant initial dot without full-canvas clear overhead
-                        drawIncrementalStrokeSegments(lCtx, laserCanvas.width, laserCanvas.height, effectiveTool, currentAnnoColor, currentAnnoSize, currentPoints, 0);
-                    } else {
-                        drawLiveStrokePreview(laserCanvas, effectiveTool, currentPoints, pageNum);
-                    }
+                    return;
                 }
+
+                if (effectiveTool === 'laser') {
+                    // User started/resumed writing with Laser: keep all existing laser strokes on the page 100% bright!
+                    isLaserPointerDown = true;
+                    lastLaserActivityAt = performance.now();
+                    laserCanvas.style.opacity = '1';
+
+                    const existingList = laserStrokes[pageNum];
+                    if (existingList && existingList.length > 0 && laserPageFadingState[pageNum]) {
+                        // If previous laser strokes had just started fading out, restore them to 100% brightness immediately
+                        lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+                        for (let i = 0; i < existingList.length; i++) {
+                            const s = existingList[i];
+                            drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, s.points, s.color, s.size, 1.0);
+                        }
+                        laserPageFadingState[pageNum] = false;
+                    }
+                    lastDrawnIdx = drawIncrementalStrokeSegments(
+                        lCtx,
+                        laserCanvas.width,
+                        laserCanvas.height,
+                        'laser',
+                        currentAnnoColor,
+                        currentAnnoSize,
+                        currentPoints,
+                        0
+                    );
+                    return;
+                }
+
+                // Pen or Highlighter: if any old laser strokes were lingering, clear them so pen preview is 100% O(1) incremental
+                if (laserStrokes[pageNum] && laserStrokes[pageNum].length > 0) {
+                    laserStrokes[pageNum] = [];
+                    laserPageFadingState[pageNum] = false;
+                    lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+                }
+                laserCanvas.style.opacity = (effectiveTool === 'highlighter') ? '0.32' : '1';
+                lastDrawnIdx = drawIncrementalStrokeSegments(
+                    lCtx,
+                    laserCanvas.width,
+                    laserCanvas.height,
+                    effectiveTool,
+                    currentAnnoColor,
+                    currentAnnoSize,
+                    currentPoints,
+                    0
+                );
             });
 
             inkCanvas.addEventListener('pointermove', (e) => {
@@ -11194,51 +11237,49 @@
                     return;
                 }
 
-                // Filter out sub-pixel jitter (< 1.15px) while preserving high-frequency curves
-                const minDistSqPx = 1.35;
+                if (effectiveTool === 'laser') {
+                    isLaserPointerDown = true;
+                    lastLaserActivityAt = performance.now();
+                }
+
+                // Velocity-Adaptive Streamline Stabilizer: eliminates mouse stair-stepping & hand micro-tremors for silky-smooth curves
                 for (let i = 0; i < events.length; i++) {
-                    const pt = getFastNormCoords(events[i]);
+                    const rawPt = getFastNormCoords(events[i]);
+                    lastRawPt = rawPt;
                     const prev = currentPoints[currentPoints.length - 1];
                     if (prev) {
-                        const dxPx = (pt.x - prev.x) * cachedRectW;
-                        const dyPx = (pt.y - prev.y) * cachedRectH;
-                        if ((dxPx * dxPx + dyPx * dyPx) < minDistSqPx && i < events.length - 1) {
+                        const dxPx = (rawPt.x - prev.x) * cachedRectW;
+                        const dyPx = (rawPt.y - prev.y) * cachedRectH;
+                        const distSqPx = dxPx * dxPx + dyPx * dyPx;
+                        if (distSqPx < 0.75) {
                             continue;
                         }
+                        const distPx = Math.sqrt(distSqPx);
+                        // Smooth slow/medium handwriting strongly (0.46) while keeping fast flicks immediate (0.84)
+                        const streamlineAlpha = Math.min(0.84, Math.max(0.46, distPx / 13.5));
+                        currentPoints.push({
+                            x: prev.x + (rawPt.x - prev.x) * streamlineAlpha,
+                            y: prev.y + (rawPt.y - prev.y) * streamlineAlpha,
+                            p: rawPt.p
+                        });
+                    } else {
+                        currentPoints.push(rawPt);
                     }
-                    currentPoints.push(pt);
                 }
 
                 if (currentPoints.length <= startLen) return;
 
-                // Keep laser trail capped to 220 points if user swirls continuously so it never slows down
-                const hasFadingLaser = Boolean(laserStrokes[pageNum] && laserStrokes[pageNum].length > 0);
-                if (effectiveTool === 'laser' && currentPoints.length > 220) {
-                    currentPoints.splice(0, currentPoints.length - 180);
-                    lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
-                    if (hasFadingLaser) renderActiveLaserStrokesOnPage(pageNum, performance.now());
-                    drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, currentPoints, currentAnnoColor, currentAnnoSize + 2, 1.0);
-                    lastDrawnIdx = Math.max(0, currentPoints.length - 2);
-                    return;
-                }
-
-                if (!hasFadingLaser) {
-                    // O(1) incremental segment draw: zero clearRect, zero full-array loop!
-                    drawIncrementalStrokeSegments(
-                        lCtx,
-                        laserCanvas.width,
-                        laserCanvas.height,
-                        effectiveTool,
-                        currentAnnoColor,
-                        currentAnnoSize,
-                        currentPoints,
-                        lastDrawnIdx
-                    );
-                    lastDrawnIdx = Math.max(0, currentPoints.length - 2);
-                } else {
-                    drawLiveStrokePreview(laserCanvas, effectiveTool, currentPoints, pageNum);
-                    lastDrawnIdx = Math.max(0, currentPoints.length - 2);
-                }
+                // O(1) Incremental C1 Quadratic Bézier Segment Rendering (for both Regular Pen, Highlighter, and Laser!)
+                lastDrawnIdx = drawIncrementalStrokeSegments(
+                    lCtx,
+                    laserCanvas.width,
+                    laserCanvas.height,
+                    effectiveTool,
+                    currentAnnoColor,
+                    currentAnnoSize,
+                    currentPoints,
+                    lastDrawnIdx
+                );
             });
 
             const finishStroke = (e) => {
@@ -11260,17 +11301,42 @@
 
                 if (currentPoints.length === 0) return;
 
+                // Snap final tip to exact lift coordinate for crisp letter endings
+                if (lastRawPt && currentPoints.length > 1) {
+                    const prev = currentPoints[currentPoints.length - 1];
+                    const dxPx = (lastRawPt.x - prev.x) * cachedRectW;
+                    const dyPx = (lastRawPt.y - prev.y) * cachedRectH;
+                    if ((dxPx * dxPx + dyPx * dyPx) > 0.25) {
+                        currentPoints.push({ x: lastRawPt.x, y: lastRawPt.y, p: lastRawPt.p });
+                    }
+                }
+
                 if (effectiveTool === 'laser') {
+                    isLaserPointerDown = false;
+                    lastLaserActivityAt = performance.now();
                     laserCanvas.style.opacity = '1';
+                    // Complete the final tip segment of the laser stroke on laserCanvas
+                    drawIncrementalStrokeSegments(
+                        lCtx,
+                        laserCanvas.width,
+                        laserCanvas.height,
+                        'laser',
+                        currentAnnoColor,
+                        currentAnnoSize,
+                        currentPoints,
+                        lastDrawnIdx,
+                        true
+                    );
                     if (!laserStrokes[pageNum]) laserStrokes[pageNum] = [];
                     laserStrokes[pageNum].push({
                         color: currentAnnoColor,
                         size: currentAnnoSize + 2,
                         points: currentPoints.slice(),
-                        createdAt: performance.now()
+                        createdAt: lastLaserActivityAt
                     });
                     currentPoints = [];
                     lastDrawnIdx = 0;
+                    lastRawPt = null;
                     startLaserFadeLoop();
                     return;
                 }
@@ -11289,13 +11355,11 @@
                 pageAnnotations[pageNum].push(strokeObj);
                 currentPoints = [];
                 lastDrawnIdx = 0;
+                lastRawPt = null;
 
                 // Reset live canvas opacity, clear preview, and commit to permanent inkCanvas
                 laserCanvas.style.opacity = '1';
                 lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
-                if (laserStrokes[pageNum] && laserStrokes[pageNum].length > 0) {
-                    renderActiveLaserStrokesOnPage(pageNum, performance.now());
-                }
                 drawSingleStrokeOnCanvas(iCtx, inkCanvas.width, inkCanvas.height, strokeObj);
 
                 // Non-blocking debounced auto-save to IndexedDB
@@ -11748,69 +11812,80 @@
             return { minX, maxX, minY, maxY };
         }
 
-        function buildSmoothQuadraticSubpath(ctx, width, height, pts, fromIdx) {
+        // Exact C1-Continuous Midpoint-to-Midpoint Quadratic Bézier Incremental Builder (Zero tangent spikes!)
+        function buildSmoothIncrementalSubpath(ctx, width, height, pts, fromIdx, isFinishing = false) {
             const len = pts.length;
-            if (len === 0) return;
-            const startIdx = Math.max(0, fromIdx || 0);
-            if (startIdx === 0) {
+            if (len < 2) return len;
+
+            let idx = Math.max(0, fromIdx || 0);
+            let drewSegment = false;
+
+            // 1. Initial half-segment from P[0] to mid(P[0], P[1])
+            if (idx === 0 && len >= 2) {
+                const m01x = ((pts[0].x + pts[1].x) * 0.5) * width;
+                const m01y = ((pts[0].y + pts[1].y) * 0.5) * height;
                 ctx.moveTo(pts[0].x * width, pts[0].y * height);
-                if (len === 2) {
-                    ctx.lineTo(pts[1].x * width, pts[1].y * height);
-                    return;
-                }
-                for (let i = 1; i < len - 1; i++) {
-                    const xc = ((pts[i].x + pts[i + 1].x) * 0.5) * width;
-                    const yc = ((pts[i].y + pts[i + 1].y) * 0.5) * height;
-                    ctx.quadraticCurveTo(pts[i].x * width, pts[i].y * height, xc, yc);
-                }
-                if (len > 2) {
-                    const last = pts[len - 1];
-                    ctx.lineTo(last.x * width, last.y * height);
-                }
-            } else {
-                // Seamless incremental continuation from midpoint(startIdx, startIdx+1)
-                const p0 = pts[startIdx];
-                const p1 = pts[startIdx + 1] || p0;
-                const startX = (startIdx === 0 ? p0.x : (p0.x + p1.x) * 0.5) * width;
-                const startY = (startIdx === 0 ? p0.y : (p0.y + p1.y) * 0.5) * height;
-                ctx.moveTo(startX, startY);
-                for (let i = startIdx + 1; i < len - 1; i++) {
-                    const xc = ((pts[i].x + pts[i + 1].x) * 0.5) * width;
-                    const yc = ((pts[i].y + pts[i + 1].y) * 0.5) * height;
-                    ctx.quadraticCurveTo(pts[i].x * width, pts[i].y * height, xc, yc);
-                }
-                if (len - 1 >= startIdx + 1) {
-                    const prev = pts[len - 2];
-                    const last = pts[len - 1];
-                    const midX = ((prev.x + last.x) * 0.5) * width;
-                    const midY = ((prev.y + last.y) * 0.5) * height;
-                    ctx.lineTo(midX, midY);
-                }
+                ctx.lineTo(m01x, m01y);
+                drewSegment = true;
+                idx = 1;
             }
+
+            // 2. Smooth C1 quadratic Bézier curves from mid(P[i-1], P[i]) through P[i] to mid(P[i], P[i+1])
+            if (len >= 3 && idx <= len - 2) {
+                const startMidX = ((pts[idx - 1].x + pts[idx].x) * 0.5) * width;
+                const startMidY = ((pts[idx - 1].y + pts[idx].y) * 0.5) * height;
+                if (!drewSegment) {
+                    ctx.moveTo(startMidX, startMidY);
+                }
+                for (let i = idx; i <= len - 2; i++) {
+                    const nextMidX = ((pts[i].x + pts[i + 1].x) * 0.5) * width;
+                    const nextMidY = ((pts[i].y + pts[i + 1].y) * 0.5) * height;
+                    ctx.quadraticCurveTo(pts[i].x * width, pts[i].y * height, nextMidX, nextMidY);
+                }
+                drewSegment = true;
+                idx = len - 1;
+            }
+
+            // 3. Final half-segment from mid(P[len-2], P[len-1]) to P[len-1] on pointerup
+            if (isFinishing && len >= 2) {
+                const prev = pts[len - 2];
+                const last = pts[len - 1];
+                const lastMidX = ((prev.x + last.x) * 0.5) * width;
+                const lastMidY = ((prev.y + last.y) * 0.5) * height;
+                if (!drewSegment) {
+                    ctx.moveTo(lastMidX, lastMidY);
+                }
+                ctx.lineTo(last.x * width, last.y * height);
+                idx = len;
+            }
+
+            return idx;
         }
 
-        // O(1) Incremental Segment Renderer: draws ONLY newly added pointer segments in < 0.02ms!
-        function drawIncrementalStrokeSegments(ctx, width, height, tool, color, baseSize, pts, fromIdx) {
+        // O(1) Incremental Segment Renderer: draws ONLY newly added C1 Bézier segments in < 0.02ms!
+        function drawIncrementalStrokeSegments(ctx, width, height, tool, color, baseSize, pts, fromIdx, isFinishing = false) {
             const len = pts.length;
-            if (!ctx || len === 0) return;
+            if (!ctx || len === 0) return 0;
 
             const scaleFactor = width / 800;
             ctx.save();
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
+            ctx.imageSmoothingEnabled = true;
 
             if (tool === 'laser') {
                 const laserW = Math.max(2.5, (baseSize + 2) * scaleFactor);
-                ctx.beginPath();
-                if (len === 1) {
-                    ctx.arc(pts[0].x * width, pts[0].y * height, laserW * 0.5, 0, Math.PI * 2);
+                if (len === 1 && fromIdx === 0) {
+                    ctx.beginPath();
+                    ctx.arc(pts[0].x * width, pts[0].y * height, laserW * 0.55, 0, Math.PI * 2);
                     ctx.fillStyle = color;
                     ctx.globalAlpha = 0.85;
                     ctx.fill();
                     ctx.restore();
-                    return;
+                    return 0;
                 }
-                buildSmoothQuadraticSubpath(ctx, width, height, pts, fromIdx);
+                ctx.beginPath();
+                const nextIdx = buildSmoothIncrementalSubpath(ctx, width, height, pts, fromIdx, isFinishing);
                 // 3-Pass GPU-Accelerated Laser Glow (Zero shadowBlur CPU lag!)
                 ctx.strokeStyle = color;
                 ctx.globalAlpha = 0.22;
@@ -11826,7 +11901,7 @@
                 ctx.lineWidth = laserW * 0.48;
                 ctx.stroke();
                 ctx.restore();
-                return;
+                return nextIdx;
             }
 
             const strokeSize = tool === 'highlighter' ? Math.max(14, baseSize * 4.5) : baseSize;
@@ -11836,18 +11911,19 @@
             ctx.fillStyle = color;
             ctx.lineWidth = lineWidth;
 
-            if (len === 1) {
+            if (len === 1 && fromIdx === 0) {
                 ctx.beginPath();
                 ctx.arc(pts[0].x * width, pts[0].y * height, lineWidth * 0.5, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
-                return;
+                return 0;
             }
 
             ctx.beginPath();
-            buildSmoothQuadraticSubpath(ctx, width, height, pts, fromIdx);
+            const nextIdx = buildSmoothIncrementalSubpath(ctx, width, height, pts, fromIdx, isFinishing);
             ctx.stroke();
             ctx.restore();
+            return nextIdx;
         }
 
         function drawSingleStrokeOnCanvas(ctx, width, height, stroke, includeTextOnCanvas = false) {
@@ -11867,6 +11943,7 @@
             ctx.fillStyle = stroke.color;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
+            ctx.imageSmoothingEnabled = true;
 
             const scaleFactor = width / 800;
             ctx.lineWidth = Math.max(1.2, stroke.size * scaleFactor);
@@ -11880,14 +11957,22 @@
             }
 
             ctx.beginPath();
-            ctx.moveTo(pts[0].x * width, pts[0].y * height);
-            for (let i = 1; i < pts.length - 1; i++) {
-                const xc = ((pts[i].x + pts[i + 1].x) * 0.5) * width;
-                const yc = ((pts[i].y + pts[i + 1].y) * 0.5) * height;
-                ctx.quadraticCurveTo(pts[i].x * width, pts[i].y * height, xc, yc);
+            if (pts.length === 2) {
+                ctx.moveTo(pts[0].x * width, pts[0].y * height);
+                ctx.lineTo(pts[1].x * width, pts[1].y * height);
+            } else {
+                const m01x = ((pts[0].x + pts[1].x) * 0.5) * width;
+                const m01y = ((pts[0].y + pts[1].y) * 0.5) * height;
+                ctx.moveTo(pts[0].x * width, pts[0].y * height);
+                ctx.lineTo(m01x, m01y);
+                for (let i = 1; i < pts.length - 1; i++) {
+                    const xc = ((pts[i].x + pts[i + 1].x) * 0.5) * width;
+                    const yc = ((pts[i].y + pts[i + 1].y) * 0.5) * height;
+                    ctx.quadraticCurveTo(pts[i].x * width, pts[i].y * height, xc, yc);
+                }
+                const last = pts[pts.length - 1];
+                ctx.lineTo(last.x * width, last.y * height);
             }
-            const last = pts[pts.length - 1];
-            ctx.lineTo(last.x * width, last.y * height);
             ctx.stroke();
             ctx.restore();
         }
@@ -11926,14 +12011,30 @@
             const scaleFactor = width / 800;
             const baseW = Math.max(2.5, size * scaleFactor);
 
-            ctx.beginPath();
-            ctx.moveTo(pts[0].x * width, pts[0].y * height);
-            for (let i = 1; i < pts.length - 1; i++) {
-                const xc = ((pts[i].x + pts[i + 1].x) * 0.5) * width;
-                const yc = ((pts[i].y + pts[i + 1].y) * 0.5) * height;
-                ctx.quadraticCurveTo(pts[i].x * width, pts[i].y * height, xc, yc);
+            if (pts.length === 1) {
+                ctx.beginPath();
+                ctx.arc(pts[0].x * width, pts[0].y * height, baseW * 0.55, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.globalAlpha = alpha * 0.85;
+                ctx.fill();
+                ctx.restore();
+                return;
             }
-            if (pts.length > 1) {
+
+            ctx.beginPath();
+            if (pts.length === 2) {
+                ctx.moveTo(pts[0].x * width, pts[0].y * height);
+                ctx.lineTo(pts[1].x * width, pts[1].y * height);
+            } else {
+                const m01x = ((pts[0].x + pts[1].x) * 0.5) * width;
+                const m01y = ((pts[0].y + pts[1].y) * 0.5) * height;
+                ctx.moveTo(pts[0].x * width, pts[0].y * height);
+                ctx.lineTo(m01x, m01y);
+                for (let i = 1; i < pts.length - 1; i++) {
+                    const xc = ((pts[i].x + pts[i + 1].x) * 0.5) * width;
+                    const yc = ((pts[i].y + pts[i + 1].y) * 0.5) * height;
+                    ctx.quadraticCurveTo(pts[i].x * width, pts[i].y * height, xc, yc);
+                }
                 const last = pts[pts.length - 1];
                 ctx.lineTo(last.x * width, last.y * height);
             }
@@ -11964,16 +12065,33 @@
             const list = laserStrokes[pageKey];
             if (!list || list.length === 0) return;
 
+            // If user is currently holding or moving the laser pen, keep activity timestamp fresh so NOTHING fades!
+            if (isLaserPointerDown) {
+                lastLaserActivityAt = now;
+            }
+
+            const idleTime = now - (lastLaserActivityAt || now);
+            if (idleTime < LASER_HOLD_AFTER_STOP_MS) {
+                // Still within active writing / hold window: all laser strokes stay at 100% brightness
+                return;
+            }
+
+            const fadeElapsed = idleTime - LASER_HOLD_AFTER_STOP_MS;
+            if (fadeElapsed >= LASER_FADE_DURATION_MS) {
+                // Fade complete after user stopped writing
+                laserStrokes[pageKey] = [];
+                laserPageFadingState[pageKey] = false;
+                laserCanvas.getContext('2d').clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+                return;
+            }
+
+            // Smooth unified fade-out of all laser strokes written during the session
+            laserPageFadingState[pageKey] = true;
+            const alpha = Math.max(0, 1 - (fadeElapsed / LASER_FADE_DURATION_MS));
             const ctx = laserCanvas.getContext('2d');
-            const HOLD_MS = 1400; // Stay bright for 1.4s
-            const FADE_MS = 750;  // Smooth fade over 0.75s
-
-            laserStrokes[pageKey] = list.filter(s => (now - s.createdAt) < (HOLD_MS + FADE_MS));
-
-            for (let i = 0; i < laserStrokes[pageKey].length; i++) {
-                const s = laserStrokes[pageKey][i];
-                const age = now - s.createdAt;
-                const alpha = age > HOLD_MS ? Math.max(0, 1 - ((age - HOLD_MS) / FADE_MS)) : 1.0;
+            ctx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+            for (let i = 0; i < list.length; i++) {
+                const s = list[i];
                 drawLaserGlowPath(ctx, laserCanvas.width, laserCanvas.height, s.points, s.color, s.size, alpha);
             }
         }
@@ -11981,24 +12099,22 @@
         function startLaserFadeLoop() {
             if (laserAnimFrameId) return;
             const tick = (now) => {
+                if (isLaserPointerDown) {
+                    lastLaserActivityAt = now;
+                }
                 let anyRemaining = false;
                 for (let pKey in laserStrokes) {
                     const list = laserStrokes[pKey];
                     if (list && list.length > 0) {
-                        const lc = document.getElementById(`pdfLaserCanvas_${pKey}`);
-                        if (lc && !isActivelyDrawingOnPdf) {
-                            lc.getContext('2d').clearRect(0, 0, lc.width, lc.height);
+                        if (!isActivelyDrawingOnPdf && !isLaserPointerDown) {
                             renderActiveLaserStrokesOnPage(pKey, now);
-                        } else if (lc && isActivelyDrawingOnPdf) {
-                            // Prune expired laser strokes without wiping live active pen stroke
-                            laserStrokes[pKey] = list.filter(s => (now - s.createdAt) < 2150);
                         }
                         if (laserStrokes[pKey] && laserStrokes[pKey].length > 0) {
                             anyRemaining = true;
                         }
                     }
                 }
-                if (anyRemaining) {
+                if (anyRemaining || isLaserPointerDown) {
                     laserAnimFrameId = requestAnimationFrame(tick);
                 } else {
                     laserAnimFrameId = null;
@@ -13262,6 +13378,8 @@
             let drawing = false;
             let pts = [];
             let lastIdx = 0;
+            let sbLastLaserTime = 0;
+            let sbLaserFading = false;
             let sbRectLeft = 0, sbRectTop = 0, sbInvW = 1 / 700, sbInvH = 1 / 215;
             const lCtx = lasC.getContext('2d');
 
@@ -13296,30 +13414,40 @@
                 try { inkC.setPointerCapture(e.pointerId); } catch (err) {}
                 pts = [pt];
                 lastIdx = 0;
+                if (sb3Tool === 'laser') {
+                    sbLastLaserTime = performance.now();
+                    if (sbLaserFading && sb3LaserList.length > 0) {
+                        lCtx.clearRect(0, 0, lasC.width, lasC.height);
+                        for (let s of sb3LaserList) {
+                            drawLaserGlowPath(lCtx, lasC.width, lasC.height, s.points, '#ef4444', 4, 1.0);
+                        }
+                        sbLaserFading = false;
+                    }
+                } else if (sb3LaserList.length > 0) {
+                    sb3LaserList = [];
+                    sbLaserFading = false;
+                    lCtx.clearRect(0, 0, lasC.width, lasC.height);
+                }
                 lasC.style.opacity = sb3Tool === 'highlighter' ? '0.35' : '1';
-                drawIncrementalStrokeSegments(lCtx, lasC.width, lasC.height, sb3Tool, sb3Tool === 'highlighter' ? '#f59e0b' : '#ef4444', 3.5, pts, 0);
+                lastIdx = drawIncrementalStrokeSegments(lCtx, lasC.width, lasC.height, sb3Tool, sb3Tool === 'highlighter' ? '#f59e0b' : '#ef4444', 3.5, pts, 0);
             });
 
             inkC.addEventListener('pointermove', (e) => {
                 if (!drawing) return;
-                pts.push(getPt(e));
-                if (sb3LaserList.length === 0) {
-                    drawIncrementalStrokeSegments(lCtx, lasC.width, lasC.height, sb3Tool, sb3Tool === 'highlighter' ? '#f59e0b' : '#ef4444', 3.5, pts, lastIdx);
-                    lastIdx = Math.max(0, pts.length - 2);
+                const rawPt = getPt(e);
+                const prev = pts[pts.length - 1];
+                if (prev) {
+                    pts.push({
+                        x: prev.x + (rawPt.x - prev.x) * 0.62,
+                        y: prev.y + (rawPt.y - prev.y) * 0.62
+                    });
                 } else {
-                    lCtx.clearRect(0, 0, lasC.width, lasC.height);
-                    if (sb3Tool === 'laser') {
-                        drawLaserGlowPath(lCtx, lasC.width, lasC.height, pts, '#ef4444', 4, 1.0);
-                    } else {
-                        drawSingleStrokeOnCanvas(lCtx, lasC.width, lasC.height, {
-                            tool: sb3Tool,
-                            color: sb3Tool === 'highlighter' ? '#f59e0b' : '#ef4444',
-                            size: sb3Tool === 'highlighter' ? 16 : 3.5,
-                            alpha: sb3Tool === 'highlighter' ? 0.35 : 1.0,
-                            points: pts
-                        });
-                    }
+                    pts.push(rawPt);
                 }
+                if (sb3Tool === 'laser') {
+                    sbLastLaserTime = performance.now();
+                }
+                lastIdx = drawIncrementalStrokeSegments(lCtx, lasC.width, lasC.height, sb3Tool, sb3Tool === 'highlighter' ? '#f59e0b' : '#ef4444', 3.5, pts, lastIdx);
             });
 
             const endDraw = () => {
@@ -13328,20 +13456,37 @@
                 if (pts.length === 0) return;
 
                 if (sb3Tool === 'laser') {
-                    sb3LaserList.push({ points: pts.slice(), createdAt: performance.now() });
+                    sbLastLaserTime = performance.now();
+                    drawIncrementalStrokeSegments(lCtx, lasC.width, lasC.height, 'laser', '#ef4444', 3.5, pts, lastIdx, true);
+                    sb3LaserList.push({ points: pts.slice(), createdAt: sbLastLaserTime });
                     pts = [];
+                    lastIdx = 0;
                     if (!sb3LaserAnim) {
                         const loop = (now) => {
-                            const lCtx = lasC.getContext('2d');
-                            lCtx.clearRect(0, 0, lasC.width, lasC.height);
-                            sb3LaserList = sb3LaserList.filter(s => (now - s.createdAt) < 2200);
-                            for (let s of sb3LaserList) {
-                                const age = now - s.createdAt;
-                                const alpha = age > 1300 ? Math.max(0, 1 - (age - 1300) / 900) : 1.0;
-                                drawLaserGlowPath(lCtx, lasC.width, lasC.height, s.points, '#ef4444', 4, alpha);
+                            if (drawing && sb3Tool === 'laser') {
+                                sbLastLaserTime = now;
                             }
-                            if (sb3LaserList.length > 0) sb3LaserAnim = requestAnimationFrame(loop);
-                            else sb3LaserAnim = null;
+                            const idle = now - sbLastLaserTime;
+                            if (idle >= 1250) {
+                                const fadeElapsed = idle - 1250;
+                                if (fadeElapsed >= 650) {
+                                    sb3LaserList = [];
+                                    sbLaserFading = false;
+                                    lCtx.clearRect(0, 0, lasC.width, lasC.height);
+                                } else if (!drawing) {
+                                    sbLaserFading = true;
+                                    const alpha = Math.max(0, 1 - fadeElapsed / 650);
+                                    lCtx.clearRect(0, 0, lasC.width, lasC.height);
+                                    for (let s of sb3LaserList) {
+                                        drawLaserGlowPath(lCtx, lasC.width, lasC.height, s.points, '#ef4444', 4, alpha);
+                                    }
+                                }
+                            }
+                            if (sb3LaserList.length > 0 || (drawing && sb3Tool === 'laser')) {
+                                sb3LaserAnim = requestAnimationFrame(loop);
+                            } else {
+                                sb3LaserAnim = null;
+                            }
                         };
                         sb3LaserAnim = requestAnimationFrame(loop);
                     }
@@ -13356,6 +13501,7 @@
                         points: pts
                     });
                     pts = [];
+                    lastIdx = 0;
                 }
                 document.getElementById('sb3StatusMsg').innerHTML = '✨ رائع! لاحظ سلاسة الخط واستجابة التابلت. جرّب أيضاً أداة «ليزر متلاشي» أو «تثبيت لحظة»!';
                 awardAcademyModuleXP(3);
