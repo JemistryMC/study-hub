@@ -2172,31 +2172,60 @@
             border-color: transparent !important;
             box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
         }
-        /* Zen Mode hides secondary toolbars for 100% distraction-free reading/writing */
-        .pdf-modal-container.pdf-zen-mode .pdf-annotation-toolbar {
+        /* Simplified Zen Focus Mode: hides ALL bars for 100% pure slide focus with a single subtle exit pill */
+        .pdf-modal-container.pdf-zen-mode .pdf-viewer-header,
+        .pdf-modal-container.pdf-zen-mode .pdf-annotation-toolbar,
+        .pdf-modal-container.pdf-zen-mode .pdf-audio-player-bar,
+        .pdf-modal-container.pdf-zen-mode .pdf-merged-lectures-bar,
+        .pdf-modal-container.pdf-zen-mode .pdf-smart-task-choice-bar,
+        .pdf-modal-container.pdf-zen-mode .pdf-floating-page-nav {
             display: none !important;
         }
-        .pdf-modal-container.pdf-zen-mode .pdf-audio-player-bar {
+        .pdf-floating-page-nav {
             display: none !important;
         }
         .pdf-zen-floating-pill {
             position: absolute;
-            top: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 35;
-            background: rgba(15, 18, 26, 0.92);
-            
-            border: 1px solid rgba(45, 212, 191, 0.45);
+            top: 14px;
+            left: 16px;
+            z-index: 40;
+            background: rgba(13, 18, 28, 0.82);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(45, 212, 191, 0.35);
             border-radius: 999px;
-            padding: 5px 12px;
+            padding: 4px 12px;
             display: none;
             align-items: center;
-            gap: 8px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            gap: 6px;
+            opacity: 0.48;
+            transition: opacity 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+        }
+        .pdf-zen-floating-pill:hover {
+            opacity: 1;
+            border-color: var(--primary);
+            transform: translateY(1px);
         }
         .pdf-modal-container.pdf-zen-mode .pdf-zen-floating-pill {
             display: inline-flex;
+        }
+        .anno-btn.laser-pause-active {
+            background: rgba(245, 158, 11, 0.2) !important;
+            color: #fbbf24 !important;
+            border: 1px solid rgba(245, 158, 11, 0.55) !important;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.28);
+            font-weight: 800;
+        }
+        .pdf-unified-nav-capsule {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(10, 14, 22, 0.9);
+            padding: 3px 8px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.14);
         }
         /* Compact More-Menu in PDF Header */
         .pdf-more-dropdown-wrap {
@@ -7069,6 +7098,14 @@
                                 <option value="100">100% (الوقت بالكامل)</option>
                             </select>
                         </div>
+
+                        <div class="psf-field">
+                            <label><i class="fa-solid fa-cloud-arrow-up" style="color: #38bdf8;"></i> الرفع السحابي التلقائي للـ PDF (للمشتركين):</label>
+                            <select id="prefAutoUploadCloudSelect" onchange="handleAutoUploadSettingSelectChange(this.value)">
+                                <option value="1" selected>☁️ مفعّل تلقائياً فور إضافة الملف</option>
+                                <option value="0">⏸️ متوقف (رفع يدوي فقط عند الطلب)</option>
+                            </select>
+                        </div>
                     </div>
                     </div>
                 </div>
@@ -7393,6 +7430,16 @@
                         <span><i class="fa-solid fa-scale-balanced" style="color:#fbbf24;"></i> <b>الحد الأقصى للملف بالسحابة:</b> PDF حتى <b style="color:var(--primary);">25MB</b> • ريكورد حتى <b style="color:#38bdf8;">35MB</b></span>
                         <span id="cloudTotalStorageUsedBadge" style="color:#94a3b8; font-weight:700;">المرفوع: 0 MB</span>
                     </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; background:rgba(9, 13, 22, 0.72); border:1px solid rgba(148, 163, 184, 0.16); border-radius:10px; padding:8px 12px; margin-bottom:10px; cursor:pointer;" onclick="toggleAutoUploadCloudMediaSetting()">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <i class="fa-solid fa-cloud-arrow-up" id="cloudModalAutoUploadIcon" style="color:var(--primary); font-size:0.9rem;"></i>
+                            <div>
+                                <div style="font-size:0.79rem; font-weight:800; color:var(--text-main);">الرفع السحابي التلقائي للـ PDF والريكورد (للمشتركين)</div>
+                                <div style="font-size:0.7rem; color:var(--text-muted);" id="cloudModalAutoUploadSubtext">يرفع الملفات تلقائياً للسحابة فور إضافتها للمحاضرة</div>
+                            </div>
+                        </div>
+                        <input type="checkbox" id="cloudModalAutoUploadCheckbox" checked style="width:18px; height:18px; margin:0; accent-color:var(--primary); cursor:pointer;" onclick="event.stopPropagation(); setAutoCloudMediaUploadEnabled(this.checked, true);">
+                    </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                         <button class="btn btn-outline" id="btnSyncAllMediaUp" style="padding: 8px 10px; font-size: 0.78rem; border-color: rgba(56, 189, 248, 0.45); color: #38bdf8;" onclick="syncAllLocalMediaToCloud()">
                             <i class="fa-solid fa-cloud-arrow-up"></i> رفع الملفات غير المرفوعة
@@ -7568,90 +7615,95 @@
     <!-- ================= FULLSCREEN PDF & AUDIO SYNC VIEWER ================= -->
     <div class="glass-overlay" id="pdfViewerModalOverlay">
         <div class="pdf-modal-container" id="pdfModalContainer">
-            <!-- Streamlined, Organized Top Studio Bar -->
+            <!-- Clean, Organized 3-Zone Top Studio Header -->
             <div class="pdf-viewer-header">
-                <!-- Right Zone: Lecture Title & Auto-save -->
-                <div style="display: flex; align-items: center; gap: 10px; min-width: 180px;">
-                    <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(45, 212, 191, 0.14); display: flex; align-items: center; justify-content: center;">
-                        <i class="fa-solid fa-file-pdf" style="color: var(--primary);"></i>
+                <!-- Zone 1 (Right): Lecture Title & Calm Save Indicator -->
+                <div style="display: flex; align-items: center; gap: 10px; min-width: 170px;">
+                    <div style="width: 30px; height: 30px; border-radius: 8px; background: rgba(45, 212, 191, 0.14); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fa-solid fa-file-pdf" style="color: var(--primary); font-size: 0.9rem;"></i>
                     </div>
-                    <div>
-                        <h3 id="pdfViewerTitle" style="margin: 0; font-size: 0.96rem; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;">عرض المحاضرة</h3>
-                        <span id="pdfAutoSaveStatus" style="font-size: 0.68rem; color: var(--important-color); font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
-                            <i class="fa-solid fa-cloud-arrow-up"></i> حفظ تلقائي
+                    <div style="min-width: 0;">
+                        <h3 id="pdfViewerTitle" style="margin: 0; font-size: 0.92rem; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px;">عرض المحاضرة</h3>
+                        <span id="pdfAutoSaveStatus" style="font-size: 0.66rem; color: var(--important-color); font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                            <i class="fa-solid fa-bolt"></i> حفظ تلقائي فوري
                         </span>
                     </div>
                 </div>
 
-                <!-- Center Zone: Unified Page Stepper & Fit/Zoom Pill -->
-                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    <div class="anno-tool-group">
-                        <button class="anno-btn" onclick="stepPdfPage(-1)">
-                            <i class="fa-solid fa-chevron-up"></i>
-                        </button>
-                        <span id="pdfPageCounterBadge" class="studio-pill" onclick="promptJumpToPdfPage()" style="font-size: 0.74rem; color: var(--primary); cursor: pointer; min-width: 78px; justify-content: center; border: none; background: transparent;">1 / 1</span>
-                        <button class="anno-btn" onclick="stepPdfPage(1)">
-                            <i class="fa-solid fa-chevron-down"></i>
-                        </button>
-                    </div>
+                <!-- Zone 2 (Center): Single Unified Navigation, Fit & Zoom Capsule -->
+                <div class="pdf-unified-nav-capsule">
+                    <button class="anno-btn" onclick="stepPdfPage(-1)" title="الصفحة السابقة (سهم لأعلى)">
+                        <i class="fa-solid fa-chevron-up"></i>
+                    </button>
+                    <span id="pdfPageCounterBadge" class="studio-pill" onclick="promptJumpToPdfPage()" title="اضغط للانتقال لصفحة محددة" style="font-size: 0.74rem; color: var(--primary); cursor: pointer; min-width: 72px; justify-content: center; border: none; background: rgba(45, 212, 191, 0.08);">1 / 1</span>
+                    <button class="anno-btn" onclick="stepPdfPage(1)" title="الصفحة التالية (سهم لأسفل)">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
 
-                    <div class="anno-tool-group">
-                        <button class="anno-btn active" id="pdfFitHeightBtn" onclick="setPdfFitMode('height')">
-                            <i class="fa-solid fa-arrows-up-down"></i> <span>طولياً</span>
-                        </button>
-                        <button class="anno-btn" id="pdfFitWidthBtn" onclick="setPdfFitMode('width')">
-                            <i class="fa-solid fa-arrows-left-right"></i> <span>عرضياً</span>
-                        </button>
-                        <div class="pdf-header-divider"></div>
-                        <button class="anno-btn" onclick="changePdfZoom(-0.15)"><i class="fa-solid fa-minus"></i></button>
-                        <span id="pdfZoomLevelText" onclick="togglePdfFitModeQuick()" style="font-size: 0.75rem; font-weight: 800; min-width: 42px; text-align: center; color: var(--text-main); cursor: pointer;">100%</span>
-                        <button class="anno-btn" onclick="changePdfZoom(0.15)"><i class="fa-solid fa-plus"></i></button>
-                    </div>
+                    <div class="pdf-header-divider"></div>
+
+                    <button class="anno-btn active" id="pdfFitHeightBtn" onclick="setPdfFitMode('height')" title="احتواء الصفحة طولياً (H)">
+                        <i class="fa-solid fa-arrows-up-down"></i> <span class="hide-on-xs">طولياً</span>
+                    </button>
+                    <button class="anno-btn" id="pdfFitWidthBtn" onclick="setPdfFitMode('width')" title="ملء عرض الشاشة (W)">
+                        <i class="fa-solid fa-arrows-left-right"></i> <span class="hide-on-xs">عرضياً</span>
+                    </button>
+
+                    <div class="pdf-header-divider"></div>
+
+                    <button class="anno-btn" onclick="changePdfZoom(-0.15)" title="تصغير الزوم (-)"><i class="fa-solid fa-minus"></i></button>
+                    <span id="pdfZoomLevelText" onclick="togglePdfFitModeQuick()" title="اضغط للتبديل السريع بين الطول والعرض" style="font-size: 0.74rem; font-weight: 800; min-width: 40px; text-align: center; color: var(--text-main); cursor: pointer;">100%</span>
+                    <button class="anno-btn" onclick="changePdfZoom(0.15)" title="تكبير الزوم (+)"><i class="fa-solid fa-plus"></i></button>
                 </div>
 
-                <!-- Left Zone: Collapse Dock, Zen Mode, More Actions Menu, Fullscreen & Close -->
+                <!-- Zone 3 (Left): Focus Mode, Toolbar Toggle, Options Menu, Fullscreen & Close -->
                 <div class="pdf-header-left-actions" style="display: flex; align-items: center; gap: 6px;">
-                    <button class="anno-btn" id="pdfCollapseDockBtn" onclick="togglePdfAnnotationDock()" title="إخفاء/إظهار شريط أدوات الرسم لتوسيع مساحة السلايد" style="border: 1px solid rgba(148, 163, 184, 0.2);">
-                        <i class="fa-solid fa-chevron-up" id="pdfCollapseDockIcon"></i> <span class="hide-on-xs" id="pdfCollapseDockText">طي الأدوات</span>
+                    <button class="anno-btn pdf-zen-toggle-btn" id="pdfZenModeBtn" onclick="togglePdfZenMode()" title="وضع التركيز الصافي بدون أي أشرطة (اختصار: Z)" style="border: 1px solid rgba(16, 185, 129, 0.35); color: #6ee7b7;">
+                        <i class="fa-solid fa-leaf"></i> <span id="pdfZenModeText">وضع التركيز</span>
                     </button>
-                    <button class="anno-btn pdf-zen-toggle-btn" id="pdfZenModeBtn" onclick="togglePdfZenMode()" style="border: 1px solid rgba(16, 185, 129, 0.35); color: #6ee7b7;">
-                        <i class="fa-solid fa-Seedling fa-leaf"></i> <span id="pdfZenModeText">وضع التركيز</span>
+                    <button class="icon-btn" id="pdfCollapseDockBtn" onclick="togglePdfAnnotationDock()" title="طي / إظهار شريط أدوات الرسم" style="width: 32px; height: 32px;">
+                        <i class="fa-solid fa-chevron-up" id="pdfCollapseDockIcon"></i>
+                        <span id="pdfCollapseDockText" style="display:none;">طي الأدوات</span>
                     </button>
 
                     <div class="pdf-more-dropdown-wrap">
-                        <button class="anno-btn" onclick="togglePdfMoreMenu(event)" style="border: 1px solid var(--border-color);">
-                            <i class="fa-solid fa-sliders"></i> <span>خيارات</span> <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem;"></i>
+                        <button class="anno-btn" onclick="togglePdfMoreMenu(event)" style="border: 1px solid var(--border-color);" title="خيارات وإعدادات المحاضرة">
+                            <i class="fa-solid fa-sliders"></i> <span class="hide-on-xs">خيارات</span> <i class="fa-solid fa-chevron-down" style="font-size: 0.62rem;"></i>
                         </button>
                         <div class="pdf-more-dropdown-menu" id="pdfMoreDropdownMenu" onclick="event.stopPropagation()">
                             <button class="pdf-more-item" id="pdfMenuExtraNoteBtn" onclick="toggleExtraNoteForPage(currentActivePageNum); closePdfMoreMenu();">
                                 <i class="fa-solid fa-file-circle-plus" id="pdfMenuExtraNoteIcon" style="color: var(--primary);"></i> <span id="pdfMenuExtraNoteText">إضافة / إظهار ورقة تلخيص</span>
                             </button>
+                            <button class="pdf-more-item" id="pdfMenuExportPdfBtn" onclick="exportAnnotatedSlides(); closePdfMoreMenu();">
+                                <i class="fa-solid fa-file-export" id="pdfMenuExportPdfIcon" style="color: #6ee7b7;"></i> <span id="pdfMenuExportPdfText">تصدير المحاضرة بالكتابة (PDF)</span>
+                            </button>
+                            <div style="height: 1px; background: rgba(255,255,255,0.06); margin: 3px 0;"></div>
                             <button class="pdf-more-item" id="pdfMenuUploadCloudBtn" onclick="uploadCurrentViewingLectureMediaToCloud(); closePdfMoreMenu();">
                                 <i class="fa-solid fa-cloud-arrow-up" style="color: #38bdf8;"></i> <span id="pdfMenuUploadCloudBtnText">رفع الـ PDF والريكورد على الحساب</span>
                             </button>
-                            <button class="pdf-more-item" id="pdfMenuExportPdfBtn" onclick="exportAnnotatedSlides(); closePdfMoreMenu();">
-                                <i class="fa-solid fa-file-export" id="pdfMenuExportPdfIcon" style="color: #6ee7b7;"></i> <span id="pdfMenuExportPdfText">تصدير المحاضرة بالكتابة (PDF)</span>
+                            <button class="pdf-more-item" id="pdfMenuAutoUploadToggleBtn" onclick="toggleAutoUploadCloudMediaSetting();">
+                                <i class="fa-solid fa-toggle-on" id="pdfMenuAutoUploadToggleIcon" style="color: var(--primary);"></i> <span id="pdfMenuAutoUploadToggleText">الرفع السحابي التلقائي: مفعّل</span>
                             </button>
                             <a id="pdfOpenInTabBtn" href="#" target="_blank" class="pdf-more-item" onclick="closePdfMoreMenu()">
                                 <i class="fa-solid fa-arrow-up-right-from-square" style="color: #93c5fd;"></i> فتح في نافذة خارجية
                             </a>
-                            <div style="height: 1px; background: rgba(255,255,255,0.06); margin: 4px 0;"></div>
+                            <div style="height: 1px; background: rgba(255,255,255,0.06); margin: 3px 0;"></div>
                             <button class="pdf-more-item" style="color: #fda4af;" onclick="clearCurrentPageAnnotations(); closePdfMoreMenu();">
                                 <i class="fa-solid fa-trash-can"></i> مسح كتابات الصفحة الحالية
                             </button>
                         </div>
                     </div>
 
-                    <button class="icon-btn" style="width: 32px; height: 32px;" onclick="togglePdfFullscreen()" id="pdfFullscreenBtn">
+                    <button class="icon-btn" style="width: 32px; height: 32px;" onclick="togglePdfFullscreen()" id="pdfFullscreenBtn" title="ملء الشاشة (F)">
                         <i class="fa-solid fa-expand" id="pdfFullscreenIcon"></i>
                     </button>
-                    <button class="icon-btn delete" style="width: 32px; height: 32px;" onclick="closePdfViewer()">
+                    <button class="icon-btn delete" style="width: 32px; height: 32px;" onclick="closePdfViewer()" title="إغلاق (Esc)">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- Merged Multi-Lecture & Audio Playlist Bar (Allows switching or continuous viewing of multiple lectures & recordings) -->
+            <!-- Merged Multi-Lecture & Audio Playlist Bar -->
             <div class="pdf-merged-lectures-bar" id="pdfMergedLecturesBar">
                 <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
                     <span style="font-size: 0.75rem; font-weight: 900; color: var(--primary); white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;">
@@ -7669,54 +7721,58 @@
                 </div>
             </div>
 
-            <!-- Clean, Grouped Annotation Dock (3 Scannable Zones) -->
+            <!-- Organized 3-Group Annotation Toolbar -->
             <div class="pdf-annotation-toolbar" id="pdfAnnotationToolbar">
-                <!-- Zone 1: Drawing, Writing & Smart iPad/Tablet Palm Rejection Tools -->
+                <!-- Group 1: Writing Tools + Laser & Laser Pause + Palm Rejection -->
                 <div class="anno-tool-group">
                     <button class="anno-btn" id="toolBtn_pan" onclick="setAnnotationTool('pan')" title="وضع التصفح والتحريك فقط">
                         <i class="fa-solid fa-hand"></i> تصفح
                     </button>
-                    <button class="anno-btn active" id="toolBtn_pen" onclick="setAnnotationTool('pen')" title="قلم فائق السلاسة والتنعيم">
+                    <button class="anno-btn active" id="toolBtn_pen" onclick="setAnnotationTool('pen')" title="قلم فائق السرعة والسلاسة (بدون أي تقطيع)">
                         <i class="fa-solid fa-pen-nib"></i> قلم
-                    </button>
-                    <button class="anno-btn" id="toolBtn_text" onclick="setAnnotationTool('text')" title="إضافة نص بالكيبورد">
-                        <i class="fa-solid fa-font"></i> نص
                     </button>
                     <button class="anno-btn" id="toolBtn_highlighter" onclick="setAnnotationTool('highlighter')" title="قلم تظليل شفاف">
                         <i class="fa-solid fa-highlighter"></i> تظليل
                     </button>
-                    <button class="anno-btn" id="toolBtn_laser" onclick="setAnnotationTool('laser')" title="مؤشر ليزر متلاشي للشرح">
-                        <i class="fa-solid fa-wand-magic-sparkles"></i> ليزر
+                    <button class="anno-btn" id="toolBtn_text" onclick="setAnnotationTool('text')" title="إضافة نص بالكيبورد (T)">
+                        <i class="fa-solid fa-font"></i> نص
                     </button>
                     <button class="anno-btn" id="toolBtn_eraser" onclick="setAnnotationTool('eraser')" title="ممحاة ذكية">
                         <i class="fa-solid fa-eraser"></i> ممحاة
                     </button>
                     <div class="pdf-header-divider"></div>
-                    <button class="anno-btn palm-reject-active" id="toolBtn_palmReject" onclick="togglePalmRejectionMode()" title="عزل التاتش الذكي للأيباد والتابلت والهواتف: يمنع راحة اليد أو الأصابع من تعطيل القلم، ويحول لمس الإصبع لتحريك الصفحة بسلاسة بينما يكتب القلم فوراً">
+                    <button class="anno-btn" id="toolBtn_laser" onclick="setAnnotationTool('laser')" title="مؤشر ليزر للشرح">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> ليزر
+                    </button>
+                    <button class="anno-btn" id="toolBtn_laserPause" onclick="toggleLaserFadePause()" title="إيقاف المسح التلقائي لليزر مؤقتاً وتثبيته على السلايد (اختصار الكيبورد: L أو م)">
+                        <i class="fa-solid fa-pause" id="laserPauseBtnIcon"></i> <span id="laserPauseBtnText">تثبيت الليزر (L)</span>
+                    </button>
+                    <div class="pdf-header-divider"></div>
+                    <button class="anno-btn palm-reject-active" id="toolBtn_palmReject" onclick="togglePalmRejectionMode()" title="عزل التاتش الذكي للأيباد والتابلت">
                         <i class="fa-solid fa-hand-dots" id="palmRejectBtnIcon"></i> <span id="palmRejectBtnText">عزل التاتش</span>
                     </button>
                 </div>
 
-                <!-- Zone 2: Compact Color Swatches, Stroke Slider & Dynamic Font Selector -->
+                <!-- Group 2: Colors, Size Slider & Dynamic Font -->
                 <div class="anno-tool-group">
-                    <span class="color-dot active" style="background: #ef4444; width: 19px; height: 19px;" onclick="setAnnotationColor('#ef4444', this)"></span>
-                    <span class="color-dot" style="background: #3b82f6; width: 19px; height: 19px;" onclick="setAnnotationColor('#3b82f6', this)"></span>
-                    <span class="color-dot" style="background: #10b981; width: 19px; height: 19px;" onclick="setAnnotationColor('#10b981', this)"></span>
-                    <span class="color-dot" style="background: #f59e0b; width: 19px; height: 19px;" onclick="setAnnotationColor('#f59e0b', this)"></span>
-                    <span class="color-dot" style="background: #a855f7; width: 19px; height: 19px;" onclick="setAnnotationColor('#a855f7', this)"></span>
-                    <span class="color-dot" style="background: #111827; border-color: #64748b; width: 19px; height: 19px;" onclick="setAnnotationColor('#111827', this)"></span>
-                    <input type="color" id="customAnnoColor" value="#ef4444" onchange="setAnnotationColor(this.value, null)" style="width: 20px; height: 20px; padding: 0; border: none; background: transparent; cursor: pointer;">
+                    <span class="color-dot active" style="background: #ef4444; width: 18px; height: 18px;" onclick="setAnnotationColor('#ef4444', this)"></span>
+                    <span class="color-dot" style="background: #3b82f6; width: 18px; height: 18px;" onclick="setAnnotationColor('#3b82f6', this)"></span>
+                    <span class="color-dot" style="background: #10b981; width: 18px; height: 18px;" onclick="setAnnotationColor('#10b981', this)"></span>
+                    <span class="color-dot" style="background: #f59e0b; width: 18px; height: 18px;" onclick="setAnnotationColor('#f59e0b', this)"></span>
+                    <span class="color-dot" style="background: #a855f7; width: 18px; height: 18px;" onclick="setAnnotationColor('#a855f7', this)"></span>
+                    <span class="color-dot" style="background: #111827; border-color: #64748b; width: 18px; height: 18px;" onclick="setAnnotationColor('#111827', this)"></span>
+                    <input type="color" id="customAnnoColor" value="#ef4444" onchange="setAnnotationColor(this.value, null)" style="width: 19px; height: 19px; padding: 0; border: none; background: transparent; cursor: pointer;">
                     
                     <div class="pdf-header-divider"></div>
-                    <div class="stroke-size-control-wrap" title="التحكم في حجم القلم والخط">
-                        <button type="button" class="size-step-btn" onclick="stepAnnotationSize(-1)" title="تصغير الحجم (-)">
+                    <div class="stroke-size-control-wrap" title="التحكم في سمك القلم والخط">
+                        <button type="button" class="size-step-btn" onclick="stepAnnotationSize(-1)" title="تصغير السمك (-)">
                             <i class="fa-solid fa-minus"></i>
                         </button>
                         <input type="range" id="annoStrokeSize" class="stroke-size-slider" min="1" max="24" step="0.5" value="3" oninput="updateAnnotationSize(this.value)">
-                        <button type="button" class="size-step-btn" onclick="stepAnnotationSize(1)" title="تكبير الحجم (+)">
+                        <button type="button" class="size-step-btn" onclick="stepAnnotationSize(1)" title="تكبير السمك (+)">
                             <i class="fa-solid fa-plus"></i>
                         </button>
-                        <span id="annoSizeLabel" style="font-size: 0.76rem; color: var(--primary); font-weight: 900; min-width: 34px; text-align: center;">3px</span>
+                        <span id="annoSizeLabel" style="font-size: 0.74rem; color: var(--primary); font-weight: 900; min-width: 32px; text-align: center;">3px</span>
                     </div>
 
                     <div id="annoFontSelectWrap" class="anno-font-select-wrap">
@@ -7729,24 +7785,24 @@
                     </div>
                 </div>
 
-                <!-- Zone 3: Quick Undo, Visibility & Note Sheet -->
+                <!-- Group 3: Quick Actions (Undo, Hide Ink, Extra Note) -->
                 <div class="anno-tool-group">
-                    <button class="anno-btn" onclick="undoLastStroke()">
+                    <button class="anno-btn" onclick="undoLastStroke()" title="تراجع عن آخر خطوة (Ctrl+Z)">
                         <i class="fa-solid fa-rotate-left"></i> تراجع
                     </button>
-                    <button class="anno-btn" id="toggleAnnoVisBtn" onclick="toggleAnnotationsVisibility()">
+                    <button class="anno-btn" id="toggleAnnoVisBtn" onclick="toggleAnnotationsVisibility()" title="إخفاء أو إظهار الكتابة للتسميع النشط">
                         <i class="fa-solid fa-eye" id="toggleAnnoVisIcon"></i> <span id="toggleAnnoVisText">إخفاء الكتابة</span>
                     </button>
-                    <button class="anno-btn" id="pdfToolbarExtraNoteBtn" onclick="toggleExtraNoteForPage(currentActivePageNum)">
-                        <i class="fa-solid fa-plus" id="pdfToolbarExtraNoteIcon" style="color: var(--primary);"></i> <span id="pdfToolbarExtraNoteText">تلخيص</span>
+                    <button class="anno-btn" id="pdfToolbarExtraNoteBtn" onclick="toggleExtraNoteForPage(currentActivePageNum)" title="إضافة مساحة تلخيص أسفل السلايد">
+                        <i class="fa-solid fa-plus" id="pdfToolbarExtraNoteIcon" style="color: var(--primary);"></i> <span id="pdfToolbarExtraNoteText">ورقة تلخيص</span>
                     </button>
-                    <button class="anno-btn" id="pdfToolbarExportPdfBtn" onclick="exportAnnotatedSlides()">
+                    <button class="anno-btn" id="pdfToolbarExportPdfBtn" onclick="exportAnnotatedSlides()" style="display:none;">
                         <i class="fa-solid fa-file-export" id="pdfToolbarExportPdfIcon" style="color: #6ee7b7;"></i> <span id="pdfToolbarExportPdfText">استخراج PDF</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Smart Non-Intrusive Task Intent Choice Bar (Prevents accidental moving of tonight/tomorrow tasks!) -->
+            <!-- Smart Non-Intrusive Task Intent Choice Bar -->
             <div class="pdf-smart-task-choice-bar" id="pdfSmartTaskChoiceBar">
                 <div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; color:#e2e8f0; flex:1; min-width:240px;">
                     <i class="fa-solid fa-compass" style="color:var(--primary); font-size:1rem;"></i>
@@ -7757,13 +7813,10 @@
 
             <!-- Scrollable Multi-Page PDF + Per-Page Canvas Stack -->
             <div class="pdf-viewer-body">
-                <!-- Floating Mini Bar when Zen Focus Mode is active -->
-                <div class="pdf-zen-floating-pill">
-                    <span style="font-size: 0.75rem; color: #6ee7b7; font-weight: 800;"><i class="fa-solid fa-leaf"></i> وضع التركيز الهادئ</span>
-                    <button class="anno-btn" onclick="stepPdfPage(-1)" style="padding: 2px 7px !important;"><i class="fa-solid fa-chevron-up"></i></button>
-                    <button class="anno-btn" onclick="stepPdfPage(1)" style="padding: 2px 7px !important;"><i class="fa-solid fa-chevron-down"></i></button>
-                    <button class="anno-btn" onclick="undoLastStroke()" style="padding: 2px 7px !important;"><i class="fa-solid fa-rotate-left"></i></button>
-                    <button class="anno-btn active" onclick="togglePdfZenMode()" style="padding: 2px 9px !important;">إظهار الأدوات</button>
+                <!-- Ultra-Minimalist 1-Click Exit Pill when Zen Focus Mode is active -->
+                <div class="pdf-zen-floating-pill" onclick="togglePdfZenMode()" title="اضغط للخروج من وضع التركيز (أو اضغط حرف Z من الكيبورد)">
+                    <i class="fa-solid fa-compress" style="color: var(--primary); font-size: 0.78rem;"></i>
+                    <span style="font-size: 0.75rem; color: #e2e8f0; font-weight: 800;">إنهاء التركيز (Z)</span>
                 </div>
 
                 <div class="pdf-pages-scroll-container" id="pdfPagesScrollContainer">
@@ -9433,7 +9486,7 @@
 
                 saveSubjects(); renderGroups(); showToast('تمت إضافة المحاضرة والريكورد بنجاح 📑');
 
-                if (currentCloudUser && currentUserCanUploadMedia && (pdfBlobToUpload || audioBlobToUpload)) {
+                if (currentCloudUser && currentUserCanUploadMedia && isAutoCloudMediaUploadEnabled() && (pdfBlobToUpload || audioBlobToUpload)) {
                     if (pdfBlobToUpload) await uploadMediaToCloudAccount('pdfs', newLecObj, pdfBlobToUpload, false);
                     if (audioBlobToUpload) await uploadMediaToCloudAccount('audios', newLecObj, audioBlobToUpload, false);
                     saveSubjects();
@@ -9483,7 +9536,7 @@
 
                 saveSubjects(); renderGroups(); showToast('تم تعديل بيانات المحاضرة بنجاح');
 
-                if (currentCloudUser && currentUserCanUploadMedia && (pdfBlobToUpload || audioBlobToUpload)) {
+                if (currentCloudUser && currentUserCanUploadMedia && isAutoCloudMediaUploadEnabled() && (pdfBlobToUpload || audioBlobToUpload)) {
                     if (pdfBlobToUpload) await uploadMediaToCloudAccount('pdfs', lec, pdfBlobToUpload, false, { forceReplace: true });
                     if (audioBlobToUpload) await uploadMediaToCloudAccount('audios', lec, audioBlobToUpload, false, { forceReplace: true });
                     saveSubjects();
@@ -9783,6 +9836,68 @@
             pill.innerText = '';
         }
 
+        function isAutoCloudMediaUploadEnabled() {
+            if (localStorage.getItem('pharmaAutoUploadMediaCloudV1') === '0') return false;
+            if (plannerPrefs && plannerPrefs.autoUploadCloudMedia === false) return false;
+            return true;
+        }
+
+        function syncAutoUploadSettingUI() {
+            const enabled = isAutoCloudMediaUploadEnabled();
+            const selEl = document.getElementById('prefAutoUploadCloudSelect');
+            if (selEl) selEl.value = enabled ? '1' : '0';
+
+            const cbEl = document.getElementById('cloudModalAutoUploadCheckbox');
+            if (cbEl) cbEl.checked = enabled;
+            const iconEl = document.getElementById('cloudModalAutoUploadIcon');
+            if (iconEl) {
+                iconEl.className = enabled ? 'fa-solid fa-cloud-arrow-up' : 'fa-solid fa-cloud-bolt';
+                iconEl.style.color = enabled ? 'var(--primary)' : '#fbbf24';
+            }
+            const subTxtEl = document.getElementById('cloudModalAutoUploadSubtext');
+            if (subTxtEl) {
+                subTxtEl.innerText = enabled
+                    ? 'يرفع ملفات الـ PDF والريكورد تلقائياً للسحابة فور إضافتها'
+                    : 'متوقف حالياً — الملفات تُحفظ محلياً فقط وتُرفع يدوياً عند طلبك';
+            }
+
+            const pdfMenuIcon = document.getElementById('pdfMenuAutoUploadToggleIcon');
+            const pdfMenuTxt = document.getElementById('pdfMenuAutoUploadToggleText');
+            if (pdfMenuIcon) {
+                pdfMenuIcon.className = enabled ? 'fa-solid fa-toggle-on' : 'fa-solid fa-toggle-off';
+                pdfMenuIcon.style.color = enabled ? 'var(--primary)' : '#94a3b8';
+            }
+            if (pdfMenuTxt) {
+                pdfMenuTxt.innerText = enabled
+                    ? 'الرفع التلقائي للـ PDF: مفعّل ✓'
+                    : 'الرفع التلقائي للـ PDF: متوقف ⏸️';
+            }
+        }
+
+        function setAutoCloudMediaUploadEnabled(enabled, showToastMsg = true) {
+            const boolVal = Boolean(enabled);
+            plannerPrefs.autoUploadCloudMedia = boolVal;
+            localStorage.setItem('pharmaAutoUploadMediaCloudV1', boolVal ? '1' : '0');
+            localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
+            syncAutoUploadSettingUI();
+            saveScheduleData();
+            if (showToastMsg) {
+                if (boolVal) {
+                    showToast('☁️ تم تفعيل الرفع السحابي التلقائي لملفات الـ PDF والريكورد فور إضافتها');
+                } else {
+                    showToast('⏸️ تم إيقاف الرفع السحابي التلقائي للـ PDF؛ ستُحفظ الملفات على جهازك فقط ولن تُرفع إلا يدوياً عند طلبك');
+                }
+            }
+        }
+
+        function toggleAutoUploadCloudMediaSetting() {
+            setAutoCloudMediaUploadEnabled(!isAutoCloudMediaUploadEnabled(), true);
+        }
+
+        function handleAutoUploadSettingSelectChange(val) {
+            setAutoCloudMediaUploadEnabled(String(val) === '1', true);
+        }
+
         function syncPlannerPrefsUI() {
             const wSel = document.getElementById('prefWeekStartDaySelect');
             const sSel = document.getElementById('prefDayStartHourSelect');
@@ -9792,6 +9907,7 @@
             if (sSel) sSel.value = String(plannerPrefs.dayStartHour ?? 6);
             if (eSel) eSel.value = String(plannerPrefs.dayEndHour ?? 23);
             if (aSel) aSel.value = String(plannerPrefs.autoCompletePct ?? 75);
+            syncAutoUploadSettingUI();
             updatePsfQuickSummaryPill();
         }
 
@@ -12647,8 +12763,13 @@
             });
         }
 
+        let dbReadyPromise = null;
+        const sessionMediaBlobRamCache = { pdfs: new Map(), audios: new Map() };
+
         function initPdfDB() {
-            return new Promise((resolve) => {
+            if (dbInstance) return Promise.resolve(dbInstance);
+            if (dbReadyPromise) return dbReadyPromise;
+            dbReadyPromise = new Promise((resolve) => {
                 const req = indexedDB.open('WorkspaceMediaStore', 3);
                 req.onupgradeneeded = (e) => {
                     const db = e.target.result;
@@ -12665,18 +12786,33 @@
                 req.onsuccess = (e) => {
                     dbInstance = e.target.result;
                     refreshLocalMediaCache();
+                    setTimeout(() => {
+                        if (typeof compactAllStoredAnnotationsInDB === 'function') {
+                            compactAllStoredAnnotationsInDB();
+                        }
+                    }, 1800);
                     resolve(dbInstance);
                 };
                 req.onerror = () => resolve(null);
             });
+            return dbReadyPromise;
         }
         initPdfDB();
 
-        function saveMediaToDB(storeName, id, fileBlob) {
+        async function saveMediaToDB(storeName, id, fileBlob) {
+            if (!dbInstance) await initPdfDB();
             return new Promise((resolve) => {
-                if (!dbInstance) return resolve();
+                if (!dbInstance || !fileBlob) return resolve();
                 try {
                     const numOrStrId = isNaN(Number(id)) ? id : Number(id);
+                    const strKey = String(id);
+                    if (sessionMediaBlobRamCache[storeName]) {
+                        sessionMediaBlobRamCache[storeName].set(strKey, fileBlob);
+                        if (sessionMediaBlobRamCache[storeName].size > 15) {
+                            const oldestKey = sessionMediaBlobRamCache[storeName].keys().next().value;
+                            sessionMediaBlobRamCache[storeName].delete(oldestKey);
+                        }
+                    }
                     const tx = dbInstance.transaction(storeName, 'readwrite');
                     const store = tx.objectStore(storeName);
                     store.put({ id: numOrStrId, blob: fileBlob });
@@ -12691,14 +12827,45 @@
             });
         }
 
-        function getMediaFromDB(storeName, id) {
+        async function getMediaFromDB(storeName, id) {
+            const strKey = String(id);
+            if (sessionMediaBlobRamCache[storeName] && sessionMediaBlobRamCache[storeName].has(strKey)) {
+                return sessionMediaBlobRamCache[storeName].get(strKey);
+            }
+            if (!dbInstance) await initPdfDB();
             return new Promise((resolve) => {
                 if (!dbInstance) return resolve(null);
-                const tx = dbInstance.transaction(storeName, 'readonly');
-                const store = tx.objectStore(storeName);
-                const req = store.get(id);
-                req.onsuccess = () => resolve(req.result ? req.result.blob : null);
-                req.onerror = () => resolve(null);
+                try {
+                    const numOrStrId = isNaN(Number(id)) ? id : Number(id);
+                    const tx = dbInstance.transaction(storeName, 'readonly');
+                    const store = tx.objectStore(storeName);
+                    const req = store.get(numOrStrId);
+                    req.onsuccess = () => {
+                        if (req.result && req.result.blob) {
+                            if (sessionMediaBlobRamCache[storeName]) {
+                                sessionMediaBlobRamCache[storeName].set(strKey, req.result.blob);
+                            }
+                            return resolve(req.result.blob);
+                        }
+                        // Fallback lookup with raw String(id) in case an older entry was keyed as string
+                        if (numOrStrId !== strKey) {
+                            const reqFallback = store.get(strKey);
+                            reqFallback.onsuccess = () => {
+                                const b = reqFallback.result ? reqFallback.result.blob : null;
+                                if (b && sessionMediaBlobRamCache[storeName]) {
+                                    sessionMediaBlobRamCache[storeName].set(strKey, b);
+                                }
+                                resolve(b);
+                            };
+                            reqFallback.onerror = () => resolve(null);
+                        } else {
+                            resolve(null);
+                        }
+                    };
+                    req.onerror = () => resolve(null);
+                } catch (e) {
+                    resolve(null);
+                }
             });
         }
 
@@ -12799,17 +12966,19 @@
                         statusEl.innerHTML = '<i class="fa-solid fa-bolt" style="color:#6ee7b7;"></i> تم الحفظ فوراً ✓';
                     }
                     dirtyAnnotationsForCloud = true;
+                    localStorage.setItem('pharmaWorkspaceDirty', '1');
                     if (triggerCloudImmediately) {
                         if (annoCloudSyncTimer) clearTimeout(annoCloudSyncTimer);
-                        markLocalWorkspaceModified(true);
+                        pushWorkspaceToCloud(false, true);
                     } else {
                         if (annoCloudSyncTimer) clearTimeout(annoCloudSyncTimer);
-                        // Batch cloud PostgreSQL JSONB writes while actively annotating (10s idle window) to protect Supabase Disk IO Budget!
+                        // Ultra-Bandwidth Saver: Save strokes 100% locally in IndexedDB (0 network bytes) while writing,
+                        // and only sync the heavy annotations table to Cloud when closing the PDF, switching tabs, or after 5 minutes of complete idle!
                         annoCloudSyncTimer = setTimeout(() => {
-                            if (!isActivelyDrawingOnPdf) {
-                                markLocalWorkspaceModified(true);
+                            if (!isActivelyDrawingOnPdf && dirtyAnnotationsForCloud) {
+                                pushWorkspaceToCloud(false, true);
                             }
-                        }, 10000);
+                        }, 300000);
                     }
                 };
             } catch (e) {}
@@ -12884,38 +13053,37 @@
 
         function saveAnnotationsToDB(lecId, pagesData, specificPageKey = null) {
             if (!dbInstance) return;
+            // Zero-Lag Direct Memory Assignment: do NOT run deep JSON.parse/stringify cloning on every stroke!
             if (mergedContinuousPdfMode) {
                 syncMergedAnnotationsToLectureRecords(specificPageKey);
             } else if (lecId && pagesData) {
-                const cleanCopy = normalizeAndRecoverLectureAnnotations(lecId, pagesData);
-                inMemoryAnnotationsCache[lecId] = cleanCopy;
-                pendingAnnoSaveMap[lecId] = cleanCopy;
+                const numOrStrId = isNaN(Number(lecId)) ? lecId : Number(lecId);
+                inMemoryAnnotationsCache[numOrStrId] = pagesData;
+                pendingAnnoSaveMap[numOrStrId] = pagesData;
             }
 
-            const statusEl = document.getElementById('pdfAutoSaveStatus');
-            if (statusEl) {
-                statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> يحفظ...';
-            }
             if (autoSaveTimer) clearTimeout(autoSaveTimer);
+            // Debounce local IndexedDB commit to 1400ms after the last pen lift so consecutive handwriting strokes and dots are 100% in RAM with zero main-thread stutter!
             const scheduleSaveTick = () => {
                 if (isActivelyDrawingOnPdf) {
-                    autoSaveTimer = setTimeout(scheduleSaveTick, 120);
+                    autoSaveTimer = setTimeout(scheduleSaveTick, 800);
                     return;
                 }
                 flushPendingAnnotationsSave(false);
             };
-            autoSaveTimer = setTimeout(scheduleSaveTick, 120);
+            autoSaveTimer = setTimeout(scheduleSaveTick, 1400);
         }
 
-        function getAnnotationsFromDB(lecId) {
+        async function getAnnotationsFromDB(lecId) {
+            if (!lecId) return {};
+            const numOrStrId = isNaN(Number(lecId)) ? lecId : Number(lecId);
+            if (inMemoryAnnotationsCache[numOrStrId] && !String(numOrStrId).startsWith('_cloudMedia_')) {
+                const norm = normalizeAndRecoverLectureAnnotations(numOrStrId, inMemoryAnnotationsCache[numOrStrId]);
+                inMemoryAnnotationsCache[numOrStrId] = norm;
+                return cloneAnnotationsSafe(norm);
+            }
+            if (!dbInstance) await initPdfDB();
             return new Promise((resolve) => {
-                if (!lecId) return resolve({});
-                const numOrStrId = isNaN(Number(lecId)) ? lecId : Number(lecId);
-                if (inMemoryAnnotationsCache[numOrStrId] && !String(numOrStrId).startsWith('_cloudMedia_')) {
-                    const norm = normalizeAndRecoverLectureAnnotations(numOrStrId, inMemoryAnnotationsCache[numOrStrId]);
-                    inMemoryAnnotationsCache[numOrStrId] = norm;
-                    return resolve(cloneAnnotationsSafe(norm));
-                }
                 if (!dbInstance) return resolve({});
                 const tx = dbInstance.transaction('annotations', 'readonly');
                 const store = tx.objectStore('annotations');
@@ -14641,10 +14809,57 @@
         }
 
         let isLaserPointerDown = false;
+        let isLaserFadePaused = false;
         let lastLaserActivityAt = 0;
         let laserPageFadingState = {};
         const LASER_HOLD_AFTER_STOP_MS = 1250; // Laser stays 100% bright until user stops writing for 1.25s
         const LASER_FADE_DURATION_MS = 650;    // Smooth fade-out after user stops writing
+
+        function syncLaserPauseButtonUI() {
+            const btn = document.getElementById('toolBtn_laserPause');
+            const icon = document.getElementById('laserPauseBtnIcon');
+            const txt = document.getElementById('laserPauseBtnText');
+            if (!btn) return;
+            btn.classList.toggle('laser-pause-active', isLaserFadePaused);
+            if (icon) icon.className = isLaserFadePaused ? 'fa-solid fa-play' : 'fa-solid fa-pause';
+            if (txt) txt.innerText = isLaserFadePaused ? 'الليزر مُثبّت (L)' : 'تثبيت الليزر (L)';
+        }
+
+        function toggleLaserFadePause(forceState = null, silent = false) {
+            isLaserFadePaused = (forceState !== null) ? Boolean(forceState) : !isLaserFadePaused;
+            syncLaserPauseButtonUI();
+            if (isLaserFadePaused) {
+                lastLaserActivityAt = performance.now();
+                // Restore any currently fading laser strokes on the active page back to 100% brightness
+                Object.keys(laserStrokes).forEach(pKey => {
+                    const list = laserStrokes[pKey];
+                    if (list && list.length > 0) {
+                        laserPageFadingState[pKey] = false;
+                        const lc = document.getElementById(`pdfLaserCanvas_${pKey}`);
+                        if (lc) {
+                            const lCtx = lc.getContext('2d');
+                            lCtx.clearRect(0, 0, lc.width, lc.height);
+                            for (let i = 0; i < list.length; i++) {
+                                drawLaserGlowPath(lCtx, lc.width, lc.height, list[i].points, list[i].color, list[i].size, 1.0);
+                            }
+                        }
+                    }
+                });
+                if (currentAnnoTool !== 'laser') {
+                    setAnnotationTool('laser');
+                }
+                if (!silent) {
+                    showToast('⏸️ تم إيقاف المسح التلقائي لليزر مؤقتاً! سيبقى الليزر ثابتاً على الشاشة (اضغط L أو م لإلغاء التثبيت ومسحه)');
+                }
+            } else {
+                // Immediately trigger smooth fade-out of all held laser strokes
+                lastLaserActivityAt = performance.now() - (LASER_HOLD_AFTER_STOP_MS - 80);
+                startLaserFadeLoop();
+                if (!silent) {
+                    showToast('▶️ تم إلغاء تثبيت الليزر واستئناف المسح التلقائي');
+                }
+            }
+        }
 
         // Smart iPad / Tablet / Mobile Palm Rejection & Touch-Isolation State
         let palmRejectionMode = localStorage.getItem('pharmaPalmRejectV1') !== '0';
@@ -14675,10 +14890,11 @@
             }
         }
 
-        // Shape-Preserving 2-Pass Gaussian-Chaikin Post-Stroke Smoothing Filter for Silk-Smooth Calligraphy
+        // Shape-Preserving 2-Pass Gaussian Post-Stroke Smoothing + Smart Collinear/Distance Decimation
+        // Cuts annotation JSON payload & network bandwidth by ~80% while preserving 100% silk-smooth Bézier calligraphy!
         function polishStrokePointsForSilkInk(rawPts) {
             if (!rawPts || rawPts.length <= 2) return rawPts ? rawPts.slice() : [];
-            let pts = rawPts.map(pt => ({ x: pt.x, y: pt.y, p: pt.p || 0.5 }));
+            let pts = rawPts.map(pt => ({ x: Number(pt.x) || 0, y: Number(pt.y) || 0, p: pt.p || 0.5 }));
             for (let pass = 0; pass < 2; pass++) {
                 const next = [pts[0]];
                 for (let i = 1; i < pts.length - 1; i++) {
@@ -14694,11 +14910,72 @@
                 next.push(pts[pts.length - 1]);
                 pts = next;
             }
-            return pts.map(pt => ({
+
+            // Smart Point Decimation: remove redundant micro-points and collinear intermediate points
+            const decimated = [pts[0]];
+            const minDistSq = 0.0015 * 0.0015; // ~1.3px on a 900px canvas
+            const maxSkipDistSq = 0.018 * 0.018;
+            for (let i = 1; i < pts.length - 1; i++) {
+                const lastKept = decimated[decimated.length - 1];
+                const cur = pts[i];
+                const nxt = pts[i + 1];
+                const dx = cur.x - lastKept.x;
+                const dy = cur.y - lastKept.y;
+                const distSq = dx * dx + dy * dy;
+                if (distSq < minDistSq) continue;
+
+                // Check collinearity with next point: if direction barely changes (< ~4 degrees) and segment isn't long, skip cur
+                if (distSq < maxSkipDistSq) {
+                    const vx1 = cur.x - lastKept.x;
+                    const vy1 = cur.y - lastKept.y;
+                    const vx2 = nxt.x - cur.x;
+                    const vy2 = nxt.y - cur.y;
+                    const l1 = Math.hypot(vx1, vy1);
+                    const l2 = Math.hypot(vx2, vy2);
+                    if (l1 > 0.0001 && l2 > 0.0001) {
+                        const cosTheta = (vx1 * vx2 + vy1 * vy2) / (l1 * l2);
+                        if (cosTheta > 0.9975 && Math.abs((cur.p || 0.5) - (lastKept.p || 0.5)) < 0.08) {
+                            continue;
+                        }
+                    }
+                }
+                decimated.push(cur);
+            }
+            decimated.push(pts[pts.length - 1]);
+
+            return decimated.map(pt => ({
                 x: Math.round(pt.x * 10000) / 10000,
                 y: Math.round(pt.y * 10000) / 10000,
                 p: Math.round((pt.p || 0.5) * 100) / 100
             }));
+        }
+
+        // One-time background compaction of existing IndexedDB annotations to shrink bloated historical strokes by up to 80%
+        async function compactAllStoredAnnotationsInDB() {
+            if (!dbInstance || localStorage.getItem('pharmaAnnotationsCompactedV2') === '1') return;
+            try {
+                const allMap = await getAllAnnotationsMapFromDB();
+                let compactedAny = false;
+                Object.keys(allMap || {}).forEach(lecId => {
+                    if (String(lecId).startsWith('_cloudMedia_')) return;
+                    const pages = allMap[lecId];
+                    if (!pages || typeof pages !== 'object') return;
+                    Object.keys(pages).forEach(pKey => {
+                        if (pKey === '_extraNotes' || pKey === '_audioPins' || !Array.isArray(pages[pKey])) return;
+                        pages[pKey].forEach(stroke => {
+                            if (stroke && Array.isArray(stroke.points) && stroke.points.length > 12) {
+                                const beforeLen = stroke.points.length;
+                                stroke.points = polishStrokePointsForSilkInk(stroke.points);
+                                if (stroke.points.length < beforeLen) compactedAny = true;
+                            }
+                        });
+                    });
+                });
+                if (compactedAny) {
+                    await restoreAllAnnotationsMapToDB(allMap);
+                }
+                localStorage.setItem('pharmaAnnotationsCompactedV2', '1');
+            } catch (e) {}
         }
 
         function attachGraphicTabletListeners(inkCanvas, laserCanvas, pageNum) {
@@ -14875,6 +15152,7 @@
                 emaFilteredPt = { x: pt.x, y: pt.y, p: pt.p };
                 try { inkCanvas.setPointerCapture(e.pointerId); } catch (err) {}
                 currentPoints = [pt];
+                let incrementalDrawnIdx = 0;
 
                 if (effectiveTool === 'eraser') {
                     eraseAtPoint(pageNum, pt.x, pt.y);
@@ -14885,32 +15163,29 @@
                     isLaserPointerDown = true;
                     lastLaserActivityAt = nowPerf;
                     laserCanvas.style.opacity = '1';
-                    laserPageFadingState[pageNum] = false;
-
-                    lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
-                    const existingList = laserStrokes[pageNum] || [];
-                    for (let i = 0; i < existingList.length; i++) {
-                        const s = existingList[i];
-                        drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, s.points, s.color, s.size, 1.0);
+                    if (laserPageFadingState[pageNum] && laserStrokes[pageNum] && laserStrokes[pageNum].length > 0) {
+                        lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+                        for (let i = 0; i < laserStrokes[pageNum].length; i++) {
+                            const s = laserStrokes[pageNum][i];
+                            drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, s.points, s.color, s.size, 1.0);
+                        }
+                        laserPageFadingState[pageNum] = false;
                     }
-                    drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, currentPoints, currentAnnoColor, currentAnnoSize + 2, 1.0);
+                    incrementalDrawnIdx = drawIncrementalStrokeSegments(lCtx, laserCanvas.width, laserCanvas.height, 'laser', currentAnnoColor, currentAnnoSize, currentPoints, 0, false);
+                    inkCanvas._incIdx = incrementalDrawnIdx;
                     return;
                 }
 
-                // Clear any lingering laser strokes on this page
-                if (laserStrokes[pageNum] && laserStrokes[pageNum].length > 0) {
+                // Clear any lingering unpaused laser strokes on this page
+                if (!isLaserFadePaused && laserStrokes[pageNum] && laserStrokes[pageNum].length > 0) {
                     laserStrokes[pageNum] = [];
                     laserPageFadingState[pageNum] = false;
                 }
                 laserCanvas.style.opacity = (effectiveTool === 'highlighter') ? '0.32' : '1';
                 lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
-                drawSingleStrokeOnCanvas(lCtx, laserCanvas.width, laserCanvas.height, {
-                    tool: effectiveTool,
-                    color: currentAnnoColor,
-                    size: effectiveTool === 'highlighter' ? Math.max(14, currentAnnoSize * 4.5) : currentAnnoSize,
-                    alpha: 1.0,
-                    points: currentPoints
-                });
+                // O(1) Incremental start for regular pen: draws initial dot immediately without full-canvas clear overhead on move!
+                incrementalDrawnIdx = drawIncrementalStrokeSegments(lCtx, laserCanvas.width, laserCanvas.height, effectiveTool, currentAnnoColor, currentAnnoSize, currentPoints, 0, false);
+                inkCanvas._incIdx = incrementalDrawnIdx;
             });
 
             inkCanvas.addEventListener('pointermove', (e) => {
@@ -14960,8 +15235,7 @@
                     lastLaserActivityAt = performance.now();
                 }
 
-                // Dual-Stage Velocity-Adaptive Exponential Moving Average (EMA) + Spring Stabilizer
-                // Delivers ultra-silky calligraphy on iPad Apple Pencil, Samsung S-Pen, and PC Graphic Tablets
+                // Ultra-Responsive Nib Tracking: zero lag on small Arabic letters & fast curves
                 for (let i = 0; i < events.length; i++) {
                     const rawPt = getFastNormCoords(events[i]);
                     lastRawPt = rawPt;
@@ -14976,77 +15250,50 @@
                     const dyPx = (rawPt.y - emaFilteredPt.y) * cachedRectH;
                     const distSqPx = dxPx * dxPx + dyPx * dyPx;
 
-                    // Sub-pixel jitter gate (0.35px threshold removes stationary hand micro-tremor)
-                    if (distSqPx < 0.12) {
+                    // Fine sub-pixel gate (0.42px) so small handwriting letters never feel stuck
+                    if (distSqPx < 0.18) {
                         continue;
                     }
 
                     const distPx = Math.sqrt(distSqPx);
-                    // Velocity-adaptive smoothing weight: stronger stabilization on slow/careful handwriting (0.28), responsive on fast sweeps (0.68)
-                    const emaAlpha = Math.min(0.68, Math.max(0.28, distPx / 16.0));
+                    // Snappy velocity-adaptive weight (0.58 to 0.88) so the regular pen tracks as fast as the laser!
+                    const emaAlpha = Math.min(0.88, Math.max(0.58, distPx / 10.0));
                     const nextX = emaFilteredPt.x + (rawPt.x - emaFilteredPt.x) * emaAlpha;
                     const nextY = emaFilteredPt.y + (rawPt.y - emaFilteredPt.y) * emaAlpha;
-                    const nextP = emaFilteredPt.p * 0.65 + rawPt.p * 0.35;
+                    const nextP = emaFilteredPt.p * 0.6 + rawPt.p * 0.4;
 
                     emaFilteredPt = { x: nextX, y: nextY, p: nextP };
-
-                    // Retroactive 2nd-order midpoint tension pull on the previous point so curves have zero kinks
-                    const len = currentPoints.length;
-                    if (len >= 2) {
-                        const pPrev2 = currentPoints[len - 2];
-                        const pPrev1 = currentPoints[len - 1];
-                        currentPoints[len - 1] = {
-                            x: pPrev1.x * 0.68 + ((pPrev2.x + nextX) * 0.5) * 0.32,
-                            y: pPrev1.y * 0.68 + ((pPrev2.y + nextY) * 0.5) * 0.32,
-                            p: pPrev1.p
-                        };
-                    }
                     currentPoints.push({ x: nextX, y: nextY, p: nextP });
                 }
 
-                if (currentPoints.length <= startLen && currentPoints.length > 2) return;
+                if (currentPoints.length <= startLen) return;
 
-                // Optional 1-point hardware prediction lookahead so ink visually touches the physical nib with zero lag
-                let previewPts = currentPoints;
-                if (typeof e.getPredictedEvents === 'function') {
-                    const predicted = e.getPredictedEvents();
-                    if (predicted && predicted.length > 0) {
-                        const predPt = getFastNormCoords(predicted[0]);
-                        const lastAccepted = currentPoints[currentPoints.length - 1];
-                        previewPts = currentPoints.concat([{
-                            x: lastAccepted.x * 0.45 + predPt.x * 0.55,
-                            y: lastAccepted.y * 0.45 + predPt.y * 0.55,
-                            p: lastAccepted.p
-                        }]);
-                    }
-                } else if (lastRawPt && currentPoints.length > 1) {
-                    const lastAccepted = currentPoints[currentPoints.length - 1];
-                    previewPts = currentPoints.concat([{
-                        x: lastAccepted.x * 0.35 + lastRawPt.x * 0.65,
-                        y: lastAccepted.y * 0.35 + lastRawPt.y * 0.65,
-                        p: lastRawPt.p
-                    }]);
-                }
-
-                lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
-
-                if (effectiveTool === 'laser') {
-                    const existingList = laserStrokes[pageNum] || [];
-                    for (let i = 0; i < existingList.length; i++) {
-                        const s = existingList[i];
-                        drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, s.points, s.color, s.size, 1.0);
-                    }
-                    drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, previewPts, currentAnnoColor, currentAnnoSize + 2, 1.0);
+                // FAST PATH FOR REGULAR PEN & LASER: O(1) Incremental Segment Rendering (Zero clearRect & zero full-path redraw!)
+                // This makes the regular pen 100% as fast and fluid as the laser!
+                if (effectiveTool === 'pen' || effectiveTool === 'laser') {
+                    const prevIncIdx = inkCanvas._incIdx || 0;
+                    inkCanvas._incIdx = drawIncrementalStrokeSegments(
+                        lCtx,
+                        laserCanvas.width,
+                        laserCanvas.height,
+                        effectiveTool,
+                        currentAnnoColor,
+                        currentAnnoSize,
+                        currentPoints,
+                        prevIncIdx,
+                        false
+                    );
                     return;
                 }
 
-                // Full-Path Continuous C1 Quadratic Bézier Spline Preview (Zero segment seams or highlighter dots!)
+                // For Highlighter (which is semi-transparent 0.32 and needs uniform alpha without overlapping segment joints):
+                lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
                 drawSingleStrokeOnCanvas(lCtx, laserCanvas.width, laserCanvas.height, {
                     tool: effectiveTool,
                     color: currentAnnoColor,
-                    size: effectiveTool === 'highlighter' ? Math.max(14, currentAnnoSize * 4.5) : currentAnnoSize,
+                    size: Math.max(14, currentAnnoSize * 4.5),
                     alpha: 1.0,
-                    points: previewPts
+                    points: currentPoints
                 });
             });
 
@@ -15863,9 +16110,10 @@
             const list = laserStrokes[pageKey];
             if (!list || list.length === 0) return;
 
-            // If user is currently holding or moving the laser pen, keep activity timestamp fresh so NOTHING fades!
-            if (isLaserPointerDown) {
+            // If user is currently holding/moving the laser pen OR has paused laser auto-erase (L), keep timestamp fresh so NOTHING fades!
+            if (isLaserPointerDown || isLaserFadePaused) {
                 lastLaserActivityAt = now;
+                return;
             }
 
             const idleTime = now - (lastLaserActivityAt || now);
@@ -16082,7 +16330,7 @@
                     showToast('تم حفظ المحاضرة وتفعيل الكتابة بالجرافيك تابلت 📖');
                 }
 
-                if (currentCloudUser && currentUserCanUploadMedia) {
+                if (currentCloudUser && currentUserCanUploadMedia && isAutoCloudMediaUploadEnabled()) {
                     await uploadMediaToCloudAccount('pdfs', targetLecRef.lec, file, true);
                     saveSubjects();
                     if (activeSubjectId) renderGroups();
@@ -16114,7 +16362,7 @@
                 document.getElementById('audioPlayIcon').className = 'fa-solid fa-pause';
                 showToast('تم ربط وتشغيل الريكورد الصوتي بالتوازي 🎙️');
 
-                if (currentCloudUser && currentUserCanUploadMedia) {
+                if (currentCloudUser && currentUserCanUploadMedia && isAutoCloudMediaUploadEnabled()) {
                     await uploadMediaToCloudAccount('audios', currentViewingLec.lec, file, true);
                     saveSubjects();
                     if (activeSubjectId) renderGroups();
@@ -18451,6 +18699,11 @@
                     togglePdfZenMode();
                     return;
                 }
+                if (!e.ctrlKey && !e.metaKey && !e.altKey && e.code === 'KeyL') {
+                    e.preventDefault();
+                    toggleLaserFadePause();
+                    return;
+                }
                 if (e.code === 'Space') {
                     e.preventDefault();
                     toggleAudioPlayPause();
@@ -18468,6 +18721,12 @@
                     return;
                 }
                 if (e.key === 'Escape') {
+                    const pdfContainer = document.getElementById('pdfModalContainer');
+                    if (pdfContainer && pdfContainer.classList.contains('pdf-zen-mode')) {
+                        e.preventDefault();
+                        togglePdfZenMode();
+                        return;
+                    }
                     closePdfViewer();
                     return;
                 }
@@ -18631,13 +18890,18 @@
                         auth: { persistSession: true, autoRefreshToken: true }
                     });
 
+                    let initialSessionHandled = false;
                     supabaseClient.auth.getSession().then(({ data }) => {
+                        initialSessionHandled = true;
                         handleAuthSessionChange(data?.session?.user || null, true);
                     });
 
                     supabaseClient.auth.onAuthStateChange((event, session) => {
+                        if (event === 'INITIAL_SESSION') return;
                         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                            handleAuthSessionChange(session?.user || null, event === 'SIGNED_IN');
+                            // Prevent duplicate full-row download on page load when SIGNED_IN fires right after getSession()
+                            const isNewLoginSyncNeeded = (event === 'SIGNED_IN') && (!initialSessionHandled || String(currentCloudUser?.id || '') !== String(session?.user?.id || ''));
+                            handleAuthSessionChange(session?.user || null, isNewLoginSyncNeeded);
                         } else if (event === 'SIGNED_OUT') {
                             handleAuthSessionChange(null, false);
                         }
@@ -19039,16 +19303,15 @@
             return healedCount > 0;
         }
 
+        let hasReconciledBucketThisSession = false;
         function openCloudAuthModal() {
             healSubjectsFromCloudRegistry();
             updateCloudMediaStatsUI();
             document.getElementById('cloudAuthModalOverlay').classList.add('active');
-            if (currentCloudUser && supabaseClient && navigator.onLine && !isCloudSyncing && !isBulkMediaUploading) {
-                if (localStorage.getItem('pharmaWorkspaceDirty') !== '1') {
-                    pullWorkspaceFromCloud(false).then(() => reconcileCloudMediaWithStorageBucket(true));
-                } else {
-                    reconcileCloudMediaWithStorageBucket(true);
-                }
+            // Only reconcile storage bucket once per session when opening the modal instead of re-downloading the entire workspace row every time!
+            if (currentCloudUser && supabaseClient && navigator.onLine && !isCloudSyncing && !isBulkMediaUploading && !hasReconciledBucketThisSession) {
+                hasReconciledBucketThisSession = true;
+                reconcileCloudMediaWithStorageBucket(false);
             }
         }
 
@@ -19577,29 +19840,13 @@
                             }
                             resolve({ ok: true, finalBps });
                         } else {
-                            // Try official Supabase Storage SDK upload as fallback if direct XHR failed
-                            try {
-                                const { error: sdkErr } = await supabaseClient.storage
-                                    .from('lecture_media')
-                                    .upload(storagePath, fileBlob, { upsert: true, contentType: contentType || 'application/octet-stream' });
-                                if (!sdkErr) {
-                                    const elapsedSec = Math.max(0.15, (performance.now() - startTimeMs) / 1000);
-                                    const finalBps = fileBlob.size / elapsedSec;
-                                    if (onProgressCallback) {
-                                        onProgressCallback({
-                                            pct: 100,
-                                            loaded: fileBlob.size,
-                                            total: fileBlob.size,
-                                            speedBps: finalBps,
-                                            speedText: formatUploadSpeed(finalBps)
-                                        });
-                                    }
-                                    return resolve({ ok: true, finalBps });
-                                }
-                                return resolve({ ok: false, error: sdkErr.message || `HTTP ${xhr.status}: ${xhr.responseText || ''}` });
-                            } catch (fbErr) {
-                                return resolve({ ok: false, error: `HTTP ${xhr.status}: ${xhr.responseText || ''}` });
-                            }
+                            // Do NOT re-upload the entire multi-megabyte blob a second time via SDK if HTTP returned 4xx (e.g. 400/403/413 size limit)!
+                            return resolve({
+                                ok: false,
+                                status: xhr.status,
+                                isClientRejection: (xhr.status >= 400 && xhr.status < 500),
+                                error: `HTTP ${xhr.status}: ${xhr.responseText || ''}`
+                            });
                         }
                     };
 
@@ -19721,6 +19968,8 @@
                         break;
                     } else {
                         lastStorageError = xhrRes.error || '';
+                        // If server rejected with 4xx (e.g. 413 Payload Too Large or 403 RLS), stop immediately instead of wasting bandwidth retrying!
+                        if (xhrRes.isClientRejection) break;
                     }
                     if (attempt === 1) {
                         await new Promise(r => setTimeout(r, 600));
@@ -19810,51 +20059,70 @@
             return { ok: false, reason: 'unknown' };
         }
 
+        const inFlightMediaDownloads = new Map();
         async function downloadMediaFromCloudAccount(storeName, lecObj) {
             if (!lecObj) return null;
-            const isPdf = storeName === 'pdfs';
-            const cloudPath = isPdf ? lecObj.cloudPdfPath : lecObj.cloudAudioPath;
-            const cloudUrl = isPdf ? lecObj.cloudPdfUrl : lecObj.cloudAudioUrl;
+            // Always verify Local IndexedDB & RAM cache first before touching the network!
+            const cachedLocal = await getMediaFromDB(storeName, lecObj.id);
+            if (cachedLocal) return cachedLocal;
 
-            // 1. Check DB Fallback (`_cloudMedia_<storeName>_<lecId>`) in IndexedDB annotations store
-            const mediaKey = `_cloudMedia_${storeName}_${lecObj.id}`;
-            try {
-                const fallbackObj = await getAnnotationsFromDB(mediaKey);
-                if (fallbackObj && fallbackObj.dataUrl) {
-                    const blob = await dataUrlToBlob(fallbackObj.dataUrl);
-                    if (blob) {
-                        saveMediaToDB(storeName, lecObj.id, blob);
-                        return blob;
+            const inflightKey = `${storeName}:${lecObj.id}`;
+            if (inFlightMediaDownloads.has(inflightKey)) {
+                return await inFlightMediaDownloads.get(inflightKey);
+            }
+
+            const downloadPromise = (async () => {
+                const isPdf = storeName === 'pdfs';
+                const cloudPath = isPdf ? lecObj.cloudPdfPath : lecObj.cloudAudioPath;
+                const cloudUrl = isPdf ? lecObj.cloudPdfUrl : lecObj.cloudAudioUrl;
+
+                // 1. Check DB Fallback (`_cloudMedia_<storeName>_<lecId>`) in IndexedDB annotations store
+                const mediaKey = `_cloudMedia_${storeName}_${lecObj.id}`;
+                try {
+                    const fallbackObj = await getAnnotationsFromDB(mediaKey);
+                    if (fallbackObj && fallbackObj.dataUrl) {
+                        const blob = await dataUrlToBlob(fallbackObj.dataUrl);
+                        if (blob) {
+                            await saveMediaToDB(storeName, lecObj.id, blob);
+                            return blob;
+                        }
                     }
+                } catch (e) {}
+
+                // 2. Check Public URL fetch with browser Force-Cache first, or Supabase Storage download
+                if (supabaseClient && navigator.onLine && cloudPath && !cloudPath.startsWith('db_fallback:')) {
+                    try {
+                        const { data, error } = await supabaseClient.storage
+                            .from('lecture_media')
+                            .download(cloudPath);
+                        if (!error && data) {
+                            await saveMediaToDB(storeName, lecObj.id, data);
+                            return data;
+                        }
+                    } catch (e) {}
                 }
-            } catch (e) {}
 
-            // 2. Check Supabase Storage download if path is in `lecture_media`
-            if (supabaseClient && navigator.onLine && cloudPath && !cloudPath.startsWith('db_fallback:')) {
-                try {
-                    const { data, error } = await supabaseClient.storage
-                        .from('lecture_media')
-                        .download(cloudPath);
-                    if (!error && data) {
-                        saveMediaToDB(storeName, lecObj.id, data);
-                        return data;
-                    }
-                } catch (e) {}
+                // 3. Check Public URL fetch
+                if (cloudUrl && cloudUrl.startsWith('http') && navigator.onLine) {
+                    try {
+                        const resp = await fetch(cloudUrl, { cache: 'force-cache' });
+                        if (resp.ok) {
+                            const blob = await resp.blob();
+                            await saveMediaToDB(storeName, lecObj.id, blob);
+                            return blob;
+                        }
+                    } catch (e) {}
+                }
+
+                return null;
+            })();
+
+            inFlightMediaDownloads.set(inflightKey, downloadPromise);
+            try {
+                return await downloadPromise;
+            } finally {
+                inFlightMediaDownloads.delete(inflightKey);
             }
-
-            // 3. Check Public URL fetch
-            if (cloudUrl && cloudUrl.startsWith('http') && navigator.onLine) {
-                try {
-                    const resp = await fetch(cloudUrl);
-                    if (resp.ok) {
-                        const blob = await resp.blob();
-                        saveMediaToDB(storeName, lecObj.id, blob);
-                        return blob;
-                    }
-                } catch (e) {}
-            }
-
-            return null;
         }
 
         async function uploadSingleLectureMediaToCloud(groupId, lecId, event) {
@@ -20370,9 +20638,24 @@
         }
 
         let dirtyAnnotationsForCloud = false;
-        let lastCloudPullTimestampMs = 0;
+        let lastCloudPullTimestampMs = Date.now();
+        let lastUploadedAnnotationsSignature = '';
+        let isLoginSyncInProgress = false;
+        let lastLoginSyncUserId = null;
 
-        // --- Auto-Save Trigger on Any Data Change (Disk-IO Optimized) ---
+        function computeFastStringSignature(str) {
+            if (!str) return '0:0';
+            let h = 2166136261 >>> 0;
+            const len = str.length;
+            const step = Math.max(1, Math.floor(len / 512));
+            for (let i = 0; i < len; i += step) {
+                h ^= str.charCodeAt(i);
+                h = Math.imul(h, 16777619) >>> 0;
+            }
+            return `${len}:${h}`;
+        }
+
+        // --- Auto-Save Trigger on Any Data Change (Bandwidth & Disk-IO Optimized) ---
         function markLocalWorkspaceModified(includeAnnotations = false) {
             if (includeAnnotations) dirtyAnnotationsForCloud = true;
             localStorage.setItem('pharmaWorkspaceUpdatedAt', String(Date.now()));
@@ -20380,19 +20663,26 @@
             if (!currentCloudUser || isBulkMediaUploading) return;
             updateCloudNavUI('syncing');
             if (cloudAutoSaveTimer) clearTimeout(cloudAutoSaveTimer);
-            // 2.5s smart debounce coalesces rapid clicks/edits into a single PostgreSQL write
+            // 4s smart debounce coalesces rapid edits into a single ultra-lightweight metadata write (~3 KB)
             cloudAutoSaveTimer = setTimeout(() => {
-                if (!isBulkMediaUploading) pushWorkspaceToCloud(false);
-            }, 2500);
+                if (!isBulkMediaUploading) pushWorkspaceToCloud(false, false);
+            }, 4000);
         }
 
         async function pushWorkspaceToCloud(manualNotify = false, forceIncludeAnnotations = false) {
-            if (!currentCloudUser) return;
+            if (!currentCloudUser || isCloudSyncing) return;
             isCloudSyncing = true;
             updateCloudNavUI('syncing');
 
             try {
-                const shouldSendAnnotations = Boolean(dirtyAnnotationsForCloud || forceIncludeAnnotations || manualNotify);
+                const isPdfModalOpenNow = Boolean(document.getElementById('pdfViewerModalOverlay')?.classList.contains('active'));
+                // Never bundle multi-megabyte annotations on routine background schedule/task saves while the PDF viewer is still open,
+                // unless explicitly requested (e.g. closing PDF viewer, manual sync button, or tab hide)!
+                const shouldSendAnnotations = Boolean(
+                    forceIncludeAnnotations ||
+                    manualNotify ||
+                    (dirtyAnnotationsForCloud && !isPdfModalOpenNow)
+                );
                 const nowIso = new Date().toISOString();
                 const payload = {
                     user_id: currentCloudUser.id,
@@ -20412,8 +20702,7 @@
                     updated_at: nowIso
                 };
 
-                // Only include the heavy `annotations` JSONB column when annotations actually changed!
-                // This prevents PostgreSQL from rewriting megabytes of TOAST JSONB on simple schedule/task updates.
+                let annotationsActuallyIncluded = false;
                 if (shouldSendAnnotations) {
                     const allAnnotations = await getAllAnnotationsMapFromDB();
                     const lightweightAnnotations = {};
@@ -20422,14 +20711,24 @@
                             lightweightAnnotations[k] = allAnnotations[k];
                         }
                     });
-                    payload.annotations = lightweightAnnotations;
+                    const serializedAnnos = JSON.stringify(lightweightAnnotations);
+                    const currentSig = computeFastStringSignature(serializedAnnos);
+                    // Skip uploading the heavy `annotations` column if its exact signature hasn't changed since the last upload!
+                    if (manualNotify || currentSig !== lastUploadedAnnotationsSignature) {
+                        payload.annotations = lightweightAnnotations;
+                        annotationsActuallyIncluded = true;
+                        lastUploadedAnnotationsSignature = currentSig;
+                    } else {
+                        dirtyAnnotationsForCloud = false;
+                    }
                 }
 
-                // Safely save into per-account local vault without throwing QuotaExceededError
+                // Safely save lightweight metadata into per-account local vault without serializing multi-MB annotations into localStorage
                 try {
                     const accountKey = `pharmaAccountWorkspace_${currentCloudUser.email || currentCloudUser.id}`;
-                    const existingVault = JSON.parse(localStorage.getItem(accountKey) || '{}');
-                    localStorage.setItem(accountKey, JSON.stringify(Object.assign(existingVault, payload)));
+                    const lightweightVaultCopy = Object.assign({}, payload);
+                    delete lightweightVaultCopy.annotations;
+                    localStorage.setItem(accountKey, JSON.stringify(lightweightVaultCopy));
                 } catch (quotaErr) {}
 
                 // If Supabase Cloud is configured & online, upsert to Supabase
@@ -20438,7 +20737,7 @@
                         .from('user_workspaces')
                         .upsert(payload, { onConflict: 'user_id' });
                     if (error) throw error;
-                    if (shouldSendAnnotations) {
+                    if (annotationsActuallyIncluded || shouldSendAnnotations) {
                         dirtyAnnotationsForCloud = false;
                     }
                 }
@@ -20537,7 +20836,10 @@
             }
 
             await refreshLocalMediaCache();
-            await reconcileCloudMediaWithStorageBucket(false);
+            if (!hasReconciledBucketThisSession) {
+                hasReconciledBucketThisSession = true;
+                await reconcileCloudMediaWithStorageBucket(false);
+            }
             updateCloudMediaStatsUI();
 
             if (cloudRow.updated_at) {
@@ -20589,6 +20891,10 @@
 
         async function syncWorkspaceOnLogin() {
             if (!currentCloudUser) return;
+            if (isLoginSyncInProgress && String(lastLoginSyncUserId) === String(currentCloudUser.id)) return;
+            isLoginSyncInProgress = true;
+            lastLoginSyncUserId = currentCloudUser.id;
+            if (!dbInstance) await initPdfDB();
             updateCloudNavUI('syncing');
             try {
                 const lastLoggedUserId = localStorage.getItem('pharmaLastActiveUserIdV1');
@@ -20649,7 +20955,28 @@
                 }
             } catch (err) {
                 updateCloudNavUI('synced');
+            } finally {
+                isLoginSyncInProgress = false;
+                lastCloudPullTimestampMs = Date.now();
             }
+        }
+
+        // Ultra-lightweight 100-byte timestamp check before downloading multi-megabyte workspace rows!
+        async function pullWorkspaceFromCloudIfNewer() {
+            if (!currentCloudUser || !supabaseClient || !navigator.onLine || isCloudSyncing || isBulkMediaUploading) return;
+            try {
+                const { data: metaRow, error } = await supabaseClient
+                    .from('user_workspaces')
+                    .select('updated_at, can_upload_media')
+                    .eq('user_id', currentCloudUser.id)
+                    .maybeSingle();
+                if (error || !metaRow) return;
+                currentUserCanUploadMedia = Boolean(metaRow.can_upload_media);
+                const lastLocalSyncIso = localStorage.getItem('pharmaLastCloudSyncIso') || '';
+                if (metaRow.updated_at && (!lastLocalSyncIso || new Date(metaRow.updated_at).getTime() > new Date(lastLocalSyncIso).getTime() + 2000)) {
+                    await pullWorkspaceFromCloud(false);
+                }
+            } catch (e) {}
         }
 
         function setupRealtimeWorkspaceSubscription() {
@@ -20669,15 +20996,16 @@
         });
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden') {
-                // Flush any pending annotations or changes when user switches away or closes tab
+                // Flush any pending local annotations to IndexedDB first, then sync to Cloud once when hiding/closing tab
+                flushPendingAnnotationsSave(false);
                 if (dirtyAnnotationsForCloud || localStorage.getItem('pharmaWorkspaceDirty') === '1') {
                     pushWorkspaceToCloud(false, dirtyAnnotationsForCloud);
                 }
             } else if (document.visibilityState === 'visible' && currentCloudUser && supabaseClient && navigator.onLine) {
-                // Throttle automatic background pulls to at most once every 5 minutes to protect Disk IO
-                if (Date.now() - lastCloudPullTimestampMs > 5 * 60 * 1000 && localStorage.getItem('pharmaWorkspaceDirty') !== '1') {
+                // Check only a 100-byte timestamp every 15 minutes instead of blindly downloading megabytes of JSONB!
+                if (Date.now() - lastCloudPullTimestampMs > 15 * 60 * 1000 && localStorage.getItem('pharmaWorkspaceDirty') !== '1') {
                     lastCloudPullTimestampMs = Date.now();
-                    pullWorkspaceFromCloud(false);
+                    pullWorkspaceFromCloudIfNewer();
                 }
             }
         });
