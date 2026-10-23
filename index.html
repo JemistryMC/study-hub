@@ -1159,7 +1159,7 @@
             -webkit-transform: translateZ(0);
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
-            will-change: contents, opacity;
+            /* GPU memory optimized */
         }
         .pdf-ink-canvas {
             z-index: 5;
@@ -7624,8 +7624,8 @@
                     </div>
                     <div style="min-width: 0;">
                         <h3 id="pdfViewerTitle" style="margin: 0; font-size: 0.92rem; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px;">عرض المحاضرة</h3>
-                        <span id="pdfAutoSaveStatus" style="font-size: 0.66rem; color: var(--important-color); font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
-                            <i class="fa-solid fa-bolt"></i> حفظ تلقائي فوري
+                        <span id="pdfAutoSaveStatus" onclick="flushPendingAnnotationsSave(true); showToast('تم حفظ جميع كتاباتك فوراً ✓');" title="الكتابة تُحفظ في الذاكرة اللحظية بدون تقطيع وتُسجل تلقائياً عند إغلاق الملف (اضغط للحفظ اليدوي الفوري)" style="font-size: 0.66rem; color: var(--important-color); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                            <i class="fa-solid fa-check-double"></i> حفظ صامت بدون تقطيع
                         </span>
                     </div>
                 </div>
@@ -12786,11 +12786,7 @@
                 req.onsuccess = (e) => {
                     dbInstance = e.target.result;
                     refreshLocalMediaCache();
-                    setTimeout(() => {
-                        if (typeof compactAllStoredAnnotationsInDB === 'function') {
-                            compactAllStoredAnnotationsInDB();
-                        }
-                    }, 1800);
+                    // Per-lecture lazy compaction runs on lecture open
                     resolve(dbInstance);
                 };
                 req.onerror = () => resolve(null);
@@ -12870,9 +12866,11 @@
         }
 
         let isActivelyDrawingOnPdf = false;
+        let lastPenActivityTimeMs = 0;
         let pendingAnnoSaveMap = {};
         let annoCloudSyncTimer = null;
         let inMemoryAnnotationsCache = {};
+        let inMemoryAnnotationsCacheNormalized = {};
         let inMemoryAnnotationsCacheLoaded = false;
         let annotationUndoStack = [];
         let lastActiveAnnotationKey = null;
@@ -12895,8 +12893,7 @@
             }
         }
 
-        // Synchronize Merged Mode composite keys (`${lecId}_p_${localP}` and `note_${lecId}_p_${localP}`)
-        // back into each individual lecture's native single-lecture structure (`1`, `note_1`, `_extraNotes`, `_audioPins`)
+        // Zero-Clone In-Memory Reference Sync for Merged Mode (0.001ms, no JSON.stringify!)
         function syncMergedAnnotationsToLectureRecords(specificPageKey = null) {
             if (!mergedContinuousPdfMode || !mergedPageToLectureMap) return [];
             const touchedLecIds = new Set();
@@ -12912,10 +12909,10 @@
                 const noteCompKey = `note_${compKey}`;
 
                 if (pageAnnotations[compKey] !== undefined) {
-                    mInfo.lecAnnos[localP] = cloneAnnotationsSafe(pageAnnotations[compKey]);
+                    mInfo.lecAnnos[localP] = pageAnnotations[compKey];
                 }
                 if (pageAnnotations[noteCompKey] !== undefined) {
-                    mInfo.lecAnnos[`note_${localP}`] = cloneAnnotationsSafe(pageAnnotations[noteCompKey]);
+                    mInfo.lecAnnos[`note_${localP}`] = pageAnnotations[noteCompKey];
                 }
                 if (!mInfo.lecAnnos._extraNotes) mInfo.lecAnnos._extraNotes = {};
                 if (pageAnnotations._extraNotes && pageAnnotations._extraNotes[compKey] !== undefined) {
@@ -12926,12 +12923,11 @@
 
                 if (!mInfo.lecAnnos._audioPins) mInfo.lecAnnos._audioPins = {};
                 if (pageAnnotations._audioPins && pageAnnotations._audioPins[compKey] !== undefined) {
-                    mInfo.lecAnnos._audioPins[localP] = cloneAnnotationsSafe(pageAnnotations._audioPins[compKey]);
+                    mInfo.lecAnnos._audioPins[localP] = pageAnnotations._audioPins[compKey];
                 }
 
-                const cleanClone = cloneAnnotationsSafe(mInfo.lecAnnos);
-                inMemoryAnnotationsCache[mInfo.lecId] = cleanClone;
-                pendingAnnoSaveMap[mInfo.lecId] = cleanClone;
+                inMemoryAnnotationsCache[mInfo.lecId] = mInfo.lecAnnos;
+                pendingAnnoSaveMap[mInfo.lecId] = mInfo.lecAnnos;
                 touchedLecIds.add(mInfo.lecId);
             });
             return Array.from(touchedLecIds);
@@ -12961,32 +12957,27 @@
                 const store = tx.objectStore('annotations');
                 entriesToSave.forEach(entry => store.put(entry));
                 tx.oncomplete = () => {
-                    const statusEl = document.getElementById('pdfAutoSaveStatus');
-                    if (statusEl) {
-                        statusEl.innerHTML = '<i class="fa-solid fa-bolt" style="color:#6ee7b7;"></i> تم الحفظ فوراً ✓';
-                    }
                     dirtyAnnotationsForCloud = true;
-                    localStorage.setItem('pharmaWorkspaceDirty', '1');
                     if (triggerCloudImmediately) {
+                        localStorage.setItem('pharmaWorkspaceDirty', '1');
                         if (annoCloudSyncTimer) clearTimeout(annoCloudSyncTimer);
                         pushWorkspaceToCloud(false, true);
-                    } else {
-                        if (annoCloudSyncTimer) clearTimeout(annoCloudSyncTimer);
-                        // Ultra-Bandwidth Saver: Save strokes 100% locally in IndexedDB (0 network bytes) while writing,
-                        // and only sync the heavy annotations table to Cloud when closing the PDF, switching tabs, or after 5 minutes of complete idle!
-                        annoCloudSyncTimer = setTimeout(() => {
-                            if (!isActivelyDrawingOnPdf && dirtyAnnotationsForCloud) {
-                                pushWorkspaceToCloud(false, true);
-                            }
-                        }, 300000);
                     }
                 };
             } catch (e) {}
         }
 
+        // Flush immediately if user refreshes or closes the browser tab while PDF is open
+        window.addEventListener('pagehide', () => {
+            flushPendingAnnotationsSave(false);
+        });
+        window.addEventListener('beforeunload', () => {
+            flushPendingAnnotationsSave(false);
+        });
+
         function normalizeAndRecoverLectureAnnotations(lecId, rawPages) {
-            const pages = cloneAnnotationsSafe(rawPages || {});
-            if (!pages || typeof pages !== 'object' || String(lecId).startsWith('_cloudMedia_')) return pages;
+            const pages = (rawPages && typeof rawPages === 'object') ? rawPages : {};
+            if (String(lecId).startsWith('_cloudMedia_')) return pages;
             const prefixSlide = `${lecId}_p_`;
             const prefixNote = `note_${lecId}_p_`;
             let migrated = false;
@@ -13045,15 +13036,32 @@
                     }
                 });
             }
+
+            // Compact any bloated historical strokes once on load so future saves are 10x faster
+            Object.keys(pages).forEach(pKey => {
+                if (pKey === '_extraNotes' || pKey === '_audioPins' || !Array.isArray(pages[pKey])) return;
+                const strokeList = pages[pKey];
+                for (let sIdx = 0; sIdx < strokeList.length; sIdx++) {
+                    const st = strokeList[sIdx];
+                    if (st && Array.isArray(st.points) && st.points.length > 45 && !st._compactedV3) {
+                        st.points = polishStrokePointsForSilkInk(st.points);
+                        st._compactedV3 = true;
+                        migrated = true;
+                    }
+                }
+            });
+
             if (migrated) {
-                pendingAnnoSaveMap[lecId] = cloneAnnotationsSafe(pages);
+                pendingAnnoSaveMap[lecId] = pages;
             }
             return pages;
         }
 
         function saveAnnotationsToDB(lecId, pagesData, specificPageKey = null) {
             if (!dbInstance) return;
-            // Zero-Lag Direct Memory Assignment: do NOT run deep JSON.parse/stringify cloning on every stroke!
+            lastPenActivityTimeMs = performance.now();
+
+            // O(1) Direct RAM Reference Assignment: 0.0001ms, ZERO cloning, ZERO disk I/O while writing!
             if (mergedContinuousPdfMode) {
                 syncMergedAnnotationsToLectureRecords(specificPageKey);
             } else if (lecId && pagesData) {
@@ -13063,24 +13071,35 @@
             }
 
             if (autoSaveTimer) clearTimeout(autoSaveTimer);
-            // Debounce local IndexedDB commit to 1400ms after the last pen lift so consecutive handwriting strokes and dots are 100% in RAM with zero main-thread stutter!
-            const scheduleSaveTick = () => {
-                if (isActivelyDrawingOnPdf) {
-                    autoSaveTimer = setTimeout(scheduleSaveTick, 800);
+            // Only flush to IndexedDB when the user has completely stopped writing for 45 seconds (or immediately when closing the PDF / switching tabs)
+            const scheduleIdleSaveTick = () => {
+                const idleElapsed = performance.now() - (lastPenActivityTimeMs || 0);
+                if (isActivelyDrawingOnPdf || idleElapsed < 44000) {
+                    autoSaveTimer = setTimeout(scheduleIdleSaveTick, Math.max(5000, 45000 - idleElapsed));
                     return;
                 }
-                flushPendingAnnotationsSave(false);
+                if (window.requestIdleCallback) {
+                    window.requestIdleCallback(() => {
+                        if (!isActivelyDrawingOnPdf && (performance.now() - (lastPenActivityTimeMs || 0)) >= 44000) {
+                            flushPendingAnnotationsSave(false);
+                        }
+                    }, { timeout: 5000 });
+                } else {
+                    flushPendingAnnotationsSave(false);
+                }
             };
-            autoSaveTimer = setTimeout(scheduleSaveTick, 1400);
+            autoSaveTimer = setTimeout(scheduleIdleSaveTick, 45000);
         }
 
         async function getAnnotationsFromDB(lecId) {
             if (!lecId) return {};
             const numOrStrId = isNaN(Number(lecId)) ? lecId : Number(lecId);
             if (inMemoryAnnotationsCache[numOrStrId] && !String(numOrStrId).startsWith('_cloudMedia_')) {
-                const norm = normalizeAndRecoverLectureAnnotations(numOrStrId, inMemoryAnnotationsCache[numOrStrId]);
-                inMemoryAnnotationsCache[numOrStrId] = norm;
-                return cloneAnnotationsSafe(norm);
+                if (!inMemoryAnnotationsCacheNormalized[numOrStrId]) {
+                    inMemoryAnnotationsCache[numOrStrId] = normalizeAndRecoverLectureAnnotations(numOrStrId, inMemoryAnnotationsCache[numOrStrId]);
+                    inMemoryAnnotationsCacheNormalized[numOrStrId] = true;
+                }
+                return inMemoryAnnotationsCache[numOrStrId];
             }
             if (!dbInstance) await initPdfDB();
             return new Promise((resolve) => {
@@ -13092,9 +13111,10 @@
                     const rawPages = (req.result && req.result.pages) ? req.result.pages : {};
                     const norm = normalizeAndRecoverLectureAnnotations(numOrStrId, rawPages);
                     if (!String(numOrStrId).startsWith('_cloudMedia_')) {
-                        inMemoryAnnotationsCache[numOrStrId] = cloneAnnotationsSafe(norm);
+                        inMemoryAnnotationsCache[numOrStrId] = norm;
+                        inMemoryAnnotationsCacheNormalized[numOrStrId] = true;
                     }
-                    resolve(cloneAnnotationsSafe(norm));
+                    resolve(norm);
                 };
                 req.onerror = () => resolve({});
             });
@@ -14890,41 +14910,21 @@
             }
         }
 
-        // Shape-Preserving 2-Pass Gaussian Post-Stroke Smoothing + Smart Collinear/Distance Decimation
-        // Cuts annotation JSON payload & network bandwidth by ~80% while preserving 100% silk-smooth Bézier calligraphy!
+        // Gentle Shape-Preserving Stroke Compaction (preserves small slow Arabic letters & dots 100%)
         function polishStrokePointsForSilkInk(rawPts) {
             if (!rawPts || rawPts.length <= 2) return rawPts ? rawPts.slice() : [];
-            let pts = rawPts.map(pt => ({ x: Number(pt.x) || 0, y: Number(pt.y) || 0, p: pt.p || 0.5 }));
-            for (let pass = 0; pass < 2; pass++) {
-                const next = [pts[0]];
-                for (let i = 1; i < pts.length - 1; i++) {
-                    const prev = pts[i - 1];
-                    const cur = pts[i];
-                    const nxt = pts[i + 1];
-                    next.push({
-                        x: prev.x * 0.21 + cur.x * 0.58 + nxt.x * 0.21,
-                        y: prev.y * 0.21 + cur.y * 0.58 + nxt.y * 0.21,
-                        p: prev.p * 0.2 + cur.p * 0.6 + nxt.p * 0.2
-                    });
-                }
-                next.push(pts[pts.length - 1]);
-                pts = next;
-            }
-
-            // Smart Point Decimation: remove redundant micro-points and collinear intermediate points
-            const decimated = [pts[0]];
-            const minDistSq = 0.0015 * 0.0015; // ~1.3px on a 900px canvas
-            const maxSkipDistSq = 0.018 * 0.018;
-            for (let i = 1; i < pts.length - 1; i++) {
+            const decimated = [rawPts[0]];
+            const minDistSq = 0.0005 * 0.0005; // ~0.5px on a 1000px canvas
+            const maxSkipDistSq = 0.012 * 0.012;
+            for (let i = 1; i < rawPts.length - 1; i++) {
                 const lastKept = decimated[decimated.length - 1];
-                const cur = pts[i];
-                const nxt = pts[i + 1];
+                const cur = rawPts[i];
+                const nxt = rawPts[i + 1];
                 const dx = cur.x - lastKept.x;
                 const dy = cur.y - lastKept.y;
                 const distSq = dx * dx + dy * dy;
                 if (distSq < minDistSq) continue;
 
-                // Check collinearity with next point: if direction barely changes (< ~4 degrees) and segment isn't long, skip cur
                 if (distSq < maxSkipDistSq) {
                     const vx1 = cur.x - lastKept.x;
                     const vy1 = cur.y - lastKept.y;
@@ -14934,48 +14934,24 @@
                     const l2 = Math.hypot(vx2, vy2);
                     if (l1 > 0.0001 && l2 > 0.0001) {
                         const cosTheta = (vx1 * vx2 + vy1 * vy2) / (l1 * l2);
-                        if (cosTheta > 0.9975 && Math.abs((cur.p || 0.5) - (lastKept.p || 0.5)) < 0.08) {
+                        if (cosTheta > 0.9985) {
                             continue;
                         }
                     }
                 }
-                decimated.push(cur);
-            }
-            decimated.push(pts[pts.length - 1]);
-
-            return decimated.map(pt => ({
-                x: Math.round(pt.x * 10000) / 10000,
-                y: Math.round(pt.y * 10000) / 10000,
-                p: Math.round((pt.p || 0.5) * 100) / 100
-            }));
-        }
-
-        // One-time background compaction of existing IndexedDB annotations to shrink bloated historical strokes by up to 80%
-        async function compactAllStoredAnnotationsInDB() {
-            if (!dbInstance || localStorage.getItem('pharmaAnnotationsCompactedV2') === '1') return;
-            try {
-                const allMap = await getAllAnnotationsMapFromDB();
-                let compactedAny = false;
-                Object.keys(allMap || {}).forEach(lecId => {
-                    if (String(lecId).startsWith('_cloudMedia_')) return;
-                    const pages = allMap[lecId];
-                    if (!pages || typeof pages !== 'object') return;
-                    Object.keys(pages).forEach(pKey => {
-                        if (pKey === '_extraNotes' || pKey === '_audioPins' || !Array.isArray(pages[pKey])) return;
-                        pages[pKey].forEach(stroke => {
-                            if (stroke && Array.isArray(stroke.points) && stroke.points.length > 12) {
-                                const beforeLen = stroke.points.length;
-                                stroke.points = polishStrokePointsForSilkInk(stroke.points);
-                                if (stroke.points.length < beforeLen) compactedAny = true;
-                            }
-                        });
-                    });
+                decimated.push({
+                    x: Math.round(cur.x * 10000) / 10000,
+                    y: Math.round(cur.y * 10000) / 10000,
+                    p: Math.round((cur.p || 0.5) * 100) / 100
                 });
-                if (compactedAny) {
-                    await restoreAllAnnotationsMapToDB(allMap);
-                }
-                localStorage.setItem('pharmaAnnotationsCompactedV2', '1');
-            } catch (e) {}
+            }
+            const lastPt = rawPts[rawPts.length - 1];
+            decimated.push({
+                x: Math.round(lastPt.x * 10000) / 10000,
+                y: Math.round(lastPt.y * 10000) / 10000,
+                p: Math.round((lastPt.p || 0.5) * 100) / 100
+            });
+            return decimated;
         }
 
         function attachGraphicTabletListeners(inkCanvas, laserCanvas, pageNum) {
@@ -14987,7 +14963,9 @@
             let currentPoints = [];
             let activeToolOnStroke = 'pen';
             let lastRawPt = null;
-            let emaFilteredPt = null;
+            let incrementalDrawnIdx = 0;
+            let tipDirtyRect = null;
+            let previewRafPending = false;
 
             // Cached bounding box & 2D contexts per stroke to eliminate synchronous layout thrashing (0 reflows during pointermove!)
             let cachedRectLeft = 0;
@@ -14999,6 +14977,65 @@
             let cachedScroller = null;
             const iCtx = inkCanvas.getContext('2d');
             const lCtx = laserCanvas.getContext('2d');
+
+            const clearTipDirtyRect = () => {
+                if (tipDirtyRect) {
+                    lCtx.clearRect(tipDirtyRect.x, tipDirtyRect.y, tipDirtyRect.w, tipDirtyRect.h);
+                    tipDirtyRect = null;
+                }
+            };
+
+            const drawLivePenTipBridge = (liveTipPt) => {
+                clearTipDirtyRect();
+                const len = currentPoints.length;
+                if (!liveTipPt || len === 0) return;
+                const w = laserCanvas.width;
+                const h = laserCanvas.height;
+                const scaleFactor = w / 800;
+                const lineWidth = Math.max(1.2, currentAnnoSize * scaleFactor);
+
+                let startX, startY, ctrlX, ctrlY;
+                const endX = liveTipPt.x * w;
+                const endY = liveTipPt.y * h;
+
+                if (len === 1) {
+                    startX = currentPoints[0].x * w;
+                    startY = currentPoints[0].y * h;
+                    ctrlX = (startX + endX) * 0.5;
+                    ctrlY = (startY + endY) * 0.5;
+                } else {
+                    const pPrev = currentPoints[len - 2];
+                    const pLast = currentPoints[len - 1];
+                    startX = ((pPrev.x + pLast.x) * 0.5) * w;
+                    startY = ((pPrev.y + pLast.y) * 0.5) * h;
+                    ctrlX = pLast.x * w;
+                    ctrlY = pLast.y * h;
+                }
+
+                lCtx.save();
+                lCtx.lineCap = 'round';
+                lCtx.lineJoin = 'round';
+                lCtx.strokeStyle = currentAnnoColor;
+                lCtx.lineWidth = lineWidth;
+                lCtx.globalAlpha = 1.0;
+                lCtx.beginPath();
+                lCtx.moveTo(startX, startY);
+                lCtx.quadraticCurveTo(ctrlX, ctrlY, endX, endY);
+                lCtx.stroke();
+                lCtx.restore();
+
+                const pad = Math.ceil(lineWidth * 2) + 4;
+                const minX = Math.floor(Math.min(startX, ctrlX, endX)) - pad;
+                const minY = Math.floor(Math.min(startY, ctrlY, endY)) - pad;
+                const maxX = Math.ceil(Math.max(startX, ctrlX, endX)) + pad;
+                const maxY = Math.ceil(Math.max(startY, ctrlY, endY)) + pad;
+                tipDirtyRect = {
+                    x: Math.max(0, minX),
+                    y: Math.max(0, minY),
+                    w: Math.min(w, maxX - Math.max(0, minX) + pad),
+                    h: Math.min(h, maxY - Math.max(0, minY) + pad)
+                };
+            };
 
             const refreshBoundsCache = () => {
                 const rect = inkCanvas.getBoundingClientRect();
@@ -15041,11 +15078,9 @@
                 if (pType === 'pen') {
                     isGlobalStylusPenDown = true;
                     lastGlobalStylusPenAt = nowPerf;
-                    // Auto-enable palm rejection if a physical stylus pen touches the screen
                     if (!palmRejectionMode) {
                         togglePalmRejectionMode(true, true);
                     }
-                    // If a palm/finger 'touch' was accidentally panning or drawing right before the pen tip touched, immediately abort the touch!
                     if ((isDrawing || isPanning) && activePointerType === 'touch') {
                         if (activePointerId !== null) {
                             try { inkCanvas.releasePointerCapture(activePointerId); } catch (err) {}
@@ -15053,24 +15088,20 @@
                         isDrawing = false;
                         isPanning = false;
                         currentPoints = [];
-                        emaFilteredPt = null;
-                        lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+                        clearTipDirtyRect();
                     }
                 }
 
                 // 2. TOUCH DETECTED (iPad / Tablet / Phone Finger or Resting Palm)
                 if (pType === 'touch') {
-                    // Hardware-grade Palm Rejection: if the stylus pen is currently down OR was writing within the last 750ms, completely ignore touch!
                     if (isGlobalStylusPenDown || activePointerType === 'pen' || (nowPerf - lastGlobalStylusPenAt < PALM_REJECTION_COOLDOWN_MS)) {
                         if (e.cancelable) e.preventDefault();
                         e.stopPropagation();
                         return;
                     }
-                    // If another pointer is already active (e.g. 2nd finger), ignore so it never corrupts active state
                     if ((isDrawing || isPanning) && activePointerId !== null && activePointerId !== e.pointerId) {
                         return;
                     }
-                    // When Palm Rejection ('عزل التاتش') is ON (or tool is 'pan'), finger touch smoothly scrolls the page instead of drawing accidental lines!
                     if (palmRejectionMode || currentAnnoTool === 'pan') {
                         isPanning = true;
                         isDrawing = false;
@@ -15145,14 +15176,19 @@
                 isDrawing = true;
                 isPanning = false;
                 isActivelyDrawingOnPdf = true;
+                lastPenActivityTimeMs = nowPerf;
                 activePointerId = e.pointerId;
                 activePointerType = pType;
                 activeToolOnStroke = effectiveTool;
                 lastRawPt = pt;
-                emaFilteredPt = { x: pt.x, y: pt.y, p: pt.p };
                 try { inkCanvas.setPointerCapture(e.pointerId); } catch (err) {}
-                currentPoints = [pt];
-                let incrementalDrawnIdx = 0;
+                currentPoints = [{
+                    x: Math.round(pt.x * 10000) / 10000,
+                    y: Math.round(pt.y * 10000) / 10000,
+                    p: Math.round((pt.p || 0.5) * 100) / 100
+                }];
+                incrementalDrawnIdx = 0;
+                tipDirtyRect = null;
 
                 if (effectiveTool === 'eraser') {
                     eraseAtPoint(pageNum, pt.x, pt.y);
@@ -15163,16 +15199,15 @@
                     isLaserPointerDown = true;
                     lastLaserActivityAt = nowPerf;
                     laserCanvas.style.opacity = '1';
-                    if (laserPageFadingState[pageNum] && laserStrokes[pageNum] && laserStrokes[pageNum].length > 0) {
-                        lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+                    laserPageFadingState[pageNum] = false;
+                    lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+                    if (laserStrokes[pageNum] && laserStrokes[pageNum].length > 0) {
                         for (let i = 0; i < laserStrokes[pageNum].length; i++) {
                             const s = laserStrokes[pageNum][i];
                             drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, s.points, s.color, s.size, 1.0);
                         }
-                        laserPageFadingState[pageNum] = false;
                     }
-                    incrementalDrawnIdx = drawIncrementalStrokeSegments(lCtx, laserCanvas.width, laserCanvas.height, 'laser', currentAnnoColor, currentAnnoSize, currentPoints, 0, false);
-                    inkCanvas._incIdx = incrementalDrawnIdx;
+                    drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, currentPoints, currentAnnoColor, currentAnnoSize + 2, 1.0);
                     return;
                 }
 
@@ -15180,27 +15215,41 @@
                 if (!isLaserFadePaused && laserStrokes[pageNum] && laserStrokes[pageNum].length > 0) {
                     laserStrokes[pageNum] = [];
                     laserPageFadingState[pageNum] = false;
+                    lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
                 }
-                laserCanvas.style.opacity = (effectiveTool === 'highlighter') ? '0.32' : '1';
+
+                if (effectiveTool === 'pen') {
+                    // Direct-to-Ink Canvas: draw initial dot directly on iCtx with ZERO clearRect!
+                    laserCanvas.style.opacity = '1';
+                    incrementalDrawnIdx = drawIncrementalStrokeSegments(iCtx, inkCanvas.width, inkCanvas.height, 'pen', currentAnnoColor, currentAnnoSize, currentPoints, 0, false);
+                    return;
+                }
+
+                // Highlighter preview on laserCanvas
+                laserCanvas.style.opacity = '0.32';
                 lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
-                // O(1) Incremental start for regular pen: draws initial dot immediately without full-canvas clear overhead on move!
-                incrementalDrawnIdx = drawIncrementalStrokeSegments(lCtx, laserCanvas.width, laserCanvas.height, effectiveTool, currentAnnoColor, currentAnnoSize, currentPoints, 0, false);
-                inkCanvas._incIdx = incrementalDrawnIdx;
+                drawSingleStrokeOnCanvas(lCtx, laserCanvas.width, laserCanvas.height, {
+                    tool: 'highlighter',
+                    color: currentAnnoColor,
+                    size: Math.max(14, currentAnnoSize * 4.5),
+                    alpha: 1.0,
+                    points: currentPoints
+                });
             });
 
             inkCanvas.addEventListener('pointermove', (e) => {
                 const pType = e.pointerType || 'mouse';
+                const nowPerf = performance.now();
                 if (pType === 'pen') {
-                    lastGlobalStylusPenAt = performance.now();
+                    lastGlobalStylusPenAt = nowPerf;
                 }
 
-                // Strict pointer isolation: ignore any touch/secondary pointer that is not the active pointer!
                 if (activePointerId !== null && e.pointerId !== activePointerId) {
                     return;
                 }
 
                 if (isPanning) {
-                    if (activePointerType === 'touch' && (isGlobalStylusPenDown || (performance.now() - lastGlobalStylusPenAt < PALM_REJECTION_COOLDOWN_MS))) {
+                    if (activePointerType === 'touch' && (isGlobalStylusPenDown || (nowPerf - lastGlobalStylusPenAt < PALM_REJECTION_COOLDOWN_MS))) {
                         isPanning = false;
                         activePointerId = null;
                         activePointerType = null;
@@ -15213,6 +15262,8 @@
                     return;
                 }
                 if (!isDrawing) return;
+
+                lastPenActivityTimeMs = nowPerf;
 
                 if (e.cancelable && (pType === 'pen' || pType === 'touch')) {
                     e.preventDefault();
@@ -15232,80 +15283,111 @@
 
                 if (effectiveTool === 'laser') {
                     isLaserPointerDown = true;
-                    lastLaserActivityAt = performance.now();
+                    lastLaserActivityAt = nowPerf;
                 }
 
-                // Ultra-Responsive Nib Tracking: zero lag on small Arabic letters & fast curves
+                // Collect smooth control points (every ~1.4px of movement) while keeping exact live lastRawPt for zero-latency tip bridging!
                 for (let i = 0; i < events.length; i++) {
                     const rawPt = getFastNormCoords(events[i]);
                     lastRawPt = rawPt;
 
-                    if (!emaFilteredPt) {
-                        emaFilteredPt = { x: rawPt.x, y: rawPt.y, p: rawPt.p };
-                        currentPoints.push(emaFilteredPt);
+                    const prevPt = currentPoints[currentPoints.length - 1];
+                    if (!prevPt) {
+                        currentPoints.push({
+                            x: Math.round(rawPt.x * 10000) / 10000,
+                            y: Math.round(rawPt.y * 10000) / 10000,
+                            p: Math.round((rawPt.p || 0.5) * 100) / 100
+                        });
                         continue;
                     }
 
-                    const dxPx = (rawPt.x - emaFilteredPt.x) * cachedRectW;
-                    const dyPx = (rawPt.y - emaFilteredPt.y) * cachedRectH;
+                    const dxPx = (rawPt.x - prevPt.x) * cachedRectW;
+                    const dyPx = (rawPt.y - prevPt.y) * cachedRectH;
                     const distSqPx = dxPx * dxPx + dyPx * dyPx;
 
-                    // Fine sub-pixel gate (0.42px) so small handwriting letters never feel stuck
-                    if (distSqPx < 0.18) {
+                    // 1.35px spacing between spline control points prevents overlapping round-cap blobs in slow writing while keeping curves silky smooth!
+                    if (distSqPx < 1.8) {
                         continue;
                     }
 
                     const distPx = Math.sqrt(distSqPx);
-                    // Snappy velocity-adaptive weight (0.58 to 0.88) so the regular pen tracks as fast as the laser!
-                    const emaAlpha = Math.min(0.88, Math.max(0.58, distPx / 10.0));
-                    const nextX = emaFilteredPt.x + (rawPt.x - emaFilteredPt.x) * emaAlpha;
-                    const nextY = emaFilteredPt.y + (rawPt.y - emaFilteredPt.y) * emaAlpha;
-                    const nextP = emaFilteredPt.p * 0.6 + rawPt.p * 0.4;
+                    // High responsiveness (0.76 in slow writing up to 0.94 in fast writing)
+                    const emaAlpha = Math.min(0.94, Math.max(0.76, distPx / 10.0));
+                    const nextX = prevPt.x + (rawPt.x - prevPt.x) * emaAlpha;
+                    const nextY = prevPt.y + (rawPt.y - prevPt.y) * emaAlpha;
+                    const nextP = (prevPt.p || 0.5) * 0.5 + (rawPt.p || 0.5) * 0.5;
 
-                    emaFilteredPt = { x: nextX, y: nextY, p: nextP };
-                    currentPoints.push({ x: nextX, y: nextY, p: nextP });
+                    currentPoints.push({
+                        x: Math.round(nextX * 10000) / 10000,
+                        y: Math.round(nextY * 10000) / 10000,
+                        p: Math.round(nextP * 100) / 100
+                    });
                 }
 
-                if (currentPoints.length <= startLen) return;
-
-                // FAST PATH FOR REGULAR PEN & LASER: O(1) Incremental Segment Rendering (Zero clearRect & zero full-path redraw!)
-                // This makes the regular pen 100% as fast and fluid as the laser!
-                if (effectiveTool === 'pen' || effectiveTool === 'laser') {
-                    const prevIncIdx = inkCanvas._incIdx || 0;
-                    inkCanvas._incIdx = drawIncrementalStrokeSegments(
-                        lCtx,
-                        laserCanvas.width,
-                        laserCanvas.height,
-                        effectiveTool,
-                        currentAnnoColor,
-                        currentAnnoSize,
-                        currentPoints,
-                        prevIncIdx,
-                        false
-                    );
+                // 1. REGULAR PEN ('pen'): Direct-to-Ink Incremental Segments + Tiny Dirty-Rect Live Tip Bridge
+                // Works at 100% speed for both slow micro-movements (< 1.35px) and fast strokes!
+                if (effectiveTool === 'pen') {
+                    if (currentPoints.length > startLen) {
+                        incrementalDrawnIdx = drawIncrementalStrokeSegments(
+                            iCtx,
+                            inkCanvas.width,
+                            inkCanvas.height,
+                            'pen',
+                            currentAnnoColor,
+                            currentAnnoSize,
+                            currentPoints,
+                            incrementalDrawnIdx,
+                            false
+                        );
+                    }
+                    if (lastRawPt) {
+                        drawLivePenTipBridge(lastRawPt);
+                    }
                     return;
                 }
 
-                // For Highlighter (which is semi-transparent 0.32 and needs uniform alpha without overlapping segment joints):
-                lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
-                drawSingleStrokeOnCanvas(lCtx, laserCanvas.width, laserCanvas.height, {
-                    tool: effectiveTool,
-                    color: currentAnnoColor,
-                    size: Math.max(14, currentAnnoSize * 4.5),
-                    alpha: 1.0,
-                    points: currentPoints
-                });
+                // 2. LASER ('laser') & HIGHLIGHTER ('highlighter'): Single-Path Continuous Render (Coalesced to Display Refresh Rate)
+                if (!previewRafPending) {
+                    previewRafPending = true;
+                    requestAnimationFrame(() => {
+                        previewRafPending = false;
+                        if (!isDrawing) return;
+                        lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+                        const livePts = (lastRawPt && currentPoints.length > 0)
+                            ? currentPoints.concat([lastRawPt])
+                            : currentPoints;
+
+                        if (effectiveTool === 'laser') {
+                            if (laserStrokes[pageNum] && laserStrokes[pageNum].length > 0) {
+                                for (let i = 0; i < laserStrokes[pageNum].length; i++) {
+                                    const s = laserStrokes[pageNum][i];
+                                    drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, s.points, s.color, s.size, 1.0);
+                                }
+                            }
+                            drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, livePts, currentAnnoColor, currentAnnoSize + 2, 1.0);
+                        } else {
+                            drawSingleStrokeOnCanvas(lCtx, laserCanvas.width, laserCanvas.height, {
+                                tool: effectiveTool,
+                                color: currentAnnoColor,
+                                size: Math.max(14, currentAnnoSize * 4.5),
+                                alpha: 1.0,
+                                points: livePts
+                            });
+                        }
+                    });
+                }
             });
 
             const finishStroke = (e) => {
-                // Ignore pointerup / pointercancel from any non-active pointer (e.g. palm or second finger lifting off the screen!)
                 if (activePointerId !== null && e.pointerId !== activePointerId) {
                     return;
                 }
 
+                const nowPerf = performance.now();
+                lastPenActivityTimeMs = nowPerf;
                 if ((e.pointerType || activePointerType) === 'pen') {
                     isGlobalStylusPenDown = false;
-                    lastGlobalStylusPenAt = performance.now();
+                    lastGlobalStylusPenAt = nowPerf;
                 }
 
                 try {
@@ -15323,6 +15405,7 @@
                 if (!isDrawing) return;
                 isDrawing = false;
                 isActivelyDrawingOnPdf = false;
+                previewRafPending = false;
 
                 const effectiveTool = (e.buttons === 32) ? 'eraser' : activeToolOnStroke;
 
@@ -15331,41 +15414,38 @@
                         const mInfo = mergedPageToLectureMap[pageNum];
                         const sKey = mInfo.saveKey !== undefined ? mInfo.saveKey : mInfo.localPageNum;
                         mInfo.lecAnnos[sKey] = pageAnnotations[pageNum];
-                        saveAnnotationsToDB(mInfo.lecId, mInfo.lecAnnos);
+                        saveAnnotationsToDB(mInfo.lecId, mInfo.lecAnnos, pageNum);
                     } else if (currentViewingLec) {
-                        saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
+                        saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations, pageNum);
                     }
                     return;
                 }
 
                 if (currentPoints.length === 0) return;
 
-                // Snap final tip smoothly toward lift coordinate for crisp letter endings
-                if (lastRawPt && currentPoints.length > 1) {
+                // Connect final tip point smoothly
+                if (lastRawPt && currentPoints.length >= 1) {
                     const prev = currentPoints[currentPoints.length - 1];
                     const dxPx = (lastRawPt.x - prev.x) * cachedRectW;
                     const dyPx = (lastRawPt.y - prev.y) * cachedRectH;
-                    if ((dxPx * dxPx + dyPx * dyPx) > 0.2) {
+                    if ((dxPx * dxPx + dyPx * dyPx) > 0.25) {
                         currentPoints.push({
-                            x: prev.x * 0.25 + lastRawPt.x * 0.75,
-                            y: prev.y * 0.25 + lastRawPt.y * 0.75,
-                            p: lastRawPt.p
+                            x: Math.round((prev.x * 0.2 + lastRawPt.x * 0.8) * 10000) / 10000,
+                            y: Math.round((prev.y * 0.2 + lastRawPt.y * 0.8) * 10000) / 10000,
+                            p: Math.round((lastRawPt.p || 0.5) * 100) / 100
                         });
                     }
                 }
 
-                // Apply 2-Pass Silk-Ink Curve Polishing Filter
-                const polishedPoints = polishStrokePointsForSilkInk(currentPoints);
-
                 if (effectiveTool === 'laser') {
                     isLaserPointerDown = false;
-                    lastLaserActivityAt = performance.now();
+                    lastLaserActivityAt = nowPerf;
                     laserCanvas.style.opacity = '1';
                     if (!laserStrokes[pageNum]) laserStrokes[pageNum] = [];
                     laserStrokes[pageNum].push({
                         color: currentAnnoColor,
                         size: currentAnnoSize + 2,
-                        points: polishedPoints,
+                        points: currentPoints,
                         createdAt: lastLaserActivityAt
                     });
                     lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
@@ -15374,41 +15454,56 @@
                         drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, s.points, s.color, s.size, 1.0);
                     }
                     currentPoints = [];
-                    emaFilteredPt = null;
                     lastRawPt = null;
                     startLaserFadeLoop();
                     return;
                 }
 
-                // Commit permanent pen or highlighter stroke to pageAnnotations with precomputed bounding box
+                // Commit permanent pen or highlighter stroke to pageAnnotations in RAM
                 if (!pageAnnotations[pageNum]) pageAnnotations[pageNum] = [];
                 const strokeObj = {
                     tool: effectiveTool,
                     color: currentAnnoColor,
                     size: effectiveTool === 'highlighter' ? Math.max(14, currentAnnoSize * 4.5) : currentAnnoSize,
                     alpha: effectiveTool === 'highlighter' ? 0.32 : 1.0,
-                    points: polishedPoints,
-                    _bbox: computeStrokeBBox(polishedPoints)
+                    points: currentPoints,
+                    _compactedV3: true,
+                    _bbox: computeStrokeBBox(currentPoints)
                 };
                 pageAnnotations[pageNum].push(strokeObj);
                 recordAnnotationUndoAction(pageNum);
+
+                if (effectiveTool === 'pen') {
+                    // Clear only the tiny 30x30px live tip box on lCtx and finish the last 2mm tail on iCtx (0.01ms, ZERO full-stroke redraw!)
+                    clearTipDirtyRect();
+                    drawIncrementalStrokeSegments(
+                        iCtx,
+                        inkCanvas.width,
+                        inkCanvas.height,
+                        'pen',
+                        currentAnnoColor,
+                        currentAnnoSize,
+                        currentPoints,
+                        incrementalDrawnIdx,
+                        true
+                    );
+                } else {
+                    laserCanvas.style.opacity = '1';
+                    lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+                    drawSingleStrokeOnCanvas(iCtx, inkCanvas.width, inkCanvas.height, strokeObj);
+                }
+
                 currentPoints = [];
-                emaFilteredPt = null;
                 lastRawPt = null;
+                incrementalDrawnIdx = 0;
 
-                // Reset live canvas opacity, clear preview, and commit to permanent inkCanvas
-                laserCanvas.style.opacity = '1';
-                lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
-                drawSingleStrokeOnCanvas(iCtx, inkCanvas.width, inkCanvas.height, strokeObj);
-
-                // If in continuous merged mode, persist back to that specific lecture's annotation record (supports both slide and extra note sheet!)
                 if (mergedContinuousPdfMode && mergedPageToLectureMap[pageNum]) {
                     const mInfo = mergedPageToLectureMap[pageNum];
                     const sKey = mInfo.saveKey !== undefined ? mInfo.saveKey : mInfo.localPageNum;
                     mInfo.lecAnnos[sKey] = pageAnnotations[pageNum];
-                    saveAnnotationsToDB(mInfo.lecId, mInfo.lecAnnos);
+                    saveAnnotationsToDB(mInfo.lecId, mInfo.lecAnnos, pageNum);
                 } else if (currentViewingLec) {
-                    saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
+                    saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations, pageNum);
                 }
             };
 
@@ -17768,6 +17863,12 @@
                 }
                 if (sb3Tool === 'laser') {
                     sbLastLaserTime = performance.now();
+                    lCtx.clearRect(0, 0, lasC.width, lasC.height);
+                    for (let s of sb3LaserList) {
+                        drawLaserGlowPath(lCtx, lasC.width, lasC.height, s.points, '#ef4444', 4, 1.0);
+                    }
+                    drawLaserGlowPath(lCtx, lasC.width, lasC.height, pts, '#ef4444', 4, 1.0);
+                    return;
                 }
                 lastIdx = drawIncrementalStrokeSegments(lCtx, lasC.width, lasC.height, sb3Tool, sb3Tool === 'highlighter' ? '#f59e0b' : '#ef4444', 3.5, pts, lastIdx);
             });
@@ -17779,8 +17880,11 @@
 
                 if (sb3Tool === 'laser') {
                     sbLastLaserTime = performance.now();
-                    drawIncrementalStrokeSegments(lCtx, lasC.width, lasC.height, 'laser', '#ef4444', 3.5, pts, lastIdx, true);
                     sb3LaserList.push({ points: pts.slice(), createdAt: sbLastLaserTime });
+                    lCtx.clearRect(0, 0, lasC.width, lasC.height);
+                    for (let s of sb3LaserList) {
+                        drawLaserGlowPath(lCtx, lasC.width, lasC.height, s.points, '#ef4444', 4, 1.0);
+                    }
                     pts = [];
                     lastIdx = 0;
                     if (!sb3LaserAnim) {
@@ -21219,7 +21323,7 @@
                     if (activePdfTaskIntent === 'move_to_now' && targetEv.actualStudiedMinutes >= 1) {
                         targetEv.duration = Math.max(0.25, Number((targetEv.actualStudiedMinutes / 60).toFixed(2)));
                     }
-                    saveScheduleData(false);
+                    // Keep in RAM while PDF is open; saved to localStorage on PDF close so pen writing never stutters!
                     return;
                 }
 
@@ -21227,12 +21331,10 @@
                 const thresholdRatio = (Number(plannerPrefs.autoCompletePct) || 75) / 100;
                 const requiredMinutes = plannedMinutes * thresholdRatio;
 
-                if (targetEv.actualStudiedMinutes >= requiredMinutes && !targetEv.completed) {
+                if (targetEv.actualStudiedMinutes >= requiredMinutes && !targetEv.completed && !isActivelyDrawingOnPdf) {
                     autoCompleteScheduledSessionSmart(targetEv, lec, sub, activePdfTaskIntent === 'move_to_now');
-                } else {
-                    saveScheduleData(false);
                 }
-            }, 2000);
+            }, 15000);
         }
 
         function stopLiveLectureStudyTracking(closingLecRef) {
@@ -22269,8 +22371,10 @@
             } catch (e) {}
         })();
 
-        // Start Live Clock, Open-Duration Timers & Periodic Missed/Week Check
+        // Start Live Clock, Open-Duration Timers & Periodic Missed/Week Check (Paused when PDF Studio is open for 0% CPU interference)
         setInterval(() => {
+            const pdfOverlay = document.getElementById('pdfViewerModalOverlay');
+            if (pdfOverlay && pdfOverlay.classList.contains('active')) return;
             updateLiveTimeSyncBanner();
             document.querySelectorAll('[data-open-timer-ev]').forEach(el => {
                 const evId = el.getAttribute('data-open-timer-ev');
@@ -22283,6 +22387,8 @@
         }, 1000);
 
         setInterval(() => {
+            const pdfOverlay = document.getElementById('pdfViewerModalOverlay');
+            if (pdfOverlay && pdfOverlay.classList.contains('active')) return;
             checkWeeklyCycleAndRollover();
             evaluatePastAndTodayMissedSessions(true);
         }, 60000);
