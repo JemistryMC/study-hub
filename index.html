@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
     <title>منصة الإنجاز - Studio Workspace</title>
-    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Aref+Ruqaa:wght@400;700&family=Caveat:wght@600;700&family=Crimson+Pro:ital,wght@0,500;0,600;0,700;1,500&family=Marhey:wght@500;600;700&family=Tajawal:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Amiri:ital,wght@0,400;0,700;1,400&family=Aref+Ruqaa:wght@400;700&family=Cairo:wght@400;600;700;800;900&family=Caveat:wght@600;700&family=Crimson+Pro:ital,wght@0,500;0,600;0,700;1,500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Marhey:wght@500;600;700&family=Readex+Pro:wght@400;500;600;700&family=Tajawal:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
         <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b0f17'/%3E%3Cpath d='M20 18h24a4 4 0 0 1 4 4v20a4 4 0 0 1-4 4H20a4 4 0 0 1-4-4V22a4 4 0 0 1 4-4zm4 8v4h16v-4H24zm0 10v4h10v-4H24z' fill='%232dd4bf'/%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b0f17'/%3E%3Cpath d='M20 18h24a4 4 0 0 1 4 4v20a4 4 0 0 1-4 4H20a4 4 0 0 1-4-4V22a4 4 0 0 1 4-4zm4 8v4h16v-4H24zm0 10v4h10v-4H24z' fill='%232dd4bf'/%3E%3C/svg%3E">
     <link rel="manifest" href="./manifest.json">
@@ -6345,6 +6345,323 @@
             overflow: hidden;
         }
 
+
+        /* ================= FIX ALL RANGE SLIDERS & TOP DOCK SCROLLING + SMART TASK CHOICE BAR ================= */
+        input[type="range"],
+        .glass-modal input[type="range"],
+        .stroke-size-slider,
+        .volume-boost-slider,
+        .audio-scrubber-slider {
+            -webkit-appearance: none !important;
+            appearance: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            height: 8px !important;
+            background: rgba(148, 163, 184, 0.28) !important;
+            border-radius: 999px !important;
+            outline: none !important;
+            box-shadow: none !important;
+            cursor: pointer !important;
+            touch-action: none !important;
+            user-select: auto !important;
+            -webkit-user-select: auto !important;
+            pointer-events: auto !important;
+        }
+        .glass-modal input.stroke-size-slider,
+        #pdfAnnotationToolbar .stroke-size-slider {
+            width: 115px !important;
+            min-width: 115px !important;
+            margin-bottom: 0 !important;
+        }
+        .glass-modal input.volume-boost-slider {
+            width: 75px !important;
+            min-width: 75px !important;
+            margin-bottom: 0 !important;
+        }
+        .glass-modal input.audio-scrubber-slider {
+            margin-bottom: 0 !important;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            height: 8px !important;
+            border-radius: 999px !important;
+            background: transparent !important;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none !important;
+            appearance: none !important;
+            width: 20px !important;
+            height: 20px !important;
+            border-radius: 50% !important;
+            background: var(--primary) !important;
+            border: 2.5px solid #ffffff !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55), 0 0 10px rgba(45, 212, 191, 0.55) !important;
+            cursor: grab !important;
+            margin-top: -6px !important;
+            transition: transform 0.12s ease, box-shadow 0.12s ease !important;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover,
+        input[type="range"]::-webkit-slider-thumb:active {
+            transform: scale(1.18) !important;
+            cursor: grabbing !important;
+            box-shadow: 0 0 16px rgba(45, 212, 191, 0.9) !important;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px !important;
+            height: 20px !important;
+            border-radius: 50% !important;
+            background: var(--primary) !important;
+            border: 2.5px solid #ffffff !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55) !important;
+            cursor: grab !important;
+        }
+
+        /* Enhanced Movable Top Dock Wrapper with Arrows & Smooth Scrollbar */
+        .eg-dock-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            position: relative;
+        }
+        .eg-dock-arrow-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: rgba(15, 23, 38, 0.95);
+            border: 1px solid rgba(45, 212, 191, 0.35);
+            color: var(--primary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.16s ease;
+            font-size: 0.85rem;
+        }
+        .eg-dock-arrow-btn:hover {
+            background: var(--primary);
+            color: #041316;
+            transform: scale(1.06);
+        }
+        .eg-floating-dock {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(7, 10, 17, 0.9);
+            padding: 6px 8px;
+            border-radius: 14px;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            overflow-x: auto !important;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            cursor: grab;
+            user-select: none;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(45, 212, 191, 0.4) transparent;
+        }
+        .eg-floating-dock:active {
+            cursor: grabbing;
+        }
+        .eg-floating-dock::-webkit-scrollbar {
+             display: block !important;
+             height: 4px !important;
+        }
+        .eg-floating-dock::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .eg-floating-dock::-webkit-scrollbar-thumb {
+            background: rgba(45, 212, 191, 0.38);
+            border-radius: 999px;
+        }
+        .eg-dock-pill {
+            flex-shrink: 0 !important;
+        }
+
+        /* Smart Session Intent Choice Banner inside PDF Studio */
+        .pdf-smart-task-choice-bar {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 8px 16px;
+            background: linear-gradient(90deg, rgba(16, 28, 44, 0.98), rgba(12, 21, 34, 0.98));
+            border-bottom: 1.5px solid rgba(45, 212, 191, 0.45);
+            z-index: 28;
+            animation: subFade 0.2s ease;
+        }
+        .pdf-smart-task-choice-bar.active {
+            display: flex;
+        }
+        .pstc-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .pstc-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            color: #f1f5f9;
+            padding: 5px 11px;
+            border-radius: 9px;
+            font-size: 0.76rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.15s ease;
+        }
+        .pstc-btn:hover {
+            border-color: var(--primary);
+            background: rgba(45, 212, 191, 0.14);
+            color: #5eead4;
+        }
+        .pstc-btn.primary-choice {
+            background: var(--primary-gradient);
+            color: #041316;
+            border-color: transparent;
+        }
+        .pstc-btn.primary-choice:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(45, 212, 191, 0.35);
+        }
+        .pstc-btn.safe-choice {
+            background: rgba(56, 189, 248, 0.14);
+            border-color: rgba(56, 189, 248, 0.4);
+            color: #7dd3fc;
+        }
+
+
+        /* ================= SIGNATURE STUDIO FOCUS MASTER DESIGN (ZERO-DISTRACTION LUXURY POLISH) ================= */
+        :root {
+            --bg-color: #090d16;
+            --panel-bg: #0f1624;
+            --card-bg: #131c2e;
+            --card-hover: #182338;
+            --primary: #2dd4bf;
+            --primary-rgb: 45, 212, 191;
+            --primary-gradient: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: rgba(148, 163, 184, 0.12);
+            --border-hover: rgba(45, 212, 191, 0.45);
+            --surface-elevated: rgba(17, 25, 40, 0.88);
+            --input-bg: rgba(10, 15, 25, 0.88);
+        }
+
+        body {
+            background-color: var(--bg-color) !important;
+            background-image:
+                radial-gradient(ellipse 75% 45% at 50% -12%, rgba(20, 184, 166, 0.11), transparent 65%),
+                radial-gradient(circle at 12% 88%, rgba(14, 165, 233, 0.06), transparent 45%) !important;
+            color: var(--text-main) !important;
+        }
+
+        h1, h2, h3, h4, .navbar-brand, .nav-item, .btn, .sch-pill, .eg-dock-pill {
+            font-family: 'Cairo', 'Tajawal', sans-serif;
+            letter-spacing: -0.1px;
+        }
+
+        .navbar {
+            background: rgba(12, 18, 30, 0.92) !important;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1) !important;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.28) !important;
+        }
+
+        .subject-card,
+        .subject-card:nth-child(4n+1),
+        .subject-card:nth-child(4n+2),
+        .subject-card:nth-child(4n+3),
+        .subject-card:nth-child(4n+4),
+        .group-card,
+        .fluid-day-col,
+        .notion-day-topbar,
+        .tracker-focus-compass,
+        .analytics-card,
+        .pomodoro-card,
+        .tracker-kpi-box,
+        .goals-clean-header,
+        .backlog-card,
+        .planner-settings-footer-card,
+        .weekly-eval-section,
+        .smart-time-sync-banner {
+            background: linear-gradient(160deg, rgba(21, 30, 48, 0.95) 0%, rgba(15, 22, 36, 0.98) 100%) !important;
+            border: 1px solid rgba(148, 163, 184, 0.12) !important;
+            box-shadow: 0 10px 28px -10px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease !important;
+        }
+
+        .subject-card:hover,
+        .backlog-card.clickable-goal-card:hover,
+        .tracker-kpi-box:hover {
+            transform: translateY(-3px) !important;
+            border-color: rgba(45, 212, 191, 0.48) !important;
+            box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.6), 0 0 22px rgba(20, 184, 166, 0.12) !important;
+        }
+
+        .fluid-day-col.is-today {
+            background: linear-gradient(180deg, rgba(20, 184, 166, 0.1) 0%, rgba(15, 22, 36, 0.98) 100%) !important;
+            border: 1.5px solid rgba(45, 212, 191, 0.5) !important;
+            box-shadow: 0 12px 30px -8px rgba(20, 184, 166, 0.18) !important;
+        }
+
+        .fluid-session-card,
+        .smart-hour-item,
+        .lecture-item,
+        .log-item-pro,
+        .smart-rec-card,
+        .weekly-eval-card,
+        .smart-mini-kpi {
+            background: var(--surface-elevated) !important;
+            border-color: rgba(148, 163, 184, 0.12) !important;
+        }
+
+        .lecture-item:hover,
+        .smart-rec-card:hover,
+        .log-item-pro:hover {
+            border-color: rgba(45, 212, 191, 0.38) !important;
+            background: rgba(23, 34, 54, 0.95) !important;
+        }
+
+        /* Upgraded Guide Segmented Progress Track */
+        .eg-Segmented-progress-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 2px 4px 0 4px;
+        }
+        .eg-seg-bars {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            height: 7px;
+        }
+        .eg-seg-bar-item {
+            height: 100%;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.18);
+            cursor: pointer;
+            transition: all 0.22s ease;
+            position: relative;
+        }
+        .eg-seg-bar-item:hover {
+            background: rgba(45, 212, 191, 0.45);
+        }
+        .eg-seg-bar-item.passed {
+            background: rgba(45, 212, 191, 0.55);
+        }
+        .eg-seg-bar-item.active {
+            background: var(--primary-gradient);
+            box-shadow: 0 0 10px rgba(45, 212, 191, 0.6);
+        }
+    
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -7429,6 +7746,15 @@
                 </div>
             </div>
 
+            <!-- Smart Non-Intrusive Task Intent Choice Bar (Prevents accidental moving of tonight/tomorrow tasks!) -->
+            <div class="pdf-smart-task-choice-bar" id="pdfSmartTaskChoiceBar">
+                <div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; color:#e2e8f0; flex:1; min-width:240px;">
+                    <i class="fa-solid fa-compass" style="color:var(--primary); font-size:1rem;"></i>
+                    <span id="pdfSmartTaskChoiceText">لاحظنا وجود مهمة مجدولة لهذه المحاضرة</span>
+                </div>
+                <div class="pstc-actions" id="pdfSmartTaskChoiceActions"></div>
+            </div>
+
             <!-- Scrollable Multi-Page PDF + Per-Page Canvas Stack -->
             <div class="pdf-viewer-body">
                 <!-- Floating Mini Bar when Zen Focus Mode is active -->
@@ -7550,7 +7876,7 @@
                             <i class="fa-solid fa-bolt"></i>
                         </div>
                         <div>
-                            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 900; color: var(--text-main);">كتالوج المنصة بالمصري — الخلاصة من غير رغي كتير</h3>
+                            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 900; color: var(--text-main);">كتالوج المنصة — الخلاصة من غير رغي كتير</h3>
                             <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: var(--text-muted);">اختار أي حاجة من الشريط اللي تحت وجرّبها بإيدك لايف في ثواني</p>
                         </div>
                     </div>
@@ -7566,29 +7892,50 @@
                     </div>
                 </div>
 
-                <!-- Horizontal Interactive Story Dock (No Sidebar!) -->
-                <div class="eg-floating-dock">
-                    <button type="button" class="eg-dock-pill active" id="acadNav_1" onclick="switchAcademyModule(1)">
-                        <i class="fa-solid fa-mug-hot"></i> <span>1. الفكرة في رغيف</span>
+                <!-- Horizontal Interactive Story Dock with Smooth Arrows & Interactive Slider -->
+                <div class="eg-dock-wrapper">
+                    <button type="button" class="eg-dock-arrow-btn" onclick="stepOrScrollEgDock(-1)" title="السابق">
+                        <i class="fa-solid fa-chevron-right"></i>
                     </button>
-                    <button type="button" class="eg-dock-pill" id="acadNav_2" onclick="switchAcademyModule(2)">
-                        <i class="fa-solid fa-brain"></i> <span>2. المركز ولمّ الشباتر</span>
+                    <div class="eg-floating-dock" id="egFloatingDockScroll">
+                        <button type="button" class="eg-dock-pill active" id="acadNav_1" onclick="switchAcademyModule(1)">
+                            <i class="fa-solid fa-mug-hot"></i> <span>1. الفكرة في رغيف</span>
+                        </button>
+                        <button type="button" class="eg-dock-pill" id="acadNav_2" onclick="switchAcademyModule(2)">
+                            <i class="fa-solid fa-brain"></i> <span>2. المركز ولمّ الشباتر</span>
+                        </button>
+                        <button type="button" class="eg-dock-pill" id="acadNav_3" onclick="switchAcademyModule(3)">
+                            <i class="fa-solid fa-pen-nib"></i> <span>3. السلايدات والقلم ✋</span>
+                        </button>
+                        <button type="button" class="eg-dock-pill" id="acadNav_4" onclick="switchAcademyModule(4)">
+                            <i class="fa-solid fa-compass"></i> <span>4. الجدول والتتبع الذكي 🧭</span>
+                        </button>
+                        <button type="button" class="eg-dock-pill" id="acadNav_5" onclick="switchAcademyModule(5)">
+                            <i class="fa-solid fa-bullseye"></i> <span>5. أهداف الأسبوع والتقدير</span>
+                        </button>
+                        <button type="button" class="eg-dock-pill" id="acadNav_6" onclick="switchAcademyModule(6)">
+                            <i class="fa-solid fa-keyboard"></i> <span>6. اختصارات السريع منه</span>
+                        </button>
+                        <button type="button" class="eg-dock-pill vip-pill" id="acadNav_7" onclick="switchAcademyModule(7)">
+                            <i class="fa-solid fa-crown"></i> <span>7. الحكاية و VIP Pro</span>
+                        </button>
+                    </div>
+                    <button type="button" class="eg-dock-arrow-btn" onclick="stepOrScrollEgDock(1)" title="التالي">
+                        <i class="fa-solid fa-chevron-left"></i>
                     </button>
-                    <button type="button" class="eg-dock-pill" id="acadNav_3" onclick="switchAcademyModule(3)">
-                        <i class="fa-solid fa-pen-nib"></i> <span>3. السلايدات والقلم ✋</span>
-                    </button>
-                    <button type="button" class="eg-dock-pill" id="acadNav_4" onclick="switchAcademyModule(4)">
-                        <i class="fa-solid fa-compass"></i> <span>4. الجدول والتتبع الذكي 🧭</span>
-                    </button>
-                    <button type="button" class="eg-dock-pill" id="acadNav_5" onclick="switchAcademyModule(5)">
-                        <i class="fa-solid fa-bullseye"></i> <span>5. أهداف الأسبوع والتقدير</span>
-                    </button>
-                    <button type="button" class="eg-dock-pill" id="acadNav_6" onclick="switchAcademyModule(6)">
-                        <i class="fa-solid fa-keyboard"></i> <span>6. اختصارات السريع منه</span>
-                    </button>
-                    <button type="button" class="eg-dock-pill vip-pill" id="acadNav_7" onclick="switchAcademyModule(7)">
-                        <i class="fa-solid fa-crown"></i> <span>7. الحكاية و VIP Pro</span>
-                    </button>
+                </div>
+                <div class="eg-Segmented-progress-row">
+                    <span style="font-size:0.73rem; color:var(--primary); font-weight:900; white-space:nowrap; min-width:75px;" id="egTopSliderLabel">القسم 1 من 7</span>
+                    <div class="eg-seg-bars" id="egSegmentedProgressBar">
+                        <div class="eg-seg-bar-item active" onclick="switchAcademyModule(1)" title="1. الفكرة في رغيف"></div>
+                        <div class="eg-seg-bar-item" onclick="switchAcademyModule(2)" title="2. المركز ولمّ الشباتر"></div>
+                        <div class="eg-seg-bar-item" onclick="switchAcademyModule(3)" title="3. السلايدات والقلم"></div>
+                        <div class="eg-seg-bar-item" onclick="switchAcademyModule(4)" title="4. الجدول والتتبع الذكي"></div>
+                        <div class="eg-seg-bar-item" onclick="switchAcademyModule(5)" title="5. أهداف الأسبوع والتقدير"></div>
+                        <div class="eg-seg-bar-item" onclick="switchAcademyModule(6)" title="6. اختصارات السريع منه"></div>
+                        <div class="eg-seg-bar-item" onclick="switchAcademyModule(7)" title="7. الحكاية و VIP Pro"></div>
+                    </div>
+                    <input type="range" id="egTopModuleRangeSlider" min="1" max="7" step="1" value="1" style="display:none;" oninput="switchAcademyModule(this.value)">
                 </div>
             </div>
 
@@ -7598,7 +7945,7 @@
                 <!-- ==================== TAB 1: الفكرة في رغيف (BEFORE/AFTER + LIVE STORY) ==================== -->
                 <div class="academy-module-pane active" id="acadPane_1">
                     <div class="eg-khulasa-quote">
-                        <div>
+                        <div style="flex:1; min-width:260px;">
                             <b style="color:var(--primary);">💡 من الآخر كدا يا دكتور:</b> كلنا بنعاني من سلايدات تايهة ع التليجرام، وريكوردات صوتها واطي، وجدول بنكتبه يوم السبت وننساه التلات! المنصة دي بتلمّلك التلاتة في مكان واحد وبتحسب وقتك أوتوماتيك.
                         </div>
                     </div>
@@ -7859,8 +8206,11 @@
                             <button type="button" class="showcase-action-btn" style="justify-content:center;" onclick="sb4SimulateSmartPartialSave()">
                                 <i class="fa-solid fa-heart" style="color:#fbbf24;"></i> 3. ذاكرت 45 د بس وتعبت؟
                             </button>
+                            <button type="button" class="showcase-action-btn" style="justify-content:center;" onclick="sb4SimulateQuickLookupProtection()">
+                                <i class="fa-regular fa-eye" style="color:#38bdf8;"></i> 4. داخل تفتكر معلومة بس؟
+                            </button>
                             <button type="button" class="showcase-action-btn" style="justify-content:center;" onclick="sb4SmartClear()">
-                                <i class="fa-solid fa-broom"></i> 4. نظّف للأسبوع الجديد
+                                <i class="fa-solid fa-broom"></i> 5. نظّف للأسبوع الجديد
                             </button>
                         </div>
 
@@ -9906,14 +10256,28 @@
             return `${m} دقيقة`;
         }
 
-        function recordSmartSessionActualStart(ev) {
+        function isSessionInCurrentTimeWindow(ev) {
+            if (!ev) return false;
+            const now = new Date();
+            const todayIdx = now.getDay();
+            if (Number(ev.day) !== todayIdx) return false;
+            const curDecH = now.getHours() + (now.getMinutes() / 60);
+            const evStart = Number(ev.startHour) || 9;
+            const evDur = Math.max(0.5, Number(ev.duration) || 1);
+            return (curDecH >= (evStart - 0.5) && curDecH <= (evStart + evDur + 0.5));
+        }
+
+        function recordSmartSessionActualStart(ev, forceMoveSlotToNow = false) {
             if (!ev) return;
             const now = new Date();
             if (!ev.smartFirstStartedAtMs) {
                 ev.smartFirstStartedAtMs = Date.now();
                 ev.smartStartTimeFormatted = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-                // Align startHour on calendar to actual start hour (rounded to nearest 15m)
+            }
+            // Only move day/startHour on calendar if explicitly requested OR already within today's scheduled window
+            if (forceMoveSlotToNow || isSessionInCurrentTimeWindow(ev)) {
                 const decH = now.getHours() + Math.round((now.getMinutes() / 60) * 4) / 4;
+                ev.day = now.getDay();
                 ev.startHour = Math.max(Number(plannerPrefs.dayStartHour ?? 6), Math.min(23, decH));
             }
             if (!ev.openTimerStartedAt) {
@@ -11095,8 +11459,10 @@
                     if (!ev.smartStartTimeFormatted) {
                         const approxStartDate = new Date(Date.now() - Math.round(totalMins * 60000));
                         ev.smartStartTimeFormatted = approxStartDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-                        const sDec = approxStartDate.getHours() + Math.round((approxStartDate.getMinutes() / 60) * 4) / 4;
-                        ev.startHour = Math.max(Number(plannerPrefs.dayStartHour ?? 6), Math.min(23, sDec));
+                        if (isSessionInCurrentTimeWindow(ev)) {
+                            const sDec = approxStartDate.getHours() + Math.round((approxStartDate.getMinutes() / 60) * 4) / 4;
+                            ev.startHour = Math.max(Number(plannerPrefs.dayStartHour ?? 6), Math.min(23, sDec));
+                        }
                     }
 
                     ev.actualStudiedMinutes = Number(totalMins.toFixed(1));
@@ -17309,20 +17675,84 @@
         let sb5LinkedSet = new Set();
         let sb7MasteredSet = new Set();
 
-        // Override switchAcademyModule to support 8 Flagship tabs & update mastery badge
+        let currentEgAcademyTab = 1;
+
+        function stepOrScrollEgDock(delta) {
+            const nextTab = Math.min(7, Math.max(1, (currentEgAcademyTab || 1) + delta));
+            switchAcademyModule(nextTab);
+        }
+
+        // Enable smooth mouse-drag & wheel horizontal scrolling on #egFloatingDockScroll
+        (function initEgDockInteractiveScroll() {
+            setTimeout(() => {
+                const dock = document.getElementById('egFloatingDockScroll');
+                if (!dock || dock.dataset.dragBound) return;
+                dock.dataset.dragBound = '1';
+
+                let isDown = false;
+                let startX = 0;
+                let scrollLeft = 0;
+                let dragged = false;
+
+                dock.addEventListener('mousedown', (e) => {
+                    isDown = true;
+                    dragged = false;
+                    startX = e.pageX - dock.offsetLeft;
+                    scrollLeft = dock.scrollLeft;
+                });
+                dock.addEventListener('mouseleave', () => { isDown = false; });
+                dock.addEventListener('mouseup', () => { isDown = false; });
+                dock.addEventListener('mousemove', (e) => {
+                    if (!isDown) return;
+                    const x = e.pageX - dock.offsetLeft;
+                    const walk = (x - startX) * 1.5;
+                    if (Math.abs(walk) > 5) dragged = true;
+                    if (dragged) {
+                        e.preventDefault();
+                        dock.scrollLeft = scrollLeft - walk;
+                    }
+                });
+                dock.addEventListener('wheel', (e) => {
+                    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                        e.preventDefault();
+                        dock.scrollLeft -= e.deltaY;
+                    }
+                }, { passive: false });
+            }, 150);
+        })();
+
+        // Override switchAcademyModule to support 7 tabs, sync top slider, and smooth-scroll the top dock
         switchAcademyModule = function(modNum) {
             const target = Math.min(7, Math.max(1, Number(modNum) || 1));
+            currentEgAcademyTab = target;
             exploredShowcaseTabs.add(target);
             for (let i = 1; i <= 7; i++) {
                 const nav = document.getElementById(`acadNav_${i}`);
                 const pane = document.getElementById(`acadPane_${i}`);
-                if (nav) nav.classList.toggle('active', i === target);
+                if (nav) {
+                    nav.classList.toggle('active', i === target);
+                    if (i === target && typeof nav.scrollIntoView === 'function') {
+                        try {
+                            nav.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                        } catch (e) {}
+                    }
+                }
                 if (pane) pane.classList.toggle('active', i === target);
             }
-            const badge = document.getElementById('showcaseExploredBadge');
-            if (badge) {
-                badge.innerHTML = `<i class="fa-solid fa-bolt"></i> استكشفت ${exploredShowcaseTabs.size} / 8 مختبرات قوّة`;
+            const topSlider = document.getElementById('egTopModuleRangeSlider');
+            if (topSlider && Number(topSlider.value) !== target) {
+                topSlider.value = String(target);
             }
+            const topLbl = document.getElementById('egTopSliderLabel');
+            if (topLbl) {
+                topLbl.innerText = `القسم ${target} من 7`;
+            }
+            const segBars = document.querySelectorAll('#egSegmentedProgressBar .eg-seg-bar-item');
+            segBars.forEach((barEl, idx) => {
+                const stepNum = idx + 1;
+                barEl.classList.toggle('active', stepNum === target);
+                barEl.classList.toggle('passed', stepNum < target);
+            });
             const stage = document.getElementById('academyStageContainer');
             if (stage) stage.scrollTop = 0;
             if (target === 3 && !sb3Inited) {
@@ -20283,7 +20713,7 @@
                     return true;
                 }
 
-                // 3. Same Subject on Today
+                // 3. Same Subject on Today (only if within today's active window or explicitly requested)
                 if (subIdStr && String(ev.subjectId) === subIdStr && ev.day === todayIdx) {
                     return true;
                 }
@@ -20292,28 +20722,128 @@
         }
 
         let lastStudyTrackTickMs = 0;
+        let activePdfBufferMinutes = 0;
+        let activePdfTaskIntent = null; // null | 'just_looking' | 'credit_keep_slot' | 'move_to_now'
+        let activePdfMatchedEventId = null;
+
+        function hidePdfSmartTaskChoiceBar() {
+            const bar = document.getElementById('pdfSmartTaskChoiceBar');
+            if (bar) bar.classList.remove('active');
+        }
+
+        function showPdfSmartTaskChoiceBar(ev, isActiveWindowNow) {
+            const bar = document.getElementById('pdfSmartTaskChoiceBar');
+            const txtEl = document.getElementById('pdfSmartTaskChoiceText');
+            const actEl = document.getElementById('pdfSmartTaskChoiceActions');
+            if (!bar || !txtEl || !actEl || !ev) return;
+
+            const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+            const dayName = days[Number(ev.day)] || '';
+            const timeStr = formatHourText(ev.startHour);
+            const isSameDay = Number(ev.day) === getCurrentDayIdx();
+            const whenLabel = isSameDay ? `النهارده الساعة ${timeStr}` : `يوم ${dayName} الساعة ${timeStr}`;
+
+            if (!isActiveWindowNow) {
+                txtEl.innerHTML = `<b>ذكاء الرصد 🧭:</b> المحاضرة دي ليها مهمة مجدولة <b>(${whenLabel})</b> باسم «${ev.title}» — داخل تفتكر معلومة ع السريع ولا تحب نبدأ المهمة؟`;
+                actEl.innerHTML = `
+                    <button type="button" class="pstc-btn safe-choice" onclick="choosePdfTaskIntent('just_looking')">
+                        <i class="fa-regular fa-eye"></i> بفتكر معلومة بس (سيبها في ميعادها)
+                    </button>
+                    <button type="button" class="pstc-btn" onclick="choosePdfTaskIntent('credit_keep_slot')">
+                        <i class="fa-solid fa-stopwatch"></i> احسب الوقت من المهمة (من غير نقل ميعادها)
+                    </button>
+                    <button type="button" class="pstc-btn primary-choice" onclick="choosePdfTaskIntent('move_to_now')">
+                        <i class="fa-solid fa-bolt"></i> انقل المهمة للوقت ده وابدأها دلوقتي
+                    </button>
+                `;
+            } else {
+                txtEl.innerHTML = `<b>ذكاء الرصد 🧭:</b> ده ميعاد مهمتك الحالية «${ev.title}» (${timeStr}) — جاري حساب وقت مذاكرتك، أو دوس لو داخل تبص على معلومة سريعة:`;
+                actEl.innerHTML = `
+                    <button type="button" class="pstc-btn primary-choice" onclick="choosePdfTaskIntent('credit_keep_slot')">
+                        <i class="fa-solid fa-check"></i> تمام، كمّل رصد المذاكرة
+                    </button>
+                    <button type="button" class="pstc-btn safe-choice" onclick="choosePdfTaskIntent('just_looking')">
+                        <i class="fa-regular fa-eye"></i> ببص على معلومة بس (لا ترصد)
+                    </button>
+                `;
+            }
+            bar.classList.add('active');
+        }
+
+        function choosePdfTaskIntent(intentMode) {
+            activePdfTaskIntent = intentMode;
+            hidePdfSmartTaskChoiceBar();
+            const ev = scheduleEvents.find(e => String(e.id) === String(activePdfMatchedEventId));
+            if (!ev) return;
+
+            const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+            const dayName = days[Number(ev.day)] || '';
+            const timeStr = formatHourText(ev.startHour);
+
+            if (intentMode === 'just_looking') {
+                showToast(`👀 قراءة حرة! مهمة «${ev.title}» هتفضل في ميعادها (${dayName} ${timeStr}) من غير أي تغيير.`);
+                return;
+            }
+
+            if (intentMode === 'move_to_now') {
+                recordSmartSessionActualStart(ev, true);
+                ev.openTimerStartedAt = null;
+                if (activePdfBufferMinutes > 0) {
+                    ev.actualStudiedMinutes = Number(((Number(ev.actualStudiedMinutes) || 0) + activePdfBufferMinutes).toFixed(2));
+                    activePdfBufferMinutes = 0;
+                }
+                saveScheduleData();
+                renderSchedule();
+                showToast(`🚀 اتنقلت مهمة «${ev.title}» للوقت الحالي وبدأ الرصد الذكي!`);
+                return;
+            }
+
+            if (intentMode === 'credit_keep_slot') {
+                if (!ev.smartFirstStartedAtMs) {
+                    ev.smartFirstStartedAtMs = Date.now();
+                    ev.smartStartTimeFormatted = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                }
+                if (activePdfBufferMinutes > 0) {
+                    ev.actualStudiedMinutes = Number(((Number(ev.actualStudiedMinutes) || 0) + activePdfBufferMinutes).toFixed(2));
+                    activePdfBufferMinutes = 0;
+                }
+                saveScheduleData();
+                renderSchedule();
+                showToast(`⏱️ جاري احتساب وقت مذاكرتك لمهمة «${ev.title}» مع الحفاظ على ميعادها الأصلي (${dayName} ${timeStr})!`);
+            }
+        }
 
         function startLiveLectureStudyTracking(sub, group, lec) {
             if (activePdfStudyTrackerInterval) clearInterval(activePdfStudyTrackerInterval);
             const nowMs = Date.now();
             activePdfStudySessionStartMs = nowMs;
             lastStudyTrackTickMs = nowMs;
+            activePdfBufferMinutes = 0;
+            activePdfTaskIntent = null;
+            activePdfMatchedEventId = null;
+            hidePdfSmartTaskChoiceBar();
 
-            // Immediate zero-delay activation on lecture open
-            let initCandidates = findMatchingScheduledSessionsForLecture(lec, sub?.id, true);
-            if (initCandidates.length === 0) {
-                initCandidates = findMatchingScheduledSessionsForLecture(lec, sub?.id, false);
-            }
-            if (initCandidates.length > 0) {
+            // Find best matching uncompleted session (prioritize today's active window, then today, then other days)
+            let todayCandidates = findMatchingScheduledSessionsForLecture(lec, sub?.id, true);
+            let allCandidates = todayCandidates.length > 0
+                ? todayCandidates
+                : findMatchingScheduledSessionsForLecture(lec, sub?.id, false);
+
+            if (allCandidates.length > 0) {
                 const nowDecH = new Date().getHours() + (new Date().getMinutes() / 60);
-                initCandidates.sort((a, b) => Math.abs(a.startHour - nowDecH) - Math.abs(b.startHour - nowDecH));
-                const firstEv = initCandidates[0];
-                if (firstEv.isOpenDuration) {
-                    recordSmartSessionActualStart(firstEv);
-                    // We track via lastStudyTrackTickMs directly into actualStudiedMinutes, so clear openTimerStartedAt to avoid double-counting
-                    firstEv.openTimerStartedAt = null;
-                    saveScheduleData();
-                }
+                allCandidates.sort((a, b) => {
+                    const aToday = Number(a.day) === getCurrentDayIdx() ? 0 : 1;
+                    const bToday = Number(b.day) === getCurrentDayIdx() ? 0 : 1;
+                    if (aToday !== bToday) return aToday - bToday;
+                    return Math.abs(a.startHour - nowDecH) - Math.abs(b.startHour - nowDecH);
+                });
+                const matchedEv = allCandidates[0];
+                activePdfMatchedEventId = matchedEv.id;
+                const inWindowNow = isSessionInCurrentTimeWindow(matchedEv);
+
+                // NEVER silently move a task's day or startHour on lecture open!
+                // Instead, show the non-intrusive Smart Choice Bar so the user is in 100% control.
+                showPdfSmartTaskChoiceBar(matchedEv, inWindowNow);
             }
 
             activePdfStudyTrackerInterval = setInterval(() => {
@@ -20329,35 +20859,38 @@
                 lastStudyTrackTickMs = curMs;
                 if (deltaMins <= 0) return;
 
-                let candidates = findMatchingScheduledSessionsForLecture(lec, sub?.id, true);
-                if (candidates.length === 0) {
-                    candidates = findMatchingScheduledSessionsForLecture(lec, sub?.id, false);
+                // If user explicitly chose "بفتكر معلومة بس", do not accumulate or touch any task
+                if (activePdfTaskIntent === 'just_looking') return;
+
+                const targetEv = scheduleEvents.find(e => String(e.id) === String(activePdfMatchedEventId));
+                if (!targetEv || targetEv.completed) return;
+
+                const inWindowNow = isSessionInCurrentTimeWindow(targetEv);
+
+                // If the user hasn't chosen an intent yet and the task is for later tonight or tomorrow,
+                // keep the elapsed time ONLY in activePdfBufferMinutes without touching targetEv!
+                if (!activePdfTaskIntent && !inWindowNow) {
+                    activePdfBufferMinutes = Number((activePdfBufferMinutes + deltaMins).toFixed(2));
+                    return;
                 }
-                if (candidates.length === 0) return;
 
-                const nowDecH = new Date().getHours() + (new Date().getMinutes() / 60);
-                candidates.sort((a, b) => Math.abs(a.startHour - nowDecH) - Math.abs(b.startHour - nowDecH));
-                const targetEv = candidates[0];
-
-                if (targetEv.openTimerStartedAt) {
-                    // Fold any external manual start timestamp once so there is zero double-counting
-                    const extDelta = Math.max(0, (curMs - targetEv.openTimerStartedAt) / 60000);
-                    targetEv.actualStudiedMinutes = Number(((Number(targetEv.actualStudiedMinutes) || 0) + extDelta).toFixed(2));
-                    targetEv.openTimerStartedAt = null;
+                // If in active window right now (or user explicitly chose 'credit_keep_slot' / 'move_to_now')
+                if (!activePdfTaskIntent && inWindowNow) {
+                    // Buffer the first 1.5 minutes quietly in case they just opened the file for a quick look
+                    activePdfBufferMinutes = Number((activePdfBufferMinutes + deltaMins).toFixed(2));
+                    if (activePdfBufferMinutes < 1.5) return;
+                    // After 1.5 mins in the scheduled window, credit the buffered time without moving the slot
+                    targetEv.actualStudiedMinutes = Number(((Number(targetEv.actualStudiedMinutes) || 0) + activePdfBufferMinutes).toFixed(2));
+                    activePdfBufferMinutes = 0;
+                    activePdfTaskIntent = 'credit_keep_slot';
                 } else {
                     targetEv.actualStudiedMinutes = Number(((Number(targetEv.actualStudiedMinutes) || 0) + deltaMins).toFixed(2));
                 }
 
                 if (targetEv.isOpenDuration) {
-                    if (!targetEv.smartFirstStartedAtMs) {
-                        recordSmartSessionActualStart(targetEv);
-                        targetEv.openTimerStartedAt = null;
-                    }
-                    // Dynamically sync ev.duration to the actual studied time so it NEVER stays stuck at 1.5h
-                    if (targetEv.actualStudiedMinutes >= 1) {
+                    if (activePdfTaskIntent === 'move_to_now' && targetEv.actualStudiedMinutes >= 1) {
                         targetEv.duration = Math.max(0.25, Number((targetEv.actualStudiedMinutes / 60).toFixed(2)));
                     }
-                    // Save locally every 2s without hammering Supabase Disk IO; cloud sync happens on PDF close or completion!
                     saveScheduleData(false);
                     return;
                 }
@@ -20367,7 +20900,7 @@
                 const requiredMinutes = plannedMinutes * thresholdRatio;
 
                 if (targetEv.actualStudiedMinutes >= requiredMinutes && !targetEv.completed) {
-                    autoCompleteScheduledSessionSmart(targetEv, lec, sub);
+                    autoCompleteScheduledSessionSmart(targetEv, lec, sub, activePdfTaskIntent === 'move_to_now');
                 } else {
                     saveScheduleData(false);
                 }
@@ -20379,43 +20912,67 @@
                 clearInterval(activePdfStudyTrackerInterval);
                 activePdfStudyTrackerInterval = null;
             }
+            hidePdfSmartTaskChoiceBar();
             if (!closingLecRef || !closingLecRef.lec) return;
+
             const nowMs = Date.now();
             const unrecordedTickMins = lastStudyTrackTickMs > 0
                 ? Math.max(0, (nowMs - lastStudyTrackTickMs) / 60000)
                 : 0;
-            const totalElapsedSessionMins = activePdfStudySessionStartMs > 0
-                ? Math.max(0, (nowMs - activePdfStudySessionStartMs) / 60000)
-                : 0;
             activePdfStudySessionStartMs = 0;
             lastStudyTrackTickMs = 0;
 
-            const { sub, lec } = closingLecRef;
-            let candidates = findMatchingScheduledSessionsForLecture(lec, sub?.id, true);
-            if (candidates.length === 0) {
-                candidates = findMatchingScheduledSessionsForLecture(lec, sub?.id, false);
+            // If the student clicked "بفتكر معلومة بس", do nothing at all!
+            if (activePdfTaskIntent === 'just_looking') {
+                activePdfBufferMinutes = 0;
+                activePdfTaskIntent = null;
+                activePdfMatchedEventId = null;
+                return;
             }
-            if (candidates.length === 0) return;
 
-            const targetEv = candidates[0];
-            if (targetEv.openTimerStartedAt) {
-                const extDelta = Math.max(0, (nowMs - targetEv.openTimerStartedAt) / 60000);
-                targetEv.actualStudiedMinutes = Number(((Number(targetEv.actualStudiedMinutes) || 0) + extDelta).toFixed(2));
-                targetEv.openTimerStartedAt = null;
-            } else if (unrecordedTickMins > 0) {
-                targetEv.actualStudiedMinutes = Number(((Number(targetEv.actualStudiedMinutes) || 0) + unrecordedTickMins).toFixed(2));
+            const { sub, lec } = closingLecRef;
+            const targetEv = scheduleEvents.find(e => String(e.id) === String(activePdfMatchedEventId));
+            activePdfMatchedEventId = null;
+            if (!targetEv || targetEv.completed) {
+                activePdfBufferMinutes = 0;
+                activePdfTaskIntent = null;
+                return;
             }
-            if (totalElapsedSessionMins >= 0.15 && (Number(targetEv.actualStudiedMinutes) || 0) < totalElapsedSessionMins) {
-                targetEv.actualStudiedMinutes = Number(totalElapsedSessionMins.toFixed(2));
+
+            const inWindowNow = isSessionInCurrentTimeWindow(targetEv);
+
+            // Case 1: User never clicked a choice button on the bar
+            if (!activePdfTaskIntent) {
+                const totalBuffered = Number((activePdfBufferMinutes + unrecordedTickMins).toFixed(2));
+                activePdfBufferMinutes = 0;
+                // If they stayed less than 2 minutes ("داخل افتكر معلومة مش أكتر"), ignore completely so tonight/tomorrow tasks are NEVER touched!
+                if (totalBuffered < 2.0) {
+                    return;
+                }
+                // If they studied for 2+ minutes without clicking the bar, ask them what they want to do!
+                openSmartStudyVerifyModal(targetEv, inWindowNow ? 'pdf_closed' : 'different_slot_lookup', lec, sub, totalBuffered);
+                return;
+            }
+
+            // Case 2: User explicitly chose 'credit_keep_slot' or 'move_to_now'
+            const chosenIntent = activePdfTaskIntent;
+            activePdfTaskIntent = null;
+            const extraMins = activePdfBufferMinutes + unrecordedTickMins;
+            activePdfBufferMinutes = 0;
+            if (extraMins > 0) {
+                targetEv.actualStudiedMinutes = Number(((Number(targetEv.actualStudiedMinutes) || 0) + extraMins).toFixed(2));
             }
 
             const studiedSoFar = Number(targetEv.actualStudiedMinutes) || 0;
 
-            // If Smart Time Tracking (isOpenDuration) is active: automatically save & complete with the exact studied duration!
             if (targetEv.isOpenDuration) {
-                if (studiedSoFar >= 0.5 && !targetEv.completed) {
-                    syncSmartSessionActualDuration(targetEv, true);
-                    autoCompleteScheduledSessionSmart(targetEv, lec, sub);
+                if (studiedSoFar >= 1.0 && !targetEv.completed) {
+                    if (chosenIntent === 'move_to_now') {
+                        syncSmartSessionActualDuration(targetEv, true);
+                        autoCompleteScheduledSessionSmart(targetEv, lec, sub, true);
+                    } else {
+                        openSmartStudyVerifyModal(targetEv, 'different_slot_lookup', lec, sub, studiedSoFar);
+                    }
                 } else {
                     saveScheduleData();
                     renderSchedule();
@@ -20428,9 +20985,9 @@
             const requiredMinutes = plannedMinutes * thresholdRatio;
 
             if (studiedSoFar >= requiredMinutes && !targetEv.completed) {
-                autoCompleteScheduledSessionSmart(targetEv, lec, sub);
-            } else if (!targetEv.completed && studiedSoFar >= 0.25) {
-                openSmartStudyVerifyModal(targetEv, 'pdf_closed', lec, sub);
+                autoCompleteScheduledSessionSmart(targetEv, lec, sub, chosenIntent === 'move_to_now');
+            } else if (!targetEv.completed && studiedSoFar >= 1.0) {
+                openSmartStudyVerifyModal(targetEv, chosenIntent === 'move_to_now' ? 'pdf_closed' : 'different_slot_lookup', lec, sub, studiedSoFar);
             }
         }
 
@@ -20442,26 +20999,22 @@
             if (candidates.length === 0) return;
 
             const targetEv = candidates[0];
-            syncSmartSessionActualDuration(targetEv, false);
+            const inWindowNow = isSessionInCurrentTimeWindow(targetEv);
             const studiedMins = Number(targetEv.actualStudiedMinutes) || 0;
 
-            if (targetEv.isOpenDuration && studiedMins >= 0.5) {
-                syncSmartSessionActualDuration(targetEv, true);
-                autoCompleteScheduledSessionSmart(targetEv, lec, sub);
+            // Always ask the user before altering a task scheduled for later tonight or tomorrow!
+            if (!inWindowNow) {
+                openSmartStudyVerifyModal(targetEv, 'lecture_checked_different_slot', lec, sub, studiedMins);
                 return;
             }
 
-            const now = new Date();
-            const isToday = targetEv.day === now.getDay();
-            const curDecH = now.getHours() + (now.getMinutes() / 60);
-            const inScheduledTimeWindow = isToday && curDecH >= (targetEv.startHour - 0.5) && curDecH <= (targetEv.startHour + targetEv.duration + 1);
             const plannedMinutes = (Number(targetEv.duration) || 1) * 60;
             const requiredMinutes = plannedMinutes * ((Number(plannerPrefs.autoCompletePct) || 75) / 100);
 
             if (studiedMins >= requiredMinutes) {
-                autoCompleteScheduledSessionSmart(targetEv, lec, sub);
+                autoCompleteScheduledSessionSmart(targetEv, lec, sub, false);
             } else {
-                openSmartStudyVerifyModal(targetEv, inScheduledTimeWindow ? 'in_window_check' : 'lecture_checked', lec, sub);
+                openSmartStudyVerifyModal(targetEv, 'in_window_check', lec, sub, studiedMins);
             }
         }
 
@@ -20475,27 +21028,33 @@
 
             const targetEv = candidates[0];
             targetEv.actualStudiedMinutes = Number(((Number(targetEv.actualStudiedMinutes) || 0) + Number(pomoMinutes)).toFixed(1));
-            if (targetEv.isOpenDuration) {
+            if (targetEv.isOpenDuration && isSessionInCurrentTimeWindow(targetEv)) {
                 syncSmartSessionActualDuration(targetEv, true);
-                autoCompleteScheduledSessionSmart(targetEv, null, subjects.find(s => String(s.id) === String(targetEv.subjectId)));
+                autoCompleteScheduledSessionSmart(targetEv, null, subjects.find(s => String(s.id) === String(targetEv.subjectId)), false);
                 return;
             }
             const plannedMinutes = (Number(targetEv.duration) || 1) * 60;
             const requiredMinutes = plannedMinutes * ((Number(plannerPrefs.autoCompletePct) || 75) / 100);
 
-            if (targetEv.actualStudiedMinutes >= requiredMinutes) {
-                autoCompleteScheduledSessionSmart(targetEv, null, subjects.find(s => String(s.id) === String(targetEv.subjectId)));
+            if (targetEv.actualStudiedMinutes >= requiredMinutes && isSessionInCurrentTimeWindow(targetEv)) {
+                autoCompleteScheduledSessionSmart(targetEv, null, subjects.find(s => String(s.id) === String(targetEv.subjectId)), false);
             } else {
                 saveScheduleData();
                 renderSchedule();
-                openSmartStudyVerifyModal(targetEv, 'pomodoro_partial', null, subjects.find(s => String(s.id) === String(targetEv.subjectId)));
+                openSmartStudyVerifyModal(targetEv, 'pomodoro_partial', null, subjects.find(s => String(s.id) === String(targetEv.subjectId)), targetEv.actualStudiedMinutes);
             }
         }
 
-        function autoCompleteScheduledSessionSmart(ev, lecObj = null, subObj = null) {
+        function autoCompleteScheduledSessionSmart(ev, lecObj = null, subObj = null, allowMoveSlotToNow = false) {
             if (!ev || ev.completed) return;
             ev.completedAt = Date.now();
             ev.smartEndedAtMs = ev.completedAt;
+            if (allowMoveSlotToNow) {
+                const now = new Date();
+                const decH = now.getHours() + Math.round((now.getMinutes() / 60) * 4) / 4;
+                ev.day = now.getDay();
+                ev.startHour = Math.max(Number(plannerPrefs.dayStartHour ?? 6), Math.min(23, decH));
+            }
             syncSmartSessionActualDuration(ev, true);
 
             const studiedMins = Number(ev.actualStudiedMinutes) || 0;
@@ -20573,10 +21132,10 @@
             renderSchedule();
             updateTracker();
             playChimeSound();
-            showToast(`🤖 تم حفظ وإتمام «${ev.title}» تلقائياً بالوقت الفعلي (${humanDurationLabel}) في الجدول والسجل!`);
+            showToast(`🤖 تم حفظ وإتمام «${ev.title}» بالوقت الفعلي (${humanDurationLabel}) في الجدول والسجل!`);
         }
 
-        function openSmartStudyVerifyModal(ev, reason = 'partial', lecObj = null, subObj = null) {
+        function openSmartStudyVerifyModal(ev, reason = 'partial', lecObj = null, subObj = null, bufferedMinutesOverride = null) {
             if (!ev || ev.completed) return;
             const modal = document.getElementById('smartStudyVerifyModalOverlay');
             const descEl = document.getElementById('smartVerifyModalDesc');
@@ -20587,14 +21146,109 @@
             const btnKeep = document.getElementById('smartVerifyBtnKeepOpen');
             if (!modal || !descEl) return;
 
+            const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+            const dayName = days[Number(ev.day)] || '';
+            const slotTimeStr = formatHourText(ev.startHour);
+            const isDifferentSlot = !isSessionInCurrentTimeWindow(ev);
+
             const plannedMins = Math.round((Number(ev.duration) || 1) * 60);
-            const rawStudiedMins = Math.max(1, Math.round(Number(ev.actualStudiedMinutes) || 15));
-            const studiedMins = Math.min(plannedMins, rawStudiedMins);
+            const effectiveRawMins = bufferedMinutesOverride !== null
+                ? Math.max(1, Math.round(bufferedMinutesOverride))
+                : Math.max(1, Math.round(Number(ev.actualStudiedMinutes) || 15));
+            const studiedMins = Math.min(plannedMins, effectiveRawMins);
             const studiedHrs = Math.max(0.25, Number((studiedMins / 60).toFixed(2)));
             const studiedHuman = formatMinutesHumanReadable(studiedMins);
             const plannedHuman = formatMinutesHumanReadable(plannedMins);
+
+            if (isDifferentSlot) {
+                descEl.innerHTML = `
+                    <div style="margin-bottom: 10px;">
+                        هذه المحاضرة مرتبطة بمهمة <b style="color:var(--text-main);">«${ev.title}»</b> المجدولة في وقت آخر:
+                        <span class="studio-pill" style="color:#fcd34d; border-color:rgba(245,158,11,0.35); margin-top:4px;"><i class="fa-regular fa-clock"></i> الموعد الأصلي: ${dayName} الساعة ${slotTimeStr} (${plannedHuman})</span>
+                    </div>
+                    <div style="font-size: 0.81rem; color: #cbd5e1; background: rgba(11, 15, 23, 0.78); border: 1px solid rgba(45, 212, 191, 0.22); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;">
+                        💡 تحب نتعامل إزاي مع المهمة دي عشان جدولك مايتلخبطش؟
+                    </div>
+                `;
+
+                if (fullTitleEl) {
+                    fullTitleEl.innerText = `إتمام المهمة في موعدها الأصلي (${dayName} ${slotTimeStr}) بدون نقلها`;
+                }
+                if (remTitleEl) {
+                    remTitleEl.innerText = `نقل المهمة للوقت الحالي وحفظ ما ذاكرته الآن (${studiedHuman})`;
+                }
+                const keepSpan = btnKeep.querySelector('span');
+                if (keepSpan) {
+                    keepSpan.innerText = `👀 كنت بفتكر معلومة بس — سيب المهمة في ميعادها (${dayName} ${slotTimeStr}) بدون أي تغيير`;
+                }
+
+                // Choice 1: Complete or credit in its ORIGINAL scheduled slot without moving day/startHour!
+                btnComplete.onclick = () => {
+                    closeModal('smartStudyVerifyModalOverlay');
+                    if (ev.openTimerStartedAt) ev.openTimerStartedAt = null;
+                    ev.completed = true;
+                    ev.missed = false;
+                    ev.autoCompleted = true;
+                    ev.completedMode = 'completed_in_original_slot';
+                    const dateStr = new Date().toLocaleDateString('ar-EG');
+                    const logText = `✅ إتمام المهمة (في موعدها ${dayName} ${slotTimeStr}): ${ev.title} (${ev.duration} س)`;
+                    if (!logs.some(l => l.text === logText && l.date === dateStr)) {
+                        logs.unshift({ id: Date.now(), date: dateStr, text: logText, mood: 'bolt', subjectId: ev.subjectId || '' });
+                        saveLogs();
+                    }
+                    saveScheduleData();
+                    renderSchedule();
+                    updateTracker();
+                    showToast(`✅ تم إتمام «${ev.title}» مع الحفاظ على مكانها في جدول (${dayName} ${slotTimeStr})!`);
+                };
+
+                // Choice 2: Move the task to RIGHT NOW and save the studied duration
+                btnResched.onclick = () => {
+                    closeModal('smartStudyVerifyModalOverlay');
+                    if (ev.openTimerStartedAt) ev.openTimerStartedAt = null;
+                    const nowObj = new Date();
+                    const decH = nowObj.getHours() + Math.round((nowObj.getMinutes() / 60) * 4) / 4;
+                    ev.day = nowObj.getDay();
+                    ev.startHour = Math.max(Number(plannerPrefs.dayStartHour ?? 6), Math.min(23, decH));
+                    ev.smartEndTimeFormatted = nowObj.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                    const approxStart = new Date(Date.now() - studiedMins * 60000);
+                    ev.smartStartTimeFormatted = approxStart.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                    ev.actualStudiedMinutes = studiedMins;
+                    ev.duration = studiedHrs;
+                    ev.completed = true;
+                    ev.missed = false;
+                    ev.autoCompleted = true;
+                    ev.completedMode = 'moved_to_now_and_saved';
+
+                    const dateStr = new Date().toLocaleDateString('ar-EG');
+                    const logText = `🚀 نقل وإتمام المهمة في الوقت الحالي: ${ev.title} (${studiedHuman})`;
+                    if (!logs.some(l => l.text === logText && l.date === dateStr)) {
+                        logs.unshift({ id: Date.now(), date: dateStr, text: logText, mood: 'bolt', subjectId: ev.subjectId || '' });
+                        saveLogs();
+                    }
+                    saveScheduleData();
+                    renderSchedule();
+                    updateTracker();
+                    showToast(`🚀 اتنقلت المهمة للوقت الحالي واتحفظت (${studiedHuman}) بنجاح!`);
+                };
+
+                // Choice 3: Just looking up info — leave the task 100% untouched in its tonight/tomorrow slot!
+                btnKeep.onclick = () => {
+                    closeModal('smartStudyVerifyModalOverlay');
+                    showToast(`👀 ولا يهمك! مهمة «${ev.title}» ثابتة في ميعادها (${dayName} ${slotTimeStr}) من غير أي تغيير.`);
+                };
+
+                modal.classList.add('active');
+                return;
+            }
+
+            // Standard case when task IS in the current time window
             const cancelledMins = Math.max(0, plannedMins - studiedMins);
             const cancelledHuman = cancelledMins > 0 ? formatMinutesHumanReadable(cancelledMins) : '0 دقيقة';
+            const keepSpan = btnKeep.querySelector('span');
+            if (keepSpan) {
+                keepSpan.innerText = 'ما زلت أذاكرها أو كنت براجع معلومة — أبقِ المهمة مفتوحة في ميعادها';
+            }
 
             descEl.innerHTML = `
                 <div style="margin-bottom: 10px;">
@@ -20620,7 +21274,6 @@
                 remTitleEl.innerText = `حفظ الجزء المسجل فقط (${studiedHuman}) وإلغاء الباقي (${cancelledHuman})`;
             }
 
-            // Option 1: Save full planned task
             btnComplete.onclick = () => {
                 closeModal('smartStudyVerifyModalOverlay');
                 if (ev.openTimerStartedAt) ev.openTimerStartedAt = null;
@@ -20640,7 +21293,6 @@
                 showToast(`🎉 تم حفظ وإتمام المهمة «${ev.title}» بالكامل (${ev.duration} س)!`);
             };
 
-            // Option 2: Save ONLY the recorded part and cancel the remaining unstudied time
             btnResched.onclick = () => {
                 closeModal('smartStudyVerifyModalOverlay');
                 if (ev.openTimerStartedAt) ev.openTimerStartedAt = null;
@@ -20675,7 +21327,7 @@
                 ev.promptedPartial = true;
                 saveScheduleData();
                 closeModal('smartStudyVerifyModalOverlay');
-                showToast('تم إبقاء المهمة مفتوحة لاستكمالها لاحقاً 👍');
+                showToast('تم إبقاء المهمة مفتوحة في موعدها بدون تغيير 👍');
             };
 
             modal.classList.add('active');
@@ -21306,6 +21958,103 @@
             checkWeeklyCycleAndRollover();
             evaluatePastAndTodayMissedSessions(true);
         }, 60000);
+
+
+        // ================= UNIVERSAL SMOOTH RANGE SLIDER POINTER CONTROLLER =================
+        (function initUniversalSmoothRangeSliders() {
+            function computeSliderValueFromClientX(slider, clientX) {
+                const rect = slider.getBoundingClientRect();
+                if (!rect || rect.width <= 0) return null;
+                const min = parseFloat(slider.min) || 0;
+                const max = parseFloat(slider.max) || 100;
+                const step = parseFloat(slider.step) || 1;
+                const isRtl = getComputedStyle(slider).direction === 'rtl';
+                let ratio = (clientX - rect.left) / rect.width;
+                if (isRtl) ratio = 1 - ratio;
+                ratio = Math.max(0, Math.min(1, ratio));
+                let rawVal = min + ratio * (max - min);
+                if (step > 0) {
+                    rawVal = min + Math.round((rawVal - min) / step) * step;
+                }
+                rawVal = Math.max(min, Math.min(max, rawVal));
+                return Number(rawVal.toFixed(4));
+            }
+
+            function bindRangeSliderPointerDrag(slider) {
+                if (!slider || slider.dataset.smoothSliderBound === '1') return;
+                slider.dataset.smoothSliderBound = '1';
+                let dragging = false;
+
+                const applyAt = (clientX) => {
+                    const newVal = computeSliderValueFromClientX(slider, clientX);
+                    if (newVal === null) return;
+                    if (parseFloat(slider.value) !== newVal) {
+                        slider.value = String(newVal);
+                        slider.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                };
+
+                slider.addEventListener('pointerdown', (e) => {
+                    e.stopPropagation();
+                    dragging = true;
+                    try { slider.setPointerCapture(e.pointerId); } catch (err) {}
+                    applyAt(e.clientX);
+                });
+
+                slider.addEventListener('pointermove', (e) => {
+                    if (!dragging) return;
+                    e.stopPropagation();
+                    if (e.cancelable) e.preventDefault();
+                    applyAt(e.clientX);
+                });
+
+                const endDrag = (e) => {
+                    if (!dragging) return;
+                    dragging = false;
+                    try { slider.releasePointerCapture(e.pointerId); } catch (err) {}
+                    slider.dispatchEvent(new Event('change', { bubbles: true }));
+                };
+
+                slider.addEventListener('pointerup', endDrag);
+                slider.addEventListener('pointercancel', endDrag);
+            }
+
+            function bindAllRangeSliders() {
+                document.querySelectorAll('input[type="range"]').forEach(bindRangeSliderPointerDrag);
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', bindAllRangeSliders);
+            } else {
+                bindAllRangeSliders();
+            }
+            setTimeout(bindAllRangeSliders, 300);
+        })();
+
+
+        // ================= GUIDE SCENARIO 4: QUICK LOOKUP PROTECTION DEMO =================
+        try { localStorage.removeItem('pharmaAppearancePrefsV1'); } catch (e) {}
+
+        function sb4SimulateQuickLookupProtection() {
+            if (sb4LiveTrackTimer) {
+                clearInterval(sb4LiveTrackTimer);
+                sb4LiveTrackTimer = null;
+            }
+            const box = document.getElementById('sb4SlotsList');
+            if (box) {
+                box.innerHTML = `
+                    <div style="background:rgba(56,189,248,0.14); border:1.5px solid #38bdf8; border-right:4px solid #38bdf8; padding:10px 14px; border-radius:10px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.82rem;">
+                        <span><b>👀 حماية مهام الليل وبكرة:</b> فتحت محاضرة ليها مهمة بالليل عشان تفتكر معلومة؟ شريط التخيير الذكي بيحمي المهمة في ميعادها ومبينقلهاش أبداً غير لو طلبت!</span>
+                        <span class="studio-pill" style="color:#7dd3fc; border-color:rgba(56,189,248,0.4);">ميعادك الأصلي محمي 100% ✓</span>
+                    </div>
+                `;
+            }
+            const msg = document.getElementById('sb4StatusMsg');
+            if (msg) {
+                msg.innerHTML = '🛡️ وكمان لو فتحت الـ PDF وقفلت في أقل من دقيقتين، السيستم بيفهم لوحده إنك كنت بتبص على معلومة ع السريع ومبيغيرش جدولك خالص!';
+            }
+            playChimeSound();
+        }
 
         // Init App
         renderSubjectsList();
