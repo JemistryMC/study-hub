@@ -6752,15 +6752,46 @@
             align-items: center;
             justify-content: space-between;
             gap: 10px;
-            padding: 6px 14px;
-            background: linear-gradient(90deg, rgba(16, 185, 129, 0.14), rgba(15, 23, 42, 0.92));
+            padding: 5px 14px;
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.14), rgba(15, 23, 42, 0.94));
             border-bottom: 1px solid rgba(16, 185, 129, 0.28);
-            font-size: 0.78rem;
+            font-size: 0.76rem;
             color: #e2e8f0;
             flex-wrap: wrap;
+            transition: all 0.18s ease;
         }
         .pdf-live-smart-session-pill.active {
             display: flex;
+        }
+        .pdf-modal-container.dock-collapsed .pdf-live-smart-session-pill,
+        .pdf-modal-container.dock-collapsed .pdf-smart-task-choice-bar,
+        .pdf-modal-container.pdf-zen-mode .pdf-live-smart-session-pill,
+        .pdf-modal-container.pdf-zen-mode .pdf-smart-task-choice-bar {
+            display: none !important;
+        }
+        .pdf-header-smart-mini-btn {
+            display: none;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px !important;
+            border-radius: 999px !important;
+            font-size: 0.72rem !important;
+            font-weight: 800 !important;
+            background: rgba(20, 184, 166, 0.14) !important;
+            border: 1px solid rgba(45, 212, 191, 0.45) !important;
+            color: #5eead4 !important;
+            cursor: pointer;
+            transition: all 0.16s ease;
+        }
+        .pdf-header-smart-mini-btn:hover {
+            background: rgba(20, 184, 166, 0.26) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(45, 212, 191, 0.25);
+        }
+        .pdf-header-smart-mini-btn.pill-open {
+            background: rgba(45, 212, 191, 0.24) !important;
+            border-color: var(--primary) !important;
+            color: #ffffff !important;
         }
         /* Ruler Block Refinements so short sessions never collide */
         .notion-event-block.neb-compact-row {
@@ -7806,6 +7837,10 @@
 
                 <!-- Zone 3 (Left): Focus Mode, Toolbar Toggle, Options Menu, Fullscreen & Close -->
                 <div class="pdf-header-left-actions" style="display: flex; align-items: center; gap: 6px;">
+                    <button type="button" class="anno-btn pdf-header-smart-mini-btn" id="pdfHeaderSmartTrackMiniBtn" onclick="togglePdfSmartTrackCapsuleVisibility()" title="إظهار أو إخفاء كبسولة التتبع الذكي للمهمة">
+                        <i class="fa-solid fa-compass" id="pdfHeaderSmartMiniIcon"></i>
+                        <span id="pdfHeaderSmartMiniText">التتبع الذكي</span>
+                    </button>
                     <button class="anno-btn pdf-zen-toggle-btn" id="pdfZenModeBtn" onclick="togglePdfZenMode()" title="وضع التركيز الصافي بدون أي أشرطة (اختصار: Z)" style="border: 1px solid rgba(16, 185, 129, 0.35); color: #6ee7b7;">
                         <i class="fa-solid fa-leaf"></i> <span id="pdfZenModeText">وضع التركيز</span>
                     </button>
@@ -21664,12 +21699,73 @@
         let activePdfTaskIntent = null; // null | 'just_looking' | 'credit_keep_slot' | 'move_to_now'
         let activePdfMatchedEventId = null;
 
+        let isPdfSmartTrackPaused = false;
+        let isPdfSmartTrackPillMinimized = false;
+
+        function updatePdfHeaderSmartMiniBtn() {
+            const miniBtn = document.getElementById('pdfHeaderSmartTrackMiniBtn');
+            const miniTxt = document.getElementById('pdfHeaderSmartMiniText');
+            const miniIcon = document.getElementById('pdfHeaderSmartMiniIcon');
+            if (!miniBtn || !miniTxt || !miniIcon) return;
+
+            const ev = scheduleEvents.find(e => String(e.id) === String(activePdfMatchedEventId));
+            if (!ev || ev.completed) {
+                miniBtn.style.display = 'none';
+                return;
+            }
+
+            miniBtn.style.display = 'inline-flex';
+            const choiceBar = document.getElementById('pdfSmartTaskChoiceBar');
+            const livePill = document.getElementById('pdfLiveSmartTrackPill');
+            const isAnyBarVisible = (choiceBar && choiceBar.classList.contains('active')) || (livePill && livePill.classList.contains('active'));
+            miniBtn.classList.toggle('pill-open', !!isAnyBarVisible);
+
+            if (activePdfTaskIntent && activePdfTaskIntent !== 'just_looking') {
+                const mins = Math.max(1, Math.round(Number(ev.actualStudiedMinutes) || 0));
+                miniIcon.className = isPdfSmartTrackPaused ? 'fa-solid fa-pause-circle' : 'fa-solid fa-compass fa-spin';
+                miniTxt.textContent = isAnyBarVisible ? `إخفاء التتبع (${mins} د)` : `🧭 التتبع: ${mins} د`;
+            } else {
+                miniIcon.className = 'fa-solid fa-compass';
+                miniTxt.textContent = isAnyBarVisible ? 'إخفاء شريط المهمة' : '🧭 خيارات المهمة';
+            }
+        }
+
         function hidePdfSmartTaskChoiceBar() {
             const bar = document.getElementById('pdfSmartTaskChoiceBar');
             if (bar) bar.classList.remove('active');
+            updatePdfHeaderSmartMiniBtn();
         }
 
-        let isPdfSmartTrackPaused = false;
+        function minimizePdfSmartTrackCapsule(silent = false) {
+            isPdfSmartTrackPillMinimized = true;
+            document.getElementById('pdfLiveSmartTrackPill')?.classList.remove('active');
+            document.getElementById('pdfSmartTaskChoiceBar')?.classList.remove('active');
+            updatePdfHeaderSmartMiniBtn();
+            if (!silent) {
+                showToast('👌 تم إخفاء كبسولة التتبع — يمكنك إظهارها في أي وقت من زر «🧭 التتبع» أعلى اليسار');
+            }
+        }
+
+        function togglePdfSmartTrackCapsuleVisibility() {
+            const ev = scheduleEvents.find(e => String(e.id) === String(activePdfMatchedEventId));
+            if (!ev || ev.completed) return;
+
+            const choiceBar = document.getElementById('pdfSmartTaskChoiceBar');
+            const livePill = document.getElementById('pdfLiveSmartTrackPill');
+            const isAnyVisible = (choiceBar && choiceBar.classList.contains('active')) || (livePill && livePill.classList.contains('active'));
+
+            if (isAnyVisible) {
+                minimizePdfSmartTrackCapsule(true);
+            } else {
+                isPdfSmartTrackPillMinimized = false;
+                if (activePdfTaskIntent && activePdfTaskIntent !== 'just_looking') {
+                    renderPdfLiveSmartTrackPill();
+                } else {
+                    showPdfSmartTaskChoiceBar(ev, isSessionInCurrentTimeWindow(ev));
+                }
+            }
+            updatePdfHeaderSmartMiniBtn();
+        }
 
         function renderPdfLiveSmartTrackPill() {
             const pill = document.getElementById('pdfLiveSmartTrackPill');
@@ -21680,6 +21776,7 @@
             const ev = scheduleEvents.find(e => String(e.id) === String(activePdfMatchedEventId));
             if (!ev || ev.completed || !activePdfTaskIntent || activePdfTaskIntent === 'just_looking') {
                 pill.classList.remove('active');
+                updatePdfHeaderSmartMiniBtn();
                 return;
             }
 
@@ -21710,8 +21807,17 @@
                 <button type="button" class="pstc-btn safe-choice" onclick="reopenPdfSmartChoiceBar()" style="padding:3px 8px; font-size:0.7rem;" title="تغيير طريقة الرصد">
                     <i class="fa-solid fa-sliders"></i> تغيير الاختيار
                 </button>
+                <button type="button" class="pstc-btn" onclick="minimizePdfSmartTrackCapsule(false)" style="padding:3px 9px; font-size:0.7rem; color:#cbd5e1; border-color:rgba(148,163,184,0.3);" title="إخفاء الكبسولة وتصغيرها في الشريط العلوي">
+                    <i class="fa-solid fa-chevron-up"></i> إخفاء
+                </button>
             `;
-            pill.classList.add('active');
+
+            if (isPdfSmartTrackPillMinimized) {
+                pill.classList.remove('active');
+            } else {
+                pill.classList.add('active');
+            }
+            updatePdfHeaderSmartMiniBtn();
         }
 
         function togglePausePdfSmartTracking() {
@@ -21724,6 +21830,7 @@
         function reopenPdfSmartChoiceBar() {
             const ev = scheduleEvents.find(e => String(e.id) === String(activePdfMatchedEventId));
             if (!ev) return;
+            isPdfSmartTrackPillMinimized = false;
             document.getElementById('pdfLiveSmartTrackPill')?.classList.remove('active');
             showPdfSmartTaskChoiceBar(ev, isSessionInCurrentTimeWindow(ev));
         }
@@ -21759,6 +21866,7 @@
             ev.missed = false;
             ev.autoCompleted = true;
             document.getElementById('pdfLiveSmartTrackPill')?.classList.remove('active');
+            updatePdfHeaderSmartMiniBtn();
             saveScheduleData();
             renderSchedule();
             updateTracker();
@@ -21789,8 +21897,14 @@
                 <button type="button" class="pstc-btn safe-choice" onclick="choosePdfTaskIntent('just_looking')" title="قراءة سريعة بدون لمس المهمة أو حساب وقت">
                     <i class="fa-regular fa-eye"></i> براجع معلومة بس (بدون رصد)
                 </button>
+                <button type="button" class="pstc-btn" onclick="minimizePdfSmartTrackCapsule(false)" style="padding:4px 9px; font-size:0.72rem; color:#cbd5e1;" title="إخفاء الشريط وتصغيره في الأعلى">
+                    <i class="fa-solid fa-xmark"></i> إخفاء
+                </button>
             `;
-            bar.classList.add('active');
+            if (!isPdfSmartTrackPillMinimized) {
+                bar.classList.add('active');
+            }
+            updatePdfHeaderSmartMiniBtn();
         }
 
         function choosePdfTaskIntent(intentMode) {
@@ -21859,8 +21973,10 @@
             activePdfTaskIntent = null;
             activePdfMatchedEventId = null;
             isPdfSmartTrackPaused = false;
+            isPdfSmartTrackPillMinimized = false;
             hidePdfSmartTaskChoiceBar();
             document.getElementById('pdfLiveSmartTrackPill')?.classList.remove('active');
+            updatePdfHeaderSmartMiniBtn();
 
             // Find best matching uncompleted session (prioritize today's active window, then today, then other days)
             let todayCandidates = findMatchingScheduledSessionsForLecture(lec, sub?.id, true);
