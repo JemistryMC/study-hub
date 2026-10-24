@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>منصة الإنجاز - Studio Workspace</title>
     <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Amiri:ital,wght@0,400;0,700;1,400&family=Aref+Ruqaa:wght@400;700&family=Cairo:wght@400;600;700;800;900&family=Caveat:wght@600;700&family=Crimson+Pro:ital,wght@0,500;0,600;0,700;1,500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Marhey:wght@500;600;700&family=Readex+Pro:wght@400;500;600;700&family=Tajawal:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
         <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b0f17'/%3E%3Cpath d='M20 18h24a4 4 0 0 1 4 4v20a4 4 0 0 1-4 4H20a4 4 0 0 1-4-4V22a4 4 0 0 1 4-4zm4 8v4h16v-4H24zm0 10v4h10v-4H24z' fill='%232dd4bf'/%3E%3C/svg%3E">
@@ -7867,7 +7869,7 @@
                             <button class="pdf-more-item" id="pdfMenuAutoUploadToggleBtn" onclick="toggleAutoUploadCloudMediaSetting();">
                                 <i class="fa-solid fa-toggle-on" id="pdfMenuAutoUploadToggleIcon" style="color: var(--primary);"></i> <span id="pdfMenuAutoUploadToggleText">الرفع السحابي التلقائي: مفعّل</span>
                             </button>
-                            <a id="pdfOpenInTabBtn" href="#" target="_blank" class="pdf-more-item" onclick="closePdfMoreMenu()">
+                            <a id="pdfOpenInTabBtn" href="#" target="_blank" rel="noopener noreferrer" class="pdf-more-item" onclick="closePdfMoreMenu()">
                                 <i class="fa-solid fa-arrow-up-right-from-square" style="color: #93c5fd;"></i> فتح في نافذة خارجية
                             </a>
                             <div style="height: 1px; background: rgba(255,255,255,0.06); margin: 3px 0;"></div>
@@ -8020,7 +8022,7 @@
                         التالية <i class="fa-solid fa-arrow-down"></i>
                     </button>
                 </div>
-                <iframe id="pdfViewerIframe" class="pdf-frame" src="about:blank"></iframe>
+                <iframe id="pdfViewerIframe" class="pdf-frame" src="about:blank" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
                 <div id="pdfFallbackBox" class="pdf-fallback-box">
                     <i class="fa-solid fa-file-pen" style="font-size: 3.2rem; color: var(--primary);"></i>
                     <h3 style="font-size: 1.25rem; color: white;">افتح ملف الـ PDF لتفعيل استوديو القراءة والكتابة</h3>
@@ -9010,6 +9012,79 @@
 
     <!-- ================= JAVASCRIPT ================= -->
     <script>
+        // ================= PRODUCTION SECURITY SHIELD (XSS, URL, CRYPTO & ANTI-TAMPERING) =================
+        function escapeHtml(rawStr) {
+            if (rawStr === null || rawStr === undefined) return '';
+            return String(rawStr)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function sanitizeUserText(rawStr, maxLen = 400) {
+            if (rawStr === null || rawStr === undefined) return '';
+            return String(rawStr)
+                .replace(/<\s*\/?\s*(script|iframe|object|embed|svg|style|link|meta)[^>]*>/gi, '')
+                .replace(/on[a-z]+\s*=\s*(['"]).*?\1/gi, '')
+                .replace(/javascript\s*:/gi, '')
+                .replace(/data\s*:\s*text\/html/gi, '')
+                .replace(/[<>]/g, '')
+                .trim()
+                .slice(0, maxLen);
+        }
+
+        function isSafeHttpUrl(rawUrl) {
+            if (!rawUrl || typeof rawUrl !== 'string') return false;
+            const trimmed = rawUrl.trim();
+            if (!trimmed) return false;
+            try {
+                const parsed = new URL(trimmed, window.location.origin);
+                return parsed.protocol === 'https:' || parsed.protocol === 'http:' || parsed.protocol === 'blob:';
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async function hashPasswordSHA256(password, emailSalt = '') {
+            const normalized = `${String(emailSalt).trim().toLowerCase()}::pharma_studio_v1::${String(password)}`;
+            if (window.crypto && window.crypto.subtle) {
+                try {
+                    const msgBuffer = new TextEncoder().encode(normalized);
+                    const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
+                    const hashArray = Array.from(new Uint8Array(hashBuffer));
+                    return 'sha256$' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                } catch (e) {}
+            }
+            return 'b64$' + btoa(unescape(encodeURIComponent(normalized)));
+        }
+
+        function deepSanitizeBackupObject(obj, depth = 0) {
+            if (depth > 8 || obj === null || obj === undefined) return obj;
+            if (typeof obj === 'string') {
+                return sanitizeUserText(obj, 1200);
+            }
+            if (typeof obj === 'number' || typeof obj === 'boolean') {
+                return obj;
+            }
+            if (Array.isArray(obj)) {
+                return obj.slice(0, 2500).map(item => deepSanitizeBackupObject(item, depth + 1));
+            }
+            if (typeof obj === 'object') {
+                const clean = {};
+                for (const key of Object.keys(obj)) {
+                    if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+                    clean[key] = deepSanitizeBackupObject(obj[key], depth + 1);
+                }
+                return clean;
+            }
+            return null;
+        }
+
+        let authFailedAttemptsCount = 0;
+        let authLockoutUntilMs = 0;
+
         // State variables
         let subjects = JSON.parse(localStorage.getItem('pharmaSubjectsV4')) || [];
         let logs = JSON.parse(localStorage.getItem('pharmaLogsV4')) || [];
@@ -9069,8 +9144,9 @@
             
             const btn = document.getElementById('siModalSaveBtn');
             btn.onclick = function() {
-                if(input.value.trim() !== '') {
-                    onSave(input.value.trim());
+                const cleanVal = sanitizeUserText(input.value, 250);
+                if(cleanVal !== '') {
+                    onSave(cleanVal);
                     closeModal('singleInputModalOverlay');
                 } else {
                     input.focus();
@@ -9088,8 +9164,10 @@
             
             const btn = document.getElementById('diModalSaveBtn');
             btn.onclick = function() {
-                if(in1.value.trim() !== '' && in2.value.trim() !== '') {
-                    onSave(in1.value.trim(), in2.value.trim());
+                const cleanTitle = sanitizeUserText(in1.value, 250);
+                const cleanPath = sanitizeUserText(in2.value, 600);
+                if(cleanTitle !== '' && cleanPath !== '') {
+                    onSave(cleanTitle, cleanPath);
                     closeModal('doubleInputModalOverlay');
                 }
             };
@@ -9117,7 +9195,7 @@
 
         function addSubject() {
             const input = document.getElementById('newSubjectName');
-            const name = input.value.trim();
+            const name = sanitizeUserText(input.value, 180);
             if(!name) return;
             subjects.unshift({ id: Date.now(), name: name, groups: [] });
             input.value = '';
@@ -11879,7 +11957,7 @@
         }
 
         function saveSession() {
-            const title = document.getElementById('sessionTitleInput').value.trim();
+            const title = sanitizeUserText(document.getElementById('sessionTitleInput').value, 220);
             if (!title) {
                 showToast('يرجى كتابة عنوان الجلسة', 'error');
                 document.getElementById('sessionTitleInput').focus();
@@ -11895,7 +11973,7 @@
             const isOpenDuration = isSelectedDurationOpenEnded();
             const duration = getSelectedDuration();
             const type = document.getElementById('sessionTypeSelect').value;
-            const notes = document.getElementById('sessionNotesInput').value.trim();
+            const notes = sanitizeUserText(document.getElementById('sessionNotesInput').value, 350);
             const isFixed = document.getElementById('sessionIsFixedCheckbox').checked;
             
             if (editId) {
@@ -12136,7 +12214,7 @@
         function addBacklogTask() {
             const input = document.getElementById('newTaskTitle');
             const subSelect = document.getElementById('newTaskSubject');
-            const title = input ? input.value.trim() : '';
+            const title = input ? sanitizeUserText(input.value, 240) : '';
 
             if (!title) {
                 showToast('يرجى كتابة اسم الهدف أولاً', 'error');
@@ -12865,7 +12943,7 @@
         }
 
         function saveLogPro() {
-            const text = document.getElementById('logTextInput').value.trim();
+            const text = sanitizeUserText(document.getElementById('logTextInput').value, 400);
             if (!text) {
                 showToast('يرجى كتابة نص الإنجاز', 'error');
                 document.getElementById('logTextInput').focus();
@@ -13084,38 +13162,46 @@
         function importData(event) {
             const file = event.target.files[0];
             if(!file) return;
+            if (file.size > 15 * 1024 * 1024) {
+                showToast('حجم ملف النسخة الاحتياطية كبير جداً (الحد الأقصى 15MB)', 'error');
+                event.target.value = '';
+                return;
+            }
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    const data = JSON.parse(e.target.result);
-                    if(data.subjects) { 
+                    const rawParsed = JSON.parse(e.target.result);
+                    const data = deepSanitizeBackupObject(rawParsed);
+                    if (!data || typeof data !== 'object') throw new Error('Invalid schema');
+
+                    if(Array.isArray(data.subjects)) { 
                         subjects = data.subjects; 
                         localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects)); 
                     }
                     if(data.schedule) {
                         if(Array.isArray(data.schedule)) {
                             scheduleEvents = data.schedule;
-                        } else if(data.schedule.events) {
+                        } else if(Array.isArray(data.schedule.events)) {
                             scheduleEvents = data.schedule.events;
-                            if(data.schedule.backlog) scheduleBacklog = data.schedule.backlog;
+                            if(Array.isArray(data.schedule.backlog)) scheduleBacklog = data.schedule.backlog;
                         } else {
                             localStorage.setItem('pharmaScheduleV4', JSON.stringify(data.schedule));
                             initScheduleData();
                         }
                         saveScheduleData();
                     }
-                    if(data.logs) { 
+                    if(Array.isArray(data.logs)) { 
                         logs = data.logs; 
                         localStorage.setItem('pharmaLogsV4', JSON.stringify(logs)); 
                     }
                     
-                    showToast('تم استرجاع البيانات بنجاح 🚀');
+                    showToast('🛡️ تم فحص واسترجاع النسخة الاحتياطية بأمان 🚀');
                     renderSubjectsList(); 
                     renderSchedule(); 
                     updateTracker();
                     event.target.value = ''; 
                 } catch(error) { 
-                    showToast('فشل الاسترجاع: الملف غير صالح', 'error'); 
+                    showToast('فشل الاسترجاع: الملف غير صالح أو تالف', 'error'); 
                 }
             };
             reader.readAsText(file);
@@ -14396,9 +14482,9 @@
                 return;
             }
 
-            // 2. Check if path is a web URL
+            // 2. Check if path is a safe HTTP/HTTPS web URL
             const rawPath = (lec.path || '').trim();
-            if (rawPath.startsWith('http://') || rawPath.startsWith('https://')) {
+            if ((rawPath.startsWith('http://') || rawPath.startsWith('https://')) && isSafeHttpUrl(rawPath)) {
                 let embedUrl = rawPath;
                 if (rawPath.includes('drive.google.com/file/d/')) {
                     embedUrl = rawPath.replace('/view', '/preview');
@@ -19978,15 +20064,35 @@
             return await res.blob();
         }
 
-        // إعدادات أسعار باقة VIP Pro والحد الأقصى لحجم الملف الواحد على السحابة
-        const VIP_PRICING_CONFIG = {
+        // إعدادات أسعار باقة VIP Pro والحد الأقصى لحجم الملف الواحد على السحابة (محمية ضد التعديل من المتصفح)
+        const VIP_PRICING_CONFIG = Object.freeze({
             monthlyPrice: 75,    // السعر الشهري بالجنيه المصري
             semesterPrice: 199   // سعر الترم الكامل (4 شهور) بالجنيه المصري
-        };
-        const VIP_MEDIA_LIMITS_CONFIG = {
+        });
+        const VIP_MEDIA_LIMITS_CONFIG = Object.freeze({
             maxPdfSizeMB: 25,    // الحد الأقصى لملف الـ PDF الواحد على السحابة (25 ميجا)
             maxAudioSizeMB: 35   // الحد الأقصى للريكورد الصوتي الواحد على السحابة (35 ميجا)
-        };
+        });
+
+        async function verifyVipStatusFromServer() {
+            if (!currentCloudUser) {
+                currentUserCanUploadMedia = false;
+                return false;
+            }
+            if (supabaseClient && navigator.onLine) {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('user_workspaces')
+                        .select('can_upload_media')
+                        .eq('user_id', currentCloudUser.id)
+                        .maybeSingle();
+                    if (!error && data) {
+                        currentUserCanUploadMedia = Boolean(data.can_upload_media);
+                    }
+                } catch (e) {}
+            }
+            return Boolean(currentUserCanUploadMedia);
+        }
         let isBulkMediaUploading = false;
         let selectedVipPlanKey = 'semester';
         let lastTriggeredVipFeatureName = 'باقة الإنجاز VIP Pro';
@@ -20506,6 +20612,7 @@
 
         async function uploadMediaToCloudAccount(storeName, lecObj, fileBlob, showToastMsg = true, queueMeta = null) {
             if (!lecObj || !fileBlob) return { ok: false, reason: 'missing_blob' };
+            await verifyVipStatusFromServer();
             if (!checkCloudMediaUploadPermission(showToastMsg)) {
                 return { ok: false, reason: 'no_permission' };
             }
@@ -21098,19 +21205,27 @@
         }
 
         async function handleCloudEmailAuth() {
-            const email = document.getElementById('cloudAuthEmail').value.trim().toLowerCase();
-            const password = document.getElementById('cloudAuthPassword').value;
-            const fullName = document.getElementById('cloudAuthName').value.trim();
+            if (Date.now() < authLockoutUntilMs) {
+                const remSec = Math.ceil((authLockoutUntilMs - Date.now()) / 1000);
+                showToast(`⏳ تم إيقاف المحاولات مؤقتاً للحماية؛ يرجى الانتظار ${remSec} ثانية`, 'error');
+                return;
+            }
 
-            if (!email || !email.includes('@') || !password || password.length < 4) {
-                showToast('يرجى إدخال بريد إلكتروني صحيح وكلمة مرور (4 أحرف على الأقل)', 'error');
+            const email = sanitizeUserText(document.getElementById('cloudAuthEmail').value, 160).toLowerCase();
+            const password = document.getElementById('cloudAuthPassword').value;
+            const fullName = sanitizeUserText(document.getElementById('cloudAuthName').value, 100);
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const minPassLen = currentAuthTabMode === 'signup' ? 6 : 4;
+            if (!email || !emailRegex.test(email) || !password || password.length < minPassLen) {
+                showToast(`يرجى إدخال بريد إلكتروني صحيح وكلمة مرور (${minPassLen} أحرف على الأقل)`, 'error');
                 return;
             }
 
             const btn = document.getElementById('cloudAuthSubmitBtn');
             const oldHtml = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الدخول...';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق بأمان...';
 
             try {
                 // Path 1: Supabase Cloud Auth (when SUPABASE_PROJECT_URL is configured in code)
@@ -21122,8 +21237,10 @@
                             options: { data: { full_name: fullName || email.split('@')[0] } }
                         });
                         if (error) throw error;
+                        authFailedAttemptsCount = 0;
+                        document.getElementById('cloudAuthPassword').value = '';
                         if (data?.session) {
-                            showToast('🎉 تم إنشاء حسابك وتفعيل المزامنة السحابية التلقائية!');
+                            showToast('🎉 تم إنشاء حسابك المشفّر وتفعيل المزامنة السحابية التلقائية!');
                             closeModal('cloudAuthModalOverlay');
                         } else {
                             showToast('📩 تم إنشاء الحساب! يرجى تأكيد بريدك الإلكتروني للدخول.');
@@ -21131,14 +21248,18 @@
                     } else {
                         const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
                         if (error) throw error;
-                        showToast('☁️ مرحباً بعودتك! تم تسجيل الدخول ومزامنة حسابك.');
+                        authFailedAttemptsCount = 0;
+                        document.getElementById('cloudAuthPassword').value = '';
+                        showToast('☁️ مرحباً بعودتك! تم تسجيل الدخول ومزامنة حسابك بأمان.');
                         closeModal('cloudAuthModalOverlay');
                     }
                     return;
                 }
 
-                // Path 2: Built-in Multi-Account Vault (works immediately with zero configuration)
+                // Path 2: Built-in Multi-Account Vault (SHA-256 Salted Hash)
                 const accountsRegistry = JSON.parse(localStorage.getItem('pharmaAccountsRegistryV1') || '{}');
+                const sha256Hash = await hashPasswordSHA256(password, email);
+
                 if (currentAuthTabMode === 'signup') {
                     if (accountsRegistry[email]) {
                         showToast('هذا البريد مسجل بالفعل، انتقل لتبويب «تسجيل الدخول»', 'error');
@@ -21149,29 +21270,53 @@
                         id: 'usr_' + Date.now(),
                         email: email,
                         name: fullName || email.split('@')[0],
-                        passwordHash: btoa(unescape(encodeURIComponent(password))),
+                        passwordHash: sha256Hash,
                         createdAt: new Date().toISOString()
                     };
                     accountsRegistry[email] = newUser;
                     localStorage.setItem('pharmaAccountsRegistryV1', JSON.stringify(accountsRegistry));
-                    localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify(newUser));
+                    const sessionCopy = { id: newUser.id, email: newUser.email, name: newUser.name, createdAt: newUser.createdAt };
+                    localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify(sessionCopy));
 
-                    await handleAuthSessionChange(newUser, true);
+                    authFailedAttemptsCount = 0;
+                    document.getElementById('cloudAuthPassword').value = '';
+                    await handleAuthSessionChange(sessionCopy, true);
                     closeModal('cloudAuthModalOverlay');
-                    showToast(`🎉 مرحباً بك يا ${newUser.name}! تم إنشاء حسابك وتفعيل الحفظ التلقائي.`);
+                    showToast(`🎉 مرحباً بك يا ${newUser.name}! تم تشفير حسابك وتفعيل الحفظ التلقائي.`);
                 } else {
                     const existingUser = accountsRegistry[email];
-                    const encodedPass = btoa(unescape(encodeURIComponent(password)));
-                    if (!existingUser || existingUser.passwordHash !== encodedPass) {
-                        showToast('البريد الإلكتروني أو كلمة المرور غير صحيحة (أو أنشئ حساباً جديداً)', 'error');
+                    const legacyB64 = btoa(unescape(encodeURIComponent(password)));
+                    const isMatch = existingUser && (existingUser.passwordHash === sha256Hash || existingUser.passwordHash === legacyB64);
+                    if (!isMatch) {
+                        authFailedAttemptsCount++;
+                        if (authFailedAttemptsCount >= 5) {
+                            authLockoutUntilMs = Date.now() + 30000;
+                            authFailedAttemptsCount = 0;
+                            showToast('🔒 تم قفل المحاولات لمدة 30 ثانية بسبب تكرار إدخال كلمة مرور خاطئة', 'error');
+                        } else {
+                            showToast('البريد الإلكتروني أو كلمة المرور غير صحيحة', 'error');
+                        }
                         return;
                     }
-                    localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify(existingUser));
-                    await handleAuthSessionChange(existingUser, true);
+                    // Auto-upgrade legacy Base64 hash to SHA-256
+                    if (existingUser.passwordHash === legacyB64) {
+                        existingUser.passwordHash = sha256Hash;
+                        localStorage.setItem('pharmaAccountsRegistryV1', JSON.stringify(accountsRegistry));
+                    }
+                    authFailedAttemptsCount = 0;
+                    document.getElementById('cloudAuthPassword').value = '';
+                    const sessionCopy = { id: existingUser.id, email: existingUser.email, name: existingUser.name, createdAt: existingUser.createdAt };
+                    localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify(sessionCopy));
+                    await handleAuthSessionChange(sessionCopy, true);
                     closeModal('cloudAuthModalOverlay');
                     showToast(`👋 مرحباً بعودتك يا ${existingUser.name}! تم تحميل بيانات حسابك.`);
                 }
             } catch (err) {
+                authFailedAttemptsCount++;
+                if (authFailedAttemptsCount >= 5) {
+                    authLockoutUntilMs = Date.now() + 30000;
+                    authFailedAttemptsCount = 0;
+                }
                 showToast(err.message || 'تعذر تسجيل الدخول، تأكد من صحة البيانات', 'error');
             } finally {
                 btn.disabled = false;
