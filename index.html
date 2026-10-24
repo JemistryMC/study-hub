@@ -6691,6 +6691,150 @@
             box-shadow: 0 0 10px rgba(45, 212, 191, 0.6);
         }
     
+    
+        /* === UPGRADE: SILKY CANVAS & LECTURE REORDER & SMART TRACKING & COMPACT LOGS === */
+        .pdf-ink-canvas, .pdf-laser-canvas, .pdf-render-canvas {
+            image-rendering: auto;
+            -webkit-font-smoothing: antialiased;
+        }
+        .lecture-item.dragging-lecture {
+            opacity: 0.45;
+            border: 1.5px dashed var(--primary) !important;
+            transform: scale(0.99);
+        }
+        .lecture-item.drag-over-lecture {
+            border-top: 2.5px solid var(--primary) !important;
+            box-shadow: 0 -4px 12px rgba(45, 212, 191, 0.25);
+        }
+        .lec-order-controls {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-left: 2px;
+        }
+        .lec-order-btn {
+            width: 22px;
+            height: 16px;
+            border-radius: 5px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            background: rgba(15, 23, 42, 0.65);
+            color: #94a3b8;
+            font-size: 0.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.14s ease;
+            padding: 0;
+        }
+        .lec-order-btn:hover:not(:disabled) {
+            color: #061318;
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        .lec-order-btn:disabled {
+            opacity: 0.22;
+            cursor: default;
+        }
+        .lec-drag-handle {
+            cursor: grab;
+            color: rgba(148, 163, 184, 0.45);
+            font-size: 0.85rem;
+            padding: 4px 3px;
+            transition: color 0.15s ease;
+        }
+        .lec-drag-handle:hover {
+            color: var(--primary);
+        }
+        /* Live Smart Session Control Bar in PDF Studio */
+        .pdf-live-smart-session-pill {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 6px 14px;
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.14), rgba(15, 23, 42, 0.92));
+            border-bottom: 1px solid rgba(16, 185, 129, 0.28);
+            font-size: 0.78rem;
+            color: #e2e8f0;
+            flex-wrap: wrap;
+        }
+        .pdf-live-smart-session-pill.active {
+            display: flex;
+        }
+        /* Ruler Block Refinements so short sessions never collide */
+        .notion-event-block.neb-compact-row {
+            padding: 3px 10px !important;
+            justify-content: center !important;
+        }
+        .notion-event-block.neb-compact-row .neb-title {
+            font-size: 0.8rem;
+        }
+        .notion-event-block.neb-compact-row .neb-time-pill {
+            font-size: 0.68rem;
+        }
+        /* Daily Log Accordion Styling */
+        .log-day-group {
+            background: rgba(15, 20, 30, 0.68);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: border-color 0.18s ease;
+        }
+        .log-day-group.is-open {
+            border-color: rgba(45, 212, 191, 0.28);
+        }
+        .log-day-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 14px;
+            cursor: pointer;
+            user-select: none;
+            background: rgba(20, 27, 40, 0.75);
+            transition: background 0.15s ease;
+            flex-wrap: wrap;
+        }
+        .log-day-header:hover {
+            background: rgba(28, 37, 54, 0.9);
+        }
+        .log-day-body {
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            padding: 10px 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .log-day-group.is-open .log-day-body {
+            display: flex;
+        }
+        .log-day-chevron {
+            transition: transform 0.2s ease;
+            color: var(--text-muted);
+            font-size: 0.78rem;
+        }
+        .log-day-group.is-open .log-day-chevron {
+            transform: rotate(180deg);
+            color: var(--primary);
+        }
+        /* Goal Progress Bar */
+        .goal-progress-track {
+            width: 100%;
+            height: 6px;
+            background: rgba(15, 23, 42, 0.85);
+            border-radius: 999px;
+            overflow: hidden;
+            margin: 6px 0 4px 0;
+            border: 1px solid rgba(148, 163, 184, 0.12);
+        }
+        .goal-progress-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--primary), #10b981);
+            transition: width 0.3s ease;
+        }
+
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -7323,10 +7467,14 @@
             <!-- SECTION 5: DAILY ACHIEVEMENTS FEED -->
             <div style="background: #12151e; border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 18px 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                    <div>
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                         <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-main); margin: 0;">سجل الإنجازات اليومي</h3>
+                        <span id="logsSummaryCountPill" class="studio-pill" style="font-size:0.72rem; color:var(--primary);"></span>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-outline" style="padding: 5px 10px; font-size: 0.74rem; border-color: rgba(45,212,191,0.3); color: var(--primary);" onclick="deduplicateAndCompactLogs()" title="دمج السجلات المكررة وتنظيف السجل">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> تنظيف ودمج المكرر
+                        </button>
                         <select id="logFilterMoodSelect" onchange="renderLogs()" style="padding: 6px 12px; font-size: 0.8rem;">
                             <option value="all">كل الأوسمة والحالات</option>
                             <option value="fire">🔥 إنتاجية استثنائية</option>
@@ -7809,6 +7957,11 @@
                     <span id="pdfSmartTaskChoiceText">لاحظنا وجود مهمة مجدولة لهذه المحاضرة</span>
                 </div>
                 <div class="pstc-actions" id="pdfSmartTaskChoiceActions"></div>
+            </div>
+            <!-- Live Smart Session Control Pill (visible when user is actively tracking or browsing a matched task) -->
+            <div class="pdf-live-smart-session-pill" id="pdfLiveSmartTrackPill">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;" id="pdfLiveSmartTrackStatus"></div>
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;" id="pdfLiveSmartTrackBtns"></div>
             </div>
 
             <!-- Scrollable Multi-Page PDF + Per-Page Canvas Stack -->
@@ -9601,14 +9754,15 @@
                 let html = `
                     <div class="group-card" id="groupCard_${g.id}">
                         <div class="group-header" onclick="toggleGroupAccordion(${g.id})">
-                            <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                                 <i class="fa-solid fa-chevron-down accordion-arrow"></i>
                                 <h3 style="color: var(--text-main); font-size: 1.25rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 10px;">
                                     <i class="fa-solid fa-folder-open" style="color:var(--primary); font-size: 1.15rem;"></i> ${g.name}
                                 </h3>
                                 <span class="studio-pill" style="font-size: 0.72rem; margin-right: 6px;">${gDone}/${g.lectures.length} منجز (${gPct}%)</span>
                             </div>
-                            <div class="card-actions" style="display:flex; gap:8px;" onclick="event.stopPropagation()">
+                            <div class="card-actions" style="display:flex; gap:8px; align-items:center;" onclick="event.stopPropagation()">
+                                ${g.lectures.length > 1 ? `<button class="btn btn-outline" style="padding: 6px 10px; font-size: 0.76rem; border-color:rgba(45,212,191,0.28); color:var(--primary);" onclick="autoSortLecturesInGroup(${g.id}, event)" title="ترتيب المحاضرات تلقائياً بالأرقام والأسماء"><i class="fa-solid fa-arrow-down-1-9"></i> ترتيب تلقائي</button>` : ''}
                                 <button class="btn btn-outline" style="padding: 6px 14px; font-size: 0.85rem;" onclick="triggerAddLecture(${g.id})"><i class="fa-solid fa-plus"></i> ملف جديد</button>
                                 <button class="icon-btn edit" onclick="triggerEditGroup(${g.id})"><i class="fa-solid fa-pen"></i></button>
                                 <button class="icon-btn delete" onclick="triggerDeleteGroup(${g.id})"><i class="fa-solid fa-trash"></i></button>
@@ -9619,7 +9773,7 @@
                 if(g.lectures.length === 0) {
                     html += `<p style="color:var(--text-muted); font-size:0.9rem; padding: 12px; background: rgba(14, 16, 22, 0.4); border-radius: 10px;">هذا الفصل فارغ حالياً. اضغط «ملف جديد» لإضافة محاضراتك.</p>`;
                 } else {
-                    g.lectures.forEach(lec => {
+                    g.lectures.forEach((lec, lecIdx) => {
                         const srBadge = getSpacedRepetitionBadgeHtml(lec);
                         const hasLocalPdf = localMediaCache.pdfs.has(String(lec.id));
                         const hasLocalAudio = localMediaCache.audios.has(String(lec.id));
@@ -9659,13 +9813,34 @@
                             uploadActionBtnHtml = `<button class="icon-btn" title="رفع ملف المحاضرة للسحابة (لمرة واحدة فقط)" style="color: #38bdf8; border-color: rgba(56,189,248,0.35);" onclick="uploadSingleLectureMediaToCloud(${g.id}, ${lec.id}, event)"><i class="fa-solid fa-cloud-arrow-up"></i></button>`;
                         }
 
+                        const isFirstLec = lecIdx === 0;
+                        const isLastLec = lecIdx === g.lectures.length - 1;
+                        const orderControlsHtml = g.lectures.length > 1 ? `
+                            <span class="lec-drag-handle" title="اسحب المحاضرة لتغيير ترتيبها"><i class="fa-solid fa-grip-vertical"></i></span>
+                            <div class="lec-order-controls" onclick="event.stopPropagation()">
+                                <button type="button" class="lec-order-btn" ${isFirstLec ? 'disabled' : ''} onclick="moveLectureInGroup(${g.id}, ${lec.id}, -1, event)" title="تحريك المحاضرة لأعلى">
+                                    <i class="fa-solid fa-chevron-up"></i>
+                                </button>
+                                <button type="button" class="lec-order-btn" ${isLastLec ? 'disabled' : ''} onclick="moveLectureInGroup(${g.id}, ${lec.id}, 1, event)" title="تحريك المحاضرة لأسفل">
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </button>
+                            </div>
+                        ` : '';
+
                         html += `
-                            <div class="lecture-item">
-                                <div style="display: flex; align-items: center; gap: 12px; flex: 1; flex-wrap: wrap;">
+                            <div class="lecture-item" draggable="${g.lectures.length > 1 ? 'true' : 'false'}"
+                                 ondragstart="handleLectureDragStart(event, ${g.id}, ${lec.id})"
+                                 ondragover="handleLectureDragOver(event)"
+                                 ondragleave="handleLectureDragLeave(event)"
+                                 ondrop="handleLectureDrop(event, ${g.id}, ${lec.id})"
+                                 ondragend="handleLectureDragEnd(event)">
+                                <div style="display: flex; align-items: center; gap: 10px; flex: 1; flex-wrap: wrap;">
+                                    ${orderControlsHtml}
                                     <button class="icon-btn" style="width: 34px; height: 34px; border-radius: 9px; background: ${lec.completed ? 'rgba(16, 185, 129, 0.2)' : 'rgba(14, 16, 22, 0.6)'}; color: ${lec.completed ? 'var(--important-color)' : 'var(--text-muted)'};" onclick="toggleLectureCompleted(${g.id}, ${lec.id})">
                                         <i class="fa-solid ${lec.completed ? 'fa-circle-check' : 'fa-circle'}" style="font-size: 1.15rem;"></i>
                                     </button>
                                     <div onclick="openLectureDocument(${g.id}, ${lec.id})" style="flex: 1; display: flex; align-items: center; gap: 10px; cursor: pointer; min-width: 180px; flex-wrap: wrap;">
+                                        <span class="studio-pill" style="font-size:0.65rem; padding:1px 7px; color:var(--text-muted); border-color:rgba(148,163,184,0.18);">${lecIdx + 1}</span>
                                         <i class="fa-solid fa-file-pdf" style="color: ${lec.completed ? 'var(--important-color)' : 'var(--mandatory-color)'}; font-size: 1.25rem;"></i> 
                                         <span style="font-weight: 600; ${lec.completed ? 'text-decoration: line-through; color: #9ca3af;' : ''}">${lec.title}</span>
                                         ${pdfBadgeHtml}
@@ -9687,6 +9862,92 @@
                 groupParts.push(html);
             });
             container.innerHTML = groupParts.join('');
+        }
+
+        let draggedLectureState = null;
+
+        function moveLectureInGroup(groupId, lecId, delta, event) {
+            if (event) event.stopPropagation();
+            const sub = subjects.find(s => s.id === activeSubjectId);
+            if (!sub) return;
+            const grp = sub.groups.find(g => g.id === groupId);
+            if (!grp || !Array.isArray(grp.lectures)) return;
+            const idx = grp.lectures.findIndex(l => l.id === lecId);
+            if (idx < 0) return;
+            const targetIdx = idx + delta;
+            if (targetIdx < 0 || targetIdx >= grp.lectures.length) return;
+            const [moved] = grp.lectures.splice(idx, 1);
+            grp.lectures.splice(targetIdx, 0, moved);
+            saveSubjects();
+            renderGroups();
+            showToast(`↕️ تم نقل «${moved.title}» إلى الترتيب رقم ${targetIdx + 1}`);
+        }
+
+        function autoSortLecturesInGroup(groupId, event) {
+            if (event) event.stopPropagation();
+            const sub = subjects.find(s => s.id === activeSubjectId);
+            if (!sub) return;
+            const grp = sub.groups.find(g => g.id === groupId);
+            if (!grp || !Array.isArray(grp.lectures) || grp.lectures.length < 2) return;
+            const normalizeDigits = (str) => String(str || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+            grp.lectures.sort((a, b) => {
+                const ta = normalizeDigits(a.title);
+                const tb = normalizeDigits(b.title);
+                return ta.localeCompare(tb, 'ar', { numeric: true, sensitivity: 'base' });
+            });
+            saveSubjects();
+            renderGroups();
+            showToast(`🔢 تم ترتيب محاضرات «${grp.name}» تصاعدياً بنجاح!`);
+        }
+
+        function handleLectureDragStart(event, groupId, lecId) {
+            draggedLectureState = { groupId, lecId };
+            if (event.currentTarget) event.currentTarget.classList.add('dragging-lecture');
+            if (event.dataTransfer) {
+                event.dataTransfer.effectAllowed = 'move';
+                try { event.dataTransfer.setData('text/plain', String(lecId)); } catch (e) {}
+            }
+        }
+
+        function handleLectureDragOver(event) {
+            if (!draggedLectureState) return;
+            event.preventDefault();
+            if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+            if (event.currentTarget) event.currentTarget.classList.add('drag-over-lecture');
+        }
+
+        function handleLectureDragLeave(event) {
+            if (event.currentTarget) event.currentTarget.classList.remove('drag-over-lecture');
+        }
+
+        function handleLectureDrop(event, targetGroupId, targetLecId) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (event.currentTarget) event.currentTarget.classList.remove('drag-over-lecture');
+            if (!draggedLectureState || draggedLectureState.groupId !== targetGroupId || draggedLectureState.lecId === targetLecId) {
+                draggedLectureState = null;
+                return;
+            }
+            const sub = subjects.find(s => s.id === activeSubjectId);
+            if (!sub) return;
+            const grp = sub.groups.find(g => g.id === targetGroupId);
+            if (!grp || !Array.isArray(grp.lectures)) return;
+            const fromIdx = grp.lectures.findIndex(l => l.id === draggedLectureState.lecId);
+            const toIdx = grp.lectures.findIndex(l => l.id === targetLecId);
+            draggedLectureState = null;
+            if (fromIdx < 0 || toIdx < 0) return;
+            const [moved] = grp.lectures.splice(fromIdx, 1);
+            grp.lectures.splice(toIdx, 0, moved);
+            saveSubjects();
+            renderGroups();
+            showToast(`↕️ تم تحديث ترتيب «${moved.title}» إلى رقم ${toIdx + 1}`);
+        }
+
+        function handleLectureDragEnd(event) {
+            draggedLectureState = null;
+            document.querySelectorAll('.lecture-item.dragging-lecture, .lecture-item.drag-over-lecture').forEach(el => {
+                el.classList.remove('dragging-lecture', 'drag-over-lecture');
+            });
         }
 
         // ================= PAGE 2: التخطيط الذكي المتزامن مع الوقت (Smart Time-Synced Planner) =================
@@ -9986,9 +10247,27 @@
             }
         }
 
+        function parseArabicTimeStringToDecHour(timeStr) {
+            if (!timeStr || typeof timeStr !== 'string') return null;
+            const normalized = timeStr
+                .replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+                .trim();
+            const match = normalized.match(/(\d{1,2})\s*:\s*(\d{1,2})/);
+            if (!match) return null;
+            let h = parseInt(match[1], 10);
+            const m = parseInt(match[2], 10);
+            if (isNaN(h) || isNaN(m) || m < 0 || m > 59) return null;
+            const isPM = normalized.includes('م') || /pm/i.test(normalized);
+            const isAM = normalized.includes('ص') || /am/i.test(normalized);
+            if (isPM && h < 12) h += 12;
+            if (isAM && h === 12) h = 0;
+            return Number((h + (m / 60)).toFixed(4));
+        }
+
         function normalizeSmartTrackedSessions() {
             let changed = false;
             if (!Array.isArray(scheduleEvents)) return false;
+            const minStartH = Number(plannerPrefs?.dayStartHour ?? 6);
             scheduleEvents.forEach(ev => {
                 if (!ev || ev.isFixed || ev.type === 'mandatory') return;
                 const studiedMins = Number(ev.actualStudiedMinutes) || 0;
@@ -10001,10 +10280,42 @@
                     ev.openTimerStartedAt = null;
                     changed = true;
                 }
+
+                // Sync startHour & duration with recorded smartStartTimeFormatted / smartEndTimeFormatted
+                // so the block position on the Hourly Ruler matches the actual tracked time 100%!
+                const parsedSmartStart = parseArabicTimeStringToDecHour(ev.smartStartTimeFormatted);
+                const parsedSmartEnd = parseArabicTimeStringToDecHour(ev.smartEndTimeFormatted);
+
+                if (parsedSmartStart !== null && !ev.keepOriginalSlotLocked) {
+                    const clampedSmartStart = Math.max(minStartH, Math.min(23.5, parsedSmartStart));
+                    if (Math.abs((Number(ev.startHour) || 9) - clampedSmartStart) > 0.015) {
+                        ev.startHour = clampedSmartStart;
+                        changed = true;
+                    }
+                    if (!ev.isOpenDuration && (ev.smartEndTimeFormatted || ev.actualStudiedMinutes >= 1)) {
+                        ev.isOpenDuration = true;
+                        changed = true;
+                    }
+                }
+
+                if (parsedSmartStart !== null && parsedSmartEnd !== null && parsedSmartEnd > parsedSmartStart) {
+                    const spanMins = Math.max(1, Math.round((parsedSmartEnd - parsedSmartStart) * 60));
+                    if (spanMins <= 600) {
+                        if (!ev.actualStudiedMinutes || Math.abs(Number(ev.actualStudiedMinutes) - spanMins) > 2) {
+                            ev.actualStudiedMinutes = spanMins;
+                            changed = true;
+                        }
+                        const spanHrs = Math.max(0.15, Number((spanMins / 60).toFixed(2)));
+                        if (Math.abs((Number(ev.duration) || 1) - spanHrs) > 0.02) {
+                            ev.duration = spanHrs;
+                            changed = true;
+                        }
+                    }
+                }
+
                 const finalMins = Number(ev.actualStudiedMinutes) || 0;
-                // Fix sessions where Smart Tracking recorded actualStudiedMinutes (e.g. 2h 14m = 134m) but duration stayed at the 1.5h placeholder
-                if (finalMins >= 1 && (ev.isOpenDuration || (ev.completed && ev.autoCompleted && Number(ev.duration) === 1.5 && Math.abs(finalMins - 90) > 2))) {
-                    const exactHrs = Math.max(0.1, Number((finalMins / 60).toFixed(2)));
+                if (finalMins >= 1 && (ev.isOpenDuration || ev.smartStartTimeFormatted || (ev.completed && ev.autoCompleted))) {
+                    const exactHrs = Math.max(0.15, Number((finalMins / 60).toFixed(2)));
                     if (!ev.isOpenDuration) ev.isOpenDuration = true;
                     if (Math.abs((Number(ev.duration) || 1.5) - exactHrs) > 0.02) {
                         ev.duration = exactHrs;
@@ -10032,26 +10343,38 @@
         }
 
         function getSessionDisplayTiming(ev) {
-            const startH = Number(ev.startHour) || 9;
+            const parsedStart = (!ev.keepOriginalSlotLocked && ev.smartStartTimeFormatted)
+                ? parseArabicTimeStringToDecHour(ev.smartStartTimeFormatted)
+                : null;
+            const startH = (parsedStart !== null) ? parsedStart : (Number(ev.startHour) || 9);
+
             const liveExtraMins = (!ev.completed && ev.openTimerStartedAt)
                 ? Math.max(0, (Date.now() - ev.openTimerStartedAt) / 60000)
                 : 0;
             const totalStudiedMins = (Number(ev.actualStudiedMinutes) || 0) + liveExtraMins;
-            const hasSmartActual = (ev.isOpenDuration || ev.completedMode === 'partial_saved_rest_cancelled') && totalStudiedMins >= 1;
+            const hasSmartActual = (ev.isOpenDuration || Boolean(ev.smartStartTimeFormatted) || ev.completedMode === 'partial_saved_rest_cancelled') && totalStudiedMins >= 1;
 
             const effectiveDurationHours = hasSmartActual
-                ? Math.max(0.25, Number((totalStudiedMins / 60).toFixed(2)))
+                ? Math.max(0.2, Number((totalStudiedMins / 60).toFixed(2)))
                 : Math.max(0.25, Number(ev.duration) || 1);
 
-            const exactEndH = hasSmartActual
-                ? (startH + (totalStudiedMins / 60))
-                : (startH + effectiveDurationHours);
+            const parsedEnd = (!ev.keepOriginalSlotLocked && ev.completed && ev.smartEndTimeFormatted)
+                ? parseArabicTimeStringToDecHour(ev.smartEndTimeFormatted)
+                : null;
 
-            const durationBadgeText = hasSmartActual
-                ? formatMinutesHumanReadable(totalStudiedMins)
-                : `${Number(effectiveDurationHours.toFixed(2))} س`;
+            const exactEndH = (parsedEnd !== null && parsedEnd > startH)
+                ? parsedEnd
+                : (hasSmartActual ? (startH + (totalStudiedMins / 60)) : (startH + effectiveDurationHours));
 
-            let timeRangeText = `${formatHourText(startH)} – ${formatHourText(exactEndH)}`;
+            const effectiveMinsForLabel = hasSmartActual
+                ? Math.round(totalStudiedMins)
+                : Math.round(effectiveDurationHours * 60);
+            const durationBadgeText = formatMinutesHumanReadable(effectiveMinsForLabel);
+
+            let timeRangeText = (ev.smartStartTimeFormatted && ev.smartEndTimeFormatted && !ev.keepOriginalSlotLocked)
+                ? `${ev.smartStartTimeFormatted} – ${ev.smartEndTimeFormatted}`
+                : `${formatHourText(startH)} – ${formatHourText(exactEndH)}`;
+
             if (ev.isOpenDuration && !ev.completed && totalStudiedMins < 1) {
                 timeRangeText = ev.smartStartTimeFormatted
                     ? `🧭 بدأت ${ev.smartStartTimeFormatted} (جارٍ التتبع)`
@@ -10386,16 +10709,17 @@
         function recordSmartSessionActualStart(ev, forceMoveSlotToNow = false) {
             if (!ev) return;
             const now = new Date();
-            if (!ev.smartFirstStartedAtMs) {
+            if (!ev.smartFirstStartedAtMs || forceMoveSlotToNow) {
                 ev.smartFirstStartedAtMs = Date.now();
                 ev.smartStartTimeFormatted = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
             }
-            // Only move day/startHour on calendar if explicitly requested OR already within today's scheduled window
-            if (forceMoveSlotToNow || isSessionInCurrentTimeWindow(ev)) {
-                const decH = now.getHours() + Math.round((now.getMinutes() / 60) * 4) / 4;
+            if (forceMoveSlotToNow || (!ev.keepOriginalSlotLocked && isSessionInCurrentTimeWindow(ev))) {
+                const exactDecH = Number((now.getHours() + (now.getMinutes() / 60)).toFixed(4));
                 ev.day = now.getDay();
-                ev.startHour = Math.max(Number(plannerPrefs.dayStartHour ?? 6), Math.min(23, decH));
+                ev.startHour = Math.max(Number(plannerPrefs.dayStartHour ?? 6), Math.min(23.5, exactDecH));
+                ev.keepOriginalSlotLocked = false;
             }
+            ev.isOpenDuration = true;
             if (!ev.openTimerStartedAt) {
                 ev.openTimerStartedAt = Date.now();
             }
@@ -10447,10 +10771,10 @@
                 const startPrefix = ev.smartStartTimeFormatted ? `بدأت ${ev.smartStartTimeFormatted} • ` : '';
                 statusTagHtml = `<span class="open-timer-live-pill" data-open-timer-ev="${ev.id}"><i class="fa-solid ${ev.openTimerStartedAt ? 'fa-compass fa-spin' : 'fa-compass'}"></i> تتبع ذكي: ${startPrefix}${timerStr}</span>`;
             } else if (isDone && (ev.isOpenDuration || (ev.smartStartTimeFormatted && ev.smartEndTimeFormatted))) {
-                const rangeTxt = (ev.smartStartTimeFormatted && ev.smartEndTimeFormatted)
-                    ? `من ${ev.smartStartTimeFormatted} إلى ${ev.smartEndTimeFormatted} • `
+                const slotNote = (ev.keepOriginalSlotLocked && ev.smartStartTimeFormatted && ev.smartEndTimeFormatted)
+                    ? ` (درست ${ev.smartStartTimeFormatted}–${ev.smartEndTimeFormatted})`
                     : '';
-                statusTagHtml = `<span class="smart-status-tag tag-auto"><i class="fa-solid fa-compass"></i> ${rangeTxt}${formatMinutesHumanReadable(ev.actualStudiedMinutes || (ev.duration * 60))}</span>`;
+                statusTagHtml = `<span class="smart-status-tag tag-auto" title="تم رصد وقت البداية والنهاية الفعلي بالذكاء الاصطناعي"><i class="fa-solid fa-compass"></i> رصد ذكي ✓${slotNote}</span>`;
             } else if (isLiveNow) {
                 statusTagHtml = `<span class="smart-status-tag tag-live"><i class="fa-solid fa-circle-dot"></i> جارية الآن</span>`;
             } else if (isDone && ev.autoCompleted) {
@@ -10608,8 +10932,15 @@
             wrapper.innerHTML = parts.join('');
         }
 
-        function computeNotionOverlapColumns(events) {
-            const sorted = events.slice().sort((a, b) => (a.startHour - b.startHour) || (b.duration - a.duration));
+        function computeNotionOverlapColumns(dayEvents) {
+            const withTiming = dayEvents.map(item => {
+                const ev = Object.assign({}, item);
+                const t = getSessionDisplayTiming(ev);
+                ev._effStart = t.startH;
+                ev._effEnd = Math.max(t.startH + 0.2, t.exactEndH);
+                return ev;
+            });
+            const sorted = withTiming.sort((a, b) => (a._effStart - b._effStart) || ((b._effEnd - b._effStart) - (a._effEnd - a._effStart)));
             const placed = [];
             let cluster = [];
             let clusterMaxEnd = -1;
@@ -10620,15 +10951,15 @@
                 grp.forEach(ev => {
                     let assignedCol = -1;
                     for (let c = 0; c < cols.length; c++) {
-                        if (cols[c] <= ev.startHour + 0.01) {
+                        if (cols[c] <= ev._effStart + 0.01) {
                             assignedCol = c;
-                            cols[c] = ev.startHour + ev.duration;
+                            cols[c] = ev._effEnd;
                             break;
                         }
                     }
                     if (assignedCol === -1) {
                         assignedCol = cols.length;
-                        cols.push(ev.startHour + ev.duration);
+                        cols.push(ev._effEnd);
                     }
                     ev._colIdx = assignedCol;
                 });
@@ -10639,16 +10970,14 @@
                 });
             };
 
-            sorted.forEach(item => {
-                const ev = Object.assign({}, item);
-                const endH = ev.startHour + ev.duration;
-                if (cluster.length > 0 && ev.startHour >= clusterMaxEnd - 0.01) {
+            sorted.forEach(ev => {
+                if (cluster.length > 0 && ev._effStart >= clusterMaxEnd - 0.01) {
                     finalizeCluster(cluster);
                     cluster = [];
                     clusterMaxEnd = -1;
                 }
                 cluster.push(ev);
-                if (endH > clusterMaxEnd) clusterMaxEnd = endH;
+                if (ev._effEnd > clusterMaxEnd) clusterMaxEnd = ev._effEnd;
             });
             finalizeCluster(cluster);
             return placed;
@@ -10851,9 +11180,10 @@
             positionedEvents.forEach(ev => {
                 const timing = getSessionDisplayTiming(ev);
                 const clampedStart = Math.max(START_HOUR, Math.min(END_HOUR + 0.5, timing.startH));
-                const dur = Math.max(0.5, timing.effectiveDurationHours);
-                const topPx = Math.round((clampedStart - START_HOUR) * HOUR_HEIGHT) + 2;
-                const heightPx = Math.max(36, Math.round(dur * HOUR_HEIGHT) - 4);
+                const rawDur = Math.max(0.35, timing.effectiveDurationHours);
+                const topPx = Math.round((clampedStart - START_HOUR) * HOUR_HEIGHT) + 1;
+                const heightPx = Math.max(30, Math.round(rawDur * HOUR_HEIGHT) - 3);
+                const isCompactBlock = heightPx < 42;
 
                 const totalCols = ev._totalCols || 1;
                 const colIdx = ev._colIdx || 0;
@@ -10865,10 +11195,10 @@
                 const isDone = smartInfo.isDone;
                 const catClass = isFixed ? 'neb-mandatory' : `neb-${ev.type || 'important'}`;
                 const subName = ev.subjectId ? (subMap.get(String(ev.subjectId)) || '') : '';
-                const timeRangeStr = `${timing.timeRangeText} (${timing.durationBadgeText})`;
+                const timeRangeStr = `${timing.timeRangeText} • ${timing.durationBadgeText}`;
 
                 eventsHtml += `
-                    <div class="notion-event-block ${catClass} ${isDone ? 'is-done' : ''} ${smartInfo.extraCardClass}"
+                    <div class="notion-event-block ${catClass} ${isDone ? 'is-done' : ''} ${smartInfo.extraCardClass} ${isCompactBlock ? 'neb-compact-row' : ''}"
                          style="top: ${topPx}px; height: ${heightPx}px; right: calc(${rightPct}% + 8px); width: calc(${widthPct}% - 16px);"
                          onclick="handleBlockClick(event, ${ev.id})">
                         <div class="neb-header">
@@ -11176,6 +11506,50 @@
             }
         }
 
+
+        function findSmartMatchingEventsForGoal(goalItem) {
+            if (!goalItem || !Array.isArray(scheduleEvents)) return [];
+            const alreadyLinked = new Set(getGoalLinkedEventsList(goalItem).map(e => String(e.id)));
+            const goalTitle = (goalItem.title || '').trim().toLowerCase();
+            const goalWords = goalTitle.split(/\s+/).filter(w => w.length >= 3);
+            const goalSubId = goalItem.subjectId ? String(goalItem.subjectId) : '';
+
+            return scheduleEvents.filter(ev => {
+                if (!ev || ev.isFixed || ev.type === 'mandatory') return false;
+                if (alreadyLinked.has(String(ev.id))) return false;
+                const evTitle = (ev.title || '').trim().toLowerCase();
+                const sameSub = goalSubId && ev.subjectId && String(ev.subjectId) === goalSubId;
+                const titleOverlap = (goalTitle && evTitle && (evTitle.includes(goalTitle) || goalTitle.includes(evTitle))) ||
+                    goalWords.some(w => evTitle.includes(w));
+                if (sameSub && (titleOverlap || goalWords.length <= 2)) return true;
+                if (!goalSubId && titleOverlap) return true;
+                return false;
+            });
+        }
+
+        function autoLinkSmartMatchedSessionsToGoal(goalId, event) {
+            if (event) event.stopPropagation();
+            const goal = scheduleBacklog.find(g => String(g.id) === String(goalId));
+            if (!goal) return;
+            const matches = findSmartMatchingEventsForGoal(goal);
+            if (matches.length === 0) {
+                openGoalTaskLinkerModal(goal.id, event);
+                return;
+            }
+            const existingIds = getGoalLinkedEventsList(goal).map(e => String(e.id));
+            matches.forEach(m => {
+                if (!existingIds.includes(String(m.id))) existingIds.push(String(m.id));
+            });
+            goal.linkedEventIds = existingIds;
+            goal.linkedEventId = existingIds[0] || null;
+            syncAllBacklogGoalsWithLinkedSessions();
+            saveScheduleData();
+            updateWeeklyMetrics();
+            renderTasksView();
+            updateTracker();
+            showToast(`⚡ تم ربط ${matches.length} ${matches.length === 1 ? 'مهمة مطابقة' : 'مهام مطابقة'} بالهدف «${goal.title}» تلقائياً!`);
+        }
+
         function renderTasksView() {
             populateSubjectDropdowns();
             syncAllBacklogGoalsWithLinkedSessions();
@@ -11244,15 +11618,31 @@
                 const isLinked = linkedEvs.length > 0;
 
                 let goalTotalMins = 0;
+                let goalCompletedMins = 0;
+                let doneLinkedCount = 0;
                 linkedEvs.forEach(ev => {
-                    goalTotalMins += Math.round(getSessionDisplayTiming(ev).effectiveDurationHours * 60);
+                    const timing = getSessionDisplayTiming(ev);
+                    const evMins = Math.round(timing.effectiveDurationHours * 60);
+                    goalTotalMins += evMins;
+                    if (ev.completed) {
+                        goalCompletedMins += evMins;
+                        doneLinkedCount++;
+                    } else if ((Number(ev.actualStudiedMinutes) || 0) > 0) {
+                        goalCompletedMins += Math.min(evMins, Math.round(Number(ev.actualStudiedMinutes)));
+                    }
                 });
+                const goalPct = item.done ? 100 : (goalTotalMins > 0 ? Math.min(100, Math.round((goalCompletedMins / goalTotalMins) * 100)) : 0);
+
+                // Find smart candidate sessions in scheduleEvents that match this goal by subject or title keywords
+                const smartSuggestions = findSmartMatchingEventsForGoal(item);
 
                 let statusBadgeHtml = '';
                 if (item.done) {
-                    statusBadgeHtml = `<span class="studio-pill" style="color:#6ee7b7; border-color:rgba(16,185,129,0.35); background:rgba(16,185,129,0.1);"><i class="fa-solid fa-circle-check"></i> مكتمل ✓</span>`;
+                    statusBadgeHtml = `<span class="studio-pill" style="color:#6ee7b7; border-color:rgba(16,185,129,0.35); background:rgba(16,185,129,0.1);"><i class="fa-solid fa-circle-check"></i> مكتمل 100% ✓</span>`;
                 } else if (isLinked) {
-                    statusBadgeHtml = `<span class="studio-pill" style="color:#38bdf8; border-color:rgba(56,189,248,0.35); background:rgba(56,189,248,0.1);"><i class="fa-solid fa-link"></i> مرتبط بـ ${linkedEvs.length === 1 ? 'مهمة' : linkedEvs.length + ' مهام'}</span>`;
+                    statusBadgeHtml = `<span class="studio-pill" style="color:#38bdf8; border-color:rgba(56,189,248,0.35); background:rgba(56,189,248,0.1);"><i class="fa-solid fa-link"></i> منجز ${doneLinkedCount}/${linkedEvs.length} مهام (${goalPct}%)</span>`;
+                } else if (smartSuggestions.length > 0) {
+                    statusBadgeHtml = `<span class="studio-pill" style="color:var(--primary); border-color:rgba(45,212,191,0.4); background:rgba(45,212,191,0.12);"><i class="fa-solid fa-wand-magic-sparkles"></i> ${smartSuggestions.length} مهام مطابقة بالجدول</span>`;
                 } else {
                     statusBadgeHtml = `<span class="studio-pill" style="color:#fcd34d; border-color:rgba(245,158,11,0.28); background:rgba(245,158,11,0.07);"><i class="fa-regular fa-hand-pointer"></i> اضغط لربط مهمة</span>`;
                 }
@@ -11275,10 +11665,24 @@
                     linkedSectionHtml = `
                         <div class="goal-linked-tasks-box">
                             <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:var(--primary); font-weight:800;">
-                                <span><i class="fa-solid fa-compass"></i> إجمالي الوقت المسجل: <b>${formatMinutesHumanReadable(goalTotalMins)}</b></span>
-                                <span style="font-size:0.7rem; color:var(--text-muted);">اضغط للتعديل ✎</span>
+                                <span><i class="fa-solid fa-compass"></i> المنجز: <b>${formatMinutesHumanReadable(goalCompletedMins)}</b> من <b>${formatMinutesHumanReadable(goalTotalMins)}</b></span>
+                                <span style="font-size:0.72rem; color:#6ee7b7; font-weight:900;">${goalPct}%</span>
+                            </div>
+                            <div class="goal-progress-track">
+                                <div class="goal-progress-fill" style="width:${goalPct}%;"></div>
                             </div>
                             ${pillsHtml}
+                        </div>
+                    `;
+                } else if (smartSuggestions.length > 0) {
+                    linkedSectionHtml = `
+                        <div class="goal-linked-tasks-box" style="border-color:rgba(45,212,191,0.35); background:rgba(45,212,191,0.06); padding:10px; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+                            <span style="font-size:0.76rem; color:#e2e8f0; font-weight:700;">
+                                <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary); margin-left:4px;"></i> وجدنا <b>${smartSuggestions.length} ${smartSuggestions.length === 1 ? 'مهمة مطابقة' : 'مهام مطابقة'}</b> في جدولك
+                            </span>
+                            <button type="button" class="btn btn-primary" style="padding:4px 12px; font-size:0.74rem;" onclick="autoLinkSmartMatchedSessionsToGoal(${item.id}, event)">
+                                <i class="fa-solid fa-bolt"></i> ربط تلقائي ذكي
+                            </button>
                         </div>
                     `;
                 } else {
@@ -11575,14 +11979,14 @@
                     if (!ev.smartStartTimeFormatted) {
                         const approxStartDate = new Date(Date.now() - Math.round(totalMins * 60000));
                         ev.smartStartTimeFormatted = approxStartDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-                        if (isSessionInCurrentTimeWindow(ev)) {
-                            const sDec = approxStartDate.getHours() + Math.round((approxStartDate.getMinutes() / 60) * 4) / 4;
-                            ev.startHour = Math.max(Number(plannerPrefs.dayStartHour ?? 6), Math.min(23, sDec));
-                        }
+                    }
+                    const parsedSmartStart = parseArabicTimeStringToDecHour(ev.smartStartTimeFormatted);
+                    if (parsedSmartStart !== null && !ev.keepOriginalSlotLocked) {
+                        ev.startHour = Math.max(Number(plannerPrefs.dayStartHour ?? 6), Math.min(23.5, parsedSmartStart));
                     }
 
                     ev.actualStudiedMinutes = Number(totalMins.toFixed(1));
-                    ev.duration = Math.max(0.25, Number((totalMins / 60).toFixed(2)));
+                    ev.duration = Math.max(0.2, Number((totalMins / 60).toFixed(2)));
                     openDurationSummaryTxt = `بدأت ${ev.smartStartTimeFormatted} وانتهت ${ev.smartEndTimeFormatted} — المدة: ${formatMinutesHumanReadable(totalMins)}`;
                 }
 
@@ -12458,6 +12862,48 @@
             });
         }
 
+        let showAllLogDaysExpandedList = false;
+        let openLogDateAccordions = new Set();
+
+        function toggleLogDayAccordion(dateKey) {
+            if (openLogDateAccordions.has(dateKey)) {
+                openLogDateAccordions.delete(dateKey);
+            } else {
+                openLogDateAccordions.add(dateKey);
+            }
+            renderLogs();
+        }
+
+        function toggleShowAllLogDays() {
+            showAllLogDaysExpandedList = !showAllLogDaysExpandedList;
+            renderLogs();
+        }
+
+        function deduplicateAndCompactLogs() {
+            if (!Array.isArray(logs) || logs.length === 0) return;
+            const beforeCount = logs.length;
+            const seen = new Set();
+            const cleaned = [];
+            logs.forEach(l => {
+                if (!l || !l.text) return;
+                const normText = String(l.text).trim().replace(/\s+/g, ' ');
+                const key = `${l.date || ''}||${normText}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    cleaned.push(l);
+                }
+            });
+            logs = cleaned;
+            saveLogs();
+            renderLogs();
+            const removed = beforeCount - logs.length;
+            if (removed > 0) {
+                showToast(`🧹 تم تنظيف السجل ودمج ${removed} سجل مكرر بنجاح!`);
+            } else {
+                showToast('✨ سجل الإنجازات منظم بالفعل ولا توجد سجلات مكررة!');
+            }
+        }
+
         function renderLogs() {
             const container = document.getElementById('logsContainer');
             if(!container) return;
@@ -12471,6 +12917,12 @@
                 if (!filterKeyword) return true;
                 return (l.text || '').toLowerCase().includes(filterKeyword);
             });
+
+            const countPill = document.getElementById('logsSummaryCountPill');
+            if (countPill) {
+                const uniqueDaysCount = new Set(filteredLogs.map(l => l.date || 'اليوم')).size;
+                countPill.innerText = `${filteredLogs.length} إنجاز في ${uniqueDaysCount} ${uniqueDaysCount === 1 ? 'يوم' : 'أيام'}`;
+            }
             
             if (filteredLogs.length === 0) { 
                 container.innerHTML = `<div class="empty-state" style="padding: 28px 16px;"><i class="fa-solid fa-clipboard-list"></i><h3>لا توجد سجلات مطابقة</h3><p>قم بتدوين إنجازاتك اليومية أو إتمام جلسات المذاكرة لتظهر هنا تلقائياً.</p></div>`; 
@@ -12488,30 +12940,88 @@
 
             const subMap = new Map();
             for (let i = 0; i < subjects.length; i++) subMap.set(String(subjects[i].id), subjects[i].name);
-            const logParts = [];
-            filteredLogs.forEach((log) => {
-                let subTag = '';
-                if (log.subjectId && subMap.has(String(log.subjectId))) {
-                    subTag = `<span class="sc-subject-tag"><i class="fa-solid fa-book"></i> ${subMap.get(String(log.subjectId))}</span>`;
-                }
-                
-                logParts.push(`
-                    <div class="log-item-pro">
-                        <div>
-                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px; flex-wrap:wrap;">
-                                <span style="color: var(--text-muted); font-size: 0.8rem; display: flex; align-items: center; gap: 5px;">
-                                    <i class="fa-regular fa-calendar-check"></i> ${log.date}
-                                </span>
-                                ${subTag}
-                                ${moodIcons[log.mood] || ''}
+
+            // Group logs by date so the feed stays ultra-clean and organized even after months of usage!
+            const dayGroupsMap = new Map();
+            filteredLogs.forEach(log => {
+                const dKey = log.date || 'سجلات عامة';
+                if (!dayGroupsMap.has(dKey)) dayGroupsMap.set(dKey, []);
+                dayGroupsMap.get(dKey).push(log);
+            });
+
+            const allDayKeys = Array.from(dayGroupsMap.keys());
+            const todayDateStr = new Date().toLocaleDateString('ar-EG');
+            // By default, keep only the first day (Today / latest day) expanded unless user toggled or is searching
+            if (openLogDateAccordions.size === 0 && allDayKeys.length > 0) {
+                openLogDateAccordions.add(allDayKeys[0]);
+            }
+
+            const maxVisibleDays = (showAllLogDaysExpandedList || filterKeyword || filterMood !== 'all') ? allDayKeys.length : Math.min(5, allDayKeys.length);
+            const visibleDayKeys = allDayKeys.slice(0, maxVisibleDays);
+
+            const groupHtmlParts = [];
+            visibleDayKeys.forEach((dKey, idx) => {
+                const dayItems = dayGroupsMap.get(dKey) || [];
+                const isOpen = Boolean(filterKeyword) || openLogDateAccordions.has(dKey);
+                const doneCount = dayItems.filter(i => i.mood !== 'missed').length;
+                const missedCount = dayItems.filter(i => i.mood === 'missed').length;
+                const escapedKey = dKey.replace(/'/g, "\\'");
+
+                const itemsHtml = dayItems.map(log => {
+                    let subTag = '';
+                    if (log.subjectId && subMap.has(String(log.subjectId))) {
+                        subTag = `<span class="sc-subject-tag"><i class="fa-solid fa-book"></i> ${subMap.get(String(log.subjectId))}</span>`;
+                    }
+                    return `
+                        <div class="log-item-pro" style="padding: 9px 12px;">
+                            <div>
+                                <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px; flex-wrap:wrap;">
+                                    ${subTag}
+                                    ${moodIcons[log.mood] || ''}
+                                </div>
+                                <span style="font-weight: 700; font-size: 0.92rem; color: var(--text-main);">${log.text}</span>
                             </div>
-                            <span style="font-weight: 700; font-size: 0.98rem; color: var(--text-main);">${log.text}</span>
+                            <button class="icon-btn delete" style="width:28px; height:28px;" onclick="triggerDeleteLog(${log.id})"><i class="fa-solid fa-trash" style="font-size:0.75rem;"></i></button>
                         </div>
-                        <button class="icon-btn delete" onclick="triggerDeleteLog(${log.id})"><i class="fa-solid fa-trash"></i></button>
+                    `;
+                }).join('');
+
+                groupHtmlParts.push(`
+                    <div class="log-day-group ${isOpen ? 'is-open' : ''}">
+                        <div class="log-day-header" onclick="toggleLogDayAccordion('${escapedKey}')">
+                            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                                <i class="fa-solid fa-chevron-down log-day-chevron"></i>
+                                <span style="font-weight:800; font-size:0.9rem; color:var(--text-main);">
+                                    <i class="fa-regular fa-calendar-check" style="color:var(--primary); margin-left:5px;"></i>
+                                    ${dKey === todayDateStr ? `اليوم (${dKey})` : dKey}
+                                </span>
+                                <span class="studio-pill" style="font-size:0.7rem; color:#6ee7b7; border-color:rgba(16,185,129,0.3);">
+                                    ✅ ${doneCount} إنجاز
+                                </span>
+                                ${missedCount > 0 ? `<span class="studio-pill" style="font-size:0.68rem; color:#fda4af; border-color:rgba(244,63,94,0.3);">❌ ${missedCount} فائتة</span>` : ''}
+                            </div>
+                            <span style="font-size:0.74rem; color:var(--text-muted); font-weight:700;">
+                                ${isOpen ? 'إخفاء التفاصيل ▲' : `عرض (${dayItems.length}) سجلات ▼`}
+                            </span>
+                        </div>
+                        <div class="log-day-body">
+                            ${itemsHtml}
+                        </div>
                     </div>
                 `);
             });
-            container.innerHTML = logParts.join('');
+
+            if (allDayKeys.length > 5 && !filterKeyword && filterMood === 'all') {
+                const hiddenDays = allDayKeys.length - 5;
+                groupHtmlParts.push(`
+                    <button type="button" class="btn btn-outline" style="width:100%; justify-content:center; padding:9px; font-size:0.82rem; border-style:dashed; color:var(--primary);" onclick="toggleShowAllLogDays()">
+                        <i class="fa-solid ${showAllLogDaysExpandedList ? 'fa-chevron-up' : 'fa-clock-rotate-left'}"></i>
+                        ${showAllLogDaysExpandedList ? 'طيّ الأيام الأقدم والاكتفاء بآخر 5 أيام' : `عرض الأرشيف السابق (${hiddenDays} أيام أقدم)`}
+                    </button>
+                `);
+            }
+
+            container.innerHTML = groupHtmlParts.join('');
         }
 
         // ================= IMPORT / EXPORT =================
@@ -13723,8 +14233,9 @@
                         (async (pDoc, lPage, cKey, nKey, pScale) => {
                             try {
                                 const page = await pDoc.getPage(lPage);
-                                const vp = page.getViewport({ scale: pScale });
-                                const w = Math.floor(vp.width), h = Math.floor(vp.height);
+                                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                                const vp = page.getViewport({ scale: pScale * dpr });
+                                const w = Math.max(1, Math.floor(vp.width)), h = Math.max(1, Math.floor(vp.height));
                                 pdfCanvas.width = w; pdfCanvas.height = h;
                                 inkCanvas.width = w; inkCanvas.height = h;
                                 laserCanvas.width = w; laserCanvas.height = h;
@@ -14198,11 +14709,11 @@
                 visCtx.setTransform(1, 0, 0, 1, 0, 0);
                 visCtx.drawImage(offCanvas, 0, 0);
 
-                // Sync overlay annotation canvases
-                inkCanvas.width = cssWidth;
-                inkCanvas.height = cssHeight;
-                laserCanvas.width = cssWidth;
-                laserCanvas.height = cssHeight;
+                // Sync overlay annotation canvases at full HiDPI (targetPixelW x targetPixelH) for silky-smooth zero-grain strokes!
+                inkCanvas.width = targetPixelW;
+                inkCanvas.height = targetPixelH;
+                laserCanvas.width = targetPixelW;
+                laserCanvas.height = targetPixelH;
 
                 redrawPageAnnotations(pageNum);
                 renderAudioPinsForPage(pageNum);
@@ -14332,10 +14843,10 @@
                 const visCtx = pdfCanvas.getContext('2d', { alpha: false });
                 visCtx.drawImage(offCanvas, 0, 0);
 
-                inkCanvas.width = w;
-                inkCanvas.height = h;
-                laserCanvas.width = w;
-                laserCanvas.height = h;
+                inkCanvas.width = targetW;
+                inkCanvas.height = targetH;
+                laserCanvas.width = targetW;
+                laserCanvas.height = targetH;
 
                 redrawPageAnnotations(compositeKey);
                 syncExtraNoteSheetSize(compositeKey, w, Math.floor(h * 0.75));
@@ -14910,16 +15421,35 @@
             }
         }
 
-        // Gentle Shape-Preserving Stroke Compaction (preserves small slow Arabic letters & dots 100%)
+        // Silk-Calligraphy Stroke Stabilizer & Shape-Preserving Compaction (eliminates digitizer/mouse micro-grain while preserving Arabic diacritics)
         function polishStrokePointsForSilkInk(rawPts) {
             if (!rawPts || rawPts.length <= 2) return rawPts ? rawPts.slice() : [];
-            const decimated = [rawPts[0]];
-            const minDistSq = 0.0005 * 0.0005; // ~0.5px on a 1000px canvas
-            const maxSkipDistSq = 0.012 * 0.012;
+            // Step 1: 1-Pass Gaussian Silk Filter [0.20, 0.60, 0.20] to remove any subtle angular facet or hand tremor
+            const smoothed = [rawPts[0]];
             for (let i = 1; i < rawPts.length - 1; i++) {
-                const lastKept = decimated[decimated.length - 1];
+                const prev = rawPts[i - 1];
                 const cur = rawPts[i];
                 const nxt = rawPts[i + 1];
+                smoothed.push({
+                    x: prev.x * 0.20 + cur.x * 0.60 + nxt.x * 0.20,
+                    y: prev.y * 0.20 + cur.y * 0.60 + nxt.y * 0.20,
+                    p: (prev.p || 0.5) * 0.2 + (cur.p || 0.5) * 0.6 + (nxt.p || 0.5) * 0.2
+                });
+            }
+            smoothed.push(rawPts[rawPts.length - 1]);
+
+            // Step 2: Collinear compaction
+            const decimated = [{
+                x: Math.round(smoothed[0].x * 10000) / 10000,
+                y: Math.round(smoothed[0].y * 10000) / 10000,
+                p: Math.round((smoothed[0].p || 0.5) * 100) / 100
+            }];
+            const minDistSq = 0.0005 * 0.0005;
+            const maxSkipDistSq = 0.012 * 0.012;
+            for (let i = 1; i < smoothed.length - 1; i++) {
+                const lastKept = decimated[decimated.length - 1];
+                const cur = smoothed[i];
+                const nxt = smoothed[i + 1];
                 const dx = cur.x - lastKept.x;
                 const dy = cur.y - lastKept.y;
                 const distSq = dx * dx + dy * dy;
@@ -14934,9 +15464,7 @@
                     const l2 = Math.hypot(vx2, vy2);
                     if (l1 > 0.0001 && l2 > 0.0001) {
                         const cosTheta = (vx1 * vx2 + vy1 * vy2) / (l1 * l2);
-                        if (cosTheta > 0.9985) {
-                            continue;
-                        }
+                        if (cosTheta > 0.9985) continue;
                     }
                 }
                 decimated.push({
@@ -14945,7 +15473,7 @@
                     p: Math.round((cur.p || 0.5) * 100) / 100
                 });
             }
-            const lastPt = rawPts[rawPts.length - 1];
+            const lastPt = smoothed[smoothed.length - 1];
             decimated.push({
                 x: Math.round(lastPt.x * 10000) / 10000,
                 y: Math.round(lastPt.y * 10000) / 10000,
@@ -15218,24 +15746,48 @@
                     lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
                 }
 
-                if (effectiveTool === 'pen') {
-                    // Direct-to-Ink Canvas: draw initial dot directly on iCtx with ZERO clearRect!
-                    laserCanvas.style.opacity = '1';
-                    incrementalDrawnIdx = drawIncrementalStrokeSegments(iCtx, inkCanvas.width, inkCanvas.height, 'pen', currentAnnoColor, currentAnnoSize, currentPoints, 0, false);
-                    return;
-                }
-
-                // Highlighter preview on laserCanvas
-                laserCanvas.style.opacity = '0.32';
+                // Both Pen and Highlighter render live as a single continuous unbroken Bézier curve on laserCanvas (ZERO segment joint roughness!)
+                laserCanvas.style.opacity = (effectiveTool === 'highlighter') ? '0.32' : '1';
                 lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
                 drawSingleStrokeOnCanvas(lCtx, laserCanvas.width, laserCanvas.height, {
-                    tool: 'highlighter',
+                    tool: effectiveTool,
                     color: currentAnnoColor,
-                    size: Math.max(14, currentAnnoSize * 4.5),
+                    size: effectiveTool === 'highlighter' ? Math.max(14, currentAnnoSize * 4.5) : currentAnnoSize,
                     alpha: 1.0,
                     points: currentPoints
                 });
             });
+
+            const renderActiveContinuousStrokeOnLaserCanvas = (effectiveTool) => {
+                lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+                let livePts = currentPoints;
+                if (lastRawPt && currentPoints.length > 0) {
+                    const lastP = currentPoints[currentPoints.length - 1];
+                    const tipPt = {
+                        x: lastP.x * 0.35 + lastRawPt.x * 0.65,
+                        y: lastP.y * 0.35 + lastRawPt.y * 0.65,
+                        p: lastRawPt.p || 0.5
+                    };
+                    livePts = currentPoints.concat([tipPt]);
+                }
+                if (effectiveTool === 'laser') {
+                    if (laserStrokes[pageNum] && laserStrokes[pageNum].length > 0) {
+                        for (let i = 0; i < laserStrokes[pageNum].length; i++) {
+                            const s = laserStrokes[pageNum][i];
+                            drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, s.points, s.color, s.size, 1.0);
+                        }
+                    }
+                    drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, livePts, currentAnnoColor, currentAnnoSize + 2, 1.0);
+                } else {
+                    drawSingleStrokeOnCanvas(lCtx, laserCanvas.width, laserCanvas.height, {
+                        tool: effectiveTool,
+                        color: currentAnnoColor,
+                        size: effectiveTool === 'highlighter' ? Math.max(14, currentAnnoSize * 4.5) : currentAnnoSize,
+                        alpha: 1.0,
+                        points: livePts
+                    });
+                }
+            };
 
             inkCanvas.addEventListener('pointermove', (e) => {
                 const pType = e.pointerType || 'mouse';
@@ -15271,7 +15823,6 @@
 
                 const effectiveTool = (e.buttons === 32) ? 'eraser' : activeToolOnStroke;
                 const events = (e.getCoalescedEvents) ? e.getCoalescedEvents() : [e];
-                const startLen = currentPoints.length;
 
                 if (effectiveTool === 'eraser') {
                     for (let i = 0; i < events.length; i++) {
@@ -15286,7 +15837,7 @@
                     lastLaserActivityAt = nowPerf;
                 }
 
-                // Collect smooth control points (every ~1.4px of movement) while keeping exact live lastRawPt for zero-latency tip bridging!
+                // Collect stabilized silk control points (every ~1.8px) with adaptive EMA smoothing to eliminate hand/sensor micro-roughness!
                 for (let i = 0; i < events.length; i++) {
                     const rawPt = getFastNormCoords(events[i]);
                     lastRawPt = rawPt;
@@ -15305,17 +15856,17 @@
                     const dyPx = (rawPt.y - prevPt.y) * cachedRectH;
                     const distSqPx = dxPx * dxPx + dyPx * dyPx;
 
-                    // 1.35px spacing between spline control points prevents overlapping round-cap blobs in slow writing while keeping curves silky smooth!
-                    if (distSqPx < 1.8) {
+                    // 1.75px spacing filters out high-frequency digitizer/mouse stair-stepping while keeping small Arabic letters super crisp
+                    if (distSqPx < 3.1) {
                         continue;
                     }
 
                     const distPx = Math.sqrt(distSqPx);
-                    // High responsiveness (0.76 in slow writing up to 0.94 in fast writing)
-                    const emaAlpha = Math.min(0.94, Math.max(0.76, distPx / 10.0));
+                    // Silk EMA stabilizer (0.54 in slow writing up to 0.78 in fast sweeps)
+                    const emaAlpha = Math.min(0.78, Math.max(0.54, distPx / 14.0));
                     const nextX = prevPt.x + (rawPt.x - prevPt.x) * emaAlpha;
                     const nextY = prevPt.y + (rawPt.y - prevPt.y) * emaAlpha;
-                    const nextP = (prevPt.p || 0.5) * 0.5 + (rawPt.p || 0.5) * 0.5;
+                    const nextP = (prevPt.p || 0.5) * 0.6 + (rawPt.p || 0.5) * 0.4;
 
                     currentPoints.push({
                         x: Math.round(nextX * 10000) / 10000,
@@ -15324,56 +15875,19 @@
                     });
                 }
 
-                // 1. REGULAR PEN ('pen'): Direct-to-Ink Incremental Segments + Tiny Dirty-Rect Live Tip Bridge
-                // Works at 100% speed for both slow micro-movements (< 1.35px) and fast strokes!
+                // Render single unbroken continuous Bézier path immediately for Pen (zero latency & zero joint seams!)
                 if (effectiveTool === 'pen') {
-                    if (currentPoints.length > startLen) {
-                        incrementalDrawnIdx = drawIncrementalStrokeSegments(
-                            iCtx,
-                            inkCanvas.width,
-                            inkCanvas.height,
-                            'pen',
-                            currentAnnoColor,
-                            currentAnnoSize,
-                            currentPoints,
-                            incrementalDrawnIdx,
-                            false
-                        );
-                    }
-                    if (lastRawPt) {
-                        drawLivePenTipBridge(lastRawPt);
-                    }
+                    renderActiveContinuousStrokeOnLaserCanvas('pen');
                     return;
                 }
 
-                // 2. LASER ('laser') & HIGHLIGHTER ('highlighter'): Single-Path Continuous Render (Coalesced to Display Refresh Rate)
+                // Coalesce Laser & Highlighter preview to display refresh
                 if (!previewRafPending) {
                     previewRafPending = true;
                     requestAnimationFrame(() => {
                         previewRafPending = false;
                         if (!isDrawing) return;
-                        lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
-                        const livePts = (lastRawPt && currentPoints.length > 0)
-                            ? currentPoints.concat([lastRawPt])
-                            : currentPoints;
-
-                        if (effectiveTool === 'laser') {
-                            if (laserStrokes[pageNum] && laserStrokes[pageNum].length > 0) {
-                                for (let i = 0; i < laserStrokes[pageNum].length; i++) {
-                                    const s = laserStrokes[pageNum][i];
-                                    drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, s.points, s.color, s.size, 1.0);
-                                }
-                            }
-                            drawLaserGlowPath(lCtx, laserCanvas.width, laserCanvas.height, livePts, currentAnnoColor, currentAnnoSize + 2, 1.0);
-                        } else {
-                            drawSingleStrokeOnCanvas(lCtx, laserCanvas.width, laserCanvas.height, {
-                                tool: effectiveTool,
-                                color: currentAnnoColor,
-                                size: Math.max(14, currentAnnoSize * 4.5),
-                                alpha: 1.0,
-                                points: livePts
-                            });
-                        }
+                        renderActiveContinuousStrokeOnLaserCanvas(effectiveTool);
                     });
                 }
             });
@@ -15430,12 +15944,15 @@
                     const dyPx = (lastRawPt.y - prev.y) * cachedRectH;
                     if ((dxPx * dxPx + dyPx * dyPx) > 0.25) {
                         currentPoints.push({
-                            x: Math.round((prev.x * 0.2 + lastRawPt.x * 0.8) * 10000) / 10000,
-                            y: Math.round((prev.y * 0.2 + lastRawPt.y * 0.8) * 10000) / 10000,
+                            x: Math.round((prev.x * 0.35 + lastRawPt.x * 0.65) * 10000) / 10000,
+                            y: Math.round((prev.y * 0.35 + lastRawPt.y * 0.65) * 10000) / 10000,
                             p: Math.round((lastRawPt.p || 0.5) * 100) / 100
                         });
                     }
                 }
+
+                // Apply silk Gaussian polish pass so committed curve is 100% free of any texture roughness
+                const silkPoints = polishStrokePointsForSilkInk(currentPoints);
 
                 if (effectiveTool === 'laser') {
                     isLaserPointerDown = false;
@@ -15445,7 +15962,7 @@
                     laserStrokes[pageNum].push({
                         color: currentAnnoColor,
                         size: currentAnnoSize + 2,
-                        points: currentPoints,
+                        points: silkPoints,
                         createdAt: lastLaserActivityAt
                     });
                     lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
@@ -15466,32 +15983,17 @@
                     color: currentAnnoColor,
                     size: effectiveTool === 'highlighter' ? Math.max(14, currentAnnoSize * 4.5) : currentAnnoSize,
                     alpha: effectiveTool === 'highlighter' ? 0.32 : 1.0,
-                    points: currentPoints,
+                    points: silkPoints,
                     _compactedV3: true,
-                    _bbox: computeStrokeBBox(currentPoints)
+                    _bbox: computeStrokeBBox(silkPoints)
                 };
                 pageAnnotations[pageNum].push(strokeObj);
                 recordAnnotationUndoAction(pageNum);
 
-                if (effectiveTool === 'pen') {
-                    // Clear only the tiny 30x30px live tip box on lCtx and finish the last 2mm tail on iCtx (0.01ms, ZERO full-stroke redraw!)
-                    clearTipDirtyRect();
-                    drawIncrementalStrokeSegments(
-                        iCtx,
-                        inkCanvas.width,
-                        inkCanvas.height,
-                        'pen',
-                        currentAnnoColor,
-                        currentAnnoSize,
-                        currentPoints,
-                        incrementalDrawnIdx,
-                        true
-                    );
-                } else {
-                    laserCanvas.style.opacity = '1';
-                    lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
-                    drawSingleStrokeOnCanvas(iCtx, inkCanvas.width, inkCanvas.height, strokeObj);
-                }
+                // Clear active preview on laserCanvas and commit a single unbroken vector path to inkCanvas!
+                laserCanvas.style.opacity = '1';
+                lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+                drawSingleStrokeOnCanvas(iCtx, inkCanvas.width, inkCanvas.height, strokeObj);
 
                 currentPoints = [];
                 lastRawPt = null;
@@ -16012,6 +16514,7 @@
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
 
             if (tool === 'laser') {
                 const laserW = Math.max(2.5, (baseSize + 2) * scaleFactor);
@@ -16084,6 +16587,7 @@
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
 
             const scaleFactor = width / 800;
             ctx.lineWidth = Math.max(1.2, stroke.size * scaleFactor);
@@ -16820,18 +17324,19 @@
                 </div>
             `;
 
+            const noteDpr = Math.min(window.devicePixelRatio || 1, 2);
             const inkCanvas = document.createElement('canvas');
             inkCanvas.className = 'pdf-ink-canvas';
             inkCanvas.id = `pdfInkCanvas_${noteKey}`;
-            inkCanvas.width = widthPx;
-            inkCanvas.height = heightPx;
+            inkCanvas.width = Math.max(1, Math.floor(widthPx * noteDpr));
+            inkCanvas.height = Math.max(1, Math.floor(heightPx * noteDpr));
             inkCanvas.style.opacity = annotationsVisible ? '1' : '0';
 
             const laserCanvas = document.createElement('canvas');
             laserCanvas.className = 'pdf-laser-canvas';
             laserCanvas.id = `pdfLaserCanvas_${noteKey}`;
-            laserCanvas.width = widthPx;
-            laserCanvas.height = heightPx;
+            laserCanvas.width = Math.max(1, Math.floor(widthPx * noteDpr));
+            laserCanvas.height = Math.max(1, Math.floor(heightPx * noteDpr));
 
             const textLayer = document.createElement('div');
             textLayer.className = 'pdf-text-layer';
@@ -16854,12 +17359,13 @@
             const laserCanvas = document.getElementById(`pdfLaserCanvas_${noteKey}`);
             if (!sheet || !inkCanvas || !laserCanvas) return;
 
+            const noteDpr = Math.min(window.devicePixelRatio || 1, 2);
             sheet.style.width = `${widthPx}px`;
             sheet.style.height = `${heightPx}px`;
-            inkCanvas.width = widthPx;
-            inkCanvas.height = heightPx;
-            laserCanvas.width = widthPx;
-            laserCanvas.height = heightPx;
+            inkCanvas.width = Math.max(1, Math.floor(widthPx * noteDpr));
+            inkCanvas.height = Math.max(1, Math.floor(heightPx * noteDpr));
+            laserCanvas.width = Math.max(1, Math.floor(widthPx * noteDpr));
+            laserCanvas.height = Math.max(1, Math.floor(heightPx * noteDpr));
             redrawPageAnnotations(noteKey);
         }
 
@@ -21163,6 +21669,102 @@
             if (bar) bar.classList.remove('active');
         }
 
+        let isPdfSmartTrackPaused = false;
+
+        function renderPdfLiveSmartTrackPill() {
+            const pill = document.getElementById('pdfLiveSmartTrackPill');
+            const statusEl = document.getElementById('pdfLiveSmartTrackStatus');
+            const btnsEl = document.getElementById('pdfLiveSmartTrackBtns');
+            if (!pill || !statusEl || !btnsEl) return;
+
+            const ev = scheduleEvents.find(e => String(e.id) === String(activePdfMatchedEventId));
+            if (!ev || ev.completed || !activePdfTaskIntent || activePdfTaskIntent === 'just_looking') {
+                pill.classList.remove('active');
+                return;
+            }
+
+            const studiedMins = Math.max(0, Number(ev.actualStudiedMinutes) || 0);
+            const plannedMins = Math.max(15, Math.round((Number(ev.duration) || 1) * 60));
+            const pct = Math.min(100, Math.round((studiedMins / plannedMins) * 100));
+            const startLbl = ev.smartStartTimeFormatted || formatHourText(ev.startHour);
+            const modeTag = ev.keepOriginalSlotLocked
+                ? `<span class="studio-pill" style="font-size:0.66rem; color:#fcd34d;">مثبتة في موعدها (${formatHourText(ev.startHour)})</span>`
+                : `<span class="studio-pill" style="font-size:0.66rem; color:#6ee7b7;">بدأت ${startLbl} على المسطرة</span>`;
+
+            statusEl.innerHTML = `
+                <i class="fa-solid ${isPdfSmartTrackPaused ? 'fa-pause-circle' : 'fa-compass fa-spin'}" style="color:${isPdfSmartTrackPaused ? '#fcd34d' : 'var(--primary)'};"></i>
+                <span><b>التتبع الذكي:</b> «${ev.title}»</span>
+                ${modeTag}
+                <span class="studio-pill" style="font-size:0.7rem; color:var(--primary); border-color:rgba(45,212,191,0.35);">
+                    ⏱️ المذاكر: <b>${formatMinutesHumanReadable(Math.max(1, Math.round(studiedMins)))}</b> (${pct}%)
+                </span>
+            `;
+
+            btnsEl.innerHTML = `
+                <button type="button" class="pstc-btn" onclick="togglePausePdfSmartTracking()" style="padding:3px 10px; font-size:0.72rem;">
+                    <i class="fa-solid ${isPdfSmartTrackPaused ? 'fa-play' : 'fa-pause'}"></i> ${isPdfSmartTrackPaused ? 'استئناف الرصد' : 'إيقاف مؤقت'}
+                </button>
+                <button type="button" class="pstc-btn primary-choice" onclick="finishPdfSmartTrackedTaskNow()" style="padding:3px 10px; font-size:0.72rem;">
+                    <i class="fa-solid fa-check-double"></i> إنهاء وإتمام المهمة الآن
+                </button>
+                <button type="button" class="pstc-btn safe-choice" onclick="reopenPdfSmartChoiceBar()" style="padding:3px 8px; font-size:0.7rem;" title="تغيير طريقة الرصد">
+                    <i class="fa-solid fa-sliders"></i> تغيير الاختيار
+                </button>
+            `;
+            pill.classList.add('active');
+        }
+
+        function togglePausePdfSmartTracking() {
+            isPdfSmartTrackPaused = !isPdfSmartTrackPaused;
+            lastStudyTrackTickMs = Date.now();
+            renderPdfLiveSmartTrackPill();
+            showToast(isPdfSmartTrackPaused ? '⏸️ تم إيقاف رصد وقت المذاكرة مؤقتاً' : '▶️ تم استئناف رصد وقت المذاكرة');
+        }
+
+        function reopenPdfSmartChoiceBar() {
+            const ev = scheduleEvents.find(e => String(e.id) === String(activePdfMatchedEventId));
+            if (!ev) return;
+            document.getElementById('pdfLiveSmartTrackPill')?.classList.remove('active');
+            showPdfSmartTaskChoiceBar(ev, isSessionInCurrentTimeWindow(ev));
+        }
+
+        function finishPdfSmartTrackedTaskNow() {
+            const ev = scheduleEvents.find(e => String(e.id) === String(activePdfMatchedEventId));
+            if (!ev) return;
+            const curMs = Date.now();
+            if (!isPdfSmartTrackPaused && lastStudyTrackTickMs) {
+                const extra = Math.max(0, (curMs - lastStudyTrackTickMs) / 60000);
+                ev.actualStudiedMinutes = Number(((Number(ev.actualStudiedMinutes) || 0) + extra).toFixed(2));
+                lastStudyTrackTickMs = curMs;
+            }
+            if ((Number(ev.actualStudiedMinutes) || 0) < 1) {
+                const sessMins = Math.max(1, (curMs - (activePdfStudySessionStartMs || curMs)) / 60000);
+                ev.actualStudiedMinutes = Number(sessMins.toFixed(1));
+            }
+            const nowObj = new Date();
+            ev.smartEndTimeFormatted = nowObj.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+            if (!ev.smartStartTimeFormatted) {
+                const startApprox = new Date(curMs - Math.round((Number(ev.actualStudiedMinutes) || 15) * 60000));
+                ev.smartStartTimeFormatted = startApprox.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+            }
+            if (!ev.keepOriginalSlotLocked) {
+                const parsedS = parseArabicTimeStringToDecHour(ev.smartStartTimeFormatted);
+                if (parsedS !== null) {
+                    ev.startHour = Math.max(Number(plannerPrefs.dayStartHour ?? 6), Math.min(23.5, parsedS));
+                }
+            }
+            ev.isOpenDuration = true;
+            ev.duration = Math.max(0.2, Number(((Number(ev.actualStudiedMinutes) || 15) / 60).toFixed(2)));
+            ev.completed = true;
+            ev.missed = false;
+            ev.autoCompleted = true;
+            document.getElementById('pdfLiveSmartTrackPill')?.classList.remove('active');
+            saveScheduleData();
+            renderSchedule();
+            updateTracker();
+            showToast(`🎉 تم إتمام «${ev.title}» وحفظ وقتك الفعلي (${ev.smartStartTimeFormatted} – ${ev.smartEndTimeFormatted}) على المسطرة!`);
+        }
+
         function showPdfSmartTaskChoiceBar(ev, isActiveWindowNow) {
             const bar = document.getElementById('pdfSmartTaskChoiceBar');
             const txtEl = document.getElementById('pdfSmartTaskChoiceText');
@@ -21174,36 +21776,26 @@
             const timeStr = formatHourText(ev.startHour);
             const isSameDay = Number(ev.day) === getCurrentDayIdx();
             const whenLabel = isSameDay ? `النهارده الساعة ${timeStr}` : `يوم ${dayName} الساعة ${timeStr}`;
+            const nowTimeStr = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
 
-            if (!isActiveWindowNow) {
-                txtEl.innerHTML = `<b>ذكاء الرصد 🧭:</b> المحاضرة دي ليها مهمة مجدولة <b>(${whenLabel})</b> باسم «${ev.title}» — داخل تفتكر معلومة ع السريع ولا تحب نبدأ المهمة؟`;
-                actEl.innerHTML = `
-                    <button type="button" class="pstc-btn safe-choice" onclick="choosePdfTaskIntent('just_looking')">
-                        <i class="fa-regular fa-eye"></i> بفتكر معلومة بس (سيبها في ميعادها)
-                    </button>
-                    <button type="button" class="pstc-btn" onclick="choosePdfTaskIntent('credit_keep_slot')">
-                        <i class="fa-solid fa-stopwatch"></i> احسب الوقت من المهمة (من غير نقل ميعادها)
-                    </button>
-                    <button type="button" class="pstc-btn primary-choice" onclick="choosePdfTaskIntent('move_to_now')">
-                        <i class="fa-solid fa-bolt"></i> انقل المهمة للوقت ده وابدأها دلوقتي
-                    </button>
-                `;
-            } else {
-                txtEl.innerHTML = `<b>ذكاء الرصد 🧭:</b> ده ميعاد مهمتك الحالية «${ev.title}» (${timeStr}) — جاري حساب وقت مذاكرتك، أو دوس لو داخل تبص على معلومة سريعة:`;
-                actEl.innerHTML = `
-                    <button type="button" class="pstc-btn primary-choice" onclick="choosePdfTaskIntent('credit_keep_slot')">
-                        <i class="fa-solid fa-check"></i> تمام، كمّل رصد المذاكرة
-                    </button>
-                    <button type="button" class="pstc-btn safe-choice" onclick="choosePdfTaskIntent('just_looking')">
-                        <i class="fa-regular fa-eye"></i> ببص على معلومة بس (لا ترصد)
-                    </button>
-                `;
-            }
+            txtEl.innerHTML = `<b>التتبع الذكي 🧭:</b> المحاضرة دي مرتبطة بمهمة <b>«${ev.title}»</b> المجدولة (${whenLabel}) — تحب نعمل إيه دلوقتي؟`;
+            actEl.innerHTML = `
+                <button type="button" class="pstc-btn primary-choice" onclick="choosePdfTaskIntent('move_to_now')" title="يبدأ المهمة الآن (${nowTimeStr}) ويضبط مكانها على مسطرة الساعات في وقت بدايتك الفعلي">
+                    <i class="fa-solid fa-bolt"></i> ابدأها دلوقتي (${nowTimeStr}) واضبطها على المسطرة
+                </button>
+                <button type="button" class="pstc-btn" onclick="choosePdfTaskIntent('credit_keep_slot')" title="يحسب وقت مذاكرتك مع إبقاء المهمة في مكانها الأصلي (${timeStr}) على المسطرة">
+                    <i class="fa-solid fa-thumbtack"></i> احسب الوقت وخلّي ميعادها (${timeStr}) ثابت
+                </button>
+                <button type="button" class="pstc-btn safe-choice" onclick="choosePdfTaskIntent('just_looking')" title="قراءة سريعة بدون لمس المهمة أو حساب وقت">
+                    <i class="fa-regular fa-eye"></i> براجع معلومة بس (بدون رصد)
+                </button>
+            `;
             bar.classList.add('active');
         }
 
         function choosePdfTaskIntent(intentMode) {
             activePdfTaskIntent = intentMode;
+            isPdfSmartTrackPaused = false;
             hidePdfSmartTaskChoiceBar();
             const ev = scheduleEvents.find(e => String(e.id) === String(activePdfMatchedEventId));
             if (!ev) return;
@@ -21213,12 +21805,22 @@
             const timeStr = formatHourText(ev.startHour);
 
             if (intentMode === 'just_looking') {
-                showToast(`👀 قراءة حرة! مهمة «${ev.title}» هتفضل في ميعادها (${dayName} ${timeStr}) من غير أي تغيير.`);
+                document.getElementById('pdfLiveSmartTrackPill')?.classList.remove('active');
+                showToast(`👀 قراءة حرة! مهمة «${ev.title}» ثابتة في ميعادها (${dayName} ${timeStr}) بدون أي تغيير.`);
                 return;
             }
 
+            const startDateObj = activePdfStudySessionStartMs ? new Date(activePdfStudySessionStartMs) : new Date();
+            const exactStartDecH = Number((startDateObj.getHours() + (startDateObj.getMinutes() / 60)).toFixed(4));
+            const formattedStart = startDateObj.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+
             if (intentMode === 'move_to_now') {
-                recordSmartSessionActualStart(ev, true);
+                ev.keepOriginalSlotLocked = false;
+                ev.smartFirstStartedAtMs = startDateObj.getTime();
+                ev.smartStartTimeFormatted = formattedStart;
+                ev.day = startDateObj.getDay();
+                ev.startHour = Math.max(Number(plannerPrefs.dayStartHour ?? 6), Math.min(23.5, exactStartDecH));
+                ev.isOpenDuration = true;
                 ev.openTimerStartedAt = null;
                 if (activePdfBufferMinutes > 0) {
                     ev.actualStudiedMinutes = Number(((Number(ev.actualStudiedMinutes) || 0) + activePdfBufferMinutes).toFixed(2));
@@ -21226,14 +21828,16 @@
                 }
                 saveScheduleData();
                 renderSchedule();
-                showToast(`🚀 اتنقلت مهمة «${ev.title}» للوقت الحالي وبدأ الرصد الذكي!`);
+                renderPdfLiveSmartTrackPill();
+                showToast(`🚀 بدأ رصد «${ev.title}» من الساعة ${formattedStart} وتم تحديث مكانها على المسطرة!`);
                 return;
             }
 
             if (intentMode === 'credit_keep_slot') {
+                ev.keepOriginalSlotLocked = true;
                 if (!ev.smartFirstStartedAtMs) {
-                    ev.smartFirstStartedAtMs = Date.now();
-                    ev.smartStartTimeFormatted = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                    ev.smartFirstStartedAtMs = startDateObj.getTime();
+                    ev.smartStartTimeFormatted = formattedStart;
                 }
                 if (activePdfBufferMinutes > 0) {
                     ev.actualStudiedMinutes = Number(((Number(ev.actualStudiedMinutes) || 0) + activePdfBufferMinutes).toFixed(2));
@@ -21241,7 +21845,8 @@
                 }
                 saveScheduleData();
                 renderSchedule();
-                showToast(`⏱️ جاري احتساب وقت مذاكرتك لمهمة «${ev.title}» مع الحفاظ على ميعادها الأصلي (${dayName} ${timeStr})!`);
+                renderPdfLiveSmartTrackPill();
+                showToast(`📌 جاري احتساب وقت المذاكرة لمهمة «${ev.title}» مع تثبيت ميعادها الأصلي (${dayName} ${timeStr})!`);
             }
         }
 
@@ -21253,7 +21858,9 @@
             activePdfBufferMinutes = 0;
             activePdfTaskIntent = null;
             activePdfMatchedEventId = null;
+            isPdfSmartTrackPaused = false;
             hidePdfSmartTaskChoiceBar();
+            document.getElementById('pdfLiveSmartTrackPill')?.classList.remove('active');
 
             // Find best matching uncompleted session (prioritize today's active window, then today, then other days)
             let todayCandidates = findMatchingScheduledSessionsForLecture(lec, sub?.id, true);
@@ -21273,8 +21880,7 @@
                 activePdfMatchedEventId = matchedEv.id;
                 const inWindowNow = isSessionInCurrentTimeWindow(matchedEv);
 
-                // NEVER silently move a task's day or startHour on lecture open!
-                // Instead, show the non-intrusive Smart Choice Bar so the user is in 100% control.
+                // Always ask the user via the Smart Choice Bar before touching the task!
                 showPdfSmartTaskChoiceBar(matchedEv, inWindowNow);
             }
 
@@ -21289,51 +21895,25 @@
                 const curMs = Date.now();
                 const deltaMins = Math.max(0, (curMs - (lastStudyTrackTickMs || curMs)) / 60000);
                 lastStudyTrackTickMs = curMs;
-                if (deltaMins <= 0) return;
+                if (deltaMins <= 0 || isPdfSmartTrackPaused) return;
 
-                // If user explicitly chose "بفتكر معلومة بس", do not accumulate or touch any task
                 if (activePdfTaskIntent === 'just_looking') return;
 
                 const targetEv = scheduleEvents.find(e => String(e.id) === String(activePdfMatchedEventId));
                 if (!targetEv || targetEv.completed) return;
 
-                const inWindowNow = isSessionInCurrentTimeWindow(targetEv);
-
-                // If the user hasn't chosen an intent yet and the task is for later tonight or tomorrow,
-                // keep the elapsed time ONLY in activePdfBufferMinutes without touching targetEv!
-                if (!activePdfTaskIntent && !inWindowNow) {
+                // While waiting for the user to choose on the bar, buffer the elapsed time without mutating targetEv!
+                if (!activePdfTaskIntent) {
                     activePdfBufferMinutes = Number((activePdfBufferMinutes + deltaMins).toFixed(2));
                     return;
                 }
 
-                // If in active window right now (or user explicitly chose 'credit_keep_slot' / 'move_to_now')
-                if (!activePdfTaskIntent && inWindowNow) {
-                    // Buffer the first 1.5 minutes quietly in case they just opened the file for a quick look
-                    activePdfBufferMinutes = Number((activePdfBufferMinutes + deltaMins).toFixed(2));
-                    if (activePdfBufferMinutes < 1.5) return;
-                    // After 1.5 mins in the scheduled window, credit the buffered time without moving the slot
-                    targetEv.actualStudiedMinutes = Number(((Number(targetEv.actualStudiedMinutes) || 0) + activePdfBufferMinutes).toFixed(2));
-                    activePdfBufferMinutes = 0;
-                    activePdfTaskIntent = 'credit_keep_slot';
-                } else {
-                    targetEv.actualStudiedMinutes = Number(((Number(targetEv.actualStudiedMinutes) || 0) + deltaMins).toFixed(2));
+                targetEv.actualStudiedMinutes = Number(((Number(targetEv.actualStudiedMinutes) || 0) + deltaMins).toFixed(2));
+                if (activePdfTaskIntent === 'move_to_now' && !targetEv.keepOriginalSlotLocked) {
+                    targetEv.duration = Math.max(0.25, Number((targetEv.actualStudiedMinutes / 60).toFixed(2)));
                 }
-
-                if (targetEv.isOpenDuration) {
-                    if (activePdfTaskIntent === 'move_to_now' && targetEv.actualStudiedMinutes >= 1) {
-                        targetEv.duration = Math.max(0.25, Number((targetEv.actualStudiedMinutes / 60).toFixed(2)));
-                    }
-                    // Keep in RAM while PDF is open; saved to localStorage on PDF close so pen writing never stutters!
-                    return;
-                }
-
-                const plannedMinutes = (Number(targetEv.duration) || 1) * 60;
-                const thresholdRatio = (Number(plannerPrefs.autoCompletePct) || 75) / 100;
-                const requiredMinutes = plannedMinutes * thresholdRatio;
-
-                if (targetEv.actualStudiedMinutes >= requiredMinutes && !targetEv.completed && !isActivelyDrawingOnPdf) {
-                    autoCompleteScheduledSessionSmart(targetEv, lec, sub, activePdfTaskIntent === 'move_to_now');
-                }
+                renderPdfLiveSmartTrackPill();
+                // Keep in RAM while PDF is open; saved on PDF close so pen never stutters!
             }, 15000);
         }
 
@@ -21707,6 +22287,14 @@
             btnComplete.onclick = () => {
                 closeModal('smartStudyVerifyModalOverlay');
                 if (ev.openTimerStartedAt) ev.openTimerStartedAt = null;
+                const nowObj = new Date();
+                ev.smartEndTimeFormatted = nowObj.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                if (!ev.keepOriginalSlotLocked && ev.smartStartTimeFormatted) {
+                    const parsedS = parseArabicTimeStringToDecHour(ev.smartStartTimeFormatted);
+                    if (parsedS !== null) {
+                        ev.startHour = Math.max(Number(plannerPrefs.dayStartHour ?? 6), Math.min(23.5, parsedS));
+                    }
+                }
                 ev.completed = true;
                 ev.missed = false;
                 ev.autoCompleted = true;
@@ -21734,8 +22322,15 @@
                     const approxStart = new Date(Date.now() - studiedMins * 60000);
                     ev.smartStartTimeFormatted = approxStart.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
                 }
+                if (!ev.keepOriginalSlotLocked && ev.smartStartTimeFormatted) {
+                    const parsedS = parseArabicTimeStringToDecHour(ev.smartStartTimeFormatted);
+                    if (parsedS !== null) {
+                        ev.startHour = Math.max(Number(plannerPrefs.dayStartHour ?? 6), Math.min(23.5, parsedS));
+                    }
+                }
                 ev.actualStudiedMinutes = studiedMins;
                 ev.duration = studiedHrs;
+                ev.isOpenDuration = true;
                 ev.completed = true;
                 ev.missed = false;
                 ev.autoCompleted = true;
