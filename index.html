@@ -6806,6 +6806,182 @@
         .notion-event-block.neb-compact-row .neb-time-pill {
             font-size: 0.68rem;
         }
+        /* ================= COMPREHENSIVE TASK TYPE ARCHITECTURE & COLLEGE ABSENCE STYLES ================= */
+        :root {
+            --practice-color: #06b6d4;
+            --catchup-color: #ec4899;
+            --personal-color: #64748b;
+            --absent-color: #f97316;
+            --wasted-color: #e11d48;
+        }
+        /* Interactive Task Type Grid in Session Modal (4 clean cards in 2x2 grid — zero overflow) */
+        .task-type-picker-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 6px;
+            margin-bottom: 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        @media (max-width: 460px) {
+            .task-type-picker-grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+        .task-type-chip {
+            background: rgba(13, 19, 31, 0.88);
+            border: 1.5px solid rgba(148, 163, 184, 0.15);
+            border-radius: 11px;
+            padding: 9px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.16s ease;
+            text-align: right;
+            user-select: none;
+            min-width: 0;
+            width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .task-type-chip:hover {
+            border-color: rgba(45, 212, 191, 0.45);
+            background: rgba(23, 33, 52, 0.95);
+            transform: translateY(-1px);
+        }
+        .task-type-chip.active {
+            border-color: var(--chip-accent, var(--primary));
+            background: rgba(45, 212, 191, 0.11);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3), inset 0 0 0 1px var(--chip-accent, var(--primary));
+        }
+        .ttc-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.82rem;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--chip-accent, var(--primary));
+        }
+        .ttc-info {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+        .ttc-title {
+            font-size: 0.77rem;
+            font-weight: 800;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .ttc-sub {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* New Task Category Colors across Week Board, Smart Stream & Hourly Ruler */
+        .fluid-session-card.fluid-cat-practice { border-right-color: var(--practice-color) !important; }
+        .fluid-session-card.fluid-cat-catchup { border-right-color: var(--catchup-color) !important; }
+        .fluid-session-card.fluid-cat-personal {
+            border-right-color: var(--personal-color) !important;
+            background: rgba(100, 116, 139, 0.08) !important;
+        }
+
+        .smart-hour-item.shi-practice { border-right-color: var(--practice-color) !important; }
+        .smart-hour-item.shi-catchup { border-right-color: var(--catchup-color) !important; }
+        .smart-hour-item.shi-personal {
+            border-right-color: var(--personal-color) !important;
+            background: rgba(30, 41, 59, 0.48) !important;
+        }
+
+        .notion-event-block.neb-practice {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.20), rgba(14, 116, 144, 0.24));
+            border-color: rgba(6, 182, 212, 0.35);
+            border-right-color: var(--practice-color);
+        }
+        .notion-event-block.neb-catchup {
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.20), rgba(157, 23, 77, 0.24));
+            border-color: rgba(236, 72, 153, 0.35);
+            border-right-color: var(--catchup-color);
+        }
+        .notion-event-block.neb-personal {
+            background: linear-gradient(135deg, rgba(100, 116, 139, 0.22), rgba(51, 65, 85, 0.28));
+            border-color: rgba(148, 163, 184, 0.28);
+            border-right-color: var(--personal-color);
+        }
+        .fluid-session-card.fluid-cat-wasted,
+        .fluid-session-card.is-wasted-time {
+            border: 1.5px dashed rgba(225, 29, 72, 0.45) !important;
+            border-right: 4px solid var(--wasted-color) !important;
+            background: linear-gradient(135deg, rgba(225, 29, 72, 0.12), rgba(15, 23, 42, 0.72)) !important;
+        }
+        .smart-hour-item.shi-wasted,
+        .smart-hour-item.is-wasted-time {
+            border: 1.5px dashed rgba(225, 29, 72, 0.45) !important;
+            border-right: 4px solid var(--wasted-color) !important;
+            background: linear-gradient(135deg, rgba(225, 29, 72, 0.11), rgba(15, 23, 42, 0.72)) !important;
+        }
+        .notion-event-block.neb-wasted,
+        .notion-event-block.is-wasted-time {
+            background: linear-gradient(135deg, rgba(225, 29, 72, 0.20), rgba(136, 19, 55, 0.26)) !important;
+            border: 1.5px dashed rgba(244, 63, 94, 0.5) !important;
+            border-right: 3.5px solid var(--wasted-color) !important;
+        }
+        .smart-status-tag.tag-wasted {
+            background: rgba(225, 29, 72, 0.2);
+            color: #fda4af;
+            border: 1px solid rgba(244, 63, 94, 0.45);
+        }
+
+        /* College Absence State (تغيّبت عن الكلية — الوقت متاح للمذاكرة) */
+        .fluid-session-card.is-absent-college,
+        .smart-hour-item.is-absent-college {
+            border: 1.5px dashed rgba(249, 115, 22, 0.45) !important;
+            border-right: 4px solid var(--absent-color) !important;
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.08), rgba(15, 23, 42, 0.65)) !important;
+            opacity: 0.92 !important;
+        }
+        .fluid-session-card.is-absent-college .fsc-title,
+        .smart-hour-item.is-absent-college .shi-title {
+            color: #fdba74 !important;
+            text-decoration: line-through;
+        }
+        .notion-event-block.is-absent-college {
+            background: rgba(249, 115, 22, 0.09) !important;
+            border: 1.5px dashed rgba(249, 115, 22, 0.48) !important;
+            border-right: 3.5px solid var(--absent-color) !important;
+            z-index: 6 !important;
+            opacity: 0.86 !important;
+        }
+        .notion-event-block.is-absent-college:hover {
+            opacity: 1 !important;
+            z-index: 22 !important;
+        }
+        .notion-event-block.is-absent-college .neb-title {
+            color: #fdba74 !important;
+            text-decoration: line-through;
+        }
+        .smart-status-tag.tag-absent {
+            background: rgba(249, 115, 22, 0.18);
+            color: #fdba74;
+            border: 1px solid rgba(249, 115, 22, 0.45);
+        }
+        .smart-status-tag.tag-type-pill {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #e2e8f0;
+        }
+
         /* Daily Log Accordion Styling */
         .log-day-group {
             background: rgba(15, 20, 30, 0.68);
@@ -7070,24 +7246,28 @@
                                 <i class="fa-solid fa-layer-group"></i> الكل
                             </button>
                             <button class="filter-chip-btn" data-filter="important" onclick="setQuickScheduleFilter('important', this)">
-                                <i class="fa-solid fa-circle" style="color: var(--important-color); font-size: 0.6rem;"></i> مذاكرة عميقة
+                                <i class="fa-solid fa-book-open-reader" style="color: var(--important-color); font-size: 0.7rem;"></i> مذاكرة وتحصيل
                             </button>
                             <button class="filter-chip-btn" data-filter="review" onclick="setQuickScheduleFilter('review', this)">
-                                <i class="fa-solid fa-circle" style="color: var(--review-color); font-size: 0.6rem;"></i> مراجعة وتثبيت
-                            </button>
-                            <button class="filter-chip-btn" data-filter="urgent" onclick="setQuickScheduleFilter('urgent', this)">
-                                <i class="fa-solid fa-circle" style="color: var(--primary); font-size: 0.6rem;"></i> كويز / تسليم
+                                <i class="fa-solid fa-rotate" style="color: var(--review-color); font-size: 0.7rem;"></i> مراجعة وكويزات
                             </button>
                             <button class="filter-chip-btn" data-filter="mandatory" onclick="setQuickScheduleFilter('mandatory', this)">
-                                <i class="fa-solid fa-lock" style="color: var(--mandatory-color); font-size: 0.65rem;"></i> كلية / ثابت
+                                <i class="fa-solid fa-building-columns" style="color: var(--mandatory-color); font-size: 0.7rem;"></i> الكلية
+                            </button>
+                            <button class="filter-chip-btn" data-filter="personal" onclick="setQuickScheduleFilter('personal', this)">
+                                <i class="fa-solid fa-mug-hot" style="color: var(--personal-color); font-size: 0.7rem;"></i> راحة / وقت ضائع
                             </button>
                             <!-- Hidden native select kept in sync for backward compatibility -->
                             <select id="schFilterType" onchange="renderWeekGrid()" style="display: none;">
                                 <option value="all">جميع أنواع الجلسات</option>
-                                <option value="mandatory">محاضرات ومعامل الكلية</option>
-                                <option value="important">جلسات المذاكرة العميقة</option>
-                                <option value="urgent">كويزات وتسليمات</option>
-                                <option value="review">مراجعة وتثبيت</option>
+                                <option value="mandatory">حضور كلية وسكاشن</option>
+                                <option value="important">مذاكرة وتلخيص محاضرات</option>
+                                <option value="practice">حل أسئلة وتطبيق وعملي</option>
+                                <option value="review">مراجعة متباعدة وتثبيت</option>
+                                <option value="catchup">تعويض متراكم / قراءة سريعة</option>
+                                <option value="urgent">كويز / امتحان / تسليم</option>
+                                <option value="personal">مشوار / التزام شخصي / راحة</option>
+                                <option value="wasted">لعب / تضييع وقت / سوشيال ميديا</option>
                             </select>
                         </div>
 
@@ -7441,18 +7621,23 @@
                             </div>
                         </div>
 
-                        <!-- Category Breakdown Bar -->
+                        <!-- Clean 4-Category Breakdown Bar -->
                         <div style="display: flex; justify-content: space-between; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 5px; flex-wrap: wrap; gap: 8px;">
-                            <span>🟢 مذاكرة عميقة: <b id="distImportantTxt" style="color:#6ee7b7;">0 س</b></span>
-                            <span>🟣 مراجعة: <b id="distReviewTxt" style="color:#c4b5fd;">0 س</b></span>
-                            <span>🟡 كويزات: <b id="distUrgentTxt" style="color:#fcd34d;">0 س</b></span>
-                            <span>🔴 كلية ثابت: <b id="distMandatoryTxt" style="color:#fda4af;">0 س</b></span>
+                            <span>🟢 مذاكرة وتحصيل: <b id="distImportantTxt" style="color:#6ee7b7;">0 س</b></span>
+                            <span>🟣 مراجعة وكويزات: <b id="distReviewTxt" style="color:#c4b5fd;">0 س</b></span>
+                            <span>🏛️ الكلية: <b id="distMandatoryTxt" style="color:#fda4af;">0 س</b></span>
+                            <span id="distAbsentWrap" style="display:none;">🏠 غياب كلية: <b id="distAbsentTxt" style="color:#fdba74;">0 س</b></span>
+                            <span id="distWastedWrap" style="display:none;">🎮 وقت ضائع: <b id="distWastedTxt" style="color:#fb7185;">0 س</b></span>
+                            <span style="display:none;"><b id="distPracticeTxt"></b><b id="distCatchupTxt"></b><b id="distUrgentTxt"></b></span>
                         </div>
                         <div class="distribution-bar" id="distributionBar" style="height: 8px; margin: 4px 0 14px 0;">
-                            <div class="dist-segment" id="distMandatory" style="width: 25%; background: var(--mandatory-color);"></div>
-                            <div class="dist-segment" id="distImportant" style="width: 50%; background: var(--important-color);"></div>
-                            <div class="dist-segment" id="distUrgent" style="width: 15%; background: var(--urgent-color);"></div>
-                            <div class="dist-segment" id="distReview" style="width: 10%; background: var(--review-color);"></div>
+                            <div class="dist-segment" id="distMandatory" style="width: 20%; background: var(--mandatory-color);"></div>
+                            <div class="dist-segment" id="distImportant" style="width: 35%; background: var(--important-color);"></div>
+                            <div class="dist-segment" id="distPractice" style="width: 15%; background: var(--practice-color);"></div>
+                            <div class="dist-segment" id="distReview" style="width: 15%; background: var(--review-color);"></div>
+                            <div class="dist-segment" id="distCatchup" style="width: 5%; background: var(--catchup-color);"></div>
+                            <div class="dist-segment" id="distUrgent" style="width: 10%; background: var(--urgent-color);"></div>
+                            <div class="dist-segment" id="distWasted" style="width: 0%; background: var(--wasted-color);"></div>
                         </div>
 
                         <!-- 7-Day Load Bars -->
@@ -7467,6 +7652,14 @@
                             <span id="weekStudyHours"></span><span id="weekDoneHours"></span>
                             <span id="weekCollegeHours"></span><span id="weekTotalHours"></span>
                             <span id="statEfficiencyRate"></span><span id="statTotalLogs"></span>
+                            <input id="newTaskDurationInput"><span id="newTaskDurationUnitLbl"></span>
+                            <button id="timerStartBtn"></button><span id="timerDisplay"></span><select id="timerSubjectSelect"></select>
+                            <button id="sb2CheckBtn"></button><i id="sb2CheckIcon"></i><i id="sb2PdfIcon"></i><span id="sb2LecTitle"></span>
+                            <div id="sb2ProgressBar"></div><span id="sb2ProgressText"></span><span id="sb2SrBadge"></span>
+                            <button id="sb2SimDaysBtn"></button><div id="sb2StatusMsg"></div><button id="sb2RefreshBtn"></button>
+                            <button id="sb5RunBtn"></button><span id="sb5TimerText"></span><span id="sb5StreakBadge"></span>
+                            <svg><path id="memorySvgPath"></path><path id="memorySvgArea"></path><circle id="memorySvgDot"></circle><circle id="sb6GradeRingCircle"></circle><text id="sb6GradeRingPct"></text></svg>
+                            <span id="memoryCurveRetentionBadge"></span>
                         </div>
                     </div>
                 </div>
@@ -7514,6 +7707,8 @@
                             <option value="bolt">⚡ إنجاز متقن</option>
                             <option value="book">📚 إنهاء محاضرات</option>
                             <option value="lightbulb">💡 استيعاب جديد</option>
+                            <option value="college_absent">🏠 أيام غياب من الكلية (وقت مستثمر)</option>
+                            <option value="wasted_time">🎮 وقت ضائع / لعب وتشتت</option>
                             <option value="missed">❌ مهام لم تتم (فائتة)</option>
                             <option value="weekly_report">📊 تقييمات الأسابيع</option>
                         </select>
@@ -7629,7 +7824,7 @@
                             <i class="fa-solid fa-list-check"></i> تحميل ملفات منفصلة للجهاز
                         </button>
                     </div>
-                    <div id="cloudIndividualFilesDrawer" style="display: none; margin-top: 10px; background: rgba(9, 13, 22, 0.88); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 11px; padding: 10px; max-height: 210px; overflow-y: auto;"></div>
+                    <div id="cloudIndividualFilesDrawer" style="display: none; margin-top: 10px; background: rgba(9, 13, 22, 0.88); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 11px; padding: 10px; max-height: 210px; overflow-y: auto;"><div id="cloudIndividualFilesList" style="display:flex; flex-direction:column; gap:6px;"></div></div>
                     <!-- Live Upload Progress Bar, Percentage & Speed Monitor inside Account Modal -->
                     <div class="cloud-upload-monitor-box" id="cloudMediaUploadMonitorBox">
                         <div class="cum-top-row">
@@ -8773,31 +8968,89 @@
     <!-- Compact & Organized Session Modal (Fits on 1 Screen with Collapsible Multi-Lecture Picker & Smart Time Tracking) -->
     <div class="glass-overlay" id="sessionModalOverlay">
         <div class="glass-modal compact-session-modal">
-            <!-- Header Row: Title + Compact Fixed Routine Switch -->
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.06);">
-                <h3 id="sessionModalTitle" style="margin: 0; font-size: 1.15rem;"><i class="fa-solid fa-calendar-plus" style="color: var(--primary);"></i> جدولة جلسة جديدة</h3>
-                <div style="display: inline-flex; align-items: center; gap: 7px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: 999px; padding: 4px 11px; cursor: pointer;" onclick="toggleFixedCommitment()" title="التزام أسبوعي ثابت (حضور كلية / معامل)">
-                    <i class="fa-solid fa-lock-open" id="fixedToggleIcon" style="color: var(--primary); font-size: 0.78rem;"></i>
-                    <span style="font-size: 0.76rem; font-weight: 800; color: var(--text-main);">التزام كلية ثابت</span>
-                    <input type="checkbox" id="sessionIsFixedCheckbox" style="width: 15px; height: 15px; margin: 0; accent-color: var(--primary); cursor: pointer;" onclick="event.stopPropagation(); handleFixedCheckboxChange();">
+            <!-- Header Row: Clean Title + Close Button -->
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+                <h3 id="sessionModalTitle" style="margin: 0; font-size: 1.12rem;"><i class="fa-solid fa-calendar-plus" style="color: var(--primary);"></i> جدولة جلسة جديدة</h3>
+                <button type="button" class="icon-btn" style="width: 30px; height: 30px;" onclick="closeModal('sessionModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
+                <!-- Hidden compatibility fixed checkbox (synced automatically when 'mandatory' is selected) -->
+                <div style="display: none;">
+                    <i id="fixedToggleIcon"></i>
+                    <input type="checkbox" id="sessionIsFixedCheckbox" onchange="handleFixedCheckboxChange()">
                 </div>
             </div>
             <input type="hidden" id="sessionEditId" value="">
 
-            <!-- Row 1: Title + Session Type -->
-            <div class="csm-row-2">
-                <div>
-                    <label>عنوان الجلسة / المهمة:</label>
-                    <input type="text" id="sessionTitleInput" placeholder="مثال: مذاكرة ومراجعة فارماكولوجي">
+            <!-- Row 1: Session Title -->
+            <div style="margin-bottom: 10px;">
+                <label>عنوان الجلسة / المهمة:</label>
+                <input type="text" id="sessionTitleInput" placeholder="مثال: مذاكرة محاضرة 3، أو مراجعة شيت، أو حضور الكلية..." style="width: 100%;">
+            </div>
+
+            <!-- Row 1.5: Streamlined 4-Card Task Type Picker (2x2 Grid) -->
+            <div style="margin-bottom: 10px;">
+                <label>نوع المهمة:</label>
+                <span id="sessionTypeBehaviorHint" style="display:none;"></span>
+                <select id="sessionTypeSelect" style="display: none;" onchange="handleSessionTypeSelectChange(this.value)">
+                    <option value="important" selected>🟢 مذاكرة وتحصيل</option>
+                    <option value="practice">🩵 حل وتطبيق</option>
+                    <option value="review">🟣 مراجعة وكويزات</option>
+                    <option value="catchup">🩷 تعويض متراكم</option>
+                    <option value="urgent">🟡 كويز / تسليم</option>
+                    <option value="mandatory">🔴 حضور كلية وسكاشن</option>
+                    <option value="personal">⚪ راحة / التزام شخصي</option>
+                    <option value="wasted">🎮 لعب / وقت ضائع</option>
+                </select>
+                <div class="task-type-picker-grid" id="taskTypePickerGrid">
+                    <div class="task-type-chip active" data-type-val="important" style="--chip-accent: #10b981;" onclick="selectSessionTaskTypeCard('important')">
+                        <div class="ttc-icon"><i class="fa-solid fa-book-open-reader"></i></div>
+                        <div class="ttc-info">
+                            <span class="ttc-title">مذاكرة وتحصيل</span>
+                            <span class="ttc-sub">محاضرات • تلخيص • حل عملي</span>
+                        </div>
+                    </div>
+                    <div class="task-type-chip" data-type-val="review" style="--chip-accent: #818cf8;" onclick="selectSessionTaskTypeCard('review')">
+                        <div class="ttc-icon"><i class="fa-solid fa-rotate"></i></div>
+                        <div class="ttc-info">
+                            <span class="ttc-title">مراجعة وكويزات</span>
+                            <span class="ttc-sub">تثبيت • تعويض متأخرات • امتحان</span>
+                        </div>
+                    </div>
+                    <div class="task-type-chip" data-type-val="mandatory" style="--chip-accent: #f43f5e;" onclick="selectSessionTaskTypeCard('mandatory')">
+                        <div class="ttc-icon"><i class="fa-solid fa-building-columns"></i></div>
+                        <div class="ttc-info">
+                            <span class="ttc-title">كلية وسكاشن</span>
+                            <span class="ttc-sub">ثابت أسبوعياً • يدعم الغياب 🏠</span>
+                        </div>
+                    </div>
+                    <div class="task-type-chip" data-type-val="personal" style="--chip-accent: #94a3b8;" onclick="selectSessionTaskTypeCard('personal')">
+                        <div class="ttc-icon"><i class="fa-solid fa-mug-hot"></i></div>
+                        <div class="ttc-info">
+                            <span class="ttc-title">راحة / وقت حر</span>
+                            <span class="ttc-sub">مشوار • أو تسجيل وقت ضائع 🎮</span>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <label>نوع الجلسة والأولوية:</label>
-                    <select id="sessionTypeSelect" style="width: 100%;">
-                        <option value="important" selected>🟢 مذاكرة عميقة</option>
-                        <option value="review">🟣 مراجعة وتثبيت</option>
-                        <option value="urgent">🟡 كويز / تسليم</option>
-                        <option value="mandatory">🔴 إجباري / كلية</option>
-                    </select>
+
+                <!-- Sleek 1-Line Toggle when "راحة / وقت حر" is selected: Is it normal break or wasted gaming time? -->
+                <div id="sessionModalWastedBox" style="display:none; background:rgba(225, 29, 72, 0.08); border:1px solid rgba(244, 63, 94, 0.3); border-radius:9px; padding:7px 11px; margin-top:4px; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+                    <span style="font-size:0.76rem; color:#fda4af; font-weight:700;">
+                        <i class="fa-solid fa-gamepad"></i> هل ضاع هذا الوقت في اللعب أو السوشيال ميديا؟
+                    </span>
+                    <label style="display:inline-flex !important; align-items:center; gap:6px; cursor:pointer; margin:0 !important; color:#ffffff !important; font-size:0.76rem !important;">
+                        <input type="checkbox" id="sessionIsWastedCheckbox" style="width:15px; height:15px; margin:0; accent-color:#e11d48; cursor:pointer;" onchange="handleWastedCheckboxInModal(this.checked)">
+                        <span>نعم، سجّله كوقت ضائع 🎮</span>
+                    </label>
+                </div>
+
+                <!-- Sleek 1-Line Toggle when "كلية وسكاشن" is selected: Mark absent today -->
+                <div id="sessionModalAbsentBox" style="display:none; background:rgba(249, 115, 22, 0.08); border:1px solid rgba(249, 115, 22, 0.32); border-radius:9px; padding:7px 11px; margin-top:4px; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+                    <span style="font-size:0.76rem; color:#fdba74; font-weight:700;">
+                        <i class="fa-solid fa-house-laptop"></i> تغيبت عن الكلية اليوم؟ (يفرّغ وقتها للمذاكرة)
+                    </span>
+                    <label style="display:inline-flex !important; align-items:center; gap:6px; cursor:pointer; margin:0 !important; color:#ffffff !important; font-size:0.76rem !important;">
+                        <input type="checkbox" id="sessionIsAbsentCheckbox" style="width:15px; height:15px; margin:0; accent-color:#f97316; cursor:pointer;">
+                        <span>نعم، تغيبت هذا الأسبوع 🏠</span>
+                    </label>
                 </div>
             </div>
 
@@ -10858,28 +11111,249 @@
             }
         }
 
+        const TASK_TYPE_ARCHITECTURE = {
+            important: { label: 'مذاكرة وتلخيص', shortLabel: 'مذاكرة', icon: 'fa-book-open-reader', color: '#10b981', isStudy: true, isCollege: false, isPersonal: false, isWasted: false, hint: '💡 تُحسب في ساعات المذاكرة الصافية ومؤشر التزامك وتقترح ربط محاضرات' },
+            practice:  { label: 'حل وتطبيق وعملي', shortLabel: 'حل وعملي', icon: 'fa-pen-clip', color: '#06b6d4', isStudy: true, isCollege: false, isPersonal: false, isWasted: false, hint: '💡 لتدريبات الشيتات والامتحانات السابقة والعملي — تُحسب ضمن إنجازك الصافي' },
+            review:    { label: 'مراجعة وتثبيت', shortLabel: 'مراجعة', icon: 'fa-rotate', color: '#818cf8', isStudy: true, isCollege: false, isPersonal: false, isWasted: false, hint: '💡 ترفع حصة المراجعة الأسبوعية وتجدد عداد الذاكرة للمحاضرات المرتبطة' },
+            catchup:   { label: 'تعويض متراكم', shortLabel: 'تعويض', icon: 'fa-bolt', color: '#ec4899', isStudy: true, isCollege: false, isPersonal: false, isWasted: false, hint: '💡 مخصصة للمّ المحاضرات المتأخرة أو سماع الريكوردات السريع واستغلال أوقات الغياب' },
+            urgent:    { label: 'كويز / تسليم', shortLabel: 'كويز/تسليم', icon: 'fa-flag-checkered', color: '#f59e0b', isStudy: true, isCollege: false, isPersonal: false, isWasted: false, hint: '💡 أولوية قصوى للاستعداد للكويزات والامتحانات العملية والتسليمات' },
+            mandatory: { label: 'حضور كلية وسكاشن', shortLabel: 'كلية/سكشن', icon: 'fa-building-columns', color: '#f43f5e', isStudy: false, isCollege: true, isPersonal: false, isWasted: false, hint: '🏛️ التزام كلية أسبوعي ثابت — يمكنك تسجيل «تغيبت اليوم» في أي وقت لاستغلال وقته في المذاكرة!' },
+            personal:  { label: 'التزام شخصي / راحة', shortLabel: 'شخصي/راحة', icon: 'fa-mug-hot', color: '#94a3b8', isStudy: false, isCollege: false, isPersonal: true, isWasted: false, hint: '☕ يحجز الوقت في جدولك لتنظيم يومك دون أن يؤثر سلباً على نسبة التزامك الدراسي' },
+            wasted:    { label: 'لعب / تضييع وقت', shortLabel: 'لعب/وقت ضائع', icon: 'fa-gamepad', color: '#e11d48', isStudy: false, isCollege: false, isPersonal: false, isWasted: true, hint: '🎮 لتسجيل الوقت الضائع في الجيمز أو السوشيال ميديا بصراحة — يظهر في السجل والتقييم ويقترح عليك جلسة تعويض فورية!' }
+        };
+
+        function getTaskTypeMeta(typeKey) {
+            return TASK_TYPE_ARCHITECTURE[typeKey] || TASK_TYPE_ARCHITECTURE.important;
+        }
+
+        function isCollegeCommitmentSession(ev) {
+            return Boolean(ev && (ev.isFixed || ev.type === 'mandatory'));
+        }
+
+        function isPersonalNeutralSession(ev) {
+            return Boolean(ev && !ev.isFixed && ev.type === 'personal');
+        }
+
+        function isWastedTimeSession(ev) {
+            return Boolean(ev && !isCollegeCommitmentSession(ev) && (ev.type === 'wasted' || ev.wasted));
+        }
+
+        function isActionableStudySession(ev) {
+            // Standalone wasted-time blocks are not study tasks; however, a study task that the user wasted (ev.wasted && ev.originalType) remains part of planned study hours for honest accountability!
+            if (!ev || isCollegeCommitmentSession(ev) || isPersonalNeutralSession(ev)) return false;
+            if (ev.type === 'wasted' && !ev.originalType) return false;
+            return true;
+        }
+
+        function fillWastedPresetTitle(presetTxt) {
+            const titleIn = document.getElementById('sessionTitleInput');
+            if (titleIn) {
+                titleIn.value = presetTxt;
+                titleIn.focus();
+            }
+        }
+
+        function markSessionAsWastedTime(event, eventId) {
+            if (event) event.stopPropagation();
+            const ev = scheduleEvents.find(e => String(e.id) === String(eventId));
+            if (!ev || isCollegeCommitmentSession(ev)) return;
+
+            const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+            const dayName = days[Number(ev.day)] || 'اليوم';
+            const timing = getSessionDisplayTiming(ev);
+            const dateStr = new Date().toLocaleDateString('ar-EG');
+
+            if (!ev.originalType && ev.type !== 'wasted') {
+                ev.originalType = ev.type || 'important';
+            }
+            ev.wasted = true;
+            ev.completed = false;
+            ev.missed = true;
+            ev.wastedAtMs = Date.now();
+
+            const logTxt = `🎮 وقت ضائع / لعب (${dayName}): ضاع وقت «${ev.title}» (${timing.durationBadgeText}) — يمكنك الضغط على «تعويض الآن ⚡» لجدولة بديل لها`;
+            if (!logs.some(l => l.text === logTxt && l.date === dateStr)) {
+                logs.unshift({
+                    id: Date.now(),
+                    date: dateStr,
+                    text: logTxt,
+                    mood: 'wasted_time',
+                    subjectId: ev.subjectId || ''
+                });
+                saveLogs();
+            }
+            saveScheduleData();
+            renderSchedule();
+            updateTracker();
+            showToast(`🎮 تم تسجيل ضياع وقت «${ev.title}» بصراحة! اضغط «⚡ تعويض الآن» على البطاقة لجدولة جلسة إنقاذ بديلة.`);
+        }
+
+        function undoWastedSessionStatus(event, eventId) {
+            if (event) event.stopPropagation();
+            const ev = scheduleEvents.find(e => String(e.id) === String(eventId));
+            if (!ev) return;
+
+            ev.wasted = false;
+            ev.wastedAtMs = null;
+            if (ev.originalType) {
+                ev.type = ev.originalType;
+                delete ev.originalType;
+            } else if (ev.type === 'wasted') {
+                ev.type = 'important';
+            }
+            const dateStr = new Date().toLocaleDateString('ar-EG');
+            logs = logs.filter(l => !(l.mood === 'wasted_time' && l.text && l.text.includes(ev.title) && l.date === dateStr));
+            saveLogs();
+            saveScheduleData();
+            renderSchedule();
+            updateTracker();
+            showToast(`↩️ تم إلغاء حالة الوقت الضائع واستعادة مهمة «${ev.title}».`);
+        }
+
+        function recoverWastedSessionWithCatchup(event, eventId) {
+            if (event) event.stopPropagation();
+            const wastedEv = scheduleEvents.find(e => String(e.id) === String(eventId));
+            if (!wastedEv) return;
+
+            const todayIdx = getCurrentDayIdx();
+            const nowHour = Math.max(Number(plannerPrefs.dayStartHour ?? 6), Math.min(Number(plannerPrefs.dayEndHour ?? 22), Math.ceil(new Date().getHours() + 0.5)));
+            openAddSessionModal(todayIdx, nowHour);
+            selectSessionTaskTypeCard('catchup', true);
+
+            const cleanBaseTitle = (wastedEv.title || '').replace(/^تعويض:\s*/i, '');
+            const titleIn = document.getElementById('sessionTitleInput');
+            if (titleIn) {
+                titleIn.value = wastedEv.type === 'wasted' && !wastedEv.originalType
+                    ? 'جلسة تعويض مركزة لما فاتني من الوقت الضائع ⚡'
+                    : `تعويض: ${cleanBaseTitle}`;
+            }
+            if (wastedEv.subjectId) {
+                const subSel = document.getElementById('sessionSubjectSelect');
+                if (subSel) subSel.value = String(wastedEv.subjectId);
+                const lecIds = Array.isArray(wastedEv.lectureIds) && wastedEv.lectureIds.length > 0
+                    ? wastedEv.lectureIds
+                    : (wastedEv.lectureId ? [wastedEv.lectureId] : []);
+                populateSessionLecturesDropdown(lecIds);
+            }
+            const durSel = document.getElementById('sessionDurationSelect');
+            const stdDurs = ['0.5', '1', '1.5', '2', '2.5', '3', '4', '5', '6', '8'];
+            const targetDur = String(wastedEv.duration || '1.5');
+            if (durSel && stdDurs.includes(targetDur)) {
+                durSel.value = targetDur;
+            }
+            const notesIn = document.getElementById('sessionNotesInput');
+            if (notesIn) {
+                notesIn.value = `جلسة إنقاذ لتعويض الوقت الضائع (${wastedEv.title})`;
+            }
+            updateCalculatedEndTime();
+            showToast('⚡ حدد الموعد المناسب لبدء جلسة التعويض واسترداد وقتك الآن!');
+        }
+
+        function openQuickCatchupFromWastedTime() {
+            const wastedCandidate = scheduleEvents.find(e => isWastedTimeSession(e));
+            if (wastedCandidate) {
+                recoverWastedSessionWithCatchup(null, wastedCandidate.id);
+            } else {
+                openAddSessionModal(getCurrentDayIdx(), Math.min(22, Math.max(8, new Date().getHours() + 1)));
+                selectSessionTaskTypeCard('catchup', true);
+                const titleIn = document.getElementById('sessionTitleInput');
+                if (titleIn) titleIn.value = 'جلسة تعويض الوقت الضائع ⚡';
+            }
+        }
+
+        function toggleCollegeAbsenceSession(event, eventId) {
+            if (event) event.stopPropagation();
+            const ev = scheduleEvents.find(e => String(e.id) === String(eventId));
+            if (!ev) return;
+
+            const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+            const dayName = days[Number(ev.day)] || 'اليوم';
+            const timing = getSessionDisplayTiming(ev);
+            const dateStr = new Date().toLocaleDateString('ar-EG');
+
+            ev.absent = !ev.absent;
+            if (ev.absent) {
+                ev.absentAtMs = Date.now();
+                const logTxt = `🏠 تسجيل غياب من الكلية (${dayName}): «${ev.title}» — تم تفريغ (${timing.durationBadgeText}) لإضافة مهام مذاكرة بديلة`;
+                if (!logs.some(l => l.text === logTxt && l.date === dateStr)) {
+                    logs.unshift({
+                        id: Date.now(),
+                        date: dateStr,
+                        text: logTxt,
+                        mood: 'college_absent',
+                        subjectId: ev.subjectId || ''
+                    });
+                    saveLogs();
+                }
+                showToast(`🏠 تم تسجيل غيابك عن «${ev.title}»! أصبح وقت الكلية (${timing.timeRangeText}) متاحاً الآن لإضافة مهام مذاكرة، والمهمة محفوظة للأسبوع القادم.`);
+            } else {
+                ev.absentAtMs = null;
+                logs = logs.filter(l => !(l.mood === 'college_absent' && l.text && l.text.includes(ev.title) && l.date === dateStr));
+                saveLogs();
+                showToast(`🏛️ تم إلغاء الغياب وإعادة تفعيل حضور «${ev.title}» في جدول ${dayName}.`);
+            }
+            saveScheduleData();
+            renderSchedule();
+            updateTracker();
+        }
+
+        function openAddStudyInAbsentCollegeSlot(event, collegeEventId) {
+            if (event) event.stopPropagation();
+            const colEv = scheduleEvents.find(e => String(e.id) === String(collegeEventId));
+            if (!colEv) return;
+            openAddSessionModal(colEv.day, colEv.startHour);
+            selectSessionTaskTypeCard('catchup');
+            const durSel = document.getElementById('sessionDurationSelect');
+            const stdDurs = ['0.5', '1', '1.5', '2', '2.5', '3', '4', '5', '6', '8'];
+            const targetDur = Math.min(3, Math.max(1, Number(colEv.duration) || 2));
+            if (durSel && stdDurs.includes(String(targetDur))) {
+                durSel.value = String(targetDur);
+            }
+            const notesIn = document.getElementById('sessionNotesInput');
+            if (notesIn) {
+                notesIn.value = `استغلال وقت غياب: ${colEv.title}`;
+            }
+            updateCalculatedEndTime();
+            showToast(`⚡ أضف مهمة المذاكرة أو التعويض في وقت «${colEv.title}» الذي أصبح متاحاً!`);
+        }
+
         function getSmartSessionBadgesAndClasses(ev, isToday, currentDecHour) {
-            const isFixed = Boolean(ev.isFixed || ev.type === 'mandatory');
-            const isDone = !isFixed && Boolean(ev.completed);
-            const isMissed = !isFixed && !isDone && Boolean(ev.missed) && !ev.isOpenDuration;
+            const isFixed = isCollegeCommitmentSession(ev);
+            const isPersonal = isPersonalNeutralSession(ev);
+            const isWasted = isWastedTimeSession(ev);
+            const isAbsent = isFixed && Boolean(ev.absent);
+            const isDone = !isFixed && !isWasted && Boolean(ev.completed);
+            const isMissed = !isFixed && !isPersonal && !isWasted && !isDone && Boolean(ev.missed) && !ev.isOpenDuration;
             const endHour = Number(ev.startHour) + (Number(ev.duration) || 1);
-            const isLiveNow = (isToday && !isDone && (currentDecHour >= Number(ev.startHour) && currentDecHour < endHour)) || Boolean(ev.openTimerStartedAt);
+            const isLiveNow = (!isAbsent && !isWasted && isToday && !isDone && (currentDecHour >= Number(ev.startHour) && currentDecHour < endHour)) || Boolean(ev.openTimerStartedAt);
             const studiedMins = Math.round((Number(ev.actualStudiedMinutes) || 0) + (ev.openTimerStartedAt ? (Date.now() - ev.openTimerStartedAt) / 60000 : 0));
 
+            const typeMeta = getTaskTypeMeta(isFixed ? 'mandatory' : (isWasted ? 'wasted' : (ev.type || 'important')));
+
             let extraCardClass = '';
-            if (isLiveNow) extraCardClass = 'is-active-now';
+            if (isAbsent) extraCardClass = 'is-absent-college';
+            else if (isWasted) extraCardClass = 'is-wasted-time';
+            else if (isLiveNow) extraCardClass = 'is-active-now';
             else if (isMissed) extraCardClass = 'is-missed';
 
             const lecIdsArr = Array.isArray(ev.lectureIds) ? ev.lectureIds : (ev.lectureId ? [ev.lectureId] : []);
             let multiLecBadge = '';
-            if (lecIdsArr.length > 1) {
+            if (!isFixed && !isWasted && lecIdsArr.length > 1) {
                 multiLecBadge = `<span class="smart-status-tag tag-auto" style="background:rgba(56,189,248,0.16); color:#38bdf8; border-color:rgba(56,189,248,0.4); cursor:pointer;" onclick="event.stopPropagation(); launchScheduledSessionNow(${ev.id});" title="اضغط لفتح الـ ${lecIdsArr.length} محاضرات والريكوردات مدمجة معاً"><i class="fa-solid fa-layer-group"></i> فتح ${lecIdsArr.length} محاضرات مدمجة</span>`;
-            } else if (lecIdsArr.length === 1) {
+            } else if (!isFixed && !isWasted && lecIdsArr.length === 1) {
                 multiLecBadge = `<span class="smart-status-tag tag-auto" style="background:rgba(45,212,191,0.12); color:#5eead4; border-color:rgba(45,212,191,0.3); cursor:pointer;" onclick="event.stopPropagation(); launchScheduledSessionNow(${ev.id});" title="اضغط لفتح المحاضرة وبدء التتبع الذكي"><i class="fa-solid fa-book-open"></i> فتح المحاضرة</span>`;
             }
 
+            const typePillHtml = !isFixed
+                ? `<span class="smart-status-tag tag-type-pill" style="color:${typeMeta.color}; border-color:${typeMeta.color}44;"><i class="fa-solid ${typeMeta.icon}"></i> ${typeMeta.shortLabel}</span>`
+                : '';
+
             let statusTagHtml = '';
-            if (ev.isOpenDuration && !isDone) {
+            if (isAbsent) {
+                statusTagHtml = `<span class="smart-status-tag tag-absent"><i class="fa-solid fa-house-laptop"></i> تغيّبت — الوقت متاح للمذاكرة</span>`;
+            } else if (isWasted) {
+                statusTagHtml = `<span class="smart-status-tag tag-wasted"><i class="fa-solid fa-gamepad"></i> ${ev.originalType ? 'ضاع وقت المهمة في اللعب/التشتت' : 'وقت ضائع مسجل'}</span>`;
+            } else if (ev.isOpenDuration && !isDone && !isFixed) {
                 const timerStr = formatOpenTimerElapsed(ev);
                 const startPrefix = ev.smartStartTimeFormatted ? `بدأت ${ev.smartStartTimeFormatted} • ` : '';
                 statusTagHtml = `<span class="open-timer-live-pill" data-open-timer-ev="${ev.id}"><i class="fa-solid ${ev.openTimerStartedAt ? 'fa-compass fa-spin' : 'fa-compass'}"></i> تتبع ذكي: ${startPrefix}${timerStr}</span>`;
@@ -10888,27 +11362,61 @@
                     ? ` (درست ${ev.smartStartTimeFormatted}–${ev.smartEndTimeFormatted})`
                     : '';
                 statusTagHtml = `<span class="smart-status-tag tag-auto" title="تم رصد وقت البداية والنهاية الفعلي بالذكاء الاصطناعي"><i class="fa-solid fa-compass"></i> رصد ذكي ✓${slotNote}</span>`;
-            } else if (isLiveNow) {
+            } else if (isLiveNow && !isFixed) {
                 statusTagHtml = `<span class="smart-status-tag tag-live"><i class="fa-solid fa-circle-dot"></i> جارية الآن</span>`;
             } else if (isDone && ev.autoCompleted) {
                 statusTagHtml = `<span class="smart-status-tag tag-auto"><i class="fa-solid fa-robot"></i> تمت تلقائياً</span>`;
             } else if (isMissed) {
                 statusTagHtml = `<span class="smart-status-tag tag-missed"><i class="fa-solid fa-circle-xmark"></i> لم تتم</span>`;
-            } else if (!isDone && studiedMins > 0) {
+            } else if (!isDone && !isFixed && studiedMins > 0) {
                 statusTagHtml = `<span class="smart-status-tag tag-partial"><i class="fa-solid fa-stopwatch"></i> دُرست ${studiedMins} د</span>`;
             }
 
-            statusTagHtml = `${statusTagHtml} ${multiLecBadge}`.trim();
+            statusTagHtml = `${typePillHtml} ${statusTagHtml} ${multiLecBadge}`.trim();
 
             let missedActionsHtml = '';
-            if (ev.isOpenDuration && !isDone) {
+            if (isFixed) {
+                if (isAbsent) {
+                    missedActionsHtml = `
+                        <div class="missed-quick-actions" style="border-top-color: rgba(249, 115, 22, 0.28);" onclick="event.stopPropagation();">
+                            <button type="button" class="missed-act-btn" style="background:rgba(20,184,166,0.18); border-color:var(--primary); color:#5eead4;" onclick="openAddStudyInAbsentCollegeSlot(event, ${ev.id})">
+                                <i class="fa-solid fa-plus"></i> استغلال الوقت بمهمة مذاكرة
+                            </button>
+                            <button type="button" class="missed-act-btn" style="border-color:rgba(249,115,22,0.4); color:#fdba74;" onclick="toggleCollegeAbsenceSession(event, ${ev.id})">
+                                <i class="fa-solid fa-rotate-left"></i> تراجع (حضرت الكلية)
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    missedActionsHtml = `
+                        <div class="missed-quick-actions" style="border-top-color: rgba(148, 163, 184, 0.14);" onclick="event.stopPropagation();">
+                            <button type="button" class="missed-act-btn" style="border-color:rgba(249,115,22,0.38); color:#fdba74;" onclick="toggleCollegeAbsenceSession(event, ${ev.id})" title="سجّل غيابك اليوم بدون حذف الموعد ليصبح وقت الكلية متاحاً لإضافة مهام مذاكرة">
+                                <i class="fa-solid fa-user-slash"></i> تغيبت اليوم (تفريغ الوقت للمذاكرة)
+                            </button>
+                        </div>
+                    `;
+                }
+            } else if (isWasted) {
+                missedActionsHtml = `
+                    <div class="missed-quick-actions" style="border-top-color: rgba(225, 29, 72, 0.3);" onclick="event.stopPropagation();">
+                        <button type="button" class="missed-act-btn" style="background:rgba(236,72,153,0.18); border-color:#ec4899; color:#f9a8d4;" onclick="recoverWastedSessionWithCatchup(event, ${ev.id})">
+                            <i class="fa-solid fa-bolt"></i> تعويض الوقت الضائع الآن
+                        </button>
+                        ${ev.originalType ? `
+                            <button type="button" class="missed-act-btn" onclick="undoWastedSessionStatus(event, ${ev.id})">
+                                <i class="fa-solid fa-rotate-left"></i> تراجع (استعادة المهمة)
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            } else if (ev.isOpenDuration && !isDone) {
                 missedActionsHtml = `
                     <div class="missed-quick-actions" style="border-top-color: rgba(45, 212, 191, 0.22);" onclick="event.stopPropagation();">
                         <button type="button" class="missed-act-btn" style="border-color:rgba(45,212,191,0.4); color:#5eead4;" onclick="toggleOpenSessionLiveTimer(event, ${ev.id})">
                             <i class="fa-solid ${ev.openTimerStartedAt ? 'fa-pause' : 'fa-play'}"></i> ${ev.openTimerStartedAt ? 'إيقاف مؤقت' : (ev.smartStartTimeFormatted ? 'استئناف التتبع' : 'بدء المذاكرة الآن')}
                         </button>
                         <button type="button" class="missed-act-btn" style="background:rgba(16,185,129,0.2); border-color:#10b981; color:#6ee7b7;" onclick="toggleCompleteSession(event, ${ev.id})">
-                            <i class="fa-solid fa-check-double"></i> إنهاء وحفظ البداية والنهاية
+                            <i class="fa-solid fa-check-double"></i> إنهاء وحفظ الوقت
                         </button>
                     </div>
                 `;
@@ -10921,10 +11429,13 @@
                         <button type="button" class="missed-act-btn" onclick="rescheduleMissedSessionToToday(event, ${ev.id})">
                             <i class="fa-solid fa-calendar-day"></i> ترحيل لليوم
                         </button>
+                        <button type="button" class="missed-act-btn" style="border-color:rgba(225,29,72,0.45); color:#fda4af;" onclick="markSessionAsWastedTime(event, ${ev.id})">
+                            <i class="fa-solid fa-gamepad"></i> ضاع الوقت / لعبت
+                        </button>
                     </div>
                 `;
             }
-            return { isFixed, isDone, isMissed, isLiveNow, extraCardClass, statusTagHtml, missedActionsHtml };
+            return { isFixed, isPersonal, isWasted, isAbsent, isDone, isMissed, isLiveNow, extraCardClass, statusTagHtml, missedActionsHtml };
         }
 
         function renderWeekGrid() {
@@ -10957,14 +11468,26 @@
                 const dayEvents = scheduleEvents.filter(ev => {
                     if (ev.day !== dIdx) return false;
                     if (window.hideFixedInWeekGrid && (ev.isFixed || ev.type === 'mandatory')) return false;
-                    if (filterType !== 'all' && ev.type !== filterType) return false;
+                    if (filterType !== 'all') {
+                        if (filterType === 'important') {
+                            if (ev.type !== 'important' && ev.type !== 'practice') return false;
+                        } else if (filterType === 'review') {
+                            if (ev.type !== 'review' && ev.type !== 'catchup' && ev.type !== 'urgent') return false;
+                        } else if (filterType === 'mandatory') {
+                            if (!isCollegeCommitmentSession(ev)) return false;
+                        } else if (filterType === 'personal' || filterType === 'wasted') {
+                            if (!isPersonalNeutralSession(ev) && !isWastedTimeSession(ev)) return false;
+                        } else if (ev.type !== filterType) {
+                            return false;
+                        }
+                    }
                     if (filterSubject !== 'all' && String(ev.subjectId) !== String(filterSubject)) return false;
                     return true;
                 }).sort((a, b) => a.startHour - b.startHour);
 
                 let dayStudyHours = 0;
                 dayEvents.forEach(e => {
-                    if (!e.isFixed && e.type !== 'mandatory') dayStudyHours += (Number(e.duration) || 1);
+                    if (isActionableStudySession(e)) dayStudyHours += (Number(e.duration) || 1);
                 });
                 dayStudyHours = Number(dayStudyHours.toFixed(1));
 
@@ -11046,15 +11569,24 @@
         }
 
         function computeNotionOverlapColumns(dayEvents) {
-            const withTiming = dayEvents.map(item => {
+            const activeList = [];
+            const absentCollegePlaced = [];
+            dayEvents.forEach(item => {
                 const ev = Object.assign({}, item);
                 const t = getSessionDisplayTiming(ev);
                 ev._effStart = t.startH;
                 ev._effEnd = Math.max(t.startH + 0.2, t.exactEndH);
-                return ev;
+                if (isCollegeCommitmentSession(ev) && ev.absent) {
+                    ev._colIdx = 0;
+                    ev._totalCols = 1;
+                    ev._isAbsentBackdrop = true;
+                    absentCollegePlaced.push(ev);
+                } else {
+                    activeList.push(ev);
+                }
             });
-            const sorted = withTiming.sort((a, b) => (a._effStart - b._effStart) || ((b._effEnd - b._effStart) - (a._effEnd - a._effStart)));
-            const placed = [];
+            const sorted = activeList.sort((a, b) => (a._effStart - b._effStart) || ((b._effEnd - b._effStart) - (a._effEnd - a._effStart)));
+            const placed = [...absentCollegePlaced];
             let cluster = [];
             let clusterMaxEnd = -1;
 
@@ -11160,14 +11692,19 @@
             for (let i = 0; i < subjects.length; i++) subMap.set(String(subjects[i].id), subjects[i].name);
 
             const dayEvents = scheduleEvents.filter(ev => ev.day === activeDayIdx).sort((a, b) => a.startHour - b.startHour);
-            const studyTasks = dayEvents.filter(e => !e.isFixed && e.type !== 'mandatory');
+            const studyTasks = dayEvents.filter(e => isActionableStudySession(e));
             const doneStudyTasks = studyTasks.filter(e => e.completed).length;
             const missedStudyTasks = studyTasks.filter(e => e.missed && !e.completed).length;
-            const fixedCount = dayEvents.filter(e => e.isFixed || e.type === 'mandatory').length;
+            const fixedEvents = dayEvents.filter(e => isCollegeCommitmentSession(e));
+            const activeFixedCount = fixedEvents.filter(e => !e.absent).length;
+            const absentFixedCount = fixedEvents.filter(e => e.absent).length;
+            const wastedEventsCount = dayEvents.filter(e => isWastedTimeSession(e)).length;
 
             let statusText = `${doneStudyTasks}/${studyTasks.length} مذاكرة مكتملة`;
             if (missedStudyTasks > 0) statusText += ` • ${missedStudyTasks} لم تتم`;
-            if (fixedCount > 0) statusText += ` • ${fixedCount} ثابت`;
+            if (wastedEventsCount > 0) statusText += ` • ${wastedEventsCount} وقت ضائع 🎮`;
+            if (activeFixedCount > 0) statusText += ` • ${activeFixedCount} كلية`;
+            if (absentFixedCount > 0) statusText += ` • ${absentFixedCount} غياب مستثمر 🏠`;
             const compEl = document.getElementById('todayCompletionCount');
             if (compEl) compEl.innerText = statusText;
 
@@ -11183,7 +11720,7 @@
                 const streamParts = [`<div class="smart-hourly-stream">`];
                 let cursorH = START_HOUR;
 
-                const pushFreeWindow = (fromH, toH) => {
+                const pushFreeWindow = (fromH, toH, customLabel = null) => {
                     const span = Math.round((toH - fromH) * 10) / 10;
                     if (span < 0.5) return;
                     const quickChips = [];
@@ -11192,10 +11729,10 @@
                         quickChips.push(`<button class="sfw-hour-chip" onclick="openAddSessionModal(${activeDayIdx}, ${h})">+ ${formatHourText(h)}</button>`);
                     }
                     streamParts.push(`
-                        <div class="smart-free-window">
+                        <div class="smart-free-window" style="${customLabel ? 'border-color:rgba(249,115,22,0.45); background:rgba(249,115,22,0.06);' : ''}">
                             <div class="sfw-label">
-                                <i class="fa-regular fa-clock" style="color: var(--primary);"></i>
-                                <span>وقت متاح للمذاكرة: <b>${formatHourText(fromH)} – ${formatHourText(toH)}</b> (${span} س فارغة)</span>
+                                <i class="fa-regular fa-clock" style="color: ${customLabel ? '#fdba74' : 'var(--primary)'};"></i>
+                                <span>${customLabel || 'وقت متاح للمذاكرة'}: <b>${formatHourText(fromH)} – ${formatHourText(toH)}</b> (${span} س متاحة)</span>
                             </div>
                             <div class="sfw-quick-hours">
                                 ${quickChips.join('')}
@@ -11212,12 +11749,12 @@
                         const evStart = Math.max(START_HOUR, timing.startH);
                         const evDur = Math.max(0.25, timing.effectiveDurationHours);
                         const evEnd = timing.exactEndH;
+                        const smartInfo = getSmartSessionBadgesAndClasses(ev, isViewingToday, currentHour);
 
-                        if (evStart > cursorH + 0.25) {
+                        if (!smartInfo.isAbsent && evStart > cursorH + 0.25) {
                             pushFreeWindow(cursorH, evStart);
                         }
 
-                        const smartInfo = getSmartSessionBadgesAndClasses(ev, isViewingToday, currentHour);
                         const catClass = smartInfo.isFixed ? 'shi-mandatory' : `shi-${ev.type || 'important'}`;
                         const subName = ev.subjectId ? (subMap.get(String(ev.subjectId)) || '') : '';
 
@@ -11225,12 +11762,12 @@
                             <div class="smart-hour-item ${catClass} ${smartInfo.isDone ? 'is-done' : ''} ${smartInfo.extraCardClass}" onclick="handleBlockClick(event, ${ev.id})">
                                 <div class="shi-time-col">
                                     <span class="shi-time-range">${timing.timeRangeText}</span>
-                                    <span class="shi-dur-badge">${smartInfo.isFixed ? '🔒 التزام ثابت' : '⏱️ مدة الجلسة'} • ${timing.durationBadgeText}</span>
+                                    <span class="shi-dur-badge">${smartInfo.isAbsent ? '🏠 غياب كلية (وقت حر)' : (smartInfo.isFixed ? '🏛️ التزام كلية ثابت' : '⏱️ مدة الجلسة')} • ${timing.durationBadgeText}</span>
                                 </div>
                                 <div class="shi-body-col">
                                     <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                                         ${smartInfo.isFixed
-                                            ? `<span style="color:#fda4af; font-size:0.85rem;"><i class="fa-solid fa-lock"></i></span>`
+                                            ? `<span style="color:${smartInfo.isAbsent ? '#fdba74' : '#fda4af'}; font-size:0.85rem;"><i class="fa-solid ${smartInfo.isAbsent ? 'fa-house-laptop' : 'fa-building-columns'}"></i></span>`
                                             : `<button class="fsc-check-circle ${smartInfo.isDone ? 'checked' : ''}" onclick="toggleCompleteSession(event, ${ev.id})">
                                                 <i class="fa-solid fa-check"></i>
                                                </button>`
@@ -11249,7 +11786,10 @@
                             </div>
                         `);
 
-                        if (evEnd > cursorH) cursorH = evEnd;
+                        // When a college session is marked absent, do NOT advance cursorH so the freed hours appear as an available study window!
+                        if (!smartInfo.isAbsent && evEnd > cursorH) {
+                            cursorH = evEnd;
+                        }
                     });
 
                     if (cursorH < END_HOUR) {
@@ -11329,6 +11869,11 @@
                             <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
                                 <span class="neb-time-pill"><i class="fa-regular fa-clock" style="font-size:0.68rem;"></i> ${timeRangeStr}</span>
                                 <div class="neb-actions">
+                                    ${isFixed ? (smartInfo.isAbsent
+                                        ? `<button onclick="openAddStudyInAbsentCollegeSlot(event, ${ev.id})" title="إضافة مهمة مذاكرة في وقت الكلية الفارغ" style="color:#5eead4; border-color:var(--primary); width:auto; padding:0 7px; gap:4px; font-weight:800;"><i class="fa-solid fa-plus"></i> مذاكرة</button>
+                                           <button onclick="toggleCollegeAbsenceSession(event, ${ev.id})" title="إلغاء الغياب (حضرت الكلية)" style="color:#fdba74; border-color:#f97316;"><i class="fa-solid fa-rotate-left"></i></button>`
+                                        : `<button onclick="toggleCollegeAbsenceSession(event, ${ev.id})" title="تغيبت عن الكلية اليوم (تفريغ الوقت للمذاكرة)" style="color:#fdba74; border-color:rgba(249,115,22,0.45); width:auto; padding:0 7px; gap:4px; font-weight:800;"><i class="fa-solid fa-user-slash"></i> غياب</button>`
+                                    ) : ''}
                                     <button onclick="editSessionDirect(event, ${ev.id})"><i class="fa-solid fa-pen"></i></button>
                                     <button onclick="deleteSessionDirect(event, ${ev.id})"><i class="fa-solid fa-trash"></i></button>
                                 </div>
@@ -11841,15 +12386,30 @@
         function updateWeeklyMetrics() {
             let totalCommittedHours = 0;
             let fixedCollegeHours = 0;
+            let absentCollegeHours = 0;
+            let wastedHours = 0;
             let plannedStudyHours = 0;
             let doneStudyHours = 0;
             
             scheduleEvents.forEach(ev => {
                 const dur = Number(ev.duration) || 1;
-                totalCommittedHours += dur;
-                if (ev.isFixed || ev.type === 'mandatory') {
-                    fixedCollegeHours += dur;
+                if (isCollegeCommitmentSession(ev)) {
+                    if (ev.absent) {
+                        absentCollegeHours += dur;
+                    } else {
+                        fixedCollegeHours += dur;
+                        totalCommittedHours += dur;
+                    }
+                } else if (isPersonalNeutralSession(ev)) {
+                    totalCommittedHours += dur;
+                } else if (isWastedTimeSession(ev)) {
+                    wastedHours += dur;
+                    totalCommittedHours += dur;
+                    if (ev.originalType) {
+                        plannedStudyHours += dur;
+                    }
                 } else {
+                    totalCommittedHours += dur;
                     plannedStudyHours += dur;
                     if (ev.completed) doneStudyHours += dur;
                 }
@@ -11858,25 +12418,97 @@
             // Adherence rate is purely based on actionable study hours!
             const adherence = plannedStudyHours > 0 ? Math.round((doneStudyHours / plannedStudyHours) * 100) : (totalCommittedHours > 0 ? 100 : 0);
             
-            if (document.getElementById('weekTotalHours')) document.getElementById('weekTotalHours').innerText = `${totalCommittedHours} ساعة`;
-            if (document.getElementById('weekDoneHours')) document.getElementById('weekDoneHours').innerText = `${doneStudyHours} س مذاكرة`;
+            if (document.getElementById('weekTotalHours')) document.getElementById('weekTotalHours').innerText = `${Number(totalCommittedHours.toFixed(1))} ساعة`;
+            if (document.getElementById('weekDoneHours')) document.getElementById('weekDoneHours').innerText = `${Number(doneStudyHours.toFixed(1))} س مذاكرة`;
             if (document.getElementById('weekAdherenceRate')) document.getElementById('weekAdherenceRate').innerText = `${adherence}%`;
             if (document.getElementById('weekProgressBar')) document.getElementById('weekProgressBar').style.width = `${adherence}%`;
-            if (document.getElementById('weekCollegeHours')) document.getElementById('weekCollegeHours').innerText = `${fixedCollegeHours} س`;
-            if (document.getElementById('weekStudyHours')) document.getElementById('weekStudyHours').innerText = `${plannedStudyHours} س`;
+            if (document.getElementById('weekCollegeHours')) document.getElementById('weekCollegeHours').innerText = `${Number(fixedCollegeHours.toFixed(1))} س`;
+            if (document.getElementById('weekStudyHours')) document.getElementById('weekStudyHours').innerText = `${Number(plannedStudyHours.toFixed(1))} س`;
             const remStudy = Math.max(0, Number((plannedStudyHours - doneStudyHours).toFixed(1)));
             if (document.getElementById('weekRemainingStudyTxt')) {
-                document.getElementById('weekRemainingStudyTxt').innerText = remStudy > 0 ? `متبقي ${remStudy} س لإتمام خطة الأسبوع` : (plannedStudyHours > 0 ? '🎉 أتممت كامل خطة المذاكرة!' : 'ابدأ بإضافة جلسات مذاكرتك');
+                const absentNote = absentCollegeHours > 0 ? ` • وفّرت ${Number(absentCollegeHours.toFixed(1))} س غياب كلية` : '';
+                const wastedNote = wastedHours > 0 ? ` • 🎮 وقت ضائع: ${Number(wastedHours.toFixed(1))} س` : '';
+                document.getElementById('weekRemainingStudyTxt').innerText = (remStudy > 0 ? `متبقي ${remStudy} س لإتمام خطة الأسبوع` : (plannedStudyHours > 0 ? '🎉 أتممت كامل خطة المذاكرة!' : 'ابدأ بإضافة جلسات مذاكرتك')) + absentNote + wastedNote;
             }
             const todayIdx = getCurrentDayIdx();
-            const todayEvCount = scheduleEvents.filter(e => e.day === todayIdx && !e.isFixed).length;
+            const todayEvCount = scheduleEvents.filter(e => e.day === todayIdx && isActionableStudySession(e)).length;
             const pendingBacklog = scheduleBacklog.filter(t => !t.done).length;
             if (document.getElementById('badgeCountWeek')) document.getElementById('badgeCountWeek').innerText = scheduleEvents.length;
             if (document.getElementById('badgeCountToday')) document.getElementById('badgeCountToday').innerText = todayEvCount;
             if (document.getElementById('badgeCountTasks')) document.getElementById('badgeCountTasks').innerText = pendingBacklog;
         }
 
-        // ================= OPEN / EDIT SESSION MODAL =================
+        // ================= TASK TYPE ARCHITECTURE PICKER & SESSION MODAL =================
+        function handleWastedCheckboxInModal(isChecked) {
+            const sel = document.getElementById('sessionTypeSelect');
+            if (sel) {
+                sel.value = isChecked ? 'wasted' : 'personal';
+            }
+            const titleIn = document.getElementById('sessionTitleInput');
+            if (isChecked && titleIn && !titleIn.value.trim()) {
+                titleIn.value = 'وقت ضائع (لعب / سوشيال ميديا) 🎮';
+            } else if (!isChecked && titleIn && titleIn.value.trim() === 'وقت ضائع (لعب / سوشيال ميديا) 🎮') {
+                titleIn.value = '';
+            }
+        }
+
+        function selectSessionTaskTypeCard(typeVal, syncFixedCheckbox = true) {
+            const validType = TASK_TYPE_ARCHITECTURE[typeVal] ? typeVal : 'important';
+            const sel = document.getElementById('sessionTypeSelect');
+            if (sel) sel.value = validType;
+
+            // Map sub-types to the 4 visual cards in the 2x2 grid
+            let visualCardKey = validType;
+            if (validType === 'practice') visualCardKey = 'important';
+            else if (validType === 'catchup' || validType === 'urgent') visualCardKey = 'review';
+            else if (validType === 'wasted') visualCardKey = 'personal';
+
+            document.querySelectorAll('#taskTypePickerGrid .task-type-chip').forEach(chip => {
+                chip.classList.toggle('active', chip.getAttribute('data-type-val') === visualCardKey);
+            });
+
+            const wastedCb = document.getElementById('sessionIsWastedCheckbox');
+            if (wastedCb) {
+                wastedCb.checked = (validType === 'wasted');
+            }
+
+            if (syncFixedCheckbox) {
+                const cb = document.getElementById('sessionIsFixedCheckbox');
+                const icon = document.getElementById('fixedToggleIcon');
+                if (cb) {
+                    cb.checked = (validType === 'mandatory');
+                    if (icon) icon.className = cb.checked ? 'fa-solid fa-lock' : 'fa-solid fa-lock-open';
+                }
+            }
+
+            const absentBox = document.getElementById('sessionModalAbsentBox');
+            const isCollegeMode = (validType === 'mandatory') || Boolean(document.getElementById('sessionIsFixedCheckbox')?.checked);
+            if (absentBox) {
+                absentBox.style.display = isCollegeMode ? 'flex' : 'none';
+            }
+            const wastedBox = document.getElementById('sessionModalWastedBox');
+            if (wastedBox) {
+                wastedBox.style.display = (visualCardKey === 'personal') ? 'flex' : 'none';
+            }
+
+            // Smart default duration for College/Fixed vs Study
+            const editId = document.getElementById('sessionEditId')?.value;
+            if (!editId) {
+                const durSel = document.getElementById('sessionDurationSelect');
+                if (validType === 'mandatory' && durSel && durSel.value === '1') {
+                    durSel.value = '4';
+                    updateCalculatedEndTime();
+                } else if (validType !== 'mandatory' && visualCardKey !== 'personal' && durSel && durSel.value === '4') {
+                    durSel.value = '1.5';
+                    updateCalculatedEndTime();
+                }
+            }
+        }
+
+        function handleSessionTypeSelectChange(val) {
+            selectSessionTaskTypeCard(val, true);
+        }
+
         function openAddSessionModal(dayIdx = null, startHour = null) {
             populateSubjectDropdowns();
             populateSessionLecturesDropdown([]);
@@ -11887,12 +12519,14 @@
             document.getElementById('sessionNotesInput').value = '';
             document.getElementById('sessionIsFixedCheckbox').checked = false;
             document.getElementById('fixedToggleIcon').className = 'fa-solid fa-lock-open';
+            const absCb = document.getElementById('sessionIsAbsentCheckbox');
+            if (absCb) absCb.checked = false;
             
             document.getElementById('sessionDurationSelect').value = '1';
             document.getElementById('customDurationBox').style.display = 'none';
             document.getElementById('sessionCustomHoursInput').value = '5';
             
-            document.getElementById('sessionTypeSelect').value = 'important';
+            selectSessionTaskTypeCard('important', true);
             document.getElementById('sessionDeleteBtn').style.display = 'none';
             
             if (dayIdx !== null) document.getElementById('sessionDaySelect').value = String(dayIdx);
@@ -11939,11 +12573,14 @@
                 document.getElementById('sessionCustomHoursInput').value = ev.duration;
             }
             
-            document.getElementById('sessionTypeSelect').value = ev.type || 'important';
-            document.getElementById('sessionNotesInput').value = ev.notes || '';
-            const isEvFixed = !!ev.isFixed;
+            const isEvFixed = Boolean(ev.isFixed || ev.type === 'mandatory');
             document.getElementById('sessionIsFixedCheckbox').checked = isEvFixed;
             document.getElementById('fixedToggleIcon').className = isEvFixed ? 'fa-solid fa-lock' : 'fa-solid fa-lock-open';
+            const absCb = document.getElementById('sessionIsAbsentCheckbox');
+            if (absCb) absCb.checked = Boolean(ev.absent);
+
+            selectSessionTaskTypeCard(ev.type || (isEvFixed ? 'mandatory' : 'important'), false);
+            document.getElementById('sessionNotesInput').value = ev.notes || '';
             document.getElementById('sessionDeleteBtn').style.display = 'inline-flex';
             
             updateCalculatedEndTime();
@@ -11957,7 +12594,13 @@
         }
 
         function saveSession() {
-            const title = sanitizeUserText(document.getElementById('sessionTitleInput').value, 220);
+            const selectedTypeVal = document.getElementById('sessionTypeSelect')?.value || 'important';
+            let rawTitleInput = document.getElementById('sessionTitleInput').value;
+            if (!rawTitleInput.trim() && selectedTypeVal === 'wasted') {
+                rawTitleInput = 'لعب وتضييع وقت (جيمز / سوشيال ميديا) 🎮';
+                document.getElementById('sessionTitleInput').value = rawTitleInput;
+            }
+            const title = sanitizeUserText(rawTitleInput, 220);
             if (!title) {
                 showToast('يرجى كتابة عنوان الجلسة', 'error');
                 document.getElementById('sessionTitleInput').focus();
@@ -11974,7 +12617,8 @@
             const duration = getSelectedDuration();
             const type = document.getElementById('sessionTypeSelect').value;
             const notes = sanitizeUserText(document.getElementById('sessionNotesInput').value, 350);
-            const isFixed = document.getElementById('sessionIsFixedCheckbox').checked;
+            const isFixed = Boolean(document.getElementById('sessionIsFixedCheckbox').checked || type === 'mandatory');
+            const isAbsent = isFixed && Boolean(document.getElementById('sessionIsAbsentCheckbox')?.checked);
             
             if (editId) {
                 const ev = scheduleEvents.find(e => String(e.id) === String(editId));
@@ -11990,6 +12634,7 @@
                     ev.type = type;
                     ev.notes = notes;
                     ev.isFixed = isFixed;
+                    ev.absent = isAbsent;
                     ev.missed = false;
                     if (isFixed) ev.completed = false;
                     showToast('تم تحديث بيانات الجلسة بنجاح');
@@ -12014,6 +12659,7 @@
                     type,
                     completed: false,
                     missed: false,
+                    absent: isAbsent,
                     autoCompleted: false,
                     actualStudiedMinutes: 0,
                     isFixed: isFixed,
@@ -12032,7 +12678,20 @@
                     }
                     pendingBacklogTaskIdToLink = null;
                 }
-                if (isOpenDuration) {
+                if (type === 'wasted') {
+                    const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+                    const dayName = days[Number(day)] || 'اليوم';
+                    const dateStr = new Date().toLocaleDateString('ar-EG');
+                    logs.unshift({
+                        id: Date.now() + 2,
+                        date: dateStr,
+                        text: `🎮 تسجيل وقت ضائع / لعب (${dayName}): «${title}» (${duration} س) — يمكنك تعويضه بجلسة مركزة ⚡`,
+                        mood: 'wasted_time',
+                        subjectId: subjectId || ''
+                    });
+                    saveLogs();
+                    showToast(`🎮 تم تسجيل الوقت الضائع (${duration} س) بصراحة في جدولك وسجلك — يمكنك الضغط على «تعويض الآن ⚡» لاسترداده!`);
+                } else if (isOpenDuration) {
                     showToast(`⏱️ تمت جدولة الجلسة بـ «وقت مفتوح»! سيقوم البرنامج بحساب الوقت الفعلي وتسجيله تلقائياً عند الانتهاء.`);
                 } else {
                     showToast(`تمت جدولة الجلسة بنجاح (${duration} س) 🎯`);
@@ -12042,6 +12701,7 @@
             saveScheduleData();
             closeModal('sessionModalOverlay');
             renderSchedule();
+            updateTracker();
         }
 
         function deleteSessionFromModal() {
@@ -12168,11 +12828,11 @@
         function executeClearSchedule(mode) {
             closeModal('clearScheduleModalOverlay');
             if (mode === 'study_only') {
-                const removedCount = scheduleEvents.filter(e => !e.isFixed).length;
-                scheduleEvents = scheduleEvents.filter(e => e.isFixed);
+                scheduleEvents = scheduleEvents.filter(e => isCollegeCommitmentSession(e));
+                scheduleEvents.forEach(e => { e.absent = false; e.absentAtMs = null; });
                 saveScheduleData();
                 renderSchedule();
-                showToast(`تم تفريغ مهام المذاكرة الأسبوعية بنجاح (جدول الكلية محفوظ ⭐)`);
+                showToast(`تم تفريغ مهام المذاكرة الأسبوعية وإعادة تفعيل جدول الكلية الثابت للأسبوع الجديد ⭐`);
             } else {
                 scheduleEvents = [];
                 saveScheduleData();
@@ -12190,12 +12850,18 @@
         function handleFixedCheckboxChange() {
             const cb = document.getElementById('sessionIsFixedCheckbox');
             const icon = document.getElementById('fixedToggleIcon');
-            const typeSelect = document.getElementById('sessionTypeSelect');
             if (cb.checked) {
                 icon.className = 'fa-solid fa-lock';
-                typeSelect.value = 'mandatory';
+                selectSessionTaskTypeCard('mandatory', false);
             } else {
                 icon.className = 'fa-solid fa-lock-open';
+                const curType = document.getElementById('sessionTypeSelect')?.value;
+                if (curType === 'mandatory') {
+                    selectSessionTaskTypeCard('important', false);
+                } else {
+                    const absentBox = document.getElementById('sessionModalAbsentBox');
+                    if (absentBox) absentBox.style.display = 'none';
+                }
             }
         }
 
@@ -12559,7 +13225,8 @@
             let totalAllHours = 0;
             let netPlannedStudyHours = 0;
             let netDoneStudyHours = 0;
-            let mandatoryHours = 0, urgentHours = 0, importantHours = 0, reviewHours = 0;
+            let mandatoryHours = 0, absentCollegeHours = 0, personalHours = 0, wastedHours = 0, wastedSessionsCount = 0;
+            let urgentHours = 0, importantHours = 0, practiceHours = 0, reviewHours = 0, catchupHours = 0;
             
             const dayStats = [
                 { name: 'الأحد', planned: 0, done: 0 },
@@ -12607,16 +13274,37 @@
             scheduleEvents.forEach(ev => {
                 const timing = getSessionDisplayTiming(ev);
                 const dur = timing.effectiveDurationHours;
-                totalAllHours += dur;
-                const isFixedCollege = Boolean(ev.isFixed || ev.type === 'mandatory');
+                const isFixedCollege = isCollegeCommitmentSession(ev);
+                const isPersonal = isPersonalNeutralSession(ev);
 
                 if (isFixedCollege) {
-                    mandatoryHours += dur;
+                    if (ev.absent) {
+                        absentCollegeHours += dur;
+                    } else {
+                        mandatoryHours += dur;
+                        totalAllHours += dur;
+                    }
+                } else if (isPersonal) {
+                    personalHours += dur;
+                    totalAllHours += dur;
+                } else if (isWastedTimeSession(ev)) {
+                    wastedHours += dur;
+                    wastedSessionsCount++;
+                    totalAllHours += dur;
+                    if (ev.originalType) {
+                        netPlannedStudyHours += dur;
+                        if (ev.day >= 0 && ev.day <= 6) {
+                            dayStats[ev.day].planned += dur;
+                        }
+                    }
                 } else {
+                    totalAllHours += dur;
                     netPlannedStudyHours += dur;
                     if (ev.completed) netDoneStudyHours += dur;
                     if (ev.type === 'urgent') urgentHours += dur;
+                    else if (ev.type === 'practice') practiceHours += dur;
                     else if (ev.type === 'review') reviewHours += dur;
+                    else if (ev.type === 'catchup') catchupHours += dur;
                     else importantHours += dur;
 
                     if (ev.day >= 0 && ev.day <= 6) {
@@ -12625,7 +13313,7 @@
                     }
                 }
                 
-                if (ev.subjectId && subjectHoursMap[ev.subjectId] && !isFixedCollege) {
+                if (ev.subjectId && subjectHoursMap[ev.subjectId] && !isFixedCollege && !isPersonal) {
                     subjectHoursMap[ev.subjectId].hours = Number((subjectHoursMap[ev.subjectId].hours + dur).toFixed(2));
                     if (ev.completed) {
                         subjectHoursMap[ev.subjectId].doneHours = Number((subjectHoursMap[ev.subjectId].doneHours + dur).toFixed(2));
@@ -12681,20 +13369,38 @@
             
             // 2. Update Smarter Time Analytics
             if (document.getElementById('analyticsTotalHours')) document.getElementById('analyticsTotalHours').innerText = Number(totalAllHours.toFixed(1));
+            const mergedStudyHrs = importantHours + practiceHours;
+            const mergedReviewQuizHrs = reviewHours + catchupHours + urgentHours;
             if (document.getElementById('distMandatoryTxt')) document.getElementById('distMandatoryTxt').innerText = `${Number(mandatoryHours.toFixed(1))} س`;
-            if (document.getElementById('distImportantTxt')) document.getElementById('distImportantTxt').innerText = `${Number(importantHours.toFixed(1))} س`;
+            if (document.getElementById('distImportantTxt')) document.getElementById('distImportantTxt').innerText = `${Number(mergedStudyHrs.toFixed(1))} س`;
+            if (document.getElementById('distPracticeTxt')) document.getElementById('distPracticeTxt').innerText = `${Number(practiceHours.toFixed(1))} س`;
+            if (document.getElementById('distReviewTxt')) document.getElementById('distReviewTxt').innerText = `${Number(mergedReviewQuizHrs.toFixed(1))} س`;
+            if (document.getElementById('distCatchupTxt')) document.getElementById('distCatchupTxt').innerText = `${Number(catchupHours.toFixed(1))} س`;
             if (document.getElementById('distUrgentTxt')) document.getElementById('distUrgentTxt').innerText = `${Number(urgentHours.toFixed(1))} س`;
-            if (document.getElementById('distReviewTxt')) document.getElementById('distReviewTxt').innerText = `${Number(reviewHours.toFixed(1))} س`;
+            if (document.getElementById('distAbsentWrap')) {
+                document.getElementById('distAbsentWrap').style.display = absentCollegeHours > 0 ? 'inline' : 'none';
+            }
+            if (document.getElementById('distAbsentTxt')) document.getElementById('distAbsentTxt').innerText = `${Number(absentCollegeHours.toFixed(1))} س`;
+            if (document.getElementById('distWastedWrap')) {
+                document.getElementById('distWastedWrap').style.display = wastedHours > 0 ? 'inline' : 'none';
+            }
+            if (document.getElementById('distWastedTxt')) document.getElementById('distWastedTxt').innerText = `${Number(wastedHours.toFixed(1))} س`;
             
-            const mPct = totalAllHours > 0 ? (mandatoryHours / totalAllHours) * 100 : 25;
-            const iPct = totalAllHours > 0 ? (importantHours / totalAllHours) * 100 : 50;
-            const uPct = totalAllHours > 0 ? (urgentHours / totalAllHours) * 100 : 15;
-            const rPct = totalAllHours > 0 ? (reviewHours / totalAllHours) * 100 : 10;
+            const mPct = totalAllHours > 0 ? (mandatoryHours / totalAllHours) * 100 : 20;
+            const iPct = totalAllHours > 0 ? (importantHours / totalAllHours) * 100 : 35;
+            const pPct = totalAllHours > 0 ? (practiceHours / totalAllHours) * 100 : 15;
+            const rPct = totalAllHours > 0 ? (reviewHours / totalAllHours) * 100 : 15;
+            const cPct = totalAllHours > 0 ? (catchupHours / totalAllHours) * 100 : 5;
+            const uPct = totalAllHours > 0 ? (urgentHours / totalAllHours) * 100 : 10;
+            const wPct = totalAllHours > 0 ? (wastedHours / totalAllHours) * 100 : 0;
             
             if (document.getElementById('distMandatory')) document.getElementById('distMandatory').style.width = `${mPct}%`;
             if (document.getElementById('distImportant')) document.getElementById('distImportant').style.width = `${iPct}%`;
-            if (document.getElementById('distUrgent')) document.getElementById('distUrgent').style.width = `${uPct}%`;
+            if (document.getElementById('distPractice')) document.getElementById('distPractice').style.width = `${pPct}%`;
             if (document.getElementById('distReview')) document.getElementById('distReview').style.width = `${rPct}%`;
+            if (document.getElementById('distCatchup')) document.getElementById('distCatchup').style.width = `${cPct}%`;
+            if (document.getElementById('distUrgent')) document.getElementById('distUrgent').style.width = `${uPct}%`;
+            if (document.getElementById('distWasted')) document.getElementById('distWasted').style.width = `${wPct}%`;
 
             const netStudySharePct = totalAllHours > 0 ? Math.round((netPlannedStudyHours / totalAllHours) * 100) : 0;
             const dailyAvg = Number((netPlannedStudyHours / 7).toFixed(1));
@@ -12792,6 +13498,8 @@
                 netDoneStudyHours,
                 mandatoryHours,
                 reviewHours,
+                wastedHours,
+                wastedSessionsCount,
                 subjectHoursMap,
                 dueSpacedRepLectures,
                 totalLecturesCount,
@@ -12806,6 +13514,20 @@
             const container = document.getElementById('smartRecommendationsList');
             if (!container) return;
             const recs = [];
+
+            // Recommendation 0: Wasted Time Recovery & Rescue Plan
+            if ((ctx.wastedHours || 0) > 0) {
+                recs.push({
+                    priority: 'priority-high',
+                    icon: 'fa-gamepad',
+                    iconBg: 'rgba(225, 29, 72, 0.18)',
+                    iconColor: '#fda4af',
+                    title: `خطة إنقاذ الوقت الضائع (${Number(ctx.wastedHours.toFixed(1))} س في اللعب/التشتت)`,
+                    desc: `سجّلت ضياع ${Number(ctx.wastedHours.toFixed(1))} ساعة في (${ctx.wastedSessionsCount || 1} جلسة). الاعتراف بالوقت الضائع أول خطوة للسيطرة — لا تجلد ذاتك وعوّضها الآن بجلسة إنقاذ مركزة!`,
+                    btnText: '⚡ جدولة جلسة تعويض الآن',
+                    onClick: `openQuickCatchupFromWastedTime()`
+                });
+            }
 
             // Recommendation 1: Spaced Repetition Due Lectures
             if (ctx.dueSpacedRepLectures.length > 0) {
@@ -13047,6 +13769,8 @@
                 bolt: '<span class="log-tag-badge" style="background:rgba(45, 212, 191, 0.2); color:var(--primary);">⚡ إنجاز متقن</span>',
                 lightbulb: '<span class="log-tag-badge" style="background:rgba(16, 185, 129, 0.2); color:#6ee7b7;">💡 استيعاب جديد</span>',
                 book: '<span class="log-tag-badge" style="background:rgba(139, 92, 246, 0.2); color:#c4b5fd;">📚 إنهاء محاضرات</span>',
+                college_absent: '<span class="log-tag-badge" style="background:rgba(249, 115, 22, 0.2); color:#fdba74; border:1px solid rgba(249,115,22,0.4);">🏠 غياب كلية (وقت مستثمر)</span>',
+                wasted_time: '<span class="log-tag-badge" style="background:rgba(225, 29, 72, 0.22); color:#fda4af; border:1px solid rgba(244,63,94,0.45);">🎮 وقت ضائع / لعب</span>',
                 missed: '<span class="log-tag-badge" style="background:rgba(244, 63, 94, 0.22); color:#fda4af; border:1px solid rgba(244,63,94,0.4);">❌ مهمة لم تتم</span>',
                 weekly_report: '<span class="log-tag-badge" style="background:rgba(56, 189, 248, 0.2); color:#38bdf8; border:1px solid rgba(56,189,248,0.4);">📊 تقييم أسبوعي</span>'
             };
@@ -22633,7 +23357,7 @@
             let newlyMissedCount = 0;
 
             scheduleEvents.forEach(ev => {
-                if (ev.isFixed || ev.type === 'mandatory' || ev.completed || ev.missed) return;
+                if (isCollegeCommitmentSession(ev) || isPersonalNeutralSession(ev) || ev.completed || ev.missed) return;
                 const dInfo = dayOrderMap.get(Number(ev.day));
                 if (!dInfo) return;
 
@@ -22867,14 +23591,43 @@
             let completedCount = 0;
             let autoCompletedCount = 0;
             let missedCount = 0;
+            let collegeAttendedCount = 0;
+            let collegeAttendedHours = 0;
+            let collegeAbsentCount = 0;
+            let collegeAbsentHours = 0;
+            let wastedCount = 0;
+            let wastedHours = 0;
             const subHoursCount = {};
 
             scheduleEvents.forEach(ev => {
-                if (ev.isFixed || ev.type === 'mandatory') return;
                 if (upToTodayOnly && !evaluatedDayIndices.has(Number(ev.day))) return;
-
                 const timing = getSessionDisplayTiming(ev);
                 const dur = timing.effectiveDurationHours;
+
+                if (isCollegeCommitmentSession(ev)) {
+                    if (ev.absent) {
+                        collegeAbsentCount++;
+                        collegeAbsentHours += dur;
+                    } else {
+                        collegeAttendedCount++;
+                        collegeAttendedHours += dur;
+                    }
+                    return;
+                }
+                if (isPersonalNeutralSession(ev)) return;
+
+                if (isWastedTimeSession(ev)) {
+                    wastedCount++;
+                    wastedHours += dur;
+                    if (ev.originalType) {
+                        totalStudyTasks++;
+                        plannedHours += dur;
+                        missedHours += dur;
+                        missedCount++;
+                    }
+                    return;
+                }
+
                 totalStudyTasks++;
                 plannedHours += dur;
                 if (ev.completed) {
@@ -22955,6 +23708,12 @@
                 completedCount,
                 autoCompletedCount,
                 missedCount,
+                collegeAttendedCount,
+                collegeAttendedHours: Number(collegeAttendedHours.toFixed(1)),
+                collegeAbsentCount,
+                collegeAbsentHours: Number(collegeAbsentHours.toFixed(1)),
+                wastedCount,
+                wastedHours: Number(wastedHours.toFixed(1)),
                 goalsTotalCount,
                 goalsCompletedCount,
                 goalsLinkedCount,
@@ -23044,7 +23803,9 @@
             });
 
             if (isAutoRollover) {
-                scheduleEvents = scheduleEvents.filter(e => e.isFixed || e.type === 'mandatory');
+                scheduleEvents = scheduleEvents.filter(e => isCollegeCommitmentSession(e));
+                // Reset temporary weekly absence flags for the brand new week so college schedule is active again
+                scheduleEvents.forEach(e => { e.absent = false; e.absentAtMs = null; });
                 plannerPrefs.currentWeekStartIso = newWeekIso;
             }
 
@@ -23109,6 +23870,18 @@
                         </div>
                     </div>
 
+                    ${(report.collegeAttendedCount || report.collegeAbsentCount) ? `
+                        <div style="font-size:0.78rem; color:#cbd5e1; background:rgba(249,115,22,0.08); border:1px solid rgba(249,115,22,0.28); border-radius:9px; padding:8px 11px; margin-bottom:10px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+                            <span>🏛️ <b>حضور الكلية:</b> ${report.collegeAttendedCount || 0} يوم (${report.collegeAttendedHours || 0} س)</span>
+                            <span>🏠 <b>غياب مستثمر بالمذاكرة:</b> <b style="color:#fdba74;">${report.collegeAbsentCount || 0} (${report.collegeAbsentHours || 0} س متاحة)</b></span>
+                        </div>
+                    ` : ''}
+                    ${(report.wastedCount || report.wastedHours) ? `
+                        <div style="font-size:0.78rem; color:#fecdd3; background:rgba(225,29,72,0.11); border:1px solid rgba(244,63,94,0.35); border-radius:9px; padding:8px 11px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                            <span>🎮 <b>الوقت الضائع في اللعب/التشتت:</b> <b style="color:#fda4af;">${report.wastedCount || 0} جلسة (${report.wastedHours || 0} س)</b></span>
+                            <span style="font-size:0.72rem; color:#fda4af;">استبدل أوقات التشتت بجلسات «تعويض متراكم ⚡»</span>
+                        </div>
+                    ` : ''}
                     ${report.topSubjectName ? `<div style="font-size:0.79rem; color:#cbd5e1; margin-bottom:10px;">🏆 <b>المادة الأكثر دراسة في هذه الفترة:</b> <span style="color:var(--primary); font-weight:800;">${report.topSubjectName}</span></div>` : ''}
 
                     <div style="font-size: 0.84rem; color: #e2e8f0; background: rgba(20, 184, 166, 0.08); border-right: 3px solid var(--primary); padding: 10px 12px; border-radius: 8px; line-height: 1.6;">
@@ -23157,6 +23930,8 @@
                         <span>✅ الساعات: <b style="color:#6ee7b7;">${rep.completedHours}/${rep.plannedHours} س</b> (${rep.completedCount} مهام)</span>
                         ${goalsInfo}
                         <span>🧭 تتبع ذكي: <b>${rep.autoCompletedCount || 0}</b></span>
+                        ${rep.collegeAbsentCount ? `<span>🏠 غياب كلية: <b style="color:#fdba74;">${rep.collegeAbsentCount} (${rep.collegeAbsentHours || 0} س)</b></span>` : ''}
+                        ${rep.wastedHours ? `<span>🎮 وقت ضائع: <b style="color:#fb7185;">${rep.wastedHours} س</b></span>` : ''}
                         <span>❌ لم تتم: <b style="color:#fda4af;">${rep.missedCount}</b></span>
                     </div>
                     <div style="font-size: 0.77rem; color: var(--text-muted); line-height: 1.5; background: rgba(255,255,255,0.02); padding: 7px 10px; border-radius: 8px;">
