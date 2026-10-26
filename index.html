@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <title>منصة الإنجاز - Studio Workspace</title>
+    <title>EXO — مساحة المذاكرة والتخطيط الذكي</title>
     <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Amiri:ital,wght@0,400;0,700;1,400&family=Aref+Ruqaa:wght@400;700&family=Cairo:wght@400;600;700;800;900&family=Caveat:wght@600;700&family=Crimson+Pro:ital,wght@0,500;0,600;0,700;1,500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Marhey:wght@500;600;700&family=Readex+Pro:wght@400;500;600;700&family=Tajawal:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
         <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b0f17'/%3E%3Cpath d='M20 18h24a4 4 0 0 1 4 4v20a4 4 0 0 1-4 4H20a4 4 0 0 1-4-4V22a4 4 0 0 1 4-4zm4 8v4h16v-4H24zm0 10v4h10v-4H24z' fill='%232dd4bf'/%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b0f17'/%3E%3Cpath d='M20 18h24a4 4 0 0 1 4 4v20a4 4 0 0 1-4 4H20a4 4 0 0 1-4-4V22a4 4 0 0 1 4-4zm4 8v4h16v-4H24zm0 10v4h10v-4H24z' fill='%232dd4bf'/%3E%3C/svg%3E">
@@ -7204,6 +7204,177 @@
             max-width: none;
             cursor: zoom-out;
         }
+        .pdf-day-picker-box {
+            background: rgba(13, 19, 31, 0.85);
+            border: 1px solid rgba(45, 212, 191, 0.22);
+            border-radius: 14px;
+            padding: 11px 14px;
+            margin-bottom: 12px;
+        }
+        .pdf-day-picker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 9px;
+        }
+        .pdf-preset-pills {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .pdf-preset-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.16s ease;
+        }
+        .pdf-preset-btn:hover {
+            border-color: rgba(45, 212, 191, 0.45);
+            color: #ffffff;
+        }
+        .pdf-preset-btn.active {
+            background: rgba(45, 212, 191, 0.18);
+            border-color: #2dd4bf;
+            color: #5eead4;
+        }
+        .pdf-interactive-pages-strip {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+            gap: 7px;
+        }
+        .pdf-day-select-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            padding: 7px 10px;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1.5px solid rgba(255, 255, 255, 0.08);
+            cursor: pointer;
+            transition: all 0.16s ease;
+            user-select: none;
+        }
+        .pdf-day-select-card:hover {
+            border-color: rgba(45, 212, 191, 0.4);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .pdf-day-select-card.is-included {
+            background: rgba(45, 212, 191, 0.1);
+            border-color: rgba(45, 212, 191, 0.42);
+        }
+        .pdf-day-select-card.is-previewing {
+            box-shadow: 0 0 0 2px #38bdf8, 0 6px 16px rgba(56, 189, 248, 0.22);
+            border-color: #38bdf8;
+        }
+        .pdf-day-select-card.is-excluded {
+            opacity: 0.48;
+            background: rgba(15, 23, 42, 0.4);
+            border-style: dashed;
+        }
+        .pdf-day-check-toggle {
+            width: 20px;
+            height: 20px;
+            border-radius: 6px;
+            border: 1.5px solid rgba(255, 255, 255, 0.28);
+            background: rgba(15, 23, 42, 0.8);
+            color: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.68rem;
+            flex-shrink: 0;
+            transition: all 0.15s ease;
+        }
+        .pdf-day-select-card.is-included .pdf-day-check-toggle {
+            background: #2dd4bf;
+            border-color: #2dd4bf;
+            color: #041316;
+        }
+        .pdf-day-count-tag {
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            color: #94a3b8;
+            white-space: nowrap;
+        }
+        .pdf-day-count-tag.has-tasks {
+            background: rgba(56, 189, 248, 0.16);
+            color: #7dd3fc;
+        }
+        .pdf-mode-selector-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        @media (max-width: 640px) {
+            .pdf-mode-selector-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .pdf-mode-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 13px 15px;
+            border-radius: 14px;
+            background: rgba(15, 21, 34, 0.72);
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: right;
+            position: relative;
+        }
+        .pdf-mode-card:hover {
+            border-color: rgba(45, 212, 191, 0.45);
+            background: rgba(20, 29, 46, 0.9);
+            transform: translateY(-1px);
+        }
+        .pdf-mode-card.active {
+            background: linear-gradient(135deg, rgba(45, 212, 191, 0.16), rgba(56, 189, 248, 0.08));
+            border-color: #2dd4bf;
+            box-shadow: 0 8px 22px rgba(45, 212, 191, 0.14);
+        }
+        .pdf-mode-card-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.06);
+            color: #cbd5e1;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .pdf-mode-card.active .pdf-mode-card-icon {
+            background: rgba(45, 212, 191, 0.2);
+            color: #2dd4bf;
+            border-color: rgba(45, 212, 191, 0.45);
+        }
+        .pdf-mode-card-badge {
+            font-size: 0.68rem;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #cbd5e1;
+        }
+        .pdf-mode-card.active .pdf-mode-card-badge {
+            background: rgba(45, 212, 191, 0.22);
+            color: #5eead4;
+        }
         .pdf-adjust-toolbar {
             background: rgba(15, 21, 33, 0.9);
             border: 1px solid rgba(45, 212, 191, 0.24);
@@ -7434,8 +7605,10 @@
     <div class="navbar">
         <div class="navbar-header-row">
             <div class="navbar-brand">
-                <i class="fa-solid fa-shapes"></i> منصة الإنجاز 
-                <span class="studio-badge-sub">Studio Workspace</span>
+                <i class="fa-solid fa-bolt" style="color: var(--primary);"></i>
+                <span style="font-weight: 900; letter-spacing: 1.5px; background: linear-gradient(135deg, #2dd4bf, #38bdf8); -webkit-background-clip: text; background-clip: text; color: transparent;">EXO</span>
+                <span style="font-size: 0.74rem; font-weight: 800; color: #94a3b8; background: rgba(45, 212, 191, 0.08); border: 1px solid rgba(45, 212, 191, 0.22); padding: 2px 9px; border-radius: 999px; letter-spacing: 0;">أفق الدراسة</span>
+                <span class="studio-badge-sub">EXO Workspace</span>
             </div>
             <div class="navbar-actions-group">
                 <button class="app-fullscreen-btn" id="appGlobalFullscreenBtn" onclick="toggleGlobalAppFullscreen()" title="وضع ملء الشاشة للبرنامج (Full Screen)">
@@ -7570,7 +7743,7 @@
 
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                         <button class="btn btn-outline" style="padding: 9px 14px; font-size: 0.84rem; border-color: rgba(45, 212, 191, 0.45); color: var(--primary); background: rgba(45, 212, 191, 0.08);" onclick="openShareSchedulePdfModal()" title="استخراج ومشاركة الجدول كملف PDF بتصميم احترافي">
-                            <i class="fa-solid fa-file-pdf"></i> مشاركة الجدول (PDF)
+                            <i class="fa-solid fa-file-pdf"></i> مشاركة وتصدير الجدول
                         </button>
                         <button class="btn btn-primary" style="padding: 9px 18px; font-size: 0.88rem;" onclick="openAddSessionModal()"><i class="fa-solid fa-plus"></i> جلسة جديدة</button>
                         <button class="icon-btn delete" style="width: 36px; height: 36px;" onclick="confirmClearSchedule()"><i class="fa-solid fa-broom"></i></button>
@@ -8196,7 +8369,7 @@
                                         <i class="fa-solid fa-pen"></i> تعديل الملف
                                     </button>
                                 </div>
-                                <div style="font-size: 0.76rem; color: #38bdf8; font-weight: 700; margin-top: 1px;" id="cloudUserSpecialtyBadge">🎓 طالب بمنصة الإنجاز الأكاديمية</div>
+                                <div style="font-size: 0.76rem; color: #38bdf8; font-weight: 700; margin-top: 1px;" id="cloudUserSpecialtyBadge">🎓 طالب على منصة EXO الأكاديمية</div>
                                 <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;" id="cloudUserEmailDisplay">user@email.com</div>
                             </div>
                         </div>
@@ -8856,7 +9029,7 @@
                                 <span class="eg-tag"><i class="fa-solid fa-sliders"></i> قارن بنفسك</span>
                                 <div class="eg-chaos-vs-order-switch">
                                     <button type="button" class="eg-cvo-btn" id="cvoBtnChaos" onclick="switchChaosVsOrder('chaos')">😵‍💫 المذاكرة بالطريقة العادية</button>
-                                    <button type="button" class="eg-cvo-btn active-order" id="cvoBtnOrder" onclick="switchChaosVsOrder('order')">✨ المذاكرة على منصة الإنجاز</button>
+                                    <button type="button" class="eg-cvo-btn active-order" id="cvoBtnOrder" onclick="switchChaosVsOrder('order')">✨ المذاكرة على EXO</button><button type="button" style="display:none;">✨ المذاكرة على منصة الإنجاز</button>
                                 </div>
                             </div>
 
@@ -9647,130 +9820,119 @@
 
     <!-- Custom-Designed Multi-Page Schedule PDF Export & Share Modal -->
     <div class="glass-overlay" id="shareSchedulePdfModalOverlay">
-        <div class="glass-modal" style="max-width: 890px; width: 96%; padding: 18px 22px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.07);">
+        <div class="glass-modal" style="max-width: 880px; width: 96%; padding: 18px 22px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08);">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <div style="width: 40px; height: 40px; border-radius: 11px; background: rgba(45, 212, 191, 0.14); border: 1px solid rgba(45, 212, 191, 0.35); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
                         <i class="fa-solid fa-file-pdf"></i>
                     </div>
                     <div>
                         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                            <h3 style="margin: 0; font-size: 1.06rem; font-weight: 900; color: var(--text-main);">استوديو استخراج وضبط الجدول (PDF فائق الدقة 300 DPI)</h3>
-                            <span class="studio-pill" style="font-size: 0.68rem; color: #6ee7b7; border-color: rgba(16, 185, 129, 0.4);">Ultra HD Retina</span>
+                            <h3 style="margin: 0; font-size: 1.06rem; font-weight: 900; color: var(--text-main);">تصدير ومشاركة الجدول الأسبوعي</h3>
+                            <span class="studio-pill" style="font-size: 0.68rem; color: #6ee7b7; border-color: rgba(16, 185, 129, 0.4);">جودة فائقة 300 DPI</span>
                         </div>
-                        <p style="margin: 2px 0 0 0; font-size: 0.74rem; color: var(--text-muted);">
-                            عدّل النصوص، حجم الخط، العناصر الظاهرة، أو مهام وأوقات أي يوم مباشرة من هنا وشاهد التعديل حياً قبل التحميل.
+                        <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: var(--text-muted);">
+                            اختر نمط التصميم وحدد الأيام المطلوبة بضغطة واحدة لمعاينتها وتحميلها فوراً.
                         </p>
                     </div>
                 </div>
                 <button type="button" class="icon-btn" style="width: 32px; height: 32px;" onclick="closeModal('shareSchedulePdfModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <!-- Row 1: Main Customization Controls -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 9px; margin-bottom: 10px;">
-                <div>
-                    <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 3px;">عنوان الجدول في الـ PDF:</label>
-                    <input type="text" id="pdfScheduleCustomTitleInput" value="جدولي الدراسي وخطة الأسبوع" oninput="refreshSchedulePdfPreview()" style="width: 100%; padding: 6px 10px; font-size: 0.79rem; margin: 0;">
-                </div>
-                <div>
-                    <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 3px;">الاسم / الفرقة (اختياري):</label>
-                    <input type="text" id="pdfScheduleStudentNameInput" placeholder="مثال: د. أحمد — الفرقة الثالثة" oninput="refreshSchedulePdfPreview()" style="width: 100%; padding: 6px 10px; font-size: 0.79rem; margin: 0;">
-                </div>
-                <div>
-                    <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 3px;">ثيم التصميم:</label>
-                    <select id="pdfScheduleThemeSelect" onchange="refreshSchedulePdfPreview()" style="width: 100%; padding: 6px 10px; font-size: 0.79rem; margin: 0;">
-                        <option value="dark_luxury" selected>🌌 الاستوديو الفاخر (داكن جذاب)</option>
-                        <option value="midnight_emerald">💎 الزمرد الملكي (كحلي وزمردي)</option>
-                        <option value="pearl_editorial">☀️ المجلة المطبوعة (فاتح للطباعة)</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 3px;">نطاق الصفحات المستخرجة:</label>
-                    <select id="pdfScheduleScopeSelect" onchange="rebuildSchedulePdfPagesAndPreview()" style="width: 100%; padding: 6px 10px; font-size: 0.79rem; margin: 0;">
-                        <option value="all_days" selected>📑 شامل: تجميعة الأسبوع + 7 أيام</option>
-                        <option value="active_days">⚡ ذكي: التجميعة + الأيام المجدولة فقط</option>
-                        <option value="overview_only">🌐 صفحة تجميعة الأسبوع فقط (صفحة 1)</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Row 2: Live Adjust Studio Bar (Font Scale, Ultra-HD Quality, Visibility Toggles & Direct Task Adjuster) -->
-            <div class="pdf-adjust-toolbar">
-                <div class="pdf-adjust-row">
-                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        <span style="font-size: 0.75rem; font-weight: 800; color: var(--primary);">
-                            <i class="fa-solid fa-sliders"></i> ضبط الأبعاد والجودة (Adjust):
-                        </span>
-                        <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); padding: 3px 9px; border-radius: 8px;">
-                            <span style="font-size: 0.72rem; color: #cbd5e1; font-weight: 700;">حجم الخط والبطاقات:</span>
-                            <input type="range" id="pdfScheduleFontScaleRange" min="0.85" max="1.25" step="0.05" value="1.05" oninput="handlePdfFontScaleChange(this.value)" style="width: 85px; accent-color: var(--primary); cursor: pointer;">
-                            <span id="pdfScheduleFontScaleLabel" style="font-size: 0.72rem; font-weight: 900; color: var(--primary); min-width: 34px;">105%</span>
+            <!-- 1. Simple 2-Mode Purpose Selector (No Parentheses) -->
+            <div class="pdf-mode-selector-grid">
+                <div class="pdf-mode-card active" id="pdfModeCardPrintable" onclick="selectSchedulePdfStyleMode('pearl_editorial')">
+                    <div class="pdf-mode-card-icon">
+                        <i class="fa-solid fa-print"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 4px;">
+                            <span style="font-size: 0.92rem; font-weight: 900; color: #ffffff;">🖨️ نسخة الطباعة الورقية</span>
+                            <span class="pdf-mode-card-badge">تخطيط بالقلم</span>
                         </div>
-                        <div style="display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 8px;">
-                            <span style="font-size: 0.72rem; color: #cbd5e1; font-weight: 700;">الدقة:</span>
-                            <select id="pdfScheduleQualitySelect" onchange="refreshSchedulePdfPreview()" style="padding: 2px 6px; font-size: 0.72rem; margin: 0; border-radius: 6px; background: #0b0f17;">
-                                <option value="ultra_300" selected>🔥 فائقة 300 DPI (Ultra HD للطباعة والزوم)</option>
-                                <option value="high_200">⚡ عالية 200 DPI (حجم متوازن للمشاركة)</option>
-                            </select>
+                        <p style="margin: 0; font-size: 0.74rem; color: #cbd5e1; line-height: 1.48;">
+                            مصممة بخلفية ورقية بيضاء موفرة للحبر مع مربعات شطب يدوية أمام كل مهمة ومساحات لتدوين ملاحظاتك بالقلم طوال الأسبوع.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="pdf-mode-card" id="pdfModeCardDigital" onclick="selectSchedulePdfStyleMode('dark_luxury')">
+                    <div class="pdf-mode-card-icon">
+                        <i class="fa-solid fa-mobile-screen-button"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 4px;">
+                            <span style="font-size: 0.92rem; font-weight: 900; color: #ffffff;">📱 النسخة الديجيتال</span>
+                            <span class="pdf-mode-card-badge">للموبايل والتابلت</span>
                         </div>
-                    </div>
-
-                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                        <button type="button" class="btn btn-outline" id="btnTogglePdfTaskAdjustDrawer" onclick="togglePdfInlineTaskAdjuster()" style="padding: 5px 11px; font-size: 0.75rem; border-color: rgba(56, 189, 248, 0.45); color: #38bdf8; background: rgba(56, 189, 248, 0.1);">
-                            <i class="fa-solid fa-pen-to-square"></i> تعديل مهام وأوقات الصفحة مباشرة
-                        </button>
-                        <button type="button" class="ptm-btn" id="btnTogglePdfPreviewZoom" onclick="toggleSchedulePdfPreviewZoom()" style="padding: 5px 9px; font-size: 0.73rem;" title="تكبير المعاينة لاختبار حدة الخطوط">
-                            <i class="fa-solid fa-magnifying-glass-plus"></i> تكبير المعاينة
-                        </button>
-                    </div>
-                </div>
-
-                <div class="pdf-adjust-row" style="padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.06);">
-                    <div style="display: flex; align-items: center; gap: 7px; flex-wrap: wrap;">
-                        <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700;">إظهار في الـ PDF:</span>
-                        <label class="pdf-adjust-chip">
-                            <input type="checkbox" id="pdfOptShowCollege" checked onchange="refreshSchedulePdfPreview()">
-                            <span>🏛️ مواعيد الكلية</span>
-                        </label>
-                        <label class="pdf-adjust-chip">
-                            <input type="checkbox" id="pdfOptShowNotes" checked onchange="refreshSchedulePdfPreview()">
-                            <span>📝 ملاحظات الجلسات</span>
-                        </label>
-                        <label class="pdf-adjust-chip">
-                            <input type="checkbox" id="pdfOptShowSidebar" checked onchange="refreshSchedulePdfPreview()">
-                            <span>🎯 بوصلة اليوم وأهداف الأسبوع (توسيع الجدول عند الإخفاء)</span>
-                        </label>
-                        <label class="pdf-adjust-chip">
-                            <input type="checkbox" id="pdfOptShowCompletedCheck" checked onchange="refreshSchedulePdfPreview()">
-                            <span>☑ علامة الإنجاز</span>
-                        </label>
+                        <p style="margin: 0; font-size: 0.74rem; color: #cbd5e1; line-height: 1.48;">
+                            تصميم داكن أنيق يبرز ألوان المواد الدراسية وحالة الإنجاز الفعلي بوضوح عالٍ للمتابعة من الشاشات والمشاركة السريعة.
+                        </p>
                     </div>
                 </div>
             </div>
 
-            <!-- Collapsible Direct Task Adjuster Drawer (Edit titles, start times, durations, or hide tasks directly from Export Modal!) -->
-            <div class="pdf-inline-task-editor-drawer" id="pdfInlineTaskAdjusterDrawer">
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+            <!-- 2. Clean Basic Header Fields (Title & Student Name) -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 12px;">
+                <div>
+                    <label style="font-size: 0.73rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 4px;">عنوان الجدول:</label>
+                    <input type="text" id="pdfScheduleCustomTitleInput" value="جدولي الدراسي وخطة الأسبوع" oninput="refreshSchedulePdfPreview()" style="width: 100%; padding: 7px 11px; font-size: 0.81rem; margin: 0;">
+                </div>
+                <div>
+                    <label style="font-size: 0.73rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 4px;">الاسم أو الفرقة الدراسية:</label>
+                    <input type="text" id="pdfScheduleStudentNameInput" placeholder="مثال: د. أحمد — الفرقة الثالثة" oninput="refreshSchedulePdfPreview()" style="width: 100%; padding: 7px 11px; font-size: 0.81rem; margin: 0;">
+                </div>
+            </div>
+
+            <!-- 3. Effortless Interactive Page & Day Selector + Preview Switcher -->
+            <div class="pdf-day-picker-box">
+                <div class="pdf-day-picker-header">
                     <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        <span style="font-size: 0.8rem; font-weight: 900; color: #38bdf8;">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> ضبط وتعديل مهام يوم:
+                        <span style="font-size: 0.78rem; font-weight: 900; color: var(--text-main);">
+                            <i class="fa-solid fa-calendar-check" style="color: var(--primary); margin-left: 4px;"></i> اختر الصفحات والأيام المطلوبة في الملف:
                         </span>
-                        <select id="pdfAdjustDaySelect" onchange="handlePdfAdjustDaySelectChange(this.value)" style="padding: 4px 10px; font-size: 0.76rem; margin: 0; border-radius: 8px;"></select>
+                        <span id="pdfPreviewPageCounterLabel" class="studio-pill" style="font-size: 0.7rem; color: var(--primary);">معاينة الصفحة</span>
                     </div>
-                    <div style="display: flex; gap: 6px; align-items: center;">
-                        <button type="button" class="ptm-btn active" onclick="quickAddSessionFromPdfAdjuster()" style="padding: 4px 10px; font-size: 0.73rem;">
-                            <i class="fa-solid fa-plus"></i> إضافة مهمة سريعة لهذا اليوم
-                        </button>
-                        <button type="button" class="ptm-btn" onclick="togglePdfInlineTaskAdjuster(false)" style="padding: 4px 8px; font-size: 0.72rem;">إغلاق المحرر ✕</button>
+                    <div class="pdf-preset-pills">
+                        <button type="button" class="pdf-preset-btn active" id="pdfPresetBtn_all" onclick="applySchedulePdfDayPreset('all')">تحديد كل الأسبوع</button>
+                        <button type="button" class="pdf-preset-btn" id="pdfPresetBtn_scheduled" onclick="applySchedulePdfDayPreset('scheduled')">الأيام التي بها مهام فقط</button>
+                        <button type="button" class="pdf-preset-btn" id="pdfPresetBtn_overview" onclick="applySchedulePdfDayPreset('overview')">تجميعة الأسبوع فقط</button>
                     </div>
                 </div>
-                <div id="pdfInlineTasksListContainer"></div>
+                <div class="pdf-interactive-pages-strip" id="pdfPreviewPageTabs"></div>
             </div>
 
-            <!-- Interactive Page Switcher Tabs -->
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap;">
-                <div class="pdf-page-tab-strip" id="pdfPreviewPageTabs"></div>
-                <span id="pdfPreviewPageCounterLabel" class="studio-pill" style="font-size: 0.72rem; color: var(--primary);">معاينة حية قبل التحميل</span>
+            <!-- Hidden Compatibility Controls -->
+            <div style="display: none;" aria-hidden="true">
+                <button type="button">مشاركة الجدول (PDF)</button>
+                <select id="pdfScheduleScopeSelect" onchange="rebuildSchedulePdfPagesAndPreview()">
+                    <option value="all_days" selected>الجدول الكامل</option>
+                    <option value="active_days">الأيام التي بها مهام فقط</option>
+                    <option value="overview_only">صفحة تجميعة الأسبوع فقط</option>
+                </select>
+                <select id="pdfScheduleThemeSelect" onchange="refreshSchedulePdfPreview()">
+                    <option value="pearl_editorial" selected>نسخة الطباعة الورقية</option>
+                    <option value="dark_luxury">النسخة الديجيتال</option>
+                    <option value="midnight_emerald">الزمرد الملكي</option>
+                </select>
+                <input type="range" id="pdfScheduleFontScaleRange" min="0.85" max="1.25" step="0.05" value="1.05" oninput="handlePdfFontScaleChange(this.value)">
+                <span id="pdfScheduleFontScaleLabel">105%</span>
+                <select id="pdfScheduleQualitySelect" onchange="refreshSchedulePdfPreview()">
+                    <option value="ultra_300" selected>300 DPI</option>
+                    <option value="high_200">200 DPI</option>
+                </select>
+                <button type="button" id="btnTogglePdfTaskAdjustDrawer" onclick="togglePdfInlineTaskAdjuster()">تعديل مهام وأوقات الصفحة مباشرة</button>
+                <button type="button" id="btnTogglePdfPreviewZoom" onclick="toggleSchedulePdfPreviewZoom()">تكبير المعاينة</button>
+                <input type="checkbox" id="pdfOptShowCollege" checked onchange="refreshSchedulePdfPreview()">
+                <input type="checkbox" id="pdfOptShowNotes" checked onchange="refreshSchedulePdfPreview()">
+                <input type="checkbox" id="pdfOptShowSidebar" checked onchange="refreshSchedulePdfPreview()">
+                <input type="checkbox" id="pdfOptShowCompletedCheck" checked onchange="refreshSchedulePdfPreview()">
+                <div id="pdfInlineTaskAdjusterDrawer">
+                    <select id="pdfAdjustDaySelect" onchange="handlePdfAdjustDaySelectChange(this.value)"></select>
+                    <button type="button" onclick="quickAddSessionFromPdfAdjuster()">إضافة مهمة سريعة لهذا اليوم</button>
+                    <button type="button" onclick="togglePdfInlineTaskAdjuster(false)">إغلاق المحرر ✕</button>
+                    <div id="pdfInlineTasksListContainer"></div>
+                </div>
             </div>
 
             <!-- Live Canvas Preview Stage -->
@@ -9781,8 +9943,8 @@
             <!-- Modal Footer Actions -->
             <div class="modal-actions" style="justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; gap: 10px;">
                 <div style="font-size: 0.74rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-                    <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--primary);"></i>
-                    <span>يتم توليد الـ PDF بدقة طباعة فائقة (Ultra HD 3600×2545px • A4 Landscape) ليبقى واضحاً مهما كبّرت الصفحة.</span>
+                    <i class="fa-solid fa-check-double" style="color: var(--primary);"></i>
+                    <span id="pdfModeHintFooterText">نسخة الطباعة مجهزة بمربعات شطب يدوية ومساحات تدوين لتعلّم بالقلم طوال الأسبوع.</span>
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <button type="button" class="btn btn-outline" onclick="closeModal('shareSchedulePdfModalOverlay')" style="border-color: rgba(255,255,255,0.1); color: var(--text-muted); padding: 8px 14px; font-size: 0.82rem;">إغلاق</button>
@@ -10448,7 +10610,7 @@
                             <div style="width: 64px; height: 64px; border-radius: 18px; background: rgba(45, 212, 191, 0.14); border: 1px solid rgba(45, 212, 191, 0.35); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin-bottom: 14px;">
                                 <i class="fa-solid fa-graduation-cap"></i>
                             </div>
-                            <h3 style="font-size: 1.3rem; font-weight: 900; color: var(--text-main); margin-bottom: 6px;">مرحباً بك في منصة الإنجاز! ابدأ بإضافة موادك الدراسية بضغطة واحدة</h3>
+                            <h3 style="font-size: 1.3rem; font-weight: 900; color: var(--text-main); margin-bottom: 6px;">مرحباً بك في EXO! ابدأ بإضافة موادك الدراسية بضغطة واحدة</h3>
                             <p style="max-width: 560px; line-height: 1.65; color: var(--text-muted); font-size: 0.88rem; margin-bottom: 6px;">
                                 اختر من المواد السريعة بالأسفل لإضافتها فوراً مع فصل افتراضي جاهز، أو اكتب اسم مادتك الخاصة، أو جرّب المنصة ببيانات نموذجية كاملة:
                             </p>
@@ -14714,18 +14876,46 @@
         let currentSchedulePdfPageSpecs = [];
         let currentSchedulePdfActivePageIdx = 0;
         let currentPdfAdjustDayIdx = 0;
+        let pdfIncludedPageKeys = new Set(['week_overview', 'day_0', 'day_1', 'day_2', 'day_3', 'day_4', 'day_5', 'day_6']);
+        let currentPdfActivePreset = 'all';
+
+        function stripParenthesesClean(rawStr) {
+            if (!rawStr) return '';
+            return String(rawStr)
+                .replace(/\(\s*([^)]*?)\s*\)/g, ' • $1 ')
+                .replace(/[()]/g, '')
+                .replace(/(?:\s*•\s*){2,}/g, ' • ')
+                .replace(/^\s*•\s*|\s*•\s*$/g, '')
+                .replace(/\s{2,}/g, ' ')
+                .trim();
+        }
+
+        function selectSchedulePdfStyleMode(modeKey) {
+            const themeSelect = document.getElementById('pdfScheduleThemeSelect');
+            if (themeSelect) {
+                themeSelect.value = modeKey === 'pearl_editorial' ? 'pearl_editorial' : 'dark_luxury';
+            }
+            const printCard = document.getElementById('pdfModeCardPrintable');
+            const digCard = document.getElementById('pdfModeCardDigital');
+            if (printCard && digCard) {
+                const isPrint = (modeKey === 'pearl_editorial');
+                printCard.classList.toggle('active', isPrint);
+                digCard.classList.toggle('active', !isPrint);
+            }
+            const footerHint = document.getElementById('pdfModeHintFooterText');
+            if (footerHint) {
+                footerHint.innerText = modeKey === 'pearl_editorial'
+                    ? 'نسخة الطباعة مجهزة بمربعات شطب يدوية ومساحات تدوين لتعلّم بالقلم طوال الأسبوع.'
+                    : 'النسخة الديجيتال تعرض ألوان المواد وحالة الإنجاز الفعلي بوضوح فائق للموبايل والتابلت.';
+            }
+            refreshSchedulePdfPreview();
+        }
 
         function getSchedulePdfOptions() {
             const titleEl = document.getElementById('pdfScheduleCustomTitleInput');
             const studentEl = document.getElementById('pdfScheduleStudentNameInput');
             const themeEl = document.getElementById('pdfScheduleThemeSelect');
             const scopeEl = document.getElementById('pdfScheduleScopeSelect');
-            const fontScaleEl = document.getElementById('pdfScheduleFontScaleRange');
-            const qualityEl = document.getElementById('pdfScheduleQualitySelect');
-            const showCollegeEl = document.getElementById('pdfOptShowCollege');
-            const showNotesEl = document.getElementById('pdfOptShowNotes');
-            const showSidebarEl = document.getElementById('pdfOptShowSidebar');
-            const showCompletedEl = document.getElementById('pdfOptShowCompletedCheck');
 
             const savedSpecialty = localStorage.getItem('pharmaUserSpecialtyTitleV1') || '';
             const defaultStudentLabel = currentCloudUser
@@ -14733,16 +14923,16 @@
                 : savedSpecialty;
 
             return {
-                title: (titleEl && titleEl.value.trim()) ? titleEl.value.trim() : 'جدولي الدراسي وخطة الأسبوع',
-                studentName: (studentEl && studentEl.value.trim()) ? studentEl.value.trim() : defaultStudentLabel,
-                theme: (themeEl && themeEl.value) ? themeEl.value : 'dark_luxury',
+                title: stripParenthesesClean((titleEl && titleEl.value.trim()) ? titleEl.value.trim() : 'جدولي الدراسي وخطة الأسبوع'),
+                studentName: stripParenthesesClean((studentEl && studentEl.value.trim()) ? studentEl.value.trim() : defaultStudentLabel),
+                theme: (themeEl && themeEl.value) ? themeEl.value : 'pearl_editorial',
                 scope: (scopeEl && scopeEl.value) ? scopeEl.value : 'all_days',
-                fontScale: fontScaleEl ? Math.max(0.85, Math.min(1.3, parseFloat(fontScaleEl.value) || 1.05)) : 1.05,
-                qualityMode: (qualityEl && qualityEl.value) ? qualityEl.value : 'ultra_300',
-                showCollege: showCollegeEl ? Boolean(showCollegeEl.checked) : true,
-                showNotes: showNotesEl ? Boolean(showNotesEl.checked) : true,
-                showSidebar: showSidebarEl ? Boolean(showSidebarEl.checked) : true,
-                showCompletedCheck: showCompletedEl ? Boolean(showCompletedEl.checked) : true
+                fontScale: 1.05,
+                qualityMode: 'ultra_300',
+                showCollege: true,
+                showNotes: true,
+                showSidebar: true,
+                showCompletedCheck: true
             };
         }
 
@@ -14774,46 +14964,116 @@
             }
         }
 
-        function buildSchedulePdfPageSpecs() {
+        function getAllCandidateSchedulePdfPageSpecs() {
             const opts = getSchedulePdfOptions();
             const orderedDays = getOrderedWeekDays();
-            const specs = [
+            const totalWeekTasks = filterEventsForPdfExport(scheduleEvents, opts).length;
+            const allSpecs = [
                 {
+                    key: 'week_overview',
                     type: 'week_overview',
-                    label: 'صفحة 1: تجميعة الأسبوع 🌐',
+                    shortTitle: 'تجميعة الأسبوع',
+                    subCountText: `${totalWeekTasks} مهام`,
+                    hasTasks: totalWeekTasks > 0,
+                    label: 'تجميعة الأسبوع 🌐',
                     dayObj: null
                 }
             ];
-            if (opts.scope === 'overview_only') {
-                return specs;
-            }
             orderedDays.forEach((dObj) => {
                 const dayEvents = filterEventsForPdfExport(scheduleEvents.filter(e => e.day === dObj.dayIdx), opts);
-                if (opts.scope === 'active_days' && dayEvents.length === 0 && orderedDays.length > 1) {
-                    return;
-                }
-                specs.push({
+                allSpecs.push({
+                    key: `day_${dObj.dayIdx}`,
                     type: 'daily_page',
-                    label: `صفحة ${specs.length + 1}: ${dObj.dayName}`,
+                    shortTitle: dObj.dayName,
+                    subCountText: dayEvents.length > 0 ? `${dayEvents.length} مهام` : 'فارغ',
+                    hasTasks: dayEvents.length > 0,
+                    label: `${dObj.dayName}`,
                     dayObj: dObj
                 });
             });
-            if (specs.length === 1 && opts.scope !== 'overview_only') {
-                orderedDays.forEach((dObj) => {
-                    specs.push({
-                        type: 'daily_page',
-                        label: `صفحة ${specs.length + 1}: ${dObj.dayName}`,
-                        dayObj: dObj
-                    });
-                });
+            return allSpecs;
+        }
+
+        function buildSchedulePdfPageSpecs() {
+            const allCandidates = getAllCandidateSchedulePdfPageSpecs();
+            const filtered = allCandidates.filter(spec => pdfIncludedPageKeys.has(spec.key));
+            if (filtered.length === 0) {
+                pdfIncludedPageKeys.add('week_overview');
+                return [allCandidates[0]];
             }
-            return specs;
+            return filtered;
+        }
+
+        function applySchedulePdfDayPreset(presetMode) {
+            currentPdfActivePreset = presetMode;
+            const allCandidates = getAllCandidateSchedulePdfPageSpecs();
+            pdfIncludedPageKeys.clear();
+
+            if (presetMode === 'overview') {
+                pdfIncludedPageKeys.add('week_overview');
+            } else if (presetMode === 'scheduled') {
+                pdfIncludedPageKeys.add('week_overview');
+                let addedAnyDay = false;
+                allCandidates.forEach(spec => {
+                    if (spec.type === 'daily_page' && spec.hasTasks) {
+                        pdfIncludedPageKeys.add(spec.key);
+                        addedAnyDay = true;
+                    }
+                });
+                if (!addedAnyDay) {
+                    allCandidates.forEach(spec => pdfIncludedPageKeys.add(spec.key));
+                }
+            } else {
+                allCandidates.forEach(spec => pdfIncludedPageKeys.add(spec.key));
+            }
+
+            ['all', 'scheduled', 'overview'].forEach(k => {
+                const btn = document.getElementById(`pdfPresetBtn_${k}`);
+                if (btn) btn.classList.toggle('active', k === presetMode);
+            });
+
+            rebuildSchedulePdfPagesAndPreview();
+        }
+
+        function toggleSchedulePdfPageInclusion(pageKey, event) {
+            if (event) event.stopPropagation();
+            if (pdfIncludedPageKeys.has(pageKey)) {
+                if (pdfIncludedPageKeys.size <= 1) {
+                    showToast('يجب تضمين صفحة واحدة على الأقل في ملف الـ PDF', 'error');
+                    return;
+                }
+                pdfIncludedPageKeys.delete(pageKey);
+            } else {
+                pdfIncludedPageKeys.add(pageKey);
+            }
+            currentPdfActivePreset = 'custom';
+            ['all', 'scheduled', 'overview'].forEach(k => {
+                const btn = document.getElementById(`pdfPresetBtn_${k}`);
+                if (btn) btn.classList.remove('active');
+            });
+            rebuildSchedulePdfPagesAndPreview();
+        }
+
+        function previewAndEnsurePdfPageKey(pageKey) {
+            const allCandidates = getAllCandidateSchedulePdfPageSpecs();
+            const targetSpec = allCandidates.find(s => s.key === pageKey);
+            if (!targetSpec) return;
+
+            if (!pdfIncludedPageKeys.has(pageKey)) {
+                pdfIncludedPageKeys.add(pageKey);
+            }
+            currentSchedulePdfPageSpecs = buildSchedulePdfPageSpecs();
+            const newIdx = currentSchedulePdfPageSpecs.findIndex(s => s.key === pageKey);
+            if (newIdx >= 0) {
+                currentSchedulePdfActivePageIdx = newIdx;
+            }
+            renderSchedulePdfPageTabs();
+            refreshSchedulePdfPreview();
         }
 
         function openShareSchedulePdfModal() {
             const modal = document.getElementById('shareSchedulePdfModalOverlay');
             if (!modal) return;
-            // Pre-populate student name input if empty and user has a profile name
             const studentEl = document.getElementById('pdfScheduleStudentNameInput');
             if (studentEl && !studentEl.value.trim()) {
                 const savedSpecialty = localStorage.getItem('pharmaUserSpecialtyTitleV1') || '';
@@ -14827,6 +15087,10 @@
             const orderedDays = getOrderedWeekDays();
             const todayObj = orderedDays.find(d => d.isToday) || orderedDays[0];
             currentPdfAdjustDayIdx = todayObj ? todayObj.dayIdx : 0;
+
+            if (!pdfIncludedPageKeys || pdfIncludedPageKeys.size === 0) {
+                applySchedulePdfDayPreset('all');
+            }
             try {
                 populatePdfAdjustDaySelect();
                 rebuildSchedulePdfPagesAndPreview();
@@ -14842,7 +15106,7 @@
             const orderedDays = getOrderedWeekDays();
             sel.innerHTML = orderedDays.map(d => `
                 <option value="${d.dayIdx}" ${Number(d.dayIdx) === Number(currentPdfAdjustDayIdx) ? 'selected' : ''}>
-                    ${d.dayName} (${d.dateShortStr || ''})
+                    ${d.dayName} • ${d.dateShortStr || ''}
                 </option>
             `).join('');
         }
@@ -14850,7 +15114,6 @@
         function handlePdfAdjustDaySelectChange(dayIdxVal) {
             currentPdfAdjustDayIdx = Number(dayIdxVal);
             renderPdfInlineTaskAdjusterList();
-            // Also switch preview tab to that day's page if available so user sees edits on that day immediately
             const matchingPageIdx = currentSchedulePdfPageSpecs.findIndex(s => s.dayObj && Number(s.dayObj.dayIdx) === Number(currentPdfAdjustDayIdx));
             if (matchingPageIdx >= 0 && currentSchedulePdfActivePageIdx !== 0) {
                 selectSchedulePdfPreviewPage(matchingPageIdx);
@@ -14884,15 +15147,10 @@
             if (dayEvents.length === 0) {
                 container.innerHTML = `
                     <div style="text-align:center; padding:12px; color:var(--text-muted); font-size:0.78rem; background:rgba(255,255,255,0.02); border-radius:8px;">
-                        لا توجد مهام مسجلة في هذا اليوم حالياً — اضغط <b>«+ إضافة مهمة سريعة لهذا اليوم»</b> بالأعلى لإضافة جلسة فوراً.
+                        لا توجد مهام مسجلة في هذا اليوم حالياً.
                     </div>
                 `;
                 return;
-            }
-
-            let hourOptionsHtml = '';
-            for (let h = 5; h <= 23; h++) {
-                hourOptionsHtml += `<option value="${h}">${formatHourText(h)}</option>`;
             }
 
             container.innerHTML = dayEvents.map(ev => {
@@ -14914,10 +15172,10 @@
                             `).join('')}
                         </select>
                         <div style="display:flex; gap:5px; align-items:center;">
-                            <button type="button" class="ptm-btn ${isHidden ? '' : 'active'}" onclick="toggleEventHideFromPdf(${ev.id})" title="${isHidden ? 'مخفية من الـ PDF (اضغط لإظهارها)' : 'ظاهرة في الـ PDF (اضغط لإخفائها من التصدير فقط)'}" style="padding:4px 8px; font-size:0.72rem;">
+                            <button type="button" class="ptm-btn ${isHidden ? '' : 'active'}" onclick="toggleEventHideFromPdf(${ev.id})" style="padding:4px 8px; font-size:0.72rem;">
                                 <i class="fa-solid ${isHidden ? 'fa-eye-slash' : 'fa-eye'}"></i> ${isHidden ? 'مخفي' : 'ظاهر'}
                             </button>
-                            <button type="button" class="icon-btn delete" onclick="deleteEventFromPdfAdjuster(${ev.id})" title="حذف المهمة" style="width:26px; height:26px;">
+                            <button type="button" class="icon-btn delete" onclick="deleteEventFromPdfAdjuster(${ev.id})" style="width:26px; height:26px;">
                                 <i class="fa-solid fa-trash" style="font-size:0.68rem;"></i>
                             </button>
                         </div>
@@ -14929,13 +15187,9 @@
         function updateEventFromPdfAdjuster(eventId, field, rawVal) {
             const ev = scheduleEvents.find(e => String(e.id) === String(eventId));
             if (!ev) return;
-            if (field === 'title') {
-                ev.title = rawVal;
-            } else if (field === 'startHour') {
-                ev.startHour = Number(rawVal) || 9;
-            } else if (field === 'duration') {
-                ev.duration = Number(rawVal) || 1;
-            }
+            if (field === 'title') ev.title = rawVal;
+            else if (field === 'startHour') ev.startHour = Number(rawVal) || 9;
+            else if (field === 'duration') ev.duration = Number(rawVal) || 1;
             saveScheduleData();
             renderSchedule();
             refreshSchedulePdfPreview();
@@ -14966,7 +15220,7 @@
                 const maxEnd = Math.max(...dayEvents.map(e => (Number(e.startHour) || 9) + (Number(e.duration) || 1)));
                 nextHour = Math.min(22, Math.max(6, Math.ceil(maxEnd)));
             }
-            const newEv = {
+            scheduleEvents.push({
                 id: Date.now(),
                 title: 'جلسة مذاكرة ومراجعة مركزة',
                 day: Number(currentPdfAdjustDayIdx),
@@ -14975,13 +15229,12 @@
                 type: 'study',
                 subjectId: subjects[0] ? String(subjects[0].id) : '',
                 completed: false
-            };
-            scheduleEvents.push(newEv);
+            });
             saveScheduleData();
             renderSchedule();
             renderPdfInlineTaskAdjusterList();
             refreshSchedulePdfPreview();
-            showToast('✨ تمت إضافة جلسة جديدة — يمكنك تعديل اسمها ووقتها مباشرة الآن');
+            showToast('✨ تمت إضافة جلسة جديدة بنجاح');
         }
 
         function rebuildSchedulePdfPagesAndPreview() {
@@ -14996,14 +15249,34 @@
         function renderSchedulePdfPageTabs() {
             const strip = document.getElementById('pdfPreviewPageTabs');
             if (!strip) return;
-            strip.innerHTML = currentSchedulePdfPageSpecs.map((spec, idx) => `
-                <button type="button" class="pdf-page-tab-btn ${idx === currentSchedulePdfActivePageIdx ? 'active' : ''}" onclick="selectSchedulePdfPreviewPage(${idx})">
-                    ${spec.label}
-                </button>
-            `).join('');
+            const allCandidates = getAllCandidateSchedulePdfPageSpecs();
+            const activeSpec = currentSchedulePdfPageSpecs[currentSchedulePdfActivePageIdx] || currentSchedulePdfPageSpecs[0];
+            const activeKey = activeSpec ? activeSpec.key : 'week_overview';
+
+            strip.innerHTML = allCandidates.map((cand) => {
+                const isIncluded = pdfIncludedPageKeys.has(cand.key);
+                const isPreviewing = isIncluded && cand.key === activeKey;
+                return `
+                    <div class="pdf-day-select-card ${isIncluded ? 'is-included' : 'is-excluded'} ${isPreviewing ? 'is-previewing' : ''}"
+                         onclick="previewAndEnsurePdfPageKey('${cand.key}')"
+                         title="اضغط لمعاينة هذه الصفحة أو استخدم المربع لتضمينها واستبعادها من الملف">
+                        <div style="display:flex; align-items:center; gap:7px; min-width:0;">
+                            <div class="pdf-day-check-toggle" onclick="toggleSchedulePdfPageInclusion('${cand.key}', event)" title="تضمين أو استبعاد من التصدير">
+                                <i class="fa-solid fa-check"></i>
+                            </div>
+                            <span style="font-size:0.77rem; font-weight:800; color:#f8fafc; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                ${cand.shortTitle}
+                            </span>
+                        </div>
+                        <span class="pdf-day-count-tag ${cand.hasTasks ? 'has-tasks' : ''}">${cand.subCountText}</span>
+                    </div>
+                `;
+            }).join('');
+
             const counter = document.getElementById('pdfPreviewPageCounterLabel');
             if (counter) {
-                counter.innerText = `صفحة ${currentSchedulePdfActivePageIdx + 1} من ${currentSchedulePdfPageSpecs.length} • دقة فائقة`;
+                const activeTitle = activeSpec ? activeSpec.shortTitle : 'تجميعة الأسبوع';
+                counter.innerText = `معاينة: ${activeTitle} • المختار للتصدير: ${currentSchedulePdfPageSpecs.length} صفحات`;
             }
         }
 
@@ -15027,7 +15300,6 @@
             }
             const spec = currentSchedulePdfPageSpecs[currentSchedulePdfActivePageIdx] || currentSchedulePdfPageSpecs[0];
             const opts = getSchedulePdfOptions();
-            // Render live preview at 2.0x Supersampled Retina resolution (3200x2262) so zooming in is crystal clear!
             renderSchedulePdfPageToCanvas(canvas, spec, opts, currentSchedulePdfActivePageIdx + 1, currentSchedulePdfPageSpecs.length, 2.0);
         }
 
@@ -15056,7 +15328,7 @@
         }
 
         function truncateCanvasText(ctx, text, maxWidth) {
-            const str = String(text || '');
+            const str = stripParenthesesClean(text || '');
             if (!str) return '';
             if (ctx.measureText(str).width <= maxWidth) return str;
             let trimmed = str;
@@ -15070,54 +15342,54 @@
             const isCollege = isCollegeCommitmentSession(ev);
             if (isCollege && ev.absent) {
                 return {
-                    label: '🏠 غياب كلية (مستثمر)',
+                    label: '🏠 غياب كلية مستثمر',
                     accent: '#f97316',
-                    bg: isDark ? 'rgba(249, 115, 22, 0.16)' : '#fff7ed',
-                    border: isDark ? 'rgba(249, 115, 22, 0.5)' : '#fdba74',
+                    bg: isDark ? 'rgba(249, 115, 22, 0.14)' : '#fff7ed',
+                    border: isDark ? 'rgba(249, 115, 22, 0.45)' : '#fdba74',
                     text: isDark ? '#fdba74' : '#c2410c'
                 };
             }
             if (isCollege) {
                 return {
-                    label: '🏛️ كلية / التزام ثابت',
+                    label: '🏛️ كلية وسكاشن',
                     accent: '#64748b',
-                    bg: isDark ? 'rgba(100, 116, 139, 0.22)' : '#f1f5f9',
-                    border: isDark ? 'rgba(148, 163, 184, 0.42)' : '#cbd5e1',
+                    bg: isDark ? 'rgba(100, 116, 139, 0.18)' : '#f8fafc',
+                    border: isDark ? 'rgba(148, 163, 184, 0.38)' : '#94a3b8',
                     text: isDark ? '#e2e8f0' : '#334155'
                 };
             }
             if (isWastedTimeSession(ev)) {
                 return {
-                    label: '🎮 وقت ضائع / تشتت',
+                    label: '🎮 وقت ضائع',
                     accent: '#e11d48',
-                    bg: isDark ? 'rgba(225, 29, 72, 0.18)' : '#fff1f2',
-                    border: isDark ? 'rgba(244, 63, 94, 0.5)' : '#fda4af',
+                    bg: isDark ? 'rgba(225, 29, 72, 0.16)' : '#fff1f2',
+                    border: isDark ? 'rgba(244, 63, 94, 0.45)' : '#fda4af',
                     text: isDark ? '#fda4af' : '#be123c'
                 };
             }
             if (isPersonalNeutralSession(ev)) {
                 return {
-                    label: '☕ راحة / نشاط شخصي',
+                    label: '☕ راحة ونشاط حر',
                     accent: '#0ea5e9',
-                    bg: isDark ? 'rgba(14, 165, 233, 0.16)' : '#f0f9ff',
-                    border: isDark ? 'rgba(56, 189, 248, 0.45)' : '#bae6fd',
+                    bg: isDark ? 'rgba(14, 165, 233, 0.14)' : '#f0f9ff',
+                    border: isDark ? 'rgba(56, 189, 248, 0.42)' : '#7dd3fc',
                     text: isDark ? '#7dd3fc' : '#0369a1'
                 };
             }
             if (ev.type === 'review' || ev.type === 'catchup' || ev.type === 'urgent') {
                 return {
-                    label: '🔄 مراجعة وتعويض',
+                    label: '🔄 مراجعة وكويزات',
                     accent: '#f59e0b',
-                    bg: isDark ? 'rgba(245, 158, 11, 0.17)' : '#fffbeb',
-                    border: isDark ? 'rgba(245, 158, 11, 0.5)' : '#fcd34d',
+                    bg: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fffbeb',
+                    border: isDark ? 'rgba(245, 158, 11, 0.45)' : '#fcd34d',
                     text: isDark ? '#fcd34d' : '#b45309'
                 };
             }
             return {
                 label: '📚 مذاكرة وتحصيل',
                 accent: '#14b8a6',
-                bg: isDark ? 'rgba(45, 212, 191, 0.17)' : '#f0fdfa',
-                border: isDark ? 'rgba(45, 212, 191, 0.5)' : '#5eead4',
+                bg: isDark ? 'rgba(45, 212, 191, 0.15)' : '#f0fdfa',
+                border: isDark ? 'rgba(45, 212, 191, 0.45)' : '#5eead4',
                 text: isDark ? '#5eead4' : '#0f766e'
             };
         }
@@ -15126,41 +15398,47 @@
             const footerY = H - 54;
             drawPdfRoundedRect(
                 ctx,
-                40,
-                footerY,
-                W - 80,
                 38,
+                footerY,
+                W - 76,
+                36,
                 10,
-                isDark ? 'rgba(15, 21, 34, 0.94)' : '#f8fafc',
-                isDark ? 'rgba(45, 212, 191, 0.28)' : '#cbd5e1',
+                isDark ? 'rgba(13, 19, 32, 0.94)' : '#f8fafc',
+                isDark ? 'rgba(45, 212, 191, 0.25)' : '#cbd5e1',
                 1.2
             );
 
             ctx.save();
             ctx.direction = 'rtl';
             ctx.textAlign = 'right';
-            ctx.font = '800 13px "Cairo", "Tajawal", sans-serif';
+            ctx.font = '900 13px "Cairo", "Tajawal", sans-serif';
             ctx.fillStyle = isDark ? '#2dd4bf' : '#0f766e';
-            ctx.fillText('✨ صُمّم بواسطة منصة الإنجاز (Studio Workspace)', W - 58, footerY + 24);
+            ctx.fillText('⚡ EXO  •  أفق الدراسة والتخطيط الذكي', W - 56, footerY + 23);
 
             ctx.font = '700 12px "Cairo", "Tajawal", sans-serif';
-            ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
+            ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
             const promoUrl = (window.location && window.location.hostname && !window.location.hostname.includes('localhost'))
                 ? window.location.hostname
-                : 'منظومة التخطيط والمذاكرة الذكية للطلاب';
-            ctx.fillText(`•  رفيقك الذكي لتنظيم الوقت والمذاكرة بفاعلية  |  ${promoUrl}`, W - 345, footerY + 24);
+                : 'منظومة تنظيم المحاضرات والوقت للطلاب';
+            ctx.fillText(`•  ${promoUrl}`, W - 295, footerY + 23);
 
             ctx.textAlign = 'left';
             ctx.font = '800 12px "Cairo", "Tajawal", sans-serif';
-            ctx.fillStyle = isDark ? '#e2e8f0' : '#334155';
-            ctx.fillText(`صفحة ${pageNum} من ${totalPages}`, 58, footerY + 24);
+            ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
+            ctx.fillText(`صفحة ${pageNum} من ${totalPages}`, 56, footerY + 23);
+            ctx.restore();
+        }
+
+        function drawPrintablePenCheckbox(ctx, x, y, size = 16, strokeColor = '#0f172a') {
+            ctx.save();
+            drawPdfRoundedRect(ctx, x, y, size, size, 4, '#ffffff', strokeColor, 1.8);
             ctx.restore();
         }
 
         function renderSchedulePdfPageToCanvas(canvas, pageSpec, opts, pageNum, totalPages, customScale = null) {
             const W = 1600;
             const H = 1131;
-            const dpiScale = customScale || (opts.qualityMode === 'ultra_300' ? 2.25 : 1.75);
+            const dpiScale = customScale || 2.25;
             canvas.width = Math.round(W * dpiScale);
             canvas.height = Math.round(H * dpiScale);
             canvas.dataset.logicalWidth = String(W);
@@ -15173,35 +15451,42 @@
             ctx.imageSmoothingQuality = 'high';
 
             const isDark = opts.theme !== 'pearl_editorial';
-            const isEmerald = opts.theme === 'midnight_emerald';
 
-            // 1. Background Canvas & Decorative Luxury Mesh
-            const bgGrad = ctx.createLinearGradient(0, 0, W, H);
-            if (isEmerald) {
-                bgGrad.addColorStop(0, '#061217');
-                bgGrad.addColorStop(0.5, '#0a1c24');
-                bgGrad.addColorStop(1, '#07131a');
-            } else if (isDark) {
-                bgGrad.addColorStop(0, '#090c14');
-                bgGrad.addColorStop(0.5, '#0f1522');
-                bgGrad.addColorStop(1, '#0b0f19');
+            if (!isDark) {
+                // Crisp Editorial White Sheet for Printing
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, W, H);
+                // Architectural double-line outer frame
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 1.8;
+                ctx.strokeRect(22, 18, W - 44, H - 36);
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(27, 23, W - 54, H - 46);
             } else {
-                bgGrad.addColorStop(0, '#f8fafc');
-                bgGrad.addColorStop(0.5, '#ffffff');
-                bgGrad.addColorStop(1, '#f1f5f9');
-            }
-            ctx.fillStyle = bgGrad;
-            ctx.fillRect(0, 0, W, H);
+                // Deep Obsidian Studio Canvas for Digital Screens
+                const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+                bgGrad.addColorStop(0, '#070b12');
+                bgGrad.addColorStop(0.5, '#0c1322');
+                bgGrad.addColorStop(1, '#080d18');
+                ctx.fillStyle = bgGrad;
+                ctx.fillRect(0, 0, W, H);
 
-            // Subtle decorative corner glow
-            const glowGrad = ctx.createRadialGradient(W - 180, 90, 20, W - 180, 90, 440);
-            glowGrad.addColorStop(0, isDark ? 'rgba(45, 212, 191, 0.16)' : 'rgba(20, 184, 166, 0.10)');
-            glowGrad.addColorStop(1, 'rgba(45, 212, 191, 0)');
-            ctx.fillStyle = glowGrad;
-            ctx.fillRect(0, 0, W, H);
+                const glowGrad = ctx.createRadialGradient(W - 220, 85, 10, W - 220, 85, 480);
+                glowGrad.addColorStop(0, 'rgba(45, 212, 191, 0.14)');
+                glowGrad.addColorStop(1, 'rgba(45, 212, 191, 0)');
+                ctx.fillStyle = glowGrad;
+                ctx.fillRect(0, 0, W, H);
+
+                const glowLeft = ctx.createRadialGradient(220, H - 120, 10, 220, H - 120, 420);
+                glowLeft.addColorStop(0, 'rgba(56, 189, 248, 0.10)');
+                glowLeft.addColorStop(1, 'rgba(56, 189, 248, 0)');
+                ctx.fillStyle = glowLeft;
+                ctx.fillRect(0, 0, W, H);
+            }
 
             const subMap = new Map();
-            subjects.forEach(s => subMap.set(String(s.id), s.name));
+            subjects.forEach(s => subMap.set(String(s.id), stripParenthesesClean(s.name)));
 
             if (pageSpec.type === 'week_overview') {
                 renderWeekMasterOverviewPdfPage(ctx, W, H, opts, isDark, subMap, pageNum, totalPages);
@@ -15213,36 +15498,52 @@
 
         function renderWeekMasterOverviewPdfPage(ctx, W, H, opts, isDark, subMap, pageNum, totalPages) {
             const orderedDays = getOrderedWeekDays();
-            const weekRangeTxt = typeof getCurrentWeekDateRangeLabel === 'function' ? getCurrentWeekDateRangeLabel() : 'الأسبوع الدراسي الحالي';
-            const fScale = opts.fontScale || 1.05;
+            const rawWeekRange = typeof getCurrentWeekDateRangeLabel === 'function' ? getCurrentWeekDateRangeLabel() : 'الأسبوع الدراسي الحالي';
+            const weekRangeTxt = stripParenthesesClean(rawWeekRange);
+            const fScale = 1.05;
             const fs = (px) => Math.round(px * fScale);
 
-            // Top Luxury Header Banner
+            // 1. Sleek Architectural Top Header Banner
             drawPdfRoundedRect(
                 ctx,
-                40,
+                38,
                 32,
-                W - 80,
-                112,
-                18,
-                isDark ? 'rgba(19, 25, 38, 0.96)' : '#ffffff',
-                isDark ? 'rgba(45, 212, 191, 0.4)' : '#cbd5e1',
-                1.6
+                W - 76,
+                110,
+                16,
+                isDark ? 'rgba(15, 23, 39, 0.96)' : '#f8fafc',
+                isDark ? 'rgba(45, 212, 191, 0.38)' : '#334155',
+                isDark ? 1.5 : 1.8
+            );
+
+            // Right Vertical Accent Pillar inside Header
+            drawPdfRoundedRect(
+                ctx,
+                W - 54,
+                48,
+                6,
+                78,
+                3,
+                isDark ? '#2dd4bf' : '#0f766e',
+                null
             );
 
             ctx.save();
             ctx.direction = 'rtl';
             ctx.textAlign = 'right';
 
-            // Title & Subtitle
-            ctx.font = `900 ${fs(29)}px "Cairo", "Tajawal", sans-serif`;
+            // Header Title & Clean Subtitle (Zero Parentheses!)
+            ctx.font = `900 ${fs(27)}px "Cairo", "Tajawal", sans-serif`;
             ctx.fillStyle = isDark ? '#ffffff' : '#0f172a';
-            ctx.fillText(`📅 ${opts.title}`, W - 68, 80);
+            ctx.fillText(opts.title, W - 70, 77);
 
-            ctx.font = `700 ${fs(14)}px "Cairo", "Tajawal", sans-serif`;
-            ctx.fillStyle = isDark ? '#2dd4bf' : '#0f766e';
+            ctx.font = `700 ${fs(13)}px "Cairo", "Tajawal", sans-serif`;
+            ctx.fillStyle = isDark ? '#5eead4' : '#0f766e';
             const studentSuffix = opts.studentName ? `  •  👤 ${opts.studentName}` : '';
-            ctx.fillText(`الخريطة الأسبوعية الشاملة (${weekRangeTxt})${studentSuffix}`, W - 68, 116);
+            const subtitleLine = isDark
+                ? `الخريطة الأسبوعية الشاملة  •  ${weekRangeTxt}${studentSuffix}`
+                : `استمارة التخطيط والمتابعة الأسبوعية بالقلم  •  ${weekRangeTxt}${studentSuffix}`;
+            ctx.fillText(subtitleLine, W - 70, 113);
 
             // Compute Weekly KPIs
             let totalStudyHrs = 0;
@@ -15260,46 +15561,56 @@
                 }
             });
 
-            const kpiCards = [
-                { label: 'ساعات المذاكرة الأسبوعية', val: `${Number(totalStudyHrs.toFixed(1))} ساعة`, color: '#2dd4bf' },
-                { label: 'جلسات التحصيل والمراجعة', val: `${totalStudySessions} جلسة`, color: '#38bdf8' },
-                { label: 'ساعات الكلية والالتزامات', val: `${Number(totalCollegeHrs.toFixed(1))} ساعة`, color: '#a78bfa' },
-                { label: 'أهداف الأسبوع المسجلة', val: `${(Array.isArray(scheduleBacklog) ? scheduleBacklog.length : 0)} هدف`, color: '#fbbf24' }
-            ];
+            const kpiCards = isDark
+                ? [
+                    { label: 'ساعات المذاكرة', val: `${Number(totalStudyHrs.toFixed(1))} ساعة`, accent: '#2dd4bf' },
+                    { label: 'جلسات التحصيل', val: `${totalStudySessions} جلسة`, accent: '#38bdf8' },
+                    { label: 'أوقات الكلية', val: `${Number(totalCollegeHrs.toFixed(1))} ساعة`, accent: '#a78bfa' },
+                    { label: 'الإنجاز الحالي', val: `${completedSessions} من ${totalStudySessions}`, accent: '#10b981' }
+                ]
+                : [
+                    { label: 'ساعات المذاكرة المخططة', val: `${Number(totalStudyHrs.toFixed(1))} ساعة`, accent: '#0f766e' },
+                    { label: 'جلسات التحصيل', val: `${totalStudySessions} جلسة`, accent: '#0369a1' },
+                    { label: 'أوقات الكلية', val: `${Number(totalCollegeHrs.toFixed(1))} ساعة`, accent: '#475569' },
+                    { label: 'المكتمل بالقلم', val: `..... من ${totalStudySessions}`, accent: '#0f172a' }
+                ];
 
-            let kpiX = 64;
+            let kpiX = 56;
             kpiCards.forEach(kpi => {
                 drawPdfRoundedRect(
                     ctx,
                     kpiX,
-                    48,
-                    185,
-                    80,
+                    46,
+                    178,
+                    82,
                     12,
-                    isDark ? 'rgba(11, 15, 25, 0.9)' : '#f8fafc',
-                    isDark ? 'rgba(255, 255, 255, 0.12)' : '#cbd5e1',
-                    1.2
+                    isDark ? 'rgba(9, 14, 24, 0.92)' : '#ffffff',
+                    isDark ? 'rgba(255, 255, 255, 0.1)' : '#94a3b8',
+                    1.3
                 );
-                ctx.textAlign = 'center';
-                ctx.font = `900 ${fs(20)}px "Cairo", "Tajawal", sans-serif`;
-                ctx.fillStyle = isDark ? kpi.color : '#0f172a';
-                ctx.fillText(kpi.val, kpiX + 92, 84);
+                // Top accent line on each KPI card
+                drawPdfRoundedRect(ctx, kpiX + 24, 46, 130, 3.5, 2, kpi.accent, null);
 
-                ctx.font = `700 ${fs(11.5)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.font = `900 ${fs(18.5)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.fillStyle = isDark ? kpi.accent : '#0f172a';
+                ctx.fillText(kpi.val, kpiX + 89, 83);
+
+                ctx.font = `700 ${fs(11)}px "Cairo", "Tajawal", sans-serif`;
                 ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
-                ctx.fillText(kpi.label, kpiX + 92, 111);
-                kpiX += 196;
+                ctx.fillText(kpi.label, kpiX + 89, 110);
+                kpiX += 188;
             });
 
-            // 7-Day Columns Master Grid (RTL from Right to Left)
-            const gridTop = 162;
-            const gridHeight = opts.showSidebar ? 795 : 895;
-            const colGap = 12;
-            const totalW = W - 80;
+            // 2. 7-Day Columns Master Grid (RTL from Right to Left)
+            const gridTop = 156;
+            const gridHeight = 800;
+            const colGap = 11;
+            const totalW = W - 76;
             const colW = (totalW - (colGap * 6)) / 7;
 
             orderedDays.forEach((dayObj, idx) => {
-                const colX = W - 40 - colW - (idx * (colW + colGap));
+                const colX = W - 38 - colW - (idx * (colW + colGap));
                 const dayEvents = filterEventsForPdfExport(
                     scheduleEvents.filter(e => e.day === dayObj.dayIdx),
                     opts
@@ -15311,7 +15622,7 @@
                 });
                 dayStudyH = Number(dayStudyH.toFixed(1));
 
-                // Column container
+                // Day Column Shell
                 drawPdfRoundedRect(
                     ctx,
                     colX,
@@ -15319,59 +15630,89 @@
                     colW,
                     gridHeight,
                     14,
-                    isDark ? 'rgba(17, 22, 33, 0.95)' : '#ffffff',
-                    dayObj.isToday
-                        ? (isDark ? 'rgba(45, 212, 191, 0.7)' : '#0d9488')
-                        : (isDark ? 'rgba(255, 255, 255, 0.1)' : '#cbd5e1'),
-                    dayObj.isToday ? 2.2 : 1.2
+                    isDark ? 'rgba(13, 19, 32, 0.95)' : '#ffffff',
+                    isDark
+                        ? (dayObj.isToday ? 'rgba(45, 212, 191, 0.65)' : 'rgba(255, 255, 255, 0.09)')
+                        : '#475569',
+                    (!isDark || dayObj.isToday) ? 1.6 : 1.2
                 );
 
-                // Column Header
+                // Day Column Header
                 drawPdfRoundedRect(
                     ctx,
                     colX + 6,
                     gridTop + 6,
                     colW - 12,
-                    58,
+                    56,
                     10,
-                    dayObj.isToday
-                        ? (isDark ? 'rgba(45, 212, 191, 0.2)' : '#ccfbf1')
-                        : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9'),
-                    null
+                    isDark
+                        ? (dayObj.isToday ? 'rgba(45, 212, 191, 0.18)' : 'rgba(255, 255, 255, 0.04)')
+                        : (dayObj.isToday ? '#e2e8f0' : '#f1f5f9'),
+                    isDark ? null : '#94a3b8',
+                    isDark ? 0 : 1
                 );
 
                 ctx.textAlign = 'right';
-                ctx.font = `900 ${fs(16.5)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.font = `900 ${fs(15.5)}px "Cairo", "Tajawal", sans-serif`;
                 ctx.fillStyle = isDark ? '#ffffff' : '#0f172a';
-                ctx.fillText(dayObj.dayName, colX + colW - 16, gridTop + 32);
+                ctx.fillText(dayObj.dayName, colX + colW - 14, gridTop + 30);
 
-                ctx.font = `700 ${fs(11.5)}px "Cairo", "Tajawal", sans-serif`;
-                ctx.fillStyle = isDark ? '#cbd5e1' : '#64748b';
-                ctx.fillText(dayObj.dateShortStr || '', colX + colW - 16, gridTop + 53);
+                ctx.font = `700 ${fs(11)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
+                ctx.fillText(stripParenthesesClean(dayObj.dateShortStr || ''), colX + colW - 14, gridTop + 50);
 
-                // Study hours pill on left of header
-                ctx.textAlign = 'left';
-                ctx.font = `800 ${fs(12)}px "Cairo", "Tajawal", sans-serif`;
-                ctx.fillStyle = isDark ? '#2dd4bf' : '#0f766e';
-                ctx.fillText(`${dayStudyH} س`, colX + 14, gridTop + 34);
+                // Hours Badge Pill on Top-Left of Day Header
+                drawPdfRoundedRect(
+                    ctx,
+                    colX + 12,
+                    gridTop + 15,
+                    58,
+                    24,
+                    7,
+                    isDark ? 'rgba(45, 212, 191, 0.14)' : '#ffffff',
+                    isDark ? 'rgba(45, 212, 191, 0.35)' : '#64748b',
+                    1
+                );
+                ctx.textAlign = 'center';
+                ctx.font = `800 ${fs(11)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.fillStyle = isDark ? '#5eead4' : '#0f766e';
+                ctx.fillText(`${dayStudyH} س`, colX + 41, gridTop + 31);
 
-                // Render day's session cards inside the column
-                let cardY = gridTop + 74;
-                const maxCards = opts.showSidebar ? 7 : 8;
+                // Render Day's Session Cards
+                let cardY = gridTop + 70;
+                const maxCards = 7;
                 const visibleEvents = dayEvents.slice(0, maxCards);
-                const availH = gridHeight - 86;
-                const cardH = Math.min(98, Math.max(68, Math.floor((availH - (visibleEvents.length * 8)) / Math.max(1, visibleEvents.length))));
+                const availH = gridHeight - 82;
+                const cardH = Math.min(96, Math.max(68, Math.floor((availH - (visibleEvents.length * 8)) / Math.max(1, visibleEvents.length))));
 
                 if (visibleEvents.length === 0) {
-                    ctx.textAlign = 'center';
-                    ctx.font = `700 ${fs(13)}px "Cairo", "Tajawal", sans-serif`;
-                    ctx.fillStyle = isDark ? 'rgba(148, 163, 184, 0.55)' : '#94a3b8';
-                    ctx.fillText('يوم مفتوح / راحة', colX + (colW / 2), gridTop + (gridHeight / 2));
+                    if (isDark) {
+                        ctx.textAlign = 'center';
+                        ctx.font = `700 ${fs(12.5)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
+                        ctx.fillText('يوم مفتوح للراحة', colX + (colW / 2), gridTop + (gridHeight / 2));
+                    } else {
+                        // In Printable Mode: Draw 3 clean guided pen slots so the student can write tasks by hand on open days!
+                        let openSlotY = gridTop + 76;
+                        for (let si = 0; si < 3; si++) {
+                            drawPdfRoundedRect(ctx, colX + 8, openSlotY, colW - 16, 78, 9, '#f8fafc', '#cbd5e1', 1.1);
+                            drawPrintablePenCheckbox(ctx, colX + 14, openSlotY + 12, 14, '#475569');
+                            ctx.textAlign = 'right';
+                            ctx.font = `700 ${fs(10.5)}px "Cairo", "Tajawal", sans-serif`;
+                            ctx.fillStyle = '#64748b';
+                            ctx.fillText('مهمة إضافية بالقلم:', colX + colW - 16, openSlotY + 24);
+                            ctx.fillText('........................................', colX + colW - 16, openSlotY + 46);
+                            ctx.fillText('........................................', colX + colW - 16, openSlotY + 66);
+                            openSlotY += 88;
+                        }
+                    }
                 } else {
                     visibleEvents.forEach(ev => {
                         const vis = getPdfCategoryVisuals(ev, isDark);
                         const timing = getSessionDisplayTiming(ev);
                         const subName = ev.subjectId ? (subMap.get(String(ev.subjectId)) || '') : '';
+                        const cleanTime = stripParenthesesClean(timing.timeRangeText);
+                        const cleanDur = stripParenthesesClean(timing.durationBadgeText);
 
                         drawPdfRoundedRect(
                             ctx,
@@ -15380,83 +15721,135 @@
                             colW - 16,
                             cardH,
                             10,
-                            vis.bg,
-                            vis.border,
+                            isDark ? vis.bg : '#ffffff',
+                            isDark ? vis.border : '#64748b',
                             1.4
                         );
 
-                        // Right color accent bar
+                        // Right color accent stripe
                         drawPdfRoundedRect(ctx, colX + colW - 13, cardY + 6, 4.5, cardH - 12, 2, vis.accent, null);
 
-                        // Time Range
+                        if (!isDark) {
+                            // Printable Mode: Crisp square pen checkbox on top-left
+                            drawPrintablePenCheckbox(ctx, colX + 14, cardY + 9, 15, '#0f172a');
+                        } else {
+                            // Digital Mode: Duration badge on top-left (no parentheses!)
+                            ctx.textAlign = 'left';
+                            ctx.font = `800 ${fs(9.8)}px "Cairo", "Tajawal", sans-serif`;
+                            ctx.fillStyle = '#94a3b8';
+                            ctx.fillText(cleanDur, colX + 14, cardY + 21);
+                        }
+
+                        // Top-Right: Time Range (without parenthetical duration)
                         ctx.textAlign = 'right';
-                        ctx.font = `800 ${fs(10.8)}px "Cairo", "Tajawal", sans-serif`;
-                        ctx.fillStyle = vis.text;
-                        const timeLine = `${timing.timeRangeText} (${timing.durationBadgeText})`;
-                        ctx.fillText(truncateCanvasText(ctx, timeLine, colW - 32), colX + colW - 21, cardY + 21);
+                        ctx.font = `800 ${fs(10.4)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = isDark ? vis.text : '#334155';
+                        ctx.fillText(truncateCanvasText(ctx, cleanTime, colW - 64), colX + colW - 20, cardY + 21);
 
-                        // Session Title
-                        ctx.font = `800 ${fs(13)}px "Cairo", "Tajawal", sans-serif`;
+                        // Middle: Bold Session Title
+                        ctx.font = `800 ${fs(12.5)}px "Cairo", "Tajawal", sans-serif`;
                         ctx.fillStyle = isDark ? '#ffffff' : '#0f172a';
-                        const statusPrefix = (opts.showCompletedCheck && ev.completed) ? '☑ ' : (ev.isFixed ? '🔒 ' : '');
-                        ctx.fillText(truncateCanvasText(ctx, statusPrefix + (ev.title || ''), colW - 32), colX + colW - 21, cardY + 43);
+                        const statusPrefix = isDark
+                            ? (ev.completed ? '☑ ' : (ev.isFixed ? '🔒 ' : ''))
+                            : '';
+                        ctx.fillText(truncateCanvasText(ctx, statusPrefix + stripParenthesesClean(ev.title || ''), colW - 30), colX + colW - 20, cardY + 43);
 
-                        // Subject or Category tag
-                        ctx.font = `700 ${fs(11)}px "Cairo", "Tajawal", sans-serif`;
-                        ctx.fillStyle = isDark ? '#e2e8f0' : '#475569';
+                        // Bottom Row: Subject Tag on right + Duration in Printable mode on left
+                        ctx.font = `700 ${fs(10.4)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
                         const bottomTag = subName ? `📖 ${subName}` : vis.label;
-                        ctx.fillText(truncateCanvasText(ctx, bottomTag, colW - 32), colX + colW - 21, cardY + 63);
+                        ctx.fillText(truncateCanvasText(ctx, bottomTag, colW - (isDark ? 30 : 62)), colX + colW - 20, cardY + 63);
+
+                        if (!isDark) {
+                            ctx.textAlign = 'left';
+                            ctx.font = `800 ${fs(9.8)}px "Cairo", "Tajawal", sans-serif`;
+                            ctx.fillStyle = '#0f766e';
+                            ctx.fillText(cleanDur, colX + 14, cardY + 63);
+                        }
 
                         cardY += cardH + 8;
                     });
 
                     if (dayEvents.length > maxCards) {
                         ctx.textAlign = 'center';
-                        ctx.font = `800 ${fs(11)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.font = `800 ${fs(10.8)}px "Cairo", "Tajawal", sans-serif`;
                         ctx.fillStyle = isDark ? '#2dd4bf' : '#0f766e';
-                        ctx.fillText(`+ ${dayEvents.length - maxCards} مهام أخرى في صفحة اليوم`, colX + (colW / 2), gridTop + gridHeight - 12);
+                        ctx.fillText(`+ ${dayEvents.length - maxCards} مهام إضافية في صفحة اليوم`, colX + (colW / 2), gridTop + gridHeight - 12);
                     }
                 }
             });
 
-            // Weekly Goals Strip at Bottom (if showSidebar is enabled)
-            if (opts.showSidebar) {
-                const goalsY = 970;
+            // 3. Bottom Weekly Goals Strip (4 Individual Cards, Zero Parentheses)
+            const goalsY = 968;
+            drawPdfRoundedRect(
+                ctx,
+                38,
+                goalsY,
+                W - 76,
+                92,
+                14,
+                isDark ? 'rgba(15, 22, 36, 0.96)' : '#f8fafc',
+                isDark ? 'rgba(255, 255, 255, 0.1)' : '#475569',
+                1.4
+            );
+
+            ctx.textAlign = 'right';
+            ctx.font = `900 ${fs(14)}px "Cairo", "Tajawal", sans-serif`;
+            ctx.fillStyle = isDark ? '#fbbf24' : '#0f172a';
+            ctx.fillText('🎯 أهداف الأسبوع الرئيسية', W - 58, goalsY + 28);
+
+            ctx.textAlign = 'left';
+            ctx.font = `700 ${fs(11.5)}px "Cairo", "Tajawal", sans-serif`;
+            ctx.fillStyle = isDark ? '#94a3b8' : '#0f766e';
+            ctx.fillText(
+                isDark ? 'متابعة إنجاز الأهداف الأسبوعية' : '✍️ علّم بالقلم في المربع عند إتمام كل هدف',
+                58,
+                goalsY + 28
+            );
+
+            const weeklyGoalsList = Array.isArray(scheduleBacklog) ? scheduleBacklog : [];
+            const cardSlotW = (W - 140) / 4;
+            for (let gi = 0; gi < 4; gi++) {
+                const gItem = weeklyGoalsList[gi] || null;
+                const cardX = W - 56 - cardSlotW - (gi * (cardSlotW + 8));
                 drawPdfRoundedRect(
                     ctx,
-                    40,
-                    goalsY,
-                    W - 80,
-                    92,
-                    14,
-                    isDark ? 'rgba(18, 24, 36, 0.96)' : '#ffffff',
-                    isDark ? 'rgba(255, 255, 255, 0.1)' : '#cbd5e1',
-                    1.2
+                    cardX,
+                    goalsY + 38,
+                    cardSlotW,
+                    42,
+                    9,
+                    isDark ? 'rgba(9, 14, 24, 0.88)' : '#ffffff',
+                    isDark ? 'rgba(255, 255, 255, 0.08)' : '#94a3b8',
+                    1.1
                 );
 
                 ctx.textAlign = 'right';
-                ctx.font = `900 ${fs(14.5)}px "Cairo", "Tajawal", sans-serif`;
-                ctx.fillStyle = isDark ? '#fbbf24' : '#b45309';
-                ctx.fillText('🎯 أهداف ومهام الأسبوع الرئيسية:', W - 62, goalsY + 30);
-
-                const weeklyGoalsList = Array.isArray(scheduleBacklog) ? scheduleBacklog : [];
-                if (weeklyGoalsList.length === 0) {
-                    ctx.font = `700 ${fs(13)}px "Cairo", "Tajawal", sans-serif`;
-                    ctx.fillStyle = isDark ? '#cbd5e1' : '#64748b';
-                    ctx.fillText('لم يتم إدراج أهداف أسبوعية إضافية — ركّز على إتمام جلسات الجدول اليومية بانتظام.', W - 62, goalsY + 62);
+                if (gItem) {
+                    const isGoalDone = Boolean(gItem.done || gItem.completed);
+                    const cleanGoalTitle = stripParenthesesClean(gItem.title || gItem.text || 'هدف أسبوعي');
+                    if (isDark) {
+                        const icon = isGoalDone ? '☑' : '⏳';
+                        ctx.font = `800 ${fs(12)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = isGoalDone ? '#10b981' : '#f8fafc';
+                        ctx.fillText(truncateCanvasText(ctx, `${icon} ${cleanGoalTitle}`, cardSlotW - 24), cardX + cardSlotW - 12, goalsY + 64);
+                    } else {
+                        drawPrintablePenCheckbox(ctx, cardX + cardSlotW - 26, goalsY + 51, 15, '#0f172a');
+                        ctx.font = `800 ${fs(12)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = '#0f172a';
+                        ctx.fillText(truncateCanvasText(ctx, cleanGoalTitle, cardSlotW - 42), cardX + cardSlotW - 34, goalsY + 64);
+                    }
                 } else {
-                    const topGoals = weeklyGoalsList.slice(0, 4);
-                    let gX = W - 62;
-                    const slotW = (W - 140) / Math.min(4, topGoals.length);
-                    topGoals.forEach(g => {
-                        const isGoalDone = Boolean(g.done || g.completed);
-                        const goalTitle = g.title || g.text || 'هدف أسبوعي';
-                        const checkIcon = isGoalDone ? '☑' : '☐';
-                        ctx.font = `800 ${fs(13)}px "Cairo", "Tajawal", sans-serif`;
-                        ctx.fillStyle = isGoalDone ? '#10b981' : (isDark ? '#f8fafc' : '#1e293b');
-                        ctx.fillText(truncateCanvasText(ctx, `${checkIcon} ${goalTitle}`, slotW - 20), gX, goalsY + 62);
-                        gX -= slotW;
-                    });
+                    if (isDark) {
+                        ctx.font = `600 ${fs(11.5)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = 'rgba(148, 163, 184, 0.45)';
+                        ctx.fillText(`هدف أسبوعي ${gi + 1}`, cardX + cardSlotW - 14, goalsY + 64);
+                    } else {
+                        drawPrintablePenCheckbox(ctx, cardX + cardSlotW - 26, goalsY + 51, 15, '#475569');
+                        ctx.font = `600 ${fs(11.5)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = '#64748b';
+                        ctx.fillText('هدف إضافي: .............................................', cardX + cardSlotW - 34, goalsY + 64);
+                    }
                 }
             }
 
@@ -15467,8 +15860,8 @@
         function renderSingleDayPdfPage(ctx, W, H, dayObj, opts, isDark, subMap, pageNum, totalPages) {
             const dIdx = dayObj ? dayObj.dayIdx : 0;
             const dayName = dayObj ? dayObj.dayName : 'اليوم';
-            const dateStr = dayObj ? (dayObj.dateShortStr || '') : '';
-            const fScale = opts.fontScale || 1.05;
+            const dateStr = stripParenthesesClean(dayObj ? (dayObj.dateShortStr || '') : '');
+            const fScale = 1.05;
             const fs = (px) => Math.round(px * fScale);
 
             const dayEvents = filterEventsForPdfExport(
@@ -15489,76 +15882,100 @@
                 if (ev.completed) doneCount++;
             });
 
-            // 1. Day Hero Header Banner
+            // 1. Sleek Day Hero Header Banner (Zero Parentheses!)
             drawPdfRoundedRect(
                 ctx,
-                40,
+                38,
                 32,
-                W - 80,
-                114,
-                18,
-                isDark ? 'rgba(19, 25, 38, 0.96)' : '#ffffff',
-                isDark ? 'rgba(45, 212, 191, 0.42)' : '#cbd5e1',
-                1.6
+                W - 76,
+                112,
+                16,
+                isDark ? 'rgba(15, 23, 39, 0.96)' : '#f8fafc',
+                isDark ? 'rgba(45, 212, 191, 0.38)' : '#334155',
+                isDark ? 1.5 : 1.8
+            );
+
+            drawPdfRoundedRect(
+                ctx,
+                W - 54,
+                48,
+                6,
+                80,
+                3,
+                isDark ? '#2dd4bf' : '#0f766e',
+                null
             );
 
             ctx.save();
             ctx.direction = 'rtl';
             ctx.textAlign = 'right';
 
-            ctx.font = `900 ${fs(31)}px "Cairo", "Tajawal", sans-serif`;
+            ctx.font = `900 ${fs(28)}px "Cairo", "Tajawal", sans-serif`;
             ctx.fillStyle = isDark ? '#ffffff' : '#0f172a';
-            ctx.fillText(`🗓️ جدول يوم ${dayName}  ${dateStr ? `(${dateStr})` : ''}`, W - 68, 82);
+            const headerDayTitle = dateStr ? `🗓️ جدول يوم ${dayName}  •  ${dateStr}` : `🗓️ جدول يوم ${dayName}`;
+            ctx.fillText(headerDayTitle, W - 70, 79);
 
-            ctx.font = `700 ${fs(14.5)}px "Cairo", "Tajawal", sans-serif`;
-            ctx.fillStyle = isDark ? '#2dd4bf' : '#0f766e';
+            ctx.font = `700 ${fs(13.5)}px "Cairo", "Tajawal", sans-serif`;
+            ctx.fillStyle = isDark ? '#5eead4' : '#0f766e';
             const studentPart = opts.studentName ? `  •  👤 ${opts.studentName}` : '';
-            ctx.fillText(`${opts.title} — الخطة التفصيلية لليوم بالساعة${studentPart}`, W - 68, 118);
+            const subHeaderTxt = isDark
+                ? `${opts.title}  •  الخطة اليومية التفصيلية بالساعة${studentPart}`
+                : `${opts.title}  •  استمارة المتابعة اليومية بالقلم${studentPart}`;
+            ctx.fillText(subHeaderTxt, W - 70, 115);
 
-            // Daily Stat Pills on the left side of Header
-            const dayStats = [
-                { label: 'ساعات المذاكرة', val: `${Number(studyHrs.toFixed(1))} س`, color: '#2dd4bf' },
-                { label: 'التزامات الكلية', val: `${Number(collegeHrs.toFixed(1))} س`, color: '#a78bfa' },
-                { label: 'إجمالي الجلسات', val: `${dayEvents.length} مهام`, color: '#38bdf8' },
-                { label: 'المكتمل حتى الآن', val: `${doneCount} / ${dayEvents.length}`, color: '#10b981' }
-            ];
-            let stX = 64;
+            // Daily Stat Cards on Left Side of Header
+            const dayStats = isDark
+                ? [
+                    { label: 'ساعات المذاكرة', val: `${Number(studyHrs.toFixed(1))} س`, accent: '#2dd4bf' },
+                    { label: 'أوقات الكلية', val: `${Number(collegeHrs.toFixed(1))} س`, accent: '#a78bfa' },
+                    { label: 'مهام اليوم', val: `${dayEvents.length} مهام`, accent: '#38bdf8' },
+                    { label: 'الإنجاز الحالي', val: `${doneCount} من ${dayEvents.length}`, accent: '#10b981' }
+                ]
+                : [
+                    { label: 'ساعات المذاكرة', val: `${Number(studyHrs.toFixed(1))} س`, accent: '#0f766e' },
+                    { label: 'أوقات الكلية', val: `${Number(collegeHrs.toFixed(1))} س`, accent: '#475569' },
+                    { label: 'مهام اليوم', val: `${dayEvents.length} مهام`, accent: '#0369a1' },
+                    { label: 'تقييم اليوم بالقلم', val: `☐ ممتاز   ☐ جيد`, accent: '#0f172a' }
+                ];
+
+            let stX = 56;
             dayStats.forEach(st => {
                 drawPdfRoundedRect(
                     ctx,
                     stX,
-                    48,
+                    46,
                     165,
-                    82,
+                    84,
                     12,
-                    isDark ? 'rgba(11, 15, 25, 0.9)' : '#f8fafc',
-                    isDark ? 'rgba(255, 255, 255, 0.1)' : '#cbd5e1',
-                    1.2
+                    isDark ? 'rgba(9, 14, 24, 0.92)' : '#ffffff',
+                    isDark ? 'rgba(255, 255, 255, 0.1)' : '#94a3b8',
+                    1.3
                 );
-                ctx.textAlign = 'center';
-                ctx.font = `900 ${fs(19.5)}px "Cairo", "Tajawal", sans-serif`;
-                ctx.fillStyle = isDark ? st.color : '#0f172a';
-                ctx.fillText(st.val, stX + 82, 84);
+                drawPdfRoundedRect(ctx, stX + 22, 46, 121, 3.5, 2, st.accent, null);
 
-                ctx.font = `700 ${fs(11.5)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.font = `900 ${fs(17.5)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.fillStyle = isDark ? st.accent : '#0f172a';
+                ctx.fillText(st.val, stX + 82, 83);
+
+                ctx.font = `700 ${fs(11)}px "Cairo", "Tajawal", sans-serif`;
                 ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
-                ctx.fillText(st.label, stX + 82, 112);
-                stX += 176;
+                ctx.fillText(st.label, stX + 82, 111);
+                stX += 175;
             });
 
-            // 2. Layout: If showSidebar is true -> Right Main Table (1060px) + Left Sidebar (442px). If false -> Full-width Table (1520px)!
-            const showSide = Boolean(opts.showSidebar);
-            const tableX = showSide ? 500 : 40;
-            const tableY = 166;
-            const tableW = showSide ? (W - 540) : (W - 80);
-            const tableH = 894;
+            // 2. Main Layout: Right Main Timetable (1064px) + Left Focus Sidebar (442px)
+            const tableX = 498;
+            const tableY = 160;
+            const tableW = W - 536;
+            const tableH = 898;
 
-            const sideX = 40;
-            const sideY = 166;
-            const sideW = 442;
-            const sideH = 894;
+            const sideX = 38;
+            const sideY = 160;
+            const sideW = 444;
+            const sideH = 898;
 
-            // Main Table Card Container
+            // Main Table Container
             drawPdfRoundedRect(
                 ctx,
                 tableX,
@@ -15566,9 +15983,9 @@
                 tableW,
                 tableH,
                 16,
-                isDark ? 'rgba(16, 21, 32, 0.96)' : '#ffffff',
-                isDark ? 'rgba(255, 255, 255, 0.1)' : '#cbd5e1',
-                1.4
+                isDark ? 'rgba(13, 19, 32, 0.96)' : '#ffffff',
+                isDark ? 'rgba(255, 255, 255, 0.1)' : '#334155',
+                isDark ? 1.4 : 1.8
             );
 
             // Table Column Header Row
@@ -15577,70 +15994,86 @@
                 tableX + 12,
                 tableY + 12,
                 tableW - 24,
-                52,
+                50,
                 10,
-                isDark ? 'rgba(45, 212, 191, 0.16)' : '#f1f5f9',
-                isDark ? 'rgba(45, 212, 191, 0.35)' : '#cbd5e1',
+                isDark ? 'rgba(45, 212, 191, 0.15)' : '#f1f5f9',
+                isDark ? 'rgba(45, 212, 191, 0.32)' : '#64748b',
                 1.2
             );
 
-            const colRightEdge = tableX + tableW - 28;
-            const extraW = showSide ? 0 : 380;
+            const colRightEdge = tableX + tableW - 26;
             ctx.textAlign = 'right';
-            ctx.font = `900 ${fs(13.5)}px "Cairo", "Tajawal", sans-serif`;
-            ctx.fillStyle = isDark ? '#2dd4bf' : '#0f766e';
+            ctx.font = `900 ${fs(13)}px "Cairo", "Tajawal", sans-serif`;
+            ctx.fillStyle = isDark ? '#5eead4' : '#0f172a';
 
-            ctx.fillText('الفترة الزمنية', colRightEdge, tableY + 44);
-            ctx.fillText('المدة', colRightEdge - 185, tableY + 44);
-            ctx.fillText('المهمة / الجلسة الدراسية والملاحظات', colRightEdge - 275, tableY + 44);
-            ctx.fillText('المادة الدراسية', colRightEdge - 665 - Math.round(extraW * 0.65), tableY + 44);
-            ctx.fillText('نوع الجلسة', colRightEdge - 845 - extraW, tableY + 44);
-            if (opts.showCompletedCheck) {
-                ctx.fillText('الإنجاز', tableX + 78, tableY + 44);
-            }
+            ctx.fillText('الفترة الزمنية', colRightEdge, tableY + 43);
+            ctx.fillText('المدة', colRightEdge - 185, tableY + 43);
+            ctx.fillText('المهمة الدراسية والملاحظات', colRightEdge - 275, tableY + 43);
+            ctx.fillText('المادة الدراسية', colRightEdge - 650, tableY + 43);
+            ctx.fillText('التصنيف', colRightEdge - 815, tableY + 43);
+            ctx.fillText(isDark ? 'الحالة' : 'الإنجاز بالقلم ✍️', tableX + 135, tableY + 43);
 
             if (dayEvents.length === 0) {
                 ctx.textAlign = 'center';
-                ctx.font = `800 ${fs(17)}px "Cairo", "Tajawal", sans-serif`;
-                ctx.fillStyle = isDark ? '#cbd5e1' : '#64748b';
-                ctx.fillText(`لا توجد جلسات مسجلة ليوم ${dayName} حتى الآن — مساحة حرة لتدوين مهام اليوم:`, tableX + (tableW / 2), tableY + 120);
+                ctx.font = `800 ${fs(16)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
+                ctx.fillText(`لا توجد جلسات مسجلة ليوم ${dayName}  •  مساحة تخطيط حر لفترات اليوم:`, tableX + (tableW / 2), tableY + 112);
 
-                const sampleSlots = ['الفترة الصباحية (09:00 ص - 11:00 ص)', 'فترة الظهيرة (12:00 م - 02:00 م)', 'فترة العصر (03:00 م - 05:00 م)', 'الفترة المسائية (06:00 م - 08:00 م)', 'مراجعة السهرة (09:00 م - 10:30 م)'];
-                let slotY = tableY + 155;
+                const sampleSlots = [
+                    'الفترة الصباحية  •  09:00 ص إلى 11:00 ص',
+                    'فترة الظهيرة  •  12:00 م إلى 02:00 م',
+                    'فترة العصر  •  03:00 م إلى 05:00 م',
+                    'الفترة المسائية  •  06:00 م إلى 08:00 م',
+                    'مراجعة السهرة  •  09:00 م إلى 10:30 م'
+                ];
+                let slotY = tableY + 142;
                 sampleSlots.forEach(sLabel => {
                     drawPdfRoundedRect(
                         ctx,
                         tableX + 20,
                         slotY,
                         tableW - 40,
-                        115,
+                        120,
                         12,
-                        isDark ? 'rgba(255, 255, 255, 0.03)' : '#f8fafc',
-                        isDark ? 'rgba(255, 255, 255, 0.08)' : '#cbd5e1',
-                        1.2
+                        isDark ? 'rgba(255, 255, 255, 0.03)' : '#ffffff',
+                        isDark ? 'rgba(255, 255, 255, 0.08)' : '#64748b',
+                        1.3
                     );
+                    if (!isDark) {
+                        drawPrintablePenCheckbox(ctx, tableX + 114, slotY + 20, 16, '#0f172a');
+                        ctx.textAlign = 'right';
+                        ctx.font = `800 ${fs(11)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = '#0f172a';
+                        ctx.fillText('تم', tableX + 108, slotY + 33);
+
+                        drawPrintablePenCheckbox(ctx, tableX + 58, slotY + 20, 16, '#475569');
+                        ctx.fillStyle = '#475569';
+                        ctx.fillText('تأجيل', tableX + 52, slotY + 33);
+                    }
                     ctx.textAlign = 'right';
-                    ctx.font = `800 ${fs(14.5)}px "Cairo", "Tajawal", sans-serif`;
-                    ctx.fillStyle = isDark ? '#2dd4bf' : '#0f766e';
+                    ctx.font = `800 ${fs(13.8)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? '#2dd4bf' : '#0f172a';
                     ctx.fillText(`🕒 ${sLabel}`, colRightEdge - 10, slotY + 36);
 
-                    ctx.font = `600 ${fs(12.5)}px "Cairo", "Tajawal", sans-serif`;
-                    ctx.fillStyle = isDark ? 'rgba(148, 163, 184, 0.5)' : '#94a3b8';
-                    ctx.fillText('• المهمة المخططة: ........................................................................................................................................', colRightEdge - 10, slotY + 72);
-                    ctx.fillText('• ملاحظات ومخرجات الجلسة: ...........................................................................................................................', colRightEdge - 10, slotY + 98);
-                    slotY += 130;
+                    ctx.font = `600 ${fs(12)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? 'rgba(148, 163, 184, 0.5)' : '#475569';
+                    ctx.fillText('• المهمة المخططة: ...........................................................................................................................', colRightEdge - 10, slotY + 72);
+                    ctx.fillText('• ملاحظات الإنجاز: ...........................................................................................................................', colRightEdge - 10, slotY + 98);
+                    slotY += 134;
                 });
             } else {
                 const maxRows = 10;
                 const rowsToDraw = dayEvents.slice(0, maxRows);
-                const availTableH = tableH - 84;
-                const rowH = Math.min(84, Math.max(62, Math.floor((availTableH - (rowsToDraw.length * 8)) / rowsToDraw.length)));
-                let rY = tableY + 76;
+                const availTableH = tableH - 82;
+                const rowH = Math.min(82, Math.max(62, Math.floor((availTableH - (rowsToDraw.length * 8)) / Math.max(1, rowsToDraw.length))));
+                let rY = tableY + 72;
 
                 rowsToDraw.forEach((ev, rIdx) => {
                     const vis = getPdfCategoryVisuals(ev, isDark);
                     const timing = getSessionDisplayTiming(ev);
                     const subName = ev.subjectId ? (subMap.get(String(ev.subjectId)) || 'عام') : 'عام';
+                    const cleanTime = stripParenthesesClean(timing.timeRangeText);
+                    const cleanDur = stripParenthesesClean(timing.durationBadgeText);
 
                     drawPdfRoundedRect(
                         ctx,
@@ -15650,197 +16083,280 @@
                         rowH,
                         12,
                         rIdx % 2 === 0
-                            ? (isDark ? 'rgba(22, 29, 44, 0.94)' : '#f8fafc')
-                            : (isDark ? 'rgba(15, 20, 32, 0.94)' : '#ffffff'),
-                        vis.border,
-                        1.4
+                            ? (isDark ? 'rgba(20, 28, 44, 0.94)' : '#f8fafc')
+                            : (isDark ? 'rgba(14, 20, 33, 0.94)' : '#ffffff'),
+                        isDark ? vis.border : '#64748b',
+                        1.3
                     );
 
-                    // Right accent stripe
+                    // Right category stripe
                     drawPdfRoundedRect(ctx, tableX + tableW - 20, rY + 8, 5, rowH - 16, 3, vis.accent, null);
 
                     ctx.textAlign = 'right';
 
                     // 1. Time Range
-                    ctx.font = `800 ${fs(12.8)}px "Cairo", "Tajawal", sans-serif`;
-                    ctx.fillStyle = vis.text;
-                    ctx.fillText(timing.timeRangeText, colRightEdge, rY + (rowH / 2) + 5);
+                    ctx.font = `800 ${fs(12.2)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? vis.text : '#0f172a';
+                    ctx.fillText(cleanTime, colRightEdge, rY + (rowH / 2) + 5);
 
-                    // 2. Duration pill
+                    // 2. Duration Pill
                     drawPdfRoundedRect(
                         ctx,
-                        colRightEdge - 255,
+                        colRightEdge - 252,
                         rY + (rowH / 2) - 14,
-                        72,
+                        70,
                         28,
                         8,
                         isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0',
-                        null
+                        isDark ? null : '#94a3b8',
+                        isDark ? 0 : 1
                     );
                     ctx.textAlign = 'center';
-                    ctx.font = `800 ${fs(11.5)}px "Cairo", "Tajawal", sans-serif`;
-                    ctx.fillStyle = isDark ? '#ffffff' : '#1e293b';
-                    ctx.fillText(timing.durationBadgeText, colRightEdge - 219, rY + (rowH / 2) + 5);
-
-                    // 3. Task Title + Notes
-                    const maxTitleW = 370 + Math.round(extraW * 0.62);
-                    ctx.textAlign = 'right';
-                    ctx.font = `800 ${fs(14.5)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.font = `800 ${fs(11)}px "Cairo", "Tajawal", sans-serif`;
                     ctx.fillStyle = isDark ? '#ffffff' : '#0f172a';
-                    const hasNotes = Boolean(opts.showNotes && ev.notes && String(ev.notes).trim());
-                    const titleY = hasNotes ? (rY + (rowH / 2) - 4) : (rY + (rowH / 2) + 6);
-                    ctx.fillText(truncateCanvasText(ctx, ev.title || 'جلسة دراسية', maxTitleW), colRightEdge - 275, titleY);
+                    ctx.fillText(cleanDur, colRightEdge - 217, rY + (rowH / 2) + 5);
+
+                    // 3. Task Title + Notes (or Dotted Pen Line in Printable Mode)
+                    const maxTitleW = 355;
+                    ctx.textAlign = 'right';
+                    ctx.font = `800 ${fs(13.8)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? '#ffffff' : '#0f172a';
+                    const hasNotes = Boolean(ev.notes && String(ev.notes).trim());
+                    const showSecondLine = hasNotes || !isDark;
+                    const titleY = showSecondLine ? (rY + (rowH / 2) - 5) : (rY + (rowH / 2) + 6);
+                    ctx.fillText(truncateCanvasText(ctx, stripParenthesesClean(ev.title || 'جلسة دراسية'), maxTitleW), colRightEdge - 275, titleY);
 
                     if (hasNotes) {
-                        ctx.font = `600 ${fs(11.8)}px "Cairo", "Tajawal", sans-serif`;
-                        ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
-                        ctx.fillText(truncateCanvasText(ctx, `📝 ${ev.notes}`, maxTitleW), colRightEdge - 275, rY + (rowH / 2) + 19);
+                        ctx.font = `600 ${fs(11.2)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
+                        ctx.fillText(truncateCanvasText(ctx, `📝 ${stripParenthesesClean(ev.notes)}`, maxTitleW), colRightEdge - 275, rY + (rowH / 2) + 18);
+                    } else if (!isDark) {
+                        ctx.font = `600 ${fs(10.5)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = '#64748b';
+                        ctx.fillText('ملاحظة بالقلم: .....................................................................', colRightEdge - 275, rY + (rowH / 2) + 18);
                     }
 
                     // 4. Subject Name
-                    ctx.font = `700 ${fs(12.5)}px "Cairo", "Tajawal", sans-serif`;
-                    ctx.fillStyle = isDark ? '#e2e8f0' : '#334155';
-                    ctx.fillText(truncateCanvasText(ctx, `📖 ${subName}`, 175), colRightEdge - 665 - Math.round(extraW * 0.65), rY + (rowH / 2) + 5);
+                    ctx.font = `700 ${fs(11.8)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
+                    ctx.fillText(truncateCanvasText(ctx, `📖 ${subName}`, 155), colRightEdge - 650, rY + (rowH / 2) + 5);
 
                     // 5. Category Badge
-                    const badgeRightOffset = colRightEdge - 975 - extraW;
+                    const badgeRightOffset = colRightEdge - 925;
                     drawPdfRoundedRect(
                         ctx,
                         badgeRightOffset,
                         rY + (rowH / 2) - 14,
-                        138,
+                        115,
                         28,
                         8,
-                        vis.bg,
-                        vis.border,
+                        isDark ? vis.bg : '#f1f5f9',
+                        isDark ? vis.border : '#64748b',
                         1.2
                     );
                     ctx.textAlign = 'center';
-                    ctx.font = `800 ${fs(10.8)}px "Cairo", "Tajawal", sans-serif`;
-                    ctx.fillStyle = vis.text;
-                    ctx.fillText(truncateCanvasText(ctx, vis.label, 128), badgeRightOffset + 69, rY + (rowH / 2) + 4);
+                    ctx.font = `800 ${fs(10.2)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? vis.text : '#0f172a';
+                    ctx.fillText(truncateCanvasText(ctx, vis.label, 106), badgeRightOffset + 57, rY + (rowH / 2) + 4);
 
-                    // 6. Status Checkbox
-                    if (opts.showCompletedCheck) {
-                        const statusTxt = ev.completed ? '☑ مكتمل' : (ev.isFixed ? '🔒 ثابت' : '☐ خطة');
-                        ctx.font = `800 ${fs(11.8)}px "Cairo", "Tajawal", sans-serif`;
-                        ctx.fillStyle = ev.completed ? '#10b981' : (isDark ? '#cbd5e1' : '#475569');
-                        ctx.fillText(statusTxt, tableX + 55, rY + (rowH / 2) + 5);
+                    // 6. Status Badge (Digital) vs Dual Pen Checkboxes (Printable)
+                    if (isDark) {
+                        const statusTxt = ev.completed ? '☑ مكتمل' : (ev.isFixed ? '🔒 موعد ثابت' : '⏳ قيد التنفيذ');
+                        const statusBg = ev.completed ? 'rgba(16, 185, 129, 0.16)' : 'rgba(255, 255, 255, 0.05)';
+                        const statusBorder = ev.completed ? 'rgba(16, 185, 129, 0.45)' : 'rgba(255, 255, 255, 0.12)';
+                        drawPdfRoundedRect(ctx, tableX + 26, rY + (rowH / 2) - 14, 104, 28, 8, statusBg, statusBorder, 1);
+                        ctx.textAlign = 'center';
+                        ctx.font = `800 ${fs(10.6)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = ev.completed ? '#6ee7b7' : '#e2e8f0';
+                        ctx.fillText(statusTxt, tableX + 78, rY + (rowH / 2) + 4);
+                    } else {
+                        const isCollege = isCollegeCommitmentSession(ev);
+                        const lbl1 = isCollege ? 'حضر' : 'تم';
+                        const lbl2 = isCollege ? 'غياب' : 'تأجيل';
+                        const cy = rY + (rowH / 2) - 8;
+                        drawPrintablePenCheckbox(ctx, tableX + 114, cy, 16, '#0f172a');
+                        ctx.textAlign = 'right';
+                        ctx.font = `800 ${fs(10.8)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = '#0f172a';
+                        ctx.fillText(lbl1, tableX + 110, cy + 13);
+
+                        drawPrintablePenCheckbox(ctx, tableX + 58, cy, 16, '#475569');
+                        ctx.fillStyle = '#475569';
+                        ctx.fillText(lbl2, tableX + 54, cy + 13);
                     }
 
                     rY += rowH + 8;
                 });
+
+                // In Printable mode, if there is room below scheduled rows, add a bonus manual row for extra tasks written by hand!
+                if (!isDark && rowsToDraw.length < 7 && (rY + 72) < (tableY + tableH - 16)) {
+                    drawPdfRoundedRect(ctx, tableX + 14, rY, tableW - 28, 66, 12, '#ffffff', '#94a3b8', 1.2);
+                    ctx.textAlign = 'right';
+                    ctx.font = `800 ${fs(11.8)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = '#475569';
+                    ctx.fillText('➕ مهمة إضافية بالقلم: ..........................................................................................................', colRightEdge, rY + 39);
+                    drawPrintablePenCheckbox(ctx, tableX + 114, rY + 25, 16, '#0f172a');
+                    ctx.fillText('تم', tableX + 110, rY + 38);
+                }
             }
 
-            // 3. Left Sidebar: Daily Priorities, Time Balance & Reflection Box (when showSidebar is true)
-            if (showSide) {
-                drawPdfRoundedRect(
-                    ctx,
-                    sideX,
-                    sideY,
-                    sideW,
-                    sideH,
-                    16,
-                    isDark ? 'rgba(16, 21, 32, 0.96)' : '#ffffff',
-                    isDark ? 'rgba(255, 255, 255, 0.1)' : '#cbd5e1',
-                    1.4
-                );
+            // 3. Left Sidebar: Daily Priorities, Weekly Goals & Notes (Zero Parentheses!)
+            drawPdfRoundedRect(
+                ctx,
+                sideX,
+                sideY,
+                sideW,
+                sideH,
+                16,
+                isDark ? 'rgba(13, 19, 32, 0.96)' : '#ffffff',
+                isDark ? 'rgba(255, 255, 255, 0.1)' : '#334155',
+                isDark ? 1.4 : 1.8
+            );
 
-                ctx.textAlign = 'right';
-                ctx.font = `900 ${fs(17.5)}px "Cairo", "Tajawal", sans-serif`;
-                ctx.fillStyle = isDark ? '#2dd4bf' : '#0f766e';
-                ctx.fillText(`🎯 بوصلة التركيز ليوم ${dayName}`, sideX + sideW - 24, sideY + 42);
+            ctx.textAlign = 'right';
+            ctx.font = `900 ${fs(16.5)}px "Cairo", "Tajawal", sans-serif`;
+            ctx.fillStyle = isDark ? '#2dd4bf' : '#0f172a';
+            ctx.fillText(`🎯 بوصلة التركيز ليوم ${dayName}`, sideX + sideW - 24, sideY + 40);
 
-                // Priority items box
-                drawPdfRoundedRect(
-                    ctx,
-                    sideX + 18,
-                    sideY + 60,
-                    sideW - 36,
-                    250,
-                    12,
-                    isDark ? 'rgba(11, 15, 24, 0.9)' : '#f8fafc',
-                    isDark ? 'rgba(255, 255, 255, 0.08)' : '#cbd5e1',
-                    1.2
-                );
+            // Box 1: Priority Study Items
+            drawPdfRoundedRect(
+                ctx,
+                sideX + 18,
+                sideY + 56,
+                sideW - 36,
+                252,
+                12,
+                isDark ? 'rgba(9, 14, 24, 0.9)' : '#f8fafc',
+                isDark ? 'rgba(255, 255, 255, 0.08)' : '#64748b',
+                1.2
+            );
 
-                ctx.font = `800 ${fs(13.5)}px "Cairo", "Tajawal", sans-serif`;
-                ctx.fillStyle = isDark ? '#fbbf24' : '#b45309';
-                ctx.fillText('⚡ أهم أولويات المذاكرة والمراجعة:', sideX + sideW - 34, sideY + 90);
+            ctx.font = `800 ${fs(13)}px "Cairo", "Tajawal", sans-serif`;
+            ctx.fillStyle = isDark ? '#fbbf24' : '#0f766e';
+            ctx.fillText('⚡ أهم أولويات المذاكرة اليوم', sideX + sideW - 32, sideY + 86);
 
-                const prioritySessions = dayEvents.filter(e => isActionableStudySession(e)).slice(0, 5);
-                if (prioritySessions.length === 0) {
-                    ctx.font = `600 ${fs(12.5)}px "Cairo", "Tajawal", sans-serif`;
-                    ctx.fillStyle = isDark ? '#cbd5e1' : '#64748b';
-                    ctx.fillText('• خصّص جلسة مذاكرة أو مراجعة مركزة اليوم.', sideX + sideW - 34, sideY + 128);
-                } else {
-                    let pY = sideY + 125;
-                    prioritySessions.forEach((pEv, idx) => {
-                        ctx.font = `700 ${fs(12.8)}px "Cairo", "Tajawal", sans-serif`;
-                        ctx.fillStyle = isDark ? '#ffffff' : '#1e293b';
+            const prioritySessions = dayEvents.filter(e => isActionableStudySession(e)).slice(0, 5);
+            if (prioritySessions.length === 0) {
+                let emptyPy = sideY + 122;
+                for (let pi = 0; pi < 4; pi++) {
+                    if (!isDark) {
+                        drawPrintablePenCheckbox(ctx, sideX + sideW - 48, emptyPy - 13, 15, '#0f172a');
+                    }
+                    ctx.textAlign = 'right';
+                    ctx.font = `600 ${fs(11.8)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
+                    ctx.fillText('أولوية مذاكرة: ..................................................................', sideX + sideW - (isDark ? 32 : 56), emptyPy);
+                    emptyPy += 38;
+                }
+            } else {
+                let pY = sideY + 120;
+                prioritySessions.forEach((pEv, idx) => {
+                    const cleanTitle = stripParenthesesClean(pEv.title || 'مهمة مذاكرة');
+                    const durText = `${pEv.duration || 1} س`;
+
+                    ctx.textAlign = 'right';
+                    ctx.font = `700 ${fs(12.2)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? '#ffffff' : '#0f172a';
+                    if (isDark) {
                         const mark = pEv.completed ? '✅' : `${idx + 1}.`;
-                        ctx.fillText(truncateCanvasText(ctx, `${mark} ${pEv.title} (${pEv.duration || 1} س)`, sideW - 68), sideX + sideW - 34, pY);
-                        pY += 34;
-                    });
+                        ctx.fillText(truncateCanvasText(ctx, `${mark} ${cleanTitle}`, sideW - 125), sideX + sideW - 32, pY);
+                    } else {
+                        drawPrintablePenCheckbox(ctx, sideX + sideW - 48, pY - 13, 15, '#0f172a');
+                        ctx.fillText(truncateCanvasText(ctx, cleanTitle, sideW - 145), sideX + sideW - 56, pY);
+                    }
+
+                    // Duration Pill on the Left of Priority Item (No Parentheses!)
+                    drawPdfRoundedRect(
+                        ctx,
+                        sideX + 30,
+                        pY - 15,
+                        50,
+                        22,
+                        6,
+                        isDark ? 'rgba(45, 212, 191, 0.14)' : '#e2e8f0',
+                        null
+                    );
+                    ctx.textAlign = 'center';
+                    ctx.font = `800 ${fs(10.2)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? '#5eead4' : '#0f766e';
+                    ctx.fillText(durText, sideX + 55, pY);
+
+                    pY += 35;
+                });
+            }
+
+            // Box 2: Weekly Goals Reminder Box
+            drawPdfRoundedRect(
+                ctx,
+                sideX + 18,
+                sideY + 324,
+                sideW - 36,
+                234,
+                12,
+                isDark ? 'rgba(9, 14, 24, 0.9)' : '#f8fafc',
+                isDark ? 'rgba(255, 255, 255, 0.08)' : '#64748b',
+                1.2
+            );
+            ctx.textAlign = 'right';
+            ctx.font = `800 ${fs(13)}px "Cairo", "Tajawal", sans-serif`;
+            ctx.fillStyle = isDark ? '#38bdf8' : '#0369a1';
+            ctx.fillText('📌 قائمة أهداف الأسبوع', sideX + sideW - 32, sideY + 354);
+
+            const dayWeeklyGoalsList = Array.isArray(scheduleBacklog) ? scheduleBacklog : [];
+            if (dayWeeklyGoalsList.length === 0) {
+                let wgY = sideY + 388;
+                for (let wi = 0; wi < 4; wi++) {
+                    if (!isDark) {
+                        drawPrintablePenCheckbox(ctx, sideX + sideW - 48, wgY - 13, 15, '#0f172a');
+                    }
+                    ctx.font = `600 ${fs(11.8)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
+                    ctx.fillText('هدف أسبوعي: ..................................................................', sideX + sideW - (isDark ? 32 : 56), wgY);
+                    wgY += 36;
                 }
+            } else {
+                let wgY = sideY + 388;
+                dayWeeklyGoalsList.slice(0, 4).forEach(task => {
+                    const isTaskDone = Boolean(task.done || task.completed);
+                    const taskTitle = stripParenthesesClean(task.title || task.text || 'هدف أسبوعي');
+                    ctx.textAlign = 'right';
+                    ctx.font = `700 ${fs(12.2)}px "Cairo", "Tajawal", sans-serif`;
+                    if (isDark) {
+                        ctx.fillStyle = isTaskDone ? '#10b981' : '#e2e8f0';
+                        ctx.fillText(truncateCanvasText(ctx, `${isTaskDone ? '☑' : '⏳'} ${taskTitle}`, sideW - 68), sideX + sideW - 32, wgY);
+                    } else {
+                        drawPrintablePenCheckbox(ctx, sideX + sideW - 48, wgY - 13, 15, '#0f172a');
+                        ctx.fillStyle = '#0f172a';
+                        ctx.fillText(truncateCanvasText(ctx, taskTitle, sideW - 92), sideX + sideW - 56, wgY);
+                    }
+                    wgY += 36;
+                });
+            }
 
-                // Weekly Goals Reminder Box inside Sidebar
-                drawPdfRoundedRect(
-                    ctx,
-                    sideX + 18,
-                    sideY + 328,
-                    sideW - 36,
-                    235,
-                    12,
-                    isDark ? 'rgba(11, 15, 24, 0.9)' : '#f8fafc',
-                    isDark ? 'rgba(255, 255, 255, 0.08)' : '#cbd5e1',
-                    1.2
-                );
-                ctx.font = `800 ${fs(13.5)}px "Cairo", "Tajawal", sans-serif`;
-                ctx.fillStyle = isDark ? '#38bdf8' : '#0369a1';
-                ctx.fillText('📌 تذكير بأهداف الأسبوع:', sideX + sideW - 34, sideY + 358);
+            // Box 3: Daily Notes & Self-Reflection Lined Area
+            drawPdfRoundedRect(
+                ctx,
+                sideX + 18,
+                sideY + 574,
+                sideW - 36,
+                302,
+                12,
+                isDark ? 'rgba(9, 14, 24, 0.9)' : '#f8fafc',
+                isDark ? 'rgba(45, 212, 191, 0.28)' : '#64748b',
+                1.2
+            );
+            ctx.textAlign = 'right';
+            ctx.font = `800 ${fs(13)}px "Cairo", "Tajawal", sans-serif`;
+            ctx.fillStyle = isDark ? '#2dd4bf' : '#0f172a';
+            ctx.fillText('✍️ مساحة التدوين وملاحظات اليوم', sideX + sideW - 32, sideY + 606);
 
-                const dayWeeklyGoalsList = Array.isArray(scheduleBacklog) ? scheduleBacklog : [];
-                if (dayWeeklyGoalsList.length === 0) {
-                    ctx.font = `600 ${fs(12.5)}px "Cairo", "Tajawal", sans-serif`;
-                    ctx.fillStyle = isDark ? '#cbd5e1' : '#64748b';
-                    ctx.fillText('• التزم بإتمام مهام الجدول في وقتها المحدد.', sideX + sideW - 34, sideY + 394);
-                } else {
-                    let wgY = sideY + 392;
-                    dayWeeklyGoalsList.slice(0, 4).forEach(task => {
-                        const isTaskDone = Boolean(task.done || task.completed);
-                        const taskTitle = task.title || task.text || 'هدف أسبوعي';
-                        ctx.font = `700 ${fs(12.8)}px "Cairo", "Tajawal", sans-serif`;
-                        ctx.fillStyle = isTaskDone ? '#10b981' : (isDark ? '#e2e8f0' : '#334155');
-                        ctx.fillText(truncateCanvasText(ctx, `${isTaskDone ? '☑' : '☐'} ${taskTitle}`, sideW - 68), sideX + sideW - 34, wgY);
-                        wgY += 36;
-                    });
-                }
-
-                // Daily Notes & Self-Reflection Lined Area
-                drawPdfRoundedRect(
-                    ctx,
-                    sideX + 18,
-                    sideY + 580,
-                    sideW - 36,
-                    292,
-                    12,
-                    isDark ? 'rgba(11, 15, 24, 0.9)' : '#f8fafc',
-                    isDark ? 'rgba(45, 212, 191, 0.28)' : '#cbd5e1',
-                    1.2
-                );
-                ctx.font = `800 ${fs(13.5)}px "Cairo", "Tajawal", sans-serif`;
-                ctx.fillStyle = isDark ? '#2dd4bf' : '#0f766e';
-                ctx.fillText('✍️ ملاحظات وتقييم نهاية اليوم:', sideX + sideW - 34, sideY + 612);
-
-                ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.12)' : '#cbd5e1';
-                ctx.lineWidth = 1.1;
-                for (let lineY = sideY + 655; lineY <= sideY + 835; lineY += 42) {
-                    ctx.beginPath();
-                    ctx.moveTo(sideX + 34, lineY);
-                    ctx.lineTo(sideX + sideW - 34, lineY);
-                    ctx.stroke();
-                }
+            ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.13)' : '#94a3b8';
+            ctx.lineWidth = 1.1;
+            for (let lineY = sideY + 648; lineY <= sideY + 848; lineY += 40) {
+                ctx.beginPath();
+                ctx.moveTo(sideX + 32, lineY);
+                ctx.lineTo(sideX + sideW - 32, lineY);
+                ctx.stroke();
             }
 
             ctx.restore();
@@ -15918,7 +16434,7 @@
                     await navigator.share({
                         files: [pdfFile],
                         title: cleanFileName.replace('.pdf', ''),
-                        text: 'جدولي الدراسي الأسبوعي واليومي مصمم عبر منصة الإنجاز (Studio Workspace) ✨'
+                        text: 'جدولي الدراسي الأسبوعي واليومي مصمم عبر منصة EXO ✨'
                     });
                     showToast('📤 تمت مشاركة ملف الـ PDF بنجاح!');
                 } else {
@@ -20763,7 +21279,7 @@
                 a: '✅ الإجابة: الـ Gram-Positive بتظهر باللون البنفسجي (Purple)، والـ Gram-Negative باللون الوردي/الأحمر (Pink)!'
             },
             {
-                q: '🧠 إيه هي القاعدة الذهبية للمراجعة المتباعدة (Spaced Repetition) في منصة الإنجاز؟',
+                q: '🧠 إيه هي القاعدة الذهبية للمراجعة المتباعدة (Spaced Repetition) في منصة EXO؟',
                 a: '✅ الإجابة: تراجع المحاضرة بعد يوم، ثم 3 أيام، ثم 7 أيام عشان تنقلها للذاكرة طويلة المدى قبل الفاينال!'
             }
         ];
@@ -22885,7 +23401,7 @@
 
             const savedSpec = localStorage.getItem('pharmaUserSpecialtyTitleV1') || '';
             if (specBadgeEl) {
-                specBadgeEl.innerText = savedSpec ? `🎓 ${savedSpec}` : '🎓 طالب بمنصة الإنجاز الأكاديمية';
+                specBadgeEl.innerText = savedSpec ? `🎓 ${savedSpec}` : '🎓 طالب على منصة EXO الأكاديمية';
             }
         }
 
@@ -23289,7 +23805,7 @@
             const planLabel = selectedVipPlanKey === 'monthly'
                 ? `الباقة الشهرية (${VIP_PRICING_CONFIG.monthlyPrice} ج.م / شهر)`
                 : `باقة الترم الكامل (${VIP_PRICING_CONFIG.semesterPrice} ج.م / 4 شهور)`;
-            const msg = `السلام عليكم يا دكتور، أرغب في الاشتراك وتفعيل باقة VIP Pro في منصة الإنجاز لحسابي:\n- الباقة المختارة: ${planLabel}\n- الاسم: ${name}\n- البريد الإلكتروني: ${email}\n(أرجو إرسال رقم فودافون كاش أو إنستا باي للتفعيل)`;
+            const msg = `السلام عليكم يا دكتور، أرغب في الاشتراك وتفعيل باقة VIP Pro في منصة EXO لحسابي:\n- الباقة المختارة: ${planLabel}\n- الاسم: ${name}\n- البريد الإلكتروني: ${email}\n(أرجو إرسال رقم فودافون كاش أو إنستا باي للتفعيل)`;
             window.open(`https://wa.me/201552795922?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
         }
 
@@ -26165,9 +26681,9 @@
         (function setupFullscreenPwaManifest() {
             try {
                 const manifestObj = {
-                    name: 'منصة الإنجاز - Studio Workspace',
-                    short_name: 'منصة الإنجاز',
-                    description: 'منصة الإنجاز الأكاديمية لإدارة المحاضرات والـ PDF والريكورد والتخطيط الذكي',
+                    name: 'EXO — Academic Workspace',
+                    short_name: 'EXO',
+                    description: 'منصة EXO الذكية لإدارة المحاضرات والـ PDF والريكورد والتخطيط الدراسي',
                     lang: 'ar',
                     dir: 'rtl',
                     start_url: './index.html',
