@@ -7044,6 +7044,360 @@
             transition: width 0.3s ease;
         }
 
+
+        /* ================= ACTIONABLE DAILY ACHIEVEMENTS HUB & SCHEDULE PDF MODAL ================= */
+        .log-quick-cat-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .log-quick-pill {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-muted);
+            padding: 6px 13px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+        .log-quick-pill:hover {
+            background: rgba(255, 255, 255, 0.07);
+            color: var(--text-main);
+        }
+        .log-quick-pill.active {
+            background: rgba(45, 212, 191, 0.15);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .log-item-actionable {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px;
+            background: rgba(15, 19, 28, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-right: 3px solid var(--primary);
+            border-radius: 12px;
+            transition: border-color 0.15s ease, background-color 0.15s ease;
+        }
+        .log-item-actionable:hover {
+            background: rgba(22, 27, 39, 0.95);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        .log-item-actionable.is-missed-log {
+            border-right-color: #f43f5e;
+            background: rgba(244, 63, 94, 0.04);
+        }
+        .log-item-actionable.is-absent-log {
+            border-right-color: #f97316;
+            background: rgba(249, 115, 22, 0.04);
+        }
+        .log-item-actionable.is-report-log {
+            border-right-color: #38bdf8;
+            background: rgba(56, 189, 248, 0.04);
+        }
+        .log-act-btn {
+            background: rgba(45, 212, 191, 0.1);
+            border: 1px solid rgba(45, 212, 191, 0.3);
+            color: var(--primary);
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 0.74rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+            transition: background-color 0.15s ease, transform 0.12s ease;
+        }
+        .log-act-btn:hover {
+            background: rgba(45, 212, 191, 0.2);
+            transform: translateY(-1px);
+        }
+        .log-act-btn.recover {
+            background: rgba(244, 63, 94, 0.14);
+            border-color: rgba(244, 63, 94, 0.4);
+            color: #fda4af;
+        }
+        .log-act-btn.recover:hover {
+            background: rgba(244, 63, 94, 0.24);
+        }
+        .log-duration-chip {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        /* Schedule PDF Preview Modal */
+        .pdf-page-tab-strip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            scrollbar-width: thin;
+        }
+        .pdf-page-tab-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            padding: 6px 12px;
+            border-radius: 9px;
+            font-size: 0.76rem;
+            font-weight: 800;
+            cursor: pointer;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+        .pdf-page-tab-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+        }
+        .pdf-page-tab-btn.active {
+            background: rgba(45, 212, 191, 0.16);
+            border-color: var(--primary);
+            color: var(--primary);
+            box-shadow: 0 4px 12px rgba(45, 212, 191, 0.15);
+        }
+        .pdf-canvas-preview-stage {
+            background: radial-gradient(circle at center, #111726 0%, #070a10 100%);
+            border: 1px solid rgba(45, 212, 191, 0.22);
+            border-radius: 14px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        #schedulePdfPreviewCanvas {
+            width: 100%;
+            max-height: 440px;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.65);
+            cursor: zoom-in;
+            transition: max-height 0.22s ease, width 0.22s ease;
+        }
+        .pdf-canvas-preview-stage.zoomed-preview #schedulePdfPreviewCanvas {
+            max-height: none;
+            width: 1380px;
+            max-width: none;
+            cursor: zoom-out;
+        }
+        .pdf-adjust-toolbar {
+            background: rgba(15, 21, 33, 0.9);
+            border: 1px solid rgba(45, 212, 191, 0.24);
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+        }
+        .pdf-adjust-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .pdf-adjust-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #cbd5e1;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.15s ease;
+        }
+        .pdf-adjust-chip:hover {
+            border-color: rgba(45, 212, 191, 0.45);
+            color: #ffffff;
+        }
+        .pdf-adjust-chip input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            margin: 0;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+        .pdf-inline-task-editor-drawer {
+            display: none;
+            background: rgba(9, 13, 22, 0.95);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            max-height: 255px;
+            overflow-y: auto;
+        }
+        .pdf-inline-task-editor-drawer.open {
+            display: block;
+        }
+        .pdf-inline-task-row {
+            display: grid;
+            grid-template-columns: 1.6fr 0.9fr 0.75fr auto;
+            gap: 7px;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 9px;
+            padding: 6px 9px;
+            margin-bottom: 6px;
+        }
+        .pdf-inline-task-row.pdf-hidden-task {
+            opacity: 0.48;
+            border-style: dashed;
+        }
+        @media (max-width: 680px) {
+            .pdf-inline-task-row {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* Luxury Student Auth & Profile Hub Styles */
+        .auth-luxury-hero {
+            background: linear-gradient(135deg, rgba(20, 184, 166, 0.16) 0%, rgba(56, 189, 248, 0.08) 60%, rgba(15, 23, 42, 0.9) 100%);
+            border: 1px solid rgba(45, 212, 191, 0.28);
+            border-radius: 16px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        .auth-input-group {
+            position: relative;
+            margin-bottom: 12px;
+        }
+        .auth-input-group .auth-field-icon {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            right: 12px;
+            color: var(--primary);
+            font-size: 0.88rem;
+            pointer-events: none;
+            opacity: 0.85;
+        }
+        .auth-input-group.ltr-field .auth-field-icon {
+            right: auto;
+            left: 12px;
+        }
+        .auth-input-group input {
+            margin-bottom: 0 !important;
+            padding-right: 36px !important;
+        }
+        .auth-input-group.ltr-field input {
+            padding-right: 38px !important;
+            padding-left: 36px !important;
+        }
+        .auth-pass-toggle-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            right: 10px;
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 4px 6px;
+            font-size: 0.85rem;
+            border-radius: 6px;
+        }
+        .auth-pass-toggle-btn:hover {
+            color: var(--primary);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .auth-feature-pills-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 7px;
+            margin: 12px 0;
+        }
+        .auth-feature-mini-card {
+            background: rgba(15, 21, 34, 0.78);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 10px;
+            padding: 8px 6px;
+            text-align: center;
+            font-size: 0.71rem;
+            color: #cbd5e1;
+            font-weight: 700;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .auth-feature-mini-card i {
+            color: var(--primary);
+            font-size: 0.95rem;
+        }
+        .profile-id-card-luxury {
+            background: linear-gradient(135deg, rgba(16, 24, 39, 0.96) 0%, rgba(12, 18, 30, 0.96) 100%);
+            border: 1px solid rgba(45, 212, 191, 0.35);
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 12px;
+            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+        }
+        .profile-stats-mini-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 7px;
+            margin-top: 12px;
+            padding-top: 11px;
+            border-top: 1px solid rgba(255, 255, 255, 0.07);
+        }
+        .profile-stat-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 7px 4px;
+            text-align: center;
+        }
+        .profile-stat-box .psb-val {
+            font-size: 0.92rem;
+            font-weight: 900;
+            color: var(--primary);
+            line-height: 1.2;
+        }
+        .profile-stat-box .psb-lbl {
+            font-size: 0.66rem;
+            color: var(--text-muted);
+            font-weight: 700;
+            margin-top: 2px;
+        }
+
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -7214,7 +7568,10 @@
                         </div>
                     </div>
 
-                    <div style="display: flex; gap: 8px; align-items: center;">
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <button class="btn btn-outline" style="padding: 9px 14px; font-size: 0.84rem; border-color: rgba(45, 212, 191, 0.45); color: var(--primary); background: rgba(45, 212, 191, 0.08);" onclick="openShareSchedulePdfModal()" title="استخراج ومشاركة الجدول كملف PDF بتصميم احترافي">
+                            <i class="fa-solid fa-file-pdf"></i> مشاركة الجدول (PDF)
+                        </button>
                         <button class="btn btn-primary" style="padding: 9px 18px; font-size: 0.88rem;" onclick="openAddSessionModal()"><i class="fa-solid fa-plus"></i> جلسة جديدة</button>
                         <button class="icon-btn delete" style="width: 36px; height: 36px;" onclick="confirmClearSchedule()"><i class="fa-solid fa-broom"></i></button>
                     </div>
@@ -7690,30 +8047,57 @@
                 <div class="weekly-eval-grid" id="weeklyEvaluationsListContainer"></div>
             </div>
 
-            <!-- SECTION 5: DAILY ACHIEVEMENTS FEED -->
+            <!-- SECTION 5: DAILY ACHIEVEMENTS FEED (ACTIONABLE HUB) -->
             <div style="background: #12151e; border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 18px 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                        <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-main); margin: 0;">سجل الإنجازات اليومي</h3>
-                        <span id="logsSummaryCountPill" class="studio-pill" style="font-size:0.72rem; color:var(--primary);"></span>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <div>
+                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                            <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-main); margin: 0;">
+                                <i class="fa-solid fa-bolt-lightning" style="color:var(--primary); margin-left:5px;"></i>
+                                سجل الإنجازات والمتابعة الذكي
+                            </h3>
+                            <span id="logsSummaryCountPill" class="studio-pill" style="font-size:0.72rem; color:var(--primary);"></span>
+                        </div>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin: 4px 0 0 0;">
+                            حوّل أي إنجاز سابق إلى جلسة مراجعة بضغطة زر، أو عوّض المهام الفائتة مباشرة في جدولك.
+                        </p>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                        <button type="button" class="btn btn-outline" style="padding: 5px 10px; font-size: 0.74rem; border-color: rgba(45,212,191,0.3); color: var(--primary);" onclick="deduplicateAndCompactLogs()" title="دمج السجلات المكررة وتنظيف السجل">
+                        <button type="button" class="btn btn-outline" style="padding: 6px 11px; font-size: 0.75rem; border-color: rgba(45,212,191,0.3); color: var(--primary);" onclick="deduplicateAndCompactLogs()" title="دمج السجلات المكررة وتنظيف السجل">
                             <i class="fa-solid fa-wand-magic-sparkles"></i> تنظيف ودمج المكرر
                         </button>
-                        <select id="logFilterMoodSelect" onchange="renderLogs()" style="padding: 6px 12px; font-size: 0.8rem;">
-                            <option value="all">كل الأوسمة والحالات</option>
+                        <select id="logFilterMoodSelect" onchange="syncQuickCategoryFromSelect(); renderLogs()" style="padding: 6px 10px; font-size: 0.78rem; max-width: 165px;">
+                            <option value="all">كل التصنيفات الدقيقة</option>
                             <option value="fire">🔥 إنتاجية استثنائية</option>
                             <option value="bolt">⚡ إنجاز متقن</option>
                             <option value="book">📚 إنهاء محاضرات</option>
                             <option value="lightbulb">💡 استيعاب جديد</option>
-                            <option value="college_absent">🏠 أيام غياب من الكلية (وقت مستثمر)</option>
-                            <option value="wasted_time">🎮 وقت ضائع / لعب وتشتت</option>
+                            <option value="college_absent">🏠 غياب كلية مستثمر</option>
+                            <option value="wasted_time">🎮 وقت ضائع / لعب</option>
                             <option value="missed">❌ مهام لم تتم (فائتة)</option>
                             <option value="weekly_report">📊 تقييمات الأسابيع</option>
                         </select>
-                        <input type="text" id="logSearchInput" placeholder="بحث في السجل..." oninput="renderLogs()" style="width: 170px; padding: 6px 12px; font-size: 0.8rem;">
+                        <input type="text" id="logSearchInput" placeholder="ابحث باسم المهمة أو المادة..." oninput="renderLogs()" style="width: 175px; padding: 6px 12px; font-size: 0.78rem;">
                     </div>
+                </div>
+
+                <!-- Quick Category Filter Pills + Actionable Summary Strip -->
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+                    <div class="log-quick-cat-bar" style="margin-bottom: 0;">
+                        <button type="button" class="log-quick-pill active" id="logCatPill_all" onclick="setLogQuickCategory('all')">
+                            <i class="fa-solid fa-layer-group"></i> الكل
+                        </button>
+                        <button type="button" class="log-quick-pill" id="logCatPill_study" onclick="setLogQuickCategory('study')">
+                            <i class="fa-solid fa-circle-check" style="color:#10b981;"></i> إنجازات للمراجعة
+                        </button>
+                        <button type="button" class="log-quick-pill" id="logCatPill_recover" onclick="setLogQuickCategory('recover')">
+                            <i class="fa-solid fa-triangle-exclamation" style="color:#f43f5e;"></i> يحتاج تعويض <span id="logRecoverCountBadge" style="background:rgba(244,63,94,0.2); color:#fda4af; padding:1px 6px; border-radius:99px; font-size:0.68rem;">0</span>
+                        </button>
+                        <button type="button" class="log-quick-pill" id="logCatPill_absent" onclick="setLogQuickCategory('absent')">
+                            <i class="fa-solid fa-house-laptop" style="color:#fdba74;"></i> غياب مستثمر والتقارير
+                        </button>
+                    </div>
+                    <div id="logsQuickInsightStrip" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;"></div>
                 </div>
 
                 <div id="logsContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
@@ -7727,79 +8111,151 @@
     
     <!-- ================= USER ACCOUNT & CLOUD AUTO-SYNC MODAL ================= -->
     <div class="glass-overlay" id="cloudAuthModalOverlay">
-        <div class="glass-modal" style="max-width: 460px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(45, 212, 191, 0.15); border: 1px solid var(--border-hover); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
-                        <i class="fa-solid fa-user-shield"></i>
+        <div class="glass-modal" style="max-width: 520px; width: 95%; padding: 20px 22px;">
+            <div class="auth-luxury-hero">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(45, 212, 191, 0.18); border: 1px solid rgba(45, 212, 191, 0.45); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; box-shadow: 0 6px 16px rgba(20, 184, 166, 0.2);">
+                        <i class="fa-solid fa-id-badge"></i>
                     </div>
                     <div>
-                        <h3 style="margin: 0; font-size: 1.22rem; font-weight: 900; color: var(--text-main);">حساب الطالب والمزامنة التلقائية</h3>
-                        <span style="font-size: 0.76rem; color: var(--text-muted);">احفظ موادك وجدولك وكتاباتك في حسابك الخاص</span>
+                        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 900; color: var(--text-main);">الملف الشخصي والهوية السحابية</h3>
+                        <span style="font-size: 0.76rem; color: #cbd5e1;">مساحتك الأكاديمية المشفرة • حفظ ومزامنة فورية عبر أجهزتك</span>
                     </div>
                 </div>
-                <button class="icon-btn" onclick="closeModal('cloudAuthModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
+                <button type="button" class="icon-btn" style="width: 32px; height: 32px;" onclick="closeModal('cloudAuthModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <!-- VIEW A: LOGGED OUT (CLEAN LOGIN / SIGNUP) -->
+            <!-- VIEW A: LOGGED OUT (LUXURY LOGIN / SIGNUP STUDIO) -->
             <div id="cloudLoggedOutView">
-                <div class="cloud-auth-tabs">
-                    <button class="cloud-auth-tab active" id="authTabLogin" onclick="switchAuthTab('login')">تسجيل الدخول</button>
-                    <button class="cloud-auth-tab" id="authTabSignup" onclick="switchAuthTab('signup')">إنشاء حساب جديد</button>
+                <div class="cloud-auth-tabs" style="margin-bottom: 14px;">
+                    <button type="button" class="cloud-auth-tab active" id="authTabLogin" onclick="switchAuthTab('login')">
+                        <i class="fa-solid fa-right-to-bracket" style="margin-left: 5px;"></i> تسجيل الدخول
+                    </button>
+                    <button type="button" class="cloud-auth-tab" id="authTabSignup" onclick="switchAuthTab('signup')">
+                        <i class="fa-solid fa-user-plus" style="margin-left: 5px;"></i> إنشاء حساب جديد
+                    </button>
+                </div>
+
+                <div class="auth-feature-pills-grid">
+                    <div class="auth-feature-mini-card">
+                        <i class="fa-solid fa-cloud-bolt"></i>
+                        <span>حفظ تلقائي لحظي</span>
+                    </div>
+                    <div class="auth-feature-mini-card">
+                        <i class="fa-solid fa-tablet-screen-button"></i>
+                        <span>مزامنة كتابات التابلت</span>
+                    </div>
+                    <div class="auth-feature-mini-card">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <span>تشفير وعزل كامل</span>
+                    </div>
                 </div>
 
                 <div id="authNameFieldBox" style="display: none;">
-                    <label style="font-size: 0.84rem; color: #cbd5e1; margin-bottom: 5px; display: block; font-weight: 600;">الاسم الكامل:</label>
-                    <input type="text" id="cloudAuthName" placeholder="اكتب اسمك (مثال: محمد أحمد)" style="margin-bottom: 12px;">
+                    <label style="font-size: 0.8rem; color: #cbd5e1; margin-bottom: 5px; display: block; font-weight: 700;">الاسم الكامل والفرقة / التخصص:</label>
+                    <div class="auth-input-group">
+                        <i class="fa-solid fa-user-graduate auth-field-icon"></i>
+                        <input type="text" id="cloudAuthName" placeholder="مثال: د. محمد أحمد — الفرقة الثالثة">
+                    </div>
                 </div>
 
-                <label style="font-size: 0.84rem; color: #cbd5e1; margin-bottom: 5px; display: block; font-weight: 600;">البريد الإلكتروني:</label>
-                <input type="email" id="cloudAuthEmail" dir="ltr" placeholder="name@example.com" style="margin-bottom: 12px; text-align: left;">
+                <label style="font-size: 0.8rem; color: #cbd5e1; margin-bottom: 5px; display: block; font-weight: 700;">البريد الإلكتروني الأكاديمي أو الشخصي:</label>
+                <div class="auth-input-group ltr-field">
+                    <i class="fa-solid fa-envelope auth-field-icon"></i>
+                    <input type="email" id="cloudAuthEmail" dir="ltr" placeholder="name@example.com" style="text-align: left;">
+                </div>
 
-                <label style="font-size: 0.84rem; color: #cbd5e1; margin-bottom: 5px; display: block; font-weight: 600;">كلمة المرور:</label>
-                <input type="password" id="cloudAuthPassword" dir="ltr" placeholder="••••••••" style="margin-bottom: 16px; text-align: left;" onkeypress="if(event.key==='Enter') handleCloudEmailAuth()">
+                <label style="font-size: 0.8rem; color: #cbd5e1; margin-bottom: 5px; display: block; font-weight: 700;">كلمة المرور:</label>
+                <div class="auth-input-group ltr-field" style="margin-bottom: 16px;">
+                    <i class="fa-solid fa-key auth-field-icon"></i>
+                    <input type="password" id="cloudAuthPassword" dir="ltr" placeholder="••••••••" style="text-align: left;" onkeypress="if(event.key==='Enter') handleCloudEmailAuth()">
+                    <button type="button" class="auth-pass-toggle-btn" onclick="toggleAuthPasswordVisibility()" title="إظهار / إخفاء كلمة المرور">
+                        <i class="fa-solid fa-eye" id="authPassToggleIcon"></i>
+                    </button>
+                </div>
 
-                <button class="btn btn-primary" id="cloudAuthSubmitBtn" style="width: 100%; margin-bottom: 10px; padding: 12px;" onclick="handleCloudEmailAuth()">
+                <button type="button" class="btn btn-primary" id="cloudAuthSubmitBtn" style="width: 100%; margin-bottom: 10px; padding: 12px; font-size: 0.92rem; border-radius: 12px;" onclick="handleCloudEmailAuth()">
                     <i class="fa-solid fa-right-to-bracket"></i> <span>تسجيل الدخول إلى حسابي</span>
                 </button>
 
-
-
-                <div style="text-align: center; margin-top: 12px; font-size: 0.76rem; color: var(--text-muted);">
-                    <i class="fa-solid fa-lock" style="color: var(--primary);"></i> جميع بياناتك وملخصاتك محفوظة ومعزولة داخل حسابك الشخصي تلقائياً.
+                <div style="text-align: center; margin-top: 10px; font-size: 0.74rem; color: var(--text-muted); background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 8px 10px;">
+                    <i class="fa-solid fa-lock" style="color: var(--primary);"></i> جميع موادك وجدولك وملخصاتك محفوظة ومعزولة داخل حسابك الشخصي تلقائياً.
                 </div>
             </div>
 
-            <!-- VIEW B: LOGGED IN (USER PROFILE & AUTO-SAVE STATUS) -->
+            <!-- VIEW B: LOGGED IN (STUDENT PROFILE HUB & AUTO-SAVE STATUS) -->
             <div id="cloudLoggedInView" style="display: none;">
-                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 14px; padding: 16px; margin-bottom: 16px;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+                <div class="profile-id-card-luxury">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
                         <div style="display: flex; align-items: center; gap: 12px;">
-                            <div style="width: 46px; height: 46px; border-radius: 50%; background: var(--primary-gradient); color: #0c0d11; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.25rem;" id="cloudUserAvatar">U</div>
+                            <div style="width: 52px; height: 52px; border-radius: 14px; background: var(--primary-gradient); color: #0c0d11; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.35rem; box-shadow: 0 6px 16px rgba(45, 212, 191, 0.28);" id="cloudUserAvatar">U</div>
                             <div>
-                                <div style="font-weight: 800; font-size: 1.05rem; color: var(--text-main);" id="cloudUserNameDisplay">مستخدم المنصة</div>
-                                <div style="font-size: 0.8rem; color: var(--text-muted); font-family: monospace;" id="cloudUserEmailDisplay">user@email.com</div>
+                                <div style="display: flex; align-items: center; gap: 7px; flex-wrap: wrap;">
+                                    <span style="font-weight: 900; font-size: 1.06rem; color: var(--text-main);" id="cloudUserNameDisplay">مستخدم المنصة</span>
+                                    <button type="button" class="ptm-btn" style="padding: 2px 7px; font-size: 0.68rem;" onclick="toggleInlineProfileEditBox()" title="تعديل الاسم واللقب الدراسي">
+                                        <i class="fa-solid fa-pen"></i> تعديل الملف
+                                    </button>
+                                </div>
+                                <div style="font-size: 0.76rem; color: #38bdf8; font-weight: 700; margin-top: 1px;" id="cloudUserSpecialtyBadge">🎓 طالب بمنصة الإنجاز الأكاديمية</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;" id="cloudUserEmailDisplay">user@email.com</div>
                             </div>
                         </div>
-                        <span class="studio-pill" id="cloudLiveSyncBadge" style="color: #6ee7b7; border-color: rgba(16, 185, 129, 0.4);">
-                            <i class="fa-solid fa-circle-check"></i> الحفظ التلقائي مفعّل
-                        </span>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 5px;">
+                            <span class="studio-pill" id="cloudLiveSyncBadge" style="color: #6ee7b7; border-color: rgba(16, 185, 129, 0.4); font-size: 0.72rem;">
+                                <i class="fa-solid fa-circle-check"></i> الحفظ التلقائي مفعّل
+                            </span>
+                            <span id="cloudLastSyncedTime" style="color: var(--primary); font-weight: 700; font-size: 0.7rem;">آخر حفظ: الآن</span>
+                        </div>
                     </div>
-                    <div style="font-size: 0.78rem; color: #cbd5e1; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06);">
-                        <span>📌 يحفظ تلقائياً: المواد، الجدول، السجل، كتابات التابلت، والـ PDF والريكورد</span>
-                        <span id="cloudLastSyncedTime" style="color: var(--primary); font-weight: 700;">آخر حفظ: الآن</span>
+
+                    <!-- Inline Profile Name & Specialty Editor -->
+                    <div id="inlineProfileEditBox" style="display: none; margin-top: 10px; padding: 10px; background: rgba(9, 13, 22, 0.85); border: 1px solid rgba(45, 212, 191, 0.35); border-radius: 10px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                            <div>
+                                <label style="font-size: 0.72rem; color: #cbd5e1; display: block; margin-bottom: 3px;">الاسم الظاهر في المنصة والـ PDF:</label>
+                                <input type="text" id="profileEditNameInput" placeholder="اسمك" style="margin: 0; padding: 6px 9px; font-size: 0.78rem;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.72rem; color: #cbd5e1; display: block; margin-bottom: 3px;">الكلية / الفرقة الدراسية:</label>
+                                <input type="text" id="profileEditSpecialtyInput" placeholder="مثال: صيدلة — الفرقة الثالثة" style="margin: 0; padding: 6px 9px; font-size: 0.78rem;">
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: flex-end; gap: 6px;">
+                            <button type="button" class="ptm-btn" onclick="toggleInlineProfileEditBox(false)" style="padding: 4px 10px; font-size: 0.72rem;">إلغاء</button>
+                            <button type="button" class="btn btn-primary" onclick="saveInlineProfileEdits()" style="padding: 4px 12px; font-size: 0.74rem;"><i class="fa-solid fa-check"></i> حفظ بالملف الشخصي</button>
+                        </div>
+                    </div>
+
+                    <!-- Live Student Academic Stats Strip inside Profile -->
+                    <div class="profile-stats-mini-grid">
+                        <div class="profile-stat-box">
+                            <div class="psb-val" id="profileStatSubjectsCount">0</div>
+                            <div class="psb-lbl">المواد الدراسية</div>
+                        </div>
+                        <div class="profile-stat-box">
+                            <div class="psb-val" id="profileStatLecturesCount" style="color: #38bdf8;">0</div>
+                            <div class="psb-lbl">المحاضرات</div>
+                        </div>
+                        <div class="profile-stat-box">
+                            <div class="psb-val" id="profileStatStudyHours" style="color: #6ee7b7;">0 س</div>
+                            <div class="psb-lbl">ساعات الأسبوع</div>
+                        </div>
+                        <div class="profile-stat-box">
+                            <div class="psb-val" id="profileStatCompletedTasks" style="color: #fbbf24;">0</div>
+                            <div class="psb-lbl">مهام منجزة</div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Cloud PDF & Audio Recordings Sync Box -->
-                <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(56, 189, 248, 0.32); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
-                        <div style="font-weight: 800; font-size: 0.88rem; color: #fbbf24; display: flex; align-items: center; gap: 7px;">
+                <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(56, 189, 248, 0.32); border-radius: 14px; padding: 13px 15px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
+                        <div style="font-weight: 800; font-size: 0.86rem; color: #fbbf24; display: flex; align-items: center; gap: 7px;">
                             <i class="fa-solid fa-crown"></i> باقة VIP Pro وسحابة الملفات
                         </div>
                         <span id="cloudMediaCountBadge" class="studio-pill" style="font-size: 0.71rem; color: #fcd34d; cursor: pointer;" onclick="handleCloudVipBadgeClick()">🔒 تفعيل VIP Pro</span>
                     </div>
-                    <p style="font-size: 0.77rem; color: #cbd5e1; margin-bottom: 8px; line-height: 1.5;" id="cloudMediaBoxDescText">
+                    <p style="font-size: 0.75rem; color: #cbd5e1; margin-bottom: 8px; line-height: 1.48;" id="cloudMediaBoxDescText">
                         ارفع ملفات الـ PDF والريكورد لمرة واحدة فقط (الكتابات والتلخيصات تُحفظ تلقائياً بدون إعادة رفع)، وعند الفتح من جهاز آخر حمّل ما تريده بشكل منفصل وسريع.
                     </p>
                     <div class="cloud-limits-info-strip">
@@ -7810,17 +8266,17 @@
                         <div style="display:flex; align-items:center; gap:8px;">
                             <i class="fa-solid fa-cloud-arrow-up" id="cloudModalAutoUploadIcon" style="color:var(--primary); font-size:0.9rem;"></i>
                             <div>
-                                <div style="font-size:0.79rem; font-weight:800; color:var(--text-main);">الرفع السحابي التلقائي للـ PDF والريكورد (للمشتركين)</div>
-                                <div style="font-size:0.7rem; color:var(--text-muted);" id="cloudModalAutoUploadSubtext">يرفع الملفات تلقائياً للسحابة فور إضافتها للمحاضرة</div>
+                                <div style="font-size:0.78rem; font-weight:800; color:var(--text-main);">الرفع السحابي التلقائي للـ PDF والريكورد (للمشتركين)</div>
+                                <div style="font-size:0.69rem; color:var(--text-muted);" id="cloudModalAutoUploadSubtext">يرفع الملفات تلقائياً للسحابة فور إضافتها للمحاضرة</div>
                             </div>
                         </div>
                         <input type="checkbox" id="cloudModalAutoUploadCheckbox" checked style="width:18px; height:18px; margin:0; accent-color:var(--primary); cursor:pointer;" onclick="event.stopPropagation(); setAutoCloudMediaUploadEnabled(this.checked, true);">
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                        <button class="btn btn-outline" id="btnSyncAllMediaUp" style="padding: 8px 10px; font-size: 0.78rem; border-color: rgba(56, 189, 248, 0.45); color: #38bdf8;" onclick="syncAllLocalMediaToCloud()">
+                        <button type="button" class="btn btn-outline" id="btnSyncAllMediaUp" style="padding: 8px 10px; font-size: 0.78rem; border-color: rgba(56, 189, 248, 0.45); color: #38bdf8;" onclick="syncAllLocalMediaToCloud()">
                             <i class="fa-solid fa-cloud-arrow-up"></i> رفع الملفات غير المرفوعة
                         </button>
-                        <button class="btn btn-outline" id="btnSyncAllMediaDown" style="padding: 8px 10px; font-size: 0.78rem; border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7;" onclick="toggleCloudIndividualFilesList()">
+                        <button type="button" class="btn btn-outline" id="btnSyncAllMediaDown" style="padding: 8px 10px; font-size: 0.78rem; border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7;" onclick="toggleCloudIndividualFilesList()">
                             <i class="fa-solid fa-list-check"></i> تحميل ملفات منفصلة للجهاز
                         </button>
                     </div>
@@ -7845,11 +8301,16 @@
                     <div id="cloudMediaProgressText" style="display: none; margin-top: 8px; font-size: 0.75rem; color: var(--primary); font-weight: 700; line-height: 1.55;"></div>
                 </div>
 
-
-
-                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border-color);">
-                    <span style="font-size: 0.76rem; color: var(--text-muted);">يمكنك تبديل الحساب في أي وقت بأمان</span>
-                    <button class="btn btn-danger" style="padding: 7px 16px; font-size: 0.82rem;" onclick="handleCloudSignOut()">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--border-color);">
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <button type="button" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.76rem;" onclick="pushWorkspaceToCloud(true, true)">
+                            <i class="fa-solid fa-rotate"></i> مزامنة فورية الآن
+                        </button>
+                        <button type="button" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.76rem; color: #38bdf8; border-color: rgba(56,189,248,0.35);" onclick="closeModal('cloudAuthModalOverlay'); openShareSchedulePdfModal();">
+                            <i class="fa-solid fa-file-pdf"></i> استخراج الجدول PDF
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-danger" style="padding: 7px 15px; font-size: 0.8rem;" onclick="handleCloudSignOut()">
                         <i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج
                     </button>
                 </div>
@@ -9180,6 +9641,158 @@
             <div class="modal-actions">
                 <button class="btn btn-outline" onclick="closeModal('addLogModalOverlay')" style="border-color: rgba(255,255,255,0.1); color: var(--text-muted);">إلغاء</button>
                 <button class="btn btn-primary" onclick="saveLogPro()"><i class="fa-solid fa-check"></i> حفظ الإنجاز</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom-Designed Multi-Page Schedule PDF Export & Share Modal -->
+    <div class="glass-overlay" id="shareSchedulePdfModalOverlay">
+        <div class="glass-modal" style="max-width: 890px; width: 96%; padding: 18px 22px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.07);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 40px; height: 40px; border-radius: 11px; background: rgba(45, 212, 191, 0.14); border: 1px solid rgba(45, 212, 191, 0.35); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+                        <i class="fa-solid fa-file-pdf"></i>
+                    </div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <h3 style="margin: 0; font-size: 1.06rem; font-weight: 900; color: var(--text-main);">استوديو استخراج وضبط الجدول (PDF فائق الدقة 300 DPI)</h3>
+                            <span class="studio-pill" style="font-size: 0.68rem; color: #6ee7b7; border-color: rgba(16, 185, 129, 0.4);">Ultra HD Retina</span>
+                        </div>
+                        <p style="margin: 2px 0 0 0; font-size: 0.74rem; color: var(--text-muted);">
+                            عدّل النصوص، حجم الخط، العناصر الظاهرة، أو مهام وأوقات أي يوم مباشرة من هنا وشاهد التعديل حياً قبل التحميل.
+                        </p>
+                    </div>
+                </div>
+                <button type="button" class="icon-btn" style="width: 32px; height: 32px;" onclick="closeModal('shareSchedulePdfModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Row 1: Main Customization Controls -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 9px; margin-bottom: 10px;">
+                <div>
+                    <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 3px;">عنوان الجدول في الـ PDF:</label>
+                    <input type="text" id="pdfScheduleCustomTitleInput" value="جدولي الدراسي وخطة الأسبوع" oninput="refreshSchedulePdfPreview()" style="width: 100%; padding: 6px 10px; font-size: 0.79rem; margin: 0;">
+                </div>
+                <div>
+                    <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 3px;">الاسم / الفرقة (اختياري):</label>
+                    <input type="text" id="pdfScheduleStudentNameInput" placeholder="مثال: د. أحمد — الفرقة الثالثة" oninput="refreshSchedulePdfPreview()" style="width: 100%; padding: 6px 10px; font-size: 0.79rem; margin: 0;">
+                </div>
+                <div>
+                    <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 3px;">ثيم التصميم:</label>
+                    <select id="pdfScheduleThemeSelect" onchange="refreshSchedulePdfPreview()" style="width: 100%; padding: 6px 10px; font-size: 0.79rem; margin: 0;">
+                        <option value="dark_luxury" selected>🌌 الاستوديو الفاخر (داكن جذاب)</option>
+                        <option value="midnight_emerald">💎 الزمرد الملكي (كحلي وزمردي)</option>
+                        <option value="pearl_editorial">☀️ المجلة المطبوعة (فاتح للطباعة)</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 3px;">نطاق الصفحات المستخرجة:</label>
+                    <select id="pdfScheduleScopeSelect" onchange="rebuildSchedulePdfPagesAndPreview()" style="width: 100%; padding: 6px 10px; font-size: 0.79rem; margin: 0;">
+                        <option value="all_days" selected>📑 شامل: تجميعة الأسبوع + 7 أيام</option>
+                        <option value="active_days">⚡ ذكي: التجميعة + الأيام المجدولة فقط</option>
+                        <option value="overview_only">🌐 صفحة تجميعة الأسبوع فقط (صفحة 1)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Row 2: Live Adjust Studio Bar (Font Scale, Ultra-HD Quality, Visibility Toggles & Direct Task Adjuster) -->
+            <div class="pdf-adjust-toolbar">
+                <div class="pdf-adjust-row">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <span style="font-size: 0.75rem; font-weight: 800; color: var(--primary);">
+                            <i class="fa-solid fa-sliders"></i> ضبط الأبعاد والجودة (Adjust):
+                        </span>
+                        <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); padding: 3px 9px; border-radius: 8px;">
+                            <span style="font-size: 0.72rem; color: #cbd5e1; font-weight: 700;">حجم الخط والبطاقات:</span>
+                            <input type="range" id="pdfScheduleFontScaleRange" min="0.85" max="1.25" step="0.05" value="1.05" oninput="handlePdfFontScaleChange(this.value)" style="width: 85px; accent-color: var(--primary); cursor: pointer;">
+                            <span id="pdfScheduleFontScaleLabel" style="font-size: 0.72rem; font-weight: 900; color: var(--primary); min-width: 34px;">105%</span>
+                        </div>
+                        <div style="display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 8px;">
+                            <span style="font-size: 0.72rem; color: #cbd5e1; font-weight: 700;">الدقة:</span>
+                            <select id="pdfScheduleQualitySelect" onchange="refreshSchedulePdfPreview()" style="padding: 2px 6px; font-size: 0.72rem; margin: 0; border-radius: 6px; background: #0b0f17;">
+                                <option value="ultra_300" selected>🔥 فائقة 300 DPI (Ultra HD للطباعة والزوم)</option>
+                                <option value="high_200">⚡ عالية 200 DPI (حجم متوازن للمشاركة)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-outline" id="btnTogglePdfTaskAdjustDrawer" onclick="togglePdfInlineTaskAdjuster()" style="padding: 5px 11px; font-size: 0.75rem; border-color: rgba(56, 189, 248, 0.45); color: #38bdf8; background: rgba(56, 189, 248, 0.1);">
+                            <i class="fa-solid fa-pen-to-square"></i> تعديل مهام وأوقات الصفحة مباشرة
+                        </button>
+                        <button type="button" class="ptm-btn" id="btnTogglePdfPreviewZoom" onclick="toggleSchedulePdfPreviewZoom()" style="padding: 5px 9px; font-size: 0.73rem;" title="تكبير المعاينة لاختبار حدة الخطوط">
+                            <i class="fa-solid fa-magnifying-glass-plus"></i> تكبير المعاينة
+                        </button>
+                    </div>
+                </div>
+
+                <div class="pdf-adjust-row" style="padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.06);">
+                    <div style="display: flex; align-items: center; gap: 7px; flex-wrap: wrap;">
+                        <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700;">إظهار في الـ PDF:</span>
+                        <label class="pdf-adjust-chip">
+                            <input type="checkbox" id="pdfOptShowCollege" checked onchange="refreshSchedulePdfPreview()">
+                            <span>🏛️ مواعيد الكلية</span>
+                        </label>
+                        <label class="pdf-adjust-chip">
+                            <input type="checkbox" id="pdfOptShowNotes" checked onchange="refreshSchedulePdfPreview()">
+                            <span>📝 ملاحظات الجلسات</span>
+                        </label>
+                        <label class="pdf-adjust-chip">
+                            <input type="checkbox" id="pdfOptShowSidebar" checked onchange="refreshSchedulePdfPreview()">
+                            <span>🎯 بوصلة اليوم وأهداف الأسبوع (توسيع الجدول عند الإخفاء)</span>
+                        </label>
+                        <label class="pdf-adjust-chip">
+                            <input type="checkbox" id="pdfOptShowCompletedCheck" checked onchange="refreshSchedulePdfPreview()">
+                            <span>☑ علامة الإنجاز</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collapsible Direct Task Adjuster Drawer (Edit titles, start times, durations, or hide tasks directly from Export Modal!) -->
+            <div class="pdf-inline-task-editor-drawer" id="pdfInlineTaskAdjusterDrawer">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <span style="font-size: 0.8rem; font-weight: 900; color: #38bdf8;">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> ضبط وتعديل مهام يوم:
+                        </span>
+                        <select id="pdfAdjustDaySelect" onchange="handlePdfAdjustDaySelectChange(this.value)" style="padding: 4px 10px; font-size: 0.76rem; margin: 0; border-radius: 8px;"></select>
+                    </div>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <button type="button" class="ptm-btn active" onclick="quickAddSessionFromPdfAdjuster()" style="padding: 4px 10px; font-size: 0.73rem;">
+                            <i class="fa-solid fa-plus"></i> إضافة مهمة سريعة لهذا اليوم
+                        </button>
+                        <button type="button" class="ptm-btn" onclick="togglePdfInlineTaskAdjuster(false)" style="padding: 4px 8px; font-size: 0.72rem;">إغلاق المحرر ✕</button>
+                    </div>
+                </div>
+                <div id="pdfInlineTasksListContainer"></div>
+            </div>
+
+            <!-- Interactive Page Switcher Tabs -->
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap;">
+                <div class="pdf-page-tab-strip" id="pdfPreviewPageTabs"></div>
+                <span id="pdfPreviewPageCounterLabel" class="studio-pill" style="font-size: 0.72rem; color: var(--primary);">معاينة حية قبل التحميل</span>
+            </div>
+
+            <!-- Live Canvas Preview Stage -->
+            <div class="pdf-canvas-preview-stage" id="schedulePdfPreviewStage">
+                <canvas id="schedulePdfPreviewCanvas" width="3200" height="2262" onclick="toggleSchedulePdfPreviewZoom()" title="اضغط لتكبير أو تصغير المعاينة"></canvas>
+            </div>
+
+            <!-- Modal Footer Actions -->
+            <div class="modal-actions" style="justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; gap: 10px;">
+                <div style="font-size: 0.74rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--primary);"></i>
+                    <span>يتم توليد الـ PDF بدقة طباعة فائقة (Ultra HD 3600×2545px • A4 Landscape) ليبقى واضحاً مهما كبّرت الصفحة.</span>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('shareSchedulePdfModalOverlay')" style="border-color: rgba(255,255,255,0.1); color: var(--text-muted); padding: 8px 14px; font-size: 0.82rem;">إغلاق</button>
+                    <button type="button" class="btn btn-outline" id="btnShareSchedulePdfNative" onclick="shareCustomSchedulePdfFile()" style="border-color: rgba(56, 189, 248, 0.45); color: #38bdf8; background: rgba(56, 189, 248, 0.08); padding: 8px 15px; font-size: 0.83rem;">
+                        <i class="fa-solid fa-share-nodes"></i> مشاركة مع أصدقائك
+                    </button>
+                    <button type="button" class="btn btn-primary" id="btnDownloadSchedulePdfFile" onclick="downloadCustomSchedulePdf()" style="padding: 8px 18px; font-size: 0.85rem;">
+                        <i class="fa-solid fa-download"></i> تحميل الـ PDF الكامل
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -13739,6 +14352,153 @@
             }
         }
 
+        let activeLogQuickCategory = 'all';
+
+        function setLogQuickCategory(cat) {
+            activeLogQuickCategory = cat || 'all';
+            const sel = document.getElementById('logFilterMoodSelect');
+            if (sel) sel.value = 'all';
+            ['all', 'study', 'recover', 'absent'].forEach(k => {
+                const btn = document.getElementById('logCatPill_' + k);
+                if (btn) btn.classList.toggle('active', k === activeLogQuickCategory);
+            });
+            renderLogs();
+        }
+
+        function syncQuickCategoryFromSelect() {
+            activeLogQuickCategory = 'all';
+            ['all', 'study', 'recover', 'absent'].forEach(k => {
+                const btn = document.getElementById('logCatPill_' + k);
+                if (btn) btn.classList.toggle('active', k === 'all');
+            });
+        }
+
+        function parseActionableLogItem(log, subMap) {
+            let raw = String(log.text || '').trim();
+            let extractedSubjectName = (log.subjectId && subMap.has(String(log.subjectId))) ? subMap.get(String(log.subjectId)) : '';
+            let matchedSubjectId = log.subjectId || '';
+
+            // Extract [Subject Name] if embedded in text
+            const bracketMatch = raw.match(/\[([^\]]+)\]/);
+            if (bracketMatch && bracketMatch[1]) {
+                if (!extractedSubjectName) extractedSubjectName = bracketMatch[1].trim();
+                raw = raw.replace(bracketMatch[0], '').trim();
+            }
+            if (!matchedSubjectId && extractedSubjectName) {
+                const foundSub = subjects.find(s => s.name === extractedSubjectName);
+                if (foundSub) matchedSubjectId = foundSub.id;
+            }
+
+            // Extract duration like (1.5 س) or (1 س و 30 د) or (45 د)
+            let durationHours = 0;
+            let durationBadgeText = '';
+            const hrsMinMatch = raw.match(/\((\d+(?:\.\d+)?)\s*س(?:\s*و\s*(\d+)\s*د)?\)/);
+            const minOnlyMatch = raw.match(/\((\d+)\s*د(?:قيقة)?\)/);
+            if (hrsMinMatch) {
+                const h = parseFloat(hrsMinMatch[1]) || 0;
+                const m = hrsMinMatch[2] ? (parseFloat(hrsMinMatch[2]) || 0) : 0;
+                durationHours = Number((h + (m / 60)).toFixed(2));
+                durationBadgeText = m > 0 ? `${h} س و ${m} د` : `${h} ساعة`;
+                raw = raw.replace(hrsMinMatch[0], '').trim();
+            } else if (minOnlyMatch) {
+                const m = parseFloat(minOnlyMatch[1]) || 0;
+                durationHours = Number((m / 60).toFixed(2));
+                durationBadgeText = `${m} دقيقة`;
+                raw = raw.replace(minOnlyMatch[0], '').trim();
+            }
+
+            // Strip verbose prefixes so the core task title shines
+            const noisyPrefixes = [
+                /^🤖\s*إتمام ذكي تلقائي للمهمة:\s*/i,
+                /^🤖\s*رصد تلقائي\s*\(فائتة\):\s*/i,
+                /^إنجاز جلسة:\s*/i,
+                /^إتمام مهمة:\s*/i,
+                /^❌\s*لم يتم إنجاز مهمة:\s*/i,
+                /^❌\s*مهمة فائتة:\s*/i,
+                /^🎮\s*وقت ضائع\s*\/\s*لعب:\s*/i,
+                /^🎮\s*تسجيل وقت ضائع:\s*/i,
+                /^🏠\s*غياب من الكلية:\s*/i
+            ];
+            noisyPrefixes.forEach(rx => {
+                raw = raw.replace(rx, '').trim();
+            });
+
+            // Clean trailing dashes or colons
+            raw = raw.replace(/^[-–—:]+\s*/, '').trim();
+            if (!raw) raw = String(log.text || 'سجل يومي');
+
+            return {
+                cleanTitle: raw,
+                subjectName: extractedSubjectName,
+                subjectId: matchedSubjectId,
+                durationHours,
+                durationBadgeText
+            };
+        }
+
+        function actionScheduleReviewFromLog(logId) {
+            const log = logs.find(l => l.id === logId);
+            if (!log) return;
+            const subMap = new Map();
+            subjects.forEach(s => subMap.set(String(s.id), s.name));
+            const parsed = parseActionableLogItem(log, subMap);
+
+            openAddSessionModal(getCurrentDayIdx(), null);
+            const cleanBase = parsed.cleanTitle.replace(/^(مراجعة|مذاكرة|تعويض)\s*[:\-]?\s*/i, '').trim();
+            const titleInput = document.getElementById('sessionTitleInput');
+            if (titleInput) titleInput.value = `مراجعة: ${cleanBase}`;
+            const subSelect = document.getElementById('sessionSubjectSelect');
+            if (subSelect && parsed.subjectId) {
+                subSelect.value = String(parsed.subjectId);
+                populateSessionLecturesDropdown([]);
+            }
+            selectSessionTaskTypeCard('review', true);
+            showToast('🔄 تم تجهيز جلسة مراجعة من سجل إنجازاتك — اختر الموعد واحفظ!');
+        }
+
+        function actionRecoverMissedFromLog(logId) {
+            const log = logs.find(l => l.id === logId);
+            if (!log) return;
+            const subMap = new Map();
+            subjects.forEach(s => subMap.set(String(s.id), s.name));
+            const parsed = parseActionableLogItem(log, subMap);
+
+            openAddSessionModal(getCurrentDayIdx(), null);
+            const cleanBase = parsed.cleanTitle.replace(/^(تعويض|مذاكرة|مراجعة)\s*[:\-]?\s*/i, '').trim();
+            const titleInput = document.getElementById('sessionTitleInput');
+            if (titleInput) titleInput.value = `تعويض: ${cleanBase}`;
+            const subSelect = document.getElementById('sessionSubjectSelect');
+            if (subSelect && parsed.subjectId) {
+                subSelect.value = String(parsed.subjectId);
+                populateSessionLecturesDropdown([]);
+            }
+            if (parsed.durationHours >= 0.5 && parsed.durationHours <= 6) {
+                const durSel = document.getElementById('sessionDurationSelect');
+                const durStr = String(parsed.durationHours);
+                if (durSel && Array.from(durSel.options).some(o => o.value === durStr)) {
+                    durSel.value = durStr;
+                }
+            }
+            selectSessionTaskTypeCard('review', true);
+            updateCalculatedEndTime();
+            showToast('⚡ تم تجهيز جلسة تعويض للمهمة — حدد الوقت المناسب لك!');
+        }
+
+        function openSubjectFromLog(subjectId) {
+            if (!subjectId) return;
+            const navItems = document.querySelectorAll('.nav-item');
+            switchView('subjects', navItems[2] || null);
+            setTimeout(() => {
+                const card = document.querySelector(`[data-subject-id="${subjectId}"]`);
+                if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 120);
+        }
+
+        function scrollToWeeklyEvaluationsSection() {
+            const el = document.getElementById('weeklyEvaluationsListContainer');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
         function renderLogs() {
             const container = document.getElementById('logsContainer');
             if(!container) return;
@@ -13746,39 +14506,76 @@
             
             const filterKeyword = document.getElementById('logSearchInput') ? document.getElementById('logSearchInput').value.trim().toLowerCase() : '';
             const filterMood = document.getElementById('logFilterMoodSelect') ? document.getElementById('logFilterMoodSelect').value : 'all';
-            
+
+            // Update badge count for items needing recovery
+            const recoverTotalCount = logs.filter(l => l.mood === 'missed' || l.mood === 'wasted_time').length;
+            const recoverBadgeEl = document.getElementById('logRecoverCountBadge');
+            if (recoverBadgeEl) recoverBadgeEl.innerText = String(recoverTotalCount);
+
+            const subMap = new Map();
+            for (let i = 0; i < subjects.length; i++) subMap.set(String(subjects[i].id), subjects[i].name);
+
             const filteredLogs = logs.filter(l => {
                 if (filterMood !== 'all' && l.mood !== filterMood) return false;
+                if (activeLogQuickCategory === 'study') {
+                    if (!['fire', 'bolt', 'book', 'lightbulb'].includes(l.mood)) return false;
+                } else if (activeLogQuickCategory === 'recover') {
+                    if (!['missed', 'wasted_time'].includes(l.mood)) return false;
+                } else if (activeLogQuickCategory === 'absent') {
+                    if (!['college_absent', 'weekly_report'].includes(l.mood)) return false;
+                }
                 if (!filterKeyword) return true;
-                return (l.text || '').toLowerCase().includes(filterKeyword);
+                const subName = (l.subjectId && subMap.has(String(l.subjectId))) ? subMap.get(String(l.subjectId)).toLowerCase() : '';
+                return (l.text || '').toLowerCase().includes(filterKeyword) || subName.includes(filterKeyword);
+            });
+
+            // Compute actionable insights across filtered logs
+            let totalLoggedHours = 0;
+            const subjectCountMap = new Map();
+            filteredLogs.forEach(l => {
+                const p = parseActionableLogItem(l, subMap);
+                if (!['missed', 'wasted_time', 'weekly_report'].includes(l.mood)) {
+                    totalLoggedHours += (p.durationHours || 0);
+                }
+                if (p.subjectName) {
+                    subjectCountMap.set(p.subjectName, (subjectCountMap.get(p.subjectName) || 0) + 1);
+                }
+            });
+            let topSubjectName = '';
+            let topSubMax = 0;
+            subjectCountMap.forEach((cnt, sName) => {
+                if (cnt > topSubMax) { topSubMax = cnt; topSubjectName = sName; }
             });
 
             const countPill = document.getElementById('logsSummaryCountPill');
             if (countPill) {
                 const uniqueDaysCount = new Set(filteredLogs.map(l => l.date || 'اليوم')).size;
-                countPill.innerText = `${filteredLogs.length} إنجاز في ${uniqueDaysCount} ${uniqueDaysCount === 1 ? 'يوم' : 'أيام'}`;
+                countPill.innerText = `${filteredLogs.length} سجل في ${uniqueDaysCount} ${uniqueDaysCount === 1 ? 'يوم' : 'أيام'}`;
+            }
+
+            const insightStrip = document.getElementById('logsQuickInsightStrip');
+            if (insightStrip) {
+                const hrsTxt = totalLoggedHours > 0 ? `⏱️ مكتسب مسجل: ${Number(totalLoggedHours.toFixed(1))} س` : '';
+                const topSubTxt = topSubjectName ? `🏆 الأكثر تركيزاً: ${topSubjectName}` : '';
+                insightStrip.innerHTML = [hrsTxt, topSubTxt].filter(Boolean).join(' &nbsp;•&nbsp; ');
             }
             
             if (filteredLogs.length === 0) { 
-                container.innerHTML = `<div class="empty-state" style="padding: 28px 16px;"><i class="fa-solid fa-clipboard-list"></i><h3>لا توجد سجلات مطابقة</h3><p>قم بتدوين إنجازاتك اليومية أو إتمام جلسات المذاكرة لتظهر هنا تلقائياً.</p></div>`; 
+                container.innerHTML = `<div class="empty-state" style="padding: 28px 16px;"><i class="fa-solid fa-clipboard-list"></i><h3>لا توجد سجلات مطابقة لهذا التصنيف</h3><p>قم بتدوين إنجازاتك اليومية أو إتمام جلسات المذاكرة لتظهر هنا بشكل منظم وقابل للمراجعة.</p></div>`; 
                 return; 
             }
             
             const moodIcons = {
-                fire: '<span class="log-tag-badge" style="background:rgba(244, 63, 94, 0.2); color:#fda4af;">🔥 إنتاجية استثنائية</span>',
-                bolt: '<span class="log-tag-badge" style="background:rgba(45, 212, 191, 0.2); color:var(--primary);">⚡ إنجاز متقن</span>',
-                lightbulb: '<span class="log-tag-badge" style="background:rgba(16, 185, 129, 0.2); color:#6ee7b7;">💡 استيعاب جديد</span>',
-                book: '<span class="log-tag-badge" style="background:rgba(139, 92, 246, 0.2); color:#c4b5fd;">📚 إنهاء محاضرات</span>',
-                college_absent: '<span class="log-tag-badge" style="background:rgba(249, 115, 22, 0.2); color:#fdba74; border:1px solid rgba(249,115,22,0.4);">🏠 غياب كلية (وقت مستثمر)</span>',
-                wasted_time: '<span class="log-tag-badge" style="background:rgba(225, 29, 72, 0.22); color:#fda4af; border:1px solid rgba(244,63,94,0.45);">🎮 وقت ضائع / لعب</span>',
-                missed: '<span class="log-tag-badge" style="background:rgba(244, 63, 94, 0.22); color:#fda4af; border:1px solid rgba(244,63,94,0.4);">❌ مهمة لم تتم</span>',
-                weekly_report: '<span class="log-tag-badge" style="background:rgba(56, 189, 248, 0.2); color:#38bdf8; border:1px solid rgba(56,189,248,0.4);">📊 تقييم أسبوعي</span>'
+                fire: '<span class="log-tag-badge" style="background:rgba(244, 63, 94, 0.16); color:#fda4af;">🔥 إنتاجية استثنائية</span>',
+                bolt: '<span class="log-tag-badge" style="background:rgba(45, 212, 191, 0.16); color:var(--primary);">⚡ إنجاز متقن</span>',
+                lightbulb: '<span class="log-tag-badge" style="background:rgba(16, 185, 129, 0.16); color:#6ee7b7;">💡 استيعاب جديد</span>',
+                book: '<span class="log-tag-badge" style="background:rgba(139, 92, 246, 0.16); color:#c4b5fd;">📚 إنهاء محاضرات</span>',
+                college_absent: '<span class="log-tag-badge" style="background:rgba(249, 115, 22, 0.18); color:#fdba74; border:1px solid rgba(249,115,22,0.35);">🏠 غياب كلية مستثمر</span>',
+                wasted_time: '<span class="log-tag-badge" style="background:rgba(225, 29, 72, 0.2); color:#fda4af; border:1px solid rgba(244,63,94,0.4);">🎮 وقت ضائع / لعب</span>',
+                missed: '<span class="log-tag-badge" style="background:rgba(244, 63, 94, 0.2); color:#fda4af; border:1px solid rgba(244,63,94,0.35);">❌ مهمة فائتة</span>',
+                weekly_report: '<span class="log-tag-badge" style="background:rgba(56, 189, 248, 0.18); color:#38bdf8; border:1px solid rgba(56,189,248,0.35);">📊 تقييم أسبوعي</span>'
             };
 
-            const subMap = new Map();
-            for (let i = 0; i < subjects.length; i++) subMap.set(String(subjects[i].id), subjects[i].name);
-
-            // Group logs by date so the feed stays ultra-clean and organized even after months of usage!
             const dayGroupsMap = new Map();
             filteredLogs.forEach(log => {
                 const dKey = log.date || 'سجلات عامة';
@@ -13788,37 +14585,88 @@
 
             const allDayKeys = Array.from(dayGroupsMap.keys());
             const todayDateStr = new Date().toLocaleDateString('ar-EG');
-            // By default, keep only the first day (Today / latest day) expanded unless user toggled or is searching
             if (openLogDateAccordions.size === 0 && allDayKeys.length > 0) {
                 openLogDateAccordions.add(allDayKeys[0]);
             }
 
-            const maxVisibleDays = (showAllLogDaysExpandedList || filterKeyword || filterMood !== 'all') ? allDayKeys.length : Math.min(5, allDayKeys.length);
+            const isFilteredMode = Boolean(filterKeyword) || filterMood !== 'all' || activeLogQuickCategory !== 'all';
+            const maxVisibleDays = (showAllLogDaysExpandedList || isFilteredMode) ? allDayKeys.length : Math.min(5, allDayKeys.length);
             const visibleDayKeys = allDayKeys.slice(0, maxVisibleDays);
 
             const groupHtmlParts = [];
-            visibleDayKeys.forEach((dKey, idx) => {
+            visibleDayKeys.forEach((dKey) => {
                 const dayItems = dayGroupsMap.get(dKey) || [];
-                const isOpen = Boolean(filterKeyword) || openLogDateAccordions.has(dKey);
-                const doneCount = dayItems.filter(i => i.mood !== 'missed').length;
-                const missedCount = dayItems.filter(i => i.mood === 'missed').length;
+                const isOpen = isFilteredMode || openLogDateAccordions.has(dKey);
+                const doneCount = dayItems.filter(i => !['missed', 'wasted_time'].includes(i.mood)).length;
+                const missedCount = dayItems.filter(i => ['missed', 'wasted_time'].includes(i.mood)).length;
+                let dayHoursSum = 0;
+                dayItems.forEach(item => {
+                    if (!['missed', 'wasted_time', 'weekly_report'].includes(item.mood)) {
+                        const p = parseActionableLogItem(item, subMap);
+                        dayHoursSum += (p.durationHours || 0);
+                    }
+                });
+                dayHoursSum = Number(dayHoursSum.toFixed(1));
                 const escapedKey = dKey.replace(/'/g, "\\'");
 
                 const itemsHtml = dayItems.map(log => {
-                    let subTag = '';
-                    if (log.subjectId && subMap.has(String(log.subjectId))) {
-                        subTag = `<span class="sc-subject-tag"><i class="fa-solid fa-book"></i> ${subMap.get(String(log.subjectId))}</span>`;
+                    const parsed = parseActionableLogItem(log, subMap);
+                    const subTag = parsed.subjectName
+                        ? `<span class="sc-subject-tag" style="cursor:${parsed.subjectId ? 'pointer' : 'default'};" ${parsed.subjectId ? `onclick="openSubjectFromLog('${parsed.subjectId}')"` : ''} title="اضغط لفتح المادة"><i class="fa-solid fa-book"></i> ${parsed.subjectName}</span>`
+                        : '';
+                    const durTag = parsed.durationBadgeText
+                        ? `<span class="log-duration-chip"><i class="fa-regular fa-clock" style="color:var(--primary);"></i> ${parsed.durationBadgeText}</span>`
+                        : '';
+
+                    let rowExtraClass = '';
+                    let actionBtnHtml = '';
+                    if (log.mood === 'missed' || log.mood === 'wasted_time') {
+                        rowExtraClass = 'is-missed-log';
+                        actionBtnHtml = `
+                            <button type="button" class="log-act-btn recover" onclick="actionRecoverMissedFromLog(${log.id})" title="جدولة جلسة تعويض لهذه المهمة الآن">
+                                <i class="fa-solid fa-bolt"></i> تعويض الآن
+                            </button>
+                        `;
+                    } else if (log.mood === 'weekly_report') {
+                        rowExtraClass = 'is-report-log';
+                        actionBtnHtml = `
+                            <button type="button" class="log-act-btn" style="color:#38bdf8; border-color:rgba(56,189,248,0.35); background:rgba(56,189,248,0.1);" onclick="scrollToWeeklyEvaluationsSection()">
+                                <i class="fa-solid fa-chart-pie"></i> التقارير
+                            </button>
+                        `;
+                    } else if (log.mood === 'college_absent') {
+                        rowExtraClass = 'is-absent-log';
+                        actionBtnHtml = `
+                            <button type="button" class="log-act-btn" style="color:#fdba74; border-color:rgba(249,115,22,0.35); background:rgba(249,115,22,0.1);" onclick="switchView('schedule', document.querySelectorAll('.nav-item')[1])">
+                                <i class="fa-solid fa-calendar-check"></i> استثمار بالجدول
+                            </button>
+                        `;
+                    } else {
+                        actionBtnHtml = `
+                            <button type="button" class="log-act-btn" onclick="actionScheduleReviewFromLog(${log.id})" title="جدولة جلسة مراجعة لهذا الموضوع في جدولك بضغطة زر">
+                                <i class="fa-solid fa-rotate"></i> جدولة مراجعة
+                            </button>
+                        `;
                     }
+
                     return `
-                        <div class="log-item-pro" style="padding: 9px 12px;">
-                            <div>
-                                <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px; flex-wrap:wrap;">
-                                    ${subTag}
+                        <div class="log-item-actionable ${rowExtraClass}">
+                            <div style="min-width: 0; flex: 1;">
+                                <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:wrap;">
                                     ${moodIcons[log.mood] || ''}
+                                    ${subTag}
+                                    ${durTag}
                                 </div>
-                                <span style="font-weight: 700; font-size: 0.92rem; color: var(--text-main);">${log.text}</span>
+                                <div style="font-weight: 800; font-size: 0.9rem; color: var(--text-main); line-height: 1.4; word-break: break-word;">
+                                    ${parsed.cleanTitle}
+                                </div>
                             </div>
-                            <button class="icon-btn delete" style="width:28px; height:28px;" onclick="triggerDeleteLog(${log.id})"><i class="fa-solid fa-trash" style="font-size:0.75rem;"></i></button>
+                            <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                                ${actionBtnHtml}
+                                <button type="button" class="icon-btn delete" style="width:28px; height:28px;" onclick="triggerDeleteLog(${log.id})" title="حذف من السجل">
+                                    <i class="fa-solid fa-trash" style="font-size:0.74rem;"></i>
+                                </button>
+                            </div>
                         </div>
                     `;
                 }).join('');
@@ -13826,7 +14674,7 @@
                 groupHtmlParts.push(`
                     <div class="log-day-group ${isOpen ? 'is-open' : ''}">
                         <div class="log-day-header" onclick="toggleLogDayAccordion('${escapedKey}')">
-                            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                                 <i class="fa-solid fa-chevron-down log-day-chevron"></i>
                                 <span style="font-weight:800; font-size:0.9rem; color:var(--text-main);">
                                     <i class="fa-regular fa-calendar-check" style="color:var(--primary); margin-left:5px;"></i>
@@ -13835,10 +14683,11 @@
                                 <span class="studio-pill" style="font-size:0.7rem; color:#6ee7b7; border-color:rgba(16,185,129,0.3);">
                                     ✅ ${doneCount} إنجاز
                                 </span>
-                                ${missedCount > 0 ? `<span class="studio-pill" style="font-size:0.68rem; color:#fda4af; border-color:rgba(244,63,94,0.3);">❌ ${missedCount} فائتة</span>` : ''}
+                                ${dayHoursSum > 0 ? `<span class="studio-pill" style="font-size:0.7rem; color:var(--primary); border-color:rgba(45,212,191,0.3);">⏱️ ${dayHoursSum} س مذاكرة</span>` : ''}
+                                ${missedCount > 0 ? `<span class="studio-pill" style="font-size:0.68rem; color:#fda4af; border-color:rgba(244,63,94,0.3);">⚠️ ${missedCount} للتعويض</span>` : ''}
                             </div>
                             <span style="font-size:0.74rem; color:var(--text-muted); font-weight:700;">
-                                ${isOpen ? 'إخفاء التفاصيل ▲' : `عرض (${dayItems.length}) سجلات ▼`}
+                                ${isOpen ? 'طيّ اليوم ▲' : `فتح (${dayItems.length}) ▼`}
                             </span>
                         </div>
                         <div class="log-day-body">
@@ -13848,7 +14697,7 @@
                 `);
             });
 
-            if (allDayKeys.length > 5 && !filterKeyword && filterMood === 'all') {
+            if (allDayKeys.length > 5 && !isFilteredMode) {
                 const hiddenDays = allDayKeys.length - 5;
                 groupHtmlParts.push(`
                     <button type="button" class="btn btn-outline" style="width:100%; justify-content:center; padding:9px; font-size:0.82rem; border-style:dashed; color:var(--primary);" onclick="toggleShowAllLogDays()">
@@ -13859,6 +14708,1240 @@
             }
 
             container.innerHTML = groupHtmlParts.join('');
+        }
+
+        // ================= CUSTOM MULTI-PAGE SCHEDULE PDF EXPORTER & SHARE STUDIO (ULTRA HD 300 DPI + LIVE ADJUST) =================
+        let currentSchedulePdfPageSpecs = [];
+        let currentSchedulePdfActivePageIdx = 0;
+        let currentPdfAdjustDayIdx = 0;
+
+        function getSchedulePdfOptions() {
+            const titleEl = document.getElementById('pdfScheduleCustomTitleInput');
+            const studentEl = document.getElementById('pdfScheduleStudentNameInput');
+            const themeEl = document.getElementById('pdfScheduleThemeSelect');
+            const scopeEl = document.getElementById('pdfScheduleScopeSelect');
+            const fontScaleEl = document.getElementById('pdfScheduleFontScaleRange');
+            const qualityEl = document.getElementById('pdfScheduleQualitySelect');
+            const showCollegeEl = document.getElementById('pdfOptShowCollege');
+            const showNotesEl = document.getElementById('pdfOptShowNotes');
+            const showSidebarEl = document.getElementById('pdfOptShowSidebar');
+            const showCompletedEl = document.getElementById('pdfOptShowCompletedCheck');
+
+            const savedSpecialty = localStorage.getItem('pharmaUserSpecialtyTitleV1') || '';
+            const defaultStudentLabel = currentCloudUser
+                ? ((currentCloudUser.user_metadata?.full_name || currentCloudUser.name || '') + (savedSpecialty ? ` — ${savedSpecialty}` : ''))
+                : savedSpecialty;
+
+            return {
+                title: (titleEl && titleEl.value.trim()) ? titleEl.value.trim() : 'جدولي الدراسي وخطة الأسبوع',
+                studentName: (studentEl && studentEl.value.trim()) ? studentEl.value.trim() : defaultStudentLabel,
+                theme: (themeEl && themeEl.value) ? themeEl.value : 'dark_luxury',
+                scope: (scopeEl && scopeEl.value) ? scopeEl.value : 'all_days',
+                fontScale: fontScaleEl ? Math.max(0.85, Math.min(1.3, parseFloat(fontScaleEl.value) || 1.05)) : 1.05,
+                qualityMode: (qualityEl && qualityEl.value) ? qualityEl.value : 'ultra_300',
+                showCollege: showCollegeEl ? Boolean(showCollegeEl.checked) : true,
+                showNotes: showNotesEl ? Boolean(showNotesEl.checked) : true,
+                showSidebar: showSidebarEl ? Boolean(showSidebarEl.checked) : true,
+                showCompletedCheck: showCompletedEl ? Boolean(showCompletedEl.checked) : true
+            };
+        }
+
+        function filterEventsForPdfExport(eventsList, opts) {
+            return (eventsList || []).filter(ev => {
+                if (ev.hideFromPdf) return false;
+                if (!opts.showCollege && isCollegeCommitmentSession(ev)) return false;
+                return true;
+            });
+        }
+
+        function handlePdfFontScaleChange(val) {
+            const num = Math.round((parseFloat(val) || 1.0) * 100);
+            const lbl = document.getElementById('pdfScheduleFontScaleLabel');
+            if (lbl) lbl.innerText = `${num}%`;
+            refreshSchedulePdfPreview();
+        }
+
+        function toggleSchedulePdfPreviewZoom() {
+            const stage = document.getElementById('schedulePdfPreviewStage');
+            const btn = document.getElementById('btnTogglePdfPreviewZoom');
+            if (!stage) return;
+            const isZoomed = stage.classList.toggle('zoomed-preview');
+            if (btn) {
+                btn.innerHTML = isZoomed
+                    ? '<i class="fa-solid fa-magnifying-glass-minus"></i> تصغير المعاينة'
+                    : '<i class="fa-solid fa-magnifying-glass-plus"></i> تكبير المعاينة';
+                btn.classList.toggle('active', isZoomed);
+            }
+        }
+
+        function buildSchedulePdfPageSpecs() {
+            const opts = getSchedulePdfOptions();
+            const orderedDays = getOrderedWeekDays();
+            const specs = [
+                {
+                    type: 'week_overview',
+                    label: 'صفحة 1: تجميعة الأسبوع 🌐',
+                    dayObj: null
+                }
+            ];
+            if (opts.scope === 'overview_only') {
+                return specs;
+            }
+            orderedDays.forEach((dObj) => {
+                const dayEvents = filterEventsForPdfExport(scheduleEvents.filter(e => e.day === dObj.dayIdx), opts);
+                if (opts.scope === 'active_days' && dayEvents.length === 0 && orderedDays.length > 1) {
+                    return;
+                }
+                specs.push({
+                    type: 'daily_page',
+                    label: `صفحة ${specs.length + 1}: ${dObj.dayName}`,
+                    dayObj: dObj
+                });
+            });
+            if (specs.length === 1 && opts.scope !== 'overview_only') {
+                orderedDays.forEach((dObj) => {
+                    specs.push({
+                        type: 'daily_page',
+                        label: `صفحة ${specs.length + 1}: ${dObj.dayName}`,
+                        dayObj: dObj
+                    });
+                });
+            }
+            return specs;
+        }
+
+        function openShareSchedulePdfModal() {
+            const modal = document.getElementById('shareSchedulePdfModalOverlay');
+            if (!modal) return;
+            // Pre-populate student name input if empty and user has a profile name
+            const studentEl = document.getElementById('pdfScheduleStudentNameInput');
+            if (studentEl && !studentEl.value.trim()) {
+                const savedSpecialty = localStorage.getItem('pharmaUserSpecialtyTitleV1') || '';
+                const uName = currentCloudUser ? (currentCloudUser.user_metadata?.full_name || currentCloudUser.name || '') : '';
+                if (uName || savedSpecialty) {
+                    studentEl.value = [uName, savedSpecialty].filter(Boolean).join(' — ');
+                }
+            }
+            modal.classList.add('active');
+            currentSchedulePdfActivePageIdx = 0;
+            const orderedDays = getOrderedWeekDays();
+            const todayObj = orderedDays.find(d => d.isToday) || orderedDays[0];
+            currentPdfAdjustDayIdx = todayObj ? todayObj.dayIdx : 0;
+            try {
+                populatePdfAdjustDaySelect();
+                rebuildSchedulePdfPagesAndPreview();
+                renderPdfInlineTaskAdjusterList();
+            } catch (err) {
+                console.error('PDF Preview Error:', err);
+            }
+        }
+
+        function populatePdfAdjustDaySelect() {
+            const sel = document.getElementById('pdfAdjustDaySelect');
+            if (!sel) return;
+            const orderedDays = getOrderedWeekDays();
+            sel.innerHTML = orderedDays.map(d => `
+                <option value="${d.dayIdx}" ${Number(d.dayIdx) === Number(currentPdfAdjustDayIdx) ? 'selected' : ''}>
+                    ${d.dayName} (${d.dateShortStr || ''})
+                </option>
+            `).join('');
+        }
+
+        function handlePdfAdjustDaySelectChange(dayIdxVal) {
+            currentPdfAdjustDayIdx = Number(dayIdxVal);
+            renderPdfInlineTaskAdjusterList();
+            // Also switch preview tab to that day's page if available so user sees edits on that day immediately
+            const matchingPageIdx = currentSchedulePdfPageSpecs.findIndex(s => s.dayObj && Number(s.dayObj.dayIdx) === Number(currentPdfAdjustDayIdx));
+            if (matchingPageIdx >= 0 && currentSchedulePdfActivePageIdx !== 0) {
+                selectSchedulePdfPreviewPage(matchingPageIdx);
+            }
+        }
+
+        function togglePdfInlineTaskAdjuster(forceState) {
+            const drawer = document.getElementById('pdfInlineTaskAdjusterDrawer');
+            const btn = document.getElementById('btnTogglePdfTaskAdjustDrawer');
+            if (!drawer) return;
+            const willOpen = typeof forceState === 'boolean' ? forceState : !drawer.classList.contains('open');
+            drawer.classList.toggle('open', willOpen);
+            if (btn) btn.classList.toggle('active', willOpen);
+            if (willOpen) {
+                const activeSpec = currentSchedulePdfPageSpecs[currentSchedulePdfActivePageIdx];
+                if (activeSpec && activeSpec.dayObj) {
+                    currentPdfAdjustDayIdx = activeSpec.dayObj.dayIdx;
+                }
+                populatePdfAdjustDaySelect();
+                renderPdfInlineTaskAdjusterList();
+            }
+        }
+
+        function renderPdfInlineTaskAdjusterList() {
+            const container = document.getElementById('pdfInlineTasksListContainer');
+            if (!container) return;
+            const dayEvents = scheduleEvents
+                .filter(e => Number(e.day) === Number(currentPdfAdjustDayIdx))
+                .sort((a, b) => a.startHour - b.startHour);
+
+            if (dayEvents.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding:12px; color:var(--text-muted); font-size:0.78rem; background:rgba(255,255,255,0.02); border-radius:8px;">
+                        لا توجد مهام مسجلة في هذا اليوم حالياً — اضغط <b>«+ إضافة مهمة سريعة لهذا اليوم»</b> بالأعلى لإضافة جلسة فوراً.
+                    </div>
+                `;
+                return;
+            }
+
+            let hourOptionsHtml = '';
+            for (let h = 5; h <= 23; h++) {
+                hourOptionsHtml += `<option value="${h}">${formatHourText(h)}</option>`;
+            }
+
+            container.innerHTML = dayEvents.map(ev => {
+                const isHidden = Boolean(ev.hideFromPdf);
+                const curDur = Number(ev.duration) || 1;
+                return `
+                    <div class="pdf-inline-task-row ${isHidden ? 'pdf-hidden-task' : ''}">
+                        <input type="text" value="${(ev.title || '').replace(/"/g, '&quot;')}" placeholder="عنوان المهمة..."
+                            oninput="updateEventFromPdfAdjuster(${ev.id}, 'title', this.value)"
+                            style="margin:0; padding:5px 8px; font-size:0.77rem; width:100%;">
+                        <select onchange="updateEventFromPdfAdjuster(${ev.id}, 'startHour', this.value)" style="margin:0; padding:5px 6px; font-size:0.74rem; width:100%;">
+                            ${Array.from({length: 19}, (_, i) => i + 5).map(h => `
+                                <option value="${h}" ${Math.floor(Number(ev.startHour) || 9) === h ? 'selected' : ''}>🕒 ${formatHourText(h)}</option>
+                            `).join('')}
+                        </select>
+                        <select onchange="updateEventFromPdfAdjuster(${ev.id}, 'duration', this.value)" style="margin:0; padding:5px 6px; font-size:0.74rem; width:100%;">
+                            ${[0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6].map(d => `
+                                <option value="${d}" ${curDur === d ? 'selected' : ''}>⏱️ ${d} ساعة</option>
+                            `).join('')}
+                        </select>
+                        <div style="display:flex; gap:5px; align-items:center;">
+                            <button type="button" class="ptm-btn ${isHidden ? '' : 'active'}" onclick="toggleEventHideFromPdf(${ev.id})" title="${isHidden ? 'مخفية من الـ PDF (اضغط لإظهارها)' : 'ظاهرة في الـ PDF (اضغط لإخفائها من التصدير فقط)'}" style="padding:4px 8px; font-size:0.72rem;">
+                                <i class="fa-solid ${isHidden ? 'fa-eye-slash' : 'fa-eye'}"></i> ${isHidden ? 'مخفي' : 'ظاهر'}
+                            </button>
+                            <button type="button" class="icon-btn delete" onclick="deleteEventFromPdfAdjuster(${ev.id})" title="حذف المهمة" style="width:26px; height:26px;">
+                                <i class="fa-solid fa-trash" style="font-size:0.68rem;"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateEventFromPdfAdjuster(eventId, field, rawVal) {
+            const ev = scheduleEvents.find(e => String(e.id) === String(eventId));
+            if (!ev) return;
+            if (field === 'title') {
+                ev.title = rawVal;
+            } else if (field === 'startHour') {
+                ev.startHour = Number(rawVal) || 9;
+            } else if (field === 'duration') {
+                ev.duration = Number(rawVal) || 1;
+            }
+            saveScheduleData();
+            renderSchedule();
+            refreshSchedulePdfPreview();
+        }
+
+        function toggleEventHideFromPdf(eventId) {
+            const ev = scheduleEvents.find(e => String(e.id) === String(eventId));
+            if (!ev) return;
+            ev.hideFromPdf = !ev.hideFromPdf;
+            saveScheduleData();
+            renderPdfInlineTaskAdjusterList();
+            refreshSchedulePdfPreview();
+        }
+
+        function deleteEventFromPdfAdjuster(eventId) {
+            scheduleEvents = scheduleEvents.filter(e => String(e.id) !== String(eventId));
+            saveScheduleData();
+            renderSchedule();
+            renderPdfInlineTaskAdjusterList();
+            refreshSchedulePdfPreview();
+            showToast('🗑️ تم حذف المهمة وتحديث معاينة الـ PDF');
+        }
+
+        function quickAddSessionFromPdfAdjuster() {
+            const dayEvents = scheduleEvents.filter(e => Number(e.day) === Number(currentPdfAdjustDayIdx));
+            let nextHour = 9;
+            if (dayEvents.length > 0) {
+                const maxEnd = Math.max(...dayEvents.map(e => (Number(e.startHour) || 9) + (Number(e.duration) || 1)));
+                nextHour = Math.min(22, Math.max(6, Math.ceil(maxEnd)));
+            }
+            const newEv = {
+                id: Date.now(),
+                title: 'جلسة مذاكرة ومراجعة مركزة',
+                day: Number(currentPdfAdjustDayIdx),
+                startHour: nextHour,
+                duration: 2,
+                type: 'study',
+                subjectId: subjects[0] ? String(subjects[0].id) : '',
+                completed: false
+            };
+            scheduleEvents.push(newEv);
+            saveScheduleData();
+            renderSchedule();
+            renderPdfInlineTaskAdjusterList();
+            refreshSchedulePdfPreview();
+            showToast('✨ تمت إضافة جلسة جديدة — يمكنك تعديل اسمها ووقتها مباشرة الآن');
+        }
+
+        function rebuildSchedulePdfPagesAndPreview() {
+            currentSchedulePdfPageSpecs = buildSchedulePdfPageSpecs();
+            if (currentSchedulePdfActivePageIdx >= currentSchedulePdfPageSpecs.length) {
+                currentSchedulePdfActivePageIdx = 0;
+            }
+            renderSchedulePdfPageTabs();
+            refreshSchedulePdfPreview();
+        }
+
+        function renderSchedulePdfPageTabs() {
+            const strip = document.getElementById('pdfPreviewPageTabs');
+            if (!strip) return;
+            strip.innerHTML = currentSchedulePdfPageSpecs.map((spec, idx) => `
+                <button type="button" class="pdf-page-tab-btn ${idx === currentSchedulePdfActivePageIdx ? 'active' : ''}" onclick="selectSchedulePdfPreviewPage(${idx})">
+                    ${spec.label}
+                </button>
+            `).join('');
+            const counter = document.getElementById('pdfPreviewPageCounterLabel');
+            if (counter) {
+                counter.innerText = `صفحة ${currentSchedulePdfActivePageIdx + 1} من ${currentSchedulePdfPageSpecs.length} • دقة فائقة`;
+            }
+        }
+
+        function selectSchedulePdfPreviewPage(idx) {
+            currentSchedulePdfActivePageIdx = idx;
+            const spec = currentSchedulePdfPageSpecs[idx];
+            if (spec && spec.dayObj) {
+                currentPdfAdjustDayIdx = spec.dayObj.dayIdx;
+                populatePdfAdjustDaySelect();
+                renderPdfInlineTaskAdjusterList();
+            }
+            renderSchedulePdfPageTabs();
+            refreshSchedulePdfPreview();
+        }
+
+        function refreshSchedulePdfPreview() {
+            const canvas = document.getElementById('schedulePdfPreviewCanvas');
+            if (!canvas) return;
+            if (!currentSchedulePdfPageSpecs || currentSchedulePdfPageSpecs.length === 0) {
+                currentSchedulePdfPageSpecs = buildSchedulePdfPageSpecs();
+            }
+            const spec = currentSchedulePdfPageSpecs[currentSchedulePdfActivePageIdx] || currentSchedulePdfPageSpecs[0];
+            const opts = getSchedulePdfOptions();
+            // Render live preview at 2.0x Supersampled Retina resolution (3200x2262) so zooming in is crystal clear!
+            renderSchedulePdfPageToCanvas(canvas, spec, opts, currentSchedulePdfActivePageIdx + 1, currentSchedulePdfPageSpecs.length, 2.0);
+        }
+
+        function drawPdfRoundedRect(ctx, x, y, w, h, r, fillStyle, strokeStyle = null, lineWidth = 1) {
+            const radius = Math.min(r, w / 2, h / 2);
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + w - radius, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+            ctx.lineTo(x + w, y + h - radius);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+            ctx.lineTo(x + radius, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            if (fillStyle) {
+                ctx.fillStyle = fillStyle;
+                ctx.fill();
+            }
+            if (strokeStyle) {
+                ctx.lineWidth = lineWidth;
+                ctx.strokeStyle = strokeStyle;
+                ctx.stroke();
+            }
+        }
+
+        function truncateCanvasText(ctx, text, maxWidth) {
+            const str = String(text || '');
+            if (!str) return '';
+            if (ctx.measureText(str).width <= maxWidth) return str;
+            let trimmed = str;
+            while (trimmed.length > 1 && ctx.measureText(trimmed + '…').width > maxWidth) {
+                trimmed = trimmed.slice(0, -1);
+            }
+            return trimmed + '…';
+        }
+
+        function getPdfCategoryVisuals(ev, isDark) {
+            const isCollege = isCollegeCommitmentSession(ev);
+            if (isCollege && ev.absent) {
+                return {
+                    label: '🏠 غياب كلية (مستثمر)',
+                    accent: '#f97316',
+                    bg: isDark ? 'rgba(249, 115, 22, 0.16)' : '#fff7ed',
+                    border: isDark ? 'rgba(249, 115, 22, 0.5)' : '#fdba74',
+                    text: isDark ? '#fdba74' : '#c2410c'
+                };
+            }
+            if (isCollege) {
+                return {
+                    label: '🏛️ كلية / التزام ثابت',
+                    accent: '#64748b',
+                    bg: isDark ? 'rgba(100, 116, 139, 0.22)' : '#f1f5f9',
+                    border: isDark ? 'rgba(148, 163, 184, 0.42)' : '#cbd5e1',
+                    text: isDark ? '#e2e8f0' : '#334155'
+                };
+            }
+            if (isWastedTimeSession(ev)) {
+                return {
+                    label: '🎮 وقت ضائع / تشتت',
+                    accent: '#e11d48',
+                    bg: isDark ? 'rgba(225, 29, 72, 0.18)' : '#fff1f2',
+                    border: isDark ? 'rgba(244, 63, 94, 0.5)' : '#fda4af',
+                    text: isDark ? '#fda4af' : '#be123c'
+                };
+            }
+            if (isPersonalNeutralSession(ev)) {
+                return {
+                    label: '☕ راحة / نشاط شخصي',
+                    accent: '#0ea5e9',
+                    bg: isDark ? 'rgba(14, 165, 233, 0.16)' : '#f0f9ff',
+                    border: isDark ? 'rgba(56, 189, 248, 0.45)' : '#bae6fd',
+                    text: isDark ? '#7dd3fc' : '#0369a1'
+                };
+            }
+            if (ev.type === 'review' || ev.type === 'catchup' || ev.type === 'urgent') {
+                return {
+                    label: '🔄 مراجعة وتعويض',
+                    accent: '#f59e0b',
+                    bg: isDark ? 'rgba(245, 158, 11, 0.17)' : '#fffbeb',
+                    border: isDark ? 'rgba(245, 158, 11, 0.5)' : '#fcd34d',
+                    text: isDark ? '#fcd34d' : '#b45309'
+                };
+            }
+            return {
+                label: '📚 مذاكرة وتحصيل',
+                accent: '#14b8a6',
+                bg: isDark ? 'rgba(45, 212, 191, 0.17)' : '#f0fdfa',
+                border: isDark ? 'rgba(45, 212, 191, 0.5)' : '#5eead4',
+                text: isDark ? '#5eead4' : '#0f766e'
+            };
+        }
+
+        function drawSubtlePlatformPromoFooter(ctx, W, H, isDark, pageNum, totalPages) {
+            const footerY = H - 54;
+            drawPdfRoundedRect(
+                ctx,
+                40,
+                footerY,
+                W - 80,
+                38,
+                10,
+                isDark ? 'rgba(15, 21, 34, 0.94)' : '#f8fafc',
+                isDark ? 'rgba(45, 212, 191, 0.28)' : '#cbd5e1',
+                1.2
+            );
+
+            ctx.save();
+            ctx.direction = 'rtl';
+            ctx.textAlign = 'right';
+            ctx.font = '800 13px "Cairo", "Tajawal", sans-serif';
+            ctx.fillStyle = isDark ? '#2dd4bf' : '#0f766e';
+            ctx.fillText('✨ صُمّم بواسطة منصة الإنجاز (Studio Workspace)', W - 58, footerY + 24);
+
+            ctx.font = '700 12px "Cairo", "Tajawal", sans-serif';
+            ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
+            const promoUrl = (window.location && window.location.hostname && !window.location.hostname.includes('localhost'))
+                ? window.location.hostname
+                : 'منظومة التخطيط والمذاكرة الذكية للطلاب';
+            ctx.fillText(`•  رفيقك الذكي لتنظيم الوقت والمذاكرة بفاعلية  |  ${promoUrl}`, W - 345, footerY + 24);
+
+            ctx.textAlign = 'left';
+            ctx.font = '800 12px "Cairo", "Tajawal", sans-serif';
+            ctx.fillStyle = isDark ? '#e2e8f0' : '#334155';
+            ctx.fillText(`صفحة ${pageNum} من ${totalPages}`, 58, footerY + 24);
+            ctx.restore();
+        }
+
+        function renderSchedulePdfPageToCanvas(canvas, pageSpec, opts, pageNum, totalPages, customScale = null) {
+            const W = 1600;
+            const H = 1131;
+            const dpiScale = customScale || (opts.qualityMode === 'ultra_300' ? 2.25 : 1.75);
+            canvas.width = Math.round(W * dpiScale);
+            canvas.height = Math.round(H * dpiScale);
+            canvas.dataset.logicalWidth = String(W);
+            canvas.dataset.logicalHeight = String(H);
+
+            const ctx = canvas.getContext('2d', { alpha: false });
+            ctx.save();
+            ctx.setTransform(dpiScale, 0, 0, dpiScale, 0, 0);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+
+            const isDark = opts.theme !== 'pearl_editorial';
+            const isEmerald = opts.theme === 'midnight_emerald';
+
+            // 1. Background Canvas & Decorative Luxury Mesh
+            const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+            if (isEmerald) {
+                bgGrad.addColorStop(0, '#061217');
+                bgGrad.addColorStop(0.5, '#0a1c24');
+                bgGrad.addColorStop(1, '#07131a');
+            } else if (isDark) {
+                bgGrad.addColorStop(0, '#090c14');
+                bgGrad.addColorStop(0.5, '#0f1522');
+                bgGrad.addColorStop(1, '#0b0f19');
+            } else {
+                bgGrad.addColorStop(0, '#f8fafc');
+                bgGrad.addColorStop(0.5, '#ffffff');
+                bgGrad.addColorStop(1, '#f1f5f9');
+            }
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, W, H);
+
+            // Subtle decorative corner glow
+            const glowGrad = ctx.createRadialGradient(W - 180, 90, 20, W - 180, 90, 440);
+            glowGrad.addColorStop(0, isDark ? 'rgba(45, 212, 191, 0.16)' : 'rgba(20, 184, 166, 0.10)');
+            glowGrad.addColorStop(1, 'rgba(45, 212, 191, 0)');
+            ctx.fillStyle = glowGrad;
+            ctx.fillRect(0, 0, W, H);
+
+            const subMap = new Map();
+            subjects.forEach(s => subMap.set(String(s.id), s.name));
+
+            if (pageSpec.type === 'week_overview') {
+                renderWeekMasterOverviewPdfPage(ctx, W, H, opts, isDark, subMap, pageNum, totalPages);
+            } else {
+                renderSingleDayPdfPage(ctx, W, H, pageSpec.dayObj, opts, isDark, subMap, pageNum, totalPages);
+            }
+            ctx.restore();
+        }
+
+        function renderWeekMasterOverviewPdfPage(ctx, W, H, opts, isDark, subMap, pageNum, totalPages) {
+            const orderedDays = getOrderedWeekDays();
+            const weekRangeTxt = typeof getCurrentWeekDateRangeLabel === 'function' ? getCurrentWeekDateRangeLabel() : 'الأسبوع الدراسي الحالي';
+            const fScale = opts.fontScale || 1.05;
+            const fs = (px) => Math.round(px * fScale);
+
+            // Top Luxury Header Banner
+            drawPdfRoundedRect(
+                ctx,
+                40,
+                32,
+                W - 80,
+                112,
+                18,
+                isDark ? 'rgba(19, 25, 38, 0.96)' : '#ffffff',
+                isDark ? 'rgba(45, 212, 191, 0.4)' : '#cbd5e1',
+                1.6
+            );
+
+            ctx.save();
+            ctx.direction = 'rtl';
+            ctx.textAlign = 'right';
+
+            // Title & Subtitle
+            ctx.font = `900 ${fs(29)}px "Cairo", "Tajawal", sans-serif`;
+            ctx.fillStyle = isDark ? '#ffffff' : '#0f172a';
+            ctx.fillText(`📅 ${opts.title}`, W - 68, 80);
+
+            ctx.font = `700 ${fs(14)}px "Cairo", "Tajawal", sans-serif`;
+            ctx.fillStyle = isDark ? '#2dd4bf' : '#0f766e';
+            const studentSuffix = opts.studentName ? `  •  👤 ${opts.studentName}` : '';
+            ctx.fillText(`الخريطة الأسبوعية الشاملة (${weekRangeTxt})${studentSuffix}`, W - 68, 116);
+
+            // Compute Weekly KPIs
+            let totalStudyHrs = 0;
+            let totalCollegeHrs = 0;
+            let totalStudySessions = 0;
+            let completedSessions = 0;
+            filterEventsForPdfExport(scheduleEvents, opts).forEach(ev => {
+                const dur = Number(ev.duration) || 1;
+                if (isCollegeCommitmentSession(ev) && !ev.absent) {
+                    totalCollegeHrs += dur;
+                } else if (isActionableStudySession(ev)) {
+                    totalStudyHrs += dur;
+                    totalStudySessions++;
+                    if (ev.completed) completedSessions++;
+                }
+            });
+
+            const kpiCards = [
+                { label: 'ساعات المذاكرة الأسبوعية', val: `${Number(totalStudyHrs.toFixed(1))} ساعة`, color: '#2dd4bf' },
+                { label: 'جلسات التحصيل والمراجعة', val: `${totalStudySessions} جلسة`, color: '#38bdf8' },
+                { label: 'ساعات الكلية والالتزامات', val: `${Number(totalCollegeHrs.toFixed(1))} ساعة`, color: '#a78bfa' },
+                { label: 'أهداف الأسبوع المسجلة', val: `${(Array.isArray(scheduleBacklog) ? scheduleBacklog.length : 0)} هدف`, color: '#fbbf24' }
+            ];
+
+            let kpiX = 64;
+            kpiCards.forEach(kpi => {
+                drawPdfRoundedRect(
+                    ctx,
+                    kpiX,
+                    48,
+                    185,
+                    80,
+                    12,
+                    isDark ? 'rgba(11, 15, 25, 0.9)' : '#f8fafc',
+                    isDark ? 'rgba(255, 255, 255, 0.12)' : '#cbd5e1',
+                    1.2
+                );
+                ctx.textAlign = 'center';
+                ctx.font = `900 ${fs(20)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.fillStyle = isDark ? kpi.color : '#0f172a';
+                ctx.fillText(kpi.val, kpiX + 92, 84);
+
+                ctx.font = `700 ${fs(11.5)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
+                ctx.fillText(kpi.label, kpiX + 92, 111);
+                kpiX += 196;
+            });
+
+            // 7-Day Columns Master Grid (RTL from Right to Left)
+            const gridTop = 162;
+            const gridHeight = opts.showSidebar ? 795 : 895;
+            const colGap = 12;
+            const totalW = W - 80;
+            const colW = (totalW - (colGap * 6)) / 7;
+
+            orderedDays.forEach((dayObj, idx) => {
+                const colX = W - 40 - colW - (idx * (colW + colGap));
+                const dayEvents = filterEventsForPdfExport(
+                    scheduleEvents.filter(e => e.day === dayObj.dayIdx),
+                    opts
+                ).sort((a, b) => a.startHour - b.startHour);
+
+                let dayStudyH = 0;
+                dayEvents.forEach(e => {
+                    if (isActionableStudySession(e)) dayStudyH += (Number(e.duration) || 1);
+                });
+                dayStudyH = Number(dayStudyH.toFixed(1));
+
+                // Column container
+                drawPdfRoundedRect(
+                    ctx,
+                    colX,
+                    gridTop,
+                    colW,
+                    gridHeight,
+                    14,
+                    isDark ? 'rgba(17, 22, 33, 0.95)' : '#ffffff',
+                    dayObj.isToday
+                        ? (isDark ? 'rgba(45, 212, 191, 0.7)' : '#0d9488')
+                        : (isDark ? 'rgba(255, 255, 255, 0.1)' : '#cbd5e1'),
+                    dayObj.isToday ? 2.2 : 1.2
+                );
+
+                // Column Header
+                drawPdfRoundedRect(
+                    ctx,
+                    colX + 6,
+                    gridTop + 6,
+                    colW - 12,
+                    58,
+                    10,
+                    dayObj.isToday
+                        ? (isDark ? 'rgba(45, 212, 191, 0.2)' : '#ccfbf1')
+                        : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9'),
+                    null
+                );
+
+                ctx.textAlign = 'right';
+                ctx.font = `900 ${fs(16.5)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.fillStyle = isDark ? '#ffffff' : '#0f172a';
+                ctx.fillText(dayObj.dayName, colX + colW - 16, gridTop + 32);
+
+                ctx.font = `700 ${fs(11.5)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.fillStyle = isDark ? '#cbd5e1' : '#64748b';
+                ctx.fillText(dayObj.dateShortStr || '', colX + colW - 16, gridTop + 53);
+
+                // Study hours pill on left of header
+                ctx.textAlign = 'left';
+                ctx.font = `800 ${fs(12)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.fillStyle = isDark ? '#2dd4bf' : '#0f766e';
+                ctx.fillText(`${dayStudyH} س`, colX + 14, gridTop + 34);
+
+                // Render day's session cards inside the column
+                let cardY = gridTop + 74;
+                const maxCards = opts.showSidebar ? 7 : 8;
+                const visibleEvents = dayEvents.slice(0, maxCards);
+                const availH = gridHeight - 86;
+                const cardH = Math.min(98, Math.max(68, Math.floor((availH - (visibleEvents.length * 8)) / Math.max(1, visibleEvents.length))));
+
+                if (visibleEvents.length === 0) {
+                    ctx.textAlign = 'center';
+                    ctx.font = `700 ${fs(13)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? 'rgba(148, 163, 184, 0.55)' : '#94a3b8';
+                    ctx.fillText('يوم مفتوح / راحة', colX + (colW / 2), gridTop + (gridHeight / 2));
+                } else {
+                    visibleEvents.forEach(ev => {
+                        const vis = getPdfCategoryVisuals(ev, isDark);
+                        const timing = getSessionDisplayTiming(ev);
+                        const subName = ev.subjectId ? (subMap.get(String(ev.subjectId)) || '') : '';
+
+                        drawPdfRoundedRect(
+                            ctx,
+                            colX + 8,
+                            cardY,
+                            colW - 16,
+                            cardH,
+                            10,
+                            vis.bg,
+                            vis.border,
+                            1.4
+                        );
+
+                        // Right color accent bar
+                        drawPdfRoundedRect(ctx, colX + colW - 13, cardY + 6, 4.5, cardH - 12, 2, vis.accent, null);
+
+                        // Time Range
+                        ctx.textAlign = 'right';
+                        ctx.font = `800 ${fs(10.8)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = vis.text;
+                        const timeLine = `${timing.timeRangeText} (${timing.durationBadgeText})`;
+                        ctx.fillText(truncateCanvasText(ctx, timeLine, colW - 32), colX + colW - 21, cardY + 21);
+
+                        // Session Title
+                        ctx.font = `800 ${fs(13)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = isDark ? '#ffffff' : '#0f172a';
+                        const statusPrefix = (opts.showCompletedCheck && ev.completed) ? '☑ ' : (ev.isFixed ? '🔒 ' : '');
+                        ctx.fillText(truncateCanvasText(ctx, statusPrefix + (ev.title || ''), colW - 32), colX + colW - 21, cardY + 43);
+
+                        // Subject or Category tag
+                        ctx.font = `700 ${fs(11)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = isDark ? '#e2e8f0' : '#475569';
+                        const bottomTag = subName ? `📖 ${subName}` : vis.label;
+                        ctx.fillText(truncateCanvasText(ctx, bottomTag, colW - 32), colX + colW - 21, cardY + 63);
+
+                        cardY += cardH + 8;
+                    });
+
+                    if (dayEvents.length > maxCards) {
+                        ctx.textAlign = 'center';
+                        ctx.font = `800 ${fs(11)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = isDark ? '#2dd4bf' : '#0f766e';
+                        ctx.fillText(`+ ${dayEvents.length - maxCards} مهام أخرى في صفحة اليوم`, colX + (colW / 2), gridTop + gridHeight - 12);
+                    }
+                }
+            });
+
+            // Weekly Goals Strip at Bottom (if showSidebar is enabled)
+            if (opts.showSidebar) {
+                const goalsY = 970;
+                drawPdfRoundedRect(
+                    ctx,
+                    40,
+                    goalsY,
+                    W - 80,
+                    92,
+                    14,
+                    isDark ? 'rgba(18, 24, 36, 0.96)' : '#ffffff',
+                    isDark ? 'rgba(255, 255, 255, 0.1)' : '#cbd5e1',
+                    1.2
+                );
+
+                ctx.textAlign = 'right';
+                ctx.font = `900 ${fs(14.5)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.fillStyle = isDark ? '#fbbf24' : '#b45309';
+                ctx.fillText('🎯 أهداف ومهام الأسبوع الرئيسية:', W - 62, goalsY + 30);
+
+                const weeklyGoalsList = Array.isArray(scheduleBacklog) ? scheduleBacklog : [];
+                if (weeklyGoalsList.length === 0) {
+                    ctx.font = `700 ${fs(13)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? '#cbd5e1' : '#64748b';
+                    ctx.fillText('لم يتم إدراج أهداف أسبوعية إضافية — ركّز على إتمام جلسات الجدول اليومية بانتظام.', W - 62, goalsY + 62);
+                } else {
+                    const topGoals = weeklyGoalsList.slice(0, 4);
+                    let gX = W - 62;
+                    const slotW = (W - 140) / Math.min(4, topGoals.length);
+                    topGoals.forEach(g => {
+                        const isGoalDone = Boolean(g.done || g.completed);
+                        const goalTitle = g.title || g.text || 'هدف أسبوعي';
+                        const checkIcon = isGoalDone ? '☑' : '☐';
+                        ctx.font = `800 ${fs(13)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = isGoalDone ? '#10b981' : (isDark ? '#f8fafc' : '#1e293b');
+                        ctx.fillText(truncateCanvasText(ctx, `${checkIcon} ${goalTitle}`, slotW - 20), gX, goalsY + 62);
+                        gX -= slotW;
+                    });
+                }
+            }
+
+            ctx.restore();
+            drawSubtlePlatformPromoFooter(ctx, W, H, isDark, pageNum, totalPages);
+        }
+
+        function renderSingleDayPdfPage(ctx, W, H, dayObj, opts, isDark, subMap, pageNum, totalPages) {
+            const dIdx = dayObj ? dayObj.dayIdx : 0;
+            const dayName = dayObj ? dayObj.dayName : 'اليوم';
+            const dateStr = dayObj ? (dayObj.dateShortStr || '') : '';
+            const fScale = opts.fontScale || 1.05;
+            const fs = (px) => Math.round(px * fScale);
+
+            const dayEvents = filterEventsForPdfExport(
+                scheduleEvents.filter(e => e.day === dIdx),
+                opts
+            ).sort((a, b) => a.startHour - b.startHour);
+
+            let studyHrs = 0;
+            let collegeHrs = 0;
+            let doneCount = 0;
+            dayEvents.forEach(ev => {
+                const dur = Number(ev.duration) || 1;
+                if (isCollegeCommitmentSession(ev) && !ev.absent) {
+                    collegeHrs += dur;
+                } else if (isActionableStudySession(ev)) {
+                    studyHrs += dur;
+                }
+                if (ev.completed) doneCount++;
+            });
+
+            // 1. Day Hero Header Banner
+            drawPdfRoundedRect(
+                ctx,
+                40,
+                32,
+                W - 80,
+                114,
+                18,
+                isDark ? 'rgba(19, 25, 38, 0.96)' : '#ffffff',
+                isDark ? 'rgba(45, 212, 191, 0.42)' : '#cbd5e1',
+                1.6
+            );
+
+            ctx.save();
+            ctx.direction = 'rtl';
+            ctx.textAlign = 'right';
+
+            ctx.font = `900 ${fs(31)}px "Cairo", "Tajawal", sans-serif`;
+            ctx.fillStyle = isDark ? '#ffffff' : '#0f172a';
+            ctx.fillText(`🗓️ جدول يوم ${dayName}  ${dateStr ? `(${dateStr})` : ''}`, W - 68, 82);
+
+            ctx.font = `700 ${fs(14.5)}px "Cairo", "Tajawal", sans-serif`;
+            ctx.fillStyle = isDark ? '#2dd4bf' : '#0f766e';
+            const studentPart = opts.studentName ? `  •  👤 ${opts.studentName}` : '';
+            ctx.fillText(`${opts.title} — الخطة التفصيلية لليوم بالساعة${studentPart}`, W - 68, 118);
+
+            // Daily Stat Pills on the left side of Header
+            const dayStats = [
+                { label: 'ساعات المذاكرة', val: `${Number(studyHrs.toFixed(1))} س`, color: '#2dd4bf' },
+                { label: 'التزامات الكلية', val: `${Number(collegeHrs.toFixed(1))} س`, color: '#a78bfa' },
+                { label: 'إجمالي الجلسات', val: `${dayEvents.length} مهام`, color: '#38bdf8' },
+                { label: 'المكتمل حتى الآن', val: `${doneCount} / ${dayEvents.length}`, color: '#10b981' }
+            ];
+            let stX = 64;
+            dayStats.forEach(st => {
+                drawPdfRoundedRect(
+                    ctx,
+                    stX,
+                    48,
+                    165,
+                    82,
+                    12,
+                    isDark ? 'rgba(11, 15, 25, 0.9)' : '#f8fafc',
+                    isDark ? 'rgba(255, 255, 255, 0.1)' : '#cbd5e1',
+                    1.2
+                );
+                ctx.textAlign = 'center';
+                ctx.font = `900 ${fs(19.5)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.fillStyle = isDark ? st.color : '#0f172a';
+                ctx.fillText(st.val, stX + 82, 84);
+
+                ctx.font = `700 ${fs(11.5)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
+                ctx.fillText(st.label, stX + 82, 112);
+                stX += 176;
+            });
+
+            // 2. Layout: If showSidebar is true -> Right Main Table (1060px) + Left Sidebar (442px). If false -> Full-width Table (1520px)!
+            const showSide = Boolean(opts.showSidebar);
+            const tableX = showSide ? 500 : 40;
+            const tableY = 166;
+            const tableW = showSide ? (W - 540) : (W - 80);
+            const tableH = 894;
+
+            const sideX = 40;
+            const sideY = 166;
+            const sideW = 442;
+            const sideH = 894;
+
+            // Main Table Card Container
+            drawPdfRoundedRect(
+                ctx,
+                tableX,
+                tableY,
+                tableW,
+                tableH,
+                16,
+                isDark ? 'rgba(16, 21, 32, 0.96)' : '#ffffff',
+                isDark ? 'rgba(255, 255, 255, 0.1)' : '#cbd5e1',
+                1.4
+            );
+
+            // Table Column Header Row
+            drawPdfRoundedRect(
+                ctx,
+                tableX + 12,
+                tableY + 12,
+                tableW - 24,
+                52,
+                10,
+                isDark ? 'rgba(45, 212, 191, 0.16)' : '#f1f5f9',
+                isDark ? 'rgba(45, 212, 191, 0.35)' : '#cbd5e1',
+                1.2
+            );
+
+            const colRightEdge = tableX + tableW - 28;
+            const extraW = showSide ? 0 : 380;
+            ctx.textAlign = 'right';
+            ctx.font = `900 ${fs(13.5)}px "Cairo", "Tajawal", sans-serif`;
+            ctx.fillStyle = isDark ? '#2dd4bf' : '#0f766e';
+
+            ctx.fillText('الفترة الزمنية', colRightEdge, tableY + 44);
+            ctx.fillText('المدة', colRightEdge - 185, tableY + 44);
+            ctx.fillText('المهمة / الجلسة الدراسية والملاحظات', colRightEdge - 275, tableY + 44);
+            ctx.fillText('المادة الدراسية', colRightEdge - 665 - Math.round(extraW * 0.65), tableY + 44);
+            ctx.fillText('نوع الجلسة', colRightEdge - 845 - extraW, tableY + 44);
+            if (opts.showCompletedCheck) {
+                ctx.fillText('الإنجاز', tableX + 78, tableY + 44);
+            }
+
+            if (dayEvents.length === 0) {
+                ctx.textAlign = 'center';
+                ctx.font = `800 ${fs(17)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.fillStyle = isDark ? '#cbd5e1' : '#64748b';
+                ctx.fillText(`لا توجد جلسات مسجلة ليوم ${dayName} حتى الآن — مساحة حرة لتدوين مهام اليوم:`, tableX + (tableW / 2), tableY + 120);
+
+                const sampleSlots = ['الفترة الصباحية (09:00 ص - 11:00 ص)', 'فترة الظهيرة (12:00 م - 02:00 م)', 'فترة العصر (03:00 م - 05:00 م)', 'الفترة المسائية (06:00 م - 08:00 م)', 'مراجعة السهرة (09:00 م - 10:30 م)'];
+                let slotY = tableY + 155;
+                sampleSlots.forEach(sLabel => {
+                    drawPdfRoundedRect(
+                        ctx,
+                        tableX + 20,
+                        slotY,
+                        tableW - 40,
+                        115,
+                        12,
+                        isDark ? 'rgba(255, 255, 255, 0.03)' : '#f8fafc',
+                        isDark ? 'rgba(255, 255, 255, 0.08)' : '#cbd5e1',
+                        1.2
+                    );
+                    ctx.textAlign = 'right';
+                    ctx.font = `800 ${fs(14.5)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? '#2dd4bf' : '#0f766e';
+                    ctx.fillText(`🕒 ${sLabel}`, colRightEdge - 10, slotY + 36);
+
+                    ctx.font = `600 ${fs(12.5)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? 'rgba(148, 163, 184, 0.5)' : '#94a3b8';
+                    ctx.fillText('• المهمة المخططة: ........................................................................................................................................', colRightEdge - 10, slotY + 72);
+                    ctx.fillText('• ملاحظات ومخرجات الجلسة: ...........................................................................................................................', colRightEdge - 10, slotY + 98);
+                    slotY += 130;
+                });
+            } else {
+                const maxRows = 10;
+                const rowsToDraw = dayEvents.slice(0, maxRows);
+                const availTableH = tableH - 84;
+                const rowH = Math.min(84, Math.max(62, Math.floor((availTableH - (rowsToDraw.length * 8)) / rowsToDraw.length)));
+                let rY = tableY + 76;
+
+                rowsToDraw.forEach((ev, rIdx) => {
+                    const vis = getPdfCategoryVisuals(ev, isDark);
+                    const timing = getSessionDisplayTiming(ev);
+                    const subName = ev.subjectId ? (subMap.get(String(ev.subjectId)) || 'عام') : 'عام';
+
+                    drawPdfRoundedRect(
+                        ctx,
+                        tableX + 14,
+                        rY,
+                        tableW - 28,
+                        rowH,
+                        12,
+                        rIdx % 2 === 0
+                            ? (isDark ? 'rgba(22, 29, 44, 0.94)' : '#f8fafc')
+                            : (isDark ? 'rgba(15, 20, 32, 0.94)' : '#ffffff'),
+                        vis.border,
+                        1.4
+                    );
+
+                    // Right accent stripe
+                    drawPdfRoundedRect(ctx, tableX + tableW - 20, rY + 8, 5, rowH - 16, 3, vis.accent, null);
+
+                    ctx.textAlign = 'right';
+
+                    // 1. Time Range
+                    ctx.font = `800 ${fs(12.8)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = vis.text;
+                    ctx.fillText(timing.timeRangeText, colRightEdge, rY + (rowH / 2) + 5);
+
+                    // 2. Duration pill
+                    drawPdfRoundedRect(
+                        ctx,
+                        colRightEdge - 255,
+                        rY + (rowH / 2) - 14,
+                        72,
+                        28,
+                        8,
+                        isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0',
+                        null
+                    );
+                    ctx.textAlign = 'center';
+                    ctx.font = `800 ${fs(11.5)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? '#ffffff' : '#1e293b';
+                    ctx.fillText(timing.durationBadgeText, colRightEdge - 219, rY + (rowH / 2) + 5);
+
+                    // 3. Task Title + Notes
+                    const maxTitleW = 370 + Math.round(extraW * 0.62);
+                    ctx.textAlign = 'right';
+                    ctx.font = `800 ${fs(14.5)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? '#ffffff' : '#0f172a';
+                    const hasNotes = Boolean(opts.showNotes && ev.notes && String(ev.notes).trim());
+                    const titleY = hasNotes ? (rY + (rowH / 2) - 4) : (rY + (rowH / 2) + 6);
+                    ctx.fillText(truncateCanvasText(ctx, ev.title || 'جلسة دراسية', maxTitleW), colRightEdge - 275, titleY);
+
+                    if (hasNotes) {
+                        ctx.font = `600 ${fs(11.8)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
+                        ctx.fillText(truncateCanvasText(ctx, `📝 ${ev.notes}`, maxTitleW), colRightEdge - 275, rY + (rowH / 2) + 19);
+                    }
+
+                    // 4. Subject Name
+                    ctx.font = `700 ${fs(12.5)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? '#e2e8f0' : '#334155';
+                    ctx.fillText(truncateCanvasText(ctx, `📖 ${subName}`, 175), colRightEdge - 665 - Math.round(extraW * 0.65), rY + (rowH / 2) + 5);
+
+                    // 5. Category Badge
+                    const badgeRightOffset = colRightEdge - 975 - extraW;
+                    drawPdfRoundedRect(
+                        ctx,
+                        badgeRightOffset,
+                        rY + (rowH / 2) - 14,
+                        138,
+                        28,
+                        8,
+                        vis.bg,
+                        vis.border,
+                        1.2
+                    );
+                    ctx.textAlign = 'center';
+                    ctx.font = `800 ${fs(10.8)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = vis.text;
+                    ctx.fillText(truncateCanvasText(ctx, vis.label, 128), badgeRightOffset + 69, rY + (rowH / 2) + 4);
+
+                    // 6. Status Checkbox
+                    if (opts.showCompletedCheck) {
+                        const statusTxt = ev.completed ? '☑ مكتمل' : (ev.isFixed ? '🔒 ثابت' : '☐ خطة');
+                        ctx.font = `800 ${fs(11.8)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = ev.completed ? '#10b981' : (isDark ? '#cbd5e1' : '#475569');
+                        ctx.fillText(statusTxt, tableX + 55, rY + (rowH / 2) + 5);
+                    }
+
+                    rY += rowH + 8;
+                });
+            }
+
+            // 3. Left Sidebar: Daily Priorities, Time Balance & Reflection Box (when showSidebar is true)
+            if (showSide) {
+                drawPdfRoundedRect(
+                    ctx,
+                    sideX,
+                    sideY,
+                    sideW,
+                    sideH,
+                    16,
+                    isDark ? 'rgba(16, 21, 32, 0.96)' : '#ffffff',
+                    isDark ? 'rgba(255, 255, 255, 0.1)' : '#cbd5e1',
+                    1.4
+                );
+
+                ctx.textAlign = 'right';
+                ctx.font = `900 ${fs(17.5)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.fillStyle = isDark ? '#2dd4bf' : '#0f766e';
+                ctx.fillText(`🎯 بوصلة التركيز ليوم ${dayName}`, sideX + sideW - 24, sideY + 42);
+
+                // Priority items box
+                drawPdfRoundedRect(
+                    ctx,
+                    sideX + 18,
+                    sideY + 60,
+                    sideW - 36,
+                    250,
+                    12,
+                    isDark ? 'rgba(11, 15, 24, 0.9)' : '#f8fafc',
+                    isDark ? 'rgba(255, 255, 255, 0.08)' : '#cbd5e1',
+                    1.2
+                );
+
+                ctx.font = `800 ${fs(13.5)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.fillStyle = isDark ? '#fbbf24' : '#b45309';
+                ctx.fillText('⚡ أهم أولويات المذاكرة والمراجعة:', sideX + sideW - 34, sideY + 90);
+
+                const prioritySessions = dayEvents.filter(e => isActionableStudySession(e)).slice(0, 5);
+                if (prioritySessions.length === 0) {
+                    ctx.font = `600 ${fs(12.5)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? '#cbd5e1' : '#64748b';
+                    ctx.fillText('• خصّص جلسة مذاكرة أو مراجعة مركزة اليوم.', sideX + sideW - 34, sideY + 128);
+                } else {
+                    let pY = sideY + 125;
+                    prioritySessions.forEach((pEv, idx) => {
+                        ctx.font = `700 ${fs(12.8)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = isDark ? '#ffffff' : '#1e293b';
+                        const mark = pEv.completed ? '✅' : `${idx + 1}.`;
+                        ctx.fillText(truncateCanvasText(ctx, `${mark} ${pEv.title} (${pEv.duration || 1} س)`, sideW - 68), sideX + sideW - 34, pY);
+                        pY += 34;
+                    });
+                }
+
+                // Weekly Goals Reminder Box inside Sidebar
+                drawPdfRoundedRect(
+                    ctx,
+                    sideX + 18,
+                    sideY + 328,
+                    sideW - 36,
+                    235,
+                    12,
+                    isDark ? 'rgba(11, 15, 24, 0.9)' : '#f8fafc',
+                    isDark ? 'rgba(255, 255, 255, 0.08)' : '#cbd5e1',
+                    1.2
+                );
+                ctx.font = `800 ${fs(13.5)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.fillStyle = isDark ? '#38bdf8' : '#0369a1';
+                ctx.fillText('📌 تذكير بأهداف الأسبوع:', sideX + sideW - 34, sideY + 358);
+
+                const dayWeeklyGoalsList = Array.isArray(scheduleBacklog) ? scheduleBacklog : [];
+                if (dayWeeklyGoalsList.length === 0) {
+                    ctx.font = `600 ${fs(12.5)}px "Cairo", "Tajawal", sans-serif`;
+                    ctx.fillStyle = isDark ? '#cbd5e1' : '#64748b';
+                    ctx.fillText('• التزم بإتمام مهام الجدول في وقتها المحدد.', sideX + sideW - 34, sideY + 394);
+                } else {
+                    let wgY = sideY + 392;
+                    dayWeeklyGoalsList.slice(0, 4).forEach(task => {
+                        const isTaskDone = Boolean(task.done || task.completed);
+                        const taskTitle = task.title || task.text || 'هدف أسبوعي';
+                        ctx.font = `700 ${fs(12.8)}px "Cairo", "Tajawal", sans-serif`;
+                        ctx.fillStyle = isTaskDone ? '#10b981' : (isDark ? '#e2e8f0' : '#334155');
+                        ctx.fillText(truncateCanvasText(ctx, `${isTaskDone ? '☑' : '☐'} ${taskTitle}`, sideW - 68), sideX + sideW - 34, wgY);
+                        wgY += 36;
+                    });
+                }
+
+                // Daily Notes & Self-Reflection Lined Area
+                drawPdfRoundedRect(
+                    ctx,
+                    sideX + 18,
+                    sideY + 580,
+                    sideW - 36,
+                    292,
+                    12,
+                    isDark ? 'rgba(11, 15, 24, 0.9)' : '#f8fafc',
+                    isDark ? 'rgba(45, 212, 191, 0.28)' : '#cbd5e1',
+                    1.2
+                );
+                ctx.font = `800 ${fs(13.5)}px "Cairo", "Tajawal", sans-serif`;
+                ctx.fillStyle = isDark ? '#2dd4bf' : '#0f766e';
+                ctx.fillText('✍️ ملاحظات وتقييم نهاية اليوم:', sideX + sideW - 34, sideY + 612);
+
+                ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.12)' : '#cbd5e1';
+                ctx.lineWidth = 1.1;
+                for (let lineY = sideY + 655; lineY <= sideY + 835; lineY += 42) {
+                    ctx.beginPath();
+                    ctx.moveTo(sideX + 34, lineY);
+                    ctx.lineTo(sideX + sideW - 34, lineY);
+                    ctx.stroke();
+                }
+            }
+
+            ctx.restore();
+            drawSubtlePlatformPromoFooter(ctx, W, H, isDark, pageNum, totalPages);
+        }
+
+        async function generateSchedulePdfBinaryAndFile() {
+            const opts = getSchedulePdfOptions();
+            const specs = buildSchedulePdfPageSpecs();
+            const offscreen = document.createElement('canvas');
+            const pdfPagesData = [];
+            const exportScale = opts.qualityMode === 'ultra_300' ? 2.25 : 1.75;
+            const jpegQuality = opts.qualityMode === 'ultra_300' ? 0.97 : 0.93;
+
+            for (let i = 0; i < specs.length; i++) {
+                renderSchedulePdfPageToCanvas(offscreen, specs[i], opts, i + 1, specs.length, exportScale);
+                const jpegDataUrl = offscreen.toDataURL('image/jpeg', jpegQuality);
+                const jpegBytes = dataUrlToUint8Bytes(jpegDataUrl);
+                pdfPagesData.push({
+                    width: offscreen.width,
+                    height: offscreen.height,
+                    logicalWidth: 1600,
+                    logicalHeight: 1131,
+                    jpegBytes
+                });
+            }
+
+            const pdfBytes = buildMultiPagePdfFromJpegs(pdfPagesData);
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const cleanFileName = (opts.title || 'جدولي_الدراسي').replace(/[\/:*?"<>|]/g, '_') + '.pdf';
+            return { blob, cleanFileName, pageCount: specs.length };
+        }
+
+        async function downloadCustomSchedulePdf() {
+            const btn = document.getElementById('btnDownloadSchedulePdfFile');
+            const origHtml = btn ? btn.innerHTML : '';
+            try {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري توليد الـ PDF بدقة 300 DPI...';
+                }
+                const { blob, cleanFileName, pageCount } = await generateSchedulePdfBinaryAndFile();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = cleanFileName;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 15000);
+                showToast(`✨ تم استخراج وتحميل الجدول (${pageCount} صفحات بدقة Ultra HD 300 DPI) بنجاح!`);
+            } catch (err) {
+                console.error(err);
+                showToast('حدث خطأ أثناء توليد ملف الـ PDF', 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                }
+            }
+        }
+
+        async function shareCustomSchedulePdfFile() {
+            const btn = document.getElementById('btnShareSchedulePdfNative');
+            const origHtml = btn ? btn.innerHTML : '';
+            try {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التجهيز للمشاركة...';
+                }
+                const { blob, cleanFileName, pageCount } = await generateSchedulePdfBinaryAndFile();
+                const pdfFile = new File([blob], cleanFileName, { type: 'application/pdf' });
+
+                if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+                    await navigator.share({
+                        files: [pdfFile],
+                        title: cleanFileName.replace('.pdf', ''),
+                        text: 'جدولي الدراسي الأسبوعي واليومي مصمم عبر منصة الإنجاز (Studio Workspace) ✨'
+                    });
+                    showToast('📤 تمت مشاركة ملف الـ PDF بنجاح!');
+                } else {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = cleanFileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    setTimeout(() => URL.revokeObjectURL(url), 15000);
+                    showToast(`📥 تم تحميل ملف الـ PDF (${pageCount} صفحات) — يمكنك إرساله لأصدقائك مباشرة!`);
+                }
+            } catch (err) {
+                if (err && err.name === 'AbortError') return;
+                console.error(err);
+                showToast('تم تجهيز الملف للتحميل المباشر', 'info');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                }
+            }
         }
 
         // ================= IMPORT / EXPORT =================
@@ -18321,9 +20404,11 @@
 
                 const wPx = Math.max(1, Math.round(p.width));
                 const hPx = Math.max(1, Math.round(p.height));
-                // Convert pixel dimensions to standard PDF points (0.75 pt/px)
-                const pageW = Number((wPx * 0.75).toFixed(2));
-                const pageH = Number((hPx * 0.75).toFixed(2));
+                const logicalW = Math.max(1, Math.round(p.logicalWidth || p.width));
+                const logicalH = Math.max(1, Math.round(p.logicalHeight || p.height));
+                // Convert logical layout dimensions to standard A4 Landscape PDF points (0.75 pt/px) while embedding the full Ultra-HD pixel buffer!
+                const pageW = Number((logicalW * 0.75).toFixed(2));
+                const pageH = Number((logicalH * 0.75).toFixed(2));
 
                 const contentStream = `q\n${pageW} 0 0 ${pageH} 0 0 cm\n/Im${i} Do\nQ\n`;
                 const contentBytes = encoder.encode(contentStream);
@@ -20759,9 +22844,115 @@
         }
 
         let hasReconciledBucketThisSession = false;
+        function toggleAuthPasswordVisibility() {
+            const passInput = document.getElementById('cloudAuthPassword');
+            const icon = document.getElementById('authPassToggleIcon');
+            if (!passInput) return;
+            const isPass = passInput.type === 'password';
+            passInput.type = isPass ? 'text' : 'password';
+            if (icon) {
+                icon.className = isPass ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+            }
+        }
+
+        function updateStudentProfileStatsInModal() {
+            const subCountEl = document.getElementById('profileStatSubjectsCount');
+            const lecCountEl = document.getElementById('profileStatLecturesCount');
+            const hrsEl = document.getElementById('profileStatStudyHours');
+            const tasksEl = document.getElementById('profileStatCompletedTasks');
+            const specBadgeEl = document.getElementById('cloudUserSpecialtyBadge');
+
+            let totalLectures = 0;
+            (subjects || []).forEach(s => {
+                (s.groups || []).forEach(g => {
+                    totalLectures += (g.lectures || []).length;
+                });
+            });
+
+            let weekStudyHrs = 0;
+            let completedTasks = 0;
+            (scheduleEvents || []).forEach(ev => {
+                if (isActionableStudySession(ev)) {
+                    weekStudyHrs += (Number(ev.duration) || 1);
+                }
+                if (ev.completed) completedTasks++;
+            });
+
+            if (subCountEl) subCountEl.innerText = String((subjects || []).length);
+            if (lecCountEl) lecCountEl.innerText = String(totalLectures);
+            if (hrsEl) hrsEl.innerText = `${Number(weekStudyHrs.toFixed(1))} س`;
+            if (tasksEl) tasksEl.innerText = String(completedTasks);
+
+            const savedSpec = localStorage.getItem('pharmaUserSpecialtyTitleV1') || '';
+            if (specBadgeEl) {
+                specBadgeEl.innerText = savedSpec ? `🎓 ${savedSpec}` : '🎓 طالب بمنصة الإنجاز الأكاديمية';
+            }
+        }
+
+        function toggleInlineProfileEditBox(forceState) {
+            const box = document.getElementById('inlineProfileEditBox');
+            if (!box) return;
+            const willOpen = typeof forceState === 'boolean' ? forceState : (box.style.display === 'none');
+            box.style.display = willOpen ? 'block' : 'none';
+            if (willOpen) {
+                const nameIn = document.getElementById('profileEditNameInput');
+                const specIn = document.getElementById('profileEditSpecialtyInput');
+                const curName = currentCloudUser?.user_metadata?.full_name || currentCloudUser?.name || document.getElementById('cloudUserNameDisplay')?.innerText || '';
+                const curSpec = localStorage.getItem('pharmaUserSpecialtyTitleV1') || '';
+                if (nameIn) nameIn.value = curName;
+                if (specIn) specIn.value = curSpec;
+            }
+        }
+
+        async function saveInlineProfileEdits() {
+            const nameIn = document.getElementById('profileEditNameInput');
+            const specIn = document.getElementById('profileEditSpecialtyInput');
+            const newName = sanitizeUserText(nameIn ? nameIn.value : '', 80);
+            const newSpec = sanitizeUserText(specIn ? specIn.value : '', 80);
+
+            if (newSpec !== undefined) {
+                localStorage.setItem('pharmaUserSpecialtyTitleV1', newSpec);
+            }
+            if (newName && currentCloudUser) {
+                currentCloudUser.name = newName;
+                if (currentCloudUser.user_metadata) {
+                    currentCloudUser.user_metadata.full_name = newName;
+                }
+                const nameEl = document.getElementById('cloudUserNameDisplay');
+                const avatarEl = document.getElementById('cloudUserAvatar');
+                if (nameEl) nameEl.innerText = newName;
+                if (avatarEl) avatarEl.innerText = newName.charAt(0).toUpperCase();
+
+                // Update local session & registry if using local vault
+                try {
+                    const savedSess = JSON.parse(localStorage.getItem('pharmaActiveAccountSessionV1') || 'null');
+                    if (savedSess) {
+                        savedSess.name = newName;
+                        localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify(savedSess));
+                    }
+                    const reg = JSON.parse(localStorage.getItem('pharmaAccountsRegistryV1') || '{}');
+                    if (currentCloudUser.email && reg[currentCloudUser.email.toLowerCase()]) {
+                        reg[currentCloudUser.email.toLowerCase()].name = newName;
+                        localStorage.setItem('pharmaAccountsRegistryV1', JSON.stringify(reg));
+                    }
+                } catch (e) {}
+
+                if (supabaseClient && navigator.onLine) {
+                    try {
+                        await supabaseClient.auth.updateUser({ data: { full_name: newName, specialty: newSpec } });
+                    } catch (e) {}
+                }
+                updateCloudNavUI('synced');
+            }
+            updateStudentProfileStatsInModal();
+            toggleInlineProfileEditBox(false);
+            showToast('✅ تم تحديث بيانات ملفك الشخصي بنجاح!');
+        }
+
         function openCloudAuthModal() {
             healSubjectsFromCloudRegistry();
             updateCloudMediaStatsUI();
+            updateStudentProfileStatsInModal();
             document.getElementById('cloudAuthModalOverlay').classList.add('active');
             // Only reconcile storage bucket once per session when opening the modal instead of re-downloading the entire workspace row every time!
             if (currentCloudUser && supabaseClient && navigator.onLine && !isCloudSyncing && !isBulkMediaUploading && !hasReconciledBucketThisSession) {
