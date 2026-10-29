@@ -25023,7 +25023,7 @@
             }
 
             showToast(`📥 جاري تحميل ${labelAr} لـ «${targetLec.title}» إلى هذا الجهاز...`);
-            const blob = await downloadMediaFromCloudAccount(storeName, targetLec);
+            const blob = await downloadMediaFromCloudAccount(storeName, targetLec, true);
             if (blob) {
                 localMediaCache[storeName].add(String(targetLec.id));
                 if (activeSubjectId) renderGroups();
@@ -25034,7 +25034,14 @@
                     btnEl.disabled = false;
                     btnEl.innerHTML = origHtml;
                 }
-                showToast(`تعذر تحميل ${labelAr} من السحابة، تأكد من اتصالك بالإنترنت`, 'error');
+                if (!navigator.onLine) {
+                    showToast(`تعذر التحميل: جهازك غير متصل بالإنترنت حالياً`, 'error');
+                } else if (!isGoogleDriveTokenActive()) {
+                    showToast(`يرجى تنشيط حساب Google Drive على هذا الجهاز لتنزيل الملفات وحفظها للمذاكرة أوفلاين`, 'error');
+                    openCloudAuthModal();
+                } else {
+                    showToast(`تعذر تنزيل ${labelAr} من Google Drive، يرجى المحاولة مرة أخرى`, 'error');
+                }
             }
         }
 
@@ -25193,6 +25200,110 @@
         let googleTokenClient = null;
         let googleAccessToken = localStorage.getItem('exo_gdrive_token') || null;
         let googleTokenExpiry = Number(localStorage.getItem('exo_gdrive_token_exp') || 0);
+        let pendingGoogleTokenPromise = null;
+
+        function isGoogleDriveTokenActive() {
+            return Boolean(googleAccessToken && Date.now() < googleTokenExpiry);
+        }
+
+        function ensureGoogleAccessToken(interactive = true) {
+            if (isGoogleDriveTokenActive()) {
+                return Promise.resolve(googleAccessToken);
+            }
+            const storedToken = localStorage.getItem('exo_gdrive_token');
+            const storedExp = Number(localStorage.getItem('exo_gdrive_token_exp') || 0);
+            if (storedToken && Date.now() < storedExp) {
+                googleAccessToken = storedToken;
+                googleTokenExpiry = storedExp;
+                if (typeof updateGoogleDriveUI === 'function') updateGoogleDriveUI();
+                return Promise.resolve(googleAccessToken);
+            }
+
+            if (pendingGoogleTokenPromise) {
+                return pendingGoogleTokenPromise;
+            }
+
+            const clientId = getEffectiveGoogleClientId();
+            if (!clientId) {
+                console.warn('Google Client ID is missing');
+                return Promise.resolve(null);
+            }
+            if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+                console.warn('Google Identity Services (GIS) library is not ready yet');
+                return Promise.resolve(null);
+            }
+
+            pendingGoogleTokenPromise = new Promise((resolve) => {
+                let isDone = false;
+                const finish = (tok) => {
+                    if (!isDone) {
+                        isDone = true;
+                        pendingGoogleTokenPromise = null;
+                        resolve(tok);
+                    }
+                };
+
+                const hint = localStorage.getItem('exo_gdrive_user_email') || '';
+
+                try {
+                    googleTokenClient = google.accounts.oauth2.initTokenClient({
+                        client_id: clientId,
+                        scope: 'https://www.googleapis.com/auth/drive.file',
+                        callback: async (tokenResponse) => {
+                            if (tokenResponse && tokenResponse.access_token) {
+                                googleAccessToken = tokenResponse.access_token;
+                                const expiresIn = Number(tokenResponse.expires_in) || 3600;
+                                googleTokenExpiry = Date.now() + (expiresIn * 1000) - 60000;
+                                localStorage.setItem('exo_gdrive_token', googleAccessToken);
+                                localStorage.setItem('exo_gdrive_token_exp', String(googleTokenExpiry));
+                                localStorage.setItem('exo_gdrive_connected', '1');
+                                if (currentCloudUser && currentCloudUser.id) {
+                                    localStorage.setItem('exo_gdrive_bound_user_id', currentCloudUser.id);
+                                }
+                                await ensureExoGoogleDriveFolder();
+                                await fetchGoogleDriveUserInfo(googleAccessToken);
+                                const updatedEmail = localStorage.getItem('exo_gdrive_user_email') || '';
+                                if (currentCloudUser && currentCloudUser.id) {
+                                    const vaultData = {
+                                        linked: true,
+                                        userEmail: updatedEmail,
+                                        folderId: localStorage.getItem('exo_gdrive_folder_id') || '',
+                                        quotaInfo: localStorage.getItem('exo_gdrive_quota_info') || ''
+                                    };
+                                    localStorage.setItem('pharmaGdriveSync_' + currentCloudUser.id, JSON.stringify(vaultData));
+                                    if (typeof pushWorkspaceToCloud === 'function') {
+                                        pushWorkspaceToCloud(false).catch(() => {});
+                                    }
+                                }
+                                updateGoogleDriveUI();
+                                finish(googleAccessToken);
+                            } else {
+                                finish(null);
+                            }
+                        },
+                        error_callback: (err) => {
+                            console.warn('Google Token Client error:', err);
+                            finish(null);
+                        }
+                    });
+
+                    if (!interactive) {
+                        googleTokenClient.requestAccessToken({ prompt: '', hint: hint });
+                        setTimeout(() => finish(null), 2500);
+                    } else {
+                        googleTokenClient.requestAccessToken({ prompt: hint ? '' : 'select_account', hint: hint });
+                    }
+                } catch (e) {
+                    console.error('Error initiating Google token request:', e);
+                    finish(null);
+                }
+            });
+
+            return pendingGoogleTokenPromise;
+        }
+        window.ensureGoogleAccessToken = ensureGoogleAccessToken;
+        window.isGoogleDriveTokenActive = isGoogleDriveTokenActive;
+
 
         function getEffectiveGoogleClientId() {
             const custom = localStorage.getItem('exo_gdrive_custom_client_id');
@@ -25267,7 +25378,7 @@
             }
         }
 
-        function connectGoogleDriveAccount(interactive = true, emailHint = null, forceNewAccount = false) {
+        async function connectGoogleDriveAccount(interactive = true, emailHint = null, forceNewAccount = false) {
             if (!currentCloudUser) {
                 showToast('يرجى تسجيل الدخول إلى حسابك أولاً', 'error');
                 openCloudAuthModal();
@@ -25288,51 +25399,17 @@
                 return;
             }
             try {
-                googleTokenClient = google.accounts.oauth2.initTokenClient({
-                    client_id: clientId,
-                    scope: 'https://www.googleapis.com/auth/drive.file',
-                    callback: async (tokenResponse) => {
-                        if (tokenResponse && tokenResponse.access_token) {
-                            googleAccessToken = tokenResponse.access_token;
-                            const expiresIn = Number(tokenResponse.expires_in) || 3600;
-                            googleTokenExpiry = Date.now() + (expiresIn * 1000) - 60000;
-                            localStorage.setItem('exo_gdrive_token', googleAccessToken);
-                            localStorage.setItem('exo_gdrive_token_exp', String(googleTokenExpiry));
-                            localStorage.setItem('exo_gdrive_connected', '1');
-                            if (currentCloudUser && currentCloudUser.id) {
-                                localStorage.setItem('exo_gdrive_bound_user_id', currentCloudUser.id);
-                            }
-                            await ensureExoGoogleDriveFolder();
-                            await fetchGoogleDriveUserInfo(googleAccessToken);
-                            const updatedEmail = localStorage.getItem('exo_gdrive_user_email') || '';
-                            if (currentCloudUser && currentCloudUser.id) {
-                                const vaultData = {
-                                    linked: true,
-                                    userEmail: updatedEmail,
-                                    folderId: localStorage.getItem('exo_gdrive_folder_id') || '',
-                                    quotaInfo: localStorage.getItem('exo_gdrive_quota_info') || ''
-                                };
-                                localStorage.setItem('pharmaGdriveSync_' + currentCloudUser.id, JSON.stringify(vaultData));
-                                if (typeof pushWorkspaceToCloud === 'function') {
-                                    await pushWorkspaceToCloud(false);
-                                }
-                            }
-                            updateGoogleDriveUI();
-                            showToast(`✅ تم ربط Google Drive بنجاح: ${updatedEmail || 'حسابك'}!`);
-                        } else if (tokenResponse && tokenResponse.error) {
-                            showToast('تعذر ربط Google Drive: ' + (tokenResponse.error_description || tokenResponse.error), 'error');
-                        }
-                    }
-                });
-                
-                const promptVal = interactive ? (forceNewAccount ? 'select_account' : 'consent') : '';
-                const reqOpts = { prompt: promptVal };
-                if (emailHint && !forceNewAccount) {
-                    reqOpts.hint = emailHint;
+                showToast('⏳ جاري الاتصال بـ Google Drive...');
+                const token = await ensureGoogleAccessToken(true);
+                if (token) {
+                    const updatedEmail = localStorage.getItem('exo_gdrive_user_email') || '';
+                    updateGoogleDriveUI();
+                    showToast(`✅ تم تنشيط Google Drive بنجاح: ${updatedEmail || 'حسابك'} (مساحة سحابية غير محدودة)!`);
+                } else {
+                    showToast('لم يتم تفعيل الربط، يرجى اختيار حساب Google والموافقة على الأذونات', 'error');
                 }
-                googleTokenClient.requestAccessToken(reqOpts);
             } catch (err) {
-                showToast('تعذر بدء مصادقة Google Drive: ' + err.message, 'error');
+                showToast('خطأ أثناء تشغيل نافذة الربط: ' + err.message, 'error');
             }
         }
 
@@ -25548,21 +25625,44 @@
 
             // VIP Pro subscriber:
             if (isLinked) {
-                // Permanently connected at account level across all logins and all devices!
+                const isTokenActive = isGoogleDriveTokenActive();
                 if (badge) {
-                    badge.style.color = '#6ee7b7';
-                    badge.style.borderColor = 'rgba(16, 185, 129, 0.45)';
-                    badge.style.background = 'rgba(16, 185, 129, 0.12)';
-                    badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> متصل دائماً (Exo_Workspace)';
+                    if (isTokenActive) {
+                        badge.style.color = '#6ee7b7';
+                        badge.style.borderColor = 'rgba(16, 185, 129, 0.45)';
+                        badge.style.background = 'rgba(16, 185, 129, 0.12)';
+                        badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> متصل ونشط على هذا الجهاز';
+                    } else {
+                        badge.style.color = '#fbbf24';
+                        badge.style.borderColor = 'rgba(245, 158, 11, 0.45)';
+                        badge.style.background = 'rgba(245, 158, 11, 0.12)';
+                        badge.innerHTML = '<i class="fa-solid fa-bolt"></i> يحتاج تنشيط على هذا الجهاز';
+                    }
                 }
                 if (btnConnect) {
-                    btnConnect.style.display = 'none'; // No re-activation button needed!
+                    if (isTokenActive) {
+                        btnConnect.style.display = 'none';
+                    } else {
+                        btnConnect.style.display = 'inline-flex';
+                        btnConnect.className = 'btn btn-primary';
+                        btnConnect.style.background = '';
+                        btnConnect.style.border = '';
+                        btnConnect.style.color = '';
+                        btnConnect.innerHTML = '<i class="fa-brands fa-google-drive"></i> تنشيط Google Drive على هذا الجهاز';
+                        btnConnect.onclick = function() {
+                            connectGoogleDriveAccount(true);
+                        };
+                    }
                 }
                 if (btnDisconnect) {
                     btnDisconnect.style.display = 'inline-flex';
                 }
                 if (infoEl) {
-                    infoEl.innerHTML = `<span style="color:#6ee7b7;">●</span> حساب Google Drive: <b style="color:var(--text-main);">${email || 'حسابك'}</b>${quota ? ' • سعة: ' + quota : ''} (مجلد Exo_Workspace المنظم)`;
+                    if (isTokenActive) {
+                        infoEl.innerHTML = `<span style="color:#6ee7b7;">●</span> حساب Google Drive: <b style="color:var(--text-main);">${email || 'حسابك'}</b>${quota ? ' • سعة: ' + quota : ''} (مجلد Exo_Workspace المنظم)`;
+                    } else {
+                        infoEl.innerHTML = `<span style="color:#fbbf24;">●</span> حسابك مربوط بـ <b style="color:var(--text-main);">${email || 'Google Drive'}</b> • اضغط «تنشيط» لتفعيل الرفع والتحميل السحابي على هذا الجهاز`;
+                    }
                 }
             } else {
                 // Not linked yet
@@ -25616,7 +25716,11 @@
 
         function uploadBlobToGoogleDriveViaXHR(fileName, fileBlob, contentType, folderId, onProgressCallback) {
             return new Promise(async (resolve) => {
-                if (!googleAccessToken) return resolve({ ok: false, error: 'no_token' });
+                let token = isGoogleDriveTokenActive() ? googleAccessToken : null;
+                if (!token) {
+                    token = await ensureGoogleAccessToken(true);
+                }
+                if (!token) return resolve({ ok: false, error: 'لم يتم العثور على توكن Google Drive، يرجى تفعيل الربط على هذا الجهاز أولاً' });
                 try {
                     // Step 1: Initiate Resumable Upload Session
                     const metadata = {
@@ -25624,16 +25728,35 @@
                         parents: folderId && folderId !== 'root' ? [folderId] : []
                     };
 
-                    const initRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
+                    let initRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
                         method: 'POST',
                         headers: {
-                            Authorization: `Bearer ${googleAccessToken}`,
+                            Authorization: `Bearer ${token}`,
                             'Content-Type': 'application/json; charset=UTF-8',
                             'X-Upload-Content-Type': contentType || 'application/octet-stream',
                             'X-Upload-Content-Length': String(fileBlob.size)
                         },
                         body: JSON.stringify(metadata)
                     });
+
+                    // If token expired right now (HTTP 401), refresh and retry once!
+                    if (initRes.status === 401) {
+                        googleAccessToken = null;
+                        localStorage.removeItem('exo_gdrive_token');
+                        token = await ensureGoogleAccessToken(true);
+                        if (token) {
+                            initRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
+                                method: 'POST',
+                                headers: {
+                                    Authorization: `Bearer ${token}`,
+                                    'Content-Type': 'application/json; charset=UTF-8',
+                                    'X-Upload-Content-Type': contentType || 'application/octet-stream',
+                                    'X-Upload-Content-Length': String(fileBlob.size)
+                                },
+                                body: JSON.stringify(metadata)
+                            });
+                        }
+                    }
 
                     if (!initRes.ok) {
                         const errText = await initRes.text();
@@ -25816,6 +25939,16 @@
                 return { ok: false, reason: 'gdrive_not_connected' };
             }
 
+            // Ensure active Google Drive token on this device before proceeding
+            const driveToken = await ensureGoogleAccessToken(true);
+            if (!driveToken) {
+                if (showToastMsg) {
+                    showToast('يرجى تنشيط حساب Google Drive على هذا الجهاز لتفعيل رفع الملفات', 'error');
+                    openCloudAuthModal();
+                }
+                return { ok: false, reason: 'no_token', error: 'يرجى تنشيط Google Drive على هذا الجهاز أولاً' };
+            }
+
             const isPdf = storeName === 'pdfs';
             const labelAr = isPdf ? 'ملف الـ PDF' : 'الريكورد الصوتي';
             const displayFileName = `${isPdf ? 'PDF' : 'ريكورد'}: ${lecObj.title}`;
@@ -25967,7 +26100,7 @@
         }
 
         const inFlightMediaDownloads = new Map();
-        async function downloadMediaFromCloudAccount(storeName, lecObj) {
+        async function downloadMediaFromCloudAccount(storeName, lecObj, interactive = false) {
             if (!lecObj) return null;
             // Always check Local IndexedDB & RAM cache first before touching the network!
             const cachedLocal = await getMediaFromDB(storeName, lecObj.id);
@@ -25986,12 +26119,27 @@
 
                 // 1. Download from Google Drive if driveId is present
                 if (driveId) {
+                    let token = isGoogleDriveTokenActive() ? googleAccessToken : null;
+                    if (!token) {
+                        token = await ensureGoogleAccessToken(interactive);
+                    }
+
                     // Method A: If this device has an active Google Drive token, fetch via authenticated API
-                    if (googleAccessToken && Date.now() < googleTokenExpiry) {
+                    if (token) {
                         try {
-                            const res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveId}?alt=media`, {
-                                headers: { Authorization: `Bearer ${googleAccessToken}` }
+                            let res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveId}?alt=media`, {
+                                headers: { Authorization: `Bearer ${token}` }
                             });
+                            if (res.status === 401 && interactive) {
+                                googleAccessToken = null;
+                                localStorage.removeItem('exo_gdrive_token');
+                                token = await ensureGoogleAccessToken(true);
+                                if (token) {
+                                    res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveId}?alt=media`, {
+                                        headers: { Authorization: `Bearer ${token}` }
+                                    });
+                                }
+                            }
                             if (res.ok) {
                                 const blob = await res.blob();
                                 if (blob && blob.size > 0) {
@@ -26006,14 +26154,13 @@
                                         return blob;
                                     }
                                 }
-                            } else if (res.status === 401) {
-                                showToast('انتهت صلاحية جلسة Google Drive على هذا الجهاز، يرجى إعادة التفعيل', 'error');
                             }
-                        } catch (e) {}
+                        } catch (e) {
+                            console.warn('Authenticated download error:', e);
+                        }
                     }
 
-                    // Method B: If no Google Drive token on this device, download directly via genuine direct content endpoints!
-                    // (Strictly NO lh3.googleusercontent.com because it only returns a 1-page thumbnail!)
+                    // Method B: If no active token, try direct content endpoints
                     const publicDlEndpoints = [
                         `https://drive.usercontent.google.com/download?id=${driveId}&export=download`,
                         `https://drive.google.com/uc?export=download&id=${driveId}&confirm=t`,
@@ -26040,7 +26187,6 @@
                         } catch (e) {}
                     }
 
-                    // Fallback seamlessly to native Google Drive iframe viewer without intrusive modal interruptions
                     return null;
                 }
 
@@ -26342,6 +26488,15 @@
                 progEl.innerText = '⏳ جاري جلب ملفات الحساب السحابية وتخزينها على هذا الجهاز...';
             }
             if (btnDown) btnDown.disabled = true;
+
+            const bulkToken = await ensureGoogleAccessToken(true);
+            if (!bulkToken && !isGoogleDriveTokenActive()) {
+                if (progEl) progEl.style.display = 'none';
+                if (btnDown) btnDown.disabled = false;
+                showToast('يرجى تنشيط Google Drive على هذا الجهاز أولاً لبدء التحميل', 'error');
+                openCloudAuthModal();
+                return;
+            }
 
             await pullWorkspaceFromCloud(false);
 
@@ -29041,6 +29196,9 @@
 
         function initExoI18n() {
             if (typeof updateGoogleDriveUI === 'function') updateGoogleDriveUI();
+            if (typeof isGoogleDriveConnected === 'function' && isGoogleDriveConnected() && typeof isGoogleDriveTokenActive === 'function' && !isGoogleDriveTokenActive()) {
+                ensureGoogleAccessToken(false).catch(() => {});
+            }
             const initialLang = detectDefaultExoLanguage();
             applyExoLanguage(initialLang, false);
             if (document.body) {
