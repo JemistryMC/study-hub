@@ -8160,7 +8160,7 @@
                     <input type="file" id="localLectureFileInput" accept=".pdf,application/pdf" style="display: none;" onchange="handleLocalLectureFile(event)">
                 </div>
                 <input type="text" id="diModalInput2" placeholder="مسار ملف PDF أو رابط Google Drive..." style="font-size: 0.85rem; margin-bottom: 4px;">
-                <span id="pdfSizeStatusBadge" style="font-size: 0.72rem; color: var(--text-muted); display: block;">📏 الحد الأقصى للرفع السحابي لملف الـ PDF الواحد: <b style="color:var(--primary);">25 ميجابايت</b> (الفتح المحلي على جهازك يعمل لأي حجم).</span>
+                <span id="pdfSizeStatusBadge" style="font-size: 0.72rem; color: var(--text-muted); display: block;">⚡ مساحة غير محدودة: حفظ محلي فوري بلا حد أقصى للحجم • مزامنة سحابية عبر Google Drive.</span>
             </div>
 
             <!-- 2. Audio Recording Section -->
@@ -8171,7 +8171,7 @@
                     <input type="file" id="localAudioFileInput" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" style="display: none;" onchange="handleLocalAudioFile(event)">
                 </div>
                 <input type="text" id="diModalAudioInput" placeholder="مسار ملف الصوت أو رابط التسجيل (اختياري)..." style="font-size: 0.85rem; margin-bottom: 4px;">
-                <span id="audioStatusBadge" style="font-size: 0.72rem; color: var(--text-muted); display: block;">📏 الحد الأقصى للرفع السحابي للريكورد الواحد: <b style="color:#93c5fd;">35 ميجابايت</b> لضمان سرعة المزامنة وعدم امتلاء التخزين.</span>
+                <span id="audioStatusBadge" style="font-size: 0.72rem; color: var(--text-muted); display: block;">⚡ مساحة غير محدودة: حفظ محلي فوري للريكورد بلا حد أقصى للحجم • مزامنة سحابية عبر Google Drive.</span>
             </div>
 
             <div class="modal-actions">
@@ -10891,9 +10891,9 @@
             tempPickedPdfBlob = null;
             tempPickedAudioBlob = null;
             const pdfBadge = document.getElementById('pdfSizeStatusBadge');
-            if (pdfBadge) pdfBadge.innerHTML = `📏 الحد الأقصى للرفع السحابي لملف الـ PDF الواحد: <b style="color:var(--primary);">${VIP_MEDIA_LIMITS_CONFIG.maxPdfSizeMB} ميجابايت</b> (الفتح المحلي يعمل لأي حجم).`;
+            if (pdfBadge) pdfBadge.innerHTML = '⚡ مساحة غير محدودة: حفظ محلي فوري بلا حد أقصى للحجم • مزامنة سحابية عبر Google Drive.';
             const badge = document.getElementById('audioStatusBadge');
-            if (badge) badge.innerHTML = `📏 الحد الأقصى للرفع السحابي للريكورد الواحد: <b style="color:#93c5fd;">${VIP_MEDIA_LIMITS_CONFIG.maxAudioSizeMB} ميجابايت</b> لضمان سرعة المزامنة وعدم امتلاء التخزين.`;
+            if (badge) badge.innerHTML = '⚡ مساحة غير محدودة: حفظ محلي فوري للريكورد بلا حد أقصى للحجم • مزامنة سحابية عبر Google Drive.';
             document.getElementById('diModalAudioInput').value = '';
 
             openDoubleInputModal('<i class="fa-solid fa-file-pdf"></i> إضافة محاضرة جديدة', '', '', async (title, path) => {
@@ -18120,20 +18120,11 @@
             tempPickedPdfBlob = file;
 
             const sizeMB = Number((file.size / (1024 * 1024)).toFixed(2));
-            const maxMB = VIP_MEDIA_LIMITS_CONFIG.maxPdfSizeMB;
-            if (sizeMB > maxMB) {
-                if (pdfBadge) {
-                    pdfBadge.innerHTML = `⚠️ حجم الملف (<b>${sizeMB} MB</b>) أكبر من حد السحابة المسموح (<b>${maxMB} MB</b>)؛ سيُحفظ ويُفتح محلياً على جهازك فقط ولن يُرفع للكلاود.`;
-                    pdfBadge.style.color = '#fda4af';
-                }
-                showToast(`⚠️ حجم الـ PDF (${sizeMB} MB) يتجاوز حد الرفع السحابي (${maxMB} MB)؛ سيعمل محلياً على جهازك فقط`, 'error');
-            } else {
-                if (pdfBadge) {
-                    pdfBadge.innerHTML = `✅ تم اختيار الـ PDF (الحجم: <b>${sizeMB} MB</b> من أصل ${maxMB} MB مسموح للرفع السحابي)`;
-                    pdfBadge.style.color = '#6ee7b7';
-                }
-                showToast(`تم تحديد ملف الـ PDF بنجاح (${sizeMB} MB) 📑`);
+            if (pdfBadge) {
+                pdfBadge.innerHTML = `✅ تم اختيار ملف الـ PDF: <b>${file.name}</b> (${sizeMB} MB) • جاهز للحفظ والمزامنة السحابية غير المحدودة.`;
+                pdfBadge.style.color = '#6ee7b7';
             }
+            showToast(`تم تحديد ملف الـ PDF بنجاح (${sizeMB} MB) 📑`);
             event.target.value = '';
         }
 
@@ -18149,21 +18140,11 @@
             tempPickedAudioBlob = file;
             const badge = document.getElementById('audioStatusBadge');
             const sizeMB = Number((file.size / (1024 * 1024)).toFixed(2));
-            const maxMB = VIP_MEDIA_LIMITS_CONFIG.maxAudioSizeMB;
-
-            if (sizeMB > maxMB) {
-                if (badge) {
-                    badge.innerHTML = `⚠️ حجم الريكورد (<b>${sizeMB} MB</b>) يتجاوز حد الرفع السحابي (<b>${maxMB} MB</b>)؛ سيعمل محلياً على جهازك فقط ولن يُرفع للكلاود.`;
-                    badge.style.color = '#fda4af';
-                }
-                showToast(`⚠️ حجم الريكورد (${sizeMB} MB) أكبر من حد السحابة (${maxMB} MB)؛ سيعمل محلياً فقط`, 'error');
-            } else {
-                if (badge) {
-                    badge.innerHTML = `✅ تم ربط الريكورد: <b>${file.name}</b> (الحجم: <b>${sizeMB} MB</b> من ${maxMB} MB مسموح سحابياً)`;
-                    badge.style.color = '#6ee7b7';
-                }
-                showToast(`تم تحديد الريكورد الصوتي بنجاح (${sizeMB} MB) 🎙️`);
+            if (badge) {
+                badge.innerHTML = `✅ تم اختيار الريكورد: <b>${file.name}</b> (${sizeMB} MB) • جاهز للحفظ والمزامنة السحابية غير المحدودة.`;
+                badge.style.color = '#6ee7b7';
             }
+            showToast(`تم تحديد الريكورد الصوتي بنجاح (${sizeMB} MB) 🎙️`);
             event.target.value = '';
         }
 
@@ -24250,6 +24231,21 @@
                 if (outView) outView.style.display = 'none';
                 if (inView) inView.style.display = 'block';
 
+                // Restore user's Google Drive link from local user vault immediately
+                try {
+                    const userVaultRaw = localStorage.getItem('pharmaGdriveSync_' + currentCloudUser.id);
+                    if (userVaultRaw) {
+                        const uVault = JSON.parse(userVaultRaw);
+                        if (uVault && uVault.linked && uVault.userEmail) {
+                            localStorage.setItem('exo_gdrive_connected', '1');
+                            localStorage.setItem('exo_gdrive_user_email', uVault.userEmail);
+                            if (uVault.folderId) localStorage.setItem('exo_gdrive_folder_id', uVault.folderId);
+                            if (uVault.quotaInfo) localStorage.setItem('exo_gdrive_quota_info', uVault.quotaInfo);
+                            localStorage.setItem('exo_gdrive_bound_user_id', String(currentCloudUser.id));
+                        }
+                    }
+                } catch (e) {}
+
                 const fullName = currentCloudUser.user_metadata?.full_name || currentCloudUser.name || currentCloudUser.email?.split('@')[0] || 'طالب المنصة';
                 const email = currentCloudUser.email || '';
                 const nameEl = document.getElementById('cloudUserNameDisplay');
@@ -25299,7 +25295,19 @@
                                 localStorage.setItem('exo_gdrive_bound_user_id', currentCloudUser.id);
                             }
                             await ensureExoGoogleDriveFolder();
-                            fetchGoogleDriveUserInfo(googleAccessToken);
+                            await fetchGoogleDriveUserInfo(googleAccessToken);
+                            if (currentCloudUser && currentCloudUser.id) {
+                                const vaultData = {
+                                    linked: true,
+                                    userEmail: localStorage.getItem('exo_gdrive_user_email') || '',
+                                    folderId: localStorage.getItem('exo_gdrive_folder_id') || '',
+                                    quotaInfo: localStorage.getItem('exo_gdrive_quota_info') || ''
+                                };
+                                localStorage.setItem('pharmaGdriveSync_' + currentCloudUser.id, JSON.stringify(vaultData));
+                                if (typeof pushWorkspaceToCloud === 'function') {
+                                    await pushWorkspaceToCloud(false);
+                                }
+                            }
                             updateGoogleDriveUI();
                             showToast('✅ تم ربط حساب Google Drive بنجاح (مساحة سحابية غير محدودة)!');
                         } else if (tokenResponse && tokenResponse.error) {
@@ -25328,6 +25336,12 @@
             localStorage.removeItem('exo_gdrive_user_email');
             localStorage.removeItem('exo_gdrive_quota_info');
             localStorage.removeItem('exo_gdrive_bound_user_id');
+            if (currentCloudUser && currentCloudUser.id) {
+                localStorage.removeItem('pharmaGdriveSync_' + currentCloudUser.id);
+                if (typeof pushWorkspaceToCloud === 'function') {
+                    pushWorkspaceToCloud(false);
+                }
+            }
             updateGoogleDriveUI();
             if (!silent) {
                 showToast('تم إلغاء ربط حساب Google Drive بنجاح');
@@ -25473,6 +25487,10 @@
                     infoEl.innerHTML = `<span style="color:#6ee7b7;">●</span> حساب Google Drive: <b style="color:var(--text-main);">${email || 'متصل'}</b>${quota ? ' • سعة: ' + quota : ''} (مجلد Exo_Workspace)`;
                 }
             } else if (isLinked && !hasActiveToken) {
+                // Trigger silent token acquisition in background if possible
+                if (typeof trySilentGoogleDriveConnection === 'function' && email) {
+                    trySilentGoogleDriveConnection(email);
+                }
                 // Linked in user's cloud account, 1-tap activation on this secondary device
                 if (badge) {
                     badge.style.color = 'var(--primary)';
@@ -26373,10 +26391,29 @@
 
 
         async function handleCloudSignOut() {
-            // Disconnect Google Drive and wipe tokens immediately so nothing leaks to a subsequent account!
-            if (typeof disconnectGoogleDriveAccount === 'function') {
-                disconnectGoogleDriveAccount(true);
+            // 1. Save current user's workspace (including linked Google Drive state) to cloud FIRST!
+            if (currentCloudUser && currentCloudUser.id) {
+                // Ensure user vault has current linked state
+                if (localStorage.getItem('exo_gdrive_connected') === '1') {
+                    const vaultData = {
+                        linked: true,
+                        userEmail: localStorage.getItem('exo_gdrive_user_email') || '',
+                        folderId: localStorage.getItem('exo_gdrive_folder_id') || '',
+                        quotaInfo: localStorage.getItem('exo_gdrive_quota_info') || ''
+                    };
+                    localStorage.setItem('pharmaGdriveSync_' + currentCloudUser.id, JSON.stringify(vaultData));
+                }
             }
+            await pushWorkspaceToCloud(false);
+
+            // 2. Revoke and clear ONLY temporary session bearer tokens so next user doesn't use them
+            if (googleAccessToken && typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
+                try {
+                    google.accounts.oauth2.revoke(googleAccessToken, () => {});
+                } catch (e) {}
+            }
+            googleAccessToken = null;
+            googleTokenExpiry = 0;
             localStorage.removeItem('exo_gdrive_token');
             localStorage.removeItem('exo_gdrive_token_exp');
             localStorage.removeItem('exo_gdrive_connected');
@@ -26384,9 +26421,6 @@
             localStorage.removeItem('exo_gdrive_user_email');
             localStorage.removeItem('exo_gdrive_quota_info');
             localStorage.removeItem('exo_gdrive_bound_user_id');
-
-            // Save current user's workspace before logging out so their account data is safely isolated
-            await pushWorkspaceToCloud(false);
 
             if (supabaseClient) {
                 await supabaseClient.auth.signOut();
@@ -26666,6 +26700,10 @@
                         if (syncInfo.folderId) localStorage.setItem('exo_gdrive_folder_id', syncInfo.folderId);
                         if (syncInfo.quotaInfo) localStorage.setItem('exo_gdrive_quota_info', syncInfo.quotaInfo);
                         localStorage.setItem('exo_gdrive_bound_user_id', String(currentCloudUser.id));
+                        localStorage.setItem('pharmaGdriveSync_' + currentCloudUser.id, JSON.stringify(syncInfo));
+                        if (typeof updateGoogleDriveUI === 'function') {
+                            updateGoogleDriveUI();
+                        }
                         if (typeof trySilentGoogleDriveConnection === 'function') {
                             trySilentGoogleDriveConnection(syncInfo.userEmail);
                         }
