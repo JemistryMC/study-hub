@@ -25378,6 +25378,70 @@
             } catch (e) {}
         }
 
+        
+        const gdriveSubfolderCache = new Map();
+
+        function sanitizeFolderNameForDrive(name) {
+            return String(name || 'مجلد')
+                .replace(/[/\\?%*:|"<>]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .slice(0, 100);
+        }
+
+        async function ensureSubfolderInGoogleDrive(parentFolderId, folderName) {
+            if (!googleAccessToken || !parentFolderId || !folderName) return parentFolderId;
+            const cleanName = sanitizeFolderNameForDrive(folderName);
+            if (!cleanName) return parentFolderId;
+            
+            const cacheKey = `${parentFolderId}:${cleanName}`;
+            if (gdriveSubfolderCache.has(cacheKey)) {
+                return gdriveSubfolderCache.get(cacheKey);
+            }
+
+            // Search if subfolder already exists inside parentFolderId
+            try {
+                const safeQueryName = cleanName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                const q = encodeURIComponent(`name = '${safeQueryName}' and '${parentFolderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`);
+                const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)&spaces=drive`, {
+                    headers: { Authorization: `Bearer ${googleAccessToken}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.files && data.files.length > 0) {
+                        const fId = data.files[0].id;
+                        gdriveSubfolderCache.set(cacheKey, fId);
+                        return fId;
+                    }
+                }
+            } catch (e) {}
+
+            // Create subfolder inside parentFolderId
+            try {
+                const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${googleAccessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: cleanName,
+                        mimeType: 'application/vnd.google-apps.folder',
+                        parents: [parentFolderId]
+                    })
+                });
+                if (createRes.ok) {
+                    const newFolder = await createRes.json();
+                    if (newFolder && newFolder.id) {
+                        gdriveSubfolderCache.set(cacheKey, newFolder.id);
+                        return newFolder.id;
+                    }
+                }
+            } catch (e) {}
+
+            return parentFolderId;
+        }
+
         async function ensureExoGoogleDriveFolder() {
             if (!googleAccessToken) return null;
             const cachedFolderId = localStorage.getItem('exo_gdrive_folder_id');
@@ -25487,10 +25551,7 @@
                     infoEl.innerHTML = `<span style="color:#6ee7b7;">●</span> حساب Google Drive: <b style="color:var(--text-main);">${email || 'متصل'}</b>${quota ? ' • سعة: ' + quota : ''} (مجلد Exo_Workspace)`;
                 }
             } else if (isLinked && !hasActiveToken) {
-                // Trigger silent token acquisition in background if possible
-                if (typeof trySilentGoogleDriveConnection === 'function' && email) {
-                    trySilentGoogleDriveConnection(email);
-                }
+
                 // Linked in user's cloud account, 1-tap activation on this secondary device
                 if (badge) {
                     badge.style.color = 'var(--primary)';
@@ -25785,11 +25846,48 @@
                 queueTotal: qTotal
             });
 
-            const folderId = await ensureExoGoogleDriveFolder();
+            // 1. Root Exo_Workspace folder
+            const rootFolderId = await ensureExoGoogleDriveFolder();
+            let targetFolderId = rootFolderId;
+
+            // 2. Locate Subject and Group/Chapter to mirror app hierarchy on Google Drive
+            let targetSub = null;
+            let targetGroup = null;
+            if (activeSubjectId) {
+                targetSub = subjects.find(s => s.id === activeSubjectId);
+                if (targetSub && targetSub.groups) {
+                    targetGroup = targetSub.groups.find(g => (g.lectures || []).some(l => l.id === lecObj.id));
+                }
+            }
+            if (!targetSub) {
+                for (const s of subjects) {
+                    for (const g of (s.groups || [])) {
+                        if ((g.lectures || []).some(l => l.id === lecObj.id)) {
+                            targetSub = s;
+                            targetGroup = g;
+                            break;
+                        }
+                    }
+                    if (targetSub) break;
+                }
+            }
+
+            // 3. Create or get hierarchical folder structure: Exo_Workspace -> [المادة] -> [الفصل/الشابتر]
+            if (targetSub && targetSub.name) {
+                const subFolderId = await ensureSubfolderInGoogleDrive(rootFolderId, targetSub.name);
+                targetFolderId = subFolderId;
+
+                if (targetGroup && targetGroup.name) {
+                    const grpFolderId = await ensureSubfolderInGoogleDrive(subFolderId, targetGroup.name);
+                    targetFolderId = grpFolderId;
+                }
+            }
+
+            // 4. Clean, human-readable file name on Google Drive (no random prefixes)
             const rawExt = isPdf ? 'pdf' : ((fileBlob.name && fileBlob.name.includes('.')) ? fileBlob.name.split('.').pop().replace(/[^a-zA-Z0-9]/g, '') : 'mp3');
             const ext = rawExt || (isPdf ? 'pdf' : 'mp3');
-            const safeTitle = (lecObj.title || 'lecture').replace(/[/\?%*:|"<>]/g, '_');
-            const driveFileName = `Exo_${storeName}_${lecObj.id}_${safeTitle}.${ext}`;
+            const safeTitle = (lecObj.title || (isPdf ? 'محاضرة' : 'تسجيل')).replace(/[/\\?%*:|"<>]/g, '_').trim();
+            const driveFileName = isPdf ? `${safeTitle}.${ext}` : `${safeTitle} (تسجيل صوتي).${ext}`;
             const contentType = fileBlob.type || (isPdf ? 'application/pdf' : 'audio/mpeg');
 
             let lastSpeedText = '⚡ مكتمل';
@@ -25798,7 +25896,7 @@
                 driveFileName,
                 fileBlob,
                 contentType,
-                folderId,
+                targetFolderId,
                 (prog) => {
                     lastSpeedText = prog.speedText;
                     updateLiveUploadMonitorUI({
@@ -25890,13 +25988,13 @@
                 if (driveId) {
                     if (!googleAccessToken || Date.now() > googleTokenExpiry) {
                         if (typeof isGoogleDriveAccountLinked === 'function' && isGoogleDriveAccountLinked()) {
-                            showToast('جاري تفعيل اتصال Google Drive لتنزيل المحاضرة...');
-                            connectGoogleDriveAccount(true);
-                            await new Promise(r => setTimeout(r, 2000));
+                            showToast('يرجى تفعيل صلاحية Google Drive من «حسابي / الكلاود» لتنزيل ملفات المحاضرة على هذا الجهاز', 'error');
+                            openCloudAuthModal();
+                            return null;
                         }
                     }
                     if (!googleAccessToken) {
-                        showToast('يرجى تفعيل تصريح Google Drive لتنزيل ملفات المحاضرة على هذا الجهاز', 'error');
+                        showToast('يرجى ربط حساب Google Drive لتنزيل ملفات المحاضرة السحابية', 'error');
                         return null;
                     }
                     try {
@@ -26704,9 +26802,7 @@
                         if (typeof updateGoogleDriveUI === 'function') {
                             updateGoogleDriveUI();
                         }
-                        if (typeof trySilentGoogleDriveConnection === 'function') {
-                            trySilentGoogleDriveConnection(syncInfo.userEmail);
-                        }
+
                     }
                 }
             } else {
