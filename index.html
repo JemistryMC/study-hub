@@ -8020,9 +8020,7 @@
                                 <button type="button" class="btn btn-outline" id="btnDisconnectGoogleDrive" onclick="disconnectGoogleDriveAccount()" style="display: none; padding: 5px 10px; font-size: 0.73rem; color: #f43f5e; border-color: rgba(244,63,94,0.35); border-radius: 8px;">
                                     <i class="fa-solid fa-link-slash"></i> إلغاء الربط
                                 </button>
-                                <button type="button" class="btn btn-outline" id="btnSwitchGoogleDrive" onclick="connectGoogleDriveAccount(true, null, true)" style="display: none; padding: 5px 10px; font-size: 0.73rem; color: #38bdf8; border-color: rgba(56,189,248,0.35); border-radius: 8px;" title="ربط أو تبديل بحساب جوجل آخر على هذا الجهاز">
-                                    <i class="fa-solid fa-arrows-rotate"></i> ربط بحساب آخر
-                                </button>
+
                                 
                             </div>
                         </div>
@@ -18879,6 +18877,18 @@
                 return;
             }
 
+            // If blob download didn't return, but we have a Google Drive file ID: embed directly via Google Drive Preview iframe so the student ALWAYS sees the PDF!
+            const cloudDriveFileId = lec.cloudPdfDriveId || (lec.cloudPdfPath && lec.cloudPdfPath.startsWith('gdrive:') ? lec.cloudPdfPath.replace('gdrive:', '') : null);
+            if (cloudDriveFileId) {
+                scrollContainer.style.display = 'none';
+                fallback.style.display = 'none';
+                iframe.src = `https://drive.google.com/file/d/${cloudDriveFileId}/preview`;
+                iframe.style.display = 'block';
+                openInTabBtn.href = `https://drive.google.com/file/d/${cloudDriveFileId}/view`;
+                openInTabBtn.style.display = 'inline-flex';
+                return;
+            }
+
             // 2. Check if path is a safe HTTP/HTTPS web URL
             const rawPath = (lec.path || '').trim();
             if ((rawPath.startsWith('http://') || rawPath.startsWith('https://')) && isSafeHttpUrl(rawPath)) {
@@ -25240,9 +25250,7 @@
 
         function isGoogleDriveConnected() {
             if (!currentCloudUser || !currentUserCanUploadMedia) return false;
-            const boundUser = localStorage.getItem('exo_gdrive_bound_user_id');
-            if (boundUser && boundUser !== currentCloudUser.id) return false;
-            return Boolean(googleAccessToken && Date.now() < googleTokenExpiry && localStorage.getItem('exo_gdrive_connected') === '1');
+            return localStorage.getItem('exo_gdrive_connected') === '1' && Boolean(localStorage.getItem('exo_gdrive_user_email'));
         }
 
         function promptCustomGoogleClientId() {
@@ -25509,10 +25517,10 @@
             const btnConnect = document.getElementById('btnConnectGoogleDrive');
             const btnDisconnect = document.getElementById('btnDisconnectGoogleDrive');
             const btnSwitch = document.getElementById('btnSwitchGoogleDrive');
+            if (btnSwitch) btnSwitch.style.display = 'none'; // Completely removed as requested
             const infoEl = document.getElementById('gdriveAccountInfo');
             const isVip = Boolean(currentCloudUser && currentUserCanUploadMedia);
-            const hasActiveToken = Boolean(googleAccessToken && Date.now() < googleTokenExpiry);
-            const isLinked = isGoogleDriveAccountLinked();
+            const isLinked = isGoogleDriveAccountLinked() || Boolean(localStorage.getItem('exo_gdrive_connected') === '1');
             const email = localStorage.getItem('exo_gdrive_user_email');
             const quota = localStorage.getItem('exo_gdrive_quota_info');
 
@@ -25535,7 +25543,6 @@
                     };
                 }
                 if (btnDisconnect) btnDisconnect.style.display = 'none';
-                if (btnSwitch) btnSwitch.style.display = 'none';
                 if (infoEl) {
                     infoEl.innerHTML = '<span style="color:var(--primary);">🔒</span> مزامنة سحابية غير محدودة لملفات الـ PDF والريكوردات عبر Google Drive الخاص بك بين جميع أجهزتك';
                 }
@@ -25543,56 +25550,22 @@
             }
 
             // VIP Pro subscriber:
-            if (isLinked && hasActiveToken) {
-                // Fully connected with active token on this device
+            if (isLinked) {
+                // Permanently connected at account level across all logins and all devices!
                 if (badge) {
                     badge.style.color = '#6ee7b7';
                     badge.style.borderColor = 'rgba(16, 185, 129, 0.45)';
                     badge.style.background = 'rgba(16, 185, 129, 0.12)';
-                    badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> متصل (Exo_Workspace)';
-                }
-                if (btnConnect) btnConnect.style.display = 'none';
-                if (btnDisconnect) btnDisconnect.style.display = 'inline-flex';
-                if (btnSwitch) {
-                    btnSwitch.style.display = 'inline-flex';
-                    btnSwitch.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> تبديل الحساب';
-                    btnSwitch.onclick = function() {
-                        connectGoogleDriveAccount(true, null, true);
-                    };
-                }
-                if (infoEl) {
-                    infoEl.innerHTML = `<span style="color:#6ee7b7;">●</span> حساب Google Drive: <b style="color:var(--text-main);">${email || 'متصل'}</b>${quota ? ' • سعة: ' + quota : ''} (مجلد Exo_Workspace)`;
-                }
-            } else if (isLinked && !hasActiveToken) {
-                // Linked in user's cloud account, 1-tap activation on this secondary device OR link another account
-                if (badge) {
-                    badge.style.color = 'var(--primary)';
-                    badge.style.borderColor = 'rgba(45, 212, 191, 0.45)';
-                    badge.style.background = 'rgba(45, 212, 191, 0.12)';
-                    badge.innerHTML = `<i class="fa-solid fa-cloud-check"></i> مرتبط بـ ${email || 'Google Drive'}`;
+                    badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> متصل دائماً (Exo_Workspace)';
                 }
                 if (btnConnect) {
-                    btnConnect.style.display = 'inline-flex';
-                    btnConnect.style.background = 'linear-gradient(135deg, var(--primary), #0d9488)';
-                    btnConnect.style.border = 'none';
-                    btnConnect.style.color = '#042f2e';
-                    btnConnect.innerHTML = `<i class="fa-brands fa-google-drive"></i> تفعيل المزامنة (${email ? email.split('@')[0] : 'جوجل'})`;
-                    btnConnect.onclick = function() {
-                        connectGoogleDriveAccount(true, email, false);
-                    };
-                }
-                if (btnSwitch) {
-                    btnSwitch.style.display = 'inline-flex';
-                    btnSwitch.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> ربط بحساب آخر على هذا الجهاز';
-                    btnSwitch.onclick = function() {
-                        connectGoogleDriveAccount(true, null, true);
-                    };
+                    btnConnect.style.display = 'none'; // No re-activation button needed!
                 }
                 if (btnDisconnect) {
                     btnDisconnect.style.display = 'inline-flex';
                 }
                 if (infoEl) {
-                    infoEl.innerHTML = `<span style="color:var(--primary);">ℹ️</span> حسابك مرتبط بـ <b style="color:var(--text-main);">${email}</b> (مجلد Exo_Workspace). إذا كنت تستخدم حساب جوجل آخر على هذا الجهاز، يمكنك الضغط على «ربط بحساب آخر» لاختياره مباشرة.`;
+                    infoEl.innerHTML = `<span style="color:#6ee7b7;">●</span> حساب Google Drive: <b style="color:var(--text-main);">${email || 'حسابك'}</b>${quota ? ' • سعة: ' + quota : ''} (مجلد Exo_Workspace المنظم)`;
                 }
             } else {
                 // Not linked yet
@@ -25612,8 +25585,9 @@
                         connectGoogleDriveAccount(true);
                     };
                 }
-                if (btnSwitch) btnSwitch.style.display = 'none';
-                if (btnDisconnect) btnDisconnect.style.display = 'none';
+                if (btnDisconnect) {
+                    btnDisconnect.style.display = 'none';
+                }
                 if (infoEl) {
                     infoEl.innerText = 'مزامنة سحابية مباشرة إلى فولدر Exo_Workspace في درايف الخاص بك';
                 }
