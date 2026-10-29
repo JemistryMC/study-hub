@@ -25197,6 +25197,48 @@
             return '';
         }
 
+        
+        function isGoogleDriveAccountLinked() {
+            if (!currentCloudUser || !currentUserCanUploadMedia) return false;
+            const boundUser = localStorage.getItem('exo_gdrive_bound_user_id');
+            if (boundUser && boundUser !== currentCloudUser.id) return false;
+            return localStorage.getItem('exo_gdrive_connected') === '1' && Boolean(localStorage.getItem('exo_gdrive_user_email'));
+        }
+
+        function trySilentGoogleDriveConnection(emailHint = '') {
+            if (googleAccessToken && Date.now() < googleTokenExpiry) return;
+            if (!currentCloudUser || !currentUserCanUploadMedia) return;
+            const clientId = getEffectiveGoogleClientId();
+            if (!clientId || typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) return;
+
+            try {
+                if (!googleTokenClient) {
+                    googleTokenClient = google.accounts.oauth2.initTokenClient({
+                        client_id: clientId,
+                        scope: 'https://www.googleapis.com/auth/drive.file',
+                        callback: async (tokenResponse) => {
+                            if (tokenResponse && tokenResponse.access_token) {
+                                googleAccessToken = tokenResponse.access_token;
+                                const expiresIn = Number(tokenResponse.expires_in) || 3600;
+                                googleTokenExpiry = Date.now() + (expiresIn * 1000) - 60000;
+                                localStorage.setItem('exo_gdrive_token', googleAccessToken);
+                                localStorage.setItem('exo_gdrive_token_exp', String(googleTokenExpiry));
+                                localStorage.setItem('exo_gdrive_connected', '1');
+                                if (currentCloudUser && currentCloudUser.id) {
+                                    localStorage.setItem('exo_gdrive_bound_user_id', currentCloudUser.id);
+                                }
+                                await ensureExoGoogleDriveFolder();
+                                fetchGoogleDriveUserInfo(googleAccessToken);
+                                updateGoogleDriveUI();
+                            }
+                        }
+                    });
+                }
+                const hint = emailHint || localStorage.getItem('exo_gdrive_user_email') || '';
+                googleTokenClient.requestAccessToken({ prompt: '', hint: hint });
+            } catch (e) {}
+        }
+
         function isGoogleDriveConnected() {
             if (!currentCloudUser || !currentUserCanUploadMedia) return false;
             const boundUser = localStorage.getItem('exo_gdrive_bound_user_id');
@@ -25315,6 +25357,9 @@
                         }
                     }
                     updateGoogleDriveUI();
+                    if (typeof pushWorkspaceToCloud === 'function') {
+                        pushWorkspaceToCloud(false);
+                    }
                 }
             } catch (e) {}
         }
@@ -25377,23 +25422,25 @@
             const btnDisconnect = document.getElementById('btnDisconnectGoogleDrive');
             const infoEl = document.getElementById('gdriveAccountInfo');
             const isVip = Boolean(currentCloudUser && currentUserCanUploadMedia);
-            const connected = isGoogleDriveConnected();
+            const hasActiveToken = Boolean(googleAccessToken && Date.now() < googleTokenExpiry);
+            const isLinked = isGoogleDriveAccountLinked();
             const email = localStorage.getItem('exo_gdrive_user_email');
             const quota = localStorage.getItem('exo_gdrive_quota_info');
 
             if (!isVip) {
-                // Free account or logged out: lock Google Drive to VIP Pro
+                // Free account: Harmonious theme styling, NO redundant second upgrade button, NO clashing orange
                 if (badge) {
-                    badge.style.color = '#f59e0b';
-                    badge.style.borderColor = 'rgba(245, 158, 11, 0.45)';
-                    badge.style.background = 'rgba(245, 158, 11, 0.12)';
-                    badge.innerHTML = '<i class="fa-solid fa-crown"></i> حصري لمشتركي VIP Pro';
+                    badge.style.color = 'var(--text-muted)';
+                    badge.style.borderColor = 'rgba(148, 163, 184, 0.25)';
+                    badge.style.background = 'transparent';
+                    badge.innerHTML = '<i class="fa-solid fa-lock" style="color:var(--primary); margin-left:4px;"></i> ميزة VIP Pro';
                 }
                 if (btnConnect) {
                     btnConnect.style.display = 'inline-flex';
-                    btnConnect.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
-                    btnConnect.style.border = 'none';
-                    btnConnect.innerHTML = '<i class="fa-solid fa-crown"></i> ترقية لـ VIP لربط Google Drive';
+                    btnConnect.style.background = 'transparent';
+                    btnConnect.style.border = '1px solid rgba(45, 212, 191, 0.35)';
+                    btnConnect.style.color = 'var(--primary)';
+                    btnConnect.innerHTML = '<i class="fa-brands fa-google-drive"></i> ربط حساب Google Drive';
                     btnConnect.onclick = function() {
                         openVipUpgradeModal('مزامنة Google Drive السحابية غير المحدودة');
                     };
@@ -25402,41 +25449,75 @@
                     btnDisconnect.style.display = 'none';
                 }
                 if (infoEl) {
-                    infoEl.innerHTML = '<span style="color:#f59e0b;">🔒</span> ميزة VIP Pro: مزامنة سحابية غير محدودة لملفات الـ PDF والريكوردات عبر Google Drive الخاص بك بين جميع أجهزتك';
+                    infoEl.innerHTML = '<span style="color:var(--primary);">🔒</span> مزامنة سحابية غير محدودة لملفات الـ PDF والريكوردات عبر Google Drive الخاص بك بين جميع أجهزتك';
                 }
                 return;
             }
 
-            // VIP Pro subscriber: enable connect/disconnect controls
-            if (btnConnect) {
-                btnConnect.style.background = '';
-                btnConnect.style.border = '';
-                btnConnect.innerHTML = '<i class="fa-brands fa-google-drive"></i> ربط حساب Google Drive';
-                btnConnect.onclick = function() {
-                    connectGoogleDriveAccount();
-                };
-                btnConnect.style.display = connected ? 'none' : 'inline-flex';
-            }
-            if (btnDisconnect) {
-                btnDisconnect.style.display = connected ? 'inline-flex' : 'none';
-            }
-            if (badge) {
-                if (connected) {
+            // VIP Pro subscriber:
+            if (isLinked && hasActiveToken) {
+                // Fully connected with active token on this device
+                if (badge) {
                     badge.style.color = '#6ee7b7';
                     badge.style.borderColor = 'rgba(16, 185, 129, 0.45)';
                     badge.style.background = 'rgba(16, 185, 129, 0.12)';
                     badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> متصل (Exo_Workspace)';
-                } else {
+                }
+                if (btnConnect) {
+                    btnConnect.style.display = 'none';
+                }
+                if (btnDisconnect) {
+                    btnDisconnect.style.display = 'inline-flex';
+                }
+                if (infoEl) {
+                    infoEl.innerHTML = `<span style="color:#6ee7b7;">●</span> حساب Google Drive: <b style="color:var(--text-main);">${email || 'متصل'}</b>${quota ? ' • سعة: ' + quota : ''} (مجلد Exo_Workspace)`;
+                }
+            } else if (isLinked && !hasActiveToken) {
+                // Linked in user's cloud account, 1-tap activation on this secondary device
+                if (badge) {
+                    badge.style.color = 'var(--primary)';
+                    badge.style.borderColor = 'rgba(45, 212, 191, 0.45)';
+                    badge.style.background = 'rgba(45, 212, 191, 0.12)';
+                    badge.innerHTML = `<i class="fa-solid fa-cloud-check"></i> مرتبط بـ ${email || 'Google Drive'}`;
+                }
+                if (btnConnect) {
+                    btnConnect.style.display = 'inline-flex';
+                    btnConnect.style.background = 'linear-gradient(135deg, var(--primary), #0d9488)';
+                    btnConnect.style.border = 'none';
+                    btnConnect.style.color = '#042f2e';
+                    btnConnect.innerHTML = '<i class="fa-brands fa-google-drive"></i> تفعيل المزامنة على هذا الجهاز (ضغطة واحدة)';
+                    btnConnect.onclick = function() {
+                        connectGoogleDriveAccount(true);
+                    };
+                }
+                if (btnDisconnect) {
+                    btnDisconnect.style.display = 'inline-flex';
+                }
+                if (infoEl) {
+                    infoEl.innerHTML = `<span style="color:var(--primary);">ℹ️</span> حسابك مرتبط سحابياً بـ <b style="color:var(--text-main);">${email}</b> (مجلد Exo_Workspace)؛ اضغط تفعيل للحصول على الصلاحية على هذا المتصفح ومزامنة ملفاتك فوراً.`;
+                }
+            } else {
+                // Not linked yet
+                if (badge) {
                     badge.style.color = '#94a3b8';
                     badge.style.borderColor = 'rgba(148, 163, 184, 0.3)';
                     badge.style.background = 'transparent';
                     badge.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> غير متصل';
                 }
-            }
-            if (infoEl) {
-                if (connected) {
-                    infoEl.innerHTML = `<span style="color:#6ee7b7;">●</span> حساب Google Drive: <b style="color:var(--text-main);">${email || 'متصل'}</b>${quota ? ' • سعة: ' + quota : ''} (مجلد Exo_Workspace)`;
-                } else {
+                if (btnConnect) {
+                    btnConnect.style.display = 'inline-flex';
+                    btnConnect.style.background = '';
+                    btnConnect.style.border = '';
+                    btnConnect.style.color = '';
+                    btnConnect.innerHTML = '<i class="fa-brands fa-google-drive"></i> ربط حساب Google Drive';
+                    btnConnect.onclick = function() {
+                        connectGoogleDriveAccount(true);
+                    };
+                }
+                if (btnDisconnect) {
+                    btnDisconnect.style.display = 'none';
+                }
+                if (infoEl) {
                     infoEl.innerText = 'مزامنة سحابية مباشرة إلى فولدر Exo_Workspace في درايف الخاص بك';
                 }
             }
@@ -25789,8 +25870,15 @@
 
                 // 1. Download from Google Drive if driveId is present
                 if (driveId) {
-                    if (!isGoogleDriveConnected()) {
-                        showToast('يرجى ربط حساب Google Drive لتنزيل ملفات المحاضرة السحابية', 'error');
+                    if (!googleAccessToken || Date.now() > googleTokenExpiry) {
+                        if (typeof isGoogleDriveAccountLinked === 'function' && isGoogleDriveAccountLinked()) {
+                            showToast('جاري تفعيل اتصال Google Drive لتنزيل المحاضرة...');
+                            connectGoogleDriveAccount(true);
+                            await new Promise(r => setTimeout(r, 2000));
+                        }
+                    }
+                    if (!googleAccessToken) {
+                        showToast('يرجى تفعيل تصريح Google Drive لتنزيل ملفات المحاضرة على هذا الجهاز', 'error');
                         return null;
                     }
                     try {
@@ -26458,7 +26546,13 @@
                         plannerPrefs: plannerPrefs,
                         weeklyReports: weeklyReports || [],
                         pdfFitMode: currentPdfFitMode || 'height',
-                        cloudMediaRegistry: cloudMediaRegistry || {}
+                        cloudMediaRegistry: cloudMediaRegistry || {},
+                        gdriveSync: {
+                            linked: Boolean(localStorage.getItem('exo_gdrive_connected') === '1'),
+                            userEmail: localStorage.getItem('exo_gdrive_user_email') || '',
+                            folderId: localStorage.getItem('exo_gdrive_folder_id') || '',
+                            quotaInfo: localStorage.getItem('exo_gdrive_quota_info') || ''
+                        }
                     },
                     logs: logs || [],
                     academy_progress: completedAcademyModules || [],
@@ -26563,6 +26657,19 @@
                 if (cloudRow.schedule.pdfFitMode) {
                     currentPdfFitMode = cloudRow.schedule.pdfFitMode;
                     localStorage.setItem('pharmaPdfFitMode', currentPdfFitMode);
+                }
+                if (cloudRow.schedule.gdriveSync && typeof cloudRow.schedule.gdriveSync === 'object' && currentCloudUser) {
+                    const syncInfo = cloudRow.schedule.gdriveSync;
+                    if (syncInfo.linked && syncInfo.userEmail) {
+                        localStorage.setItem('exo_gdrive_connected', '1');
+                        localStorage.setItem('exo_gdrive_user_email', syncInfo.userEmail);
+                        if (syncInfo.folderId) localStorage.setItem('exo_gdrive_folder_id', syncInfo.folderId);
+                        if (syncInfo.quotaInfo) localStorage.setItem('exo_gdrive_quota_info', syncInfo.quotaInfo);
+                        localStorage.setItem('exo_gdrive_bound_user_id', String(currentCloudUser.id));
+                        if (typeof trySilentGoogleDriveConnection === 'function') {
+                            trySilentGoogleDriveConnection(syncInfo.userEmail);
+                        }
+                    }
                 }
             } else {
                 scheduleEvents = [];
