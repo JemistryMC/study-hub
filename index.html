@@ -6478,8 +6478,9 @@
         }
         .smart-sub-template-card.active { background: rgba(45, 212, 191, 0.12); border-color: var(--primary); }
         
+        
         /* ================= DESKTOP HIDING FOR MOBILE-ONLY ELEMENTS ================= */
-        @media (min-width: 769px) {
+        @media (min-width: 901px) and (min-height: 561px) {
             .mobile-bottom-nav,
             .pdf-mobile-only-btn,
             .pdf-mobile-palette-drawer,
@@ -6490,19 +6491,19 @@
         }
 
 
-        /* ================= COMPREHENSIVE PHONE & MOBILE STUDY STUDIO UX ================= */
-        @media (max-width: 768px) {
+        /* ================= COMPREHENSIVE PHONE & MOBILE STUDY STUDIO UX (PORTRAIT & LANDSCAPE) ================= */
+        @media (max-width: 900px), (max-height: 560px), (max-width: 1024px) and (orientation: landscape) {
             .fluid-week-board { grid-template-columns: 1fr !important; gap: 12px !important; }
             .hide-on-xs { display: none !important; }
             #pdfFullscreenBtn { display: none !important; }
 
-            /* --- Mobile Bottom Navigation Bar --- */
+            /* --- Mobile Bottom Navigation Bar (Hidden when height < 500px in landscape or inside PDF studio) --- */
             .mobile-bottom-nav {
                 position: fixed;
                 bottom: 0;
                 left: 0;
                 right: 0;
-                height: calc(58px + var(--safe-bottom));
+                height: calc(56px + var(--safe-bottom));
                 padding: 6px 12px calc(6px + var(--safe-bottom)) 12px;
                 background: rgba(11, 15, 25, 0.94);
                 backdrop-filter: blur(20px);
@@ -6513,6 +6514,9 @@
                 justify-content: space-around;
                 z-index: 998;
                 box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+            }
+            @media (max-height: 500px) {
+                .mobile-bottom-nav { display: none !important; }
             }
             .mobile-nav-item {
                 flex: 1;
@@ -6560,94 +6564,202 @@
             .navbar-actions-group { gap: 4px !important; }
             .cloud-status-btn { padding: 5px 8px !important; font-size: 0.72rem !important; }
             .navbar .nav-items {
-                display: none !important; /* Managed by ergonomic thumb bottom nav */
+                display: none !important;
             }
 
             .main-content {
                 padding: 10px 8px calc(75px + var(--safe-bottom)) 8px !important;
             }
+            @media (max-height: 500px) {
+                .main-content { padding-bottom: 24px !important; }
+            }
 
-            /* --- PDF Full-Bleed Study Studio --- */
-            #pdfViewerModalOverlay { padding: 0 !important; }
+            /* --- FULL-SCREEN IMMERSIVE PDF STUDIO (PORTRAIT & LANDSCAPE) --- */
+            #pdfViewerModalOverlay {
+                padding: 0 !important;
+                position: fixed !important;
+                inset: 0 !important;
+                z-index: 1000 !important;
+            }
             .pdf-modal-container {
+                position: relative !important;
                 width: 100vw !important;
                 max-width: 100vw !important;
                 height: 100dvh !important;
                 max-height: 100dvh !important;
                 border-radius: 0 !important;
                 border: none !important;
-                padding-top: var(--safe-top);
-                padding-bottom: var(--safe-bottom);
-                position: relative;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+                background: #07090f !important;
+                display: block !important;
             }
-            .pdf-viewer-header {
-                display: flex !important;
-                justify-content: space-between !important;
-                align-items: center !important;
-                padding: 6px 10px !important;
-                height: 44px !important;
-                min-height: 44px !important;
-                background: rgba(14, 17, 26, 0.98) !important;
-                border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
-            }
-            .pdf-unified-nav-capsule { display: none !important; }
-            #pdfViewerTitle {
-                max-width: 155px !important;
-                font-size: 0.88rem !important;
-            }
-            #pdfZenModeText { display: none; }
-            .pdf-header-left-actions {
-                display: flex !important;
-                align-items: center !important;
-                gap: 5px !important;
+
+            /* 1. Full-Bleed Scrollable Slide Canvas (Takes 100% of viewport without being squashed by bars) */
+            .pdf-viewer-body {
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                z-index: 5 !important;
             }
             .pdf-pages-scroll-container {
-                padding: 2px 2px 115px 2px !important;
-                gap: 8px !important;
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                z-index: 10 !important;
+                padding: 44px 4px 48px 4px !important;
+                gap: 10px !important;
+                overflow-y: auto !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+            }
+            @media (max-height: 560px) {
+                .pdf-pages-scroll-container {
+                    padding: 40px 4px 44px 4px !important;
+                    gap: 8px !important;
+                }
             }
             .pdf-page-wrapper {
                 margin: 0 auto !important;
                 max-width: 100% !important;
-                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+                box-shadow: 0 4px 18px rgba(0, 0, 0, 0.55) !important;
             }
 
-            /* --- Floating Thumb Study Dock --- */
+            /* 2. Floating Sleek Top Header (Overlays over the top edge in ONE single row) */
+            .pdf-viewer-header {
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                height: 38px !important;
+                min-height: 38px !important;
+                padding: 0 8px !important;
+                z-index: 50 !important;
+                background: rgba(9, 13, 22, 0.86) !important;
+                backdrop-filter: blur(16px) !important;
+                -webkit-backdrop-filter: blur(16px) !important;
+                border-bottom: 1px solid rgba(45, 212, 191, 0.22) !important;
+                box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6) !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                gap: 6px !important;
+            }
+            .pdf-viewer-header > div:first-child {
+                display: flex !important;
+                align-items: center !important;
+                gap: 6px !important;
+                min-width: 0 !important;
+                flex: 1 1 auto !important;
+            }
+            #pdfViewerTitle {
+                max-width: 140px !important;
+                font-size: 0.82rem !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+            }
+            @media (max-width: 600px) {
+                #pdfViewerTitle { max-width: 105px !important; font-size: 0.78rem !important; }
+            }
+            #pdfAutoSaveStatus {
+                font-size: 0.62rem !important;
+            }
+
+            /* Minimalist center navigation capsule in header */
+            .pdf-unified-nav-capsule {
+                display: flex !important;
+                align-items: center !important;
+                gap: 3px !important;
+                padding: 2px 6px !important;
+                background: rgba(255, 255, 255, 0.04) !important;
+                border: 1px solid rgba(148, 163, 184, 0.16) !important;
+                border-radius: 999px !important;
+            }
+            .pdf-unified-nav-capsule .anno-btn {
+                padding: 3px 6px !important;
+                font-size: 0.72rem !important;
+                min-width: 26px !important;
+                height: 26px !important;
+            }
+            #pdfPageCounterBadge {
+                font-size: 0.72rem !important;
+                min-width: 58px !important;
+                padding: 1px 4px !important;
+            }
+            /* Hide bulky zoom -/+ buttons on mobile header to keep strict 1-row layout */
+            .pdf-unified-nav-capsule .pdf-header-divider,
+            .pdf-unified-nav-capsule button[onclick*="changePdfZoom"],
+            #pdfZoomLevelText {
+                display: none !important;
+            }
+
+            /* Header left actions */
+            .pdf-header-left-actions {
+                display: flex !important;
+                align-items: center !important;
+                gap: 4px !important;
+                flex-shrink: 0 !important;
+            }
+            #pdfZenModeText { display: none !important; }
+            .pdf-zen-toggle-btn {
+                padding: 4px 8px !important;
+                font-size: 0.78rem !important;
+                border-radius: 999px !important;
+            }
+            #pdfCollapseDockBtn { display: none !important; }
+            #pdfHeaderSmartTrackMiniBtn { display: none !important; }
+
+            /* 3. Floating Bottom Study Dock (.pdf-annotation-toolbar) */
             .pdf-annotation-toolbar {
-                position: fixed !important;
-                bottom: calc(12px + var(--safe-bottom)) !important;
+                position: absolute !important;
+                bottom: calc(8px + var(--safe-bottom)) !important;
                 left: 50% !important;
                 transform: translateX(-50%) !important;
-                z-index: 1050 !important;
-                background: rgba(12, 17, 29, 0.94) !important;
+                z-index: 50 !important;
+                background: rgba(11, 16, 27, 0.92) !important;
                 backdrop-filter: blur(20px) !important;
                 -webkit-backdrop-filter: blur(20px) !important;
                 border: 1px solid rgba(45, 212, 191, 0.35) !important;
                 border-radius: 999px !important;
-                box-shadow: 0 12px 36px rgba(0, 0, 0, 0.75) !important;
-                padding: 5px 8px !important;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75) !important;
+                padding: 4px 8px !important;
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                gap: 5px !important;
+                gap: 4px !important;
                 max-width: calc(100vw - 16px) !important;
                 width: auto !important;
                 overflow-x: auto !important;
                 scrollbar-width: none !important;
-                transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease !important;
+                transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease !important;
             }
             .pdf-annotation-toolbar::-webkit-scrollbar { display: none !important; }
             .pdf-annotation-toolbar .anno-tool-group {
                 display: flex !important;
                 align-items: center !important;
-                gap: 4px !important;
+                gap: 3px !important;
             }
             .pdf-annotation-toolbar .anno-btn {
-                padding: 7px 11px !important;
-                font-size: 0.8rem !important;
-                min-height: 38px !important;
+                padding: 5px 9px !important;
+                font-size: 0.76rem !important;
+                min-height: 32px !important;
                 border-radius: 999px !important;
                 touch-action: manipulation;
             }
+            /* Hide bulky items from floating dock */
             .pdf-annotation-toolbar #toolBtn_laser,
             .pdf-annotation-toolbar #toolBtn_laserPause,
             .pdf-annotation-toolbar #toolBtn_palmReject,
@@ -6665,167 +6777,54 @@
                 display: inline-flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                gap: 5px !important;
+                gap: 4px !important;
             }
+
+            /* Minimized Floating Pen Bubble */
             .pdf-modal-container.dock-collapsed .pdf-annotation-toolbar {
-                transform: translateX(-50%) translateY(95px) !important;
+                transform: translateX(-50%) translateY(80px) !important;
                 opacity: 0 !important;
                 pointer-events: none !important;
             }
-            #pdfMobileDockFloatingTriggerBtn {
-                display: none;
-            }
             .pdf-modal-container.dock-collapsed #pdfMobileDockFloatingTriggerBtn {
                 display: flex !important;
-                position: fixed !important;
-                bottom: calc(16px + var(--safe-bottom)) !important;
-                right: 16px !important;
-                z-index: 1060 !important;
-                width: 48px !important;
-                height: 48px !important;
+                position: absolute !important;
+                bottom: calc(12px + var(--safe-bottom)) !important;
+                right: 14px !important;
+                z-index: 55 !important;
+                width: 42px !important;
+                height: 42px !important;
                 border-radius: 999px !important;
                 background: linear-gradient(135deg, var(--primary), #0d9488) !important;
                 color: #042f2e !important;
                 border: none !important;
-                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), 0 0 16px rgba(45, 212, 191, 0.4) !important;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 14px rgba(45, 212, 191, 0.4) !important;
                 align-items: center !important;
                 justify-content: center !important;
-                font-size: 1.25rem !important;
+                font-size: 1.15rem !important;
                 cursor: pointer !important;
             }
 
-            /* --- Mobile Color & Tool Palette Drawer --- */
-            .pdf-mobile-palette-drawer {
-                position: fixed !important;
-                bottom: calc(68px + var(--safe-bottom)) !important;
-                left: 50% !important;
-                transform: translateX(-50%) !important;
-                width: calc(100vw - 20px) !important;
-                max-width: 390px !important;
-                z-index: 1055 !important;
-                background: rgba(13, 19, 32, 0.98) !important;
-                backdrop-filter: blur(24px) !important;
-                -webkit-backdrop-filter: blur(24px) !important;
-                border: 1px solid rgba(45, 212, 191, 0.38) !important;
-                border-radius: 20px !important;
-                padding: 14px 16px !important;
-                box-shadow: 0 18px 45px rgba(0, 0, 0, 0.85) !important;
-                display: none;
-                flex-direction: column !important;
-                gap: 12px !important;
-                animation: mobileSlideUpFade 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-            }
-            .pdf-mobile-palette-drawer.open {
-                display: flex !important;
-            }
-            @keyframes mobileSlideUpFade {
-                from { opacity: 0; transform: translateX(-50%) translateY(16px); }
-                to { opacity: 1; transform: translateX(-50%) translateY(0); }
-            }
-            .pmp-header {
-                display: flex !important;
-                justify-content: space-between !important;
-                align-items: center !important;
-                padding-bottom: 6px !important;
-                border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
-            }
-            .pmp-colors-row {
-                display: flex !important;
-                align-items: center !important;
-                justify-content: space-between !important;
-                gap: 8px !important;
-            }
-            .pmp-color-chip {
-                width: 38px !important;
-                height: 38px !important;
-                border-radius: 50% !important;
-                cursor: pointer !important;
-                border: 2px solid transparent !important;
-                transition: transform 0.18s ease, border-color 0.18s ease !important;
-                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important;
-                display: inline-block !important;
-            }
-            .pmp-color-chip.active {
-                transform: scale(1.15) !important;
-                border-color: #fff !important;
-                box-shadow: 0 0 14px rgba(255, 255, 255, 0.6) !important;
-            }
-            .pmp-custom-color-label {
-                width: 38px !important;
-                height: 38px !important;
-                border-radius: 50% !important;
-                border: 1px dashed rgba(148, 163, 184, 0.4) !important;
-                display: inline-flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                background: rgba(255, 255, 255, 0.05) !important;
-                cursor: pointer !important;
-            }
-            .pmp-stroke-presets-row {
-                display: grid !important;
-                grid-template-columns: repeat(3, 1fr) !important;
-                gap: 6px !important;
-            }
-            .pmp-stroke-chip {
-                padding: 8px 6px !important;
-                font-size: 0.78rem !important;
-                font-weight: 800 !important;
-                background: rgba(255, 255, 255, 0.04) !important;
-                border: 1px solid rgba(148, 163, 184, 0.18) !important;
-                border-radius: 10px !important;
-                color: var(--text-main) !important;
-                cursor: pointer !important;
-                text-align: center !important;
-                transition: all 0.15s ease !important;
-            }
-            .pmp-stroke-chip.active {
-                background: rgba(45, 212, 191, 0.18) !important;
-                border-color: var(--primary) !important;
-                color: var(--primary) !important;
-            }
-            .pmp-tools-row {
-                display: grid !important;
-                grid-template-columns: repeat(2, 1fr) !important;
-                gap: 6px !important;
-            }
-            .pmp-action-chip {
-                padding: 8px 10px !important;
-                font-size: 0.76rem !important;
-                font-weight: 700 !important;
-                background: rgba(255, 255, 255, 0.04) !important;
-                border: 1px solid rgba(148, 163, 184, 0.16) !important;
-                border-radius: 9px !important;
-                color: var(--text-main) !important;
-                display: inline-flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                gap: 6px !important;
-                cursor: pointer !important;
-            }
-            .pmp-action-chip i {
-                color: var(--primary) !important;
-            }
-
-            /* --- Mobile Floating Audio Bar --- */
+            /* 4. Floating Audio Player Bar */
             .pdf-audio-player-bar {
-                position: fixed !important;
-                bottom: calc(70px + var(--safe-bottom)) !important;
+                position: absolute !important;
+                bottom: calc(48px + var(--safe-bottom)) !important;
                 left: 50% !important;
                 transform: translateX(-50%) !important;
-                width: calc(100vw - 20px) !important;
-                max-width: 440px !important;
-                z-index: 1045 !important;
-                border-radius: 16px !important;
-                padding: 8px 12px !important;
-                background: rgba(13, 19, 32, 0.96) !important;
+                width: min(94vw, 420px) !important;
+                z-index: 48 !important;
+                border-radius: 14px !important;
+                padding: 6px 10px !important;
+                background: rgba(11, 16, 27, 0.94) !important;
                 backdrop-filter: blur(20px) !important;
                 -webkit-backdrop-filter: blur(20px) !important;
                 border: 1px solid rgba(45, 212, 191, 0.35) !important;
-                box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7) !important;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75) !important;
                 display: flex !important;
                 flex-direction: column !important;
-                gap: 6px !important;
+                gap: 4px !important;
             }
+            .pdf-audio-player-bar.no-audio-attached,
             .pdf-audio-player-bar.minimized-mobile {
                 display: none !important;
             }
@@ -6834,22 +6833,32 @@
                 display: flex !important;
                 align-items: center !important;
                 justify-content: space-between !important;
-                gap: 8px !important;
+                gap: 6px !important;
             }
             .audio-play-btn {
-                width: 42px !important;
-                height: 42px !important;
+                width: 38px !important;
+                height: 38px !important;
                 border-radius: 50% !important;
-                font-size: 1.05rem !important;
+                font-size: 0.95rem !important;
             }
             .seek-step-btn {
-                padding: 6px 12px !important;
-                font-size: 0.78rem !important;
+                padding: 5px 10px !important;
+                font-size: 0.74rem !important;
                 border-radius: 8px !important;
             }
             .pdf-audio-player-bar > div:last-child {
                 width: 100%;
                 justify-content: space-between !important;
+            }
+
+            /* 5. Mobile Palette Drawer */
+            .pdf-mobile-palette-drawer {
+                position: absolute !important;
+                bottom: calc(52px + var(--safe-bottom)) !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                width: min(92vw, 380px) !important;
+                z-index: 55 !important;
             }
 
             /* --- Mobile Lecture Card & Study Buttons --- */
@@ -6955,7 +6964,8 @@
             .absent-college-freed-banner { padding: 9px 11px !important; gap: 8px !important; }
             .acfb-actions { width: 100%; justify-content: flex-start; }
         }
-/* ================= UNIFIED VIEW OPTIONS POPOVER & SEGMENTED DAY SWITCH ================= */
+
+        /* ================= UNIFIED VIEW OPTIONS POPOVER & SEGMENTED DAY SWITCH ================= */
         .week-view-options-wrap {
             position: relative;
             display: inline-flex;
@@ -8010,9 +8020,7 @@
                                 <button type="button" class="btn btn-outline" id="btnDisconnectGoogleDrive" onclick="disconnectGoogleDriveAccount()" style="display: none; padding: 5px 10px; font-size: 0.73rem; color: #f43f5e; border-color: rgba(244,63,94,0.35); border-radius: 8px;">
                                     <i class="fa-solid fa-link-slash"></i> إلغاء الربط
                                 </button>
-                                <button type="button" class="ptm-btn" style="padding: 4px 7px; font-size: 0.68rem;" onclick="promptCustomGoogleClientId()" title="Google Client ID">
-                                    <i class="fa-solid fa-gear"></i> Client ID
-                                </button>
+                                
                             </div>
                         </div>
                     </div>
@@ -9443,10 +9451,10 @@
                     </div>
                     <div class="sub-division-card" id="subDivisionCardFalse" onclick="selectSmartSubjectDivisionMode(false)">
                         <div style="font-weight: 900; font-size: 0.86rem; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
-                            <i class="fa-solid fa-book-quran" style="color: #10b981;"></i> مادة مستمرة بدون تقسيم
+                            <i class="fa-solid fa-route" style="color: #10b981;"></i> مادة مستمرة / مسار تعلّم حر
                         </div>
                         <div style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.45;">
-                            مثل القرآن الكريم أو الورد اليومي (بدون فصول أو محاضرات).
+                            مثل البرمجة، المهارات الذاتية، قراءة الكتب، أو الورد اليومي (بدون فصول أو محاضرات تقليدية).
                         </div>
                     </div>
                 </div>
@@ -9800,6 +9808,9 @@
             if (!sub) return true;
             if (typeof sub.isDivided === 'boolean') return sub.isDivided;
             if (isNonDividedSubjectName(sub.name)) return false;
+            if (Array.isArray(sub.groups) && sub.groups.length > 0) return true;
+            if (Array.isArray(sub.continuousLogs) && sub.continuousLogs.length > 0) return false;
+            if (sub.continuousBookmark) return false;
             return true;
         }
 
@@ -9818,13 +9829,34 @@
         }
 
         function getSubjectEmblemIcon(nameOrSub, idx = 0) {
+            let name = '';
+            let isDivided = true;
             if (nameOrSub && typeof nameOrSub === 'object') {
                 if (nameOrSub.icon) return nameOrSub.icon;
-                if (nameOrSub.isDivided === false) return 'fa-book-quran';
-                nameOrSub = nameOrSub.name || '';
+                isDivided = nameOrSub.isDivided !== false;
+                name = nameOrSub.name || '';
+            } else {
+                name = String(nameOrSub || '');
             }
-            const lower = (nameOrSub || '').toLowerCase();
-            if (isNonDividedSubjectName(lower)) return 'fa-book-quran';
+            const lower = name.toLowerCase();
+            if (lower.includes('قرآن') || lower.includes('قران') || lower.includes('مصحف') || lower.includes('ورد ') || lower === 'ورد') {
+                return 'fa-book-quran';
+            }
+            if (lower.includes('برمج') || lower.includes('كود') || lower.includes('code') || lower.includes('dev') || lower.includes('python') || lower.includes('java') || lower.includes('web') || lower.includes('flutter') || lower.includes('sql') || lower.includes('cs') || lower.includes('c++')) {
+                return 'fa-laptop-code';
+            }
+            if (lower.includes('تصميم') || lower.includes('design') || lower.includes('ui') || lower.includes('ux') || lower.includes('photoshop')) {
+                return 'fa-pen-ruler';
+            }
+            if (lower.includes('إنجليز') || lower.includes('انجليز') || lower.includes('english') || lower.includes('لغ') || lower.includes('german') || lower.includes('french')) {
+                return 'fa-language';
+            }
+            if (lower.includes('كتاب') || lower.includes('قراء') || lower.includes('رواي') || lower.includes('reading') || lower.includes('book')) {
+                return 'fa-book-open';
+            }
+            if (!isDivided) {
+                return 'fa-seedling';
+            }
             if (lower.includes('كلينيك') || lower.includes('إكلينيك') || lower.includes('سرير') || lower.includes('طب')) return 'fa-stethoscope';
             if (lower.includes('كاينت') || lower.includes('حركي') || lower.includes('kinetics')) return 'fa-chart-line';
             if (lower.includes('فارما') || lower.includes('دواء') || lower.includes('أدوية')) return 'fa-capsules';
@@ -9912,7 +9944,7 @@
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const diffDays = Math.round((examDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-            if (diffDays < -1) return null; // Past exam more than 1 day ago
+            if (diffDays < 0) return null; // Past exam has ended; deactivate radar & emergency mode automatically!
             const examTitle = (sub.examTitle && sub.examTitle.trim()) ? sub.examTitle.trim() : 'امتحان / كويز';
             const examLecIds = Array.isArray(sub.examLectureIds) ? sub.examLectureIds.map(String) : [];
             let totalExamLec = 0;
@@ -10055,6 +10087,11 @@
             if (event) event.stopPropagation();
             const sub = subjects.find(s => String(s.id) === String(subId));
             if (!sub) return;
+            const info = getSubjectExamRadarInfo(sub);
+            if (!info) {
+                showToast('هذا الامتحان قد انتهى مسبقاً ولا توجد حالة طوارئ نشطة');
+                return;
+            }
             const navItems = document.querySelectorAll('.nav-item');
             if (navItems[0] && !document.getElementById('subjects').classList.contains('active')) {
                 switchView('subjects', navItems[0]);
@@ -10641,7 +10678,11 @@
                     const doneSessions = scheduleEvents.filter(ev => String(ev.subjectId) === String(sub.id) && ev.completed).length;
                     const wirdCount = Array.isArray(sub.continuousLogs) ? sub.continuousLogs.length : 0;
                     const totalEntries = doneSessions + wirdCount;
-                    const bookmarkTxt = sub.continuousBookmark ? `📌 ${sub.continuousBookmark}` : 'مادة مستمرة بدون تقسيم محاضرات';
+                    const isQSub = /قر[آا]ن|مصحف|تلاو|تجويد|حفظ/i.test(sub.name);
+                    const isPSub = /برمج|كود|code|dev|python|java|web|flutter|front|back|sql|cs|c\+\+/i.test(sub.name);
+                    const contBadgeTxt = isQSub ? 'ورد / تلاوة مستمرة' : (isPSub ? 'مسار برمجي مستمر' : 'مسار تعلّم حر');
+                    const contBadgeIcon = isQSub ? 'fa-book-quran' : (isPSub ? 'fa-laptop-code' : 'fa-seedling');
+                    const bookmarkTxt = sub.continuousBookmark ? `📌 ${sub.continuousBookmark}` : (isPSub ? 'مسار برمجي مستمر' : 'مادة مستمرة / مسار تعلّم حر');
                     subtitleHtml = `
                         <p style="color: var(--text-muted); font-size: 0.82rem; margin-bottom: 14px; line-height: 1.5;">
                             ${bookmarkTxt}${scheduledHours > 0 ? ` • ${scheduledHours} س بالجدول` : ''}
@@ -10649,7 +10690,7 @@
                     `;
                     footerHtml = `
                         <div style="margin-top: auto; padding-top: 8px; border-top: 1px solid rgba(148, 163, 184, 0.1); display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem;">
-                            <span style="color: #6ee7b7; font-weight: 700;"><i class="fa-solid fa-seedling"></i> ورد / نشاط مستمر</span>
+                            <span style="color: #6ee7b7; font-weight: 700;"><i class="fa-solid ${contBadgeIcon}"></i> ${contBadgeTxt}</span>
                             <span style="color: var(--text-muted); font-weight: 700;">${totalEntries > 0 ? `${totalEntries} إنجاز مسجل ✓` : 'اضغط للمتابعة'}</span>
                         </div>
                     `;
@@ -10759,7 +10800,7 @@
             const noteEl = document.getElementById('continuousSubNewLogInput');
             const txt = sanitizeUserText(noteEl ? noteEl.value : '', 260);
             if (!txt) {
-                showToast('اكتب الورد أو الجزء الذي أنجزته أولاً', 'error');
+                showToast('اكتب الإنجاز أو الجزء الذي أتممته أولاً', 'error');
                 if (noteEl) noteEl.focus();
                 return;
             }
@@ -10971,15 +11012,52 @@
                 const subSessions = scheduleEvents.filter(ev => String(ev.subjectId) === String(sub.id));
                 const wirdLogs = Array.isArray(sub.continuousLogs) ? sub.continuousLogs : [];
                 const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+
+                const isQuranSub = /قر[آا]ن|مصحف|تلاو|تجويد|حفظ/i.test(sub.name);
+                const isProgSub = /برمج|كود|code|dev|python|java|web|flutter|front|back|sql|cs|c\+\+/i.test(sub.name);
+
+                const trackPillIcon = isQuranSub ? 'fa-book-quran' : (isProgSub ? 'fa-laptop-code' : 'fa-seedling');
+                const trackPillTitle = isQuranSub
+                    ? 'مادة مستمرة / ورد وتلاوة'
+                    : (isProgSub ? 'مسار برمجي وتطوير مستمر' : 'مادة مستمرة / مسار تعلّم حر');
+
+                const trackDesc = isQuranSub
+                    ? 'هذه المادة مخصصة للورد أو الحفظ المستمر؛ يمكنك تسجيل موضع توقفك الحالي أو تدوين ما أنجزته أو جدولة موعد لها بالجدول مباشرة.'
+                    : (isProgSub
+                        ? 'هذا المسار مخصص للممارسة والبرمجة الحرة بدون محاضرات تقليدية؛ يمكنك تدوين الدرس أو المشروع الذي وصلت إليه، أو تسجيل التمارين المنجزة اليوم، أو جدولتها في جدولك.'
+                        : 'هذه المادة مخصصة للممارسة والتعلم الذاتي المستمر بدون محاضرات تقليدية؛ يمكنك تدوين موضع توقفك الحالي، أو تسجيل إنجازك اليومي، أو جدولة مواعيد لها بالجدول مباشرة.');
+
+                const bookmarkLabel = isProgSub ? '📌 آخر نقطة وصلت إليها (درس / كود / مسألة):' : '📌 علامة التوقف الحالية (أين وصلت؟):';
+                const bookmarkPlaceholder = isQuranSub
+                    ? 'مثال: سورة البقرة - صفحة 24 / الجزء الثاني...'
+                    : (isProgSub
+                        ? 'مثال: الشابتر الثالث / درس الـ OOP / حل 5 مسائل...'
+                        : 'مثال: الدرس الخامس / صفحة 45 / المشروع الأول...');
+
+                const logLabel = isQuranSub ? '✨ تسجيل ورد أو تلاوة جديدة اليوم:' : (isProgSub ? '✨ تسجيل إنجاز برمجي أو تمرين اليوم:' : '✨ تسجيل إنجاز أو جلسة جديدة اليوم:');
+                const logPlaceholder = isQuranSub
+                    ? 'مثال: قراءة وتدبر نصف حزب / حفظ 3 صفحات...'
+                    : (isProgSub
+                        ? 'مثال: بناء الـ Navbar / حل تمرينين LeetCode / مذاكرة ساعتين...'
+                        : 'مثال: إتمام فصل كامل / تطبيق عملي / قراءة 15 صفحة...');
+
+                const logHistoryTitle = isQuranSub
+                    ? `سجل الورد والجلسات المرتبطة بـ «${sub.name}»`
+                    : `سجل الإنجاز والجلسات المرتبطة بـ «${sub.name}»`;
+
+                const emptyLogMessage = isQuranSub
+                    ? 'لم يتم تسجيل ورد أو جلسات لهذه المادة بعد.'
+                    : (isProgSub ? 'لم يتم تسجيل إنجاز أو جلسات برمجية لهذا المسار بعد.' : 'لم يتم تسجيل إنجاز أو جلسات لهذا المسار بعد.');
+
                 container.innerHTML = `
                     <div class="continuous-sub-shell">
                         <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; padding-bottom:12px; border-bottom:1px solid rgba(148,163,184,0.12);">
                             <div>
                                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                                    <span class="studio-pill" style="color:#6ee7b7; border-color:rgba(16,185,129,0.4); background:rgba(16,185,129,0.1);"><i class="fa-solid fa-book-quran"></i> مادة مستمرة بدون تقسيم فصول أو محاضرات</span>
+                                    <span class="studio-pill" style="color:#6ee7b7; border-color:rgba(16,185,129,0.4); background:rgba(16,185,129,0.1);"><i class="fa-solid ${trackPillIcon}"></i> ${trackPillTitle}</span>
                                 </div>
                                 <p style="color:var(--text-muted); font-size:0.82rem; margin:6px 0 0 0;">
-                                    هذه المادة لا تنقسم إلى شباتر أو محاضرات؛ يمكنك تسجيل موضع توقفك الحالي أو تدوين وردك اليومي أو جدولة موعد لها في الجدول مباشرة.
+                                    ${trackDesc}
                                 </p>
                             </div>
                             <button type="button" class="btn btn-primary" onclick="scheduleSessionForContinuousSubject(${sub.id})">
@@ -10989,27 +11067,27 @@
 
                         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:12px;">
                             <div style="background:rgba(9,13,22,0.65); border:1px solid rgba(148,163,184,0.14); border-radius:12px; padding:14px;">
-                                <label style="font-size:0.78rem; color:#cbd5e1; font-weight:800; display:block; margin-bottom:6px;">📌 علامة التوقف الحالية (أين وصلت؟):</label>
+                                <label style="font-size:0.78rem; color:#cbd5e1; font-weight:800; display:block; margin-bottom:6px;">${bookmarkLabel}</label>
                                 <div style="display:flex; gap:8px;">
-                                    <input type="text" id="continuousSubBookmarkInput" value="${escapeHtml(sub.continuousBookmark || '')}" placeholder="مثال: سورة البقرة - صفحة 24..." style="margin:0; flex:1;" onkeypress="if(event.key==='Enter') saveContinuousSubjectBookmark(${sub.id})">
+                                    <input type="text" id="continuousSubBookmarkInput" value="${escapeHtml(sub.continuousBookmark || '')}" placeholder="${bookmarkPlaceholder}" style="margin:0; flex:1;" onkeypress="if(event.key==='Enter') saveContinuousSubjectBookmark(${sub.id})">
                                     <button type="button" class="btn btn-outline" style="padding:8px 14px;" onclick="saveContinuousSubjectBookmark(${sub.id})">حفظ</button>
                                 </div>
                             </div>
 
                             <div style="background:rgba(9,13,22,0.65); border:1px solid rgba(148,163,184,0.14); border-radius:12px; padding:14px;">
-                                <label style="font-size:0.78rem; color:#cbd5e1; font-weight:800; display:block; margin-bottom:6px;">✨ تسجيل ورد أو إنجاز جديد اليوم:</label>
+                                <label style="font-size:0.78rem; color:#cbd5e1; font-weight:800; display:block; margin-bottom:6px;">${logLabel}</label>
                                 <div style="display:flex; gap:8px;">
-                                    <input type="text" id="continuousSubNewLogInput" placeholder="مثال: قراءة وتدبر نصف حزب / 5 صفحات..." style="margin:0; flex:1;" onkeypress="if(event.key==='Enter') addContinuousSubjectWirdLog(${sub.id})">
+                                    <input type="text" id="continuousSubNewLogInput" placeholder="${logPlaceholder}" style="margin:0; flex:1;" onkeypress="if(event.key==='Enter') addContinuousSubjectWirdLog(${sub.id})">
                                     <button type="button" class="btn btn-success" style="padding:8px 14px;" onclick="addContinuousSubjectWirdLog(${sub.id})"><i class="fa-solid fa-check"></i> تسجيل</button>
                                 </div>
                             </div>
                         </div>
 
                         <div>
-                            <h4 style="font-size:0.92rem; font-weight:800; color:var(--text-main); margin:0 0 10px 0;"><i class="fa-solid fa-clock-rotate-left" style="color:var(--primary); margin-left:6px;"></i> سجل الورد والجلسات المرتبطة بـ «${sub.name}»</h4>
+                            <h4 style="font-size:0.92rem; font-weight:800; color:var(--text-main); margin:0 0 10px 0;"><i class="fa-solid fa-clock-rotate-left" style="color:var(--primary); margin-left:6px;"></i> ${logHistoryTitle}</h4>
                             ${(wirdLogs.length === 0 && subSessions.length === 0) ? `
                                 <div style="padding:18px; text-align:center; color:var(--text-muted); background:rgba(9,13,22,0.45); border:1px dashed rgba(148,163,184,0.16); border-radius:12px; font-size:0.84rem;">
-                                    لم يتم تسجيل ورد أو جلسات لهذه المادة بعد.
+                                    ${emptyLogMessage}
                                 </div>
                             ` : `
                                 <div style="display:flex; flex-direction:column; gap:8px;">
@@ -18298,7 +18376,14 @@
             syncExtraNoteButtonsLockUI();
             startLiveLectureStudyTracking(firstItem.sub, firstItem.group, firstItem.lec);
 
-            if (window.innerWidth <= 768) {
+            // On mobile viewports & landscape orientation: fit height in landscape so 100% of slide is visible without vertical cut-off; fit width in portrait!
+            if (typeof isMobileStudyViewport === 'function' && isMobileStudyViewport()) {
+                if (window.innerHeight < window.innerWidth && window.innerHeight <= 560) {
+                    currentPdfFitMode = 'height';
+                } else {
+                    currentPdfFitMode = 'width';
+                }
+            } else if (window.innerWidth <= 768) {
                 currentPdfFitMode = 'width';
             }
             syncPalmRejectionButtonUI();
@@ -18306,6 +18391,14 @@
             // Load first lecture's audio if available
             await activateMergedLectureAudioAndContext(firstItem, false);
             document.getElementById('pdfViewerModalOverlay').classList.add('active');
+            const audioBarEl = document.getElementById('pdfAudioPlayerBar');
+            if (audioBarEl) {
+                if (!hasAudio && (typeof isMobileStudyViewport === 'function' && isMobileStudyViewport())) {
+                    audioBarEl.classList.add('no-audio-attached');
+                } else {
+                    audioBarEl.classList.remove('no-audio-attached');
+                }
+            }
             document.body.classList.add('in-pdf-studio');
             if (typeof toggleMobilePaletteDrawer === 'function') toggleMobilePaletteDrawer(false);
             await renderMergedContinuousLecturesStream();
@@ -18720,8 +18813,14 @@
             renderMergedLecturesStudioBar();
             startLiveLectureStudyTracking(sub, group, lec);
 
-            // On smartphones (<= 768px), default to width-fit and touch-pan mode so 1-finger scrolling works immediately without accidental lines, while Stylus (Apple Pencil / S-Pen) still draws automatically!
-            if (window.innerWidth <= 768) {
+            // On mobile viewports & landscape orientation: fit height in landscape so 100% of slide is visible without vertical cut-off; fit width in portrait!
+            if (typeof isMobileStudyViewport === 'function' && isMobileStudyViewport()) {
+                if (window.innerHeight < window.innerWidth && window.innerHeight <= 560) {
+                    currentPdfFitMode = 'height';
+                } else {
+                    currentPdfFitMode = 'width';
+                }
+            } else if (window.innerWidth <= 768) {
                 currentPdfFitMode = 'width';
             }
             syncPalmRejectionButtonUI();
@@ -18767,6 +18866,14 @@
             }
 
             document.getElementById('pdfViewerModalOverlay').classList.add('active');
+            const audioBarEl = document.getElementById('pdfAudioPlayerBar');
+            if (audioBarEl) {
+                if (!hasAudio && (typeof isMobileStudyViewport === 'function' && isMobileStudyViewport())) {
+                    audioBarEl.classList.add('no-audio-attached');
+                } else {
+                    audioBarEl.classList.remove('no-audio-attached');
+                }
+            }
 
             // 1. Check if PDF Blob is stored in Local IndexedDB
             let storedPdfBlob = await getMediaFromDB('pdfs', lec.id);
@@ -18859,14 +18966,20 @@
             }
         }
 
+        
+        function isMobileStudyViewport() {
+            return window.innerWidth <= 900 || window.innerHeight <= 560 || (window.innerWidth <= 1024 && window.innerHeight < window.innerWidth);
+        }
+
         function computeScaleForPageFit(page, fitMode) {
             const baseVp = page.getViewport({ scale: 1.0 });
             const scrollContainer = document.getElementById('pdfPagesScrollContainer');
-            const isMobileScreen = window.innerWidth <= 768;
-            const padW = isMobileScreen ? 10 : 32;
-            const padH = isMobileScreen ? 12 : 26;
+            const isMobileScreen = (typeof isMobileStudyViewport === 'function') ? isMobileStudyViewport() : (window.innerWidth <= 820 || window.innerHeight <= 560);
+            const isLandscapeShort = isMobileScreen && window.innerHeight <= 560;
+            const padW = isMobileScreen ? 8 : 32;
+            const padH = isMobileScreen ? (isLandscapeShort ? 8 : 14) : 26;
             const rawW = (scrollContainer && scrollContainer.clientWidth) ? scrollContainer.clientWidth : window.innerWidth;
-            const rawH = (scrollContainer && scrollContainer.clientHeight) ? scrollContainer.clientHeight : (window.innerHeight * 0.78);
+            const rawH = (scrollContainer && scrollContainer.clientHeight) ? scrollContainer.clientHeight : window.innerHeight;
             const availW = Math.max(240, rawW - padW);
             const availH = Math.max(200, rawH - padH);
             if (fitMode === 'height') {
@@ -24802,6 +24915,9 @@
             }
             syncExtraNoteButtonsLockUI();
             renderCloudIndividualFilesList();
+            if (typeof updateGoogleDriveUI === 'function') {
+                updateGoogleDriveUI();
+            }
             if (currentCloudUser && !isCloudSyncing && !isBulkMediaUploading) {
                 updateCloudNavUI('synced');
             }
@@ -25082,6 +25198,9 @@
         }
 
         function isGoogleDriveConnected() {
+            if (!currentCloudUser || !currentUserCanUploadMedia) return false;
+            const boundUser = localStorage.getItem('exo_gdrive_bound_user_id');
+            if (boundUser && boundUser !== currentCloudUser.id) return false;
             return Boolean(googleAccessToken && Date.now() < googleTokenExpiry && localStorage.getItem('exo_gdrive_connected') === '1');
         }
 
@@ -25103,9 +25222,19 @@
         }
 
         function connectGoogleDriveAccount(interactive = true) {
+            if (!currentCloudUser) {
+                showToast('يرجى تسجيل الدخول إلى حسابك أولاً', 'error');
+                openCloudAuthModal();
+                return;
+            }
+            if (!currentUserCanUploadMedia) {
+                showToast('🔒 ربط Google Drive والمزامنة السحابية غير المحدودة ميزة حصرية لمشتركي VIP Pro', 'error');
+                openVipUpgradeModal('مزامنة Google Drive السحابية غير المحدودة');
+                return;
+            }
             const clientId = getEffectiveGoogleClientId();
             if (!clientId) {
-                promptCustomGoogleClientId();
+                showToast('خدمة Google Drive غير مهيئة حالياً', 'error');
                 return;
             }
             if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
@@ -25124,6 +25253,9 @@
                             localStorage.setItem('exo_gdrive_token', googleAccessToken);
                             localStorage.setItem('exo_gdrive_token_exp', String(googleTokenExpiry));
                             localStorage.setItem('exo_gdrive_connected', '1');
+                            if (currentCloudUser && currentCloudUser.id) {
+                                localStorage.setItem('exo_gdrive_bound_user_id', currentCloudUser.id);
+                            }
                             await ensureExoGoogleDriveFolder();
                             fetchGoogleDriveUserInfo(googleAccessToken);
                             updateGoogleDriveUI();
@@ -25139,7 +25271,7 @@
             }
         }
 
-        function disconnectGoogleDriveAccount() {
+        function disconnectGoogleDriveAccount(silent = false) {
             if (googleAccessToken && typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
                 try {
                     google.accounts.oauth2.revoke(googleAccessToken, () => {});
@@ -25153,8 +25285,11 @@
             localStorage.removeItem('exo_gdrive_folder_id');
             localStorage.removeItem('exo_gdrive_user_email');
             localStorage.removeItem('exo_gdrive_quota_info');
+            localStorage.removeItem('exo_gdrive_bound_user_id');
             updateGoogleDriveUI();
-            showToast('تم إلغاء ربط حساب Google Drive بنجاح');
+            if (!silent) {
+                showToast('تم إلغاء ربط حساب Google Drive بنجاح');
+            }
         }
 
         async function fetchGoogleDriveUserInfo(token) {
@@ -25241,10 +25376,50 @@
             const btnConnect = document.getElementById('btnConnectGoogleDrive');
             const btnDisconnect = document.getElementById('btnDisconnectGoogleDrive');
             const infoEl = document.getElementById('gdriveAccountInfo');
+            const isVip = Boolean(currentCloudUser && currentUserCanUploadMedia);
             const connected = isGoogleDriveConnected();
             const email = localStorage.getItem('exo_gdrive_user_email');
             const quota = localStorage.getItem('exo_gdrive_quota_info');
 
+            if (!isVip) {
+                // Free account or logged out: lock Google Drive to VIP Pro
+                if (badge) {
+                    badge.style.color = '#f59e0b';
+                    badge.style.borderColor = 'rgba(245, 158, 11, 0.45)';
+                    badge.style.background = 'rgba(245, 158, 11, 0.12)';
+                    badge.innerHTML = '<i class="fa-solid fa-crown"></i> حصري لمشتركي VIP Pro';
+                }
+                if (btnConnect) {
+                    btnConnect.style.display = 'inline-flex';
+                    btnConnect.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+                    btnConnect.style.border = 'none';
+                    btnConnect.innerHTML = '<i class="fa-solid fa-crown"></i> ترقية لـ VIP لربط Google Drive';
+                    btnConnect.onclick = function() {
+                        openVipUpgradeModal('مزامنة Google Drive السحابية غير المحدودة');
+                    };
+                }
+                if (btnDisconnect) {
+                    btnDisconnect.style.display = 'none';
+                }
+                if (infoEl) {
+                    infoEl.innerHTML = '<span style="color:#f59e0b;">🔒</span> ميزة VIP Pro: مزامنة سحابية غير محدودة لملفات الـ PDF والريكوردات عبر Google Drive الخاص بك بين جميع أجهزتك';
+                }
+                return;
+            }
+
+            // VIP Pro subscriber: enable connect/disconnect controls
+            if (btnConnect) {
+                btnConnect.style.background = '';
+                btnConnect.style.border = '';
+                btnConnect.innerHTML = '<i class="fa-brands fa-google-drive"></i> ربط حساب Google Drive';
+                btnConnect.onclick = function() {
+                    connectGoogleDriveAccount();
+                };
+                btnConnect.style.display = connected ? 'none' : 'inline-flex';
+            }
+            if (btnDisconnect) {
+                btnDisconnect.style.display = connected ? 'inline-flex' : 'none';
+            }
             if (badge) {
                 if (connected) {
                     badge.style.color = '#6ee7b7';
@@ -25257,12 +25432,6 @@
                     badge.style.background = 'transparent';
                     badge.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> غير متصل';
                 }
-            }
-            if (btnConnect) {
-                btnConnect.style.display = connected ? 'none' : 'inline-flex';
-            }
-            if (btnDisconnect) {
-                btnDisconnect.style.display = connected ? 'inline-flex' : 'none';
             }
             if (infoEl) {
                 if (connected) {
@@ -26116,6 +26285,18 @@
 
 
         async function handleCloudSignOut() {
+            // Disconnect Google Drive and wipe tokens immediately so nothing leaks to a subsequent account!
+            if (typeof disconnectGoogleDriveAccount === 'function') {
+                disconnectGoogleDriveAccount(true);
+            }
+            localStorage.removeItem('exo_gdrive_token');
+            localStorage.removeItem('exo_gdrive_token_exp');
+            localStorage.removeItem('exo_gdrive_connected');
+            localStorage.removeItem('exo_gdrive_folder_id');
+            localStorage.removeItem('exo_gdrive_user_email');
+            localStorage.removeItem('exo_gdrive_quota_info');
+            localStorage.removeItem('exo_gdrive_bound_user_id');
+
             // Save current user's workspace before logging out so their account data is safely isolated
             await pushWorkspaceToCloud(false);
 
@@ -27542,17 +27723,40 @@
             const liveNowEv = todayStudyEvents.find(e => !e.completed && curDecHour >= e.startHour && curDecHour < (e.startHour + e.duration));
             if (liveNowEv) {
                 const remMins = Math.max(1, Math.round(((liveNowEv.startHour + liveNowEv.duration) - curDecHour) * 60));
+                const isLinkedStudy = Boolean(
+                    liveNowEv.subjectId || 
+                    (Array.isArray(liveNowEv.lectureIds) && liveNowEv.lectureIds.length > 0) || 
+                    liveNowEv.lectureId
+                );
+
+                let actionBtnHtml = '';
+                let helperText = '';
+
+                if (isLinkedStudy) {
+                    actionBtnHtml = `
+                        <button class="btn btn-primary" style="padding:4px 11px; font-size:0.75rem; border-radius:8px;" onclick="launchScheduledSessionNow(${liveNowEv.id})">
+                            <i class="fa-solid fa-play"></i> ابدأ المذاكرة الآن
+                        </button>
+                    `;
+                    helperText = `🤖 المساعد الذكي يراقب وقت جلستك الحالية؛ عند مذاكرة المحاضرة سيتم تعليم المهمة كمكتملة تلقائياً.`;
+                } else {
+                    actionBtnHtml = `
+                        <button class="btn btn-outline" style="padding:4px 11px; font-size:0.75rem; border-radius:8px; border-color:rgba(16,185,129,0.35); color:#6ee7b7;" onclick="toggleCompleteSession(event, ${liveNowEv.id})">
+                            <i class="fa-solid fa-check"></i> إتمام الجلسة
+                        </button>
+                    `;
+                    helperText = `✨ جلسة نشاط عام / راحة جارية الآن وفق جدولك.`;
+                }
+
                 activeBox.innerHTML = `
                     <div class="stsb-active-task-pill">
                         <span style="color:#6ee7b7; font-weight:900;"><i class="fa-solid fa-satellite-dish"></i> موعدك الحالي الآن:</span>
                         <b style="color:var(--text-main);">${liveNowEv.title}</b>
                         <span style="color:var(--text-muted); font-size:0.74rem;">(متبقي ${remMins} د)</span>
-                        <button class="btn btn-primary" style="padding:4px 11px; font-size:0.75rem; border-radius:8px;" onclick="launchScheduledSessionNow(${liveNowEv.id})">
-                            <i class="fa-solid fa-play"></i> ابدأ المذاكرة الآن
-                        </button>
+                        ${actionBtnHtml}
                     </div>
                 `;
-                if (subEl) subEl.innerText = `🤖 المساعد الذكي يراقب وقت جلستك الحالية؛ عند مذاكرة المحاضرة سيتم تعليم المهمة كمكتملة تلقائياً.`;
+                if (subEl) subEl.innerText = helperText;
                 return;
             }
 
@@ -27586,6 +27790,10 @@
         function launchScheduledSessionNow(eventId) {
             const ev = scheduleEvents.find(e => e.id === eventId);
             if (!ev) return;
+            if (!ev.subjectId && (!Array.isArray(ev.lectureIds) || ev.lectureIds.length === 0) && !ev.lectureId) {
+                showToast(`ℹ️ «${ev.title}» مهمة عامة غير مرتبطة بمحاضرة دراسية معينة`);
+                return;
+            }
             if (ev.isOpenDuration && !ev.openTimerStartedAt && !ev.completed) {
                 recordSmartSessionActualStart(ev);
                 saveScheduleData();
@@ -28211,6 +28419,11 @@
     <script id="exo-i18n-engine">
     (function() {
         const EXO_I18N_EXACT = {
+    "حصري لمشتركي VIP Pro": "Exclusive for VIP Pro",
+    "ترقية لـ VIP لربط Google Drive": "Upgrade to VIP to Link Google Drive",
+    "مزامنة Google Drive السحابية غير المحدودة": "Unlimited Google Drive Cloud Sync",
+    "ربط Google Drive والمزامنة السحابية غير المحدودة ميزة حصرية لمشتركي VIP Pro": "Google Drive linking and unlimited cloud sync is an exclusive feature for VIP Pro subscribers",
+
     "ابدأ المذاكرة": "Start Study",
     "خيارات وألوان القلم": "Pen Tools & Colors",
     "اختر لون الكتابة والتظليل:": "Select Ink & Highlight Color:",
