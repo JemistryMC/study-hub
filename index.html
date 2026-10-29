@@ -6645,58 +6645,64 @@
                 right: 0 !important;
                 height: 38px !important;
                 min-height: 38px !important;
+                max-height: 38px !important;
                 padding: 0 8px !important;
                 z-index: 50 !important;
-                background: rgba(9, 13, 22, 0.86) !important;
+                background: rgba(9, 13, 22, 0.92) !important;
                 backdrop-filter: blur(16px) !important;
                 -webkit-backdrop-filter: blur(16px) !important;
                 border-bottom: 1px solid rgba(45, 212, 191, 0.22) !important;
                 box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6) !important;
                 display: flex !important;
+                flex-wrap: nowrap !important;
                 align-items: center !important;
                 justify-content: space-between !important;
-                gap: 6px !important;
+                gap: 4px !important;
+                overflow: hidden !important;
+                white-space: nowrap !important;
             }
             .pdf-viewer-header > div:first-child {
                 display: flex !important;
                 align-items: center !important;
                 gap: 6px !important;
                 min-width: 0 !important;
-                flex: 1 1 auto !important;
+                flex: 0 1 auto !important;
+                overflow: hidden !important;
             }
             #pdfViewerTitle {
-                max-width: 140px !important;
-                font-size: 0.82rem !important;
+                max-width: 95px !important;
+                font-size: 0.78rem !important;
                 white-space: nowrap !important;
                 overflow: hidden !important;
                 text-overflow: ellipsis !important;
             }
             @media (max-width: 600px) {
-                #pdfViewerTitle { max-width: 105px !important; font-size: 0.78rem !important; }
+                #pdfViewerTitle { max-width: 85px !important; font-size: 0.75rem !important; }
             }
             #pdfAutoSaveStatus {
-                font-size: 0.62rem !important;
+                display: none !important;
             }
 
             /* Minimalist center navigation capsule in header */
             .pdf-unified-nav-capsule {
                 display: flex !important;
                 align-items: center !important;
-                gap: 3px !important;
-                padding: 2px 6px !important;
+                gap: 2px !important;
+                padding: 2px 5px !important;
                 background: rgba(255, 255, 255, 0.04) !important;
                 border: 1px solid rgba(148, 163, 184, 0.16) !important;
                 border-radius: 999px !important;
+                flex-shrink: 0 !important;
             }
             .pdf-unified-nav-capsule .anno-btn {
-                padding: 3px 6px !important;
-                font-size: 0.72rem !important;
-                min-width: 26px !important;
-                height: 26px !important;
+                padding: 2px 5px !important;
+                font-size: 0.7rem !important;
+                min-width: 24px !important;
+                height: 24px !important;
             }
             #pdfPageCounterBadge {
-                font-size: 0.72rem !important;
-                min-width: 58px !important;
+                font-size: 0.7rem !important;
+                min-width: 48px !important;
                 padding: 1px 4px !important;
             }
             /* Hide bulky zoom -/+ buttons on mobile header to keep strict 1-row layout */
@@ -6713,33 +6719,28 @@
                 gap: 4px !important;
                 flex-shrink: 0 !important;
             }
-            #pdfZenModeText { display: none !important; }
-            .pdf-zen-toggle-btn {
-                padding: 4px 8px !important;
-                font-size: 0.78rem !important;
-                border-radius: 999px !important;
-            }
+            #pdfZenModeBtn, #pdfZenModeText { display: none !important; }
             #pdfCollapseDockBtn { display: none !important; }
             #pdfHeaderSmartTrackMiniBtn { display: none !important; }
 
             /* 3. Floating Bottom Study Dock (.pdf-annotation-toolbar) */
             .pdf-annotation-toolbar {
                 position: absolute !important;
-                bottom: calc(8px + var(--safe-bottom)) !important;
+                bottom: calc(10px + var(--safe-bottom)) !important;
                 left: 50% !important;
                 transform: translateX(-50%) !important;
                 z-index: 50 !important;
-                background: rgba(11, 16, 27, 0.92) !important;
+                background: rgba(11, 16, 27, 0.94) !important;
                 backdrop-filter: blur(20px) !important;
                 -webkit-backdrop-filter: blur(20px) !important;
                 border: 1px solid rgba(45, 212, 191, 0.35) !important;
                 border-radius: 999px !important;
                 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75) !important;
-                padding: 4px 8px !important;
+                padding: 3px 6px !important;
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                gap: 4px !important;
+                gap: 3px !important;
                 max-width: calc(100vw - 16px) !important;
                 width: auto !important;
                 overflow-x: auto !important;
@@ -6750,27 +6751,37 @@
             .pdf-annotation-toolbar .anno-tool-group {
                 display: flex !important;
                 align-items: center !important;
-                gap: 3px !important;
+                gap: 2px !important;
             }
             .pdf-annotation-toolbar .anno-btn {
-                padding: 5px 9px !important;
-                font-size: 0.76rem !important;
-                min-height: 32px !important;
+                padding: 4px 8px !important;
+                font-size: 0.74rem !important;
+                min-height: 28px !important;
                 border-radius: 999px !important;
                 touch-action: manipulation;
+            }
+            /* Show 4 essential color dots directly inside toolbar on mobile */
+            .pdf-annotation-toolbar .color-dot[data-mobile-color="true"] {
+                display: inline-block !important;
+                width: 18px !important;
+                height: 18px !important;
+                margin: 0 2px !important;
+                border-radius: 50% !important;
+                cursor: pointer !important;
             }
             /* Hide bulky items from floating dock */
             .pdf-annotation-toolbar #toolBtn_laser,
             .pdf-annotation-toolbar #toolBtn_laserPause,
             .pdf-annotation-toolbar #toolBtn_palmReject,
             .pdf-annotation-toolbar #toolBtn_text,
-            .pdf-annotation-toolbar .color-dot,
             .pdf-annotation-toolbar #customAnnoColor,
             .pdf-annotation-toolbar .stroke-size-control-wrap,
             .pdf-annotation-toolbar #annoFontSelectWrap,
             .pdf-annotation-toolbar #toggleAnnoVisBtn,
             .pdf-annotation-toolbar #pdfToolbarExtraNoteBtn,
-            .pdf-annotation-toolbar .pdf-header-divider {
+            .pdf-annotation-toolbar .pdf-header-divider,
+            .pdf-annotation-toolbar #pdfMobileColorTriggerBtn,
+            .pdf-annotation-toolbar .color-dot:not([data-mobile-color="true"]) {
                 display: none !important;
             }
             .pdf-mobile-only-btn {
@@ -6779,17 +6790,20 @@
                 justify-content: center !important;
                 gap: 4px !important;
             }
+            .pdf-mobile-palette-drawer {
+                display: none !important;
+            }
 
             /* Minimized Floating Pen Bubble */
             .pdf-modal-container.dock-collapsed .pdf-annotation-toolbar {
-                transform: translateX(-50%) translateY(80px) !important;
+                transform: translateX(-50%) translateY(90px) !important;
                 opacity: 0 !important;
                 pointer-events: none !important;
             }
             .pdf-modal-container.dock-collapsed #pdfMobileDockFloatingTriggerBtn {
                 display: flex !important;
                 position: absolute !important;
-                bottom: calc(12px + var(--safe-bottom)) !important;
+                bottom: calc(14px + var(--safe-bottom)) !important;
                 right: 14px !important;
                 z-index: 55 !important;
                 width: 42px !important;
@@ -6849,16 +6863,6 @@
             .pdf-audio-player-bar > div:last-child {
                 width: 100%;
                 justify-content: space-between !important;
-            }
-
-            /* 5. Mobile Palette Drawer */
-            .pdf-mobile-palette-drawer {
-                position: absolute !important;
-                bottom: calc(52px + var(--safe-bottom)) !important;
-                left: 50% !important;
-                transform: translateX(-50%) !important;
-                width: min(92vw, 380px) !important;
-                z-index: 55 !important;
             }
 
             /* --- Mobile Lecture Card & Study Buttons --- */
@@ -8316,10 +8320,7 @@
                         <i class="fa-solid fa-eraser"></i> ممحاة
                     </button>
                     <!-- Mobile Color & Tool Palette Trigger (Visible on mobile <= 768px) -->
-                    <button type="button" class="anno-btn pdf-mobile-only-btn" id="pdfMobileColorTriggerBtn" onclick="toggleMobilePaletteDrawer(event)" title="الألوان وخيارات القلم">
-                        <span id="pdfMobileActiveColorCircle" style="width: 18px; height: 18px; border-radius: 50%; background: #ef4444; border: 2px solid #fff; box-shadow: 0 0 6px rgba(0,0,0,0.5);"></span>
-                        <span style="font-size:0.75rem;">الألوان</span>
-                    </button>
+                    
                     <div class="pdf-header-divider"></div>
                     <button class="anno-btn" id="toolBtn_laser" onclick="setAnnotationTool('laser')" title="مؤشر ليزر للشرح">
                         <i class="fa-solid fa-wand-magic-sparkles"></i> ليزر
@@ -8335,10 +8336,10 @@
 
                 <!-- Group 2: Colors, Size Slider & Dynamic Font -->
                 <div class="anno-tool-group">
-                    <span class="color-dot active" style="background: #ef4444; width: 18px; height: 18px;" onclick="setAnnotationColor('#ef4444', this)"></span>
-                    <span class="color-dot" style="background: #3b82f6; width: 18px; height: 18px;" onclick="setAnnotationColor('#3b82f6', this)"></span>
-                    <span class="color-dot" style="background: #10b981; width: 18px; height: 18px;" onclick="setAnnotationColor('#10b981', this)"></span>
-                    <span class="color-dot" style="background: #f59e0b; width: 18px; height: 18px;" onclick="setAnnotationColor('#f59e0b', this)"></span>
+                    <span class="color-dot active" data-mobile-color="true" style="background: #ef4444; width: 18px; height: 18px;" onclick="setAnnotationColor('#ef4444', this)"></span>
+                    <span class="color-dot" data-mobile-color="true" style="background: #3b82f6; width: 18px; height: 18px;" onclick="setAnnotationColor('#3b82f6', this)"></span>
+                    <span class="color-dot" data-mobile-color="true" style="background: #10b981; width: 18px; height: 18px;" onclick="setAnnotationColor('#10b981', this)"></span>
+                    <span class="color-dot" data-mobile-color="true" style="background: #f59e0b; width: 18px; height: 18px;" onclick="setAnnotationColor('#f59e0b', this)"></span>
                     <span class="color-dot" style="background: #a855f7; width: 18px; height: 18px;" onclick="setAnnotationColor('#a855f7', this)"></span>
                     <span class="color-dot" style="background: #111827; border-color: #64748b; width: 18px; height: 18px;" onclick="setAnnotationColor('#111827', this)"></span>
                     <input type="color" id="customAnnoColor" value="#ef4444" onchange="setAnnotationColor(this.value, null)" style="width: 19px; height: 19px; padding: 0; border: none; background: transparent; cursor: pointer;">
@@ -8386,50 +8387,7 @@
             </div>
 
             <!-- Mobile Study Color & Tool Palette Drawer (Visible on mobile <= 768px) -->
-            <div class="pdf-mobile-palette-drawer" id="pdfMobilePaletteDrawer" onclick="event.stopPropagation()">
-                <div class="pmp-header">
-                    <span style="font-size: 0.86rem; font-weight: 800; color: var(--text-main);"><i class="fa-solid fa-palette" style="color: var(--primary); margin-left: 6px;"></i> خيارات وألوان القلم</span>
-                    <button type="button" class="icon-btn" onclick="toggleMobilePaletteDrawer(false)" style="width: 28px; height: 28px;"><i class="fa-solid fa-xmark"></i></button>
-                </div>
-                
-                <!-- Large Touch-Friendly Colors (min 38px) -->
-                <div class="pmp-section">
-                    <label style="font-size: 0.76rem; color: var(--text-muted); font-weight: 700; margin-bottom: 6px; display: block;">اختر لون الكتابة والتظليل:</label>
-                    <div class="pmp-colors-row">
-                        <span class="pmp-color-chip active" style="background: #ef4444;" onclick="selectMobileColor('#ef4444', this)"></span>
-                        <span class="pmp-color-chip" style="background: #3b82f6;" onclick="selectMobileColor('#3b82f6', this)"></span>
-                        <span class="pmp-color-chip" style="background: #10b981;" onclick="selectMobileColor('#10b981', this)"></span>
-                        <span class="pmp-color-chip" style="background: #f59e0b;" onclick="selectMobileColor('#f59e0b', this)"></span>
-                        <span class="pmp-color-chip" style="background: #a855f7;" onclick="selectMobileColor('#a855f7', this)"></span>
-                        <span class="pmp-color-chip" style="background: #111827; border: 1.5px solid #64748b;" onclick="selectMobileColor('#111827', this)"></span>
-                        <label class="pmp-custom-color-label" title="لون مخصص">
-                            <i class="fa-solid fa-eye-dropper" style="color: #cbd5e1; font-size: 0.85rem;"></i>
-                            <input type="color" onchange="selectMobileColor(this.value, null)" style="opacity: 0; position: absolute; width: 0; height: 0;">
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Quick Stroke Thickness Presets (min 40px touch) -->
-                <div class="pmp-section">
-                    <label style="font-size: 0.76rem; color: var(--text-muted); font-weight: 700; margin-bottom: 6px; display: block;">سمك الخط:</label>
-                    <div class="pmp-stroke-presets-row">
-                        <button type="button" class="pmp-stroke-chip" onclick="selectMobileStrokePreset(2, this)"><span style="display:inline-block; width:12px; height:2px; background:currentColor; border-radius:2px; vertical-align:middle; margin-left:4px;"></span> رفيع (2px)</button>
-                        <button type="button" class="pmp-stroke-chip active" onclick="selectMobileStrokePreset(4, this)"><span style="display:inline-block; width:12px; height:4px; background:currentColor; border-radius:2px; vertical-align:middle; margin-left:4px;"></span> متوسط (4px)</button>
-                        <button type="button" class="pmp-stroke-chip" onclick="selectMobileStrokePreset(8, this)"><span style="display:inline-block; width:12px; height:8px; background:currentColor; border-radius:2px; vertical-align:middle; margin-left:4px;"></span> عريض (8px)</button>
-                    </div>
-                </div>
-
-                <!-- Quick Tools in Tray -->
-                <div class="pmp-section" style="border-top: 1px solid rgba(148,163,184,0.12); padding-top: 8px;">
-                    <label style="font-size: 0.76rem; color: var(--text-muted); font-weight: 700; margin-bottom: 6px; display: block;">أدوات إضافية:</label>
-                    <div class="pmp-tools-row">
-                        <button type="button" class="pmp-action-chip" onclick="setAnnotationTool('text'); toggleMobilePaletteDrawer(false);"><i class="fa-solid fa-font"></i> نص بالكيبورد</button>
-                        <button type="button" class="pmp-action-chip" onclick="toggleExtraNoteForPage(currentActivePageNum); toggleMobilePaletteDrawer(false);"><i class="fa-solid fa-file-circle-plus"></i> ورقة تلخيص</button>
-                        <button type="button" class="pmp-action-chip" onclick="toggleAnnotationsVisibility(); toggleMobilePaletteDrawer(false);"><i class="fa-solid fa-eye"></i> إخفاء/إظهار الكتابة</button>
-                        <button type="button" class="pmp-action-chip" onclick="togglePalmRejectionMode();"><i class="fa-solid fa-hand-dots"></i> عزل التاتش</button>
-                    </div>
-                </div>
-            </div>
+            <!-- Mobile Study Drawer Removed -->
 
             <!-- Mobile Dock 1-Tap Floating Restore Trigger (Visible only when dock is collapsed on mobile) -->
             <button type="button" id="pdfMobileDockFloatingTriggerBtn" onclick="togglePdfAnnotationDock()" title="إظهار أدوات المذاكرة والكتابة">
@@ -17780,6 +17738,37 @@
         }
         initPdfDB();
 
+        async function isValidPdfBlob(blob) {
+            if (!blob || !(blob instanceof Blob) || blob.size < 20) return false;
+            try {
+                const slice = await blob.slice(0, 5).text();
+                return slice === '%PDF-';
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async function deleteMediaFromDB(storeName, id) {
+            const strKey = String(id);
+            if (sessionMediaBlobRamCache[storeName]) sessionMediaBlobRamCache[storeName].delete(strKey);
+            if (localMediaCache[storeName]) localMediaCache[storeName].delete(strKey);
+            if (!dbInstance) await initPdfDB();
+            return new Promise((resolve) => {
+                if (!dbInstance) return resolve();
+                try {
+                    const numOrStrId = isNaN(Number(id)) ? id : Number(id);
+                    const tx = dbInstance.transaction(storeName, 'readwrite');
+                    const store = tx.objectStore(storeName);
+                    store.delete(numOrStrId);
+                    if (numOrStrId !== strKey) store.delete(strKey);
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => resolve();
+                } catch (e) {
+                    resolve();
+                }
+            });
+        }
+
         async function saveMediaToDB(storeName, id, fileBlob) {
             if (!dbInstance) await initPdfDB();
             return new Promise((resolve) => {
@@ -17811,7 +17800,17 @@
         async function getMediaFromDB(storeName, id) {
             const strKey = String(id);
             if (sessionMediaBlobRamCache[storeName] && sessionMediaBlobRamCache[storeName].has(strKey)) {
-                return sessionMediaBlobRamCache[storeName].get(strKey);
+                const cached = sessionMediaBlobRamCache[storeName].get(strKey);
+                if (storeName === 'pdfs' && cached) {
+                    const isRealPdf = await isValidPdfBlob(cached);
+                    if (!isRealPdf) {
+                        sessionMediaBlobRamCache[storeName].delete(strKey);
+                    } else {
+                        return cached;
+                    }
+                } else {
+                    return cached;
+                }
             }
             if (!dbInstance) await initPdfDB();
             return new Promise((resolve) => {
@@ -17821,27 +17820,41 @@
                     const tx = dbInstance.transaction(storeName, 'readonly');
                     const store = tx.objectStore(storeName);
                     const req = store.get(numOrStrId);
-                    req.onsuccess = () => {
-                        if (req.result && req.result.blob) {
-                            if (sessionMediaBlobRamCache[storeName]) {
-                                sessionMediaBlobRamCache[storeName].set(strKey, req.result.blob);
-                            }
-                            return resolve(req.result.blob);
-                        }
-                        // Fallback lookup with raw String(id) in case an older entry was keyed as string
-                        if (numOrStrId !== strKey) {
+                    req.onsuccess = async () => {
+                        let resBlob = req.result ? req.result.blob : null;
+                        if (!resBlob && numOrStrId !== strKey) {
                             const reqFallback = store.get(strKey);
-                            reqFallback.onsuccess = () => {
+                            reqFallback.onsuccess = async () => {
                                 const b = reqFallback.result ? reqFallback.result.blob : null;
-                                if (b && sessionMediaBlobRamCache[storeName]) {
-                                    sessionMediaBlobRamCache[storeName].set(strKey, b);
+                                if (b) {
+                                    if (storeName === 'pdfs') {
+                                        const isRealPdf = await isValidPdfBlob(b);
+                                        if (!isRealPdf) {
+                                            await deleteMediaFromDB('pdfs', id);
+                                            return resolve(null);
+                                        }
+                                    }
+                                    if (sessionMediaBlobRamCache[storeName]) sessionMediaBlobRamCache[storeName].set(strKey, b);
                                 }
                                 resolve(b);
                             };
                             reqFallback.onerror = () => resolve(null);
-                        } else {
-                            resolve(null);
+                            return;
                         }
+                        if (resBlob) {
+                            if (storeName === 'pdfs') {
+                                const isRealPdf = await isValidPdfBlob(resBlob);
+                                if (!isRealPdf) {
+                                    await deleteMediaFromDB('pdfs', id);
+                                    return resolve(null);
+                                }
+                            }
+                            if (sessionMediaBlobRamCache[storeName]) {
+                                sessionMediaBlobRamCache[storeName].set(strKey, resBlob);
+                            }
+                            return resolve(resBlob);
+                        }
+                        resolve(null);
                     };
                     req.onerror = () => resolve(null);
                 } catch (e) {
@@ -18324,6 +18337,11 @@
         }
 
         async function openMergedSubjectLecturesStudio(specificLectureIds = null, explicitSubId = null) {
+            if (typeof isMobileStudyViewport === 'function' && isMobileStudyViewport()) {
+                const container = document.getElementById('pdfModalContainer');
+                if (container) container.classList.add('dock-collapsed');
+            }
+
             const targetSubId = explicitSubId !== null ? explicitSubId : activeSubjectId;
             const sub = subjects.find(s => String(s.id) === String(targetSubId));
             if (!sub) return;
@@ -18772,6 +18790,11 @@
 
         // --- Open Lecture with Multi-Page PDF Studio & Synced Audio (Local + Cloud Auto-Fetch) ---
         async function openLectureDocument(groupId, lecId, keepMergedBundle = false) {
+            if (typeof isMobileStudyViewport === 'function' && isMobileStudyViewport()) {
+                const container = document.getElementById('pdfModalContainer');
+                if (container) container.classList.add('dock-collapsed');
+            }
+
             if (activeFloatingTextEditor) commitOrCloseFloatingTextEditor(true);
             flushPendingAnnotationsSave(false);
             const sub = subjects.find(s => s.id === activeSubjectId);
@@ -18999,36 +19022,10 @@
         }
 
         
-        // --- Mobile Study Studio Palette Helpers ---
-        function toggleMobilePaletteDrawer(forceState) {
-            if (window.event) window.event.stopPropagation();
-            const drawer = document.getElementById('pdfMobilePaletteDrawer');
-            if (!drawer) return;
-            const shouldOpen = (typeof forceState === 'boolean') ? forceState : !drawer.classList.contains('open');
-            drawer.classList.toggle('open', shouldOpen);
-        }
-
-        function selectMobileColor(colorHex, chipEl) {
-            if (window.event) window.event.stopPropagation();
-            setAnnotationColor(colorHex, null);
-            const circle = document.getElementById('pdfMobileActiveColorCircle');
-            if (circle) circle.style.background = colorHex;
-            document.querySelectorAll('.pmp-color-chip').forEach(c => c.classList.remove('active'));
-            if (chipEl) chipEl.classList.add('active');
-            toggleMobilePaletteDrawer(false);
-        }
-
-        function selectMobileStrokePreset(size, chipEl) {
-            if (window.event) window.event.stopPropagation();
-            updateAnnotationSize(size);
-            document.querySelectorAll('.pmp-stroke-chip').forEach(c => c.classList.remove('active'));
-            if (chipEl) chipEl.classList.add('active');
-            const slider = document.getElementById('annoStrokeSize');
-            if (slider) slider.value = size;
-            const label = document.getElementById('annoSizeLabel');
-            if (label) label.innerText = size + 'px';
-            toggleMobilePaletteDrawer(false);
-        }
+        // --- Mobile Study Studio Palette Helpers (Simplified for clean immersion) ---
+        function toggleMobilePaletteDrawer(forceState) {}
+        function selectMobileColor(colorHex, chipEl) { setAnnotationColor(colorHex, null); }
+        function selectMobileStrokePreset(size, chipEl) { updateAnnotationSize(size); }
 
         function attachPdfScrollActivePageDetector() {
             const scrollContainer = document.getElementById('pdfPagesScrollContainer');
@@ -25998,8 +25995,16 @@
                             if (res.ok) {
                                 const blob = await res.blob();
                                 if (blob && blob.size > 0) {
-                                    await saveMediaToDB(storeName, lecObj.id, blob);
-                                    return blob;
+                                    if (isPdf) {
+                                        const isRealPdf = await isValidPdfBlob(blob);
+                                        if (isRealPdf) {
+                                            await saveMediaToDB(storeName, lecObj.id, blob);
+                                            return blob;
+                                        }
+                                    } else {
+                                        await saveMediaToDB(storeName, lecObj.id, blob);
+                                        return blob;
+                                    }
                                 }
                             } else if (res.status === 401) {
                                 showToast('انتهت صلاحية جلسة Google Drive على هذا الجهاز، يرجى إعادة التفعيل', 'error');
@@ -26007,28 +26012,35 @@
                         } catch (e) {}
                     }
 
-                    // Method B: If no Google Drive token on this device, download directly via Google Drive direct content endpoints!
+                    // Method B: If no Google Drive token on this device, download directly via genuine direct content endpoints!
+                    // (Strictly NO lh3.googleusercontent.com because it only returns a 1-page thumbnail!)
                     const publicDlEndpoints = [
-                        `https://drive.google.com/uc?export=download&id=${driveId}`,
-                        `https://lh3.googleusercontent.com/d/${driveId}`,
-                        `https://drive.usercontent.google.com/download?id=${driveId}&export=download`
+                        `https://drive.usercontent.google.com/download?id=${driveId}&export=download`,
+                        `https://drive.google.com/uc?export=download&id=${driveId}&confirm=t`,
+                        `https://docs.google.com/uc?export=download&id=${driveId}&confirm=t`
                     ];
                     for (const pubUrl of publicDlEndpoints) {
                         try {
                             const pubRes = await fetch(pubUrl);
                             if (pubRes.ok) {
                                 const pubBlob = await pubRes.blob();
-                                if (pubBlob && pubBlob.size > 2000 && !pubBlob.type.includes('text/html')) {
-                                    await saveMediaToDB(storeName, lecObj.id, pubBlob);
-                                    return pubBlob;
+                                if (pubBlob && pubBlob.size > 500) {
+                                    if (isPdf) {
+                                        const isRealPdf = await isValidPdfBlob(pubBlob);
+                                        if (isRealPdf) {
+                                            await saveMediaToDB(storeName, lecObj.id, pubBlob);
+                                            return pubBlob;
+                                        }
+                                    } else if (!pubBlob.type.includes('text/html') && pubBlob.size > 2000) {
+                                        await saveMediaToDB(storeName, lecObj.id, pubBlob);
+                                        return pubBlob;
+                                    }
                                 }
                             }
                         } catch (e) {}
                     }
 
-                    // If neither worked and not authenticated on this device:
-                    showToast('يرجى تفعيل أو ربط حساب Google Drive من «حسابي / الكلاود» لتنزيل ملفات المحاضرة', 'error');
-                    openCloudAuthModal();
+                    // Fallback seamlessly to native Google Drive iframe viewer without intrusive modal interruptions
                     return null;
                 }
 
