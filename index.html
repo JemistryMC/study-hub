@@ -1751,7 +1751,289 @@
         .toast.fade-out { animation: fadeOutToast 0.2s ease forwards; }
         @keyframes slideInToast { from { transform: translateX(-110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes fadeOutToast { to { transform: translateX(-110%); opacity: 0; } }
-        .pdf-viewer-header {
+        
+        /* ===== PDF Reading Progress Bar ===== */
+        .pdf-reading-progress-track {
+            width: 100%;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.06);
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .pdf-reading-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary), #38bdf8, #818cf8);
+            transition: width 0.22s ease-out;
+            box-shadow: 0 0 8px rgba(45, 212, 191, 0.5);
+        }
+
+        /* ===== PDF Night Mode Eye Comfort Filter ===== */
+        .pdf-modal-container.pdf-night-mode .pdf-render-canvas {
+            filter: invert(0.9) hue-rotate(180deg) contrast(1.1) brightness(0.92) !important;
+        }
+        .pdf-modal-container.pdf-night-mode .pdf-page-wrapper {
+            background: #151821 !important;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.85) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        }
+        .pdf-modal-container.pdf-night-mode .pdf-pages-scroll-container {
+            background: #08090d !important;
+        }
+
+        /* ===== Two-Page Spread Layout ===== */
+        .pdf-pages-scroll-container.two-page-spread {
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            align-items: flex-start !important;
+            gap: 20px !important;
+        }
+
+        /* ===== PDF Viewer Body & Thumbnails Drawer ===== */
+        .pdf-viewer-body {
+            flex: 1;
+            position: relative;
+            background: #090b10;
+            display: flex !important;
+            flex-direction: row !important;
+            overflow: hidden !important;
+        }
+        .pdf-thumbnails-drawer {
+            width: 270px;
+            height: 100%;
+            background: rgba(15, 18, 26, 0.98);
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+            display: none;
+            flex-direction: column;
+            flex-shrink: 0;
+            z-index: 35;
+            transition: width 0.22s ease;
+            user-select: none;
+        }
+        .pdf-thumbnails-drawer.open {
+            display: flex !important;
+        }
+        .pdf-thumb-drawer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(20, 24, 34, 0.8);
+        }
+        .pdf-thumb-drawer-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+        .pdf-thumb-counter-badge {
+            background: rgba(45, 212, 191, 0.15);
+            color: var(--primary);
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 999px;
+        }
+        .pdf-thumb-filter-tabs {
+            display: flex;
+            padding: 6px 10px;
+            gap: 4px;
+            background: rgba(10, 13, 20, 0.9);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .pdf-thumb-tab-btn {
+            flex: 1;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            padding: 5px 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .pdf-thumb-tab-btn.active {
+            background: rgba(45, 212, 191, 0.14);
+            border-color: rgba(45, 212, 191, 0.35);
+            color: var(--primary);
+        }
+        .pdf-thumb-search-wrap {
+            position: relative;
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .pdf-thumb-search-wrap i {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+        .pdf-thumb-search-wrap input {
+            width: 100%;
+            padding: 6px 28px 6px 10px;
+            border-radius: 7px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+            font-size: 0.75rem;
+            outline: none;
+        }
+        .pdf-thumb-search-wrap input:focus {
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .pdf-thumbnails-grid {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            scroll-behavior: smooth;
+        }
+        .pdf-thumb-card {
+            background: rgba(22, 26, 38, 0.85);
+            border: 1.5px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .pdf-thumb-card:hover {
+            border-color: rgba(45, 212, 191, 0.4);
+            background: rgba(28, 33, 48, 0.95);
+            transform: translateY(-1px);
+        }
+        .pdf-thumb-card.active-thumb {
+            border-color: var(--primary) !important;
+            background: rgba(45, 212, 191, 0.08) !important;
+            box-shadow: 0 0 12px rgba(45, 212, 191, 0.25);
+        }
+        .pdf-thumb-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .pdf-thumb-number-badge {
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: var(--text-main);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .pdf-thumb-star-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.25);
+            cursor: pointer;
+            padding: 2px 4px;
+            font-size: 0.82rem;
+            transition: color 0.15s ease, transform 0.15s ease;
+        }
+        .pdf-thumb-star-btn:hover {
+            transform: scale(1.15);
+            color: #f59e0b;
+        }
+        .pdf-thumb-star-btn.bookmarked {
+            color: #f59e0b !important;
+        }
+        .pdf-thumb-preview-box {
+            width: 100%;
+            height: 90px;
+            background: rgba(10, 13, 20, 0.9);
+            border-radius: 5px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            position: relative;
+        }
+        .pdf-thumb-preview-canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        .pdf-thumb-preview-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+        .pdf-thumb-badges-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.65rem;
+        }
+        .pdf-thumb-tag {
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+        .pdf-thumb-tag.note-tag {
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+        }
+        .pdf-thumb-tag.pin-tag {
+            background: rgba(168, 85, 247, 0.15);
+            color: #c084fc;
+        }
+        .pdf-thumb-backdrop {
+            display: none;
+        }
+
+        /* Quick Jump Modal Card */
+        .pdf-quick-jump-card {
+            background: rgba(18, 22, 32, 0.98);
+            border: 1px solid rgba(45, 212, 191, 0.35);
+            border-radius: 14px;
+            padding: 20px;
+            width: 90%;
+            max-width: 360px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(14px);
+            animation: fadeInModal 0.18s ease-out;
+        }
+
+        @media (max-width: 768px) {
+            .pdf-thumbnails-drawer {
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: 260px;
+                box-shadow: -8px 0 24px rgba(0,0,0,0.7);
+            }
+            .pdf-thumb-backdrop.open {
+                display: block;
+                position: absolute;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.55);
+                z-index: 34;
+            }
+        }
+.pdf-viewer-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -7071,7 +7353,332 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
         }
 
-    </style>
+    
+        /* ================= MODERN COLLAPSIBLE SIDEBAR & DESKTOP LAYOUT ================= */
+        .exo-sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 255px;
+            background: linear-gradient(180deg, rgba(11, 16, 28, 0.98), rgba(7, 10, 18, 0.99));
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-left: 1px solid rgba(148, 163, 184, 0.12);
+            z-index: 950;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 16px 12px;
+            box-shadow: -8px 0 32px rgba(0, 0, 0, 0.45);
+            transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            user-select: none;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        .exo-sidebar::-webkit-scrollbar { width: 4px; }
+        .exo-sidebar::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.2); border-radius: 999px; }
+
+        body.sidebar-collapsed .exo-sidebar {
+            width: 72px;
+            padding: 16px 8px;
+        }
+
+        /* Sidebar Brand Header */
+        .sidebar-brand-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            margin-bottom: 12px;
+        }
+        .sidebar-brand-main {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .sidebar-brand-text {
+            font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+            font-weight: 900;
+            font-size: 1.4rem;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #2dd4bf, #38bdf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            transition: opacity 0.2s ease, width 0.2s ease;
+        }
+        body.sidebar-collapsed .sidebar-brand-text {
+            display: none;
+        }
+        .sidebar-toggle-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            color: #94a3b8;
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        .sidebar-toggle-btn:hover {
+            color: var(--primary);
+            background: rgba(45, 212, 191, 0.12);
+            border-color: rgba(45, 212, 191, 0.35);
+        }
+
+        /* Sidebar Profile Card */
+        .sidebar-profile-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(18, 25, 41, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            border-radius: 13px;
+            padding: 9px 10px;
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            overflow: hidden;
+        }
+        .sidebar-profile-card:hover {
+            border-color: rgba(45, 212, 191, 0.35);
+            background: rgba(18, 25, 41, 0.95);
+        }
+        .sidebar-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--primary-gradient);
+            color: #0c0d11;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 1rem;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(45, 212, 191, 0.3);
+        }
+        .sidebar-user-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        body.sidebar-collapsed .sidebar-user-info {
+            display: none;
+        }
+        .sidebar-user-name {
+            font-size: 0.86rem;
+            font-weight: 800;
+            color: var(--text-main);
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .sidebar-user-badge {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Primary Nav Items */
+        .sidebar-nav-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+        .sidebar-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.88rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            width: 100%;
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .sidebar-nav-item:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .sidebar-nav-item.active {
+            color: var(--primary);
+            background: rgba(45, 212, 191, 0.12);
+            border-color: rgba(45, 212, 191, 0.28);
+            box-shadow: 0 4px 14px rgba(20, 184, 166, 0.12);
+        }
+        .sni-icon-wrap {
+            width: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.05rem;
+            flex-shrink: 0;
+        }
+        .sni-label {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        body.sidebar-collapsed .sni-label,
+        body.sidebar-collapsed .sni-badge {
+            display: none;
+        }
+        .sni-badge {
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            color: #cbd5e1;
+        }
+        .sidebar-nav-item.active .sni-badge {
+            background: rgba(45, 212, 191, 0.2);
+            color: var(--primary);
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background: rgba(148, 163, 184, 0.1);
+            margin: 8px 0 12px 0;
+        }
+
+        /* Quick Utility Actions */
+        .sidebar-tools-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .sidebar-tool-btn {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.16s ease;
+            width: 100%;
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .sidebar-tool-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .sidebar-tool-btn i {
+            width: 20px;
+            text-align: center;
+            font-size: 0.95rem;
+            flex-shrink: 0;
+        }
+        .stb-label {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        body.sidebar-collapsed .stb-label {
+            display: none;
+        }
+
+        /* Sidebar Footer Live Clock */
+        .sidebar-footer {
+            padding-top: 10px;
+            border-top: 1px solid rgba(148, 163, 184, 0.08);
+            margin-top: auto;
+        }
+        .sidebar-clock-widget {
+            background: rgba(9, 13, 22, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 11px;
+            padding: 8px 10px;
+            text-align: center;
+        }
+        body.sidebar-collapsed .sidebar-clock-widget {
+            display: none;
+        }
+        .scw-time {
+            font-weight: 900;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            font-variant-numeric: tabular-nums;
+        }
+        .scw-date {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Desktop Main Content offset */
+        @media (min-width: 901px) {
+            .navbar { display: none !important; }
+            .main-content {
+                margin-right: 255px !important;
+                margin-left: 0 !important;
+                padding: 24px 32px !important;
+                max-width: calc(100vw - 255px) !important;
+                transition: margin-right 0.25s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            }
+            body.sidebar-collapsed .main-content {
+                margin-right: 72px !important;
+                max-width: calc(100vw - 72px) !important;
+            }
+            /* LTR English Sidebar Support */
+            html[dir="ltr"] .exo-sidebar {
+                right: auto !important;
+                left: 0 !important;
+                border-left: none !important;
+                border-right: 1px solid rgba(148, 163, 184, 0.12) !important;
+                box-shadow: 8px 0 32px rgba(0, 0, 0, 0.45) !important;
+            }
+            html[dir="ltr"] .main-content {
+                margin-right: 0 !important;
+                margin-left: 255px !important;
+            }
+            html[dir="ltr"] body.sidebar-collapsed .main-content {
+                margin-left: 72px !important;
+                margin-right: 0 !important;
+            }
+            html[dir="ltr"] .sidebar-nav-item,
+            html[dir="ltr"] .sidebar-tool-btn {
+                text-align: left !important;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .exo-sidebar { display: none !important; }
+            .main-content { margin-right: 0 !important; margin-left: 0 !important; }
+        }
+</style>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -7132,6 +7739,79 @@
 
 </head>
 <body>
+    <!-- Modern Collapsible Desktop Sidebar (RTL) -->
+    <aside class="exo-sidebar" id="exoAppSidebar">
+        <!-- Sidebar Brand & Toggle -->
+        <div>
+            <div class="sidebar-brand-row">
+                <div class="sidebar-brand-main" onclick="switchView('subjects', document.querySelector('.sidebar-nav-item[data-tab="subjects"]'))">
+                    <img src="data:image/png;base64,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" data-icon-src="./favicon.png" alt="Exo" class="exo-brand-logo-img" style="width:34px; height:34px; border-radius:50%; object-fit:cover;">
+                    <span class="sidebar-brand-text">Exo</span>
+                </div>
+                <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleDesktopSidebar()" title="طي / توسيع القائمة (Ctrl+B)">
+                    <i class="fa-solid fa-angles-right" id="sidebarToggleIcon"></i>
+                </button>
+            </div>
+
+            <!-- Student Profile & Cloud Sync Card -->
+            <div class="sidebar-profile-card" onclick="openCloudAuthModal()" title="الملف الشخصي وإعدادات الكلاود">
+                <div class="sidebar-avatar" id="sidebarUserAvatar">ط</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name" id="sidebarUserNameDisplay">مستخدم المنصة</div>
+                    <div class="sidebar-user-badge" id="sidebarUserStatusBadge"><i class="fa-solid fa-cloud"></i> الكلاود</div>
+                </div>
+            </div>
+
+            <!-- Primary Navigation -->
+            <nav class="sidebar-nav-group">
+                <button type="button" class="sidebar-nav-item active" data-tab="subjects" onclick="switchView('subjects', this)">
+                    <div class="sni-icon-wrap"><i class="fa-solid fa-layer-group"></i></div>
+                    <span class="sni-label">المركز الدراسي</span>
+                    <span class="sni-badge" id="sidebarSubjectsCountBadge">0</span>
+                </button>
+                <button type="button" class="sidebar-nav-item" data-tab="schedule" onclick="switchView('schedule', this)">
+                    <div class="sni-icon-wrap"><i class="fa-solid fa-calendar-days"></i></div>
+                    <span class="sni-label">التخطيط الأسبوعي</span>
+                    <span class="sni-badge" id="sidebarScheduleTodayBadge">0</span>
+                </button>
+                <button type="button" class="sidebar-nav-item" data-tab="tracker" onclick="switchView('tracker', this)">
+                    <div class="sni-icon-wrap"><i class="fa-solid fa-chart-line"></i></div>
+                    <span class="sni-label">السجل والتقارير</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-divider"></div>
+
+            <!-- Utility & Tool Actions -->
+            <div class="sidebar-tools-group">
+                <button type="button" class="sidebar-tool-btn" onclick="openCloudAuthModal()" title="إعدادات Google Drive والمزامنة">
+                    <i class="fa-brands fa-google-drive" id="sidebarGdriveIcon" style="color:#34a853;"></i>
+                    <span class="stb-label" id="sidebarGdriveLabel">Google Drive</span>
+                </button>
+                <button type="button" class="sidebar-tool-btn" onclick="toggleExoLanguage()" title="Switch Language / تغيير اللغة">
+                    <i class="fa-solid fa-globe" style="color:#38bdf8;"></i>
+                    <span class="stb-label" id="sidebarLangLabel">English (EN)</span>
+                </button>
+                <button type="button" class="sidebar-tool-btn" onclick="toggleGlobalAppFullscreen()" title="ملء الشاشة الكامل">
+                    <i class="fa-solid fa-expand" id="sidebarFullscreenIcon"></i>
+                    <span class="stb-label" id="sidebarFullscreenLabel">ملء الشاشة</span>
+                </button>
+                <button type="button" class="sidebar-tool-btn" onclick="openHelpModal()" title="دليل الاستخدام الشامل">
+                    <i class="fa-solid fa-circle-question" style="color:#2dd4bf;"></i>
+                    <span class="stb-label">دليل المنصة</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Sidebar Footer Live Clock -->
+        <div class="sidebar-footer">
+            <div class="sidebar-clock-widget" id="sidebarLiveClock">
+                <div class="scw-time" id="sidebarClockTime">--:--</div>
+                <div class="scw-date" id="sidebarClockDate">جاري التحديث...</div>
+            </div>
+        </div>
+    </aside>
+
 
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
@@ -8212,9 +8892,18 @@
                     <button class="anno-btn" onclick="stepPdfPage(-1)" title="الصفحة السابقة (سهم لأعلى)">
                         <i class="fa-solid fa-chevron-up"></i>
                     </button>
-                    <span id="pdfPageCounterBadge" class="studio-pill" onclick="promptJumpToPdfPage()" title="اضغط للانتقال لصفحة محددة" style="font-size: 0.74rem; color: var(--primary); cursor: pointer; min-width: 72px; justify-content: center; border: none; background: rgba(45, 212, 191, 0.08);">1 / 1</span>
+                    <span id="pdfPageCounterBadge" class="studio-pill" onclick="promptJumpToPdfPage()" title="اضغط للانتقال السريع لصفحة أو مصغر" style="font-size: 0.74rem; color: var(--primary); cursor: pointer; min-width: 72px; justify-content: center; border: none; background: rgba(45, 212, 191, 0.08);">1 / 1</span>
                     <button class="anno-btn" onclick="stepPdfPage(1)" title="الصفحة التالية (سهم لأسفل)">
                         <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+
+                    <div class="pdf-header-divider"></div>
+
+                    <button class="anno-btn" id="pdfBookmarkCurrentSlideBtn" onclick="toggleBookmarkCurrentSlide()" title="تمييز السلايد الحالي كمهم للاختبار والمراجعة (اختصار: B)">
+                        <i class="fa-regular fa-star" id="pdfBookmarkCurrentSlideIcon"></i> <span class="hide-on-xs" id="pdfBookmarkCurrentSlideText">مهم</span>
+                    </button>
+                    <button class="anno-btn" id="pdfThumbnailsToggleBtn" onclick="togglePdfThumbnailsDrawer()" title="إظهار / إخفاء مصغرات السلايدات وفهرس المحاضرة (اختصار: M)">
+                        <i class="fa-solid fa-table-cells"></i> <span class="hide-on-xs">المصغرات</span>
                     </button>
 
                     <div class="pdf-header-divider"></div>
@@ -8239,6 +8928,9 @@
                         <i class="fa-solid fa-compass" id="pdfHeaderSmartMiniIcon"></i>
                         <span id="pdfHeaderSmartMiniText">التتبع الذكي</span>
                     </button>
+                    <button class="anno-btn" id="pdfNightModeBtn" onclick="togglePdfNightMode()" title="الوضع الليلي لحماية العين من بياض السلايدات (اختصار: N)">
+                        <i class="fa-solid fa-moon" id="pdfNightModeIcon"></i> <span class="hide-on-xs" id="pdfNightModeText">ليلي</span>
+                    </button>
                     <button class="anno-btn pdf-zen-toggle-btn" id="pdfZenModeBtn" onclick="togglePdfZenMode()" title="وضع التركيز الصافي بدون أي أشرطة (اختصار: Z)" style="border: 1px solid rgba(16, 185, 129, 0.35); color: #6ee7b7;">
                         <i class="fa-solid fa-leaf"></i> <span id="pdfZenModeText">وضع التركيز</span>
                     </button>
@@ -8252,8 +8944,18 @@
                             <i class="fa-solid fa-sliders"></i> <span class="hide-on-xs">خيارات</span> <i class="fa-solid fa-chevron-down" style="font-size: 0.62rem;"></i>
                         </button>
                         <div class="pdf-more-dropdown-menu" id="pdfMoreDropdownMenu" onclick="event.stopPropagation()">
+                            <button class="pdf-more-item" id="pdfTwoPageSpreadBtn" onclick="togglePdfTwoPageSpread(); closePdfMoreMenu();">
+                                <i class="fa-solid fa-book-open" style="color: #38bdf8;"></i> <span id="pdfTwoPageSpreadText">عرض صفحتين جنباً إلى جنب</span>
+                            </button>
+                            <button class="pdf-more-item" onclick="jumpToNextBookmarkedSlide(1); closePdfMoreMenu();">
+                                <i class="fa-solid fa-star" style="color: #f59e0b;"></i> الانتقال للسلايد المهم التالي ⭐
+                            </button>
+                            <div style="height: 1px; background: rgba(255,255,255,0.06); margin: 3px 0;"></div>
                             <button class="pdf-more-item" id="pdfMenuExtraNoteBtn" onclick="toggleExtraNoteForPage(currentActivePageNum); closePdfMoreMenu();">
                                 <i class="fa-solid fa-file-circle-plus" id="pdfMenuExtraNoteIcon" style="color: var(--primary);"></i> <span id="pdfMenuExtraNoteText">إضافة / إظهار ورقة تلخيص</span>
+                            </button>
+                            <button class="pdf-more-item" id="pdfMenuDownloadDiskBtn" onclick="downloadCurrentViewingPdfToDisk(); closePdfMoreMenu();">
+                                <i class="fa-solid fa-download" style="color: var(--primary);"></i> <span id="pdfMenuDownloadDiskText">حفظ نسخة PDF على جهازك (Downloads)</span>
                             </button>
                             <button class="pdf-more-item" id="pdfMenuExportPdfBtn" onclick="exportAnnotatedSlides(); closePdfMoreMenu();">
                                 <i class="fa-solid fa-file-export" id="pdfMenuExportPdfIcon" style="color: #6ee7b7;"></i> <span id="pdfMenuExportPdfText">تصدير المحاضرة بالكتابة (PDF)</span>
@@ -8280,6 +8982,11 @@
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
+            </div>
+
+            <!-- Reading Progress Bar -->
+            <div class="pdf-reading-progress-track" id="pdfReadingProgressTrack" title="تقدم قراءة المحاضرة">
+                <div class="pdf-reading-progress-fill" id="pdfReadingProgressBar"></div>
             </div>
 
             <!-- Merged Multi-Lecture & Audio Playlist Bar -->
@@ -8410,6 +9117,41 @@
 
             <!-- Scrollable Multi-Page PDF + Per-Page Canvas Stack -->
             <div class="pdf-viewer-body">
+                <!-- Collapsible Thumbnails & Outline Sidebar -->
+                <aside class="pdf-thumbnails-drawer" id="pdfThumbnailsDrawer" aria-label="فهرس ومصغرات السلايدات">
+                    <div class="pdf-thumb-drawer-header">
+                        <div class="pdf-thumb-drawer-title">
+                            <i class="fa-solid fa-table-cells" style="color:var(--primary);"></i>
+                            <span>فهرس ومصغرات السلايدات</span>
+                            <span id="pdfThumbTotalCountBadge" class="pdf-thumb-counter-badge">0</span>
+                        </div>
+                        <button type="button" class="icon-btn" onclick="togglePdfThumbnailsDrawer(false)" title="إغلاق الفهرس (M)">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <!-- Filter Tabs -->
+                    <div class="pdf-thumb-filter-tabs">
+                        <button type="button" class="pdf-thumb-tab-btn active" id="pdfThumbTab_all" onclick="setPdfThumbFilter('all')">
+                            الكل (<span id="pdfThumbFilterCount_all">0</span>)
+                        </button>
+                        <button type="button" class="pdf-thumb-tab-btn" id="pdfThumbTab_bookmarks" onclick="setPdfThumbFilter('bookmarks')">
+                            <i class="fa-solid fa-star" style="color:#f59e0b;"></i> المهمة (<span id="pdfThumbFilterCount_bookmarks">0</span>)
+                        </button>
+                        <button type="button" class="pdf-thumb-tab-btn" id="pdfThumbTab_notes" onclick="setPdfThumbFilter('notes')">
+                            <i class="fa-solid fa-pen-to-square" style="color:#38bdf8;"></i> ملاحظات (<span id="pdfThumbFilterCount_notes">0</span>)
+                        </button>
+                    </div>
+                    <!-- Quick Search / Slide Filter -->
+                    <div class="pdf-thumb-search-wrap">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="pdfThumbSearchInput" placeholder="بحث برقم السلايد..." oninput="handlePdfThumbSearch(this.value)">
+                    </div>
+                    <!-- Thumbnails Grid/List -->
+                    <div class="pdf-thumbnails-grid" id="pdfThumbnailsGrid">
+                        <!-- Populated dynamically via renderPdfThumbnailsList -->
+                    </div>
+                </aside>
+                <div class="pdf-thumb-backdrop" id="pdfThumbDrawerBackdrop" onclick="togglePdfThumbnailsDrawer(false)"></div>
                 <!-- Ultra-Minimalist 1-Click Exit Pill when Zen Focus Mode is active -->
                 <div class="pdf-zen-floating-pill" onclick="togglePdfZenMode()" title="اضغط للخروج من وضع التركيز (أو اضغط حرف Z من الكيبورد)">
                     <i class="fa-solid fa-compress" style="color: var(--primary); font-size: 0.78rem;"></i>
@@ -8494,6 +9236,39 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- Quick Slide Scrubber & Direct Jump Modal -->
+    <div class="glass-overlay" id="pdfQuickJumpModalOverlay" style="z-index: 100010;" onclick="if(event.target===this) closePdfQuickJumpModal();">
+        <div class="pdf-quick-jump-card" onclick="event.stopPropagation();">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-compass" style="color:var(--primary); font-size:1.15rem;"></i>
+                    <h3 style="margin:0; font-size:1rem; font-weight:800; color:var(--text-main);">انتقال سريع في المحاضرة</h3>
+                </div>
+                <button type="button" class="icon-btn" onclick="closePdfQuickJumpModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div style="text-align:center; margin: 16px 0;">
+                <div style="font-size: 2.2rem; font-weight:900; color:var(--primary); font-family:monospace;" id="qjLiveSlideNum">1</div>
+                <div style="font-size: 0.8rem; color:var(--text-muted);" id="qjTotalPagesText">من إجمالي 1 صفحة</div>
+            </div>
+
+            <div style="margin: 16px 0;">
+                <input type="range" id="qjPageSlider" min="1" max="1" value="1" style="width:100%; accent-color:var(--primary); cursor:pointer;" oninput="handleQjSliderInput(this.value)">
+            </div>
+
+            <div style="display:flex; gap:8px; justify-content:center; margin-bottom:16px;">
+                <button type="button" class="anno-btn" onclick="applyQjJump(1)" style="border:1px solid rgba(255,255,255,0.1); font-size:0.75rem;">بداية (1)</button>
+                <button type="button" class="anno-btn" onclick="jumpToNextBookmarkedSlide(1)" style="border:1px solid rgba(245,158,11,0.3); color:#f59e0b; font-size:0.75rem;"><i class="fa-solid fa-star"></i> السلايد المهم التالي</button>
+                <button type="button" class="anno-btn" onclick="applyQjJump(totalPdfPages)" style="border:1px solid rgba(255,255,255,0.1); font-size:0.75rem;">نهاية (<span id="qjEndBtnNum">1</span>)</button>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <input type="number" id="qjNumberInput" min="1" max="1" value="1" style="flex:1; padding:8px 12px; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:white; font-size:0.95rem; font-weight:700; text-align:center;" onkeydown="if(event.key==='Enter') applyQjJumpFromInput();">
+                <button type="button" class="btn btn-primary" onclick="applyQjJumpFromInput()" style="padding:8px 18px; font-weight:800;">انتقال ↵</button>
+            </div>
         </div>
     </div>
 
@@ -9553,7 +10328,150 @@
     <!-- ================= JAVASCRIPT ================= -->
         <!-- Module 1: exo-core-hub.js -->
     <script id="exo-mod-core-hub" data-module="exo-core-hub.js">
-        // ================= GOOGLE DRIVE API & CLIENT CONFIGURATION =================
+        
+        // ================= DESKTOP COLLAPSIBLE SIDEBAR ENGINE =================
+        function toggleDesktopSidebar(forceState) {
+            const isCollapsed = (typeof forceState === 'boolean')
+                ? forceState
+                : !document.body.classList.contains('sidebar-collapsed');
+
+            document.body.classList.toggle('sidebar-collapsed', isCollapsed);
+            try {
+                localStorage.setItem('exo_sidebar_collapsed', isCollapsed ? '1' : '0');
+            } catch (e) {}
+
+            const toggleIcon = document.getElementById('sidebarToggleIcon');
+            if (toggleIcon) {
+                const isRtl = document.documentElement.dir !== 'ltr';
+                if (isCollapsed) {
+                    toggleIcon.className = isRtl ? 'fa-solid fa-angles-left' : 'fa-solid fa-angles-right';
+                } else {
+                    toggleIcon.className = isRtl ? 'fa-solid fa-angles-right' : 'fa-solid fa-angles-left';
+                }
+            }
+        }
+        window.toggleDesktopSidebar = toggleDesktopSidebar;
+
+        function initDesktopSidebar() {
+            try {
+                const saved = localStorage.getItem('exo_sidebar_collapsed');
+                if (saved === '1') {
+                    toggleDesktopSidebar(true);
+                }
+            } catch (e) {}
+            updateSidebarUI();
+        }
+
+        function updateSidebarUI() {
+            const avatarEl = document.getElementById('sidebarUserAvatar');
+            const nameEl = document.getElementById('sidebarUserNameDisplay');
+            const badgeEl = document.getElementById('sidebarUserStatusBadge');
+            const gdriveIcon = document.getElementById('sidebarGdriveIcon');
+            const gdriveLabel = document.getElementById('sidebarGdriveLabel');
+            const subBadge = document.getElementById('sidebarSubjectsCountBadge');
+            const schBadge = document.getElementById('sidebarScheduleTodayBadge');
+
+            if (subBadge && Array.isArray(subjects)) {
+                subBadge.innerText = String(subjects.length);
+            }
+            if (schBadge && Array.isArray(scheduleEvents)) {
+                const todayIdx = new Date().getDay();
+                const todayCount = scheduleEvents.filter(e => e.day === todayIdx && !e.completed).length;
+                schBadge.innerText = String(todayCount);
+            }
+
+            if (currentCloudUser) {
+                const fullName = currentCloudUser.user_metadata?.full_name || currentCloudUser.name || currentCloudUser.email?.split('@')[0] || 'طالب المنصة';
+                if (nameEl) nameEl.innerText = fullName;
+                if (avatarEl) avatarEl.innerText = fullName.charAt(0).toUpperCase();
+                if (badgeEl) {
+                    badgeEl.innerHTML = currentUserCanUploadMedia
+                        ? '<i class="fa-solid fa-crown" style="color:#fbbf24;"></i> VIP Pro'
+                        : '<i class="fa-solid fa-cloud"></i> حسابي';
+                }
+            } else {
+                if (nameEl) nameEl.innerText = 'مستخدم المنصة';
+                if (avatarEl) avatarEl.innerText = 'ط';
+                if (badgeEl) badgeEl.innerHTML = '<i class="fa-solid fa-user"></i> تسجيل الدخول';
+            }
+
+            const isGdriveLinked = typeof isGoogleDriveConnected === 'function' && isGoogleDriveConnected();
+            const isGdriveActive = typeof isGoogleDriveTokenActive === 'function' && isGoogleDriveTokenActive();
+            if (gdriveLabel) {
+                if (isGdriveActive) {
+                    gdriveLabel.innerHTML = 'Google Drive <span style="color:#6ee7b7; font-size:0.68rem;">● نشط</span>';
+                } else if (isGdriveLinked) {
+                    gdriveLabel.innerHTML = 'Google Drive <span style="color:#fbbf24; font-size:0.68rem;">● يحتاج تنشيط</span>';
+                } else {
+                    gdriveLabel.innerText = 'Google Drive';
+                }
+            }
+        }
+        window.updateSidebarUI = updateSidebarUI;
+
+        // ================= ROBUST GOOGLE DRIVE ID EXTRACTOR & BROWSER FILE DOWNLOADER =================
+        function extractGoogleDriveFileId(urlOrId) {
+            if (!urlOrId || typeof urlOrId !== 'string') return null;
+            const str = urlOrId.trim();
+            if (!str) return null;
+            if (str.startsWith('gdrive:')) return str.replace('gdrive:', '').trim();
+            // Raw Google Drive file ID (25 to 65 chars, alphanumeric with dashes/underscores)
+            if (/^[a-zA-Z0-9_-]{25,65}$/.test(str)) return str;
+            // Pattern 1: /file/d/{id}
+            const matchFileD = str.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+            if (matchFileD) return matchFileD[1];
+            // Pattern 2: id={id}
+            const matchIdParam = str.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            if (matchIdParam) return matchIdParam[1];
+            return null;
+        }
+        window.extractGoogleDriveFileId = extractGoogleDriveFileId;
+
+        function triggerBrowserFileDownload(blob, fileName) {
+            if (!blob || !fileName) return;
+            try {
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = blobUrl;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    if (a.parentNode) a.parentNode.removeChild(a);
+                    URL.revokeObjectURL(blobUrl);
+                }, 2000);
+            } catch (e) {
+                console.error('triggerBrowserFileDownload error:', e);
+            }
+        }
+        window.triggerBrowserFileDownload = triggerBrowserFileDownload;
+
+        async function downloadCurrentViewingPdfToDisk() {
+            if (!currentViewingLec || !currentViewingLec.lec) return;
+            const lec = currentViewingLec.lec;
+            showToast('⏳ جاري تحضير ملف الـ PDF للتنزيل...');
+            let blob = await getMediaFromDB('pdfs', lec.id);
+            if (!blob && (lec.cloudPdfUploaded || lec.cloudPdfUrl || lec.cloudPdfPath)) {
+                blob = await downloadMediaFromCloudAccount('pdfs', lec, true);
+            }
+            if (blob) {
+                const safeName = (lec.title || 'محاضرة').replace(/[/\\?%*:|"<>]/g, '_').trim() + '.pdf';
+                triggerBrowserFileDownload(blob, safeName);
+                showToast(`✅ تم تنزيل ملف «${safeName}» إلى جهازك بنجاح!`);
+            } else {
+                const driveId = lec.cloudPdfDriveId || extractGoogleDriveFileId(lec.path) || extractGoogleDriveFileId(lec.cloudPdfUrl);
+                if (driveId) {
+                    window.open(`https://drive.usercontent.google.com/download?id=${driveId}&export=download`, '_blank');
+                    showToast('📥 جاري تنزيل الملف عبر Google Drive...');
+                } else {
+                    showToast('تعذر تنزيل الملف؛ تأكد من اتصالك بالإنترنت أو إعادة اختيار الملف', 'error');
+                }
+            }
+        }
+        window.downloadCurrentViewingPdfToDisk = downloadCurrentViewingPdfToDisk;
+
+// ================= GOOGLE DRIVE API & CLIENT CONFIGURATION =================
         // لمالك المنصة: ضع هنا معرف العميل الخاص بك (Google OAuth 2.0 Web Client ID) من Google Cloud Console
         const GOOGLE_CLIENT_ID = '814351723102-oqltucr4nf5pkk68hq8um08ev8040au0.apps.googleusercontent.com';
         window.GOOGLE_CLIENT_ID = GOOGLE_CLIENT_ID;
@@ -9687,6 +10605,10 @@
                 if (clickAttr.includes(`'${viewId}'`) || clickAttr.includes(`"${viewId}"`)) {
                     item.classList.add('active');
                 }
+            });
+            // Sync desktop collapsible sidebar active state
+            document.querySelectorAll('.sidebar-nav-item').forEach(item => {
+                item.classList.toggle('active', item.getAttribute('data-tab') === viewId);
             });
             
             if(viewId === 'schedule') renderSchedule();
@@ -10913,6 +11835,22 @@
                 lec.title = newTitle; 
                 lec.path = cleanPath;
                 lec.audioPath = audioPath;
+
+                // Auto-detect & update Google Drive file links
+                const extractedPdfId = extractGoogleDriveFileId(cleanPath);
+                if (extractedPdfId) {
+                    lec.cloudPdfDriveId = extractedPdfId;
+                    lec.cloudPdfPath = 'gdrive:' + extractedPdfId;
+                    lec.cloudPdfUploaded = true;
+                    lec.cloudPdfUrl = `https://drive.google.com/file/d/${extractedPdfId}/view`;
+                }
+                const extractedAudId = extractGoogleDriveFileId(audioPath);
+                if (extractedAudId) {
+                    lec.cloudAudioDriveId = extractedAudId;
+                    lec.cloudAudioPath = 'gdrive:' + extractedAudId;
+                    lec.cloudAudioUploaded = true;
+                    lec.cloudAudioUrl = `https://drive.google.com/file/d/${extractedAudId}/view`;
+                }
                 
                 const pdfBlobToUpload = tempPickedPdfBlob;
                 const audioBlobToUpload = tempPickedAudioBlob;
@@ -18961,6 +19899,347 @@
             }
         }
 
+
+        // ==========================================
+        // ADVANCED PDF VIEWER STUDY & ORGANIZER ENGINE
+        // ==========================================
+        let pdfThumbFilter = 'all'; // 'all' | 'bookmarks' | 'notes'
+        let pdfThumbSearchQuery = '';
+        let pdfTwoPageSpreadMode = false;
+
+        function togglePdfThumbnailsDrawer(forceState) {
+            const drawer = document.getElementById('pdfThumbnailsDrawer');
+            const backdrop = document.getElementById('pdfThumbDrawerBackdrop');
+            const toggleBtn = document.getElementById('pdfThumbnailsToggleBtn');
+            if (!drawer) return;
+            const shouldOpen = forceState !== undefined ? Boolean(forceState) : !drawer.classList.contains('open');
+            drawer.classList.toggle('open', shouldOpen);
+            if (backdrop) backdrop.classList.toggle('open', shouldOpen);
+            if (toggleBtn) toggleBtn.classList.toggle('active', shouldOpen);
+            if (shouldOpen) {
+                renderPdfThumbnailsList();
+                if (currentPdfDoc && (currentPdfFitMode === 'height' || currentPdfFitMode === 'width')) {
+                    setTimeout(() => applyPdfZoomAndKeepPage(currentActivePageNum), 230);
+                }
+            }
+        }
+
+        function setPdfThumbFilter(filter) {
+            pdfThumbFilter = filter;
+            ['all', 'bookmarks', 'notes'].forEach(f => {
+                const btn = document.getElementById(`pdfThumbTab_${f}`);
+                if (btn) btn.classList.toggle('active', f === filter);
+            });
+            renderPdfThumbnailsList();
+        }
+
+        function handlePdfThumbSearch(query) {
+            pdfThumbSearchQuery = (query || '').trim().toLowerCase();
+            renderPdfThumbnailsList();
+        }
+
+        function getLectureBookmarkedSlides() {
+            if (!currentViewingLec || !currentViewingLec.lec) return [];
+            if (!Array.isArray(currentViewingLec.lec.bookmarkedSlides)) {
+                currentViewingLec.lec.bookmarkedSlides = [];
+            }
+            return currentViewingLec.lec.bookmarkedSlides;
+        }
+
+        function toggleBookmarkCurrentSlide(pageNum, ev) {
+            if (ev) ev.stopPropagation();
+            const p = pageNum ? Number(pageNum) : currentActivePageNum;
+            if (!p) return; if (totalPdfPages > 0 && p > totalPdfPages) return;
+            const bmarks = getLectureBookmarkedSlides();
+            const idx = bmarks.indexOf(p);
+            const wasBookmarked = idx !== -1;
+            if (wasBookmarked) {
+                bmarks.splice(idx, 1);
+                showToast(`تمت إزالة سلايد ${p} من السلايدات المهمة`);
+            } else {
+                bmarks.push(p);
+                bmarks.sort((a, b) => a - b);
+                showToast(`⭐ تم تحديد سلايد ${p} كمهم للاختبار والمراجعة`);
+            }
+            persistCurrentLectureReadingBookmark(true);
+            updatePdfPageCounterUI(currentActivePageNum);
+            renderPdfThumbnailsList();
+        }
+
+        function jumpToNextBookmarkedSlide(direction = 1) {
+            const bmarks = getLectureBookmarkedSlides();
+            if (!bmarks || bmarks.length === 0) {
+                showToast('لا توجد سلايدات مهمة محددة بعد (اضغط على ⭐ لتحديد السلايد)');
+                return;
+            }
+            const cur = currentActivePageNum;
+            let target = null;
+            if (direction > 0) {
+                target = bmarks.find(p => p > cur);
+                if (!target) target = bmarks[0];
+            } else {
+                const prevs = bmarks.filter(p => p < cur);
+                target = prevs.length > 0 ? prevs[prevs.length - 1] : bmarks[bmarks.length - 1];
+            }
+            if (target) {
+                goToPdfPage(target, true);
+                showToast(`⭐ الانتقال للسلايد المهم: صفحة ${target}`);
+            }
+        }
+
+        function togglePdfNightMode() {
+            const container = document.getElementById('pdfModalContainer');
+            const btn = document.getElementById('pdfNightModeBtn');
+            const icon = document.getElementById('pdfNightModeIcon');
+            const txt = document.getElementById('pdfNightModeText');
+            if (!container) return;
+            const isNight = container.classList.toggle('pdf-night-mode');
+            try {
+                localStorage.setItem('exo_pdf_night_mode', isNight ? 'true' : 'false');
+            } catch (_) {}
+            if (btn) btn.classList.toggle('active', isNight);
+            if (icon) {
+                icon.className = isNight ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+                icon.style.color = isNight ? '#facc15' : '';
+            }
+            if (txt) txt.innerText = isNight ? 'نهاري' : 'ليلي';
+            showToast(isNight ? '🌙 تم تفعيل الوضع الليلي لحماية العين' : '☀️ تم العودة للوضع العادي');
+        }
+
+        function togglePdfTwoPageSpread() {
+            const scrollContainer = document.getElementById('pdfPagesScrollContainer');
+            const btnText = document.getElementById('pdfTwoPageSpreadText');
+            if (!scrollContainer) return;
+            pdfTwoPageSpreadMode = !pdfTwoPageSpreadMode;
+            scrollContainer.classList.toggle('two-page-spread', pdfTwoPageSpreadMode);
+            if (btnText) {
+                btnText.innerText = pdfTwoPageSpreadMode ? 'العودة لعرض صفحة واحدة' : 'عرض صفحتين جنباً إلى جنب';
+            }
+            if (currentPdfDoc && (currentPdfFitMode === 'height' || currentPdfFitMode === 'width')) {
+                setTimeout(() => applyPdfZoomAndKeepPage(currentActivePageNum), 120);
+            }
+            showToast(pdfTwoPageSpreadMode ? '📖 تم تفعيل عرض صفحتين جنباً إلى جنب' : 'تم العودة لعرض صفحة واحدة');
+        }
+
+        function openPdfQuickJumpModal() {
+            const modal = document.getElementById('pdfQuickJumpModalOverlay');
+            if (!modal) return;
+            const slider = document.getElementById('qjPageSlider');
+            const numInput = document.getElementById('qjNumberInput');
+            const liveNum = document.getElementById('qjLiveSlideNum');
+            const totalTxt = document.getElementById('qjTotalPagesText');
+            const endBtnNum = document.getElementById('qjEndBtnNum');
+            const total = totalPdfPages || 1;
+            const cur = currentActivePageNum || 1;
+
+            if (slider) {
+                slider.min = 1;
+                slider.max = total;
+                slider.value = cur;
+            }
+            if (numInput) {
+                numInput.min = 1;
+                numInput.max = total;
+                numInput.value = cur;
+            }
+            if (liveNum) liveNum.innerText = cur;
+            if (totalTxt) totalTxt.innerText = `من إجمالي ${total} صفحة`;
+            if (endBtnNum) endBtnNum.innerText = total;
+
+            modal.classList.add('active');
+            setTimeout(() => {
+                if (numInput) {
+                    numInput.focus();
+                    numInput.select();
+                }
+            }, 100);
+        }
+
+        function closePdfQuickJumpModal() {
+            const modal = document.getElementById('pdfQuickJumpModalOverlay');
+            if (!modal) return;
+            modal.classList.remove('active');
+        }
+
+        function handleQjSliderInput(val) {
+            const num = parseInt(val) || 1;
+            const liveNum = document.getElementById('qjLiveSlideNum');
+            const numInput = document.getElementById('qjNumberInput');
+            if (liveNum) liveNum.innerText = num;
+            if (numInput) numInput.value = num;
+        }
+
+        function applyQjJump(target) {
+            const total = totalPdfPages || 1;
+            const num = Math.max(1, Math.min(total, parseInt(target) || 1));
+            closePdfQuickJumpModal();
+            goToPdfPage(num, true);
+        }
+
+        function applyQjJumpFromInput() {
+            const numInput = document.getElementById('qjNumberInput');
+            if (!numInput) return;
+            applyQjJump(numInput.value);
+        }
+
+        function renderPdfThumbnailsList() {
+            const grid = document.getElementById('pdfThumbnailsGrid');
+            if (!grid) return;
+            const total = totalPdfPages || 0;
+            const bmarks = getLectureBookmarkedSlides();
+            const bmarksSet = new Set(bmarks);
+
+            // Update counter badges
+            const totalBadge = document.getElementById('pdfThumbTotalCountBadge');
+            if (totalBadge) totalBadge.innerText = total;
+            const countAll = document.getElementById('pdfThumbFilterCount_all');
+            if (countAll) countAll.innerText = total;
+            const countBmarks = document.getElementById('pdfThumbFilterCount_bookmarks');
+            if (countBmarks) countBmarks.innerText = bmarks.length;
+
+            // Check notes count
+            const lec = currentViewingLec ? currentViewingLec.lec : null;
+            const pagesWithNotes = new Set();
+            if (lec && typeof inMemoryAnnotationsCache !== 'undefined') {
+                const annos = inMemoryAnnotationsCache[lec.id] || inMemoryAnnotationsCache[String(lec.id)];
+                if (annos) {
+                    Object.keys(annos).forEach(k => {
+                        if (k.startsWith('note_') || (annos[k] && annos[k].strokes && annos[k].strokes.length > 0)) {
+                            const pMatch = k.match(/\d+/);
+                            if (pMatch) pagesWithNotes.add(Number(pMatch[0]));
+                        }
+                    });
+                }
+            }
+            if (lec && lec.extraNotes) {
+                Object.keys(lec.extraNotes).forEach(p => {
+                    if (lec.extraNotes[p]) pagesWithNotes.add(Number(p));
+                });
+            }
+            const countNotes = document.getElementById('pdfThumbFilterCount_notes');
+            if (countNotes) countNotes.innerText = pagesWithNotes.size;
+
+            grid.innerHTML = '';
+            if (total === 0) {
+                grid.innerHTML = '<div style="color:var(--text-muted); font-size:0.75rem; text-align:center; padding:20px;">لا توجد صفحات متاحة للعرض</div>';
+                return;
+            }
+
+            let renderedCardsCount = 0;
+            const frag = document.createDocumentFragment();
+
+            for (let p = 1; p <= total; p++) {
+                const isBookmarked = bmarksSet.has(p);
+                const hasNotes = pagesWithNotes.has(p);
+
+                // Filter check
+                if (pdfThumbFilter === 'bookmarks' && !isBookmarked) continue;
+                if (pdfThumbFilter === 'notes' && !hasNotes) continue;
+
+                // Search check
+                if (pdfThumbSearchQuery) {
+                    const pStr = String(p);
+                    if (!pStr.includes(pdfThumbSearchQuery)) continue;
+                }
+
+                renderedCardsCount++;
+                const card = document.createElement('div');
+                card.className = `pdf-thumb-card ${p === currentActivePageNum ? 'active-thumb' : ''}`;
+                card.id = `pdfThumbCard_${p}`;
+                card.dataset.pageNum = p;
+
+                // Card top: page number & bookmark star
+                const topRow = document.createElement('div');
+                topRow.className = 'pdf-thumb-card-top';
+
+                const numBadge = document.createElement('span');
+                numBadge.className = 'pdf-thumb-number-badge';
+                numBadge.innerHTML = `<i class="fa-solid fa-file" style="color:var(--text-muted); font-size:0.65rem;"></i> سلايد ${p}`;
+
+                const starBtn = document.createElement('button');
+                starBtn.type = 'button';
+                starBtn.className = `pdf-thumb-star-btn ${isBookmarked ? 'bookmarked' : ''}`;
+                starBtn.title = isBookmarked ? 'إزالة من المهمة' : 'تحديد كمهم للاختبار ⭐';
+                starBtn.innerHTML = isBookmarked ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>';
+                starBtn.onclick = (e) => toggleBookmarkCurrentSlide(p, e);
+
+                topRow.appendChild(numBadge);
+                topRow.appendChild(starBtn);
+                card.appendChild(topRow);
+
+                // Card Preview Box:
+                const previewBox = document.createElement('div');
+                previewBox.className = 'pdf-thumb-preview-box';
+
+                const sourceCanvas = document.getElementById(`pdfRenderCanvas_${p}`);
+                if (sourceCanvas && sourceCanvas.width > 0 && sourceCanvas.height > 0) {
+                    const miniCanvas = document.createElement('canvas');
+                    miniCanvas.className = 'pdf-thumb-preview-canvas';
+                    miniCanvas.width = 160;
+                    miniCanvas.height = Math.round(160 * (sourceCanvas.height / sourceCanvas.width));
+                    const ctx = miniCanvas.getContext('2d');
+                    try {
+                        ctx.drawImage(sourceCanvas, 0, 0, miniCanvas.width, miniCanvas.height);
+                        previewBox.appendChild(miniCanvas);
+                    } catch (_) {
+                        previewBox.innerHTML = `<div class="pdf-thumb-preview-placeholder"><i class="fa-solid fa-file-powerpoint" style="font-size:1.4rem; color:var(--primary);"></i><span>صفحة ${p}</span></div>`;
+                    }
+                } else {
+                    previewBox.innerHTML = `<div class="pdf-thumb-preview-placeholder"><i class="fa-solid fa-file-powerpoint" style="font-size:1.4rem; color:var(--primary);"></i><span>سلايد ${p}</span></div>`;
+                }
+                card.appendChild(previewBox);
+
+                // Badges row: Notes / Pins / Bookmarks
+                if (hasNotes || isBookmarked) {
+                    const badgeRow = document.createElement('div');
+                    badgeRow.className = 'pdf-thumb-badges-row';
+                    if (isBookmarked) {
+                        const bTag = document.createElement('span');
+                        bTag.className = 'pdf-thumb-tag';
+                        bTag.style.background = 'rgba(245, 158, 11, 0.15)';
+                        bTag.style.color = '#f59e0b';
+                        bTag.innerHTML = '⭐ مهم';
+                        badgeRow.appendChild(bTag);
+                    }
+                    if (hasNotes) {
+                        const nTag = document.createElement('span');
+                        nTag.className = 'pdf-thumb-tag note-tag';
+                        nTag.innerHTML = '📝 ملاحظات';
+                        badgeRow.appendChild(nTag);
+                    }
+                    card.appendChild(badgeRow);
+                }
+
+                card.onclick = () => {
+                    goToPdfPage(p, true);
+                    updatePdfThumbnailsActiveState(p);
+                };
+
+                frag.appendChild(card);
+            }
+
+            if (renderedCardsCount === 0) {
+                grid.innerHTML = '<div style="color:var(--text-muted); font-size:0.75rem; text-align:center; padding:20px;">لا توجد سلايدات مطابقة للفلتر المحدد</div>';
+            } else {
+                grid.appendChild(frag);
+                setTimeout(() => {
+                    const activeCard = grid.querySelector('.pdf-thumb-card.active-thumb');
+                    if (activeCard) {
+                        activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                }, 50);
+            }
+        }
+
+        function updatePdfThumbnailsActiveState(pageNum) {
+            const grid = document.getElementById('pdfThumbnailsGrid');
+            if (!grid) return;
+            grid.querySelectorAll('.pdf-thumb-card').forEach(c => {
+                const isCurrent = Number(c.dataset.pageNum) === Number(pageNum);
+                c.classList.toggle('active-thumb', isCurrent);
+            });
+        }
+
         function updatePdfPageCounterUI(pageNum) {
             const p = Math.max(1, Math.min(totalPdfPages || 1, pageNum || 1));
             currentActivePageNum = p;
@@ -18968,6 +20247,33 @@
             if (badgeEl) badgeEl.innerText = `صفحة ${p} / ${totalPdfPages}`;
             const floatBadge = document.getElementById('pdfFloatingPageBadge');
             if (floatBadge) floatBadge.innerText = `${p} / ${totalPdfPages}`;
+
+            // Update Reading Progress Bar
+            const progBar = document.getElementById('pdfReadingProgressBar');
+            if (progBar && totalPdfPages > 0) {
+                const pct = Math.round((p / totalPdfPages) * 100);
+                progBar.style.width = `${pct}%`;
+                progBar.title = `تقدم القراءة: ${pct}% (صفحة ${p} من ${totalPdfPages})`;
+            }
+
+            // Update Header Bookmark Star Icon
+            const starBtn = document.getElementById('pdfBookmarkCurrentSlideBtn');
+            const starIcon = document.getElementById('pdfBookmarkCurrentSlideIcon');
+            const starTxt = document.getElementById('pdfBookmarkCurrentSlideText');
+            const bmarks = getLectureBookmarkedSlides();
+            const isBookmarked = bmarks.includes(p);
+            if (starBtn) starBtn.classList.toggle('active', isBookmarked);
+            if (starIcon) {
+                starIcon.className = isBookmarked ? 'fa-solid fa-star' : 'fa-regular fa-star';
+                starIcon.style.color = isBookmarked ? '#f59e0b' : '';
+            }
+            if (starTxt) {
+                starTxt.innerText = isBookmarked ? 'مهم ⭐' : 'مهم';
+            }
+
+            // Update active thumbnail in drawer
+            updatePdfThumbnailsActiveState(p);
+
             persistCurrentLectureReadingBookmark(false);
         }
 
@@ -19118,6 +20424,20 @@
                 if (savedPage > 1) {
                     showToast(`📖 تم استئناف القراءة تلقائياً من صفحة ${savedPage} من ${totalPdfPages}`);
                 }
+                try {
+                    const savedNight = localStorage.getItem('exo_pdf_night_mode') === 'true';
+                    if (savedNight) {
+                        const c = document.getElementById('pdfModalContainer');
+                        if (c) c.classList.add('pdf-night-mode');
+                        const b = document.getElementById('pdfNightModeBtn');
+                        if (b) b.classList.add('active');
+                        const ic = document.getElementById('pdfNightModeIcon');
+                        if (ic) { ic.className = 'fa-solid fa-sun'; ic.style.color = '#facc15'; }
+                        const tx = document.getElementById('pdfNightModeText');
+                        if (tx) tx.innerText = 'نهاري';
+                    }
+                } catch (_) {}
+                renderPdfThumbnailsList();
             } catch (err) {
                 // Fallback to native iframe if PDF.js CDN is unreachable offline
                 scrollContainer.style.display = 'none';
@@ -19792,19 +21112,7 @@
                 return;
             }
             if (!currentPdfDoc) return;
-            openSingleInputModal(
-                `<i class="fa-solid fa-compass" style="color:var(--primary);"></i> الانتقال السريع لصفحة (1 - ${totalPdfPages})`,
-                `اكتب رقم الصفحة (من 1 إلى ${totalPdfPages})...`,
-                `${currentActivePageNum}`,
-                (val) => {
-                    const num = parseInt(val);
-                    if (isNaN(num) || num < 1 || num > totalPdfPages) {
-                        showToast(`يرجى إدخال رقم صفحة صحيح بين 1 و ${totalPdfPages}`, 'error');
-                        return;
-                    }
-                    goToPdfPage(num, true);
-                }
-            );
+            openPdfQuickJumpModal();
         }
 
         // ================= GRAPHIC TABLET DRAWING, LASER & ERASER ENGINE =================
@@ -23973,6 +25281,21 @@
                     togglePdfZenMode();
                     return;
                 }
+                if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.code === 'KeyM' || e.code === 'KeyT')) {
+                    e.preventDefault();
+                    togglePdfThumbnailsDrawer();
+                    return;
+                }
+                if (!e.ctrlKey && !e.metaKey && !e.altKey && e.code === 'KeyN') {
+                    e.preventDefault();
+                    togglePdfNightMode();
+                    return;
+                }
+                if (!e.ctrlKey && !e.metaKey && !e.altKey && e.code === 'KeyB') {
+                    e.preventDefault();
+                    toggleBookmarkCurrentSlide();
+                    return;
+                }
                 if (!e.ctrlKey && !e.metaKey && !e.altKey && e.code === 'KeyL') {
                     e.preventDefault();
                     toggleLaserFadePause();
@@ -23994,7 +25317,12 @@
                     addAudioTimestampPin();
                     return;
                 }
-                if (e.key === 'Escape') {
+                if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B' || e.key === 'لا')) {
+                e.preventDefault();
+                toggleDesktopSidebar();
+                return;
+            }
+            if (e.key === 'Escape') {
                     const pdfContainer = document.getElementById('pdfModalContainer');
                     if (pdfContainer && pdfContainer.classList.contains('pdf-zen-mode')) {
                         e.preventDefault();
@@ -27537,10 +28865,8 @@
                 });
                 const matchedEv = allCandidates[0];
                 activePdfMatchedEventId = matchedEv.id;
-                const inWindowNow = isSessionInCurrentTimeWindow(matchedEv);
-
-                // Always ask the user via the Smart Choice Bar before touching the task!
-                showPdfSmartTaskChoiceBar(matchedEv, inWindowNow);
+                // Quietly log study time in background without nagging popup banners
+                updatePdfHeaderSmartMiniBtn();
             }
 
             activePdfStudyTrackerInterval = setInterval(() => {
@@ -27610,22 +28936,7 @@
 
             const inWindowNow = isSessionInCurrentTimeWindow(targetEv);
 
-            // Case 1: User never clicked a choice button on the bar
-            if (!activePdfTaskIntent) {
-                const totalBuffered = Number((activePdfBufferMinutes + unrecordedTickMins).toFixed(2));
-                activePdfBufferMinutes = 0;
-                // If they stayed less than 2 minutes ("داخل افتكر معلومة مش أكتر"), ignore completely so tonight/tomorrow tasks are NEVER touched!
-                if (totalBuffered < 2.0) {
-                    return;
-                }
-                // If they studied for 2+ minutes without clicking the bar, ask them what they want to do!
-                openSmartStudyVerifyModal(targetEv, inWindowNow ? 'pdf_closed' : 'different_slot_lookup', lec, sub, totalBuffered);
-                return;
-            }
-
-            // Case 2: User explicitly chose 'credit_keep_slot' or 'move_to_now'
-            const chosenIntent = activePdfTaskIntent;
-            activePdfTaskIntent = null;
+            // Silent, respectful background time logging (Zero nagging modals)
             const extraMins = activePdfBufferMinutes + unrecordedTickMins;
             activePdfBufferMinutes = 0;
             if (extraMins > 0) {
@@ -27633,30 +28944,26 @@
             }
 
             const studiedSoFar = Number(targetEv.actualStudiedMinutes) || 0;
-
-            if (targetEv.isOpenDuration) {
-                if (studiedSoFar >= 1.0 && !targetEv.completed) {
-                    if (chosenIntent === 'move_to_now') {
-                        syncSmartSessionActualDuration(targetEv, true);
-                        autoCompleteScheduledSessionSmart(targetEv, lec, sub, true);
-                    } else {
-                        openSmartStudyVerifyModal(targetEv, 'different_slot_lookup', lec, sub, studiedSoFar);
-                    }
-                } else {
-                    saveScheduleData();
-                    renderSchedule();
-                }
+            if (studiedSoFar < 1.5) {
+                // Quick glance under 90 seconds: ignore without altering schedule
                 return;
             }
 
             const plannedMinutes = (Number(targetEv.duration) || 1) * 60;
-            const thresholdRatio = (Number(plannerPrefs.autoCompletePct) || 75) / 100;
+            const thresholdRatio = (Number(plannerPrefs.autoCompletePct) || 70) / 100;
             const requiredMinutes = plannedMinutes * thresholdRatio;
 
             if (studiedSoFar >= requiredMinutes && !targetEv.completed) {
-                autoCompleteScheduledSessionSmart(targetEv, lec, sub, chosenIntent === 'move_to_now');
-            } else if (!targetEv.completed && studiedSoFar >= 1.0) {
-                openSmartStudyVerifyModal(targetEv, chosenIntent === 'move_to_now' ? 'pdf_closed' : 'different_slot_lookup', lec, sub, studiedSoFar);
+                autoCompleteScheduledSessionSmart(targetEv, lec, sub, false);
+            } else if (!targetEv.completed) {
+                // Save progress silently, sync linked goals, and display a gentle confirmation toast
+                if (typeof syncAllBacklogGoalsWithLinkedSessions === 'function') {
+                    syncAllBacklogGoalsWithLinkedSessions();
+                }
+                saveScheduleData();
+                renderSchedule();
+                updateTracker();
+                showToast(`✓ تم رصد ${formatMinutesHumanReadable(Math.round(studiedSoFar))} مذاكرة لـ «${targetEv.title}» تلقائياً`);
             }
         }
 
@@ -28129,6 +29436,12 @@
             const datePart = now.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
             const timePart = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             clockEl.innerText = `${datePart} • ${timePart}`;
+
+            // Update Desktop Sidebar Live Clock
+            const sideTime = document.getElementById('sidebarClockTime');
+            const sideDate = document.getElementById('sidebarClockDate');
+            if (sideTime) sideTime.innerText = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+            if (sideDate) sideDate.innerText = now.toLocaleDateString('ar-EG', { weekday: 'short', day: 'numeric', month: 'short' });
 
             const orderedDays = getOrderedWeekDays();
             if (rangeEl && orderedDays.length === 7) {
@@ -28839,6 +30152,7 @@
         renderSubjectsList();
         renderSchedule();
         updateTracker();
+        if (typeof initDesktopSidebar === 'function') initDesktopSidebar();
     </script>
 
     <script id="exo-i18n-engine">
