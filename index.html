@@ -2033,6 +2033,204 @@
                 z-index: 34;
             }
         }
+
+        
+        /* ===== Android & Mobile Optimization & Generous Scroll Clearance ===== */
+        html, body {
+            overscroll-behavior-y: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        /* 220px bottom padding ensures slide text is NEVER covered by bottom dock, even at 350% zoom! */
+        .pdf-pages-scroll-container {
+            padding-bottom: 220px !important;
+            scroll-padding-bottom: 220px !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+
+        /* Dock Top Positioning */
+        .pdf-annotation-toolbar.dock-top {
+            top: 50px !important;
+            bottom: auto !important;
+            box-shadow: 0 10px 32px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+        }
+
+        /* Responsive Audio Player Bar */
+        .pdf-audio-player-bar {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(14, 18, 28, 0.96) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            border-top: 1px solid rgba(45, 212, 191, 0.3) !important;
+            padding: 8px 16px !important;
+            flex-shrink: 0;
+            gap: 12px;
+            flex-wrap: wrap;
+            z-index: 35 !important;
+            box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5) !important;
+        }
+        .pdf-audio-player-bar.active-audio-dock {
+            display: flex !important;
+        }
+
+        @media (max-width: 768px) {
+            .pdf-viewer-header {
+                padding: 0 8px !important;
+                gap: 4px !important;
+            }
+            #pdfViewerTitle {
+                max-width: 110px !important;
+                font-size: 0.8rem !important;
+            }
+            .pdf-audio-player-bar {
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                padding: 6px 10px !important;
+                gap: 6px !important;
+                z-index: 50 !important;
+            }
+            .pdf-audio-player-bar .volume-boost-control {
+                display: none !important;
+            }
+            .pdf-annotation-toolbar:not(.dock-top) {
+                bottom: 12px !important;
+            }
+            .pdf-modal-container.has-active-audio .pdf-annotation-toolbar:not(.dock-top) {
+                bottom: 60px !important;
+            }
+        }
+
+/* ===== Streamlined Minimalist PDF Studio Layout ===== */
+        .pdf-viewer-header {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            padding: 0 16px !important;
+            height: 44px !important;
+            min-height: 44px !important;
+            max-height: 44px !important;
+            background: rgba(15, 18, 26, 0.98) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+            flex-shrink: 0 !important;
+            gap: 12px !important;
+            flex-wrap: nowrap !important;
+            z-index: 25 !important;
+        }
+        .pdf-unified-nav-capsule {
+            display: flex !important;
+            align-items: center !important;
+            background: rgba(22, 26, 38, 0.8) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 999px !important;
+            padding: 2px 8px !important;
+            gap: 3px !important;
+        }
+        .pdf-unified-nav-capsule .anno-btn {
+            padding: 4px 6px !important;
+            border-radius: 6px !important;
+            font-size: 0.74rem !important;
+            min-width: 24px !important;
+            justify-content: center !important;
+        }
+        .pdf-header-left-actions .anno-btn.icon-only {
+            width: 32px !important;
+            height: 32px !important;
+            padding: 0 !important;
+            border-radius: 8px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        .pdf-header-left-actions .anno-btn.icon-only i {
+            font-size: 0.84rem !important;
+        }
+
+        /* Floating Dynamic Island Annotation Dock */
+        .pdf-annotation-toolbar {
+            position: absolute !important;
+            bottom: 22px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            z-index: 40 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: rgba(16, 20, 30, 0.94) !important;
+            backdrop-filter: blur(20px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            border-radius: 999px !important;
+            padding: 4px 10px !important;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+            gap: 6px !important;
+            flex-wrap: nowrap !important;
+            flex-shrink: 0 !important;
+            user-select: none !important;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease !important;
+            max-width: 95vw !important;
+            overflow: visible !important;
+        }
+        .pdf-modal-container.dock-collapsed .pdf-annotation-toolbar {
+            transform: translateX(-50%) translateY(160%) !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        #pdfMobileDockFloatingTriggerBtn {
+            position: absolute !important;
+            bottom: 22px !important;
+            right: 22px !important;
+            width: 44px !important;
+            height: 44px !important;
+            border-radius: 50% !important;
+            background: linear-gradient(135deg, var(--primary), #0d9488) !important;
+            color: #fff !important;
+            box-shadow: 0 6px 20px rgba(45, 212, 191, 0.45) !important;
+            border: none !important;
+            cursor: pointer !important;
+            z-index: 41 !important;
+            display: none;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+        }
+        .pdf-modal-container.dock-collapsed #pdfMobileDockFloatingTriggerBtn {
+            display: flex !important;
+        }
+
+        /* Hide intrusive / empty bars by default */
+        .pdf-merged-lectures-bar { display: none; }
+        .pdf-floating-page-nav { display: none !important; }
+        .pdf-smart-task-choice-bar { display: none !important; }
+        .pdf-live-smart-session-pill { display: none !important; }
+        .pdf-audio-player-bar.no-audio-attached { display: none !important; }
+
+        /* Ensure scroll container has padding bottom so dock does not obstruct slide bottom */
+        .pdf-pages-scroll-container {
+            padding-bottom: 220px !important;
+        }
+
+        @media (max-width: 768px) {
+            .hide-on-compact { display: none !important; }
+            .pdf-annotation-toolbar {
+                bottom: 16px !important;
+                padding: 4px 8px !important;
+                gap: 4px !important;
+            }
+            .pdf-annotation-toolbar .anno-btn {
+                padding: 4px 6px !important;
+                font-size: 0.72rem !important;
+            }
+            #pdfMobileDockFloatingTriggerBtn {
+                bottom: 16px !important;
+                right: 16px !important;
+            }
+        }
+
 .pdf-viewer-header {
             display: flex;
             justify-content: space-between;
@@ -8874,76 +9072,75 @@
         <div class="pdf-modal-container" id="pdfModalContainer">
             <!-- Clean, Organized 3-Zone Top Studio Header -->
             <div class="pdf-viewer-header">
-                <!-- Zone 1 (Right): Lecture Title & Calm Save Indicator -->
-                <div style="display: flex; align-items: center; gap: 10px; min-width: 170px;">
-                    <div style="width: 30px; height: 30px; border-radius: 8px; background: rgba(45, 212, 191, 0.14); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        <i class="fa-solid fa-file-pdf" style="color: var(--primary); font-size: 0.9rem;"></i>
+                <!-- Zone 1 (Right): Clean Title & Silent Save Indicator -->
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex-shrink: 1;">
+                    <div style="width: 28px; height: 28px; border-radius: 7px; background: rgba(45, 212, 191, 0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fa-solid fa-file-pdf" style="color: var(--primary); font-size: 0.85rem;"></i>
                     </div>
-                    <div style="min-width: 0;">
-                        <h3 id="pdfViewerTitle" style="margin: 0; font-size: 0.92rem; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px;">عرض المحاضرة</h3>
-                        <span id="pdfAutoSaveStatus" onclick="flushPendingAnnotationsSave(true); showToast('تم حفظ جميع كتاباتك فوراً ✓');" title="الكتابة تُحفظ في الذاكرة اللحظية بدون تقطيع وتُسجل تلقائياً عند إغلاق الملف (اضغط للحفظ اليدوي الفوري)" style="font-size: 0.66rem; color: var(--important-color); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
-                            <i class="fa-solid fa-check-double"></i> حفظ صامت بدون تقطيع
+                    <div style="min-width: 0; display: flex; align-items: center; gap: 8px;">
+                        <h3 id="pdfViewerTitle" style="margin: 0; font-size: 0.88rem; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;">عرض المحاضرة</h3>
+                        <span id="pdfAutoSaveStatus" onclick="flushPendingAnnotationsSave(true); showToast('تم حفظ جميع كتاباتك فوراً ✓');" title="حفظ تلقائي صامت" style="font-size: 0.65rem; color: #10b981; font-weight: 700; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; white-space: nowrap; background: rgba(16, 185, 129, 0.08); padding: 2px 6px; border-radius: 999px;">
+                            <i class="fa-solid fa-check"></i> محفوظ
                         </span>
                     </div>
                 </div>
 
-                <!-- Zone 2 (Center): Single Unified Navigation, Fit & Zoom Capsule -->
+                <!-- Zone 2 (Center): Unified Sleek Navigation & Quick Zoom Capsule -->
                 <div class="pdf-unified-nav-capsule">
-                    <button class="anno-btn" onclick="stepPdfPage(-1)" title="الصفحة السابقة (سهم لأعلى)">
+                    <button type="button" class="anno-btn" onclick="stepPdfPage(-1)" title="الصفحة السابقة (سهم لأعلى)">
                         <i class="fa-solid fa-chevron-up"></i>
                     </button>
-                    <span id="pdfPageCounterBadge" class="studio-pill" onclick="promptJumpToPdfPage()" title="اضغط للانتقال السريع لصفحة أو مصغر" style="font-size: 0.74rem; color: var(--primary); cursor: pointer; min-width: 72px; justify-content: center; border: none; background: rgba(45, 212, 191, 0.08);">1 / 1</span>
-                    <button class="anno-btn" onclick="stepPdfPage(1)" title="الصفحة التالية (سهم لأسفل)">
+                    <span id="pdfPageCounterBadge" class="studio-pill" onclick="promptJumpToPdfPage()" title="اضغط للانتقال السريع لصفحة أو مصغر" style="font-size: 0.74rem; color: var(--primary); cursor: pointer; min-width: 65px; justify-content: center; border: none; background: transparent; font-weight: 800;">1 / 1</span>
+                    <button type="button" class="anno-btn" onclick="stepPdfPage(1)" title="الصفحة التالية (سهم لأسفل)">
                         <i class="fa-solid fa-chevron-down"></i>
                     </button>
 
                     <div class="pdf-header-divider"></div>
 
-                    <button class="anno-btn" id="pdfBookmarkCurrentSlideBtn" onclick="toggleBookmarkCurrentSlide()" title="تمييز السلايد الحالي كمهم للاختبار والمراجعة (اختصار: B)">
-                        <i class="fa-regular fa-star" id="pdfBookmarkCurrentSlideIcon"></i> <span class="hide-on-xs" id="pdfBookmarkCurrentSlideText">مهم</span>
-                    </button>
-                    <button class="anno-btn" id="pdfThumbnailsToggleBtn" onclick="togglePdfThumbnailsDrawer()" title="إظهار / إخفاء مصغرات السلايدات وفهرس المحاضرة (اختصار: M)">
-                        <i class="fa-solid fa-table-cells"></i> <span class="hide-on-xs">المصغرات</span>
-                    </button>
+                    <button type="button" class="anno-btn" onclick="changePdfZoom(-0.15)" title="تصغير الزوم (-)"><i class="fa-solid fa-minus" style="font-size: 0.7rem;"></i></button>
+                    <span id="pdfZoomLevelText" onclick="togglePdfFitModeQuick()" title="اضغط للتبديل السريع بين ملء العرض والارتفاع" style="font-size: 0.74rem; font-weight: 800; min-width: 38px; text-align: center; color: var(--text-main); cursor: pointer;">100%</span>
+                    <button type="button" class="anno-btn" onclick="changePdfZoom(0.15)" title="تكبير الزوم (+)"><i class="fa-solid fa-plus" style="font-size: 0.7rem;"></i></button>
 
-                    <div class="pdf-header-divider"></div>
-
-                    <button class="anno-btn active" id="pdfFitHeightBtn" onclick="setPdfFitMode('height')" title="احتواء الصفحة طولياً (H)">
-                        <i class="fa-solid fa-arrows-up-down"></i> <span class="hide-on-xs">طولياً</span>
+                    <button type="button" class="anno-btn active" id="pdfFitHeightBtn" onclick="togglePdfFitModeQuick()" title="تبديل ملء العرض / الارتفاع (W / H)">
+                        <i class="fa-solid fa-expand" style="font-size: 0.75rem;"></i>
                     </button>
-                    <button class="anno-btn" id="pdfFitWidthBtn" onclick="setPdfFitMode('width')" title="ملء عرض الشاشة (W)">
-                        <i class="fa-solid fa-arrows-left-right"></i> <span class="hide-on-xs">عرضياً</span>
-                    </button>
-
-                    <div class="pdf-header-divider"></div>
-
-                    <button class="anno-btn" onclick="changePdfZoom(-0.15)" title="تصغير الزوم (-)"><i class="fa-solid fa-minus"></i></button>
-                    <span id="pdfZoomLevelText" onclick="togglePdfFitModeQuick()" title="اضغط للتبديل السريع بين الطول والعرض" style="font-size: 0.74rem; font-weight: 800; min-width: 40px; text-align: center; color: var(--text-main); cursor: pointer;">100%</span>
-                    <button class="anno-btn" onclick="changePdfZoom(0.15)" title="تكبير الزوم (+)"><i class="fa-solid fa-plus"></i></button>
+                    <button type="button" id="pdfFitWidthBtn" onclick="setPdfFitMode('width')" style="display:none;"></button>
                 </div>
 
-                <!-- Zone 3 (Left): Focus Mode, Toolbar Toggle, Options Menu, Fullscreen & Close -->
-                <div class="pdf-header-left-actions" style="display: flex; align-items: center; gap: 6px;">
-                    <button type="button" class="anno-btn pdf-header-smart-mini-btn" id="pdfHeaderSmartTrackMiniBtn" onclick="togglePdfSmartTrackCapsuleVisibility()" title="إظهار أو إخفاء كبسولة التتبع الذكي للمهمة">
-                        <i class="fa-solid fa-compass" id="pdfHeaderSmartMiniIcon"></i>
-                        <span id="pdfHeaderSmartMiniText">التتبع الذكي</span>
+                <!-- Zone 3 (Left): 5 Quiet Action Icons + More + Close -->
+                <div class="pdf-header-left-actions" style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                    <button type="button" class="anno-btn icon-only" id="pdfBookmarkCurrentSlideBtn" onclick="toggleBookmarkCurrentSlide()" title="تمييز السلايد كمهم للاختبار (اختصار: B)">
+                        <i class="fa-regular fa-star" id="pdfBookmarkCurrentSlideIcon"></i>
+                        <span class="hide-on-xs" id="pdfBookmarkCurrentSlideText" style="display:none;">مهم</span>
                     </button>
-                    <button class="anno-btn" id="pdfNightModeBtn" onclick="togglePdfNightMode()" title="الوضع الليلي لحماية العين من بياض السلايدات (اختصار: N)">
-                        <i class="fa-solid fa-moon" id="pdfNightModeIcon"></i> <span class="hide-on-xs" id="pdfNightModeText">ليلي</span>
+                    <button type="button" class="anno-btn icon-only" id="pdfThumbnailsToggleBtn" onclick="togglePdfThumbnailsDrawer()" title="فهرس ومصغرات السلايدات (اختصار: M)">
+                        <i class="fa-solid fa-table-cells"></i>
                     </button>
-                    <button class="anno-btn pdf-zen-toggle-btn" id="pdfZenModeBtn" onclick="togglePdfZenMode()" title="وضع التركيز الصافي بدون أي أشرطة (اختصار: Z)" style="border: 1px solid rgba(16, 185, 129, 0.35); color: #6ee7b7;">
-                        <i class="fa-solid fa-leaf"></i> <span id="pdfZenModeText">وضع التركيز</span>
+                    <button type="button" class="anno-btn" id="pdfAudioBarToggleBtn" onclick="togglePdfAudioPlayerBar()" title="مشغل الريكورد الصوتي للمحاضرة" style="padding: 4px 9px !important; gap: 5px !important; border: 1px solid rgba(45, 212, 191, 0.3); border-radius: 999px;">
+                        <i class="fa-solid fa-headphones" id="pdfAudioBarToggleIcon" style="color: var(--primary);"></i> <span id="pdfAudioBarToggleText" class="hide-on-xs" style="font-size: 0.74rem; font-weight: 800; color: #5eead4;">الريكورد</span>
                     </button>
-                    <button class="icon-btn" id="pdfCollapseDockBtn" onclick="togglePdfAnnotationDock()" title="طي / إظهار شريط أدوات الرسم" style="width: 32px; height: 32px;">
-                        <i class="fa-solid fa-chevron-up" id="pdfCollapseDockIcon"></i>
-                        <span id="pdfCollapseDockText" style="display:none;">طي الأدوات</span>
+                    <!-- Hidden night mode dummy to prevent any legacy references from throwing -->
+                    <button id="pdfNightModeBtn" style="display:none;"></button>
+                    <span id="pdfNightModeIcon" style="display:none;"></span>
+                    <span id="pdfNightModeText" style="display:none;"></span>
+                    <button type="button" class="anno-btn icon-only" id="pdfCollapseDockBtn" onclick="togglePdfAnnotationDock()" title="إظهار / إخفاء شريط أدوات الرسم">
+                        <i class="fa-solid fa-pen-nib" id="pdfCollapseDockIcon"></i>
                     </button>
 
+                    <!-- Hidden dummies for JS compatibility -->
+                    <button type="button" id="pdfHeaderSmartTrackMiniBtn" onclick="togglePdfSmartTrackCapsuleVisibility()" style="display:none;"></button>
+                    <span id="pdfHeaderSmartMiniIcon" style="display:none;"></span>
+                    <span id="pdfHeaderSmartMiniText" style="display:none;"></span>
+                    <span id="pdfCollapseDockText" style="display:none;"></span>
+
                     <div class="pdf-more-dropdown-wrap">
-                        <button class="anno-btn" onclick="togglePdfMoreMenu(event)" style="border: 1px solid var(--border-color);" title="خيارات وإعدادات المحاضرة">
-                            <i class="fa-solid fa-sliders"></i> <span class="hide-on-xs">خيارات</span> <i class="fa-solid fa-chevron-down" style="font-size: 0.62rem;"></i>
+                        <button type="button" class="anno-btn icon-only" onclick="togglePdfMoreMenu(event)" title="خيارات إضافية">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
                         </button>
                         <div class="pdf-more-dropdown-menu" id="pdfMoreDropdownMenu" onclick="event.stopPropagation()">
+                            <button class="pdf-more-item" id="pdfZenModeBtn" onclick="togglePdfZenMode(); closePdfMoreMenu();">
+                                <i class="fa-solid fa-leaf" style="color: #6ee7b7;"></i> <span id="pdfZenModeText">وضع التركيز الصافي (Z)</span>
+                            </button>
                             <button class="pdf-more-item" id="pdfTwoPageSpreadBtn" onclick="togglePdfTwoPageSpread(); closePdfMoreMenu();">
                                 <i class="fa-solid fa-book-open" style="color: #38bdf8;"></i> <span id="pdfTwoPageSpreadText">عرض صفحتين جنباً إلى جنب</span>
                             </button>
@@ -8964,22 +9161,26 @@
                             <button class="pdf-more-item" id="pdfMenuUploadCloudBtn" onclick="uploadCurrentViewingLectureMediaToCloud(); closePdfMoreMenu();">
                                 <i class="fa-solid fa-cloud-arrow-up" style="color: #38bdf8;"></i> <span id="pdfMenuUploadCloudBtnText">رفع الـ PDF والريكورد على الحساب</span>
                             </button>
-
+                            <button class="pdf-more-item" onclick="triggerPickAudioForCurrent(); closePdfMoreMenu();">
+                                <i class="fa-solid fa-headphones" style="color: #a78bfa;"></i> <span id="pdfMenuAttachAudioText">ربط ريكورد صوتي للمحاضرة</span>
+                            </button>
                             <a id="pdfOpenInTabBtn" href="#" target="_blank" rel="noopener noreferrer" class="pdf-more-item" onclick="closePdfMoreMenu()">
                                 <i class="fa-solid fa-arrow-up-right-from-square" style="color: #93c5fd;"></i> فتح في نافذة خارجية
                             </a>
                             <div style="height: 1px; background: rgba(255,255,255,0.06); margin: 3px 0;"></div>
+                            <button class="pdf-more-item" onclick="togglePdfFullscreen(); closePdfMoreMenu();">
+                                <i class="fa-solid fa-expand" id="pdfFullscreenIcon" style="color: #cbd5e1;"></i> ملء الشاشة (F)
+                            </button>
                             <button class="pdf-more-item" style="color: #fda4af;" onclick="clearCurrentPageAnnotations(); closePdfMoreMenu();">
                                 <i class="fa-solid fa-trash-can"></i> مسح كتابات الصفحة الحالية
                             </button>
                         </div>
                     </div>
 
-                    <button class="icon-btn" style="width: 32px; height: 32px;" onclick="togglePdfFullscreen()" id="pdfFullscreenBtn" title="ملء الشاشة (F)">
-                        <i class="fa-solid fa-expand" id="pdfFullscreenIcon"></i>
-                    </button>
-                    <button class="icon-btn delete" style="width: 32px; height: 32px;" onclick="closePdfViewer()" title="إغلاق (Esc)">
-                        <i class="fa-solid fa-xmark"></i>
+                    <button id="pdfFullscreenBtn" onclick="togglePdfFullscreen()" style="display:none;"></button>
+
+                    <button type="button" class="icon-btn delete" style="width: 28px; height: 28px; border-radius: 7px;" onclick="closePdfViewer()" title="إغلاق العارض (Esc)">
+                        <i class="fa-solid fa-xmark" style="font-size: 0.8rem;"></i>
                     </button>
                 </div>
             </div>
@@ -9008,51 +9209,46 @@
             </div>
 
             <!-- Organized 3-Group Annotation Toolbar -->
+            <!-- Floating Clean Dynamic Annotation Dock -->
             <div class="pdf-annotation-toolbar" id="pdfAnnotationToolbar">
-                <!-- Group 1: Writing Tools + Laser & Laser Pause + Palm Rejection -->
+                <!-- Group 1: Core Drawing Tools -->
                 <div class="anno-tool-group">
-                    <button class="anno-btn" id="toolBtn_pan" onclick="setAnnotationTool('pan')" title="وضع التصفح والتحريك فقط">
-                        <i class="fa-solid fa-hand"></i> تصفح
+                    <button type="button" class="anno-btn" id="toolBtn_pan" onclick="setAnnotationTool('pan')" title="تصفح وتحريك السلايد">
+                        <i class="fa-solid fa-hand"></i> <span class="hide-on-compact">تصفح</span>
                     </button>
-                    <button class="anno-btn active" id="toolBtn_pen" onclick="setAnnotationTool('pen')" title="قلم فائق السرعة والسلاسة (بدون أي تقطيع)">
-                        <i class="fa-solid fa-pen-nib"></i> قلم
+                    <button type="button" class="anno-btn active" id="toolBtn_pen" onclick="setAnnotationTool('pen')" title="قلم للكتابة السلسة">
+                        <i class="fa-solid fa-pen-nib"></i> <span class="hide-on-compact">قلم</span>
                     </button>
-                    <button class="anno-btn" id="toolBtn_highlighter" onclick="setAnnotationTool('highlighter')" title="قلم تظليل شفاف">
-                        <i class="fa-solid fa-highlighter"></i> تظليل
+                    <button type="button" class="anno-btn" id="toolBtn_highlighter" onclick="setAnnotationTool('highlighter')" title="تظليل شفاف">
+                        <i class="fa-solid fa-highlighter"></i> <span class="hide-on-compact">تظليل</span>
                     </button>
-                    <button class="anno-btn" id="toolBtn_text" onclick="setAnnotationTool('text')" title="إضافة نص بالكيبورد (T)">
-                        <i class="fa-solid fa-font"></i> نص
+                    <button type="button" class="anno-btn" id="toolBtn_eraser" onclick="setAnnotationTool('eraser')" title="ممحاة ذكية">
+                        <i class="fa-solid fa-eraser"></i> <span class="hide-on-compact">ممحاة</span>
                     </button>
-                    <button class="anno-btn" id="toolBtn_eraser" onclick="setAnnotationTool('eraser')" title="ممحاة ذكية">
-                        <i class="fa-solid fa-eraser"></i> ممحاة
+                    <button type="button" class="anno-btn" id="toolBtn_text" onclick="setAnnotationTool('text')" title="إضافة نص بالكيبورد">
+                        <i class="fa-solid fa-font"></i> <span class="hide-on-compact">نص</span>
                     </button>
-                    <!-- Mobile Color & Tool Palette Trigger (Visible on mobile <= 768px) -->
-                    
-                    <div class="pdf-header-divider"></div>
-                    <button class="anno-btn" id="toolBtn_laser" onclick="setAnnotationTool('laser')" title="مؤشر ليزر للشرح">
-                        <i class="fa-solid fa-wand-magic-sparkles"></i> ليزر
+                    <button type="button" class="anno-btn" id="toolBtn_laser" onclick="setAnnotationTool('laser')" title="مؤشر ليزر للشرح">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> <span class="hide-on-compact">ليزر</span>
                     </button>
-                    <button class="anno-btn" id="toolBtn_laserPause" onclick="toggleLaserFadePause()" title="إيقاف المسح التلقائي لليزر مؤقتاً وتثبيته على السلايد (اختصار الكيبورد: L أو م)">
-                        <i class="fa-solid fa-pause" id="laserPauseBtnIcon"></i> <span id="laserPauseBtnText">تثبيت الليزر (L)</span>
-                    </button>
-                    <div class="pdf-header-divider"></div>
-                    <button class="anno-btn palm-reject-active" id="toolBtn_palmReject" onclick="togglePalmRejectionMode()" title="عزل التاتش الذكي للأيباد والتابلت">
-                        <i class="fa-solid fa-hand-dots" id="palmRejectBtnIcon"></i> <span id="palmRejectBtnText">عزل التاتش</span>
+                    <button type="button" id="toolBtn_laserPause" onclick="toggleLaserFadePause()" style="display:none;"></button>
+                    <button type="button" class="anno-btn" id="toolBtn_palmReject" onclick="togglePalmRejectionMode()" title="عزل التاتش للتابلت والأيباد">
+                        <i class="fa-solid fa-hand-dots" id="palmRejectBtnIcon"></i>
                     </button>
                 </div>
 
-                <!-- Group 2: Colors, Size Slider & Dynamic Font -->
+                <div class="pdf-header-divider"></div>
+
+                <!-- Group 2: 4 Core Colors + Color Picker + Compact Size Stepper -->
                 <div class="anno-tool-group">
-                    <span class="color-dot active" data-mobile-color="true" style="background: #ef4444; width: 18px; height: 18px;" onclick="setAnnotationColor('#ef4444', this)"></span>
-                    <span class="color-dot" data-mobile-color="true" style="background: #3b82f6; width: 18px; height: 18px;" onclick="setAnnotationColor('#3b82f6', this)"></span>
-                    <span class="color-dot" data-mobile-color="true" style="background: #10b981; width: 18px; height: 18px;" onclick="setAnnotationColor('#10b981', this)"></span>
-                    <span class="color-dot" data-mobile-color="true" style="background: #f59e0b; width: 18px; height: 18px;" onclick="setAnnotationColor('#f59e0b', this)"></span>
-                    <span class="color-dot" style="background: #a855f7; width: 18px; height: 18px;" onclick="setAnnotationColor('#a855f7', this)"></span>
-                    <span class="color-dot" style="background: #111827; border-color: #64748b; width: 18px; height: 18px;" onclick="setAnnotationColor('#111827', this)"></span>
-                    <input type="color" id="customAnnoColor" value="#ef4444" onchange="setAnnotationColor(this.value, null)" style="width: 19px; height: 19px; padding: 0; border: none; background: transparent; cursor: pointer;">
-                    
+                    <span class="color-dot active" data-mobile-color="true" style="background: #ef4444; width: 17px; height: 17px;" onclick="setAnnotationColor('#ef4444', this)" title="أحمر"></span>
+                    <span class="color-dot" data-mobile-color="true" style="background: #3b82f6; width: 17px; height: 17px;" onclick="setAnnotationColor('#3b82f6', this)" title="أزرق"></span>
+                    <span class="color-dot" data-mobile-color="true" style="background: #10b981; width: 17px; height: 17px;" onclick="setAnnotationColor('#10b981', this)" title="أخضر"></span>
+                    <span class="color-dot" data-mobile-color="true" style="background: #f59e0b; width: 17px; height: 17px;" onclick="setAnnotationColor('#f59e0b', this)" title="أصفر"></span>
+                    <input type="color" id="customAnnoColor" value="#ef4444" onchange="setAnnotationColor(this.value, null)" title="لون مخصص" style="width: 18px; height: 18px; padding: 0; border: none; background: transparent; cursor: pointer; border-radius: 50%;">
+
                     <div class="pdf-header-divider"></div>
-                    <div class="stroke-size-control-wrap" title="التحكم في سمك القلم والخط">
+                    <div class="stroke-size-control-wrap" title="التحكم في سمك القلم">
                         <button type="button" class="size-step-btn" onclick="stepAnnotationSize(-1)" title="تصغير السمك (-)">
                             <i class="fa-solid fa-minus"></i>
                         </button>
@@ -9060,11 +9256,10 @@
                         <button type="button" class="size-step-btn" onclick="stepAnnotationSize(1)" title="تكبير السمك (+)">
                             <i class="fa-solid fa-plus"></i>
                         </button>
-                        <span id="annoSizeLabel" style="font-size: 0.74rem; color: var(--primary); font-weight: 900; min-width: 32px; text-align: center;">3px</span>
+                        <span id="annoSizeLabel" style="font-size: 0.72rem; color: var(--primary); font-weight: 900; min-width: 26px; text-align: center;">3px</span>
                     </div>
 
-                    <div id="annoFontSelectWrap" class="anno-font-select-wrap">
-                        <div class="pdf-header-divider"></div>
+                    <div id="annoFontSelectWrap" class="anno-font-select-wrap" style="display:none;">
                         <select id="annoFontFamilySelect" class="anno-font-select" onchange="setAnnotationFontFamily(this.value)">
                             <option value="marhey">✍️ خط اليد</option>
                             <option value="ruqaa">✒️ خط رقعه</option>
@@ -9073,30 +9268,30 @@
                     </div>
                 </div>
 
-                <!-- Group 3: Quick Actions (Undo, Hide Ink, Extra Note) -->
+                <div class="pdf-header-divider"></div>
+
+                <!-- Group 3: Undo, Toggle Ink, Extra Note & Collapse -->
                 <div class="anno-tool-group">
-                    <button class="anno-btn" onclick="undoLastStroke()" title="تراجع عن آخر خطوة (Ctrl+Z)">
-                        <i class="fa-solid fa-rotate-left"></i> تراجع
+                    <button type="button" class="anno-btn" onclick="undoLastStroke()" title="تراجع عن آخر خطوة (Ctrl+Z)">
+                        <i class="fa-solid fa-rotate-left"></i>
                     </button>
-                    <button type="button" class="anno-btn pdf-mobile-only-btn" id="pdfMobileCollapseDockBtn" onclick="togglePdfAnnotationDock()" title="طي الأدوات للحصول على شاشة كاملة للقراءة">
+                    <button type="button" class="anno-btn" id="toggleAnnoVisBtn" onclick="toggleAnnotationsVisibility()" title="إخفاء أو إظهار الكتابة">
+                        <i class="fa-solid fa-eye" id="toggleAnnoVisIcon"></i>
+                    </button>
+                    <button type="button" class="anno-btn" id="pdfToolbarExtraNoteBtn" onclick="toggleExtraNoteForPage(currentActivePageNum)" title="إضافة ورقة تلخيص للسلايد">
+                        <i class="fa-solid fa-file-circle-plus" style="color: var(--primary);"></i>
+                    </button>
+                    <button type="button" class="anno-btn" id="pdfDockPosToggleBtn" onclick="togglePdfDockPosition()" title="تبديل موضع شريط الأدوات (أعلى / أسفل)" style="padding: 4px 6px !important;">
+                        <i class="fa-solid fa-up-down" id="pdfDockPosIcon" style="font-size: 0.75rem;"></i>
+                    </button>
+                    <button type="button" class="anno-btn" id="pdfMobileCollapseDockBtn"  onclick="togglePdfAnnotationDock()" title="طي الأدوات للحصول على شاشة كاملة للقراءة">
                         <i class="fa-solid fa-chevron-down"></i>
                     </button>
-                    <button class="anno-btn" id="toggleAnnoVisBtn" onclick="toggleAnnotationsVisibility()" title="إخفاء أو إظهار الكتابة للتسميع النشط">
-                        <i class="fa-solid fa-eye" id="toggleAnnoVisIcon"></i> <span id="toggleAnnoVisText">إخفاء الكتابة</span>
-                    </button>
-                    <button class="anno-btn" id="pdfToolbarExtraNoteBtn" onclick="toggleExtraNoteForPage(currentActivePageNum)" title="إضافة مساحة تلخيص أسفل السلايد">
-                        <i class="fa-solid fa-plus" id="pdfToolbarExtraNoteIcon" style="color: var(--primary);"></i> <span id="pdfToolbarExtraNoteText">ورقة تلخيص</span>
-                    </button>
-                    <button class="anno-btn" id="pdfToolbarExportPdfBtn" onclick="exportAnnotatedSlides()" style="display:none;">
-                        <i class="fa-solid fa-file-export" id="pdfToolbarExportPdfIcon" style="color: #6ee7b7;"></i> <span id="pdfToolbarExportPdfText">استخراج PDF</span>
-                    </button>
+                    <button type="button" id="pdfToolbarExportPdfBtn" onclick="exportAnnotatedSlides()" style="display:none;"></button>
                 </div>
             </div>
 
-            <!-- Mobile Study Color & Tool Palette Drawer (Visible on mobile <= 768px) -->
-            <!-- Mobile Study Drawer Removed -->
-
-            <!-- Mobile Dock 1-Tap Floating Restore Trigger (Visible only when dock is collapsed on mobile) -->
+            <!-- Floating 1-Tap Restore Trigger (Visible only when dock is collapsed) -->
             <button type="button" id="pdfMobileDockFloatingTriggerBtn" onclick="togglePdfAnnotationDock()" title="إظهار أدوات المذاكرة والكتابة">
                 <i class="fa-solid fa-pen-nib"></i>
             </button>
@@ -9183,7 +9378,7 @@
             </div>
 
             <!-- Sleek Collapsible Synced Audio Player Bar -->
-            <div class="pdf-audio-player-bar" id="pdfAudioPlayerBar">
+            <div class="pdf-audio-player-bar no-audio-attached" id="pdfAudioPlayerBar" style="display: none;">
                 <audio id="lectureAudioElement" style="display: none;" preload="metadata" crossorigin="anonymous"></audio>
                 
                 <div class="audio-controls-left">
@@ -10427,22 +10622,45 @@
         }
         window.extractGoogleDriveFileId = extractGoogleDriveFileId;
 
-        function triggerBrowserFileDownload(blob, fileName) {
+        async function triggerBrowserFileDownload(blob, fileName) {
             if (!blob || !fileName) return;
             try {
+                // If on mobile/Android and Web Share API is available, offer direct native save/share
+                const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+                if (isMobile && navigator.canShare) {
+                    try {
+                        const file = new File([blob], fileName, { type: blob.type || 'application/pdf' });
+                        if (navigator.canShare({ files: [file] })) {
+                            await navigator.share({
+                                files: [file],
+                                title: fileName
+                            });
+                            showToast('✅ تم حفظ / مشاركة الملف بنجاح');
+                            return;
+                        }
+                    } catch (shareErr) {
+                        // If user dismissed share sheet, fall through to browser download
+                    }
+                }
+
                 const blobUrl = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.style.display = 'none';
                 a.href = blobUrl;
                 a.download = fileName;
+                a.target = '_blank';
                 document.body.appendChild(a);
                 a.click();
                 setTimeout(() => {
                     if (a.parentNode) a.parentNode.removeChild(a);
                     URL.revokeObjectURL(blobUrl);
-                }, 2000);
+                }, 6000);
             } catch (e) {
                 console.error('triggerBrowserFileDownload error:', e);
+                try {
+                    const blobUrl = URL.createObjectURL(blob);
+                    window.open(blobUrl, '_blank');
+                } catch (_) {}
             }
         }
         window.triggerBrowserFileDownload = triggerBrowserFileDownload;
@@ -19330,12 +19548,26 @@
             await activateMergedLectureAudioAndContext(firstItem, false);
             document.getElementById('pdfViewerModalOverlay').classList.add('active');
             const audioBarEl = document.getElementById('pdfAudioPlayerBar');
-            if (audioBarEl) {
-                if (!hasAudio && (typeof isMobileStudyViewport === 'function' && isMobileStudyViewport())) {
-                    audioBarEl.classList.add('no-audio-attached');
-                } else {
+            const audioToggleBtn = document.getElementById('pdfAudioBarToggleBtn');
+            const audioToggleTxt = document.getElementById('pdfAudioBarToggleText');
+            const modalContainer = document.getElementById('pdfModalContainer');
+            if (hasAudio) {
+                if (audioBarEl) {
+                    audioBarEl.style.display = 'flex';
                     audioBarEl.classList.remove('no-audio-attached');
+                    audioBarEl.classList.add('active-audio-dock');
                 }
+                if (audioToggleBtn) audioToggleBtn.classList.add('active');
+                if (audioToggleTxt) audioToggleTxt.innerText = 'الريكورد ✓';
+                if (modalContainer) modalContainer.classList.add('has-active-audio');
+            } else {
+                if (audioBarEl) {
+                    audioBarEl.style.display = 'none';
+                    audioBarEl.classList.remove('active-audio-dock');
+                }
+                if (audioToggleBtn) audioToggleBtn.classList.remove('active');
+                if (audioToggleTxt) audioToggleTxt.innerText = 'الريكورد';
+                if (modalContainer) modalContainer.classList.remove('has-active-audio');
             }
             document.body.classList.add('in-pdf-studio');
             if (typeof toggleMobilePaletteDrawer === 'function') toggleMobilePaletteDrawer(false);
@@ -19355,6 +19587,10 @@
                 currentMergedLecturesBundle.push(currentViewingLec);
             }
 
+            if (currentMergedLecturesBundle.length <= 1) {
+                bar.style.display = 'none';
+                return;
+            }
             bar.style.display = 'flex';
             tabsBox.innerHTML = currentMergedLecturesBundle.map((item, idx) => {
                 const isAct = !mergedContinuousPdfMode && String(item.lec.id) === String(currentViewingLec.lec.id);
@@ -19810,12 +20046,26 @@
 
             document.getElementById('pdfViewerModalOverlay').classList.add('active');
             const audioBarEl = document.getElementById('pdfAudioPlayerBar');
-            if (audioBarEl) {
-                if (!hasAudio && (typeof isMobileStudyViewport === 'function' && isMobileStudyViewport())) {
-                    audioBarEl.classList.add('no-audio-attached');
-                } else {
+            const audioToggleBtn = document.getElementById('pdfAudioBarToggleBtn');
+            const audioToggleTxt = document.getElementById('pdfAudioBarToggleText');
+            const modalContainer = document.getElementById('pdfModalContainer');
+            if (hasAudio) {
+                if (audioBarEl) {
+                    audioBarEl.style.display = 'flex';
                     audioBarEl.classList.remove('no-audio-attached');
+                    audioBarEl.classList.add('active-audio-dock');
                 }
+                if (audioToggleBtn) audioToggleBtn.classList.add('active');
+                if (audioToggleTxt) audioToggleTxt.innerText = 'الريكورد ✓';
+                if (modalContainer) modalContainer.classList.add('has-active-audio');
+            } else {
+                if (audioBarEl) {
+                    audioBarEl.style.display = 'none';
+                    audioBarEl.classList.remove('active-audio-dock');
+                }
+                if (audioToggleBtn) audioToggleBtn.classList.remove('active');
+                if (audioToggleTxt) audioToggleTxt.innerText = 'الريكورد';
+                if (modalContainer) modalContainer.classList.remove('has-active-audio');
             }
 
             // 1. Check if PDF Blob is stored in Local IndexedDB
@@ -19900,7 +20150,57 @@
         }
 
 
+        
         // ==========================================
+        // AUDIO RECORDER CONTROL & DOCK POSITION HELPERS
+        // ==========================================
+        let pdfDockPosition = 'bottom'; // 'bottom' | 'top'
+
+        function togglePdfAudioPlayerBar(forceState) {
+            const bar = document.getElementById('pdfAudioPlayerBar');
+            const toggleBtn = document.getElementById('pdfAudioBarToggleBtn');
+            const container = document.getElementById('pdfModalContainer');
+            if (!bar) return;
+            const shouldOpen = forceState !== undefined
+                ? Boolean(forceState)
+                : (bar.style.display === 'none' || !bar.classList.contains('active-audio-dock'));
+
+            if (shouldOpen) {
+                bar.style.display = 'flex';
+                bar.classList.remove('no-audio-attached');
+                bar.classList.add('active-audio-dock');
+                if (toggleBtn) toggleBtn.classList.add('active');
+                if (container) container.classList.add('has-active-audio');
+                const audioEl = document.getElementById('lectureAudioElement');
+                if (!audioEl || !audioEl.src || audioEl.src === 'about:blank' || audioEl.src.endsWith('/about:blank')) {
+                    showToast('🎧 لا يوجد ريكورد مرتبط بعد؛ يمكنك الضغط على «ربط ريكورد» لاختيار ملف صوتي');
+                }
+            } else {
+                bar.style.display = 'none';
+                bar.classList.remove('active-audio-dock');
+                if (toggleBtn) toggleBtn.classList.remove('active');
+                if (container) container.classList.remove('has-active-audio');
+            }
+        }
+
+        function togglePdfDockPosition() {
+            const dock = document.getElementById('pdfAnnotationToolbar');
+            const icon = document.getElementById('pdfDockPosIcon');
+            if (!dock) return;
+            pdfDockPosition = (pdfDockPosition === 'bottom') ? 'top' : 'bottom';
+            dock.classList.toggle('dock-top', pdfDockPosition === 'top');
+            if (icon) {
+                icon.className = (pdfDockPosition === 'top') ? 'fa-solid fa-arrow-down' : 'fa-solid fa-arrow-up';
+            }
+            showToast(pdfDockPosition === 'top' ? '⬆️ تم نقل شريط الأدوات للأعلى' : '⬇️ تم نقل شريط الأدوات للأسفل');
+        }
+
+        // Night mode stub for backwards compatibility
+        function togglePdfNightMode() {
+            // Day and night mode removed as requested
+        }
+
+// ==========================================
         // ADVANCED PDF VIEWER STUDY & ORGANIZER ENGINE
         // ==========================================
         let pdfThumbFilter = 'all'; // 'all' | 'bookmarks' | 'notes'
@@ -22902,6 +23202,19 @@
                 const attachBtnText = document.getElementById('audioAttachBtnText');
                 if (attachBtnText) attachBtnText.innerText = 'تغيير الريكورد';
 
+                const audioBarEl = document.getElementById('pdfAudioPlayerBar');
+                if (audioBarEl) {
+                    audioBarEl.style.display = 'flex';
+                    audioBarEl.classList.remove('no-audio-attached');
+                    audioBarEl.classList.add('active-audio-dock');
+                }
+                const audioToggleBtn = document.getElementById('pdfAudioBarToggleBtn');
+                if (audioToggleBtn) audioToggleBtn.classList.add('active');
+                const audioToggleTxt = document.getElementById('pdfAudioBarToggleText');
+                if (audioToggleTxt) audioToggleTxt.innerText = 'الريكورد ✓';
+                const modalContainer = document.getElementById('pdfModalContainer');
+                if (modalContainer) modalContainer.classList.add('has-active-audio');
+
                 setupAudioEventListeners();
                 ensureAudioBoostGraph();
                 audioEl.play();
@@ -23473,10 +23786,7 @@
         }
 
         async function exportAnnotatedSlides() {
-            if (!currentUserCanUploadMedia) {
-                showToast('🔒 ميزة «استخراج وتصدير الـ PDF» مغلقة في الحساب المجاني', 'error');
-                return;
-            }
+            // Free and open for all accounts on all devices (Desktop, Android, Tablet)
             if ((!currentPdfDoc && !mergedContinuousPdfMode) || !currentViewingLec) {
                 showToast('يرجى فتح ملف PDF محلي أولاً لتصديره بالكتابة', 'error');
                 return;
@@ -23632,22 +23942,13 @@
 
                 const pdfBinaryBytes = buildMultiPagePdfFromJpegs(pdfPagesData);
                 const pdfBlob = new Blob([pdfBinaryBytes], { type: 'application/pdf' });
-                const downloadUrl = URL.createObjectURL(pdfBlob);
 
                 const rawTitle = mergedContinuousPdfMode
                     ? `${currentViewingLec.sub?.name || 'محاضرات'}_مدمجة_مشروحة`
                     : `${currentViewingLec.lec?.title || 'محاضرة'}_مشروحة`;
                 const safeFileName = rawTitle.replace(/[\\/:*?"<>|]+/g, '_').trim() || 'محاضرة_مشروحة';
 
-                const link = document.createElement('a');
-                link.href = downloadUrl;
-                link.download = `${safeFileName}.pdf`;
-                document.body.appendChild(link);
-                link.click();
-                setTimeout(() => {
-                    link.remove();
-                    URL.revokeObjectURL(downloadUrl);
-                }, 4000);
+                await triggerBrowserFileDownload(pdfBlob, `${safeFileName}.pdf`);
 
                 if (statusEl) {
                     statusEl.innerHTML = '<i class="fa-solid fa-file-circle-check" style="color:#6ee7b7;"></i> تم تصدير الـ PDF بنجاح ✓';
