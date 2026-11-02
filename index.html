@@ -2035,7 +2035,104 @@
         }
 
         
-        /* ===== Android & Mobile Optimization & Generous Scroll Clearance ===== */
+        
+        /* ===== Uncompromised Top Dock & Zero Audio Collision ===== */
+        .pdf-annotation-toolbar {
+            position: absolute !important;
+            top: 48px !important;
+            bottom: auto !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            z-index: 40 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: rgba(16, 20, 30, 0.94) !important;
+            backdrop-filter: blur(20px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            border-radius: 999px !important;
+            padding: 4px 10px !important;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+            gap: 6px !important;
+            flex-wrap: nowrap !important;
+            flex-shrink: 0 !important;
+            user-select: none !important;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease, top 0.2s ease, bottom 0.2s ease !important;
+            max-width: 95vw !important;
+            overflow: visible !important;
+        }
+
+        /* When toggled to bottom position */
+        .pdf-annotation-toolbar.dock-bottom {
+            top: auto !important;
+            bottom: 18px !important;
+        }
+
+        /* When audio player is active and dock is at bottom, lift it safely above audio bar on ALL screen sizes! */
+        .pdf-modal-container.has-active-audio .pdf-annotation-toolbar.dock-bottom {
+            bottom: 56px !important;
+        }
+
+        /* Collapsed state */
+        .pdf-modal-container.dock-collapsed .pdf-annotation-toolbar {
+            transform: translateX(-50%) translateY(-160%) !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        .pdf-modal-container.dock-collapsed .pdf-annotation-toolbar.dock-bottom {
+            transform: translateX(-50%) translateY(160%) !important;
+        }
+
+        /* Floating Restore FAB Button */
+        #pdfMobileDockFloatingTriggerBtn {
+            position: absolute !important;
+            bottom: 22px !important;
+            right: 22px !important;
+            width: 44px !important;
+            height: 44px !important;
+            border-radius: 50% !important;
+            background: linear-gradient(135deg, var(--primary), #0d9488) !important;
+            color: #fff !important;
+            box-shadow: 0 6px 20px rgba(45, 212, 191, 0.45) !important;
+            border: none !important;
+            cursor: pointer !important;
+            z-index: 41 !important;
+            display: none;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, bottom 0.2s ease !important;
+        }
+        .pdf-modal-container.has-active-audio #pdfMobileDockFloatingTriggerBtn {
+            bottom: 56px !important;
+        }
+        .pdf-modal-container.dock-collapsed #pdfMobileDockFloatingTriggerBtn {
+            display: flex !important;
+        }
+
+        /* Buffer scroll padding so slide text is NEVER covered */
+        .pdf-pages-scroll-container {
+            padding-top: 55px !important;
+            padding-bottom: 95px !important;
+            scroll-padding-top: 55px !important;
+            scroll-padding-bottom: 95px !important;
+        }
+        .pdf-modal-container.has-active-audio .pdf-pages-scroll-container {
+            padding-bottom: 110px !important;
+        }
+
+        /* Sleek Audio Player Bar */
+        .pdf-audio-player-bar {
+            height: 44px !important;
+            min-height: 44px !important;
+            max-height: 44px !important;
+            padding: 0 16px !important;
+            background: rgba(13, 16, 25, 0.98) !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+            z-index: 35 !important;
+        }
+
+/* ===== Android & Mobile Optimization & Generous Scroll Clearance ===== */
         html, body {
             overscroll-behavior-y: none;
             -webkit-tap-highlight-color: transparent;
@@ -4350,7 +4447,7 @@
             }
             .notion-day-switcher { width: 100%; }
         }
-        #pdfFullscreenBtn { display: inline-flex !important; }
+        /* #pdfFullscreenBtn handled as icon */
         .app-fullscreen-btn {
             padding: 7px 12px;
             font-size: 0.8rem;
@@ -7876,6 +7973,222 @@
             .exo-sidebar { display: none !important; }
             .main-content { margin-right: 0 !important; margin-left: 0 !important; }
         }
+
+        /* ===== Vertical Right-Hand Annotation Dock & Zero Collision Layout ===== */
+        .pdf-annotation-toolbar {
+            position: absolute !important;
+            top: 56px !important;
+            right: 14px !important;
+            left: auto !important;
+            bottom: auto !important;
+            transform: none !important;
+            z-index: 40 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            background: rgba(14, 18, 28, 0.95) !important;
+            backdrop-filter: blur(20px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            border-radius: 16px !important;
+            padding: 8px 5px !important;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+            gap: 5px !important;
+            width: 44px !important;
+            max-width: 44px !important;
+            user-select: none !important;
+            transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease !important;
+        }
+
+        /* Collapsed: slides off to the right */
+        .pdf-modal-container.dock-collapsed .pdf-annotation-toolbar {
+            transform: translateX(65px) !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        /* Vertical Tool Buttons */
+        .pdf-annotation-toolbar .anno-btn {
+            width: 34px !important;
+            height: 34px !important;
+            min-width: 34px !important;
+            padding: 0 !important;
+            border-radius: 9px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 0.85rem !important;
+            background: transparent !important;
+            border: 1px solid transparent !important;
+            color: var(--text-muted) !important;
+            transition: all 0.15s ease !important;
+        }
+        .pdf-annotation-toolbar .anno-btn:hover {
+            background: rgba(255, 255, 255, 0.08) !important;
+            color: var(--text-main) !important;
+        }
+        .pdf-annotation-toolbar .anno-btn.active {
+            background: rgba(45, 212, 191, 0.18) !important;
+            color: var(--primary) !important;
+            border-color: rgba(45, 212, 191, 0.35) !important;
+            box-shadow: 0 0 10px rgba(45, 212, 191, 0.3) !important;
+        }
+
+        .pdf-annotation-toolbar .pdf-header-divider {
+            width: 24px !important;
+            height: 1px !important;
+            background: rgba(255, 255, 255, 0.08) !important;
+            margin: 2px 0 !important;
+        }
+
+        .active-color-dot {
+            width: 17px;
+            height: 17px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+            transition: transform 0.15s ease, background 0.15s ease;
+        }
+
+        /* Pen Options Flyout (Colors & Stroke on Demand) */
+        .pdf-pen-options-flyout {
+            position: absolute;
+            top: 155px;
+            right: 66px;
+            background: rgba(16, 20, 32, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(45, 212, 191, 0.3);
+            border-radius: 14px;
+            padding: 10px 12px;
+            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.75);
+            z-index: 45;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            width: 185px;
+            animation: fadeInModal 0.16s ease-out;
+        }
+        .pdf-pen-options-flyout.open {
+            display: flex !important;
+        }
+
+        /* Floating Restore FAB Button */
+        #pdfMobileDockFloatingTriggerBtn {
+            position: absolute !important;
+            top: 56px !important;
+            right: 14px !important;
+            bottom: auto !important;
+            left: auto !important;
+            width: 40px !important;
+            height: 40px !important;
+            border-radius: 12px !important;
+            background: linear-gradient(135deg, var(--primary), #0d9488) !important;
+            color: #fff !important;
+            box-shadow: 0 6px 20px rgba(45, 212, 191, 0.45) !important;
+            border: none !important;
+            cursor: pointer !important;
+            z-index: 41 !important;
+            display: none;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+        }
+        .pdf-modal-container.dock-collapsed #pdfMobileDockFloatingTriggerBtn {
+            display: flex !important;
+        }
+
+        /* Scroll clearance: Right side clears vertical dock, Bottom clears audio player */
+        .pdf-pages-scroll-container {
+            padding-top: 16px !important;
+            padding-right: 68px !important;
+            padding-bottom: 60px !important;
+            scroll-padding-right: 68px !important;
+            scroll-padding-bottom: 60px !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+
+        /* Clean Modern Fullscreen Button: exactly 32px icon, no text */
+        #pdfFullscreenBtn {
+            width: 32px !important;
+            height: 32px !important;
+            min-width: 32px !important;
+            padding: 0 !important;
+            border-radius: 8px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: transparent !important;
+            border: none !important;
+            color: var(--text-muted) !important;
+            cursor: pointer !important;
+        }
+        #pdfFullscreenBtn:hover {
+            color: var(--text-main) !important;
+            background: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        /* Sleek Audio Player Bar */
+        .pdf-audio-player-bar {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(13, 16, 25, 0.98) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+            padding: 0 16px !important;
+            height: 44px !important;
+            min-height: 44px !important;
+            max-height: 44px !important;
+            flex-shrink: 0;
+            gap: 12px;
+            z-index: 35 !important;
+            box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.5) !important;
+        }
+        .pdf-audio-player-bar.active-audio-dock {
+            display: flex !important;
+        }
+
+        @media (max-width: 768px) {
+            .pdf-annotation-toolbar {
+                top: 48px !important;
+                right: 8px !important;
+            }
+            .pdf-pen-options-flyout {
+                top: 135px !important;
+                right: 58px !important;
+            }
+            #pdfMobileDockFloatingTriggerBtn {
+                top: 48px !important;
+                right: 8px !important;
+            }
+            .pdf-pages-scroll-container {
+                padding-right: 55px !important;
+            }
+        }
+
+
+        /* Thumbnails Card Delete / Action Buttons */
+        .pdf-thumb-action-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            padding: 2px 4px;
+            font-size: 0.75rem;
+            transition: color 0.15s ease, transform 0.15s ease;
+        }
+        .pdf-thumb-action-btn:hover {
+            color: #f87171 !important;
+            transform: scale(1.15);
+        }
+        .pdf-thumb-card.is-deleted-card {
+            opacity: 0.6;
+            border-color: rgba(239, 68, 68, 0.4) !important;
+            background: rgba(239, 68, 68, 0.05) !important;
+        }
+
 </style>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -8191,21 +8504,15 @@
                     </div>
                 </div>
 
-                <!-- Live Smart Time-Sync & Current Activity Radar Banner -->
-                <div class="smart-time-sync-banner" id="smartTimeSyncBanner">
-                    <div class="stsb-clock-group">
-                        <span class="stsb-live-dot"></span>
-                        <div>
-                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                <span id="livePlannerClockText" style="font-weight: 900; font-size: 0.92rem; color: var(--text-main); font-variant-numeric: tabular-nums;">جاري مزامنة الوقت...</span>
-                                <span id="livePlannerWeekRangeBadge" class="studio-pill" style="font-size: 0.72rem; color: var(--primary);">الأسبوع الحالي</span>
-                            </div>
-                            <div id="livePlannerStatusSubtext" style="font-size: 0.77rem; color: var(--text-muted); margin-top: 2px;">
-                                يتابع النظام مذاكرتك تلقائياً في الوقت الفعلي ويكتشف إنجاز مهامك أو فواتها.
-                            </div>
-                        </div>
+                <!-- Minimalist 1-Line Live Status Capsule -->
+                <div class="smart-time-sync-banner" id="smartTimeSyncBanner" style="padding: 8px 14px; margin: 10px 0; border-radius: 12px; background: rgba(20, 24, 36, 0.6); border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                    <div class="stsb-clock-group" style="display: flex; align-items: center; gap: 8px;">
+                        <span class="stsb-live-dot" style="width: 8px; height: 8px;"></span>
+                        <span id="livePlannerClockText" style="font-weight: 800; font-size: 0.86rem; color: var(--text-main);">جاري مزامنة الوقت...</span>
+                        <span id="livePlannerWeekRangeBadge" class="studio-pill" style="font-size: 0.7rem; color: var(--primary);">الأسبوع الحالي</span>
+                        <span id="livePlannerStatusSubtext" style="display:none;"></span>
                     </div>
-                    <div id="livePlannerActiveSessionBox" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;"></div>
+                    <div id="livePlannerActiveSessionBox" style="display: flex; align-items: center; gap: 8px;"></div>
                 </div>
 
                 <!-- SUBVIEW 1: FULL WEEK TIMETABLE -->
@@ -9078,57 +9385,59 @@
                         <i class="fa-solid fa-file-pdf" style="color: var(--primary); font-size: 0.85rem;"></i>
                     </div>
                     <div style="min-width: 0; display: flex; align-items: center; gap: 8px;">
-                        <h3 id="pdfViewerTitle" style="margin: 0; font-size: 0.88rem; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;">عرض المحاضرة</h3>
-                        <span id="pdfAutoSaveStatus" onclick="flushPendingAnnotationsSave(true); showToast('تم حفظ جميع كتاباتك فوراً ✓');" title="حفظ تلقائي صامت" style="font-size: 0.65rem; color: #10b981; font-weight: 700; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; white-space: nowrap; background: rgba(16, 185, 129, 0.08); padding: 2px 6px; border-radius: 999px;">
+                        <h3 id="pdfViewerTitle" style="margin: 0; font-size: 0.88rem; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px;">عرض المحاضرة</h3>
+                        <span id="pdfAutoSaveStatus" onclick="flushPendingAnnotationsSave(true); showToast('تم حفظ جميع كتاباتك فوراً ✓');" title="حفظ تلقائي صامت" style="font-size: 0.65rem; color: #10b981; font-weight: 700; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; white-space: nowrap; background: rgba(16, 185, 129, 0.08); padding: 2px 7px; border-radius: 999px;">
                             <i class="fa-solid fa-check"></i> محفوظ
                         </span>
                     </div>
                 </div>
 
-                <!-- Zone 2 (Center): Unified Sleek Navigation & Quick Zoom Capsule -->
+                <!-- Zone 2 (Center): Unified Sleek Navigation, Zoom & Clean Fullscreen -->
                 <div class="pdf-unified-nav-capsule">
                     <button type="button" class="anno-btn" onclick="stepPdfPage(-1)" title="الصفحة السابقة (سهم لأعلى)">
                         <i class="fa-solid fa-chevron-up"></i>
                     </button>
-                    <span id="pdfPageCounterBadge" class="studio-pill" onclick="promptJumpToPdfPage()" title="اضغط للانتقال السريع لصفحة أو مصغر" style="font-size: 0.74rem; color: var(--primary); cursor: pointer; min-width: 65px; justify-content: center; border: none; background: transparent; font-weight: 800;">1 / 1</span>
+                    <span id="pdfPageCounterBadge" class="studio-pill" onclick="promptJumpToPdfPage()" title="انتقال سريع لسلايد" style="font-size: 0.74rem; color: var(--primary); cursor: pointer; min-width: 65px; justify-content: center; border: none; background: transparent; font-weight: 800;">1 / 1</span>
                     <button type="button" class="anno-btn" onclick="stepPdfPage(1)" title="الصفحة التالية (سهم لأسفل)">
                         <i class="fa-solid fa-chevron-down"></i>
                     </button>
 
                     <div class="pdf-header-divider"></div>
 
-                    <button type="button" class="anno-btn" onclick="changePdfZoom(-0.15)" title="تصغير الزوم (-)"><i class="fa-solid fa-minus" style="font-size: 0.7rem;"></i></button>
-                    <span id="pdfZoomLevelText" onclick="togglePdfFitModeQuick()" title="اضغط للتبديل السريع بين ملء العرض والارتفاع" style="font-size: 0.74rem; font-weight: 800; min-width: 38px; text-align: center; color: var(--text-main); cursor: pointer;">100%</span>
-                    <button type="button" class="anno-btn" onclick="changePdfZoom(0.15)" title="تكبير الزوم (+)"><i class="fa-solid fa-plus" style="font-size: 0.7rem;"></i></button>
+                    <button type="button" class="anno-btn" onclick="changePdfZoom(-0.15)" title="تصغير (-)"><i class="fa-solid fa-minus" style="font-size: 0.7rem;"></i></button>
+                    <span id="pdfZoomLevelText" onclick="togglePdfFitModeQuick()" title="تبديل ملء العرض / الارتفاع" style="font-size: 0.74rem; font-weight: 800; min-width: 38px; text-align: center; color: var(--text-main); cursor: pointer;">100%</span>
+                    <button type="button" class="anno-btn" onclick="changePdfZoom(0.15)" title="تكبير (+)"><i class="fa-solid fa-plus" style="font-size: 0.7rem;"></i></button>
 
-                    <button type="button" class="anno-btn active" id="pdfFitHeightBtn" onclick="togglePdfFitModeQuick()" title="تبديل ملء العرض / الارتفاع (W / H)">
-                        <i class="fa-solid fa-expand" style="font-size: 0.75rem;"></i>
+                    <div class="pdf-header-divider"></div>
+
+                    <!-- Clean Modern Fullscreen Icon Button (NO TEXT) -->
+                    <button type="button" class="anno-btn icon-only" id="pdfFullscreenBtn" onclick="togglePdfFullscreen()" title="ملء الشاشة (F)">
+                        <i class="fa-solid fa-expand" id="pdfFullscreenIcon" style="font-size: 0.75rem;"></i>
                     </button>
+                    <button type="button" id="pdfFitHeightBtn" onclick="togglePdfFitModeQuick()" style="display:none;"></button>
                     <button type="button" id="pdfFitWidthBtn" onclick="setPdfFitMode('width')" style="display:none;"></button>
                 </div>
 
-                <!-- Zone 3 (Left): 5 Quiet Action Icons + More + Close -->
+                <!-- Zone 3 (Left): 4 Clean Action Icons + More Menu + Close -->
                 <div class="pdf-header-left-actions" style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
-                    <button type="button" class="anno-btn icon-only" id="pdfBookmarkCurrentSlideBtn" onclick="toggleBookmarkCurrentSlide()" title="تمييز السلايد كمهم للاختبار (اختصار: B)">
+                    <button type="button" class="anno-btn icon-only" id="pdfBookmarkCurrentSlideBtn" onclick="toggleBookmarkCurrentSlide()" title="تمييز السلايد كمهم للاختبار (B)">
                         <i class="fa-regular fa-star" id="pdfBookmarkCurrentSlideIcon"></i>
-                        <span class="hide-on-xs" id="pdfBookmarkCurrentSlideText" style="display:none;">مهم</span>
                     </button>
-                    <button type="button" class="anno-btn icon-only" id="pdfThumbnailsToggleBtn" onclick="togglePdfThumbnailsDrawer()" title="فهرس ومصغرات السلايدات (اختصار: M)">
+                    <button type="button" class="anno-btn icon-only" id="pdfThumbnailsToggleBtn" onclick="togglePdfThumbnailsDrawer()" title="فهرس ومصغرات السلايدات (M)">
                         <i class="fa-solid fa-table-cells"></i>
                     </button>
-                    <button type="button" class="anno-btn" id="pdfAudioBarToggleBtn" onclick="togglePdfAudioPlayerBar()" title="مشغل الريكورد الصوتي للمحاضرة" style="padding: 4px 9px !important; gap: 5px !important; border: 1px solid rgba(45, 212, 191, 0.3); border-radius: 999px;">
+                    <button type="button" class="anno-btn" id="pdfAudioBarToggleBtn" onclick="togglePdfAudioPlayerBar()" title="مشغل الريكورد الصوتي" style="padding: 4px 8px !important; gap: 4px !important; border: 1px solid rgba(45, 212, 191, 0.3); border-radius: 999px;">
                         <i class="fa-solid fa-headphones" id="pdfAudioBarToggleIcon" style="color: var(--primary);"></i> <span id="pdfAudioBarToggleText" class="hide-on-xs" style="font-size: 0.74rem; font-weight: 800; color: #5eead4;">الريكورد</span>
                     </button>
-                    <!-- Hidden night mode dummy to prevent any legacy references from throwing -->
-                    <button id="pdfNightModeBtn" style="display:none;"></button>
-                    <span id="pdfNightModeIcon" style="display:none;"></span>
-                    <span id="pdfNightModeText" style="display:none;"></span>
                     <button type="button" class="anno-btn icon-only" id="pdfCollapseDockBtn" onclick="togglePdfAnnotationDock()" title="إظهار / إخفاء شريط أدوات الرسم">
                         <i class="fa-solid fa-pen-nib" id="pdfCollapseDockIcon"></i>
                     </button>
 
-                    <!-- Hidden dummies for JS compatibility -->
-                    <button type="button" id="pdfHeaderSmartTrackMiniBtn" onclick="togglePdfSmartTrackCapsuleVisibility()" style="display:none;"></button>
+                    <!-- Hidden dummies for JS backward compatibility -->
+                    <button id="pdfNightModeBtn" style="display:none;"></button>
+                    <span id="pdfNightModeIcon" style="display:none;"></span>
+                    <span id="pdfNightModeText" style="display:none;"></span>
+                    <button id="pdfHeaderSmartTrackMiniBtn" style="display:none;"></button>
                     <span id="pdfHeaderSmartMiniIcon" style="display:none;"></span>
                     <span id="pdfHeaderSmartMiniText" style="display:none;"></span>
                     <span id="pdfCollapseDockText" style="display:none;"></span>
@@ -9177,8 +9486,6 @@
                         </div>
                     </div>
 
-                    <button id="pdfFullscreenBtn" onclick="togglePdfFullscreen()" style="display:none;"></button>
-
                     <button type="button" class="icon-btn delete" style="width: 28px; height: 28px; border-radius: 7px;" onclick="closePdfViewer()" title="إغلاق العارض (Esc)">
                         <i class="fa-solid fa-xmark" style="font-size: 0.8rem;"></i>
                     </button>
@@ -9210,89 +9517,88 @@
 
             <!-- Organized 3-Group Annotation Toolbar -->
             <!-- Floating Clean Dynamic Annotation Dock -->
+            <!-- Vertical Floating Right-Hand Annotation Dock (Essential Tools Only!) -->
             <div class="pdf-annotation-toolbar" id="pdfAnnotationToolbar">
-                <!-- Group 1: Core Drawing Tools -->
-                <div class="anno-tool-group">
-                    <button type="button" class="anno-btn" id="toolBtn_pan" onclick="setAnnotationTool('pan')" title="تصفح وتحريك السلايد">
-                        <i class="fa-solid fa-hand"></i> <span class="hide-on-compact">تصفح</span>
-                    </button>
-                    <button type="button" class="anno-btn active" id="toolBtn_pen" onclick="setAnnotationTool('pen')" title="قلم للكتابة السلسة">
-                        <i class="fa-solid fa-pen-nib"></i> <span class="hide-on-compact">قلم</span>
-                    </button>
-                    <button type="button" class="anno-btn" id="toolBtn_highlighter" onclick="setAnnotationTool('highlighter')" title="تظليل شفاف">
-                        <i class="fa-solid fa-highlighter"></i> <span class="hide-on-compact">تظليل</span>
-                    </button>
-                    <button type="button" class="anno-btn" id="toolBtn_eraser" onclick="setAnnotationTool('eraser')" title="ممحاة ذكية">
-                        <i class="fa-solid fa-eraser"></i> <span class="hide-on-compact">ممحاة</span>
-                    </button>
-                    <button type="button" class="anno-btn" id="toolBtn_text" onclick="setAnnotationTool('text')" title="إضافة نص بالكيبورد">
-                        <i class="fa-solid fa-font"></i> <span class="hide-on-compact">نص</span>
-                    </button>
-                    <button type="button" class="anno-btn" id="toolBtn_laser" onclick="setAnnotationTool('laser')" title="مؤشر ليزر للشرح">
-                        <i class="fa-solid fa-wand-magic-sparkles"></i> <span class="hide-on-compact">ليزر</span>
-                    </button>
-                    <button type="button" id="toolBtn_laserPause" onclick="toggleLaserFadePause()" style="display:none;"></button>
-                    <button type="button" class="anno-btn" id="toolBtn_palmReject" onclick="togglePalmRejectionMode()" title="عزل التاتش للتابلت والأيباد">
-                        <i class="fa-solid fa-hand-dots" id="palmRejectBtnIcon"></i>
-                    </button>
-                </div>
+                <button type="button" class="anno-btn active" id="toolBtn_pan" onclick="setAnnotationTool('pan')" title="تصفح وتحريك السلايد">
+                    <i class="fa-solid fa-hand"></i>
+                </button>
+                <button type="button" class="anno-btn" id="toolBtn_pen" onclick="setAnnotationTool('pen')" title="قلم للكتابة السلسة">
+                    <i class="fa-solid fa-pen-nib"></i>
+                </button>
+                <button type="button" class="anno-btn" id="toolBtn_highlighter" onclick="setAnnotationTool('highlighter')" title="قلم تظليل شفاف">
+                    <i class="fa-solid fa-highlighter"></i>
+                </button>
+                <button type="button" class="anno-btn" id="toolBtn_eraser" onclick="setAnnotationTool('eraser')" title="ممحاة ذكية">
+                    <i class="fa-solid fa-eraser"></i>
+                </button>
+                <button type="button" class="anno-btn" id="toolBtn_text" onclick="setAnnotationTool('text')" title="إضافة نص بالكيبورد">
+                    <i class="fa-solid fa-font"></i>
+                </button>
+                <button type="button" class="anno-btn" id="toolBtn_laser" onclick="setAnnotationTool('laser')" title="مؤشر ليزر للشرح">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </button>
 
                 <div class="pdf-header-divider"></div>
 
-                <!-- Group 2: 4 Core Colors + Color Picker + Compact Size Stepper -->
-                <div class="anno-tool-group">
-                    <span class="color-dot active" data-mobile-color="true" style="background: #ef4444; width: 17px; height: 17px;" onclick="setAnnotationColor('#ef4444', this)" title="أحمر"></span>
-                    <span class="color-dot" data-mobile-color="true" style="background: #3b82f6; width: 17px; height: 17px;" onclick="setAnnotationColor('#3b82f6', this)" title="أزرق"></span>
-                    <span class="color-dot" data-mobile-color="true" style="background: #10b981; width: 17px; height: 17px;" onclick="setAnnotationColor('#10b981', this)" title="أخضر"></span>
-                    <span class="color-dot" data-mobile-color="true" style="background: #f59e0b; width: 17px; height: 17px;" onclick="setAnnotationColor('#f59e0b', this)" title="أصفر"></span>
-                    <input type="color" id="customAnnoColor" value="#ef4444" onchange="setAnnotationColor(this.value, null)" title="لون مخصص" style="width: 18px; height: 18px; padding: 0; border: none; background: transparent; cursor: pointer; border-radius: 50%;">
-
-                    <div class="pdf-header-divider"></div>
-                    <div class="stroke-size-control-wrap" title="التحكم في سمك القلم">
-                        <button type="button" class="size-step-btn" onclick="stepAnnotationSize(-1)" title="تصغير السمك (-)">
-                            <i class="fa-solid fa-minus"></i>
-                        </button>
-                        <input type="range" id="annoStrokeSize" class="stroke-size-slider" min="1" max="24" step="0.5" value="3" oninput="updateAnnotationSize(this.value)">
-                        <button type="button" class="size-step-btn" onclick="stepAnnotationSize(1)" title="تكبير السمك (+)">
-                            <i class="fa-solid fa-plus"></i>
-                        </button>
-                        <span id="annoSizeLabel" style="font-size: 0.72rem; color: var(--primary); font-weight: 900; min-width: 26px; text-align: center;">3px</span>
-                    </div>
-
-                    <div id="annoFontSelectWrap" class="anno-font-select-wrap" style="display:none;">
-                        <select id="annoFontFamilySelect" class="anno-font-select" onchange="setAnnotationFontFamily(this.value)">
-                            <option value="marhey">✍️ خط اليد</option>
-                            <option value="ruqaa">✒️ خط رقعه</option>
-                            <option value="academic">🏛️ خط اكاديمي</option>
-                        </select>
-                    </div>
-                </div>
+                <!-- Toggleable Pen Options Flyout Button (Colors & Stroke on Demand) -->
+                <button type="button" class="anno-btn" id="pdfTogglePenOptionsBtn" onclick="togglePenOptionsFlyout()" title="خيارات القلم (الألوان والسمك)">
+                    <span class="active-color-dot" id="pdfActiveColorDot" style="background: #ef4444;"></span>
+                </button>
 
                 <div class="pdf-header-divider"></div>
 
-                <!-- Group 3: Undo, Toggle Ink, Extra Note & Collapse -->
-                <div class="anno-tool-group">
-                    <button type="button" class="anno-btn" onclick="undoLastStroke()" title="تراجع عن آخر خطوة (Ctrl+Z)">
-                        <i class="fa-solid fa-rotate-left"></i>
+                <!-- Quick Actions: Undo, Toggle Ink & Minimize Dock -->
+                <button type="button" class="anno-btn" onclick="undoLastStroke()" title="تراجع عن آخر خطوة (Ctrl+Z)">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+                <button type="button" class="anno-btn" id="toggleAnnoVisBtn" onclick="toggleAnnotationsVisibility()" title="إخفاء أو إظهار الكتابة">
+                    <i class="fa-solid fa-eye" id="toggleAnnoVisIcon"></i>
+                </button>
+                <button type="button" class="anno-btn" id="pdfMobileCollapseDockBtn" onclick="togglePdfAnnotationDock()" title="طي الأدوات">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+
+                <!-- Hidden compatibility hooks -->
+                <button id="toolBtn_laserPause" onclick="toggleLaserFadePause()" style="display:none;"></button>
+                <button id="toolBtn_palmReject" onclick="togglePalmRejectionMode()" style="display:none;"></button>
+                <button id="pdfToolbarExtraNoteBtn" onclick="toggleExtraNoteForPage(currentActivePageNum)" style="display:none;"></button>
+                <button id="pdfToolbarExportPdfBtn" onclick="exportAnnotatedSlides()" style="display:none;"></button>
+                <button id="pdfDockPosToggleBtn" onclick="togglePdfDockPosition()" style="display:none;"></button>
+            </div>
+
+            <!-- Pen Options Flyout (Appears to the left of the vertical dock on demand) -->
+            <div class="pdf-pen-options-flyout" id="pdfPenOptionsFlyout">
+                <div style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+                    <span>الألوان والسمك</span>
+                    <button type="button" onclick="togglePenOptionsFlyout(false)" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:2px;"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <!-- 5 Quick Swatches + Custom Picker -->
+                <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+                    <span class="color-dot active" data-mobile-color="true" style="background: #ef4444; width: 20px; height: 20px;" onclick="setAnnotationColor('#ef4444', this); updateActiveColorDot('#ef4444');" title="أحمر"></span>
+                    <span class="color-dot" data-mobile-color="true" style="background: #3b82f6; width: 20px; height: 20px;" onclick="setAnnotationColor('#3b82f6', this); updateActiveColorDot('#3b82f6');" title="أزرق"></span>
+                    <span class="color-dot" data-mobile-color="true" style="background: #10b981; width: 20px; height: 20px;" onclick="setAnnotationColor('#10b981', this); updateActiveColorDot('#10b981');" title="أخضر"></span>
+                    <span class="color-dot" data-mobile-color="true" style="background: #f59e0b; width: 20px; height: 20px;" onclick="setAnnotationColor('#f59e0b', this); updateActiveColorDot('#f59e0b');" title="أصفر"></span>
+                    <span class="color-dot" data-mobile-color="true" style="background: #a855f7; width: 20px; height: 20px;" onclick="setAnnotationColor('#a855f7', this); updateActiveColorDot('#a855f7');" title="بنفسجي"></span>
+                    <input type="color" id="customAnnoColor" value="#ef4444" onchange="setAnnotationColor(this.value, null); updateActiveColorDot(this.value);" title="لون مخصص" style="width: 22px; height: 22px; padding: 0; border: none; background: transparent; cursor: pointer; border-radius: 50%;">
+                </div>
+                <!-- Stroke Size Slider -->
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); font-weight: 700; margin-top: 4px;">
+                    <span>سمك الخط:</span>
+                    <span id="annoSizeLabel" style="color: var(--primary); font-weight: 900;">3px</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <button type="button" class="size-step-btn" onclick="stepAnnotationSize(-1)" title="تصغير السمك (-)">
+                        <i class="fa-solid fa-minus"></i>
                     </button>
-                    <button type="button" class="anno-btn" id="toggleAnnoVisBtn" onclick="toggleAnnotationsVisibility()" title="إخفاء أو إظهار الكتابة">
-                        <i class="fa-solid fa-eye" id="toggleAnnoVisIcon"></i>
+                    <input type="range" id="annoStrokeSize" class="stroke-size-slider" min="1" max="24" step="0.5" value="3" oninput="updateAnnotationSize(this.value)" style="flex:1;">
+                    <button type="button" class="size-step-btn" onclick="stepAnnotationSize(1)" title="تكبير السمك (+)">
+                        <i class="fa-solid fa-plus"></i>
                     </button>
-                    <button type="button" class="anno-btn" id="pdfToolbarExtraNoteBtn" onclick="toggleExtraNoteForPage(currentActivePageNum)" title="إضافة ورقة تلخيص للسلايد">
-                        <i class="fa-solid fa-file-circle-plus" style="color: var(--primary);"></i>
-                    </button>
-                    <button type="button" class="anno-btn" id="pdfDockPosToggleBtn" onclick="togglePdfDockPosition()" title="تبديل موضع شريط الأدوات (أعلى / أسفل)" style="padding: 4px 6px !important;">
-                        <i class="fa-solid fa-up-down" id="pdfDockPosIcon" style="font-size: 0.75rem;"></i>
-                    </button>
-                    <button type="button" class="anno-btn" id="pdfMobileCollapseDockBtn"  onclick="togglePdfAnnotationDock()" title="طي الأدوات للحصول على شاشة كاملة للقراءة">
-                        <i class="fa-solid fa-chevron-down"></i>
-                    </button>
-                    <button type="button" id="pdfToolbarExportPdfBtn" onclick="exportAnnotatedSlides()" style="display:none;"></button>
                 </div>
             </div>
 
-            <!-- Floating 1-Tap Restore Trigger (Visible only when dock is collapsed) -->
-            <button type="button" id="pdfMobileDockFloatingTriggerBtn" onclick="togglePdfAnnotationDock()" title="إظهار أدوات المذاكرة والكتابة">
+            <!-- Floating 1-Tap Restore FAB Trigger (top-right corner when dock is collapsed) -->
+            <button type="button" id="pdfMobileDockFloatingTriggerBtn" onclick="togglePdfAnnotationDock()" title="إظهار أدوات الرسم">
                 <i class="fa-solid fa-pen-nib"></i>
             </button>
 
@@ -9325,6 +9631,12 @@
                         </button>
                     </div>
                     <!-- Filter Tabs -->
+                    <!-- Add Blank Page Button at top of thumbnails drawer -->
+                    <div style="padding: 8px 10px 4px 10px;">
+                        <button type="button" class="btn btn-primary" onclick="addBlankNotePageToLecture()" style="width:100%; padding: 6px 10px; font-size: 0.76rem; border-radius: 8px; font-weight: 800; display:flex; align-items:center; justify-content:center; gap:6px;">
+                            <i class="fa-solid fa-file-circle-plus"></i> + إضافة صفحة بيضاء للملاحظات
+                        </button>
+                    </div>
                     <div class="pdf-thumb-filter-tabs">
                         <button type="button" class="pdf-thumb-tab-btn active" id="pdfThumbTab_all" onclick="setPdfThumbFilter('all')">
                             الكل (<span id="pdfThumbFilterCount_all">0</span>)
@@ -9334,6 +9646,9 @@
                         </button>
                         <button type="button" class="pdf-thumb-tab-btn" id="pdfThumbTab_notes" onclick="setPdfThumbFilter('notes')">
                             <i class="fa-solid fa-pen-to-square" style="color:#38bdf8;"></i> ملاحظات (<span id="pdfThumbFilterCount_notes">0</span>)
+                        </button>
+                        <button type="button" class="pdf-thumb-tab-btn" id="pdfThumbTab_deleted" onclick="setPdfThumbFilter('deleted')">
+                            <i class="fa-solid fa-trash-can" style="color:#f87171;"></i> المحذوفة (<span id="pdfThumbFilterCount_deleted">0</span>)
                         </button>
                     </div>
                     <!-- Quick Search / Slide Filter -->
@@ -9378,56 +9693,68 @@
             </div>
 
             <!-- Sleek Collapsible Synced Audio Player Bar -->
-            <div class="pdf-audio-player-bar no-audio-attached" id="pdfAudioPlayerBar" style="display: none;">
+            <div class="pdf-audio-player-bar" id="pdfAudioPlayerBar">
                 <audio id="lectureAudioElement" style="display: none;" preload="metadata" crossorigin="anonymous"></audio>
                 
-                <div class="audio-controls-left">
-                    <button class="audio-play-btn" id="audioPlayPauseBtn" onclick="toggleAudioPlayPause()" style="width: 34px; height: 34px; font-size: 0.9rem;">
+                <!-- Right Side (Start in RTL): Play/Pause, Seek & Multi-Recordings Selector -->
+                <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                    <button class="audio-play-btn" id="audioPlayPauseBtn" onclick="toggleAudioPlayPause()" style="width: 32px; height: 32px; font-size: 0.85rem;" title="تشغيل / إيقاف مؤقت (مسافة)">
                         <i class="fa-solid fa-play" id="audioPlayIcon"></i>
                     </button>
-                    
-                    <button class="seek-step-btn" onclick="seekAudioRelative(-5)">
+                    <button class="seek-step-btn" onclick="seekAudioRelative(-5)" title="ترجيع 5 ثوانٍ">
                         <i class="fa-solid fa-backward-step"></i> -5s
                     </button>
-                    <button class="seek-step-btn" onclick="seekAudioRelative(5)">
+                    <button class="seek-step-btn" onclick="seekAudioRelative(5)" title="تقديم 5 ثوانٍ">
                         +5s <i class="fa-solid fa-forward-step"></i>
                     </button>
-                    <button class="seek-step-btn" onclick="addAudioTimestampPin()" style="border-color: rgba(45, 212, 191, 0.45); color: #5eead4;">
-                        <i class="fa-solid fa-thumbtack"></i> تثبيت لحظة
-                    </button>
 
-                    <div class="audio-scrubber-track">
-                        <span id="audioCurrentTime" style="font-size: 0.75rem; font-family: monospace; color: var(--text-main);">00:00</span>
-                        <input type="range" id="audioScrubber" class="audio-scrubber-slider" min="0" max="100" value="0" oninput="handleAudioScrubberInput()">
-                        <span id="audioDurationTime" style="font-size: 0.75rem; font-family: monospace; color: var(--text-muted);">00:00</span>
+                    <!-- Multi-Audio Recordings Selector & Add Button -->
+                    <div id="lectureRecordingsWrap" style="display: inline-flex; align-items: center; gap: 4px; margin: 0 4px;">
+                        <select id="lectureRecordingsSelect" onchange="switchLectureRecording(this.value)" style="padding: 3px 8px; font-size: 0.72rem; border-radius: 999px; background: rgba(9, 13, 20, 0.9); border: 1px solid rgba(45, 212, 191, 0.35); color: #5eead4; font-weight: 800; cursor: pointer; max-width: 175px;" title="اختيار التسجيل الصوتي للمحاضرة">
+                            <option value="">🎙️ التسجيل الرئيسي</option>
+                        </select>
+                        <button type="button" class="anno-btn" onclick="addRecordingToCurrentLecture()" title="إضافة تسجيل صوتي آخر لهذه المحاضرة" style="padding: 3px 7px !important; border-radius: 999px; border: 1px solid rgba(45, 212, 191, 0.3); color: #5eead4; font-size: 0.7rem; font-weight: 800;">
+                            <i class="fa-solid fa-plus"></i> <span class="hide-on-xs">إضافة ريكورد</span>
+                        </button>
                     </div>
                 </div>
 
-                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap;">
-                    <!-- Merged Lectures Recording Selector in Bottom Audio Bar -->
-                    <div id="mergedAudioBarPickerWrap" style="display: none; align-items: center; gap: 6px; background: rgba(9, 13, 20, 0.9); border: 1px solid rgba(45, 212, 191, 0.35); border-radius: 9px; padding: 3px 8px;">
-                        <i class="fa-solid fa-headphones" style="color: var(--primary); font-size: 0.78rem;"></i>
-                        <select id="mergedAudioBarSelect" onchange="switchMergedAudioFromBottomBar(this.value)" style="background: transparent; border: none; color: var(--text-main); font-size: 0.76rem; font-weight: 800; padding: 2px 4px; cursor: pointer; outline: none; max-width: 195px;">
-                        </select>
+                <!-- Center: Scrubber & Exact Time -->
+                <div class="audio-scrubber-track" style="flex: 1; display: flex; align-items: center; gap: 8px; max-width: 580px; margin: 0 8px;">
+                    <span id="audioCurrentTime" style="font-size: 0.74rem; font-family: monospace; color: var(--text-main); min-width: 38px; text-align: center;">00:00</span>
+                    <input type="range" id="audioScrubber" class="audio-scrubber-slider" min="0" max="100" value="0" oninput="handleAudioScrubberInput()" style="flex: 1; accent-color: var(--primary); cursor: pointer;">
+                    <span id="audioDurationTime" style="font-size: 0.74rem; font-family: monospace; color: var(--text-muted); min-width: 38px; text-align: center;">00:00</span>
+                </div>
+
+                <!-- Left Side (End in RTL): 300% Volume Boost, Speed, Pin & Close -->
+                <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                    <!-- 300% Volume Boost Control -->
+                    <div class="volume-boost-control" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.06); padding: 2px 7px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.08);" title="تضخيم الصوت حتى 300%">
+                        <i class="fa-solid fa-volume-high" id="audioVolumeIcon" style="color: var(--primary); font-size: 0.8rem; cursor: pointer;" onclick="cycleVolumeBoostPresets()" title="تضخيم الصوت حتى 300%"></i>
+                        <span id="audioVolumeBoostLabel" class="boost-pct-badge" onclick="cycleVolumeBoostPresets()" style="cursor: pointer; font-size: 0.72rem; font-weight: 800; color: #5eead4;" title="اضغط للتضخيم حتى 300% (100% -> 150% -> 200% -> 300%)">100%</span>
+                        <input type="range" id="audioVolumeBoostSlider" class="volume-boost-slider" min="0" max="300" step="5" value="100" style="width: 50px; accent-color: var(--primary);" oninput="handleAudioVolumeBoost(this.value)" title="مستوى تضخيم الصوت حتى 300%">
                     </div>
 
-                    <div class="volume-boost-control">
-                        <i class="fa-solid fa-volume-high" id="audioVolumeIcon" style="color: var(--primary); font-size: 0.8rem; cursor: pointer;" onclick="resetAudioVolumeBoost()"></i>
-                        <input type="range" id="audioVolumeBoostSlider" class="volume-boost-slider" min="0" max="300" step="5" value="100" style="width: 65px;" oninput="handleAudioVolumeBoost(this.value)">
-                        <span id="audioVolumeBoostLabel" class="boost-pct-badge" onclick="cycleVolumeBoostPresets()">100%</span>
+                    <button class="audio-speed-btn" id="audioSpeedBtn" onclick="cycleAudioPlaybackRate()" title="سرعة التسجيل">
+                        <span id="audioSpeedText">1.0x</span>
+                    </button>
+
+                    <button class="seek-step-btn" onclick="addAudioTimestampPin()" style="border-color: rgba(45, 212, 191, 0.35); color: #5eead4;" title="تثبيت لحظة في المحاضرة">
+                        <i class="fa-solid fa-thumbtack"></i> <span class="hide-on-xs">تثبيت لحظة</span>
+                    </button>
+
+                    <button class="icon-btn" style="width: 26px; height: 26px;" onclick="togglePdfAudioPlayerBar(false)" title="إخفاء مشغل الصوت">
+                        <i class="fa-solid fa-xmark" style="font-size: 0.72rem;"></i>
+                    </button>
+
+                    <!-- Hidden dummies for JS compatibility -->
+                    <button class="btn btn-outline" style="display:none;" onclick="triggerPickAudioForCurrent()" id="audioAttachBtn">
+                        <span id="audioAttachBtnText">ربط ريكورد</span>
+                    </button>
+                    <div id="mergedAudioBarPickerWrap" style="display: none;">
+                        <select id="mergedAudioBarSelect" onchange="switchMergedAudioFromBottomBar(this.value)"></select>
                     </div>
-
-                    <button class="audio-speed-btn" id="audioSpeedBtn" onclick="cycleAudioPlaybackRate()">
-                        <i class="fa-solid fa-gauge-high"></i> <span id="audioSpeedText">1.0x</span>
-                    </button>
-
-                    <button class="btn btn-outline" style="padding: 4px 10px; font-size: 0.75rem;" onclick="triggerPickAudioForCurrent()" id="audioAttachBtn">
-                        <i class="fa-solid fa-headphones"></i> <span id="audioAttachBtnText">ربط ريكورد</span>
-                    </button>
-
-                    <button class="icon-btn" style="width: 28px; height: 28px;" onclick="toggleCollapseAudioBar()">
-                        <i class="fa-solid fa-chevron-down" id="audioBarCollapseIcon" style="font-size: 0.7rem;"></i>
-                    </button>
+                    <button id="audioBarCollapseIcon" style="display:none;"></button>
                 </div>
             </div>
 
@@ -10669,22 +10996,34 @@
             if (!currentViewingLec || !currentViewingLec.lec) return;
             const lec = currentViewingLec.lec;
             showToast('⏳ جاري تحضير ملف الـ PDF للتنزيل...');
+            const safeName = (lec.title || 'محاضرة').replace(/[/\\?%*:|"<>]/g, '_').trim() + '.pdf';
+
+            // 1. Try local IndexedDB first
             let blob = await getMediaFromDB('pdfs', lec.id);
-            if (!blob && (lec.cloudPdfUploaded || lec.cloudPdfUrl || lec.cloudPdfPath)) {
+            if (!blob) {
                 blob = await downloadMediaFromCloudAccount('pdfs', lec, true);
             }
+
             if (blob) {
-                const safeName = (lec.title || 'محاضرة').replace(/[/\\?%*:|"<>]/g, '_').trim() + '.pdf';
-                triggerBrowserFileDownload(blob, safeName);
+                await triggerBrowserFileDownload(blob, safeName);
                 showToast(`✅ تم تنزيل ملف «${safeName}» إلى جهازك بنجاح!`);
+                return;
+            }
+
+            // 2. Direct Google Drive Download Bypass (Works on all devices without CORS errors!)
+            const driveId = extractGoogleDriveFileId(lec.cloudPdfDriveId || lec.cloudPdfUrl || lec.cloudPdfPath || lec.path);
+            if (driveId) {
+                const directUrl = `https://drive.usercontent.google.com/download?id=${driveId}&export=download`;
+                const a = document.createElement('a');
+                a.href = directUrl;
+                a.download = safeName;
+                a.target = '_blank';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => { if (a.parentNode) a.parentNode.removeChild(a); }, 3000);
+                showToast('📥 جاري تنزيل الملف من Google Drive مباشرة إلى جهازك...');
             } else {
-                const driveId = lec.cloudPdfDriveId || extractGoogleDriveFileId(lec.path) || extractGoogleDriveFileId(lec.cloudPdfUrl);
-                if (driveId) {
-                    window.open(`https://drive.usercontent.google.com/download?id=${driveId}&export=download`, '_blank');
-                    showToast('📥 جاري تنزيل الملف عبر Google Drive...');
-                } else {
-                    showToast('تعذر تنزيل الملف؛ تأكد من اتصالك بالإنترنت أو إعادة اختيار الملف', 'error');
-                }
+                showToast('تعذر العثور على رابط الدرايف؛ يرجى التأكد من ربط الملف بالدرايف', 'error');
             }
         }
         window.downloadCurrentViewingPdfToDisk = downloadCurrentViewingPdfToDisk;
@@ -14000,7 +14339,7 @@
         }
 
         // Default is false (Full Ruler Mode / مسطرة الساعات) as requested by the user!
-        let hourlyCompactMode = localStorage.getItem('pharmaHourlyModeV2') === 'compact';
+        let hourlyCompactMode = localStorage.getItem('pharmaHourlyModeV2') !== 'full'; // Default to clean compact cards
 
         function setHourlyDisplayMode(isCompact) {
             hourlyCompactMode = Boolean(isCompact);
@@ -19983,6 +20322,23 @@
                 currentMergedLecturesBundle = [{ sub, group, lec }];
                 mergedContinuousPdfMode = false;
             }
+            // Set default tool to 'pan' on lecture open to prevent accidental touch scribbles
+            if (typeof setAnnotationTool === 'function') {
+                setAnnotationTool('pan');
+            }
+            // Set default tool to 'pan' on lecture open to prevent accidental touch scribbles
+            if (typeof setAnnotationTool === 'function') {
+                setAnnotationTool('pan');
+            }
+            // Ensure toolbar starts at TOP by default
+            pdfDockPosition = 'top';
+            const initialDock = document.getElementById('pdfAnnotationToolbar');
+            if (initialDock) {
+                initialDock.classList.remove('dock-bottom');
+                initialDock.classList.add('dock-top');
+            }
+            const dockPosIcon = document.getElementById('pdfDockPosIcon');
+            if (dockPosIcon) dockPosIcon.className = 'fa-solid fa-arrow-down';
             syncBottomBarMergedAudioDropdown();
             annotationUndoStack = [];
             lastActiveAnnotationKey = 1;
@@ -20154,16 +20510,259 @@
         // ==========================================
         // AUDIO RECORDER CONTROL & DOCK POSITION HELPERS
         // ==========================================
-        let pdfDockPosition = 'bottom'; // 'bottom' | 'top'
+        let pdfDockPosition = 'top'; // Default to top under header so bottom is 100% free for audio & slide text!
 
-        function togglePdfAudioPlayerBar(forceState) {
+        
+        
+        // ==========================================
+        // MULTI-AUDIO RECORDINGS & PAGE MANAGEMENT
+        // ==========================================
+
+        function renderLectureRecordingsSelector() {
+            const select = document.getElementById('lectureRecordingsSelect');
+            if (!select || !currentViewingLec || !currentViewingLec.lec) return;
+            const lec = currentViewingLec.lec;
+            if (!Array.isArray(lec.recordings)) lec.recordings = [];
+
+            // If empty, seed default if audio exists
+            if (lec.recordings.length === 0 && (lec.audioPath || lec.cloudAudioPath)) {
+                lec.recordings.push({
+                    id: 'rec_default_' + lec.id,
+                    name: (lec.audioPath || 'التسجيل الصوتي الرئيسي').replace(/\.[^/.]+$/, ''),
+                    fileName: lec.audioPath || 'audio.mp3',
+                    dbKey: lec.id,
+                    audioPath: lec.audioPath
+                });
+            }
+
+            const recs = lec.recordings;
+            if (recs.length === 0) {
+                select.innerHTML = '<option value="">لا يوجد ريكورد مرتبط</option><option value="__add_new__">+ إضافة ريكورد للمحاضرة...</option>';
+                return;
+            }
+
+            const curIdx = Math.max(0, Math.min(recs.length - 1, Number(lec.activeRecordingIndex) || 0));
+            select.innerHTML = recs.map((r, i) => `
+                <option value="${r.id}" ${i === curIdx ? 'selected' : ''}>🎙️ ${i + 1}/${recs.length}: ${r.name}</option>
+            `).join('') + '<option value="__add_new__">+ إضافة ريكورد آخر...</option>';
+        }
+
+        function addRecordingToCurrentLecture() {
+            if (!currentViewingLec || !currentViewingLec.lec) return;
+            const lec = currentViewingLec.lec;
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'audio/*,.mp3,.m4a,.wav,.ogg,.aac';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const recId = 'rec_' + Date.now();
+                await saveMediaToDB('audios', recId, file);
+                if (!Array.isArray(lec.recordings)) lec.recordings = [];
+                lec.recordings.push({
+                    id: recId,
+                    name: file.name.replace(/\.[^/.]+$/, '').trim() || `تسجيل ${lec.recordings.length + 1}`,
+                    fileName: file.name,
+                    dbKey: recId,
+                    createdAt: Date.now()
+                });
+                lec.activeRecordingIndex = lec.recordings.length - 1;
+                saveSubjects();
+
+                const audioEl = document.getElementById('lectureAudioElement');
+                if (audioEl) {
+                    audioEl.src = URL.createObjectURL(file);
+                    setupAudioEventListeners();
+                    ensureAudioBoostGraph();
+                    audioEl.play().catch(() => {});
+                }
+
+                renderLectureRecordingsSelector();
+                togglePdfAudioPlayerBar(true);
+                const txt = document.getElementById('pdfAudioBarToggleText');
+                if (txt) txt.innerText = 'الريكورد ✓';
+                showToast(`🎙️ تمت إضافة التسجيل «${file.name}» إلى المحاضرة بنجاح!`);
+            };
+            input.click();
+        }
+
+        async function switchLectureRecording(recId) {
+            if (!currentViewingLec || !currentViewingLec.lec) return;
+            const lec = currentViewingLec.lec;
+            if (recId === '__add_new__') {
+                addRecordingToCurrentLecture();
+                return;
+            }
+            if (!Array.isArray(lec.recordings)) return;
+            const idx = lec.recordings.findIndex(r => r.id === recId);
+            if (idx === -1) return;
+            lec.activeRecordingIndex = idx;
+            const rec = lec.recordings[idx];
+            saveSubjects();
+
+            const audioEl = document.getElementById('lectureAudioElement');
+            if (audioEl) {
+                let blob = await getMediaFromDB('audios', rec.dbKey || rec.id);
+                if (!blob && rec.dbKey === lec.id) {
+                    blob = await getMediaFromDB('audios', lec.id);
+                }
+                if (blob) {
+                    audioEl.src = URL.createObjectURL(blob);
+                } else if (rec.audioPath) {
+                    audioEl.src = rec.audioPath;
+                }
+                setupAudioEventListeners();
+                ensureAudioBoostGraph();
+                audioEl.play().catch(() => {});
+            }
+            renderLectureRecordingsSelector();
+            showToast(`▶ تشغيل: ${rec.name}`);
+        }
+
+        // --- Add / Delete Pages Management ---
+
+        function addBlankNotePageToLecture() {
+            if (!currentViewingLec || !currentViewingLec.lec) return;
+            const lec = currentViewingLec.lec;
+            if (!Array.isArray(lec.customPages)) lec.customPages = [];
+
+            const customId = 'custom_' + Date.now();
+            const afterPage = currentActivePageNum || (totalPdfPages || 1);
+            lec.customPages.push({
+                id: customId,
+                afterPage: afterPage,
+                title: 'صفحة ملاحظات إضافية'
+            });
+            saveSubjects();
+
+            // Insert placeholder in scroll container
+            const scrollContainer = document.getElementById('pdfPagesScrollContainer');
+            if (scrollContainer) {
+                const wrapper = document.createElement('div');
+                wrapper.className = `pdf-page-wrapper ${currentAnnoTool === 'pan' ? 'pan-mode' : 'drawing-mode'} custom-blank-slide`;
+                wrapper.id = `pdfPageWrapper_${customId}`;
+                wrapper.dataset.pageNumber = customId;
+                wrapper.style.width = '1000px';
+                wrapper.style.height = '620px';
+                wrapper.style.background = '#ffffff';
+
+                // Blank Canvas
+                const c = document.createElement('canvas');
+                c.className = 'pdf-render-canvas';
+                c.id = `pdfRenderCanvas_${customId}`;
+                c.width = 1000;
+                c.height = 620;
+                const ctx = c.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, 1000, 620);
+
+                // Subtle grid pattern
+                ctx.fillStyle = 'rgba(203, 213, 225, 0.4)';
+                for (let x = 30; x < 1000; x += 30) {
+                    for (let y = 30; y < 620; y += 30) {
+                        ctx.fillRect(x, y, 1.5, 1.5);
+                    }
+                }
+                wrapper.appendChild(c);
+
+                // Ink Canvas
+                const ink = document.createElement('canvas');
+                ink.className = 'pdf-ink-canvas';
+                ink.id = `pdfInkCanvas_${customId}`;
+                ink.width = 1000;
+                ink.height = 620;
+                wrapper.appendChild(ink);
+
+                // Badge
+                const badge = document.createElement('div');
+                badge.className = 'pdf-page-badge';
+                badge.innerText = 'صفحة ملاحظات إضافية ✍️';
+                wrapper.appendChild(badge);
+
+                // Insert directly after active page
+                const targetWrapper = document.getElementById(`pdfPageWrapper_${afterPage}`);
+                if (targetWrapper && targetWrapper.nextSibling) {
+                    scrollContainer.insertBefore(wrapper, targetWrapper.nextSibling);
+                } else {
+                    scrollContainer.appendChild(wrapper);
+                }
+
+                wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            renderPdfThumbnailsList();
+            showToast('📄 تمت إضافة صفحة بيضاء جديدة للملاحظات والكتابة!');
+        }
+
+        function deleteOrHidePageFromLecture(pageKey, ev) {
+            if (ev) ev.stopPropagation();
+            if (!currentViewingLec || !currentViewingLec.lec) return;
+            const lec = currentViewingLec.lec;
+            if (!Array.isArray(lec.deletedPages)) lec.deletedPages = [];
+
+            const pKeyStr = String(pageKey);
+            if (!lec.deletedPages.includes(pKeyStr)) {
+                lec.deletedPages.push(pKeyStr);
+            }
+            saveSubjects();
+
+            const wrapper = document.getElementById(`pdfPageWrapper_${pageKey}`);
+            if (wrapper) wrapper.style.display = 'none';
+
+            renderPdfThumbnailsList();
+            showToast(`🗑️ تم استبعاد / حذف صفحة ${pageKey} من المحاضرة`);
+        }
+
+        function restoreDeletedPage(pageKey, ev) {
+            if (ev) ev.stopPropagation();
+            if (!currentViewingLec || !currentViewingLec.lec) return;
+            const lec = currentViewingLec.lec;
+            if (!Array.isArray(lec.deletedPages)) return;
+
+            const pKeyStr = String(pageKey);
+            lec.deletedPages = lec.deletedPages.filter(k => k !== pKeyStr);
+            saveSubjects();
+
+            const wrapper = document.getElementById(`pdfPageWrapper_${pageKey}`);
+            if (wrapper) wrapper.style.display = 'block';
+
+            renderPdfThumbnailsList();
+            showToast(`✅ تمت استعادة صفحة ${pageKey} بنجاح!`);
+        }
+
+// ==========================================
+        // PEN OPTIONS FLYOUT & VERTICAL DOCK HELPERS
+        // ==========================================
+        function togglePenOptionsFlyout(forceState) {
+            const flyout = document.getElementById('pdfPenOptionsFlyout');
+            if (!flyout) return;
+            const isCurrentlyOpen = flyout.classList.contains('open');
+            const shouldOpen = forceState !== undefined ? Boolean(forceState) : !isCurrentlyOpen;
+            flyout.classList.toggle('open', shouldOpen);
+        }
+
+        function updateActiveColorDot(hex) {
+            const dot = document.getElementById('pdfActiveColorDot');
+            if (dot) dot.style.background = hex;
+        }
+
+        // Close flyout when clicking outside
+        document.addEventListener('click', (e) => {
+            const flyout = document.getElementById('pdfPenOptionsFlyout');
+            const toggleBtn = document.getElementById('pdfTogglePenOptionsBtn');
+            if (!flyout || !flyout.classList.contains('open')) return;
+            if (!flyout.contains(e.target) && (!toggleBtn || !toggleBtn.contains(e.target))) {
+                flyout.classList.remove('open');
+            }
+        });
+
+function togglePdfAudioPlayerBar(forceState) {
             const bar = document.getElementById('pdfAudioPlayerBar');
             const toggleBtn = document.getElementById('pdfAudioBarToggleBtn');
             const container = document.getElementById('pdfModalContainer');
             if (!bar) return;
-            const shouldOpen = forceState !== undefined
-                ? Boolean(forceState)
-                : (bar.style.display === 'none' || !bar.classList.contains('active-audio-dock'));
+            const isCurrentlyOpen = (bar.style.display === 'flex' || bar.classList.contains('active-audio-dock'));
+            const shouldOpen = forceState !== undefined ? Boolean(forceState) : !isCurrentlyOpen;
 
             if (shouldOpen) {
                 bar.style.display = 'flex';
@@ -20173,7 +20772,7 @@
                 if (container) container.classList.add('has-active-audio');
                 const audioEl = document.getElementById('lectureAudioElement');
                 if (!audioEl || !audioEl.src || audioEl.src === 'about:blank' || audioEl.src.endsWith('/about:blank')) {
-                    showToast('🎧 لا يوجد ريكورد مرتبط بعد؛ يمكنك الضغط على «ربط ريكورد» لاختيار ملف صوتي');
+                    showToast('🎧 لا يوجد ريكورد مرتبط بعد؛ اضغط على «ربط ريكورد» لاختيار ملف صوتي');
                 }
             } else {
                 bar.style.display = 'none';
@@ -20187,12 +20786,14 @@
             const dock = document.getElementById('pdfAnnotationToolbar');
             const icon = document.getElementById('pdfDockPosIcon');
             if (!dock) return;
-            pdfDockPosition = (pdfDockPosition === 'bottom') ? 'top' : 'bottom';
+            pdfDockPosition = (pdfDockPosition === 'top') ? 'bottom' : 'top';
             dock.classList.toggle('dock-top', pdfDockPosition === 'top');
+            dock.classList.toggle('dock-bottom', pdfDockPosition === 'bottom');
             if (icon) {
                 icon.className = (pdfDockPosition === 'top') ? 'fa-solid fa-arrow-down' : 'fa-solid fa-arrow-up';
+                icon.title = (pdfDockPosition === 'top') ? 'نقل للأسفل' : 'نقل للأعلى';
             }
-            showToast(pdfDockPosition === 'top' ? '⬆️ تم نقل شريط الأدوات للأعلى' : '⬇️ تم نقل شريط الأدوات للأسفل');
+            showToast(pdfDockPosition === 'top' ? '⬆️ شريط الأدوات في الأعلى (أسفل الشريط العلوي)' : '⬇️ شريط الأدوات في الأسفل');
         }
 
         // Night mode stub for backwards compatibility
@@ -20388,17 +20989,25 @@
             const total = totalPdfPages || 0;
             const bmarks = getLectureBookmarkedSlides();
             const bmarksSet = new Set(bmarks);
+            const lec = currentViewingLec ? currentViewingLec.lec : null;
+            const deletedSet = new Set((lec && Array.isArray(lec.deletedPages)) ? lec.deletedPages.map(String) : []);
+            const customPages = (lec && Array.isArray(lec.customPages)) ? lec.customPages : [];
 
             // Update counter badges
             const totalBadge = document.getElementById('pdfThumbTotalCountBadge');
-            if (totalBadge) totalBadge.innerText = total;
+            const effectiveTotal = Math.max(0, total + customPages.length - deletedSet.size);
+            if (totalBadge) totalBadge.innerText = effectiveTotal;
+
             const countAll = document.getElementById('pdfThumbFilterCount_all');
-            if (countAll) countAll.innerText = total;
+            if (countAll) countAll.innerText = effectiveTotal;
+
             const countBmarks = document.getElementById('pdfThumbFilterCount_bookmarks');
             if (countBmarks) countBmarks.innerText = bmarks.length;
 
+            const countDel = document.getElementById('pdfThumbFilterCount_deleted');
+            if (countDel) countDel.innerText = deletedSet.size;
+
             // Check notes count
-            const lec = currentViewingLec ? currentViewingLec.lec : null;
             const pagesWithNotes = new Set();
             if (lec && typeof inMemoryAnnotationsCache !== 'undefined') {
                 const annos = inMemoryAnnotationsCache[lec.id] || inMemoryAnnotationsCache[String(lec.id)];
@@ -20420,7 +21029,7 @@
             if (countNotes) countNotes.innerText = pagesWithNotes.size;
 
             grid.innerHTML = '';
-            if (total === 0) {
+            if (total === 0 && customPages.length === 0) {
                 grid.innerHTML = '<div style="color:var(--text-muted); font-size:0.75rem; text-align:center; padding:20px;">لا توجد صفحات متاحة للعرض</div>';
                 return;
             }
@@ -20428,50 +21037,87 @@
             let renderedCardsCount = 0;
             const frag = document.createDocumentFragment();
 
+            // Build all candidate pages (original + custom)
+            const allItems = [];
             for (let p = 1; p <= total; p++) {
-                const isBookmarked = bmarksSet.has(p);
-                const hasNotes = pagesWithNotes.has(p);
+                allItems.push({ key: String(p), pageNum: p, isCustom: false, title: `سلايد ${p}` });
+            }
+            customPages.forEach(cp => {
+                allItems.push({ key: cp.id, pageNum: cp.id, isCustom: true, title: cp.title || 'صفحة ملاحظات' });
+            });
+
+            for (const item of allItems) {
+                const keyStr = item.key;
+                const isDeleted = deletedSet.has(keyStr);
+                const isBookmarked = bmarksSet.has(Number(keyStr));
+                const hasNotes = pagesWithNotes.has(Number(keyStr));
 
                 // Filter check
-                if (pdfThumbFilter === 'bookmarks' && !isBookmarked) continue;
-                if (pdfThumbFilter === 'notes' && !hasNotes) continue;
-
-                // Search check
-                if (pdfThumbSearchQuery) {
-                    const pStr = String(p);
-                    if (!pStr.includes(pdfThumbSearchQuery)) continue;
+                if (pdfThumbFilter === 'deleted') {
+                    if (!isDeleted) continue;
+                } else {
+                    if (isDeleted) continue;
+                    if (pdfThumbFilter === 'bookmarks' && !isBookmarked) continue;
+                    if (pdfThumbFilter === 'notes' && !hasNotes) continue;
                 }
+
+                if (pdfThumbSearchQuery && !keyStr.includes(pdfThumbSearchQuery)) continue;
 
                 renderedCardsCount++;
                 const card = document.createElement('div');
-                card.className = `pdf-thumb-card ${p === currentActivePageNum ? 'active-thumb' : ''}`;
-                card.id = `pdfThumbCard_${p}`;
-                card.dataset.pageNum = p;
+                card.className = `pdf-thumb-card ${keyStr === String(currentActivePageNum) ? 'active-thumb' : ''} ${isDeleted ? 'is-deleted-card' : ''}`;
+                card.id = `pdfThumbCard_${keyStr}`;
+                card.dataset.pageNum = keyStr;
 
-                // Card top: page number & bookmark star
+                // Card Top: Title + Action Buttons
                 const topRow = document.createElement('div');
                 topRow.className = 'pdf-thumb-card-top';
 
                 const numBadge = document.createElement('span');
                 numBadge.className = 'pdf-thumb-number-badge';
-                numBadge.innerHTML = `<i class="fa-solid fa-file" style="color:var(--text-muted); font-size:0.65rem;"></i> سلايد ${p}`;
+                numBadge.innerHTML = `<i class="fa-solid fa-${item.isCustom ? 'file-lines' : 'file'}" style="color:var(--text-muted); font-size:0.65rem;"></i> ${item.title}`;
 
-                const starBtn = document.createElement('button');
-                starBtn.type = 'button';
-                starBtn.className = `pdf-thumb-star-btn ${isBookmarked ? 'bookmarked' : ''}`;
-                starBtn.title = isBookmarked ? 'إزالة من المهمة' : 'تحديد كمهم للاختبار ⭐';
-                starBtn.innerHTML = isBookmarked ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>';
-                starBtn.onclick = (e) => toggleBookmarkCurrentSlide(p, e);
+                const btnsWrap = document.createElement('div');
+                btnsWrap.style.display = 'flex';
+                btnsWrap.style.alignItems = 'center';
+                btnsWrap.style.gap = '4px';
+
+                if (!isDeleted) {
+                    const starBtn = document.createElement('button');
+                    starBtn.type = 'button';
+                    starBtn.className = `pdf-thumb-star-btn ${isBookmarked ? 'bookmarked' : ''}`;
+                    starBtn.title = isBookmarked ? 'إزالة من المهمة' : 'تحديد كمهم للاختبار ⭐';
+                    starBtn.innerHTML = isBookmarked ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>';
+                    starBtn.onclick = (e) => toggleBookmarkCurrentSlide(item.pageNum, e);
+                    btnsWrap.appendChild(starBtn);
+
+                    const delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.className = 'pdf-thumb-action-btn';
+                    delBtn.title = 'حذف / استبعاد هذه الصفحة من المحاضرة';
+                    delBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+                    delBtn.onclick = (e) => deleteOrHidePageFromLecture(keyStr, e);
+                    btnsWrap.appendChild(delBtn);
+                } else {
+                    const restoreBtn = document.createElement('button');
+                    restoreBtn.type = 'button';
+                    restoreBtn.className = 'btn btn-primary';
+                    restoreBtn.style.padding = '2px 7px';
+                    restoreBtn.style.fontSize = '0.68rem';
+                    restoreBtn.style.fontWeight = '800';
+                    restoreBtn.innerHTML = '<i class="fa-solid fa-rotate-left"></i> استعادة';
+                    restoreBtn.onclick = (e) => restoreDeletedPage(keyStr, e);
+                    btnsWrap.appendChild(restoreBtn);
+                }
 
                 topRow.appendChild(numBadge);
-                topRow.appendChild(starBtn);
+                topRow.appendChild(btnsWrap);
                 card.appendChild(topRow);
 
-                // Card Preview Box:
+                // Preview Box
                 const previewBox = document.createElement('div');
                 previewBox.className = 'pdf-thumb-preview-box';
-
-                const sourceCanvas = document.getElementById(`pdfRenderCanvas_${p}`);
+                const sourceCanvas = document.getElementById(`pdfRenderCanvas_${keyStr}`);
                 if (sourceCanvas && sourceCanvas.width > 0 && sourceCanvas.height > 0) {
                     const miniCanvas = document.createElement('canvas');
                     miniCanvas.className = 'pdf-thumb-preview-canvas';
@@ -20482,52 +21128,30 @@
                         ctx.drawImage(sourceCanvas, 0, 0, miniCanvas.width, miniCanvas.height);
                         previewBox.appendChild(miniCanvas);
                     } catch (_) {
-                        previewBox.innerHTML = `<div class="pdf-thumb-preview-placeholder"><i class="fa-solid fa-file-powerpoint" style="font-size:1.4rem; color:var(--primary);"></i><span>صفحة ${p}</span></div>`;
+                        previewBox.innerHTML = `<div class="pdf-thumb-preview-placeholder"><i class="fa-solid fa-file-powerpoint" style="font-size:1.4rem; color:var(--primary);"></i><span>${item.title}</span></div>`;
                     }
                 } else {
-                    previewBox.innerHTML = `<div class="pdf-thumb-preview-placeholder"><i class="fa-solid fa-file-powerpoint" style="font-size:1.4rem; color:var(--primary);"></i><span>سلايد ${p}</span></div>`;
+                    previewBox.innerHTML = `<div class="pdf-thumb-preview-placeholder"><i class="fa-solid fa-file-powerpoint" style="font-size:1.4rem; color:var(--primary);"></i><span>${item.title}</span></div>`;
                 }
                 card.appendChild(previewBox);
 
-                // Badges row: Notes / Pins / Bookmarks
-                if (hasNotes || isBookmarked) {
-                    const badgeRow = document.createElement('div');
-                    badgeRow.className = 'pdf-thumb-badges-row';
-                    if (isBookmarked) {
-                        const bTag = document.createElement('span');
-                        bTag.className = 'pdf-thumb-tag';
-                        bTag.style.background = 'rgba(245, 158, 11, 0.15)';
-                        bTag.style.color = '#f59e0b';
-                        bTag.innerHTML = '⭐ مهم';
-                        badgeRow.appendChild(bTag);
-                    }
-                    if (hasNotes) {
-                        const nTag = document.createElement('span');
-                        nTag.className = 'pdf-thumb-tag note-tag';
-                        nTag.innerHTML = '📝 ملاحظات';
-                        badgeRow.appendChild(nTag);
-                    }
-                    card.appendChild(badgeRow);
+                if (!isDeleted) {
+                    card.onclick = () => {
+                        const targetWrapper = document.getElementById(`pdfPageWrapper_${keyStr}`);
+                        if (targetWrapper) {
+                            targetWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        updatePdfThumbnailsActiveState(keyStr);
+                    };
                 }
-
-                card.onclick = () => {
-                    goToPdfPage(p, true);
-                    updatePdfThumbnailsActiveState(p);
-                };
 
                 frag.appendChild(card);
             }
 
             if (renderedCardsCount === 0) {
-                grid.innerHTML = '<div style="color:var(--text-muted); font-size:0.75rem; text-align:center; padding:20px;">لا توجد سلايدات مطابقة للفلتر المحدد</div>';
+                grid.innerHTML = '<div style="color:var(--text-muted); font-size:0.75rem; text-align:center; padding:20px;">لا توجد صفحات مطابقة للفلتر</div>';
             } else {
                 grid.appendChild(frag);
-                setTimeout(() => {
-                    const activeCard = grid.querySelector('.pdf-thumb-card.active-thumb');
-                    if (activeCard) {
-                        activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    }
-                }, 50);
             }
         }
 
@@ -23393,17 +24017,19 @@
             const container = document.getElementById('pdfModalContainer');
             const icon = document.getElementById('pdfFullscreenIcon');
             const btn = document.getElementById('pdfFullscreenBtn');
-            
+            if (!container) return;
             const isFull = container.classList.toggle('is-fullscreen');
+            if (icon) {
+                icon.className = isFull ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
+            }
+            if (btn) {
+                btn.title = isFull ? 'إنهاء ملء الشاشة (F)' : 'ملء الشاشة (F)';
+            }
             if (isFull) {
-                icon.className = 'fa-solid fa-compress';
-                btn.innerHTML = '<i class="fa-solid fa-compress"></i> تصغير';
                 if (container.requestFullscreen) {
                     container.requestFullscreen().catch(() => {});
                 }
             } else {
-                icon.className = 'fa-solid fa-expand';
-                btn.innerHTML = '<i class="fa-solid fa-expand"></i> ملء الشاشة';
                 if (document.exitFullscreen && document.fullscreenElement) {
                     document.exitFullscreen().catch(() => {});
                 }
