@@ -1802,16 +1802,26 @@
             overflow: hidden !important;
         }
         .pdf-thumbnails-drawer {
-            width: 270px;
-            height: 100%;
-            background: rgba(15, 18, 26, 0.98);
-            border-left: 1px solid rgba(255, 255, 255, 0.08);
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            bottom: 0 !important;
+            width: 280px !important;
+            height: 100% !important;
+            background: rgba(14, 18, 28, 0.98) !important;
+            backdrop-filter: blur(20px) !important;
+            border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-left: none !important;
             display: none;
-            flex-direction: column;
-            flex-shrink: 0;
-            z-index: 35;
-            transition: width 0.22s ease;
-            user-select: none;
+            flex-direction: column !important;
+            z-index: 45 !important;
+            box-shadow: 10px 0 35px rgba(0, 0, 0, 0.75) !important;
+            user-select: none !important;
+            animation: slideInDrawerLeft 0.22s ease-out !important;
+        }
+        @keyframes slideInDrawerLeft {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
         }
         .pdf-thumbnails-drawer.open {
             display: flex !important;
@@ -2018,12 +2028,13 @@
 
         @media (max-width: 768px) {
             .pdf-thumbnails-drawer {
-                position: absolute;
-                top: 0;
-                right: 0;
-                bottom: 0;
-                width: 260px;
-                box-shadow: -8px 0 24px rgba(0,0,0,0.7);
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: auto !important;
+                bottom: 0 !important;
+                width: 260px !important;
+                box-shadow: 8px 0 24px rgba(0,0,0,0.7) !important;
             }
             .pdf-thumb-backdrop.open {
                 display: block;
@@ -8496,26 +8507,15 @@
                     </div>
 
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                        <button class="btn btn-outline" style="padding: 9px 14px; font-size: 0.84rem; border-color: rgba(45, 212, 191, 0.45); color: var(--primary); background: rgba(45, 212, 191, 0.08);" onclick="openShareSchedulePdfModal()" title="استخراج ومشاركة الجدول كملف PDF بتصميم احترافي">
-                            <i class="fa-solid fa-file-pdf"></i> مشاركة وتصدير الجدول
+                        <button class="btn btn-primary" style="padding: 8px 16px; font-size: 0.86rem; border-radius: 9px; font-weight: 800;" onclick="openAddSessionModal()"><i class="fa-solid fa-plus"></i> إضافة جلسة</button>
+                        <button class="btn btn-outline" style="padding: 8px 14px; font-size: 0.84rem; border-radius: 9px;" onclick="openShareSchedulePdfModal()" title="مشاركة وتصدير الجدول كملف PDF">
+                            <i class="fa-solid fa-file-pdf"></i> تصدير PDF
                         </button>
-                        <button class="btn btn-primary" style="padding: 9px 18px; font-size: 0.88rem;" onclick="openAddSessionModal()"><i class="fa-solid fa-plus"></i> جلسة جديدة</button>
-                        <button class="icon-btn delete" style="width: 36px; height: 36px;" onclick="confirmClearSchedule()"><i class="fa-solid fa-broom"></i></button>
                     </div>
                 </div>
 
                 <!-- Minimalist 1-Line Live Status Capsule -->
-                <div class="smart-time-sync-banner" id="smartTimeSyncBanner" style="padding: 8px 14px; margin: 10px 0; border-radius: 12px; background: rgba(20, 24, 36, 0.6); border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
-                    <div class="stsb-clock-group" style="display: flex; align-items: center; gap: 8px;">
-                        <span class="stsb-live-dot" style="width: 8px; height: 8px;"></span>
-                        <span id="livePlannerClockText" style="font-weight: 800; font-size: 0.86rem; color: var(--text-main);">جاري مزامنة الوقت...</span>
-                        <span id="livePlannerWeekRangeBadge" class="studio-pill" style="font-size: 0.7rem; color: var(--primary);">الأسبوع الحالي</span>
-                        <span id="livePlannerStatusSubtext" style="display:none;"></span>
-                    </div>
-                    <div id="livePlannerActiveSessionBox" style="display: flex; align-items: center; gap: 8px;"></div>
-                </div>
-
-                <!-- SUBVIEW 1: FULL WEEK TIMETABLE -->
+                <!-- Smart Tracking Removed as requested --><!-- SUBVIEW 1: FULL WEEK TIMETABLE -->
                 <div id="subview-week" class="sch-subview-content">
                     <!-- Clean Single-Row Interactive Filter Chips -->
                     <div class="planner-filter-pills-row">
@@ -9086,10 +9086,36 @@
                 </div>
 
                 <div id="authNameFieldBox" style="display: none;">
-                    <label style="font-size: 0.8rem; color: #cbd5e1; margin-bottom: 5px; display: block; font-weight: 700;">الاسم الكامل والفرقة / التخصص:</label>
-                    <div class="auth-input-group">
+                    <label style="font-size: 0.8rem; color: #cbd5e1; margin-bottom: 5px; display: block; font-weight: 700;">الاسم الكامل واللقب الأكاديمي:</label>
+                    <div class="auth-input-group" style="margin-bottom: 10px;">
                         <i class="fa-solid fa-user-graduate auth-field-icon"></i>
-                        <input type="text" id="cloudAuthName" placeholder="مثال: د. محمد أحمد — الفرقة الثالثة">
+                        <input type="text" id="cloudAuthName" placeholder="مثال: د. محمد أحمد">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                        <div>
+                            <label style="font-size: 0.74rem; color: #94a3b8; margin-bottom: 4px; display: block;">الكلية / التخصص:</label>
+                            <select id="authCollegeSelect" style="width: 100%; padding: 7px 9px; font-size: 0.78rem; background: rgba(15,23,42,0.8); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: var(--text-main);">
+                                <option value="صيدلة">💊 كلية الصيدلة</option>
+                                <option value="طب بشري">🩺 كلية الطب البشري</option>
+                                <option value="طب أسنان">🦷 كلية طب الأسنان</option>
+                                <option value="علاج طبيعي">🏃‍♂️ كلية العلاج الطبيعي</option>
+                                <option value="تمريض">💉 كلية التمريض</option>
+                                <option value="علوم">🔬 كلية العلوم</option>
+                                <option value="هندسة">📐 كلية الهندسة</option>
+                                <option value="أخرى">🎓 تخصص أكاديمي آخر</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.74rem; color: #94a3b8; margin-bottom: 4px; display: block;">الفرقة الدراسية:</label>
+                            <select id="authYearSelect" style="width: 100%; padding: 7px 9px; font-size: 0.78rem; background: rgba(15,23,42,0.8); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: var(--text-main);">
+                                <option value="الفرقة الأولى">الفرقة الأولى</option>
+                                <option value="الفرقة الثانية">الفرقة الثانية</option>
+                                <option value="الفرقة الثالثة" selected>الفرقة الثالثة</option>
+                                <option value="الفرقة الرابعة">الفرقة الرابعة</option>
+                                <option value="الفرقة الخامسة">الفرقة الخامسة</option>
+                                <option value="سنة الامتياز">سنة الامتياز / دراسات</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -9748,7 +9774,7 @@
                     </button>
 
                     <!-- Hidden dummies for JS compatibility -->
-                    <button class="btn btn-outline" style="display:none;" onclick="triggerPickAudioForCurrent()" id="audioAttachBtn">
+                    <button class="btn btn-outline" style="display:none;" onclick="triggerPickAudioForCurrent()" id="audioAttachBtn" style="display: none !important;">
                         <span id="audioAttachBtnText">ربط ريكورد</span>
                     </button>
                     <div id="mergedAudioBarPickerWrap" style="display: none;">
@@ -10377,9 +10403,9 @@
                     <select id="sessionStartHourSelect" style="width: 100%;" onchange="updateCalculatedEndTime()"></select>
                 </div>
                 <div>
-                    <label>المدة أو التتبع الذكي:</label>
+                    <label>مدة الجلسة:</label>
                     <select id="sessionDurationSelect" style="width: 100%;" onchange="handleDurationSelectChange()">
-                        <option value="open">🧭 تتبع ذكي (يرصد البدء والانتهاء والمدة)</option>
+                        <option value="open">وقت مفتوح (غير محدد)</option>
                         <option value="0.5">30 دقيقة (0.5 س)</option>
                         <option value="1" selected>1 ساعة</option>
                         <option value="1.5">1.5 ساعة (90 د)</option>
@@ -14955,7 +14981,9 @@
             const summaryStrip = document.getElementById('tasksSummaryStatsStrip');
             if (summaryStrip) {
                 const totalTimeFormatted = totalMins > 0 ? formatMinutesHumanReadable(totalMins) : '0 دقيقة';
+                const curWeekStr = (typeof getActiveWeekStartIsoString === 'function') ? getActiveWeekStartIsoString() : '';
                 summaryStrip.innerHTML = `
+                    <span class="studio-pill" style="border-color:rgba(45,212,191,0.35);"><i class="fa-solid fa-arrows-spin"></i> دورة الأسبوع: <b style="color:var(--primary);">${curWeekStr || 'الحالي'}</b></span>
                     <span class="studio-pill">الأهداف: <b style="color:var(--text-main);">${totalTasks}</b></span>
                     <span class="studio-pill" style="color:#38bdf8;">مرتبط بالجدول: <b>${linkedTasksCount}</b></span>
                     <span class="studio-pill" style="color:var(--primary);">الوقت المسجل: <b>${totalTimeFormatted}</b></span>
@@ -19235,9 +19263,10 @@
 
         async function isValidPdfBlob(blob) {
             if (!blob || !(blob instanceof Blob) || blob.size < 20) return false;
+            if (blob.type && blob.type.includes('pdf')) return true;
             try {
-                const slice = await blob.slice(0, 5).text();
-                return slice === '%PDF-';
+                const slice = await blob.slice(0, 32).text();
+                return slice.includes('%PDF-');
             } catch (e) {
                 return false;
             }
@@ -27269,6 +27298,8 @@ function togglePdfAudioPlayerBar(forceState) {
 
             const isPdf = storeName === 'pdfs';
             const labelAr = isPdf ? 'ملف الـ PDF' : 'الريكورد الصوتي';
+            const ext = isPdf ? '.pdf' : '.mp3';
+            const safeName = (targetLec.title || (isPdf ? 'محاضرة' : 'تسجيل')).replace(/[/\\?%*:|"<>]/g, '_').trim() + ext;
             const btnEl = event?.currentTarget || document.getElementById(`cloudDlBtn_${storeName}_${lecId}`);
             let origHtml = '';
             if (btnEl) {
@@ -27277,26 +27308,65 @@ function togglePdfAudioPlayerBar(forceState) {
                 btnEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري التحميل...`;
             }
 
-            showToast(`📥 جاري تحميل ${labelAr} لـ «${targetLec.title}» إلى هذا الجهاز...`);
-            const blob = await downloadMediaFromCloudAccount(storeName, targetLec, true);
+            showToast(`📥 جاري تحميل ${labelAr} لـ «${targetLec.title}»...`);
+
+            // 1. Try fetching via API or cached blob
+            let blob = await downloadMediaFromCloudAccount(storeName, targetLec, true);
             if (blob) {
+                await saveMediaToDB(storeName, targetLec.id, blob);
                 localMediaCache[storeName].add(String(targetLec.id));
+                await triggerBrowserFileDownload(blob, safeName);
                 if (activeSubjectId) renderGroups();
                 updateCloudMediaStatsUI();
-                showToast(`✅ تم تحميل ${labelAr} لـ «${targetLec.title}» وحفظه على هذا الجهاز بنجاح!`);
+                showToast(`✅ تم تنزيل «${safeName}» وحفظه بجهازك بنجاح!`);
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = origHtml;
+                }
+                return;
+            }
+
+            // 2. Direct Google Drive Download (Bypasses CORS & popup blockers completely!)
+            const candidateStr = isPdf
+                ? (targetLec.cloudPdfDriveId || targetLec.cloudPdfUrl || targetLec.cloudPdfPath || targetLec.path || targetLec.fileUrl)
+                : (targetLec.cloudAudioDriveId || targetLec.cloudAudioUrl || targetLec.cloudAudioPath || targetLec.audioPath || targetLec.audioUrl);
+            const driveId = extractGoogleDriveFileId(candidateStr);
+
+            if (driveId) {
+                const directUrl = `https://drive.usercontent.google.com/download?id=${driveId}&export=download&confirm=t`;
+                const fallbackUrl = `https://drive.google.com/uc?export=download&id=${driveId}&confirm=t`;
+
+                // Hidden iframe triggers browser download manager directly without popup blocking
+                let dlIframe = document.getElementById('gdrive_download_iframe');
+                if (!dlIframe) {
+                    dlIframe = document.createElement('iframe');
+                    dlIframe.id = 'gdrive_download_iframe';
+                    dlIframe.style.display = 'none';
+                    document.body.appendChild(dlIframe);
+                }
+                dlIframe.src = directUrl;
+
+                // Also trigger native anchor download
+                const a = document.createElement('a');
+                a.href = directUrl;
+                a.download = safeName;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => { if (a.parentNode) a.parentNode.removeChild(a); }, 2000);
+
+                // Show interactive clickable link in toast in case browser shields blocked iframe
+                showToast(`📥 بدأ تنزيل «${safeName}» من Google Drive! <a href="${directUrl}" target="_blank" download="${safeName}" style="color:#2dd4bf; text-decoration:underline; font-weight:800; margin-right:6px;">[اضغط هنا للتحميل المباشر]</a>`, 'info', 8000);
+
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = origHtml;
+                }
             } else {
                 if (btnEl) {
                     btnEl.disabled = false;
                     btnEl.innerHTML = origHtml;
                 }
-                if (!navigator.onLine) {
-                    showToast(`تعذر التحميل: جهازك غير متصل بالإنترنت حالياً`, 'error');
-                } else if (!isGoogleDriveTokenActive()) {
-                    showToast(`يرجى تنشيط حساب Google Drive على هذا الجهاز لتنزيل الملفات وحفظها للمذاكرة أوفلاين`, 'error');
-                    openCloudAuthModal();
-                } else {
-                    showToast(`تعذر تنزيل ${labelAr} من Google Drive، يرجى المحاولة مرة أخرى`, 'error');
-                }
+                showToast(`تعذر العثور على معرّف ملف Google Drive؛ يرجى التأكد من ربط الملف بشكل صحيح`, 'error');
             }
         }
 
@@ -27503,7 +27573,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 try {
                     googleTokenClient = google.accounts.oauth2.initTokenClient({
                         client_id: clientId,
-                        scope: 'https://www.googleapis.com/auth/drive.file',
+                        scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file',
                         callback: async (tokenResponse) => {
                             if (tokenResponse && tokenResponse.access_token) {
                                 googleAccessToken = tokenResponse.access_token;
@@ -27587,7 +27657,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (!googleTokenClient) {
                     googleTokenClient = google.accounts.oauth2.initTokenClient({
                         client_id: clientId,
-                        scope: 'https://www.googleapis.com/auth/drive.file',
+                        scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file',
                         callback: async (tokenResponse) => {
                             if (tokenResponse && tokenResponse.access_token) {
                                 googleAccessToken = tokenResponse.access_token;
@@ -28368,9 +28438,9 @@ function togglePdfAudioPlayerBar(forceState) {
 
             const downloadPromise = (async () => {
                 const isPdf = storeName === 'pdfs';
-                const cloudPath = isPdf ? lecObj.cloudPdfPath : lecObj.cloudAudioPath;
-                const driveId = (isPdf ? lecObj.cloudPdfDriveId : lecObj.cloudAudioDriveId) ||
-                    (cloudPath && cloudPath.startsWith('gdrive:') ? cloudPath.replace('gdrive:', '') : null);
+                const cloudPath = isPdf ? (lecObj.cloudPdfPath || lecObj.cloudPdfUrl || lecObj.path) : (lecObj.cloudAudioPath || lecObj.cloudAudioUrl || lecObj.audioPath);
+                const candidateStr = (isPdf ? (lecObj.cloudPdfDriveId || cloudPath) : (lecObj.cloudAudioDriveId || cloudPath));
+                const driveId = extractGoogleDriveFileId(candidateStr);
 
                 // 1. Download from Google Drive if driveId is present
                 if (driveId) {
@@ -30595,10 +30665,20 @@ function togglePdfAudioPlayerBar(forceState) {
                 }
             });
 
-            // Weekly Goals metrics
-            const goalsTotalCount = scheduleBacklog.length;
-            const goalsCompletedCount = scheduleBacklog.filter(g => g.done).length;
-            const goalsLinkedCount = scheduleBacklog.filter(g => getGoalLinkedEventsList(g).length > 0).length;
+            // Weekly Goals metrics & Closed-Loop Snapshot Archive
+            const targetWeekIso = weekStartIsoLabel || (typeof getActiveWeekStartIsoString === 'function' ? getActiveWeekStartIsoString() : '');
+            const weekGoals = scheduleBacklog.filter(g => !g.weekStartIso || g.weekStartIso === targetWeekIso);
+            const goalsTotalCount = weekGoals.length;
+            const goalsCompletedCount = weekGoals.filter(g => g.done).length;
+            const goalsLinkedCount = weekGoals.filter(g => getGoalLinkedEventsList(g).length > 0).length;
+            const archivedGoalsSnapshot = weekGoals.map(g => ({
+                id: g.id,
+                title: g.title,
+                done: Boolean(g.done),
+                subjectId: g.subjectId,
+                duration: g.duration,
+                weekStartIso: g.weekStartIso || targetWeekIso
+            }));
 
             const adherencePct = plannedHours > 0 ? Math.round((completedHours / plannedHours) * 100) : (goalsTotalCount > 0 ? Math.round((goalsCompletedCount / goalsTotalCount) * 100) : 0);
             let grade = 'B';
@@ -30658,6 +30738,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 goalsTotalCount,
                 goalsCompletedCount,
                 goalsLinkedCount,
+                archivedGoals: archivedGoalsSnapshot,
                 topSubjectName,
                 adherencePct,
                 grade,
