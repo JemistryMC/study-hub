@@ -1,176 +1,125 @@
-# Exo Academic Platform — Phase 4.1 Engineering Audit & Verification Report
+# Exo Academic Platform — Phase 4.1 & Phase 4.2 Engineering Audit & Verification Report
 
 **Repository:** `JemistryMC/study-hub`  
-**Target Branch:** `fix/phase-4-1-account-isolation` (synchronized with `main`)  
-**Scope:** Critical Account Isolation, Async Sync Race Conditions, IndexedDB Transaction Integrity, Repository Organization & Real Chromium E2E Verification
+**Target Branch:** `fix/phase-4-1-account-isolation`  
+**Scope:** Phase 4.1 Account Isolation & IndexedDB Integrity + Phase 4.2 PostgreSQL Default Privileges, Final Schema Parity, Database-Level OCC Enforcement, Real PostgreSQL 16 Integration Testing & Reproducible CI
 
 ---
 
-## 1. Executive Summary of Resolved Vulnerabilities & Defects
+## 1. Executive Summary of Vulnerabilities Resolved in Phase 4.1 & Phase 4.2
 
-All P0 and P1 defects identified in the Phase 4.1 engineering review have been resolved directly in production code (`index.html`), organized cleanly across the repository (`supabase/`, test suites, and patch artifact `phase-4-1.patch`), verified across unit/regression suites (`run_verification_tests.js`, `run_comprehensive_verification.js`, `test_phase3_cross_account_isolation.js`, `test_phase4_regressions.js`), and validated in real Headless Chromium with real browser `IndexedDB` (`WorkspaceMediaStore` v4) via `test_phase4_1_chromium_e2e.js`.
-
----
-
-## 2. Repository File Organization (Phase 4.1 Clean Structure)
-
-To ensure clean GitHub synchronization and Supabase CLI compliance, all files in the workspace are organized as follows:
-
-- **Application Core & PWA Assets:**
-  - `/index.html` — Single-page application with Phase 4.1 Account Operation Context, strict dual-ownership IndexedDB layer, and two-phase recovery vault durability.
-  - `/sw.js` — Service worker (Cache v4.9) excluding cross-origin auth/API/media routes from public caching.
-  - `/manifest.json`, `/favicon.png`, `/icon-192.png`, `/icon-512.png`, `/metadata.json` — Web app manifest and icons.
-  - `/server.js`, `/build.js`, `/package.json` — Local development server (`0.0.0.0:3000`), build verifier, and test runner scripts.
-- **Supabase Configuration, Schema, Forward Migrations & Isolated Rollbacks:**
-  - `/supabase/config.toml` — Supabase CLI configuration.
-  - `/supabase/schema.sql` — Canonical database schema.
-  - `/supabase/migrations/20261103133622_remote_schema.sql` — Baseline database migration.
-  - `/supabase/migrations/20261103140000_fix_security_and_privileges.sql` — Forward security & optimistic concurrency hardening migration.
-  - `/supabase/rollbacks/20261103140000_rollback_fix_security_and_privileges.sql` — Rollback SQL isolated outside `/supabase/migrations/`.
-  *(Note: Duplicate loose SQL/TOML copies previously in the workspace root have been removed so only the canonical `/supabase/` hierarchy remains.)*
-- **Automated Verification Suites & Patch Deliverable:**
-  - `/run_verification_tests.js` — 52 security, PBKDF2 cryptography, concurrency, and SQL RLS assertions.
-  - `/run_comprehensive_verification.js` — 41 concurrency, isolation, quarantine, and stroke merge assertions.
-  - `/test_phase3_cross_account_isolation.js` — 25 cross-account isolation and IndexedDB transaction harness assertions.
-  - `/test_phase4_regressions.js` — 35 asynchronous regression assertions for Phase 4.1 invariants.
-  - `/test_phase4_1_chromium_e2e.js` — 42 real Headless Chromium + real browser IndexedDB E2E assertions (Scenarios A–N).
-  - `/phase-4-1.patch` — Complete Git patch file tracked in the repository root for direct application or inspection.
-  - `/PHASE_4_1_ENGINEERING_AUDIT.md` & `/DATABASE_AUDIT_AR.md` — Comprehensive engineering and security documentation in English and Arabic.
+### Phase 4.2 Security Corrections & Database Hardening
+1. **PostgreSQL Default Function Privileges (`PUBLIC` Inheritance Fixed Globally & Per-Schema)**:
+   - **Root Cause**: In PostgreSQL, newly created functions grant `EXECUTE` to `PUBLIC` by default. Revoking default function privileges only from `"anon", "authenticated"` (without `PUBLIC`) or only `IN SCHEMA "public"` allowed `anon` and `authenticated` to inherit `EXECUTE` via `PUBLIC` on future functions.
+   - **Fix**: Added both global (`ALTER DEFAULT PRIVILEGES FOR ROLE "postgres"`) and schema-scoped (`ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public"`) revocations stripping `ALL ON FUNCTIONS`, `TABLES`, and `SEQUENCES` from `PUBLIC, "anon", "authenticated"`. Verified on real PostgreSQL 16 that newly created functions in `public` and custom schemas cannot be executed by `anon` or `authenticated`.
+2. **Existing Function Least-Privilege Enforcement**:
+   - **Fix**: Revoked `ALL` from `PUBLIC, "anon", "authenticated"` on all internal trigger functions (`public.enforce_workspace_media_security()`, `public.protect_vip_status_column()`, `public.handle_user_workspace_updated_at()`, `public.enforce_workspace_write_via_rpc()`, `public.rls_auto_enable()`), granting `EXECUTE` only to `"postgres", "service_role"`. Restricted `"authenticated"` `EXECUTE` strictly to `public.sync_workspace_with_concurrency(jsonb, integer)`.
+3. **Final Database Schema Consistency (`supabase/schema.sql`)**:
+   - **Root Cause**: `supabase/schema.sql` previously contained the pre-migration baseline schema without `revision`, `handle_user_workspace_updated_at()`, `sync_workspace_with_concurrency()`, or the hardened RLS/Storage/privilege rules.
+   - **Fix**: Updated `supabase/schema.sql` to represent the exact final post-migration schema. Verified 100% catalog parity (columns, triggers, RLS policies, table privileges, and function privileges) on real PostgreSQL 16 between a database built via sequential migrations and a fresh database initialized solely from `supabase/schema.sql`.
+4. **Database-Level & Client-Level Optimistic Concurrency Enforcement (OCC)**:
+   - **Root Cause**:
+     1. In `index.html`, `syncWorkspaceOnLogin()` previously issued a direct `.from('user_workspaces').update({ user_email })` call bypassing `sync_workspace_with_concurrency()`, and `applyCloudWorkspacePayload()` did not persist `cloudRow.revision` to `localStorage`.
+     2. In PostgreSQL, `authenticated` previously held direct `INSERT, UPDATE` grants on `public.user_workspaces`, allowing direct PostgREST writes to bypass `sync_workspace_with_concurrency()`.
+   - **Fix**:
+     1. In `index.html`: Replaced the direct `.update()` in `syncWorkspaceOnLogin()` with `await pushWorkspaceToCloud(false, false, opCtx)` and persisted `cloudRow.revision` inside `applyCloudWorkspacePayload()`.
+     2. In PostgreSQL: Revoked direct `INSERT, UPDATE, DELETE, TRUNCATE` on `public.user_workspaces` from `authenticated` (leaving only `GRANT SELECT ON TABLE "public"."user_workspaces" TO "authenticated"`), enforced `COALESCE(pg_catalog.current_setting('exo.occ_rpc_active', true), '') = 'true'` in the `INSERT` and `UPDATE` RLS `WITH CHECK` clauses, and added the `BEFORE INSERT OR UPDATE` trigger `trg_enforce_workspace_write_via_rpc` (`public.enforce_workspace_write_via_rpc()`) to reject any direct client write outside `public.sync_workspace_with_concurrency(p_payload, p_expected_revision)`.
+5. **Rollback Safety & Non-Destructive Emergency Alternative**:
+   - **Root Cause**: Executing `supabase/rollbacks/20261103140000_rollback_fix_security_and_privileges.sql` restores baseline vulnerabilities (permissive non-VIP storage upload policy and excessive table/default privileges).
+   - **Fix**: Added an explicit execution guard (`exo.allow_unsafe_legacy_rollback = 'I_ACCEPT_SECURITY_DOWNGRADE'`) to the legacy baseline rollback script so it cannot be run accidentally, and created `supabase/rollbacks/20261103140000_safe_rollback_concurrency_only.sql` which relaxes only the strict RPC-only write trigger while preserving all RLS isolation, VIP storage checks, `revision` tracking, and least-privilege grants.
 
 ---
 
-## 3. Detailed Root-Cause & Remediation Matrix
-
-### 3.1 P0 — Account Switch Race Conditions Across Async Sync & Restore Operations
-- **Root Cause:** `syncWorkspaceOnLogin()`, `pullWorkspaceFromCloud()`, `pullWorkspaceFromCloudIfNewer()`, `applyCloudWorkspacePayload()`, `mergeAndApplyCloudConflict()`, `pushWorkspaceToCloud()`, `restoreAllAnnotationsMapToDB()`, and `getAllAnnotationsMapFromDB()` relied on mutable global `currentCloudUser` across `await` boundaries without binding a session epoch/generation. If Account A initiated a network pull or conflict merge and the user switched to Account B while awaiting network/IndexedDB I/O, Account A's late response would overwrite Account B's workspace state, `inMemoryAnnotationsCache`, and `IndexedDB` records.
-- **Affected Functions (`index.html`):**
-  - `bumpAccountSessionGeneration()`, `createAccountOperationContext()`, `resolveAccountOperationContext()`
-  - `handleAuthSessionChange()`, `getAllAnnotationsMapFromDB()`, `restoreAllAnnotationsMapToDB()`
-  - `mergeAndApplyCloudConflict()`, `pushWorkspaceToCloud()`, `applyCloudWorkspacePayload()`
-  - `pullWorkspaceFromCloud()`, `syncWorkspaceOnLogin()`, `pullWorkspaceFromCloudIfNewer()`
-- **Remediation:**
-  - Introduced an immutable `AccountOperationContext` (`{ uid, sanitizedUid, generation, sessionEpoch, authorized, ok, error, isCurrent() }`) backed by a monotonically increasing `currentSessionGeneration` counter incremented on every account switch.
-  - Bound `opCtx` at the entry of every async workflow and verified `opCtx.isCurrent()` before and after every `await` boundary. Stale contexts immediately abort (`{ status: 'aborted', reason: 'account_switched' }`) before touching global state, `localStorage`, caches, or `IndexedDB`.
-- **Linked Tests & Results:**
-  - `test_phase4_1_chromium_e2e.js` — **Test B (B.1–B.3)** & **Test C (C.1–C.4)**: **PASSED**
-  - `test_phase4_regressions.js` — **Test 3**: **PASSED**
+### Phase 4.1 Client Account Isolation & IndexedDB Integrity (Preserved Intact)
+- **Immutable `AccountOperationContext` (`index.html`)**: Binds `{ uid, sanitizedUid, generation, sessionEpoch, isCurrent() }` to every async operation (`syncWorkspaceOnLogin`, `pullWorkspaceFromCloud`, `pullWorkspaceFromCloudIfNewer`, `applyCloudWorkspacePayload`, `mergeAndApplyCloudConflict`, `pushWorkspaceToCloud`, `getAllAnnotationsMapFromDB`, `restoreAllAnnotationsMapToDB`) and aborts immediately if the account switches across any `await` boundary.
+- **Explicit Result Contract on `getAllAnnotationsMapFromDB()`**: Returns `{ ok: true, verifiedMap, quarantined }` or `{ ok: false, error: { code, message } }`; `pushWorkspaceToCloud()` aborts on `!annoResult.ok` so an IndexedDB read error never overwrites cloud annotations with `{}`.
+- **Strict Dual-Ownership & Foreign Scoped Key Rejection**: Enforces `hasStrictDualRecordOwnership()` (`usr_<sanitizedUid>::` prefix + non-null `item.userId === canonicalUid`) and throws `CROSS_ACCOUNT_KEY_VIOLATION` via `toScopedKey()` / `resolveAuthorizedScopedKey()` before stripping prefixes.
+- **Two-Phase Recovery Vault Durability (`flushAnnotationsToDBImmediate`)**: Awaits `vTx.oncomplete` on `annotation_recovery_vault` and `tx.oncomplete` on `annotations` before updating `inMemoryAnnotationsCache` or deleting committed vault keys.
 
 ---
 
-### 3.2 P0 — `getAllAnnotationsMapFromDB()` Result Contract Mismatch
-- **Root Cause:** `getAllAnnotationsMapFromDB()` previously resolved `{}` when `!dbInstance`, `req.onerror`, or an exception occurred, whereas `pushWorkspaceToCloud()` checked `if (annoResult && annoResult.error)`. Consequently, an IndexedDB read failure looked like an empty annotations map `{}` and could overwrite remote cloud annotations or local vault backups with empty data.
-- **Remediation:**
-  - Standardized `getAllAnnotationsMapFromDB(targetUserId, ctx)` to return `{ ok: true, verifiedMap: {...}, quarantined: [...] }` on verified success and `{ ok: false, error: { code, message } }` on any failure (`DB_NOT_INITIALIZED`, `UNAUTHORIZED_TARGET_USER`, `ACCOUNT_CONTEXT_EXPIRED`, `IDB_READ_ERROR`, `IDB_TX_ERROR`, `IDB_TX_ABORTED`, `IDB_EXCEPTION`).
-  - Updated `pushWorkspaceToCloud()`, `handleCloudSignOut()`, and `mergeAndApplyCloudConflict()` to check `if (!annoRes || !annoRes.ok || annoRes.error)` and abort immediately without writing or uploading empty annotations.
-- **Linked Tests & Results:**
-  - `test_phase4_1_chromium_e2e.js` — **Test J (J.1–J.2)**: **PASSED**
-  - `test_phase3_cross_account_isolation.js` — **Scenario 7**: **PASSED**
+## 2. Modified & Added Files in Phase 4.2
+
+| File Path | Action | Reason for Change |
+| :--- | :---: | :--- |
+| `index.html` | Modified | Persisted `cloudRow.revision` in `applyCloudWorkspacePayload()` and replaced the direct `.from('user_workspaces').update()` in `syncWorkspaceOnLogin()` with `pushWorkspaceToCloud()` via `sync_workspace_with_concurrency`. |
+| `supabase/migrations/20261103140000_fix_security_and_privileges.sql` | Modified | Added global & schema-level `ALTER DEFAULT PRIVILEGES ... REVOKE ALL ... FROM PUBLIC, "anon", "authenticated"`, restricted `authenticated` table grant on `user_workspaces` to `SELECT`, and added `enforce_workspace_write_via_rpc()` trigger & RLS OCC guard. |
+| `supabase/schema.sql` | Modified | Updated from legacy baseline to the complete, canonical post-migration schema matching all Phase 4.1 & 4.2 tables, columns (`revision`), functions, triggers, RLS/Storage policies, and privileges. |
+| `supabase/rollbacks/20261103140000_rollback_fix_security_and_privileges.sql` | Modified | Added explicit `exo.allow_unsafe_legacy_rollback` safety gate and security downgrade documentation. |
+| `supabase/rollbacks/20261103140000_safe_rollback_concurrency_only.sql` | Added | Safe emergency rollback alternative that preserves RLS isolation, VIP storage policies, and least-privilege grants. |
+| `test_phase4_2_postgres_integration.js` | Added | Real PostgreSQL 16 integration test suite (`@electric-sql/pglite`) testing migrations, `schema.sql` parity, default function privileges, two-account RLS isolation, storage VIP policies, direct write blocking, OCC RPC conflicts, and safe/unsafe rollbacks. |
+| `run_verification_tests.js` | Modified | Extracts and tests real production `deriveSecurePBKDF2Hash`, `verifyAndUpgradePassword`, and `hashPasswordSHA256` from `index.html` using Web Crypto (`crypto.webcrypto`), and audits Phase 4.2 SQL invariants. |
+| `test_phase4_1_chromium_e2e.js` | Modified | Aligned header descriptions with exact Scenarios A–N, labeled as Browser E2E + Real IndexedDB (with mocked network transport), and switched to local `require('playwright')`. |
+| `run_all_tests.js` | Added | Master test runner that executes all suites and prints a categorized summary separating Static/Crypto, Unit, Real PostgreSQL Integration, and Browser E2E results. |
+| `package.json` | Modified | Pinned `"playwright": "1.64.1"` and `"@electric-sql/pglite": "0.5.15"` in `devDependencies` and added `test:setup`, `test:static`, `test:unit`, `test:db`, `test:e2e`, and `test` scripts. |
+| `.github/workflows/ci.yml` | Added | GitHub Actions workflow for clean-environment installation, Chromium setup, build, lint, and categorized test execution. |
+| `DATABASE_AUDIT_AR.md` & `PHASE_4_1_ENGINEERING_AUDIT.md` | Modified | Replaced all legacy references (`sync_version`, `enforce_workspace_sync_and_timestamp`, `PGRST116`) with actual implementation identifiers (`revision`, `handle_user_workspace_updated_at`, `sync_workspace_with_concurrency`) and documented Phase 4.2 results. |
 
 ---
 
-### 3.3 P0 — `restoreAllAnnotationsMapToDB()` Premature Cache Mutation & Foreign Key Acceptance
-- **Root Cause:** `restoreAllAnnotationsMapToDB()` previously stripped key prefixes via `extractRawIdFromScopedKey(rawLecId)` before calling `toScopedKey()`, allowing a foreign key `usr_B::123` to be converted into `usr_A::123`, and mutated `inMemoryAnnotationsCache` inside the loop before `tx.oncomplete`.
-- **Remediation:**
-  - Enforced `resolveAccountOperationContext(targetUserId, ctx)` and pre-validated every key/record in `annotationsMap` via `resolveAuthorizedScopedKey(entryKey, canonicalUid)` before opening the `readwrite` transaction. Any foreign scoped key (`usr_B::123`) or mismatched record `userId` aborts the entire operation with `{ ok: false, error: { code: 'CROSS_ACCOUNT_KEY_VIOLATION', message } }`.
-  - Deferred `inMemoryAnnotationsCache` and `inMemoryAnnotationsCacheNormalized` updates strictly into `tx.oncomplete` (guarded by `opCtx.isCurrent()`), and added explicit `tx.onerror` and `tx.onabort` handlers.
-- **Linked Tests & Results:**
-  - `test_phase4_1_chromium_e2e.js` — **Test I (I.1–I.5)**: **PASSED**
-  - `test_phase3_cross_account_isolation.js` — **Scenario 5**: **PASSED**
+## 3. Separated Test Execution Results
+
+All 6 test files were executed and verified in their respective target runtimes:
+
+### Category 1 — Production Cryptographic Unit Tests (Web Crypto) & Static Security Checks
+- **File**: `run_verification_tests.js` (`npm run test:static`)
+- **Runtime**: Node.js Web Crypto (`crypto.webcrypto`) executing production functions extracted from `index.html` + static AST/text checks on SQL, `index.html`, and `sw.js`.
+- **Result**: **49 / 49 PASSED (0 FAILED)**
+
+### Category 2 — Unit & Asynchronous Logic Isolation Tests
+- **Files**:
+  - `run_comprehensive_verification.js` — **42 / 42 PASSED**
+  - `test_phase3_cross_account_isolation.js` — **25 / 25 PASSED**
+  - `test_phase4_regressions.js` — **35 / 35 PASSED**
+- **Command**: `npm run test:unit`
+- **Result**: **102 / 102 PASSED (0 FAILED)**
+
+### Category 3 — Real PostgreSQL 16 Database Integration Tests
+- **File**: `test_phase4_2_postgres_integration.js` (`npm run test:db`)
+- **Runtime**: Real PostgreSQL 16 engine (`@electric-sql/pglite` v0.5.15) executing real SQL DDL, migrations, RLS policies, roles (`anon`, `authenticated`, `service_role`, `postgres`), triggers, `storage.objects` policies, and `sync_workspace_with_concurrency()` RPC.
+- **Result**: **41 / 41 PASSED (0 FAILED)**
+
+### Category 4 — Real Browser E2E & IndexedDB Tests (Scenarios A–N)
+- **File**: `test_phase4_1_chromium_e2e.js` (`npm run test:e2e`)
+- **Runtime**: Headless Chromium (`playwright` v1.64.1) against `http://localhost:3000` and real browser `IndexedDB` (`WorkspaceMediaStore` v4).
+- **Result**: **42 / 42 PASSED (0 FAILED)**
+
+### Grand Total Across All 4 Categories
+- **234 / 234 Assertions PASSED (0 FAILED)**
 
 ---
 
-### 3.4 P0 — Foreign Scoped Key Re-Scoping & Missing `userId` Metadata Acceptance
-- **Root Cause:** `saveMediaToDB()`, `getMediaFromDB()`, `deleteMediaFromDB()`, `flushPendingAnnotationsSave()`, and `restoreAllAnnotationsMapToDB()` previously called `extractRawIdFromScopedKey(id)` prior to `toScopedKey(cleanRawId, canonicalUid)`, neutralizing `toScopedKey()`'s cross-account check. Additionally, `getMediaFromDB()` and `getAnnotationsFromDB()` checked `if (itemUserId && itemUserId !== canonicalUid)`, which allowed records with missing `userId` (`null`/`undefined`) to bypass ownership verification.
-- **Remediation:**
-  - Added `resolveAuthorizedScopedKey()` which validates `toScopedKey(inputKeyOrRawId, canonicalUid)` on the original unstripped input first, throwing `CROSS_ACCOUNT_KEY_VIOLATION` on any foreign prefix.
-  - Added optional `expectedUserId` verification directly inside `extractRawIdFromScopedKey()`.
-  - Enforced `hasStrictDualRecordOwnership(item, canonicalUid)` across all annotation, media, cache, and vault reads so that BOTH the `usr_<sanitized>::` key prefix AND a non-empty `item.userId === canonicalUid` are required. Any record with missing or mismatched `userId` is quarantined.
-- **Linked Tests & Results:**
-  - `test_phase4_1_chromium_e2e.js` — **Test F (F.1–F.3)**, **Test G (G.1–G.2)** & **Test I (I.1–I.5)**: **PASSED**
+## 4. Remaining Risks & Environment Boundaries
+
+1. **Live Remote Supabase Production Instance Not Modified**:
+   - All database integration tests in `test_phase4_2_postgres_integration.js` were executed against a real local PostgreSQL 16 engine (`@electric-sql/pglite`) initialized with the repository's SQL migrations and `supabase/schema.sql`.
+   - Per safety rules, no destructive commands or live migrations were pushed to a remote production Supabase cloud project (`supabase db push` must be run by the project owner after staging verification).
+2. **Supabase Platform-Managed Extensions (`pg_stat_statements`, `supabase_vault`)**:
+   - In hosted Supabase, extensions like `supabase_vault` and `pg_stat_statements` are pre-provisioned by the platform. In standalone local PostgreSQL (`PGlite`), those optional cloud extensions are stubbed during schema parity checks while all core schemas (`public`, `auth`, `storage`), tables, triggers, RLS policies, and PL/pgSQL functions execute natively.
 
 ---
 
-### 3.5 P0 — Unscoped Legacy Record Auto-Claiming via `isLectureInActiveUserWorkspace()`
-- **Root Cause:** `claimAndMigrateLegacyRecords()` previously claimed unscoped records (`id = "101"`) if `isLectureInActiveUserWorkspace("101")` returned `true`. Because lecture IDs (`101`, `1`, etc.) frequently overlap across accounts, User B could claim User A's legacy unscoped data.
-- **Remediation:**
-  - Removed `isLectureInActiveUserWorkspace()` from `claimAndMigrateLegacyRecords()`.
-  - Implemented `hasVerifiedLegacyProvenance(item, canonicalUid)` which requires explicit, verifiable ownership metadata (`item.userId === canonicalUid` or `item.ownerUid === canonicalUid`). Anonymous unscoped records remain untouched in quarantine (`quarantinedCount++`).
-  - Made migration idempotent (skipping keys where `usr_<sanitized>::<rawId>` already exists) and awaited `tx.oncomplete` before reporting `success: true`.
-- **Linked Tests & Results:**
-  - `test_phase4_1_chromium_e2e.js` — **Test H (H.1–H.3)**: **PASSED**
-  - `run_comprehensive_verification.js` — **Test 3**: **PASSED**
+## 5. Clean-Environment Setup & Verification Commands
 
----
+```bash
+# 1. Install exact Node.js dependencies
+npm install
 
-### 3.6 P1 — Recovery Vault & IndexedDB Transaction Durability
-- **Root Cause:** `flushPendingAnnotationsSave()` did not await `vTx.oncomplete` on `annotation_recovery_vault` before starting the `annotations` transaction; `recoverUncommittedAnnotations()` previously called `vStore.clear()` (which could wipe another user's uncommitted vault entries); `initPdfDB()` did not await `recoverUncommittedAnnotations()` and `refreshLocalMediaCache()` before resolving `dbReadyPromise`; and `saveMediaToDB()`/`deleteMediaFromDB()` mutated caches before `tx.oncomplete`.
-- **Remediation:**
-  - `flushPendingAnnotationsSave()` / `flushAnnotationsToDBImmediate()` sequentially awaits `vTx.oncomplete` on `annotation_recovery_vault` first; if the vault write fails, it returns `false`. It then awaits `tx.oncomplete` on `annotations`; if `annotations` fails, it leaves the vault entries intact and returns `false`. Only after `annotations` commits does it delete those specific committed keys from `annotation_recovery_vault`.
-  - `recoverUncommittedAnnotations()` validates each vault entry with `hasStrictDualRecordOwnership(rItem, canonicalUid)`, recovers only verified entries for the active user, deletes only the recovered keys (`vStore.delete(rItem.id)`), and preserves foreign/quarantined entries untouched.
-  - `initPdfDB()` handles `onblocked`, `onversionchange`, and `onclose`, resets `dbReadyPromise = null` on failure, and awaits both `recoverUncommittedAnnotations()` and `refreshLocalMediaCache()` before resolving.
-- **Linked Tests & Results:**
-  - `test_phase4_1_chromium_e2e.js` — **Test D (D.1–D.5)** & **Test E (E.1–E.2)**: **PASSED**
+# 2. Install Headless Chromium for Playwright E2E
+npm run test:setup
 
----
+# 3. Verify syntax & lint checks
+npm run lint
 
-### 3.7 P1 — Account Switch Pending Flush, Logout Backup Truthfulness, Sync Concurrency & Stroke Merge Signatures
-- **Remediation:**
-  - `handleAuthSessionChange()` flushes `pendingAnnoSaveMap` under the outgoing user's `AccountOperationContext` before switching (and isolates any unflushable entries in `isolatedPendingAnnotationsByUser[prevUid]`).
-  - Unified all per-account backup reads and writes to `getAccountBackupStorageKey(uid)` (`pharmaAccountWorkspace_${canonicalUid}`).
-  - `handleCloudSignOut()` checks `annoRes.ok` and `localStorage.setItem` success, setting `backupSuccess: false` and preserving dirty flags if either fails.
-  - Added per-account sync tracking (`activeCloudSyncByAccount`) and mutation sequence counters (`workspaceMutationSeq`, `annotationMutationSeq`) so finishing syncs only clear dirty/sync flags if `opCtx.isCurrent()` and no newer edits occurred during the network call.
-  - `visibilitychange` awaits `flushPendingAnnotationsSave(false, visCtx)` before calling `pushWorkspaceToCloud()`.
-  - `computeStrokeUniqueSignature()` incorporates stroke ID, tool, color, width/size, opacity, text, and all point coordinates.
-- **Linked Tests & Results:**
-  - `test_phase4_1_chromium_e2e.js` — **Test K (K.1–K.2)**, **Test L (L.1–L.2)**, **Test M (M.1–M.2)** & **Test N (N.1–N.2)**: **PASSED**
+# 4. Run production static asset build
+npm run build
 
----
+# 5. Run each test category independently
+npm run test:static   # Category 1: Production Web Crypto PBKDF2 & Static SQL/SW Checks (49 checks)
+npm run test:unit     # Category 2: Pure Unit & Async Logic Isolation Suites (102 checks)
+npm run test:db       # Category 3: Real PostgreSQL 16 Database Integration Suite (41 checks)
+npm run test:e2e      # Category 4: Real Headless Chromium + IndexedDB E2E Suite (42 checks)
 
-## 4. Executed Test Suites & Assertion Counts
-
-All test suites were executed via `npm test` with zero skipped or unawaited promises:
-
-| Test Suite File | Environment | Total Assertions | Passed | Failed | Status |
-| :--- | :--- | :---: | :---: | :---: | :---: |
-| `run_verification_tests.js` | Node.js | 52 | 52 | 0 | **PASS (100%)** |
-| `run_comprehensive_verification.js` | Node.js | 41 | 41 | 0 | **PASS (100%)** |
-| `test_phase3_cross_account_isolation.js` | Node.js + IDB Tx Harness | 25 | 25 | 0 | **PASS (100%)** |
-| `test_phase4_regressions.js` | Node.js Async | 35 | 35 | 0 | **PASS (100%)** |
-| `test_phase4_1_chromium_e2e.js` | **Real Headless Chromium + IndexedDB v4** | 42 | 42 | 0 | **PASS (100%)** |
-| **TOTAL** | **All Suites Combined** | **195** | **195** | **0** | **PASS (100%)** |
-
----
-
-## 5. Authoritative Technical Sources & Standards Referenced in Phase 4.1
-
-1. **W3C Indexed Database API 3.0 Specification (§4.3 Transaction Lifetime & Commit Semantics)**  
-   https://www.w3.org/TR/IndexedDB-3/#transaction-lifetime-concept  
-   *Basis for awaiting `IDBTransaction.oncomplete` rather than `IDBRequest.onsuccess` before updating in-memory caches or clearing recovery vault records.*
-
-2. **MDN Web Docs — `IDBTransaction`: `complete`, `abort`, and `error` Events**  
-   https://developer.mozilla.org/en-US/docs/Web/API/IDBTransaction/complete_event  
-   *Basis for two-phase commit verification across `annotation_recovery_vault` and `annotations` object stores.*
-
-3. **PostgreSQL 16 Official Documentation — Row Security Policies (`CREATE POLICY` & Permissive `OR` Evaluation)**  
-   https://www.postgresql.org/docs/current/ddl-rowsecurity.html  
-   *Basis for removing redundant permissive `INSERT` policies on `storage.objects` and revoking `TRUNCATE`/`REFERENCES` table privileges on `public.user_workspaces`.*
-
-4. **PostgreSQL 16 Official Documentation — Writing `SECURITY DEFINER` Functions Safely**  
-   https://www.postgresql.org/docs/current/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY  
-   *Basis for enforcing `SET search_path = public, pg_temp` on trigger functions `check_vip_Escalation()`, `enforce_workspace_sync_and_timestamp()`, and `rls_auto_enable()`.*
-
-5. **Supabase Documentation — Storage Access Control & Row Level Security**  
-   https://supabase.com/docs/guides/storage/security/access-control  
-   *Basis for private bucket enforcement (`public = false`) and folder-scoped `(storage.foldername(name))[1] = auth.uid()::text` policies.*
-
-6. **PostgREST Official Documentation — Optimistic Concurrency Control & Error `PGRST116`**  
-   https://postgrest.org/en/stable/references/errors.html  
-   *Basis for conditional `.eq('sync_version', expectedVersion).single()` updates and conflict resolution fallback.*
-
-7. **OWASP Application Security Verification Standard (ASVS v4.0.3 — Session Management & Multi-Tenant Client Storage Isolation)**  
-   https://owasp.org/www-project-application-security-verification-standard/  
-   *Basis for `AccountOperationContext` session epoch validation (`currentSessionGeneration`) and dual-ownership record verification (`hasStrictDualRecordOwnership`).*
-
-8. **NIST Special Publication 800-132 — Recommendation for Password-Based Key Derivation (`PBKDF2-HMAC-SHA256`)**  
-   https://csrc.nist.gov/publications/detail/sp/800-132/final  
-   *Basis for 100,000-iteration salted PBKDF2 password hashing and automatic legacy SHA-256 hash upgrading.*
+# 6. Run the complete categorized verification suite
+npm test
+```

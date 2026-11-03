@@ -1,40 +1,56 @@
 // ============================================================================
-// Exo Academic Platform — Phase 4.1 Real Headless Chromium + IndexedDB E2E Suite
-// Executes Mandatory Scenarios A through N inside real Headless Chromium against
-// http://localhost:3000 and real browser IndexedDB (WorkspaceMediaStore v4).
+// Exo Academic Platform — Phase 4.1 & 4.2 Real Headless Chromium + IndexedDB E2E Suite
+// Category: Browser E2E & Real IndexedDB Verification (with mocked network transport)
+// Note: Real PostgreSQL database integration is tested separately in
+//       `test_phase4_2_postgres_integration.js`.
 //
-// Verified Architectural Contracts (Phase 4.1):
-//   - Scenarios A–E: Account Switch Mid-Sync, Mid-Conflict-Merge & Mid-Export
-//   - Scenario F: Foreign Key Rejection (`CROSS_ACCOUNT_KEY_VIOLATION`)
-//   - Scenario G: IndexedDB Read Failure Blocks Destructive Cloud Overwrite
-//   - Scenario H: Aborted Write Transaction Leaves `inMemoryAnnotationsCache` Untouched
-//   - Scenarios I–J: Provenance-Only Legacy Migration & Anonymous Record Quarantine
-//   - Scenario K: Media Upload Rollback & Scoped Media Cleanup on Account Switch
-//   - Scenarios L–M: Two-Phase Recovery Vault Durability & Account-Isolated Pending Saves
-//   - Scenario N: Optimistic Concurrency Control (HTTP 409 / PGRST116 Conflict Resolution)
-//
-// Technical References & Sources:
-//   - W3C Indexed Database API 3.0: https://www.w3.org/TR/IndexedDB-3/
-//   - MDN Web Docs — Using IndexedDB & Transaction Lifecycle:
-//     https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Using_IndexedDB
-//   - Playwright Browser Automation & Storage Inspection:
-//     https://playwright.dev/docs/api/class-page
-//   - Supabase JS Client & PostgREST Error Codes (PGRST116):
-//     https://postgrest.org/en/stable/references/errors.html
+// Exact Scenarios Verified in Real Chromium + IndexedDB (WorkspaceMediaStore v4):
+//   - Scenario A (A.1–A.5): Overlapping Lecture IDs (`101`) Across Accounts (Annotations + PDF Blobs)
+//   - Scenario B (B.1–B.3): Login / Pull Race Across Account Switch (`syncWorkspaceOnLogin` aborts on switch)
+//   - Scenario C (C.1–C.4): Push / Conflict Merge Race Across Account Switch (`pushWorkspaceToCloud` & `mergeAndApplyCloudConflict`)
+//   - Scenario D (D.1–D.5): Failed `annotations` Transaction Keeps Recovery Vault & Recovers Across Real Browser Reload
+//   - Scenario E (E.1–E.2): Uncommitted Vault Entry for User A Never Leaks to User B Across Browser Reload
+//   - Scenario F (F.1–F.3): Conflicted Key Prefix vs `userId` Metadata Quarantine (`annotations` + `pdfs`)
+//   - Scenario G (G.1–G.2): Missing `userId` (`null` / omitted) Metadata Quarantine (`annotations` + `pdfs` + media cache)
+//   - Scenario H (H.1–H.3): Legacy Unscoped Record Quarantine (`id="101"`) vs Provenance-Verified Migration (`id="102"`) & Idempotency
+//   - Scenario I (I.1–I.5): Foreign Scoped Key (`usr_B::123`) Rejection (`CROSS_ACCOUNT_KEY_VIOLATION`) Across All Read/Write/Delete Paths
+//   - Scenario J (J.1–J.2): `getAllAnnotationsMapFromDB()` Failure (`{ ok: false, error }`) Blocks Cloud Push
+//   - Scenario K (K.1–K.2): Logout Annotation Flush Failure Aborts `handleCloudSignOut()` & Preserves Session/Dirty Flag
+//   - Scenario L (L.1–L.2): Account Switch Automatically Flushes Outgoing Account's `pendingAnnoSaveMap` Before Switching
+//   - Scenario M (M.1–M.2): Per-Account Backup Key Consistency (`pharmaAccountWorkspace_<uid>`) Across Save & Offline Pull
+//   - Scenario N (N.1–N.2): Conflict Stroke Merge Preserves Distinct Strokes With Identical Tool, Color & Point Count
 // ============================================================================
 
+const fs = require('fs');
 const http = require('http');
 const { spawn } = require('child_process');
+const { chromium } = require('playwright');
 
-let chromium;
-try {
-  ({ chromium } = require('playwright'));
-} catch (e1) {
-  try {
-    ({ chromium } = require('playwright-core'));
-  } catch (e2) {
-    ({ chromium } = require('/usr/local/share/bun-global/node_modules/playwright-core'));
+function resolveChromiumLaunchOptions() {
+  const opts = { headless: true };
+  if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
+    opts.executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+    return opts;
   }
+  try {
+    const defaultPath = chromium.executablePath();
+    if (defaultPath && fs.existsSync(defaultPath)) {
+      return opts;
+    }
+  } catch {}
+  const fallbackPaths = [
+    '/ms-playwright/chrome-headless-shell-linux64/chrome-headless-shell',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/google-chrome'
+  ];
+  for (const candidate of fallbackPaths) {
+    if (fs.existsSync(candidate)) {
+      opts.executablePath = candidate;
+      break;
+    }
+  }
+  return opts;
 }
 
 let testsPassed = 0;
@@ -86,7 +102,7 @@ async function main() {
   console.log('======================================================================\n');
 
   const spawnedServer = await ensureLocalServerRunning();
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch(resolveChromiumLaunchOptions());
 
   try {
     const context = await browser.newContext();

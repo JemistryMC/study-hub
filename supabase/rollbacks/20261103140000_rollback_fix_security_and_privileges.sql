@@ -1,32 +1,47 @@
 -- ============================================================================
--- Exo Academic Platform — Phase 4.1 Migration Rollback Script
+-- Exo Academic Platform — Legacy Baseline Rollback Script (UNSAFE FOR PRODUCTION)
 -- File: supabase/rollbacks/20261103140000_rollback_fix_security_and_privileges.sql
 -- Location: supabase/rollbacks/ (Strictly isolated outside supabase/migrations/)
 --
--- SECURITY DOWNGRADE & LIMITATION WARNING:
---   Executing this rollback script intentionally reverts the security fixes introduced
---   in 20261103140000_fix_security_and_privileges.sql back to baseline state
---   (matching 20261103133622_remote_schema.sql):
---   1. Re-enables the permissive storage policy on storage.objects allowing non-VIP
---      users to upload media directly.
---   2. Restores excessive grants (TRUNCATE, TRIGGER, REFERENCES, MAINTAIN, DELETE)
---      on public.user_workspaces to anon and authenticated roles.
---   3. Restores broad default privileges in schema public to anon and authenticated.
---   4. Removes server-enforced updated_at and revision trigger and concurrency RPC.
---   5. Restores original execute grants on trigger functions, including PUBLIC execution
---      on protect_vip_status_column().
---   6. Reverts rls_auto_enable() and enforce_workspace_media_security() to baseline bodies.
+-- CRITICAL SECURITY WARNING — DO NOT USE AS AN AUTOMATIC EMERGENCY PROCEDURE:
+--   This script strictly restores the pre-Phase-4.1 baseline schema state
+--   (matching 20261103133622_remote_schema.sql) for historical/audit symmetry only.
+--   Executing this script RE-INTRODUCES known security vulnerabilities:
+--     1. Re-enables the permissive storage policy ("Users can upload their own lecture media")
+--        on storage.objects, allowing non-VIP users to bypass can_upload_media = true.
+--     2. Restores excessive table grants (TRUNCATE, TRIGGER, REFERENCES, MAINTAIN, DELETE)
+--        on public.user_workspaces to anon and authenticated roles.
+--     3. Restores broad default privileges in schema public to anon and authenticated.
+--     4. Removes server-enforced updated_at, revision column, OCC guard trigger,
+--        and sync_workspace_with_concurrency() RPC.
+--     5. Restores PUBLIC execute grants on protect_vip_status_column().
+--
+-- SAFE ALTERNATIVE FOR EMERGENCY ROLLBACK:
+--   Use `supabase/rollbacks/20261103140000_safe_rollback_concurrency_only.sql` instead!
+--   That script relaxes only the strict RPC-only write constraint while preserving
+--   all account isolation, RLS policies, VIP storage checks, and least-privilege grants.
+--
+-- EXECUTION SAFETY GATE:
+--   To prevent accidental or automated execution, this script aborts unless the
+--   session explicitly sets:
+--     SET LOCAL exo.allow_unsafe_legacy_rollback = 'I_ACCEPT_SECURITY_DOWNGRADE';
 --
 -- KNOWN REVERSIBILITY LIMITATION:
 --   The baseline exported migration (20261103133622_remote_schema.sql) did NOT contain
 --   the original storage.buckets DDL definition for 'lecture_media'.
---   The forward migration explicitly ensured the bucket exists with public = false.
---   During rollback, the bucket is intentionally NOT dropped (to prevent destroying user media),
---   but its pre-migration visibility (public vs private) cannot be established from the
---   exported schema alone. Thus, exact pre-migration bucket visibility cannot be guaranteed.
+--   During rollback, the bucket is intentionally NOT dropped (to prevent destroying user media).
 -- ============================================================================
 
 SET local check_function_bodies = off;
+
+DO $$
+BEGIN
+  IF COALESCE(pg_catalog.current_setting('exo.allow_unsafe_legacy_rollback', true), '') <> 'I_ACCEPT_SECURITY_DOWNGRADE' THEN
+    RAISE EXCEPTION 'UNSAFE_ROLLBACK_BLOCKED: 20261103140000_rollback_fix_security_and_privileges.sql restores legacy vulnerabilities (VIP bypass & excessive grants). For a safe emergency rollback that preserves security and isolation, run supabase/rollbacks/20261103140000_safe_rollback_concurrency_only.sql instead. To force this legacy baseline rollback for testing, run: SET LOCAL exo.allow_unsafe_legacy_rollback = ''I_ACCEPT_SECURITY_DOWNGRADE'';'
+      USING ERRCODE = '42501';
+  END IF;
+END
+$$;
 
 -- ============================================================================
 -- 1. ROLLBACK STORAGE POLICIES (Matches Baseline 20261103133622_remote_schema.sql)
@@ -47,8 +62,26 @@ CREATE POLICY "Users can upload their own lecture media" ON "storage"."objects"
   WITH CHECK (((bucket_id = 'lecture_media'::text) AND ((storage.foldername(name))[1] = ( SELECT (auth.uid())::text AS uid))));
 
 -- ============================================================================
--- 2. ROLLBACK USER_WORKSPACES PRIVILEGES (Matches Baseline)
+-- 2. ROLLBACK USER_WORKSPACES POLICIES & PRIVILEGES (Matches Baseline)
 -- ============================================================================
+
+DROP POLICY IF EXISTS "Users can insert own workspace" ON "public"."user_workspaces";
+CREATE POLICY "Users can insert own workspace" ON "public"."user_workspaces"
+  FOR INSERT
+  TO PUBLIC
+  WITH CHECK ((auth.uid() = user_id));
+
+DROP POLICY IF EXISTS "Users can update own workspace" ON "public"."user_workspaces";
+CREATE POLICY "Users can update own workspace" ON "public"."user_workspaces"
+  FOR UPDATE
+  TO PUBLIC
+  USING ((auth.uid() = user_id));
+
+DROP POLICY IF EXISTS "Users can view own workspace" ON "public"."user_workspaces";
+CREATE POLICY "Users can view own workspace" ON "public"."user_workspaces"
+  FOR SELECT
+  TO PUBLIC
+  USING ((auth.uid() = user_id));
 
 GRANT DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE "public"."user_workspaces" TO "anon", "authenticated";
 REVOKE ALL ON TABLE "public"."user_workspaces" FROM "postgres";
@@ -58,6 +91,9 @@ GRANT DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON
 -- ============================================================================
 -- 3. ROLLBACK DEFAULT PRIVILEGES (Matches Baseline)
 -- ============================================================================
+
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" GRANT EXECUTE ON FUNCTIONS TO PUBLIC;
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT EXECUTE ON FUNCTIONS TO PUBLIC;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
@@ -75,10 +111,13 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
 
 -- ============================================================================
--- 4. ROLLBACK TRIGGER, REVISION COLUMN & CONCURRENCY RPC
+-- 4. ROLLBACK TRIGGERS, REVISION COLUMN & CONCURRENCY RPC
 -- ============================================================================
 
 DROP FUNCTION IF EXISTS public.sync_workspace_with_concurrency(jsonb, integer);
+
+DROP TRIGGER IF EXISTS trg_enforce_workspace_write_via_rpc ON public.user_workspaces;
+DROP FUNCTION IF EXISTS public.enforce_workspace_write_via_rpc();
 
 DROP TRIGGER IF EXISTS trg_user_workspaces_updated_at ON public.user_workspaces;
 DROP FUNCTION IF EXISTS public.handle_user_workspace_updated_at();
@@ -119,7 +158,6 @@ BEGIN
     NEW.user_email
   );
 
-  -- منع تغيير حالة التفعيل من المتصفح (لا يتغير إلا من لوحة تحكم Supabase الخاصة بك)
   IF auth.uid() IS NOT NULL THEN
     IF TG_OP = 'INSERT' THEN
       NEW.can_upload_media := false;

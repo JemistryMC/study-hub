@@ -29928,6 +29928,10 @@ function togglePdfAudioPlayerBar(forceState) {
             }
             updateCloudMediaStatsUI();
 
+            if (cloudRow.revision !== undefined && cloudRow.revision !== null) {
+                currentCloudWorkspaceRevision = Number(cloudRow.revision);
+                localStorage.setItem('pharmaWorkspaceRevision_' + targetUid, String(currentCloudWorkspaceRevision));
+            }
             if (cloudRow.updated_at) {
                 localStorage.setItem('pharmaLastCloudSyncIso', cloudRow.updated_at);
             }
@@ -30063,10 +30067,8 @@ function togglePdfAudioPlayerBar(forceState) {
                         return { status: 'aborted', reason: 'account_switched' };
                     }
                     if (!data.user_email && currentCloudUser?.email && supabaseClient && navigator.onLine && opCtx.isCurrent()) {
-                        await supabaseClient
-                            .from('user_workspaces')
-                            .update({ user_email: currentCloudUser.email.toLowerCase() })
-                            .eq('user_id', opCtx.uid);
+                        // [Exo Phase 4.2 — Section 3] Never bypass sync_workspace_with_concurrency with a direct .update()
+                        await pushWorkspaceToCloud(false, false, opCtx);
                     }
                     return applyRes;
                 } else {

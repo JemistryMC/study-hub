@@ -1,0 +1,48 @@
+name: Exo Phase 4.2 CI — Build, Lint, Unit, PostgreSQL Integration & Chromium E2E
+
+on:
+  push:
+    branches:
+      - main
+      - "fix/**"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  verify:
+    name: Build, Lint & Full Verification Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Install Headless Chromium for Playwright E2E
+        run: npm run test:setup
+
+      - name: Run Syntax & Lint Verification
+        run: npm run lint
+
+      - name: Run Production Build
+        run: npm run build
+
+      - name: 1. Run Production Cryptography & Static Security Audit
+        run: npm run test:static
+
+      - name: 2. Run Pure Unit & Asynchronous Logic Isolation Suites
+        run: npm run test:unit
+
+      - name: 3. Run Real PostgreSQL 16 Database Integration Suite
+        run: npm run test:db
+
+      - name: 4. Run Real Headless Chromium + IndexedDB Browser E2E Suite
+        run: npm run test:e2e

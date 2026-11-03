@@ -1,7 +1,11 @@
 -- ============================================================================
--- Exo Academic Platform — Baseline Exported Schema (supabase/schema.sql)
--- Organized under supabase/ per Phase 4.1 Section 10 Architecture Standards
--- Reference: https://www.postgresql.org/docs/current/ddl-rowsecurity.html
+-- Exo Academic Platform — Canonical Final Database Schema (supabase/schema.sql)
+-- Represents the complete, hardened database state after all migrations
+-- (20261103133622_remote_schema.sql + 20261103140000_fix_security_and_privileges.sql)
+--
+-- Initializing a fresh database from this file produces the exact final state
+-- with revision-based optimistic concurrency control, hardened SECURITY DEFINER
+-- functions, private storage bucket & VIP policies, and least-privilege grants.
 -- ============================================================================
 
 SET statement_timeout = 0;
@@ -22,75 +26,23 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
 CREATE EXTENSION IF NOT EXISTS "supabase_vault" WITH SCHEMA "vault";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 
-CREATE OR REPLACE FUNCTION "public"."enforce_workspace_media_security"() RETURNS "trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'auth'
-    AS $$
-BEGIN
-  NEW.user_email := COALESCE(
-    (SELECT lower(email) FROM auth.users WHERE id = NEW.user_id),
-    NEW.user_email
-  );
+-- ============================================================================
+-- 1. DEFAULT PRIVILEGES HARDENING (GLOBAL & IN SCHEMA PUBLIC)
+-- ============================================================================
+-- Applied before creating functions/tables so no object ever inherits unsafe
+-- PUBLIC, anon, or authenticated privileges during fresh schema bootstrap.
 
-  -- منع تغيير حالة التفعيل من المتصفح (لا يتغير إلا من لوحة تحكم Supabase الخاصة بك)
-  IF auth.uid() IS NOT NULL THEN
-    IF TG_OP = 'INSERT' THEN
-      NEW.can_upload_media := false;
-    ELSIF TG_OP = 'UPDATE' THEN
-      NEW.can_upload_media := COALESCE(OLD.can_upload_media, false);
-    END IF;
-  END IF;
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" REVOKE ALL ON TABLES FROM PUBLIC, "anon", "authenticated";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" REVOKE ALL ON SEQUENCES FROM PUBLIC, "anon", "authenticated";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" REVOKE ALL ON FUNCTIONS FROM PUBLIC, "anon", "authenticated";
 
-  RETURN NEW;
-END;
-$$;
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON TABLES FROM PUBLIC, "anon", "authenticated";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON SEQUENCES FROM PUBLIC, "anon", "authenticated";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON FUNCTIONS FROM PUBLIC, "anon", "authenticated";
 
-ALTER FUNCTION "public"."enforce_workspace_media_security"() OWNER TO "postgres";
-
-CREATE OR REPLACE FUNCTION "public"."protect_vip_status_column"() RETURNS "trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-BEGIN
-  IF current_setting('request.jwt.claim.role', true) = 'authenticated' THEN
-    NEW.can_upload_media := OLD.can_upload_media;
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
-ALTER FUNCTION "public"."protect_vip_status_column"() OWNER TO "postgres";
-
-CREATE OR REPLACE FUNCTION "public"."rls_auto_enable"() RETURNS "event_trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog'
-    AS $$
-DECLARE
-  cmd record;
-  tbl name;
-BEGIN
-  FOR cmd IN
-    SELECT *
-    FROM pg_event_trigger_ddl_commands()
-    WHERE command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
-      AND object_type IN ('table','partitioned table')
-  LOOP
-     IF cmd.schema_name IS NOT NULL AND cmd.schema_name IN ('public') AND cmd.schema_name NOT IN ('pg_catalog','information_schema') AND cmd.schema_name NOT LIKE 'pg_toast%' AND cmd.schema_name NOT LIKE 'pg_temp%' THEN
-      BEGIN
-        SELECT c.relname INTO tbl FROM pg_catalog.pg_class c WHERE c.oid = cmd.objid;
-        EXECUTE format('alter table if exists %I.%I enable row level security', cmd.schema_name, tbl);
-        RAISE LOG 'rls_auto_enable: enabled RLS on %', cmd.object_identity;
-      EXCEPTION
-        WHEN OTHERS THEN
-          RAISE LOG 'rls_auto_enable: failed to enable RLS on %', cmd.object_identity;
-      END;
-     ELSE
-        RAISE LOG 'rls_auto_enable: skip % (either system schema or not in enforced list: %.)', cmd.object_identity, cmd.schema_name;
-     END IF;
-  END LOOP;
-END;
-$$;
-
-ALTER FUNCTION "public"."rls_auto_enable"() OWNER TO "postgres";
+-- ============================================================================
+-- 2. TABLES & CONSTRAINTS
+-- ============================================================================
 
 SET default_tablespace = '';
 SET default_table_access_method = "heap";
@@ -104,59 +56,401 @@ CREATE TABLE IF NOT EXISTS "public"."user_workspaces" (
     "academy_progress" "jsonb" DEFAULT '[]'::"jsonb",
     "updated_at" timestamp with time zone DEFAULT "now"(),
     "user_email" "text",
-    "can_upload_media" boolean DEFAULT false NOT NULL
+    "can_upload_media" boolean DEFAULT false NOT NULL,
+    "revision" integer DEFAULT 1 NOT NULL,
+    CONSTRAINT "user_workspaces_pkey" PRIMARY KEY ("user_id"),
+    CONSTRAINT "user_workspaces_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE
 );
 
 ALTER TABLE "public"."user_workspaces" OWNER TO "postgres";
-
-ALTER TABLE ONLY "public"."user_workspaces"
-    ADD CONSTRAINT "user_workspaces_pkey" PRIMARY KEY ("user_id");
-
-CREATE OR REPLACE TRIGGER "trg_enforce_workspace_media_security" BEFORE INSERT OR UPDATE ON "public"."user_workspaces" FOR EACH ROW EXECUTE FUNCTION "public"."enforce_workspace_media_security"();
-
-CREATE OR REPLACE TRIGGER "trg_protect_vip_status" BEFORE UPDATE ON "public"."user_workspaces" FOR EACH ROW EXECUTE FUNCTION "public"."protect_vip_status_column"();
-
-ALTER TABLE ONLY "public"."user_workspaces"
-    ADD CONSTRAINT "user_workspaces_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
-
-CREATE POLICY "Users can insert own workspace" ON "public"."user_workspaces" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
-CREATE POLICY "Users can update own workspace" ON "public"."user_workspaces" FOR UPDATE USING (("auth"."uid"() = "user_id"));
-CREATE POLICY "Users can view own workspace" ON "public"."user_workspaces" FOR SELECT USING (("auth"."uid"() = "user_id"));
-
 ALTER TABLE "public"."user_workspaces" ENABLE ROW LEVEL SECURITY;
 
-ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
+-- ============================================================================
+-- 3. HARDENED SECURITY DEFINER TRIGGER FUNCTIONS & CONCURRENCY RPC
+-- ============================================================================
 
-GRANT USAGE ON SCHEMA "public" TO "postgres";
-GRANT USAGE ON SCHEMA "public" TO "anon";
-GRANT USAGE ON SCHEMA "public" TO "authenticated";
-GRANT USAGE ON SCHEMA "public" TO "service_role";
+CREATE OR REPLACE FUNCTION public.enforce_workspace_media_security()
+  RETURNS TRIGGER
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = pg_catalog, public, auth
+  AS $$
+BEGIN
+  NEW.user_email := COALESCE(
+    (SELECT pg_catalog.lower(email) FROM auth.users WHERE id = NEW.user_id),
+    NEW.user_email
+  );
 
-REVOKE ALL ON FUNCTION "public"."enforce_workspace_media_security"() FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."enforce_workspace_media_security"() TO "service_role";
+  IF auth.uid() IS NOT NULL THEN
+    IF TG_OP = 'INSERT' THEN
+      NEW.can_upload_media := false;
+    ELSIF TG_OP = 'UPDATE' THEN
+      NEW.can_upload_media := COALESCE(OLD.can_upload_media, false);
+    END IF;
+  END IF;
 
-GRANT ALL ON FUNCTION "public"."protect_vip_status_column"() TO "anon";
-GRANT ALL ON FUNCTION "public"."protect_vip_status_column"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."protect_vip_status_column"() TO "service_role";
+  RETURN NEW;
+END;
+$$;
 
-REVOKE ALL ON FUNCTION "public"."rls_auto_enable"() FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."rls_auto_enable"() TO "service_role";
+ALTER FUNCTION public.enforce_workspace_media_security() OWNER TO "postgres";
+REVOKE ALL ON FUNCTION public.enforce_workspace_media_security() FROM PUBLIC, "anon", "authenticated";
+GRANT EXECUTE ON FUNCTION public.enforce_workspace_media_security() TO "postgres", "service_role";
 
-GRANT ALL ON TABLE "public"."user_workspaces" TO "anon";
-GRANT ALL ON TABLE "public"."user_workspaces" TO "authenticated";
-GRANT ALL ON TABLE "public"."user_workspaces" TO "service_role";
+CREATE OR REPLACE FUNCTION public.protect_vip_status_column()
+  RETURNS TRIGGER
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = pg_catalog, public
+  AS $$
+BEGIN
+  IF pg_catalog.current_setting('request.jwt.claim.role', true) = 'authenticated' THEN
+    NEW.can_upload_media := OLD.can_upload_media;
+  END IF;
+  RETURN NEW;
+END;
+$$;
 
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "service_role";
+ALTER FUNCTION public.protect_vip_status_column() OWNER TO "postgres";
+REVOKE ALL ON FUNCTION public.protect_vip_status_column() FROM PUBLIC, "anon", "authenticated";
+GRANT EXECUTE ON FUNCTION public.protect_vip_status_column() TO "postgres", "service_role";
 
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "authenticated";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "service_role";
+CREATE OR REPLACE FUNCTION public.handle_user_workspace_updated_at()
+  RETURNS TRIGGER
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = pg_catalog, public
+  AS $$
+BEGIN
+  NEW.updated_at := pg_catalog.now();
+  NEW.revision := COALESCE(OLD.revision, 0) + 1;
+  RETURN NEW;
+END;
+$$;
 
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
+ALTER FUNCTION public.handle_user_workspace_updated_at() OWNER TO "postgres";
+REVOKE ALL ON FUNCTION public.handle_user_workspace_updated_at() FROM PUBLIC, "anon", "authenticated";
+GRANT EXECUTE ON FUNCTION public.handle_user_workspace_updated_at() TO "postgres", "service_role";
+
+CREATE OR REPLACE FUNCTION public.enforce_workspace_write_via_rpc()
+  RETURNS TRIGGER
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = pg_catalog, public, auth
+  AS $$
+BEGIN
+  IF COALESCE(pg_catalog.current_setting('exo.occ_rpc_active', true), '') = 'true' THEN
+    RETURN NEW;
+  END IF;
+
+  IF auth.uid() IS NOT NULL
+     OR pg_catalog.current_setting('request.jwt.claim.role', true) IN ('anon', 'authenticated')
+     OR current_user IN ('anon', 'authenticated')
+     OR session_user IN ('anon', 'authenticated') THEN
+    RAISE EXCEPTION 'OCC_BYPASS_FORBIDDEN: Direct INSERT or UPDATE on public.user_workspaces is prohibited; use sync_workspace_with_concurrency(p_payload, p_expected_revision)'
+      USING ERRCODE = '42501';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+ALTER FUNCTION public.enforce_workspace_write_via_rpc() OWNER TO "postgres";
+REVOKE ALL ON FUNCTION public.enforce_workspace_write_via_rpc() FROM PUBLIC, "anon", "authenticated";
+GRANT EXECUTE ON FUNCTION public.enforce_workspace_write_via_rpc() TO "postgres", "service_role";
+
+CREATE OR REPLACE FUNCTION public.rls_auto_enable()
+  RETURNS event_trigger
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = pg_catalog
+  AS $$
+DECLARE
+  cmd record;
+  tbl name;
+BEGIN
+  FOR cmd IN
+    SELECT *
+    FROM pg_event_trigger_ddl_commands()
+    WHERE command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
+      AND object_type IN ('table','partitioned table')
+  LOOP
+     IF cmd.schema_name IS NOT NULL AND cmd.schema_name IN ('public') AND cmd.schema_name NOT IN ('pg_catalog','information_schema') AND cmd.schema_name NOT LIKE 'pg_toast%' AND cmd.schema_name NOT LIKE 'pg_temp%' THEN
+      BEGIN
+        SELECT c.relname INTO tbl FROM pg_catalog.pg_class c WHERE c.oid = cmd.objid;
+        EXECUTE pg_catalog.format('alter table if exists %I.%I enable row level security', cmd.schema_name, tbl);
+        RAISE LOG 'rls_auto_enable: enabled RLS on %', cmd.object_identity;
+      EXCEPTION
+        WHEN OTHERS THEN
+          RAISE WARNING 'rls_auto_enable: failed to enable RLS on %: %', cmd.object_identity, SQLERRM;
+      END;
+     ELSE
+        RAISE LOG 'rls_auto_enable: skip % (either system schema or not in enforced list: %.)', cmd.object_identity, cmd.schema_name;
+     END IF;
+  END LOOP;
+END;
+$$;
+
+ALTER FUNCTION public.rls_auto_enable() OWNER TO "postgres";
+REVOKE ALL ON FUNCTION public.rls_auto_enable() FROM PUBLIC, "anon", "authenticated";
+GRANT EXECUTE ON FUNCTION public.rls_auto_enable() TO "postgres", "service_role";
+
+CREATE OR REPLACE FUNCTION public.sync_workspace_with_concurrency(
+  p_payload jsonb,
+  p_expected_revision integer DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, auth
+AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_current_rev integer;
+  v_updated_at timestamptz;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '42501';
+  END IF;
+
+  IF p_payload IS NULL OR pg_catalog.jsonb_typeof(p_payload) <> 'object' THEN
+    RAISE EXCEPTION 'Invalid workspace payload: expected JSON object' USING ERRCODE = '22023';
+  END IF;
+
+  PERFORM pg_catalog.set_config('exo.occ_rpc_active', 'true', true);
+
+  SELECT revision, updated_at
+  INTO v_current_rev, v_updated_at
+  FROM public.user_workspaces
+  WHERE user_id = v_uid
+  FOR UPDATE;
+
+  IF FOUND THEN
+    IF p_expected_revision IS NULL OR p_expected_revision <> v_current_rev THEN
+      PERFORM pg_catalog.set_config('exo.occ_rpc_active', 'false', true);
+      RETURN jsonb_build_object(
+        'status', 'conflict',
+        'current_revision', v_current_rev,
+        'current_updated_at', v_updated_at,
+        'message', 'Workspace has been modified by another device (revision mismatch)'
+      );
+    END IF;
+
+    UPDATE public.user_workspaces
+    SET
+      subjects = COALESCE(p_payload->'subjects', subjects),
+      schedule = COALESCE(p_payload->'schedule', schedule),
+      logs = COALESCE(p_payload->'logs', logs),
+      annotations = CASE
+        WHEN p_payload ? 'annotations' THEN p_payload->'annotations'
+        ELSE annotations
+      END,
+      academy_progress = COALESCE(p_payload->'academy_progress', academy_progress),
+      user_email = COALESCE(p_payload->>'user_email', user_email)
+    WHERE user_id = v_uid
+    RETURNING revision, updated_at INTO v_current_rev, v_updated_at;
+
+  ELSE
+    IF p_expected_revision IS NOT NULL AND p_expected_revision <> 1 THEN
+      PERFORM pg_catalog.set_config('exo.occ_rpc_active', 'false', true);
+      RETURN jsonb_build_object(
+        'status', 'conflict',
+        'current_revision', 0,
+        'current_updated_at', NULL,
+        'message', 'Workspace does not exist for stale revision > 1'
+      );
+    END IF;
+
+    BEGIN
+      INSERT INTO public.user_workspaces (
+        user_id,
+        user_email,
+        subjects,
+        schedule,
+        logs,
+        annotations,
+        academy_progress,
+        revision
+      ) VALUES (
+        v_uid,
+        p_payload->>'user_email',
+        COALESCE(p_payload->'subjects', '[]'::jsonb),
+        COALESCE(p_payload->'schedule', '{}'::jsonb),
+        COALESCE(p_payload->'logs', '[]'::jsonb),
+        COALESCE(p_payload->'annotations', '{}'::jsonb),
+        COALESCE(p_payload->'academy_progress', '[]'::jsonb),
+        1
+      )
+      RETURNING revision, updated_at INTO v_current_rev, v_updated_at;
+    EXCEPTION
+      WHEN unique_violation THEN
+        SELECT revision, updated_at
+        INTO v_current_rev, v_updated_at
+        FROM public.user_workspaces
+        WHERE user_id = v_uid
+        FOR UPDATE;
+
+        PERFORM pg_catalog.set_config('exo.occ_rpc_active', 'false', true);
+        RETURN jsonb_build_object(
+          'status', 'conflict',
+          'current_revision', v_current_rev,
+          'current_updated_at', v_updated_at,
+          'message', 'Concurrent workspace initialization detected'
+        );
+    END;
+  END IF;
+
+  PERFORM pg_catalog.set_config('exo.occ_rpc_active', 'false', true);
+  RETURN jsonb_build_object(
+    'status', 'success',
+    'revision', v_current_rev,
+    'updated_at', v_updated_at
+  );
+END;
+$$;
+
+ALTER FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) OWNER TO "postgres";
+REVOKE ALL ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) FROM PUBLIC, "anon";
+GRANT EXECUTE ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) TO "authenticated", "service_role", "postgres";
+
+-- ============================================================================
+-- 4. TRIGGERS & EVENT TRIGGERS
+-- ============================================================================
+
+DROP TRIGGER IF EXISTS trg_enforce_workspace_write_via_rpc ON public.user_workspaces;
+CREATE TRIGGER trg_enforce_workspace_write_via_rpc
+  BEFORE INSERT OR UPDATE ON public.user_workspaces
+  FOR EACH ROW
+  EXECUTE FUNCTION public.enforce_workspace_write_via_rpc();
+
+DROP TRIGGER IF EXISTS trg_enforce_workspace_media_security ON public.user_workspaces;
+CREATE TRIGGER trg_enforce_workspace_media_security
+  BEFORE INSERT OR UPDATE ON public.user_workspaces
+  FOR EACH ROW
+  EXECUTE FUNCTION public.enforce_workspace_media_security();
+
+DROP TRIGGER IF EXISTS trg_protect_vip_status ON public.user_workspaces;
+CREATE TRIGGER trg_protect_vip_status
+  BEFORE UPDATE ON public.user_workspaces
+  FOR EACH ROW
+  EXECUTE FUNCTION public.protect_vip_status_column();
+
+DROP TRIGGER IF EXISTS trg_user_workspaces_updated_at ON public.user_workspaces;
+CREATE TRIGGER trg_user_workspaces_updated_at
+  BEFORE UPDATE ON public.user_workspaces
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_user_workspace_updated_at();
+
+DROP EVENT TRIGGER IF EXISTS "ensure_rls";
+CREATE EVENT TRIGGER "ensure_rls"
+  ON ddl_command_end
+  WHEN TAG IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
+  EXECUTE FUNCTION "public"."rls_auto_enable"();
+
+-- ============================================================================
+-- 5. ROW LEVEL SECURITY POLICIES (USER_WORKSPACES & STORAGE.OBJECTS)
+-- ============================================================================
+
+DROP POLICY IF EXISTS "Users can view own workspace" ON "public"."user_workspaces";
+CREATE POLICY "Users can view own workspace" ON "public"."user_workspaces"
+  FOR SELECT
+  TO "authenticated"
+  USING ((auth.uid() = user_id));
+
+DROP POLICY IF EXISTS "Users can insert own workspace" ON "public"."user_workspaces";
+CREATE POLICY "Users can insert own workspace" ON "public"."user_workspaces"
+  FOR INSERT
+  TO "authenticated"
+  WITH CHECK (
+    (auth.uid() = user_id)
+    AND (COALESCE(pg_catalog.current_setting('exo.occ_rpc_active', true), '') = 'true')
+  );
+
+DROP POLICY IF EXISTS "Users can update own workspace" ON "public"."user_workspaces";
+CREATE POLICY "Users can update own workspace" ON "public"."user_workspaces"
+  FOR UPDATE
+  TO "authenticated"
+  USING ((auth.uid() = user_id))
+  WITH CHECK (
+    (auth.uid() = user_id)
+    AND (COALESCE(pg_catalog.current_setting('exo.occ_rpc_active', true), '') = 'true')
+  );
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'lecture_media',
+  'lecture_media',
+  false,
+  52428800,
+  ARRAY['application/pdf', 'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a', 'audio/x-m4a', 'audio/aac']::text[]
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = false,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+DROP POLICY IF EXISTS "Users can upload their own lecture media" ON "storage"."objects";
+DROP POLICY IF EXISTS "Allow VIP users to upload media" ON "storage"."objects";
+CREATE POLICY "Allow VIP users to upload media" ON "storage"."objects"
+  FOR INSERT
+  TO "authenticated"
+  WITH CHECK (
+    (bucket_id = 'lecture_media'::text)
+    AND ((storage.foldername(name))[1] = (auth.uid())::text)
+    AND (EXISTS (
+      SELECT 1 FROM public.user_workspaces w
+      WHERE w.user_id = auth.uid() AND w.can_upload_media = true
+    ))
+  );
+
+DROP POLICY IF EXISTS "Users can update their own lecture media" ON "storage"."objects";
+DROP POLICY IF EXISTS "Allow VIP users to update media" ON "storage"."objects";
+CREATE POLICY "Allow VIP users to update media" ON "storage"."objects"
+  FOR UPDATE
+  TO "authenticated"
+  USING (
+    (bucket_id = 'lecture_media'::text)
+    AND ((storage.foldername(name))[1] = (auth.uid())::text)
+    AND (EXISTS (
+      SELECT 1 FROM public.user_workspaces w
+      WHERE w.user_id = auth.uid() AND w.can_upload_media = true
+    ))
+  )
+  WITH CHECK (
+    (bucket_id = 'lecture_media'::text)
+    AND ((storage.foldername(name))[1] = (auth.uid())::text)
+    AND (EXISTS (
+      SELECT 1 FROM public.user_workspaces w
+      WHERE w.user_id = auth.uid() AND w.can_upload_media = true
+    ))
+  );
+
+DROP POLICY IF EXISTS "Users can delete their own lecture media" ON "storage"."objects";
+CREATE POLICY "Users can delete their own lecture media" ON "storage"."objects"
+  FOR DELETE
+  TO "authenticated"
+  USING (
+    (bucket_id = 'lecture_media'::text)
+    AND ((storage.foldername(name))[1] = ( SELECT (auth.uid())::text AS uid))
+  );
+
+DROP POLICY IF EXISTS "Users can view own lecture media" ON "storage"."objects";
+CREATE POLICY "Users can view own lecture media" ON "storage"."objects"
+  FOR SELECT
+  TO "authenticated"
+  USING (
+    (bucket_id = 'lecture_media'::text)
+    AND ((storage.foldername(name))[1] = (auth.uid())::text)
+  );
+
+-- ============================================================================
+-- 6. SCHEMA & TABLE GRANTS (LEAST PRIVILEGE)
+-- ============================================================================
+
+GRANT USAGE ON SCHEMA "public" TO "postgres", "anon", "authenticated", "service_role";
+
+REVOKE ALL ON TABLE "public"."user_workspaces" FROM PUBLIC;
+REVOKE ALL ON TABLE "public"."user_workspaces" FROM "anon";
+REVOKE ALL ON TABLE "public"."user_workspaces" FROM "authenticated";
+GRANT SELECT ON TABLE "public"."user_workspaces" TO "authenticated";
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "public"."user_workspaces" TO "postgres", "service_role";
