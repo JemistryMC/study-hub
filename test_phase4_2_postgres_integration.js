@@ -447,21 +447,29 @@ async function main() {
     'Direct INSERT on user_workspaces by authenticated role is blocked by PostgreSQL table privilege revocation'
   );
 
-  // 4.3 Defense-in-Depth: Even if INSERT/UPDATE table privileges were granted, trg_enforce_workspace_write_via_rpc blocks direct write!
+  // 4.3 Defense-in-Depth & GUC Forgery Resistance: Even if INSERT/UPDATE table privileges are granted
+  //     AND the client manually sets exo.occ_rpc_active = 'true', trg_enforce_workspace_write_via_rpc blocks direct write!
   await dbMigrated.exec(`GRANT INSERT, UPDATE ON TABLE public.user_workspaces TO authenticated;`);
-  const triggerBlockedUpdate = await execAsSupabaseSession(
-    dbMigrated,
-    'authenticated',
-    userA,
-    `UPDATE public.user_workspaces SET subjects = '[{"id":"bypass_attempt"}]'::jsonb WHERE user_id = $1`,
-    [userA]
-  );
+  await dbMigrated.exec(`BEGIN; SET LOCAL ROLE authenticated;`);
+  await dbMigrated.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
+  await dbMigrated.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [userA]);
+  await dbMigrated.query(`SELECT pg_catalog.set_config('exo.occ_rpc_active', 'true', true)`);
+  let triggerBlockedUpdateError = null;
+  try {
+    await dbMigrated.query(
+      `UPDATE public.user_workspaces SET subjects = '[{"id":"forged_guc_bypass"}]'::jsonb WHERE user_id = $1`,
+      [userA]
+    );
+    await dbMigrated.exec(`COMMIT;`);
+  } catch (err) {
+    triggerBlockedUpdateError = err;
+    await dbMigrated.exec(`ROLLBACK;`);
+  }
   await dbMigrated.exec(`REVOKE INSERT, UPDATE ON TABLE public.user_workspaces FROM authenticated;`);
   assert(
-    triggerBlockedUpdate.ok === false &&
-      (String(triggerBlockedUpdate.error?.message || '').includes('OCC_BYPASS_FORBIDDEN') ||
-        String(triggerBlockedUpdate.error?.message || '').includes('row-level security')),
-    'Defense-in-depth trigger (enforce_workspace_write_via_rpc) and RLS block direct UPDATE even if table privileges are granted'
+    triggerBlockedUpdateError !== null &&
+      String(triggerBlockedUpdateError.message || '').includes('OCC_BYPASS_FORBIDDEN'),
+    'Unforgeable OCC guard (enforce_workspace_write_via_rpc) blocks direct UPDATE even when table privileges are granted and exo.occ_rpc_active is forged to "true"'
   );
 
   // 4.4 Valid sequential update via sync_workspace_with_concurrency increments revision 1 -> 2

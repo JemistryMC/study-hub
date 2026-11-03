@@ -1,103 +1,74 @@
-# Exo Academic Platform — Phase 4.1, Phase 4.2 & Phase 4.2.1 Engineering Audit & Verification Report
+# Exo Academic Platform — Phase 4.1, Phase 4.2, Phase 4.2.1 & GUC Forgery Remediation Engineering Report
 
 **Repository:** `JemistryMC/study-hub`  
 **Target Branch:** `fix/phase-4-1-account-isolation`  
-**Scope:** Phase 4.1 Account Isolation & IndexedDB Integrity + Phase 4.2 Security Hardening + Phase 4.2.1 Real PostgreSQL 16 Multi-Connection Concurrency Proof, 10-Dimension Catalog Parity & CI Reproducibility
+**Scope:** Phase 4.1 Account Isolation & IndexedDB Integrity + Phase 4.2 Security Hardening + Phase 4.2.1 Real PostgreSQL 16 Multi-Connection Concurrency Proof & 10-Dimension Catalog Parity + Unforgeable OCC RPC Redesign (GUC Forgery Remediation)
 
 ---
 
-## 1. Phase 4.2.1 Engineering Corrections & Verification Proofs
+## 1. Unforgeable OCC RPC Redesign (Remediation of Custom GUC `exo.occ_rpc_active`)
 
-### 1.1 Explicit Separation Between Embedded PGlite and Native PostgreSQL 16
-- **Finding Addressed**: `@electric-sql/pglite@0.5.15` is a single-connection WebAssembly build compiled from PostgreSQL 18.6 (`server_version_num = 180006` on `wasm32-unknown-emscripten`). Therefore, PGlite cannot prove compatibility with PostgreSQL 16 (`server_version_num = 16xxxx`) and cannot test multi-connection lock contention.
-- **Correction Executed**:
-  1. Retained `test_phase4_2_postgres_integration.js` (41 checks) strictly as **Category 3: Embedded PostgreSQL Compatibility Tests (PGlite WASM Single-Connection)** and removed all claims describing PGlite as PostgreSQL 16.
-  2. Added `test_phase4_2_1_pg16_concurrency.js` (29 checks) as **Category 4: Real PostgreSQL 16 Server Concurrency & 10-Point Schema Parity Proof**, connecting via `pg` TCP sockets to a real `PostgreSQL 16` server (`postgres:16` service container in `.github/workflows/ci.yml` and local `PostgreSQL 16.15` server).
-  3. Implemented a hard version gate at the start of `test_phase4_2_1_pg16_concurrency.js` executing `SELECT version()` and `SHOW server_version_num`, verifying `Math.floor(Number(server_version_num) / 10000) === 16` and `/PostgreSQL\s+16\./i.test(version)` and immediately failing if run against PGlite (`180006`) or any non-16 server.
-  4. **Real PG16 Compatibility Bug Caught & Fixed**: Executing `supabase/migrations/20261103133622_remote_schema.sql` on real PostgreSQL 16.15 immediately exposed `GRANT ... MAINTAIN ... ON TABLE "public"."user_workspaces"`, which is a PostgreSQL 17+ privilege keyword that PGlite 18.6 accepted silently but PostgreSQL 16 rejected (`ERROR: unrecognized privilege type "maintain"`). Removed `MAINTAIN` from `20261103133622_remote_schema.sql` so all migrations execute cleanly on real PostgreSQL 16.
+### 1.1 Vulnerability Analysis of `current_setting('exo.occ_rpc_active', true)`
+- **Problem**: In PostgreSQL, custom GUC session parameters (such as `exo.occ_rpc_active`) can be set by any non-superuser SQL session (`authenticated` or `anon`) using `SET` or `SELECT pg_catalog.set_config('exo.occ_rpc_active', 'true', true)`. Consequently, checking `current_setting('exo.occ_rpc_active', true) = 'true'` inside `enforce_workspace_write_via_rpc()` and RLS policies is forgeable if `authenticated` ever obtains direct `INSERT` or `UPDATE` privileges on `public.user_workspaces`.
+- **Remediation**: Eliminated all occurrences of `exo.occ_rpc_active` across all migrations, `supabase/schema.sql`, triggers, RLS policies, and RPCs, and replaced it with a **dual-layer unforgeable database architecture**:
+  1. **Dedicated `NOLOGIN` Definer Role (`exo_occ_rpc_definer`) + RLS `CURRENT_USER` Verification**:
+     - Created role `exo_occ_rpc_definer` with attributes `NOLOGIN NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS`.
+     - Revoked membership in `exo_occ_rpc_definer` from `anon` and `authenticated` (`REVOKE "exo_occ_rpc_definer" FROM "anon", "authenticated"`), ensuring any client attempt to run `SET ROLE exo_occ_rpc_definer` fails with `permission denied to set role`.
+     - Transferred ownership of `public.sync_workspace_with_concurrency(jsonb, integer)` (`SECURITY DEFINER SET search_path = pg_catalog, public, auth, exo_internal`) to `exo_occ_rpc_definer`.
+     - Retained strict revocation of direct `INSERT, UPDATE, DELETE` table privileges from `authenticated` on `public.user_workspaces` (`authenticated` has only `SELECT`; `exo_occ_rpc_definer` has `SELECT, INSERT, UPDATE`).
+     - Because `exo_occ_rpc_definer` has `NOBYPASSRLS`, PostgreSQL still enforces Row Level Security on `public.user_workspaces` during RPC execution. Updated the `INSERT` and `UPDATE` RLS policies on `public.user_workspaces` to require:
+       `WITH CHECK ((auth.uid() = user_id) AND (CURRENT_USER = 'exo_occ_rpc_definer'::name))`
+     - Unlike custom GUC strings, `CURRENT_USER` is the kernel-enforced effective role identifier and can only equal `'exo_occ_rpc_definer'` inside a `SECURITY DEFINER` function owned by `exo_occ_rpc_definer`.
+  2. **Private Transaction Write-Context Table (`exo_internal.occ_active_write_context`) Checked by `enforce_workspace_write_via_rpc()`**:
+     - Created private schema `exo_internal` and table `exo_internal.occ_active_write_context (txid xid8 NOT NULL, user_id uuid NOT NULL, write_op text NOT NULL, PRIMARY KEY (txid, user_id))` with `ENABLE ROW LEVEL SECURITY`.
+     - Revoked all privileges on schema `exo_internal` and table `exo_internal.occ_active_write_context` from `PUBLIC`, `anon`, and `authenticated`; granted access exclusively to `postgres`, `service_role`, and `exo_occ_rpc_definer`.
+     - Inside `public.sync_workspace_with_concurrency()`, immediately prior to executing the `UPDATE` or `INSERT` on `public.user_workspaces`, the function inserts `(pg_catalog.pg_current_xact_id(), v_uid, 'UPDATE' | 'INSERT')` into `exo_internal.occ_active_write_context`, and deletes that row **immediately after the DML statement completes** (before returning, as well as inside the `EXCEPTION WHEN unique_violation` handler).
+     - Inside `public.enforce_workspace_write_via_rpc()` (`BEFORE INSERT OR UPDATE` trigger on `public.user_workspaces`), the trigger verifies that a matching row exists in `exo_internal.occ_active_write_context` for `(c.txid = pg_catalog.pg_current_xact_id(), c.user_id = NEW.user_id, c.write_op = TG_OP)`. If absent for any client session, it raises `OCC_BYPASS_FORBIDDEN` (`ERRCODE = '42501'`).
 
-### 1.2 Real Multi-Connection Concurrency Proof on PostgreSQL 16 (`test_phase4_2_1_pg16_concurrency.js`)
-Using three independent `pg.Client` TCP connections (`conn1`, `conn2`, `connMonitor`) with verified distinct backend process IDs (`SELECT pg_backend_pid()` -> `pid1 !== pid2 !== pidMonitor`):
-1. **Overlapping `SELECT ... FOR UPDATE` Row-Lock Contention & Stale Revision Rejection**:
-   - Both `conn1` and `conn2` read the same baseline workspace revision (`revision = 1`).
-   - `conn1` (`pid1`) begins a transaction (`BEGIN`), sets `ROLE authenticated` and `request.jwt.claim.sub`, and calls `public.sync_workspace_with_concurrency(payload1, 1)`, acquiring the `FOR UPDATE` row lock on `public.user_workspaces` and updating `revision` to `2` while holding the transaction open before `COMMIT`.
-   - While `conn1` holds the row lock, `conn2` (`pid2`) starts its own transaction and invokes `public.sync_workspace_with_concurrency(payload2, 1)` with stale `p_expected_revision = 1`.
-   - `connMonitor` (`pidMonitor`) queries `pg_stat_activity` and `pg_locks`, proving that `pid2` is actively blocked in-flight (`wait_event_type = 'Lock'`, `wait_event = 'transactionid'`, `granted = false` in `pg_locks`) while `pid1` holds the uncommitted lock.
-   - `conn1` then executes `COMMIT`. `conn2` immediately unblocks, re-reads the committed tuple (`revision = 2`) via `SELECT ... FOR UPDATE`, detects `p_expected_revision (1) <> v_current_rev (2)`, and returns `{ status: "conflict", current_revision: 2 }` without overwriting `conn1`'s data.
-2. **Barrier-Synchronized Simultaneous Parallel Update Race**:
-   - Both `conn1` and `conn2` synchronize at an in-memory `Promise` barrier after `BEGIN` so both TCP sockets dispatch `SELECT public.sync_workspace_with_concurrency(..., 2)` at the exact same tick.
-   - Verified that exactly one connection succeeds (`status = 'success'`, `revision = 3`) and the other receives `{ status: 'conflict', current_revision: 3 }`, with zero data corruption.
-3. **Concurrent First-Time Workspace Creation & `unique_violation` Recovery Proof**:
-   - For a brand-new user with 0 rows in `public.user_workspaces`:
-   - `conn1` (`pid1`) starts `BEGIN` and calls `sync_workspace_with_concurrency(init1, NULL)`. `SELECT ... FOR UPDATE` sees `NOT FOUND`, so `conn1` executes `INSERT INTO public.user_workspaces` (revision 1) and holds the uncommitted unique index lock on `user_workspaces_pkey`.
-   - While `conn1` is still uncommitted, `conn2` (`pid2`) starts `BEGIN` and calls `sync_workspace_with_concurrency(init2, NULL)`. Because `conn1` has not committed yet, `conn2`'s `SELECT ... FOR UPDATE` also sees `NOT FOUND` and enters the `INSERT` block, blocking on `user_workspaces_pkey` (`wait_event_type = 'Lock'`, `wait_event = 'transactionid'`).
-   - `connMonitor` verifies in `pg_stat_activity` and `pg_locks` that `conn2` is blocked inside the concurrent `INSERT`.
-   - `conn1` commits (`COMMIT`). PostgreSQL 16 raises `unique_violation` (`23505`) inside `conn2`, which is caught by `EXCEPTION WHEN unique_violation` in `sync_workspace_with_concurrency()`, re-reading `v_current_rev = 1` via `SELECT ... FOR UPDATE` and returning `{ status: "conflict", current_revision: 1, message: "Concurrent workspace initialization detected" }` without losing `conn1`'s initial workspace.
-
-### 1.3 Audit of the 4 Extensions & 10-Dimension Catalog Parity (`schema.sql` vs Migrations)
-- **Extensions Audit**:
-  1. `pg_stat_statements` (`SCHEMA extensions`): Native PostgreSQL 16 contrib extension — **installed and verified on PostgreSQL 16**; skipped in PGlite WASM.
-  2. `pgcrypto` (`SCHEMA extensions`): Native PostgreSQL 16 contrib extension — **installed and functionally verified on PostgreSQL 16** (`extensions.gen_random_uuid()`, `extensions.digest()`); skipped in PGlite WASM.
-  3. `uuid-ossp` (`SCHEMA extensions`): Native PostgreSQL 16 contrib extension — **installed and functionally verified on PostgreSQL 16** (`extensions.uuid_generate_v4()`); skipped in PGlite WASM.
-  4. `supabase_vault` (`SCHEMA vault`): Proprietary Supabase Managed Cloud extension (not part of upstream `postgres:16` contrib and not referenced by any Exo table, function, trigger, or RLS policy) — **explicitly documented as excluded** in both standalone `postgres:16` and PGlite WASM.
-- **10-Dimension Catalog Parity Verified on PostgreSQL 16 (`test_phase4_2_1_pg16_concurrency.js`)**:
-  - Added `REVOKE ALL ON TABLE "public"."user_workspaces" FROM "service_role"` prior to `GRANT SELECT, INSERT, UPDATE, DELETE` in `20261103140000_fix_security_and_privileges.sql` so `relacl` matches `supabase/schema.sql` identically.
-  - Verified exact catalog equality between `exo_pg16_migrated` and `exo_pg16_fresh_schema` across:
-    1. Columns, types, nullability, and `column_default` (`information_schema.columns` — all 10 columns).
-    2. Constraints (`PRIMARY KEY` and `FOREIGN KEY ... ON DELETE CASCADE` via `pg_get_constraintdef`).
-    3. Indexes (`user_workspaces_pkey` via `pg_indexes`).
-    4. All 7 RLS policies on `public.user_workspaces` and `storage.objects` including `permissive`, `roles`, `cmd`, `USING` (`qual`), and `WITH CHECK` (`with_check`).
-    5. All 4 table triggers on `public.user_workspaces` (`pg_get_triggerdef`).
-    6. Event trigger `ensure_rls` (`pg_event_trigger`).
-    7. All 6 public functions (`prosecdef`, `proconfig` `search_path`, `proacl`, and `pg_get_functiondef`).
-    8. Table privileges (`relacl`, `relrowsecurity`, `relforcerowsecurity`).
-    9. Default privileges (`pg_default_acl`).
-    10. Storage bucket `lecture_media` properties (`public = false`, `file_size_limit = 52428800`, `allowed_mime_types`).
-
-### 1.4 Deterministic Lockfile (`package-lock.json`) & GitHub Actions CI (`.github/workflows/ci.yml`)
-- Generated and committed `package-lock.json` with pinned `devDependencies` (`"@electric-sql/pglite": "0.5.15"`, `"pg": "8.23.1"`, `"playwright": "1.64.1"`).
-- Updated `.github/workflows/ci.yml` to:
-  1. Provision a real `postgres:16` Docker service container with `pg_isready` healthchecks on port `5432`.
-  2. Install dependencies deterministically via `npm ci` (instead of `npm install`).
-  3. Run each independent test category (`npm run test:static`, `npm run test:unit`, `npm run test:pglite`, `npm run test:pg16`, `npm run test:e2e`) AND execute `npm test` to verify `run_all_tests.js`.
+### 1.2 Real PostgreSQL 16 GUC Forgery & Identity Anti-Spoofing Proofs (`test_phase4_2_1_pg16_concurrency.js`)
+- **Section 6 — Custom GUC Forgery Attack Proof**:
+  1. Admin connection temporarily grants `GRANT INSERT, UPDATE ON TABLE public.user_workspaces TO authenticated`.
+  2. `authenticated` session (`userA`) manually executes `SELECT pg_catalog.set_config('exo.occ_rpc_active', 'true', true)` and attempts a direct `UPDATE public.user_workspaces SET subjects = ... WHERE user_id = userA` -> **Rejected** with `OCC_BYPASS_FORBIDDEN` (`42501`).
+  3. `authenticated` session manually sets `exo.occ_rpc_active = 'true'` and attempts a direct `INSERT INTO public.user_workspaces ...` -> **Rejected** with `OCC_BYPASS_FORBIDDEN` (`42501`).
+  4. `authenticated` session (`SET LOCAL SESSION AUTHORIZATION authenticated`) attempts `SET LOCAL ROLE exo_occ_rpc_definer` and attempts to `INSERT` directly into `exo_internal.occ_active_write_context` -> **Both Rejected** with `permission denied`.
+  5. `authenticated` session attempts a **Same-Transaction Piggyback Attack** (calling `sync_workspace_with_concurrency()` and then executing a direct `UPDATE` in the same transaction) -> **Rejected** with `OCC_BYPASS_FORBIDDEN` (`42501`) because the context entry in `exo_internal.occ_active_write_context` is deleted before `sync_workspace_with_concurrency()` returns.
+  6. Even when `trg_enforce_workspace_write_via_rpc` is temporarily disabled by admin while `authenticated` holds `UPDATE` grant and sets `exo.occ_rpc_active = 'true'`, the RLS policy `WITH CHECK (CURRENT_USER = 'exo_occ_rpc_definer')` independently **rejects** the direct `UPDATE` (`new row violates row-level security policy`, `42501`).
+  7. Legitimate calls to `SELECT public.sync_workspace_with_concurrency(payload, expected_revision)` from `authenticated` succeed normally (`revision` 3 -> 4), temporary table grants are revoked, and `userB`'s workspace row is verified 100% untouched.
+- **Section 7 — `auth.uid()` Identity Binding & Anti-Spoofing Verification**:
+  1. `userA` invokes `sync_workspace_with_concurrency()` with a spoofed JSON payload containing `"user_id": userB`, `"user_email": "bob.victim@exo.edu"`, `"can_upload_media": true`, and `"revision": 999`. Verified that `userB`'s row is completely untouched (`revision = 1`), while `userA`'s row is updated with `user_id = userA`, `user_email = 'alice.concurrency@exo.edu'` (enforced from `auth.users`), and `can_upload_media = false`.
+  2. Verified that an `authenticated` session (`SET LOCAL SESSION AUTHORIZATION authenticated`) cannot escalate via `SET LOCAL ROLE postgres` or `SET LOCAL ROLE service_role` (`permission denied to set role`).
 
 ---
 
-## 2. Separated 5-Category Test Execution Summary
+## 2. Phase 4.2.1 Multi-Connection Concurrency & 10-Point Schema Parity on PostgreSQL 16
+
+1. **Native PostgreSQL 16 Server & Version Gate**:
+   - `test_phase4_2_1_pg16_concurrency.js` connects to a real PostgreSQL 16 server (`PostgreSQL 16.15`, `server_version_num = 160015`) via `pg` TCP connections and enforces a strict version gate (`Major === 16`), while `test_phase4_2_postgres_integration.js` is retained strictly as **Embedded PostgreSQL Compatibility Tests (PGlite WASM)**.
+2. **Real Multi-Connection Concurrency Proof**:
+   - Proven overlapping `SELECT ... FOR UPDATE` row-lock contention (`wait_event_type = 'Lock'`, `wait_event = 'transactionid'` observed via `pg_stat_activity` and `pg_locks` on a 3rd monitor connection), barrier-synchronized simultaneous updates, and concurrent first-time workspace creation triggering real `unique_violation` (`23505`) recovery.
+3. **10-Dimension Catalog Parity (`supabase/schema.sql` vs Migrations)**:
+   - Verified 100% parity across columns/defaults, PK/FK constraints, indexes, all RLS policies (including `USING` and `WITH CHECK`), triggers, event triggers, functions (`SECURITY DEFINER`, `search_path`, ACLs, bodies), table ACLs, `pg_default_acl` (`postgres` and `exo_occ_rpc_definer`), `storage.buckets`, and `exo_internal.occ_active_write_context`.
+
+---
+
+## 3. Separated 5-Category Test Execution Summary (274 / 274 Passing)
 
 | Category | Test File(s) | Command | Target Runtime | Assertions | Status |
 | :--- | :--- | :--- | :--- | :---: | :---: |
-| **1. Production Crypto & Static Audit** | `run_verification_tests.js` | `npm run test:static` | Node.js Web Crypto (`index.html`) + Static SQL/SW Audit | **49** | **49 PASS / 0 FAIL** |
+| **1. Production Crypto & Static Audit** | `run_verification_tests.js` | `npm run test:static` | Node.js Web Crypto (`index.html`) + Static SQL/SW Audit | **50** | **50 PASS / 0 FAIL** |
 | **2. Pure Unit & Async Logic Isolation** | `run_comprehensive_verification.js`<br>`test_phase3_cross_account_isolation.js`<br>`test_phase4_regressions.js` | `npm run test:unit` | Node.js VM + IDB Transaction Simulator | **102**<br>(42+25+35) | **102 PASS / 0 FAIL** |
 | **3. Embedded PostgreSQL Compatibility** | `test_phase4_2_postgres_integration.js` | `npm run test:pglite` | `@electric-sql/pglite` 0.5.15 (Single-Connection WASM PG 18.6) | **41** | **41 PASS / 0 FAIL** |
-| **4. Real PostgreSQL 16 Concurrency & Parity** | `test_phase4_2_1_pg16_concurrency.js` | `npm run test:pg16` | **Native PostgreSQL 16.15 Server (`server_version_num=160015`)** + Multi-Connection `pg` | **29** | **29 PASS / 0 FAIL** |
+| **4. Real PostgreSQL 16 Concurrency, GUC Forgery & Parity** | `test_phase4_2_1_pg16_concurrency.js` | `npm run test:pg16` | **Native PostgreSQL 16.15 Server (`server_version_num=160015`)** + Multi-Connection `pg` | **39** | **39 PASS / 0 FAIL** |
 | **5. Real Browser E2E & IndexedDB** | `test_phase4_1_chromium_e2e.js` | `npm run test:e2e` | **Headless Chromium (`playwright` 1.64.1) + Real IndexedDB v4** | **42** | **42 PASS / 0 FAIL** |
-| **Grand Total (All 7 Suites)** | `run_all_tests.js` | `npm test` | **All Runtimes Combined** | **263** | **263 PASS / 0 FAIL** |
+| **Grand Total (All 7 Suites)** | `run_all_tests.js` | `npm test` | **All Runtimes Combined** | **274** | **274 PASS / 0 FAIL** |
 
 ---
 
-## 3. Clean-Environment Setup & Verification Commands
+## 4. Residual Risks & Operational Considerations
 
-```bash
-# 1. Deterministic dependency installation from package-lock.json
-npm ci
-
-# 2. Install Headless Chromium for Playwright E2E
-npm run test:setup
-
-# 3. Verify syntax & lint checks across all server, build, and test scripts
-npm run lint
-
-# 4. Run production static asset build
-npm run build
-
-# 5. Run each verification tier independently
-npm run test:static   # Tier 1: Production Web Crypto PBKDF2 & Static SQL/SW Checks (49 checks)
-npm run test:unit     # Tier 2: Pure Unit & Async Logic Isolation Suites (102 checks)
-npm run test:pglite   # Tier 3: Embedded PostgreSQL Compatibility Suite — PGlite WASM (41 checks)
-npm run test:pg16     # Tier 4: Real PostgreSQL 16 Multi-Connection Concurrency & 10-Point Parity (29 checks)
-npm run test:e2e      # Tier 5: Real Headless Chromium + IndexedDB E2E Suite (42 checks)
-
-# 6. Run the unified categorized test runner
-npm test
-```
+1. **PostgREST / Supabase Gateway JWT Secret Protection**:
+   - `auth.uid()` reads `request.jwt.claim.sub`, which is populated by Supabase PostgREST after verifying the signature of the client's Bearer JWT. Database roles `anon` and `authenticated` cannot escalate to `postgres`, `service_role`, or `exo_occ_rpc_definer`, nor can they spoof another user's ID through `sync_workspace_with_concurrency(p_payload, p_expected_revision)`. Operationally, the project's `JWT_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` must remain confidential on the backend infrastructure and never be exposed to client browsers.
+2. **Administrative `postgres` / `service_role` Maintenance Writes**:
+   - Administrative connections running as `postgres` or `service_role` (with `auth.uid() IS NULL`) remain permitted to perform administrative updates (such as toggling `can_upload_media = true` for VIP users). All application client writes (`authenticated`) are strictly forced through `sync_workspace_with_concurrency()`.
+3. **Production Migration Deployment**:
+   - The updated migration `supabase/migrations/20261103140000_fix_security_and_privileges.sql` is verified on PostgreSQL 16.15 and ready to be applied to the hosted Supabase instance upon PR merge.

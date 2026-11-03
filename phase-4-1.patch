@@ -264,6 +264,347 @@ index 6de4a00..0000000
 -
 -GRANT DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE "public"."user_workspaces" TO "service_role";
 -
+diff --git a/20261103140000_fix_security_and_privileges.sql b/20261103140000_fix_security_and_privileges.sql
+deleted file mode 100644
+index ddcee0e..0000000
+--- a/20261103140000_fix_security_and_privileges.sql
++++ /dev/null
+@@ -1,335 +0,0 @@
+--- ============================================================================
+--- Migration: 20261103140000_fix_security_and_privileges.sql
+--- Description:
+---   Comprehensive security hardening, privilege reduction, optimistic concurrency
+---   control, and storage privacy enforcement for Exo Academic Platform.
+---
+--- Key Fixes:
+---   1. Ensures storage bucket 'lecture_media' is explicitly private (public = false).
+---   2. Resolves confirmed VIP storage policy bypass on storage.objects by dropping
+---      permissive upload policy and strictly requiring can_upload_media = true for
+---      both INSERT and UPDATE operations.
+---   3. Revokes excessive database grants (TRUNCATE, REFERENCES, TRIGGER, MAINTAIN, DELETE)
+---      from anon and authenticated roles on public.user_workspaces.
+---   4. Revokes unsafe default privileges in public schema for role postgres.
+---   5. Implements server-enforced updated_at trigger and revision column for
+---      optimistic concurrency control across multi-device synchronizations.
+---   6. Implements atomic concurrency-controlled RPC sync_workspace_with_concurrency
+---      that rejects mismatched or missing revisions, safely handles concurrent
+---      first-time workspace creation, and returns lightweight metadata only.
+---   7. Fixes COALESCE SQL syntax: replaces erroneous qualified coalesce calls with standard COALESCE.
+---   8. Hardens all SECURITY DEFINER functions with pg_catalog first in search_path
+---      and schema-qualified object references.
+---   9. Enforces least privilege on all internal trigger functions.
+---
+--- Reversibility: Reversible via supabase/rollbacks/20261103140000_rollback_fix_security_and_privileges.sql
+--- Safety: Non-destructive, preserves all existing user records and columns.
+--- ============================================================================
+-
+-SET local check_function_bodies = off;
+-
+--- ============================================================================
+--- 1. STORAGE BUCKET CONFIGURATION & VIP POLICY ENFORCEMENT
+--- ============================================================================
+-
+--- Ensure the lecture_media bucket exists and is explicitly PRIVATE (public = false)
+-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+-VALUES (
+-  'lecture_media',
+-  'lecture_media',
+-  false,
+-  52428800, -- 50 MiB limit
+-  ARRAY['application/pdf', 'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a', 'audio/x-m4a', 'audio/aac']::text[]
+-)
+-ON CONFLICT (id) DO UPDATE SET
+-  public = false;
+-
+--- Drop the overly permissive upload policy that bypassed the VIP check
+-DROP POLICY IF EXISTS "Users can upload their own lecture media" ON "storage"."objects";
+-
+--- Enforce strict VIP verification for uploads (INSERT)
+-DROP POLICY IF EXISTS "Allow VIP users to upload media" ON "storage"."objects";
+-CREATE POLICY "Allow VIP users to upload media" ON "storage"."objects"
+-  FOR INSERT
+-  TO "authenticated"
+-  WITH CHECK (
+-    (bucket_id = 'lecture_media'::text)
+-    AND ((storage.foldername(name))[1] = (auth.uid())::text)
+-    AND (EXISTS (
+-      SELECT 1 FROM public.user_workspaces w
+-      WHERE w.user_id = auth.uid() AND w.can_upload_media = true
+-    ))
+-  );
+-
+--- Enforce strict VIP verification for overwriting/updating media (UPDATE)
+-DROP POLICY IF EXISTS "Users can update their own lecture media" ON "storage"."objects";
+-DROP POLICY IF EXISTS "Allow VIP users to update media" ON "storage"."objects";
+-CREATE POLICY "Allow VIP users to update media" ON "storage"."objects"
+-  FOR UPDATE
+-  TO "authenticated"
+-  USING (
+-    (bucket_id = 'lecture_media'::text)
+-    AND ((storage.foldername(name))[1] = (auth.uid())::text)
+-    AND (EXISTS (
+-      SELECT 1 FROM public.user_workspaces w
+-      WHERE w.user_id = auth.uid() AND w.can_upload_media = true
+-    ))
+-  )
+-  WITH CHECK (
+-    (bucket_id = 'lecture_media'::text)
+-    AND ((storage.foldername(name))[1] = (auth.uid())::text)
+-    AND (EXISTS (
+-      SELECT 1 FROM public.user_workspaces w
+-      WHERE w.user_id = auth.uid() AND w.can_upload_media = true
+-    ))
+-  );
+-
+--- ============================================================================
+--- 2. REVOKE EXCESSIVE TABLE PRIVILEGES ON USER_WORKSPACES
+--- ============================================================================
+-
+--- Revoke all table-level permissions from anon and public
+-REVOKE ALL ON TABLE "public"."user_workspaces" FROM PUBLIC;
+-REVOKE ALL ON TABLE "public"."user_workspaces" FROM "anon";
+-
+--- Revoke all table-level permissions from authenticated, then re-grant strictly needed DML
+-REVOKE ALL ON TABLE "public"."user_workspaces" FROM "authenticated";
+-GRANT SELECT, INSERT, UPDATE ON TABLE "public"."user_workspaces" TO "authenticated";
+-
+--- ============================================================================
+--- 3. REVOKE UNSAFE DEFAULT PRIVILEGES IN PUBLIC SCHEMA
+--- ============================================================================
+-
+-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON TABLES FROM "anon", "authenticated";
+-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON SEQUENCES FROM "anon", "authenticated";
+-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON FUNCTIONS FROM "anon", "authenticated";
+-
+--- ============================================================================
+--- 4. SERVER-ENFORCED UPDATED_AT AND OPTIMISTIC CONCURRENCY REVISION
+--- ============================================================================
+-
+--- Add revision tracking column (backward-compatible, defaults to 1)
+-ALTER TABLE "public"."user_workspaces"
+-  ADD COLUMN IF NOT EXISTS "revision" integer NOT NULL DEFAULT 1;
+-
+--- Server-side timestamp and revision management trigger function
+--- Hardened with pg_catalog first in search_path and standard COALESCE syntax
+-CREATE OR REPLACE FUNCTION public.handle_user_workspace_updated_at()
+-RETURNS TRIGGER
+-LANGUAGE plpgsql
+-SECURITY DEFINER
+-SET search_path = pg_catalog, public
+-AS $$
+-BEGIN
+-  NEW.updated_at := pg_catalog.now();
+-  NEW.revision := COALESCE(OLD.revision, 0) + 1;
+-  RETURN NEW;
+-END;
+-$$;
+-
+--- Secure the trigger function permissions (least privilege)
+-REVOKE ALL ON FUNCTION public.handle_user_workspace_updated_at() FROM PUBLIC, "anon", "authenticated";
+-GRANT EXECUTE ON FUNCTION public.handle_user_workspace_updated_at() TO "postgres", "service_role";
+-
+--- Bind trigger to user_workspaces
+-DROP TRIGGER IF EXISTS trg_user_workspaces_updated_at ON public.user_workspaces;
+-CREATE TRIGGER trg_user_workspaces_updated_at
+-  BEFORE UPDATE ON public.user_workspaces
+-  FOR EACH ROW
+-  EXECUTE FUNCTION public.handle_user_workspace_updated_at();
+-
+--- ============================================================================
+--- 5. ATOMIC CONCURRENCY-CONTROLLED WORKSPACE SYNC RPC
+--- ============================================================================
+-
+-CREATE OR REPLACE FUNCTION public.sync_workspace_with_concurrency(
+-  p_payload jsonb,
+-  p_expected_revision integer DEFAULT NULL
+-)
+-RETURNS jsonb
+-LANGUAGE plpgsql
+-SECURITY DEFINER
+-SET search_path = pg_catalog, public, auth
+-AS $$
+-DECLARE
+-  v_uid uuid := auth.uid();
+-  v_current_rev integer;
+-  v_updated_at timestamptz;
+-BEGIN
+-  IF v_uid IS NULL THEN
+-    RAISE EXCEPTION 'Not authenticated';
+-  END IF;
+-
+-  -- 1. Attempt to lock the existing workspace row for this user
+-  SELECT revision, updated_at
+-  INTO v_current_rev, v_updated_at
+-  FROM public.user_workspaces
+-  WHERE user_id = v_uid
+-  FOR UPDATE;
+-
+-  -- 2. Handle existing workspace update
+-  IF FOUND THEN
+-    -- Concurrency check: Reject NULL or mismatched expected revision
+-    IF p_expected_revision IS NULL OR p_expected_revision <> v_current_rev THEN
+-      RETURN jsonb_build_object(
+-        'status', 'conflict',
+-        'current_revision', v_current_rev,
+-        'current_updated_at', v_updated_at,
+-        'message', 'Workspace has been modified by another device (revision mismatch)'
+-      );
+-    END IF;
+-
+-    -- Update row with payload data (using valid COALESCE syntax)
+-    UPDATE public.user_workspaces
+-    SET
+-      subjects = COALESCE(p_payload->'subjects', subjects),
+-      schedule = COALESCE(p_payload->'schedule', schedule),
+-      logs = COALESCE(p_payload->'logs', logs),
+-      annotations = CASE
+-        WHEN p_payload ? 'annotations' THEN p_payload->'annotations'
+-        ELSE annotations
+-      END,
+-      academy_progress = COALESCE(p_payload->'academy_progress', academy_progress),
+-      user_email = COALESCE(p_payload->>'user_email', user_email)
+-    WHERE user_id = v_uid
+-    RETURNING revision, updated_at INTO v_current_rev, v_updated_at;
+-
+-  -- 3. Handle concurrent first-time workspace creation safely
+-  ELSE
+-    BEGIN
+-      INSERT INTO public.user_workspaces (
+-        user_id,
+-        user_email,
+-        subjects,
+-        schedule,
+-        logs,
+-        annotations,
+-        academy_progress,
+-        revision
+-      ) VALUES (
+-        v_uid,
+-        p_payload->>'user_email',
+-        COALESCE(p_payload->'subjects', '[]'::jsonb),
+-        COALESCE(p_payload->'schedule', '{}'::jsonb),
+-        COALESCE(p_payload->'logs', '[]'::jsonb),
+-        COALESCE(p_payload->'annotations', '{}'::jsonb),
+-        COALESCE(p_payload->'academy_progress', '[]'::jsonb),
+-        1
+-      )
+-      RETURNING revision, updated_at INTO v_current_rev, v_updated_at;
+-    EXCEPTION
+-      WHEN unique_violation THEN
+-        -- Another concurrent request created the row first; lock and report conflict
+-        SELECT revision, updated_at
+-        INTO v_current_rev, v_updated_at
+-        FROM public.user_workspaces
+-        WHERE user_id = v_uid
+-        FOR UPDATE;
+-
+-        RETURN jsonb_build_object(
+-          'status', 'conflict',
+-          'current_revision', v_current_rev,
+-          'current_updated_at', v_updated_at,
+-          'message', 'Concurrent workspace initialization detected'
+-        );
+-    END;
+-  END IF;
+-
+-  -- Return lightweight status, revision, and updated_at (NOT the multi-megabyte payload)
+-  RETURN jsonb_build_object(
+-    'status', 'success',
+-    'revision', v_current_rev,
+-    'updated_at', v_updated_at
+-  );
+-END;
+-$$;
+-
+-REVOKE ALL ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) FROM PUBLIC, "anon";
+-GRANT EXECUTE ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) TO "authenticated";
+-
+--- ============================================================================
+--- 6. HARDEN EXISTING SECURITY DEFINER TRIGGER FUNCTIONS
+--- ============================================================================
+-
+--- Explicitly harden enforce_workspace_media_security() with pg_catalog first and standard COALESCE
+-CREATE OR REPLACE FUNCTION public.enforce_workspace_media_security()
+-  RETURNS TRIGGER
+-  LANGUAGE plpgsql
+-  SECURITY DEFINER
+-  SET search_path = pg_catalog, public, auth
+-  AS $$
+-BEGIN
+-  NEW.user_email := COALESCE(
+-    (SELECT pg_catalog.lower(email) FROM auth.users WHERE id = NEW.user_id),
+-    NEW.user_email
+-  );
+-
+-  -- Protect VIP status: prevent client manipulation from authenticated JWTs
+-  IF auth.uid() IS NOT NULL THEN
+-    IF TG_OP = 'INSERT' THEN
+-      NEW.can_upload_media := false;
+-    ELSIF TG_OP = 'UPDATE' THEN
+-      NEW.can_upload_media := COALESCE(OLD.can_upload_media, false);
+-    END IF;
+-  END IF;
+-
+-  RETURN NEW;
+-END;
+-$$;
+-
+-REVOKE ALL ON FUNCTION public.enforce_workspace_media_security() FROM PUBLIC, "anon", "authenticated";
+-GRANT EXECUTE ON FUNCTION public.enforce_workspace_media_security() TO "postgres", "service_role";
+-
+--- Explicitly harden protect_vip_status_column() with pg_catalog first
+-CREATE OR REPLACE FUNCTION public.protect_vip_status_column()
+-  RETURNS TRIGGER
+-  LANGUAGE plpgsql
+-  SECURITY DEFINER
+-  SET search_path = pg_catalog, public
+-  AS $$
+-BEGIN
+-  IF pg_catalog.current_setting('request.jwt.claim.role', true) = 'authenticated' THEN
+-    NEW.can_upload_media := OLD.can_upload_media;
+-  END IF;
+-  RETURN NEW;
+-END;
+-$$;
+-
+-REVOKE ALL ON FUNCTION public.protect_vip_status_column() FROM PUBLIC, "anon", "authenticated";
+-GRANT EXECUTE ON FUNCTION public.protect_vip_status_column() TO "postgres", "service_role";
+-
+--- Harden rls_auto_enable() with pg_catalog
+-CREATE OR REPLACE FUNCTION public.rls_auto_enable()
+-  RETURNS event_trigger
+-  LANGUAGE plpgsql
+-  SECURITY DEFINER
+-  SET search_path = pg_catalog
+-  AS $$
+-DECLARE
+-  cmd record;
+-  tbl name;
+-BEGIN
+-  FOR cmd IN
+-    SELECT *
+-    FROM pg_event_trigger_ddl_commands()
+-    WHERE command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
+-      AND object_type IN ('table','partitioned table')
+-  LOOP
+-     IF cmd.schema_name IS NOT NULL AND cmd.schema_name IN ('public') AND cmd.schema_name NOT IN ('pg_catalog','information_schema') AND cmd.schema_name NOT LIKE 'pg_toast%' AND cmd.schema_name NOT LIKE 'pg_temp%' THEN
+-      BEGIN
+-        SELECT c.relname INTO tbl FROM pg_catalog.pg_class c WHERE c.oid = cmd.objid;
+-        EXECUTE pg_catalog.format('alter table if exists %I.%I enable row level security', cmd.schema_name, tbl);
+-        RAISE LOG 'rls_auto_enable: enabled RLS on %', cmd.object_identity;
+-      EXCEPTION
+-        WHEN OTHERS THEN
+-          RAISE WARNING 'rls_auto_enable: failed to enable RLS on %: %', cmd.object_identity, SQLERRM;
+-      END;
+-     ELSE
+-        RAISE LOG 'rls_auto_enable: skip % (either system schema or not in enforced list: %.)', cmd.object_identity, cmd.schema_name;
+-     END IF;
+-  END LOOP;
+-END;
+-$$;
+-
+-REVOKE ALL ON FUNCTION public.rls_auto_enable() FROM PUBLIC, "anon", "authenticated";
+-GRANT EXECUTE ON FUNCTION public.rls_auto_enable() TO "postgres", "service_role";
 diff --git a/20261103140000_rollback_fix_security_and_privileges.sql b/20261103140000_rollback_fix_security_and_privileges.sql
 deleted file mode 100644
 index 1a521f8..0000000
@@ -448,10 +789,10 @@ index 1a521f8..0000000
 -GRANT EXECUTE ON FUNCTION "public"."rls_auto_enable"() TO "postgres";
 -GRANT EXECUTE ON FUNCTION "public"."rls_auto_enable"() TO "service_role";
 diff --git a/DATABASE_AUDIT_AR.md b/DATABASE_AUDIT_AR.md
-index e1bfbdd..411452f 100644
+index e1bfbdd..ce1359c 100644
 --- a/DATABASE_AUDIT_AR.md
 +++ b/DATABASE_AUDIT_AR.md
-@@ -1,119 +1,94 @@
+@@ -1,119 +1,114 @@
 -# تقرير مراجعة قاعدة بيانات Exo — مراجعة ساكنة
 -
 -## نطاق المراجعة
@@ -571,38 +912,82 @@ index e1bfbdd..411452f 100644
 -- أنشئ نسخة احتياطية وخطة rollback واختبارات staging لكل تغيير.
 -- لا تضع secrets أو service-role keys أو database passwords في المستودع أو ملفات الواجهة.
 -- ميّز بين التوصيات، والتغييرات المنفذة، والاختبارات التي تم تشغيلها فعلًا.
-+# تقرير المراجعة الهندسية والأمنية الشاملة لمنصة Exo — Phase 4.1, Phase 4.2 & Phase 4.2.1
++# تقرير المراجعة الهندسية والأمنية الشاملة لمنصة Exo — Phase 4.1, Phase 4.2, Phase 4.2.1 & GUC Forgery Remediation
 +
 +## نطاق المراجعة والتنفيذ الفعلي
-+يوثق هذا التقرير النتائج والتعديلات المنفذة والمختبرة فعليًا في **Exo Phase 4.1** و**Phase 4.2** و**Phase 4.2.1** لعزل الحسابات، ومنع سباقات التزامن (`Race Conditions`)، وضمان متانة معاملات `IndexedDB`، وتأمين قواعد بيانات وسياسات `PostgreSQL / Supabase` مع الفصل الكامل والصريح بين:
++يوثق هذا التقرير النتائج والتعديلات المنفذة والمختبرة فعليًا في **Exo Phase 4.1** و**Phase 4.2** و**Phase 4.2.1** وتصحيح ثغرة تزوير متغيرات الجلسة (**GUC Forgery Remediation**) لعزل الحسابات، ومنع سباقات التزامن (`Race Conditions`)، وضمان متانة معاملات `IndexedDB`، وتأمين قواعد بيانات وسياسات `PostgreSQL / Supabase` مع الفصل الكامل والصريح بين:
 +1. **اختبارات التوافق المضمنة (`Embedded PostgreSQL Compatibility Tests — PGlite WASM`)** في `test_phase4_2_postgres_integration.js`.
-+2. **اختبارات خادم PostgreSQL 16 الفعلي والتزامن متعدد الاتصالات (`Real PostgreSQL 16 Multi-Connection Concurrency & 10-Point Schema Parity Proof`)** في `test_phase4_2_1_pg16_concurrency.js`.
++2. **اختبارات خادم PostgreSQL 16 الفعلي والتزامن متعدد الاتصالات ومقاومة تزوير GUC (`Real PostgreSQL 16 Multi-Connection Concurrency, GUC Forgery Proof & 10-Point Schema Parity`)** في `test_phase4_2_1_pg16_concurrency.js`.
 +3. **اختبارات المتصفح الفعلي (`Real Headless Chromium + IndexedDB v4 E2E`)** في `test_phase4_1_chromium_e2e.js`.
 +
 +### هيكل ملفات قاعدة البيانات المنظم (`supabase/`):
 +- `supabase/config.toml` — إعدادات مشروع Supabase المحلية والـ Auth والـ Storage.
-+- `supabase/schema.sql` — المخطط النهائي الكامل (`Canonical Final Schema`) الذي يعكس حالة قاعدة البيانات بعد تطبيق جميع الـ Migrations (بما في ذلك العمود `revision`، والدالة `sync_workspace_with_concurrency`، ودوال الحماية، وسياسات `RLS` و`Storage`، وتقليص الصلاحيات).
++- `supabase/schema.sql` — المخطط النهائي الكامل (`Canonical Final Schema`) الذي يعكس حالة قاعدة البيانات بعد تطبيق جميع الـ Migrations (بما في ذلك الدور المخصص `exo_occ_rpc_definer`، والمخطط الخاص `exo_internal.occ_active_write_context`، والعمود `revision`، والدالة `sync_workspace_with_concurrency`، ودوال الحماية، وسياسات `RLS` و`Storage`، وتقليص الصلاحيات).
 +- `supabase/migrations/20261103133622_remote_schema.sql` — مخطط القاعدة الأساسي الأولي (Baseline Migration، متوافق بالكامل مع PostgreSQL 16 بعد إزالة صلاحية `MAINTAIN` الخاصة بـ PostgreSQL 17+).
-+- `supabase/migrations/20261103140000_fix_security_and_privileges.sql` — ترقية الأمان، سحب الصلاحيات الزائدة والافتراضية (`ALTER DEFAULT PRIVILEGES`)، فرض التحكم التفاؤلي في التزامن (`OCC`) عبر `revision` و`sync_workspace_with_concurrency`، وإصلاح سياسات `Storage`.
++- `supabase/migrations/20261103140000_fix_security_and_privileges.sql` — ترقية الأمان، سحب الصلاحيات الزائدة والافتراضية (`ALTER DEFAULT PRIVILEGES`)، فرض التحكم التفاؤلي في التزامن (`OCC`) عبر آلية غير قابلة للتزوير (`exo_occ_rpc_definer` + `exo_internal.occ_active_write_context`)، وإصلاح سياسات `Storage`.
 +- `supabase/rollbacks/20261103140000_safe_rollback_concurrency_only.sql` — **البديل الآمن للتراجع في حالات الطوارئ**: يرفع قيد المنع الصارم للكتابة المباشرة (`trg_enforce_workspace_write_via_rpc`) عند الضرورة التشغيلية، مع الحفاظ الكامل على عزل الحسابات (`RLS`)، وسياسات VIP للرفع (`can_upload_media = true`)، وسحب الصلاحيات الخطرة والافتراضية.
 +- `supabase/rollbacks/20261103140000_rollback_fix_security_and_privileges.sql` — نص التراجع التاريخي إلى حالة الـ Baseline (معزول خارج `migrations/` ومحمي ببوابة أمان `exo.allow_unsafe_legacy_rollback = 'I_ACCEPT_SECURITY_DOWNGRADE'` لمنع تشغيله بالخطأ).
 +
 +---
 +
-+## القسم الأول: إصلاحات قاعدة البيانات وإثبات التزامن على PostgreSQL 16 الفعلي (Phase 4.2.1)
++## القسم الأول: إعادة تصميم إثبات مسار OCC RPC لمنع تزوير Custom GUC
++
++### 1. سبب عدم أمان متغيرات الجلسة المخصصة (`Custom PostgreSQL GUC`)
++في التصميم السابق، اعتمدت الدالة `enforce_workspace_write_via_rpc()` وسياسات `RLS` على فحص:
++`current_setting('exo.occ_rpc_active', true) = 'true'`
++في PostgreSQL، أي متغير جلسة مخصص (`Custom GUC` يحمل بادئة مثل `exo.*`) يمكن لأي جلسة SQL عادية تنتمي إلى دور `authenticated` أو `anon` ضبطه يدويًا عبر `SET exo.occ_rpc_active = 'true'` أو `SELECT pg_catalog.set_config('exo.occ_rpc_active', 'true', true)` دون الحاجة إلى صلاحيات `SUPERUSER`. لذلك، إذا حصل دور `authenticated` لأي سبب تشغيلي أو خطأ إداري على صلاحية `INSERT` أو `UPDATE` المباشرة على الجدول، فإنه كان يستطيع تزوير هذا المتغير وتجاوز فحص `OCC RPC`.
++
++### 2. التصميم الجديد غير القابل للتزوير (`Unforgeable Dual-Layer OCC RPC Proof`)
++تمت إزالة الاعتماد على `exo.occ_rpc_active` بالكامل (صفر وجود في جميع ملفات `migrations` و`schema.sql` و`rollbacks` والـ Triggers وسياسات `RLS`)، واستبداله بطبقتين مستقلتين تفرضهما نواة PostgreSQL ولا يستطيع العميل تزويرهما:
++
++1. **الطبقة الأولى — دور مالك مخصص معزول (`exo_occ_rpc_definer`) وفحص `CURRENT_USER` في سياسات `RLS`**:
++   - إنشاء دور مخصص غير قابل لتسجيل الدخول ولا يتخطى سياسات أمان الصفوف:
++     `CREATE ROLE "exo_occ_rpc_definer" NOLOGIN NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;`
++   - سحب عضوية هذا الدور من `anon` و`authenticated`:
++     `REVOKE "exo_occ_rpc_definer" FROM "anon", "authenticated";`
++     بحيث يفشل أي استدعاء `SET ROLE exo_occ_rpc_definer` من جلسة العميل بخطأ `permission denied to set role`.
++   - نقل ملكية الدالة `public.sync_workspace_with_concurrency(jsonb, integer)` (`SECURITY DEFINER`) إلى الدور `"exo_occ_rpc_definer"`, مع إبقاء سحب صلاحيات `INSERT, UPDATE, DELETE` المباشرة من `authenticated` ومنح `SELECT, INSERT, UPDATE` للدور `exo_occ_rpc_definer`.
++   - لأن `exo_occ_rpc_definer` يملك خاصية `NOBYPASSRLS`، تستمر سياسات `RLS` على `public.user_workspaces` في العمل داخل الدالة، وتشترط في سياسات `INSERT` و`UPDATE`:
++     `WITH CHECK ((auth.uid() = user_id) AND (CURRENT_USER = 'exo_occ_rpc_definer'::name))`
++   - في PostgreSQL، القيمة `CURRENT_USER` هي معرّف الدور الفعلي للـ Security Context وليست متغير GUC نصيًا، ولا يمكن أن تصبح `'exo_occ_rpc_definer'` إلا أثناء تنفيذ الدالة `SECURITY DEFINER` المملوكة لهذا الدور.
++
++2. **الطبقة الثانية — جدول سياق المعاملات الخاص (`exo_internal.occ_active_write_context`) وفحص الـ Trigger**:
++   - إنشاء مخطط خاص `exo_internal` وجدول محمي:
++     `exo_internal.occ_active_write_context (txid xid8, user_id uuid, write_op text, PRIMARY KEY (txid, user_id))`
++   - سحب جميع الصلاحيات على المخطط `exo_internal` والجدول `occ_active_write_context` من `PUBLIC` و`anon` و`authenticated`، وحصرها في `"postgres", "service_role", "exo_occ_rpc_definer"`.
++   - داخل `public.sync_workspace_with_concurrency()`، يتم إدراج سجل يحمل رقم المعاملة الفعلي في النواة `(pg_catalog.pg_current_xact_id(), v_uid, 'UPDATE' | 'INSERT')` قبل جملة `UPDATE` أو `INSERT` مباشرةً، ثم **يُحذف السجل فورًا بعد انتهاء الجملة وقبل إرجاع النتيجة** (وكذلك داخل كتلة `EXCEPTION WHEN unique_violation`).
++   - تتحقق دالة الـ Trigger `public.enforce_workspace_write_via_rpc()` (`BEFORE INSERT OR UPDATE`) من وجود هذا السجل الفعلي المطابق لـ `(pg_current_xact_id(), NEW.user_id, TG_OP)` داخل `exo_internal.occ_active_write_context`؛ فإذا لم يوجد، ترفض العملية فورًا بالخطأ `OCC_BYPASS_FORBIDDEN` (`ERRCODE = '42501'`).
++   - يمنع الحذف الفوري للسجل بعد جملة التحديث داخل `sync_workspace_with_concurrency()` حتى هجوم **التطفل داخل نفس المعاملة (`Same-Transaction Piggyback Attack`)** الذي يحاول تنفيذ `UPDATE` مباشر بعد استدعاء الـ RPC في نفس المعاملة (`BEGIN ... SELECT sync_workspace_with_concurrency(...); UPDATE ...; COMMIT`).
++
++### 3. نتائج اختبارات الهجوم وتزوير GUC واختبار عدم التلاعب بـ `auth.uid()` على PostgreSQL 16 الفعلي
++في `test_phase4_2_1_pg16_concurrency.js` (القسمين 6 و7)، تم تنفيذ الاختبارات الفعلية التالية على خادم `PostgreSQL 16.15`:
++1. **اختبار تزوير `exo.occ_rpc_active = 'true'` مع منح صلاحيات `INSERT, UPDATE` مؤقتًا (`Section 6`)**:
++   - منح اتصال المسؤول (`migClient`) صلاحيات `GRANT INSERT, UPDATE ON TABLE public.user_workspaces TO authenticated` مؤقتًا لأغراض الاختبار.
++   - بدأت جلسة `authenticated` للمستخدم A، وضبطت يدويًا `SELECT pg_catalog.set_config('exo.occ_rpc_active', 'true', true)`.
++   - حاولت الجلسة تنفيذ `UPDATE public.user_workspaces SET subjects = ... WHERE user_id = userA` مباشرةً -> **تم رفض التحديث** بخطأ `OCC_BYPASS_FORBIDDEN` (`42501`).
++   - حاولت الجلسة تنفيذ `INSERT INTO public.user_workspaces ...` مباشرةً مع ضبط `exo.occ_rpc_active = 'true'` -> **تم رفض الإدراج** بخطأ `OCC_BYPASS_FORBIDDEN` (`42501`).
++   - حاولت الجلسة تنفيذ `SET LOCAL ROLE exo_occ_rpc_definer` والكتابة المباشرة في `exo_internal.occ_active_write_context` -> **تم رفض المحاولتين** بخطأ `permission denied`.
++   - حاولت الجلسة تنفيذ هجوم التطفل داخل نفس المعاملة (`Same-Transaction Piggyback`: استدعاء `sync_workspace_with_concurrency` ثم تنفيذ `UPDATE` مباشر في نفس المعاملة) -> **تم رفض التحديث المباشر** بخطأ `OCC_BYPASS_FORBIDDEN` (`42501`).
++   - حتى عند تعطيل الـ Trigger `trg_enforce_workspace_write_via_rpc` مؤقتًا مع بقاء صلاحية `UPDATE` المؤقتة وضبط `exo.occ_rpc_active = 'true'`، قامت طبقة `RLS WITH CHECK (CURRENT_USER = 'exo_occ_rpc_definer')` المستقلة **برفض التحديث المباشر** بخطأ `new row violates row-level security policy` (`42501`).
++   - تم التحقق من أن التحديث المشروع عبر `SELECT public.sync_workspace_with_concurrency(payload, expected_rev)` ينجح بصورة طبيعية ويرفع `revision` من `3` إلى `4`، وأن حساب المستخدم B لم يتأثر إطلاقًا.
++2. **اختبار حماية هوية `auth.uid()` ومنع انتحال الهوية (`Section 7`)**:
++   - قامت جلسة المستخدم A (`auth.uid() = userA`) باستدعاء `sync_workspace_with_concurrency` مع تمرير حمولة خبيثة تتضمن `"user_id": "<userB>"`, `"user_email": "bob.victim@exo.edu"`, `"can_upload_media": true`, `"revision": 999`.
++   - أثبت الاختبار أن الدالة والـ Triggers تتجاهل تمامًا `user_id` الممرر في الـ JSON، وتقيد الكتابة حصريًا بـ `auth.uid()`، وتفرض البريد الحقيقي للمستخدم A من جدول `auth.users` (`alice.concurrency@exo.edu`)، وتبقي `can_upload_media = false`، وتترك صف المستخدم B سليمًا دون أي تغيير.
++   - أثبت الاختبار أن جلسة `authenticated` لا تستطيع تصعيد صلاحياتها عبر `SET ROLE postgres` أو `SET ROLE service_role` للتلاعب بمطالبات JWT.
++
++---
++
++## القسم الثاني: إثبات التزامن متعدد الاتصالات وتطابق المخطط على PostgreSQL 16 الفعلي (Phase 4.2.1)
 +
 +### 1. الفرق الهندسي الصريح بين محرك PGlite المضمن وخادم PostgreSQL 16 الفعلي
 +- **محرك PGlite (`@electric-sql/pglite` 0.5.15 — `test_phase4_2_postgres_integration.js`)**:
 +  - يعمل كمحرك PostgreSQL مضمن أحادي الاتصال (`Single-Connection WebAssembly Engine`) مبني من نواة PostgreSQL 18.6 (`server_version_num = 180006` على `wasm32-unknown-emscripten`).
-+  - يختبر صحة قواعد SQL، وسياسات `RLS`، والـ Triggers، ومنطق الدوال داخل اتصال واحد، لكنه **لا يثبت** التوافق مع PostgreSQL 16 ولا يختبر التزامن الفعلي متعدد الاتصالات (`Multi-Connection Row Locking`).
++  - يُحتفظ به باعتباره **Embedded PostgreSQL Compatibility Tests** ولا يُوصف بأنه اختبار PostgreSQL 16.
 +- **خادم PostgreSQL 16 الفعلي (`postgres:16` — `test_phase4_2_1_pg16_concurrency.js`)**:
 +  - يتصل بخادم PostgreSQL 16 حقيقي مستقل (`PostgreSQL 16.15`, `server_version_num = 160015`) عبر مكتبة `pg` واتصالات TCP متوازية ومستقلة (`pg_backend_pid()`).
-+  - يتحقق في بداية الاختبار عبر بوابة إلزامية (`SELECT version()` و`SHOW server_version_num`) من أن الإصدار الرئيسي (`Major Version`) هو `16` حصريًا، ويفشل الاختبار فورًا إذا كان المحرك PGlite أو إصدارًا مختلفًا.
-+  - كشف تشغيل PostgreSQL 16 الفعلي وجود كلمة الصلاحية `MAINTAIN` (الخاصة بـ PostgreSQL 17+) في ملف الـ Baseline `20261103133622_remote_schema.sql` والتي كان محرك PGlite 18.6 يقبلها دون خطأ بينما يرفضها PostgreSQL 16، وتم تصحيحها.
++  - يتحقق في بداية الاختبار عبر بوابة إلزامية (`SELECT version()` و`SHOW server_version_num`) من أن الإصدار الرئيسي (`Major Version`) هو `16` حصريًا.
 +
-+### 2. توثيق واختبار الإضافات الأربعة (`Extensions`) المستثناة في PGlite
-+يعلن الملف `supabase/schema.sql` عن أربع إضافات (`Extensions`). يوضح الجدول التالي حالة كل إضافة في بيئة PGlite المضمنة مقابل بيئة PostgreSQL 16 الفعلية:
-+
++### 2. توثيق واختبار الإضافات الأربعة (`Extensions`)
 +| الإضافة (`Extension`) | الـ Schema | حالتها في `PGlite` (WASM) | حالتها في `PostgreSQL 16` الفعلي (`postgres:16`) | الاستخدام الفعلي في Exo |
 +| :--- | :---: | :---: | :---: | :--- |
 +| **`pg_stat_statements`** | `extensions` | مستثناة (غير مدمجة في WASM) | **مثبتة ومختبرة فعليًا** (`postgresql-contrib-16`) | إحصاءات أداء استعلامات Supabase؛ لا يعتمد عليها منطق التطبيق. |
@@ -610,170 +995,117 @@ index e1bfbdd..411452f 100644
 +| **`uuid-ossp`** | `extensions` | مستثناة في التهيئة الافتراضية | **مثبتة ومختبرة فعليًا** (`uuid_generate_v4()`) | توليد معرفات UUID القياسية. |
 +| **`supabase_vault`** | `vault` | مستثناة (خاصة بمنصة Supabase) | **مستثناة وموثقة صراحةً** (إضافة سحابية خاصة بصورة Supabase) | غير مستخدمة إطلاقًا في أي جدول أو دالة أو سياسة في Exo. |
 +
-+### 3. إثبات التزامن الحقيقي متعدد الاتصالات (`Real Multi-Connection Concurrency Proof`) على PostgreSQL 16
-+في `test_phase4_2_1_pg16_concurrency.js`، تم فتح ثلاث اتصالات TCP مستقلة (`conn1`, `conn2`, `connMonitor`) والتحقق من اختلاف معرفات عمليات الخادم (`pid1 !== pid2 !== pidMonitor` عبر `SELECT pg_backend_pid()`):
-+1. **إثبات التداخل الفعلي وقفل الصف (`SELECT ... FOR UPDATE` Row Lock Contention)**:
-+   - يقرأ الجهازان (`conn1` و`conn2`) نفس رقم النسخة الأساسي (`revision = 1`).
-+   - يبدأ `conn1` معاملة (`BEGIN`) ويستدعي `sync_workspace_with_concurrency(payload1, 1)` فيحصل على قفل `FOR UPDATE` على صف المستخدم ويرفع النسخة إلى `2` مع إبقاء المعاملة مفتوحة قبل `COMMIT`.
-+   - أثناء احتفاظ `conn1` بالقفل، يبدأ `conn2` معاملته المستقلة ويستدعي `sync_workspace_with_concurrency(payload2, 1)`.
-+   - يتحقق اتصال المراقبة `connMonitor` من جدولي النظام `pg_stat_activity` و`pg_locks` ويثبت أن عملية الخادم `pid2` متوقفة فعليًا في حالة انتظار قفل (`wait_event_type = 'Lock'`, `wait_event = 'transactionid'`, `granted = false`) بسبب قفل `conn1`.
-+   - عند تنفيذ `COMMIT` في `conn1`، يتحرر `conn2` ويعيد تقييم الصف المحدث (`revision = 2`) ويرفض التحديث المتعارض معيدًا `{ "status": "conflict", "current_revision": 2 }` دون أي فقدان لبيانات `conn1`.
-+2. **سباق التحديث المتزامن عبر حاجز التزامن (`Barrier-Synchronized Simultaneous Race`)**:
-+   - ينتظر الاتصالان `conn1` و`conn2` عند حاجز تزامن (`Promise Barrier`) لإرسال طلب التحديث بنفس `expected_revision = 2` في نفس اللحظة الزمنية عبر مقبسي TCP مستقلين، ويثبت الاختبار نجاح اتصال واحد فقط (`revision = 3`) وحصول الآخر على `conflict` (`current_revision = 3`).
-+3. **إثبات سباق الإنشاء للمرة الأولى ومسار `unique_violation` (`Concurrent First-Time Initialization Race`)**:
-+   - لمستخدم جديد لا يملك أي صف في `public.user_workspaces`، يبدأ `conn1` معاملة `sync_workspace_with_concurrency(init1, NULL)` فيدخل مسار `NOT FOUND -> INSERT` ويحجز قفل الفهرس الفريد (`user_workspaces_pkey`) قبل `COMMIT`.
-+   - أثناء بقاء `conn1` مفتوحًا، يستدعي `conn2` نفس الدالة `sync_workspace_with_concurrency(init2, NULL)`؛ ولأن `conn1` لم يلتزم بعد، يرى `conn2` أيضًا `NOT FOUND` ويدخل مسار `INSERT` ويتوقف في `pg_locks` بانتظار قفل الفهرس الفريد (`Lock:transactionid`).
-+   - يرصد `connMonitor` توقف `conn2` فعليًا داخل `INSERT`، ثم يلتزم `conn1` (`COMMIT`)، فيُطلق PostgreSQL 16 استثناء `unique_violation` (`23505`) داخل `conn2` الذي تلتقطه كتلة `EXCEPTION WHEN unique_violation` وتعيد `{ "status": "conflict", "current_revision": 1, "message": "Concurrent workspace initialization detected" }` بأمان تام ودون فقدان بيانات `conn1`.
-+
-+### 4. تدقيق التطابق الشامل (`10-Dimension Catalog Parity Audit`) بين `schema.sql` والـ Migrations
-+بعد توحيد صلاحيات `service_role` في `20261103140000_fix_security_and_privileges.sql` وتوحيد `search_path` عند فحص كتالوج النظام، يثبت `test_phase4_2_1_pg16_concurrency.js` التطابق في العناصر العشرة التالية على PostgreSQL 16:
-+1. الأعمدة وأنواع البيانات وقابلية `NULL` والقيم الافتراضية (`Default Values`) لجدول `public.user_workspaces` (10 أعمدة).
-+2. القيود (`PRIMARY KEY` و`FOREIGN KEY ... ON DELETE CASCADE` عبر `pg_get_constraintdef`).
-+3. الفهارس (`user_workspaces_pkey` عبر `pg_indexes`).
-+4. سياسات `RLS` السبعة على `public.user_workspaces` و`storage.objects` شاملةً `permissive` و`roles` و`cmd` وتعبيرات `USING` (`qual`) و`WITH CHECK` (`with_check`).
-+5. الـ Triggers الأربعة على `public.user_workspaces` وتعريفاتها الكاملة (`pg_get_triggerdef`).
-+6. الـ Event Trigger (`ensure_rls` -> `public.rls_auto_enable`).
-+7. الدوال الست في `public` شاملةً `SECURITY DEFINER`، و`search_path` (`proconfig`)، وصلاحيات `proacl`، ونص الدالة الكامل (`pg_get_functiondef`).
-+8. صلاحيات جدول `public.user_workspaces` (`relacl` و`role_table_grants`) وحالة تفعيل `RLS`.
-+9. الصلاحيات الافتراضية (`pg_default_acl`) بعد تطبيق `ALTER DEFAULT PRIVILEGES`.
-+10. خصائص `storage.buckets` للـ bucket `lecture_media` (`public = false`, `file_size_limit = 52428800`, `allowed_mime_types`).
-+- **الاستثناءات الموثقة صراحةً**: إضافة `supabase_vault` مستثناة في بيئة PostgreSQL 16 القياسية (`postgres:16`) لأنها إضافة خاصة بالمنصة السحابية لـ Supabase، والإضافات الأربعة (`pg_stat_statements`, `pgcrypto`, `supabase_vault`, `uuid-ossp`) مستثناة في بيئة PGlite المضمنة.
++### 3. إثبات التزامن الحقيقي متعدد الاتصالات (`Real Multi-Connection Concurrency Proof`)
++- تم إثبات التداخل الفعلي لمعاملتين مستقلتين (`conn1`, `conn2`) ومراقبتهما عبر اتصال ثالث (`connMonitor`) من خلال `pg_stat_activity` و`pg_locks`:
++  1. توقف `conn2` فعليًا على قفل `SELECT ... FOR UPDATE` (`Lock:transactionid`) أثناء احتفاظ `conn1` بالمعاملة مفتوحة، ثم رفض تحديث `conn2` القديم (`conflict`, `current_revision = 2`) فور تنفيذ `COMMIT` في `conn1`.
++  2. سباق التحديث المتزامن عبر حاجز التزامن (`Promise Barrier`) وإثبات نجاح اتصال واحد فقط (`revision = 3`) ورفض الآخر (`conflict`).
++  3. سباق الإنشاء للمرة الأولى من اتصالين في نفس الوقت لمستخدم جديد، وتوقف `conn2` داخل `INSERT` على قفل الفهرس الفريد (`user_workspaces_pkey`)، ثم التقاط استثناء `unique_violation` (`23505`) فعليًا وإرجاع `{ status: "conflict", current_revision: 1, message: "Concurrent workspace initialization detected" }` دون فقدان البيانات.
 +
 +---
 +
-+## القسم الثاني: نتائج الاختبارات المفصولة حسب فئاتها الخمس (Phase 4.2.1)
++## القسم الثالث: نتائج الاختبارات المفصولة حسب فئاتها الخمس (274 / 274)
 +
 +تم تشغيل جميع الاختبارات فعليًا عبر `npm test` (`run_all_tests.js`) وجاءت النتائج مفصولة بدقة كالتالي:
 +
 +| الفئة | ملف الاختبار | البيئة الفعلية | عدد الفحوصات | النتيجة |
 +| :--- | :--- | :--- | :---: | :---: |
-+| **1. اختبارات التشفير الإنتاجي والفحص الثابت** | `run_verification_tests.js` | Node.js Web Crypto (`index.html`) + فحص SQL/SW | **49** | **49 PASS / 0 FAIL** |
++| **1. اختبارات التشفير الإنتاجي والفحص الثابت** | `run_verification_tests.js` | Node.js Web Crypto (`index.html`) + فحص SQL/SW | **50** | **50 PASS / 0 FAIL** |
 +| **2. اختبارات الوحدات والمنطق غير المتزامن (Unit Tests)** | `run_comprehensive_verification.js`<br>`test_phase3_cross_account_isolation.js`<br>`test_phase4_regressions.js` | Node.js + محاكي معاملات IDB | **102**<br>(42 + 25 + 35) | **102 PASS / 0 FAIL** |
 +| **3. اختبارات التوافق المضمنة (Embedded PG Compatibility)** | `test_phase4_2_postgres_integration.js` | **PGlite WASM (`PG 18.6 Single-Connection`)** | **41** | **41 PASS / 0 FAIL** |
-+| **4. اختبارات خادم PostgreSQL 16 الفعلي والتزامن متعدد الاتصالات** | `test_phase4_2_1_pg16_concurrency.js` | **PostgreSQL 16.15 حقيقي (`Multi-Connection TCP`)** | **29** | **29 PASS / 0 FAIL** |
++| **4. اختبارات خادم PostgreSQL 16 الفعلي والتزامن ومقاومة التزوير** | `test_phase4_2_1_pg16_concurrency.js` | **PostgreSQL 16.15 حقيقي (`Multi-Connection TCP`)** | **39** | **39 PASS / 0 FAIL** |
 +| **5. اختبارات المتصفح الشاملة (Browser E2E)** | `test_phase4_1_chromium_e2e.js` | **Headless Chromium + Real IndexedDB v4** | **42** | **42 PASS / 0 FAIL** |
-+| **الإجمالي الكلي** | **جميع الحزم (7 ملفات اختبار)** | **Node.js + PGlite + PostgreSQL 16.15 + Chromium** | **263** | **263 PASS / 0 FAIL** |
++| **الإجمالي الكلي** | **جميع الحزم (7 ملفات اختبار)** | **Node.js + PGlite + PostgreSQL 16.15 + Chromium** | **274** | **274 PASS / 0 FAIL** |
 +
 +---
 +
-+## القسم الثالث: المصادر والمراجع التقنية المعتمدة
++## القسم الرابع: المخاطر المتبقية والضوابط التشغيلية (`Residual Risks`)
 +
-+1. **PostgreSQL 16 Documentation — Explicit Locking (`SELECT ... FOR UPDATE` & Read Committed Row Locking)** — `https://www.postgresql.org/docs/16/explicit-locking.html`
-+2. **PostgreSQL 16 Documentation — `pg_locks` & `pg_stat_activity` System Views** — `https://www.postgresql.org/docs/16/view-pg-locks.html`
-+3. **PostgreSQL 16 Documentation — Row Security Policies (`CREATE POLICY` `USING` vs `WITH CHECK`)** — `https://www.postgresql.org/docs/16/ddl-rowsecurity.html`
-+4. **PostgreSQL 16 Documentation — `ALTER DEFAULT PRIVILEGES` & Default `PUBLIC` Function `EXECUTE`** — `https://www.postgresql.org/docs/16/sql-alterdefaultprivileges.html`
-+5. **PostgreSQL 16 Documentation — Writing `SECURITY DEFINER` Functions Safely (`search_path`)** — `https://www.postgresql.org/docs/16/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY`
-+6. **W3C Indexed Database API 3.0 (§4.3 Transaction Lifetime & Commit Semantics)** — `https://www.w3.org/TR/IndexedDB-3/#transaction-lifetime-concept`
-+7. **NIST SP 800-132 — Recommendation for Password-Based Key Derivation (`PBKDF2-HMAC-SHA256`)** — `https://csrc.nist.gov/publications/detail/sp/800-132/final`
++1. **سر توقيع JWT في بوابة Supabase / PostgREST (`JWT Secret Integrity`)**:
++   - تعتمد الدالة `auth.uid()` في Supabase على قيمة `request.jwt.claim.sub` التي تضبطها بوابة PostgREST بعد التحقق التشفيري من توقيع JWT. داخل جلسة `authenticated` في قاعدة البيانات، لا يستطيع المستخدم تغيير دوره إلى `postgres` أو `service_role` أو التلاعب بصفوف غيره، ولكن يجب تشغيليًا حماية مفتاح `SUPABASE_SERVICE_ROLE_KEY` و`JWT_SECRET` في إعدادات المنصة السحابية وعدم كشفهما في الكود العميل.
++2. **التعديلات الإدارية المباشرة عبر `postgres` أو `service_role`**:
++   - تسمح الدالة `enforce_workspace_write_via_rpc()` للعمليات الإدارية الخلفية المنفذة مباشرةً بواسطة دور الإدارة (`postgres` أو `service_role` عندما يكون `auth.uid() IS NULL`) بتحديث حالات الحسابات (مثل تفعيل صلاحية VIP `can_upload_media = true`). أما جميع عمليات المستخدمين (`authenticated`) فتمر حصريًا عبر `sync_workspace_with_concurrency()`.
++3. **تطبيق الترقية على قاعدة الإنتاج السحابية**:
++   - جميع التعديلات مطبقة ومختبرة بالكامل داخل المستودع وعلى خادم PostgreSQL 16 الفعلي المحلي وفي GitHub Actions CI، ويجب تطبيق ملف الترقية `supabase/migrations/20261103140000_fix_security_and_privileges.sql` على مشروع Supabase السحابي عند اعتماد الدمج النهائي.
 diff --git a/PHASE_4_1_ENGINEERING_AUDIT.md b/PHASE_4_1_ENGINEERING_AUDIT.md
 new file mode 100644
-index 0000000..0374201
+index 0000000..f0aed49
 --- /dev/null
 +++ b/PHASE_4_1_ENGINEERING_AUDIT.md
-@@ -0,0 +1,103 @@
-+# Exo Academic Platform — Phase 4.1, Phase 4.2 & Phase 4.2.1 Engineering Audit & Verification Report
+@@ -0,0 +1,74 @@
++# Exo Academic Platform — Phase 4.1, Phase 4.2, Phase 4.2.1 & GUC Forgery Remediation Engineering Report
 +
 +**Repository:** `JemistryMC/study-hub`  
 +**Target Branch:** `fix/phase-4-1-account-isolation`  
-+**Scope:** Phase 4.1 Account Isolation & IndexedDB Integrity + Phase 4.2 Security Hardening + Phase 4.2.1 Real PostgreSQL 16 Multi-Connection Concurrency Proof, 10-Dimension Catalog Parity & CI Reproducibility
++**Scope:** Phase 4.1 Account Isolation & IndexedDB Integrity + Phase 4.2 Security Hardening + Phase 4.2.1 Real PostgreSQL 16 Multi-Connection Concurrency Proof & 10-Dimension Catalog Parity + Unforgeable OCC RPC Redesign (GUC Forgery Remediation)
 +
 +---
 +
-+## 1. Phase 4.2.1 Engineering Corrections & Verification Proofs
++## 1. Unforgeable OCC RPC Redesign (Remediation of Custom GUC `exo.occ_rpc_active`)
 +
-+### 1.1 Explicit Separation Between Embedded PGlite and Native PostgreSQL 16
-+- **Finding Addressed**: `@electric-sql/pglite@0.5.15` is a single-connection WebAssembly build compiled from PostgreSQL 18.6 (`server_version_num = 180006` on `wasm32-unknown-emscripten`). Therefore, PGlite cannot prove compatibility with PostgreSQL 16 (`server_version_num = 16xxxx`) and cannot test multi-connection lock contention.
-+- **Correction Executed**:
-+  1. Retained `test_phase4_2_postgres_integration.js` (41 checks) strictly as **Category 3: Embedded PostgreSQL Compatibility Tests (PGlite WASM Single-Connection)** and removed all claims describing PGlite as PostgreSQL 16.
-+  2. Added `test_phase4_2_1_pg16_concurrency.js` (29 checks) as **Category 4: Real PostgreSQL 16 Server Concurrency & 10-Point Schema Parity Proof**, connecting via `pg` TCP sockets to a real `PostgreSQL 16` server (`postgres:16` service container in `.github/workflows/ci.yml` and local `PostgreSQL 16.15` server).
-+  3. Implemented a hard version gate at the start of `test_phase4_2_1_pg16_concurrency.js` executing `SELECT version()` and `SHOW server_version_num`, verifying `Math.floor(Number(server_version_num) / 10000) === 16` and `/PostgreSQL\s+16\./i.test(version)` and immediately failing if run against PGlite (`180006`) or any non-16 server.
-+  4. **Real PG16 Compatibility Bug Caught & Fixed**: Executing `supabase/migrations/20261103133622_remote_schema.sql` on real PostgreSQL 16.15 immediately exposed `GRANT ... MAINTAIN ... ON TABLE "public"."user_workspaces"`, which is a PostgreSQL 17+ privilege keyword that PGlite 18.6 accepted silently but PostgreSQL 16 rejected (`ERROR: unrecognized privilege type "maintain"`). Removed `MAINTAIN` from `20261103133622_remote_schema.sql` so all migrations execute cleanly on real PostgreSQL 16.
++### 1.1 Vulnerability Analysis of `current_setting('exo.occ_rpc_active', true)`
++- **Problem**: In PostgreSQL, custom GUC session parameters (such as `exo.occ_rpc_active`) can be set by any non-superuser SQL session (`authenticated` or `anon`) using `SET` or `SELECT pg_catalog.set_config('exo.occ_rpc_active', 'true', true)`. Consequently, checking `current_setting('exo.occ_rpc_active', true) = 'true'` inside `enforce_workspace_write_via_rpc()` and RLS policies is forgeable if `authenticated` ever obtains direct `INSERT` or `UPDATE` privileges on `public.user_workspaces`.
++- **Remediation**: Eliminated all occurrences of `exo.occ_rpc_active` across all migrations, `supabase/schema.sql`, triggers, RLS policies, and RPCs, and replaced it with a **dual-layer unforgeable database architecture**:
++  1. **Dedicated `NOLOGIN` Definer Role (`exo_occ_rpc_definer`) + RLS `CURRENT_USER` Verification**:
++     - Created role `exo_occ_rpc_definer` with attributes `NOLOGIN NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS`.
++     - Revoked membership in `exo_occ_rpc_definer` from `anon` and `authenticated` (`REVOKE "exo_occ_rpc_definer" FROM "anon", "authenticated"`), ensuring any client attempt to run `SET ROLE exo_occ_rpc_definer` fails with `permission denied to set role`.
++     - Transferred ownership of `public.sync_workspace_with_concurrency(jsonb, integer)` (`SECURITY DEFINER SET search_path = pg_catalog, public, auth, exo_internal`) to `exo_occ_rpc_definer`.
++     - Retained strict revocation of direct `INSERT, UPDATE, DELETE` table privileges from `authenticated` on `public.user_workspaces` (`authenticated` has only `SELECT`; `exo_occ_rpc_definer` has `SELECT, INSERT, UPDATE`).
++     - Because `exo_occ_rpc_definer` has `NOBYPASSRLS`, PostgreSQL still enforces Row Level Security on `public.user_workspaces` during RPC execution. Updated the `INSERT` and `UPDATE` RLS policies on `public.user_workspaces` to require:
++       `WITH CHECK ((auth.uid() = user_id) AND (CURRENT_USER = 'exo_occ_rpc_definer'::name))`
++     - Unlike custom GUC strings, `CURRENT_USER` is the kernel-enforced effective role identifier and can only equal `'exo_occ_rpc_definer'` inside a `SECURITY DEFINER` function owned by `exo_occ_rpc_definer`.
++  2. **Private Transaction Write-Context Table (`exo_internal.occ_active_write_context`) Checked by `enforce_workspace_write_via_rpc()`**:
++     - Created private schema `exo_internal` and table `exo_internal.occ_active_write_context (txid xid8 NOT NULL, user_id uuid NOT NULL, write_op text NOT NULL, PRIMARY KEY (txid, user_id))` with `ENABLE ROW LEVEL SECURITY`.
++     - Revoked all privileges on schema `exo_internal` and table `exo_internal.occ_active_write_context` from `PUBLIC`, `anon`, and `authenticated`; granted access exclusively to `postgres`, `service_role`, and `exo_occ_rpc_definer`.
++     - Inside `public.sync_workspace_with_concurrency()`, immediately prior to executing the `UPDATE` or `INSERT` on `public.user_workspaces`, the function inserts `(pg_catalog.pg_current_xact_id(), v_uid, 'UPDATE' | 'INSERT')` into `exo_internal.occ_active_write_context`, and deletes that row **immediately after the DML statement completes** (before returning, as well as inside the `EXCEPTION WHEN unique_violation` handler).
++     - Inside `public.enforce_workspace_write_via_rpc()` (`BEFORE INSERT OR UPDATE` trigger on `public.user_workspaces`), the trigger verifies that a matching row exists in `exo_internal.occ_active_write_context` for `(c.txid = pg_catalog.pg_current_xact_id(), c.user_id = NEW.user_id, c.write_op = TG_OP)`. If absent for any client session, it raises `OCC_BYPASS_FORBIDDEN` (`ERRCODE = '42501'`).
 +
-+### 1.2 Real Multi-Connection Concurrency Proof on PostgreSQL 16 (`test_phase4_2_1_pg16_concurrency.js`)
-+Using three independent `pg.Client` TCP connections (`conn1`, `conn2`, `connMonitor`) with verified distinct backend process IDs (`SELECT pg_backend_pid()` -> `pid1 !== pid2 !== pidMonitor`):
-+1. **Overlapping `SELECT ... FOR UPDATE` Row-Lock Contention & Stale Revision Rejection**:
-+   - Both `conn1` and `conn2` read the same baseline workspace revision (`revision = 1`).
-+   - `conn1` (`pid1`) begins a transaction (`BEGIN`), sets `ROLE authenticated` and `request.jwt.claim.sub`, and calls `public.sync_workspace_with_concurrency(payload1, 1)`, acquiring the `FOR UPDATE` row lock on `public.user_workspaces` and updating `revision` to `2` while holding the transaction open before `COMMIT`.
-+   - While `conn1` holds the row lock, `conn2` (`pid2`) starts its own transaction and invokes `public.sync_workspace_with_concurrency(payload2, 1)` with stale `p_expected_revision = 1`.
-+   - `connMonitor` (`pidMonitor`) queries `pg_stat_activity` and `pg_locks`, proving that `pid2` is actively blocked in-flight (`wait_event_type = 'Lock'`, `wait_event = 'transactionid'`, `granted = false` in `pg_locks`) while `pid1` holds the uncommitted lock.
-+   - `conn1` then executes `COMMIT`. `conn2` immediately unblocks, re-reads the committed tuple (`revision = 2`) via `SELECT ... FOR UPDATE`, detects `p_expected_revision (1) <> v_current_rev (2)`, and returns `{ status: "conflict", current_revision: 2 }` without overwriting `conn1`'s data.
-+2. **Barrier-Synchronized Simultaneous Parallel Update Race**:
-+   - Both `conn1` and `conn2` synchronize at an in-memory `Promise` barrier after `BEGIN` so both TCP sockets dispatch `SELECT public.sync_workspace_with_concurrency(..., 2)` at the exact same tick.
-+   - Verified that exactly one connection succeeds (`status = 'success'`, `revision = 3`) and the other receives `{ status: 'conflict', current_revision: 3 }`, with zero data corruption.
-+3. **Concurrent First-Time Workspace Creation & `unique_violation` Recovery Proof**:
-+   - For a brand-new user with 0 rows in `public.user_workspaces`:
-+   - `conn1` (`pid1`) starts `BEGIN` and calls `sync_workspace_with_concurrency(init1, NULL)`. `SELECT ... FOR UPDATE` sees `NOT FOUND`, so `conn1` executes `INSERT INTO public.user_workspaces` (revision 1) and holds the uncommitted unique index lock on `user_workspaces_pkey`.
-+   - While `conn1` is still uncommitted, `conn2` (`pid2`) starts `BEGIN` and calls `sync_workspace_with_concurrency(init2, NULL)`. Because `conn1` has not committed yet, `conn2`'s `SELECT ... FOR UPDATE` also sees `NOT FOUND` and enters the `INSERT` block, blocking on `user_workspaces_pkey` (`wait_event_type = 'Lock'`, `wait_event = 'transactionid'`).
-+   - `connMonitor` verifies in `pg_stat_activity` and `pg_locks` that `conn2` is blocked inside the concurrent `INSERT`.
-+   - `conn1` commits (`COMMIT`). PostgreSQL 16 raises `unique_violation` (`23505`) inside `conn2`, which is caught by `EXCEPTION WHEN unique_violation` in `sync_workspace_with_concurrency()`, re-reading `v_current_rev = 1` via `SELECT ... FOR UPDATE` and returning `{ status: "conflict", current_revision: 1, message: "Concurrent workspace initialization detected" }` without losing `conn1`'s initial workspace.
-+
-+### 1.3 Audit of the 4 Extensions & 10-Dimension Catalog Parity (`schema.sql` vs Migrations)
-+- **Extensions Audit**:
-+  1. `pg_stat_statements` (`SCHEMA extensions`): Native PostgreSQL 16 contrib extension — **installed and verified on PostgreSQL 16**; skipped in PGlite WASM.
-+  2. `pgcrypto` (`SCHEMA extensions`): Native PostgreSQL 16 contrib extension — **installed and functionally verified on PostgreSQL 16** (`extensions.gen_random_uuid()`, `extensions.digest()`); skipped in PGlite WASM.
-+  3. `uuid-ossp` (`SCHEMA extensions`): Native PostgreSQL 16 contrib extension — **installed and functionally verified on PostgreSQL 16** (`extensions.uuid_generate_v4()`); skipped in PGlite WASM.
-+  4. `supabase_vault` (`SCHEMA vault`): Proprietary Supabase Managed Cloud extension (not part of upstream `postgres:16` contrib and not referenced by any Exo table, function, trigger, or RLS policy) — **explicitly documented as excluded** in both standalone `postgres:16` and PGlite WASM.
-+- **10-Dimension Catalog Parity Verified on PostgreSQL 16 (`test_phase4_2_1_pg16_concurrency.js`)**:
-+  - Added `REVOKE ALL ON TABLE "public"."user_workspaces" FROM "service_role"` prior to `GRANT SELECT, INSERT, UPDATE, DELETE` in `20261103140000_fix_security_and_privileges.sql` so `relacl` matches `supabase/schema.sql` identically.
-+  - Verified exact catalog equality between `exo_pg16_migrated` and `exo_pg16_fresh_schema` across:
-+    1. Columns, types, nullability, and `column_default` (`information_schema.columns` — all 10 columns).
-+    2. Constraints (`PRIMARY KEY` and `FOREIGN KEY ... ON DELETE CASCADE` via `pg_get_constraintdef`).
-+    3. Indexes (`user_workspaces_pkey` via `pg_indexes`).
-+    4. All 7 RLS policies on `public.user_workspaces` and `storage.objects` including `permissive`, `roles`, `cmd`, `USING` (`qual`), and `WITH CHECK` (`with_check`).
-+    5. All 4 table triggers on `public.user_workspaces` (`pg_get_triggerdef`).
-+    6. Event trigger `ensure_rls` (`pg_event_trigger`).
-+    7. All 6 public functions (`prosecdef`, `proconfig` `search_path`, `proacl`, and `pg_get_functiondef`).
-+    8. Table privileges (`relacl`, `relrowsecurity`, `relforcerowsecurity`).
-+    9. Default privileges (`pg_default_acl`).
-+    10. Storage bucket `lecture_media` properties (`public = false`, `file_size_limit = 52428800`, `allowed_mime_types`).
-+
-+### 1.4 Deterministic Lockfile (`package-lock.json`) & GitHub Actions CI (`.github/workflows/ci.yml`)
-+- Generated and committed `package-lock.json` with pinned `devDependencies` (`"@electric-sql/pglite": "0.5.15"`, `"pg": "8.23.1"`, `"playwright": "1.64.1"`).
-+- Updated `.github/workflows/ci.yml` to:
-+  1. Provision a real `postgres:16` Docker service container with `pg_isready` healthchecks on port `5432`.
-+  2. Install dependencies deterministically via `npm ci` (instead of `npm install`).
-+  3. Run each independent test category (`npm run test:static`, `npm run test:unit`, `npm run test:pglite`, `npm run test:pg16`, `npm run test:e2e`) AND execute `npm test` to verify `run_all_tests.js`.
++### 1.2 Real PostgreSQL 16 GUC Forgery & Identity Anti-Spoofing Proofs (`test_phase4_2_1_pg16_concurrency.js`)
++- **Section 6 — Custom GUC Forgery Attack Proof**:
++  1. Admin connection temporarily grants `GRANT INSERT, UPDATE ON TABLE public.user_workspaces TO authenticated`.
++  2. `authenticated` session (`userA`) manually executes `SELECT pg_catalog.set_config('exo.occ_rpc_active', 'true', true)` and attempts a direct `UPDATE public.user_workspaces SET subjects = ... WHERE user_id = userA` -> **Rejected** with `OCC_BYPASS_FORBIDDEN` (`42501`).
++  3. `authenticated` session manually sets `exo.occ_rpc_active = 'true'` and attempts a direct `INSERT INTO public.user_workspaces ...` -> **Rejected** with `OCC_BYPASS_FORBIDDEN` (`42501`).
++  4. `authenticated` session (`SET LOCAL SESSION AUTHORIZATION authenticated`) attempts `SET LOCAL ROLE exo_occ_rpc_definer` and attempts to `INSERT` directly into `exo_internal.occ_active_write_context` -> **Both Rejected** with `permission denied`.
++  5. `authenticated` session attempts a **Same-Transaction Piggyback Attack** (calling `sync_workspace_with_concurrency()` and then executing a direct `UPDATE` in the same transaction) -> **Rejected** with `OCC_BYPASS_FORBIDDEN` (`42501`) because the context entry in `exo_internal.occ_active_write_context` is deleted before `sync_workspace_with_concurrency()` returns.
++  6. Even when `trg_enforce_workspace_write_via_rpc` is temporarily disabled by admin while `authenticated` holds `UPDATE` grant and sets `exo.occ_rpc_active = 'true'`, the RLS policy `WITH CHECK (CURRENT_USER = 'exo_occ_rpc_definer')` independently **rejects** the direct `UPDATE` (`new row violates row-level security policy`, `42501`).
++  7. Legitimate calls to `SELECT public.sync_workspace_with_concurrency(payload, expected_revision)` from `authenticated` succeed normally (`revision` 3 -> 4), temporary table grants are revoked, and `userB`'s workspace row is verified 100% untouched.
++- **Section 7 — `auth.uid()` Identity Binding & Anti-Spoofing Verification**:
++  1. `userA` invokes `sync_workspace_with_concurrency()` with a spoofed JSON payload containing `"user_id": userB`, `"user_email": "bob.victim@exo.edu"`, `"can_upload_media": true`, and `"revision": 999`. Verified that `userB`'s row is completely untouched (`revision = 1`), while `userA`'s row is updated with `user_id = userA`, `user_email = 'alice.concurrency@exo.edu'` (enforced from `auth.users`), and `can_upload_media = false`.
++  2. Verified that an `authenticated` session (`SET LOCAL SESSION AUTHORIZATION authenticated`) cannot escalate via `SET LOCAL ROLE postgres` or `SET LOCAL ROLE service_role` (`permission denied to set role`).
 +
 +---
 +
-+## 2. Separated 5-Category Test Execution Summary
++## 2. Phase 4.2.1 Multi-Connection Concurrency & 10-Point Schema Parity on PostgreSQL 16
++
++1. **Native PostgreSQL 16 Server & Version Gate**:
++   - `test_phase4_2_1_pg16_concurrency.js` connects to a real PostgreSQL 16 server (`PostgreSQL 16.15`, `server_version_num = 160015`) via `pg` TCP connections and enforces a strict version gate (`Major === 16`), while `test_phase4_2_postgres_integration.js` is retained strictly as **Embedded PostgreSQL Compatibility Tests (PGlite WASM)**.
++2. **Real Multi-Connection Concurrency Proof**:
++   - Proven overlapping `SELECT ... FOR UPDATE` row-lock contention (`wait_event_type = 'Lock'`, `wait_event = 'transactionid'` observed via `pg_stat_activity` and `pg_locks` on a 3rd monitor connection), barrier-synchronized simultaneous updates, and concurrent first-time workspace creation triggering real `unique_violation` (`23505`) recovery.
++3. **10-Dimension Catalog Parity (`supabase/schema.sql` vs Migrations)**:
++   - Verified 100% parity across columns/defaults, PK/FK constraints, indexes, all RLS policies (including `USING` and `WITH CHECK`), triggers, event triggers, functions (`SECURITY DEFINER`, `search_path`, ACLs, bodies), table ACLs, `pg_default_acl` (`postgres` and `exo_occ_rpc_definer`), `storage.buckets`, and `exo_internal.occ_active_write_context`.
++
++---
++
++## 3. Separated 5-Category Test Execution Summary (274 / 274 Passing)
 +
 +| Category | Test File(s) | Command | Target Runtime | Assertions | Status |
 +| :--- | :--- | :--- | :--- | :---: | :---: |
-+| **1. Production Crypto & Static Audit** | `run_verification_tests.js` | `npm run test:static` | Node.js Web Crypto (`index.html`) + Static SQL/SW Audit | **49** | **49 PASS / 0 FAIL** |
++| **1. Production Crypto & Static Audit** | `run_verification_tests.js` | `npm run test:static` | Node.js Web Crypto (`index.html`) + Static SQL/SW Audit | **50** | **50 PASS / 0 FAIL** |
 +| **2. Pure Unit & Async Logic Isolation** | `run_comprehensive_verification.js`<br>`test_phase3_cross_account_isolation.js`<br>`test_phase4_regressions.js` | `npm run test:unit` | Node.js VM + IDB Transaction Simulator | **102**<br>(42+25+35) | **102 PASS / 0 FAIL** |
 +| **3. Embedded PostgreSQL Compatibility** | `test_phase4_2_postgres_integration.js` | `npm run test:pglite` | `@electric-sql/pglite` 0.5.15 (Single-Connection WASM PG 18.6) | **41** | **41 PASS / 0 FAIL** |
-+| **4. Real PostgreSQL 16 Concurrency & Parity** | `test_phase4_2_1_pg16_concurrency.js` | `npm run test:pg16` | **Native PostgreSQL 16.15 Server (`server_version_num=160015`)** + Multi-Connection `pg` | **29** | **29 PASS / 0 FAIL** |
++| **4. Real PostgreSQL 16 Concurrency, GUC Forgery & Parity** | `test_phase4_2_1_pg16_concurrency.js` | `npm run test:pg16` | **Native PostgreSQL 16.15 Server (`server_version_num=160015`)** + Multi-Connection `pg` | **39** | **39 PASS / 0 FAIL** |
 +| **5. Real Browser E2E & IndexedDB** | `test_phase4_1_chromium_e2e.js` | `npm run test:e2e` | **Headless Chromium (`playwright` 1.64.1) + Real IndexedDB v4** | **42** | **42 PASS / 0 FAIL** |
-+| **Grand Total (All 7 Suites)** | `run_all_tests.js` | `npm test` | **All Runtimes Combined** | **263** | **263 PASS / 0 FAIL** |
++| **Grand Total (All 7 Suites)** | `run_all_tests.js` | `npm test` | **All Runtimes Combined** | **274** | **274 PASS / 0 FAIL** |
 +
 +---
 +
-+## 3. Clean-Environment Setup & Verification Commands
++## 4. Residual Risks & Operational Considerations
 +
-+```bash
-+# 1. Deterministic dependency installation from package-lock.json
-+npm ci
-+
-+# 2. Install Headless Chromium for Playwright E2E
-+npm run test:setup
-+
-+# 3. Verify syntax & lint checks across all server, build, and test scripts
-+npm run lint
-+
-+# 4. Run production static asset build
-+npm run build
-+
-+# 5. Run each verification tier independently
-+npm run test:static   # Tier 1: Production Web Crypto PBKDF2 & Static SQL/SW Checks (49 checks)
-+npm run test:unit     # Tier 2: Pure Unit & Async Logic Isolation Suites (102 checks)
-+npm run test:pglite   # Tier 3: Embedded PostgreSQL Compatibility Suite — PGlite WASM (41 checks)
-+npm run test:pg16     # Tier 4: Real PostgreSQL 16 Multi-Connection Concurrency & 10-Point Parity (29 checks)
-+npm run test:e2e      # Tier 5: Real Headless Chromium + IndexedDB E2E Suite (42 checks)
-+
-+# 6. Run the unified categorized test runner
-+npm test
-+```
++1. **PostgREST / Supabase Gateway JWT Secret Protection**:
++   - `auth.uid()` reads `request.jwt.claim.sub`, which is populated by Supabase PostgREST after verifying the signature of the client's Bearer JWT. Database roles `anon` and `authenticated` cannot escalate to `postgres`, `service_role`, or `exo_occ_rpc_definer`, nor can they spoof another user's ID through `sync_workspace_with_concurrency(p_payload, p_expected_revision)`. Operationally, the project's `JWT_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` must remain confidential on the backend infrastructure and never be exposed to client browsers.
++2. **Administrative `postgres` / `service_role` Maintenance Writes**:
++   - Administrative connections running as `postgres` or `service_role` (with `auth.uid() IS NULL`) remain permitted to perform administrative updates (such as toggling `can_upload_media = true` for VIP users). All application client writes (`authenticated`) are strictly forced through `sync_workspace_with_concurrency()`.
++3. **Production Migration Deployment**:
++   - The updated migration `supabase/migrations/20261103140000_fix_security_and_privileges.sql` is verified on PostgreSQL 16.15 and ready to be applied to the hosted Supabase instance upon PR merge.
 diff --git a/build.js b/build.js
 index 15f91b7..0d6c6e8 100644
 --- a/build.js
@@ -6178,7 +6510,7 @@ index eab9856..ab679d5 100644
 +  process.exit(1);
 +});
 diff --git a/run_verification_tests.js b/run_verification_tests.js
-index d72f080..2cea217 100644
+index d72f080..cc2829c 100644
 --- a/run_verification_tests.js
 +++ b/run_verification_tests.js
 @@ -1,6 +1,14 @@
@@ -6198,7 +6530,7 @@ index d72f080..2cea217 100644
  // ============================================================================
  
  const crypto = require('crypto');
-@@ -9,287 +17,373 @@ const fs = require('fs');
+@@ -9,287 +17,383 @@ const fs = require('fs');
  let testsPassed = 0;
  let testsFailed = 0;
  
@@ -6618,7 +6950,7 @@ index d72f080..2cea217 100644
 +    'Atomic concurrency RPC sync_workspace_with_concurrency present in both migration and final schema.sql'
 +  );
 +
-+  // 3.6 Security Definer Search Path Hardening
++  // 3.6 Security Definer Search Path Hardening & Unforgeable OCC RPC Proof
 +  assert(
 +    forwardMigration.includes('CREATE OR REPLACE FUNCTION public.protect_vip_status_column()') &&
 +      forwardMigration.includes('SET search_path = pg_catalog, public'),
@@ -6631,8 +6963,18 @@ index d72f080..2cea217 100644
 +  );
 +  assert(
 +    forwardMigration.includes('sync_workspace_with_concurrency') &&
-+      forwardMigration.includes('SET search_path = pg_catalog, public, auth'),
-+    'sync_workspace_with_concurrency hardened with search_path = pg_catalog, public, auth'
++      forwardMigration.includes('SET search_path = pg_catalog, public, auth, exo_internal'),
++    'sync_workspace_with_concurrency hardened with search_path = pg_catalog, public, auth, exo_internal'
++  );
++  assert(
++    !forwardMigration.includes('exo.occ_rpc_active') &&
++      !finalSchema.includes('exo.occ_rpc_active') &&
++      !safeRollback.includes('exo.occ_rpc_active') &&
++      forwardMigration.includes('exo_occ_rpc_definer') &&
++      forwardMigration.includes('exo_internal.occ_active_write_context') &&
++      finalSchema.includes('exo_occ_rpc_definer') &&
++      finalSchema.includes('exo_internal.occ_active_write_context'),
++    'Zero reliance on forgeable custom GUC (exo.occ_rpc_active) in migrations/schema; unforgeable NOLOGIN role exo_occ_rpc_definer and private exo_internal.occ_active_write_context enforced'
 +  );
 +
 +  // 3.7 Rollback Safety Gate & Safe Emergency Rollback Alternative
@@ -7527,7 +7869,7 @@ index 6de4a00..4911bbb 100644
 +GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE "public"."user_workspaces" TO "postgres";
 +GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE "public"."user_workspaces" TO "service_role";
 diff --git a/supabase/migrations/20261103140000_fix_security_and_privileges.sql b/supabase/migrations/20261103140000_fix_security_and_privileges.sql
-index ddcee0e..1828363 100644
+index ddcee0e..a18c2a0 100644
 --- a/supabase/migrations/20261103140000_fix_security_and_privileges.sql
 +++ b/supabase/migrations/20261103140000_fix_security_and_privileges.sql
 @@ -1,29 +1,41 @@
@@ -7599,15 +7941,73 @@ index ddcee0e..1828363 100644
  
  -- Drop the overly permissive upload policy that bypassed the VIP check
  DROP POLICY IF EXISTS "Users can upload their own lecture media" ON "storage"."objects";
-@@ -85,35 +99,66 @@ CREATE POLICY "Allow VIP users to update media" ON "storage"."objects"
+@@ -85,35 +99,136 @@ CREATE POLICY "Allow VIP users to update media" ON "storage"."objects"
    );
  
  -- ============================================================================
 --- 2. REVOKE EXCESSIVE TABLE PRIVILEGES ON USER_WORKSPACES
-+-- 2. REVOKE EXCESSIVE TABLE PRIVILEGES & HARDEN RLS ON USER_WORKSPACES
++-- 2. DEDICATED NOLOGIN RPC DEFINER ROLE & PRIVATE OCC WRITE CONTEXT SCHEMA
++-- ============================================================================
++-- Security Rationale (Phase 4.2.2 GUC Forgery Remediation):
++--   Custom PostgreSQL GUC session variables set via set_config() or SET
++--   can be modified by any SQL session and therefore cannot serve as an
++--   unforgeable proof of SECURITY DEFINER RPC execution.
++--   Instead, we combine two unforgeable database-enforced mechanisms:
++--     1. A dedicated NOLOGIN, NOINHERIT, NOBYPASSRLS role ("exo_occ_rpc_definer")
++--        that owns public.sync_workspace_with_concurrency() and is revoked from
++--        PUBLIC, anon, and authenticated (so clients cannot SET ROLE to it).
++--     2. A private schema & table ("exo_internal"."occ_active_write_context")
++--        inaccessible to PUBLIC, anon, and authenticated, recording the active
++--        transaction XID (pg_current_xact_id()), target user_id, and write_op
++--        solely for the duration of the DML statement inside the OCC RPC.
++
++DO $$
++BEGIN
++  IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'exo_occ_rpc_definer') THEN
++    CREATE ROLE "exo_occ_rpc_definer" NOLOGIN NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
++  ELSE
++    ALTER ROLE "exo_occ_rpc_definer" NOLOGIN NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
++  END IF;
++END
++$$;
++
++REVOKE "exo_occ_rpc_definer" FROM "anon", "authenticated";
++GRANT "exo_occ_rpc_definer" TO "postgres";
++
++CREATE SCHEMA IF NOT EXISTS "exo_internal" AUTHORIZATION "postgres";
++REVOKE ALL ON SCHEMA "exo_internal" FROM PUBLIC, "anon", "authenticated";
++GRANT USAGE ON SCHEMA "exo_internal" TO "postgres", "service_role", "exo_occ_rpc_definer";
++
++CREATE TABLE IF NOT EXISTS "exo_internal"."occ_active_write_context" (
++  "txid" xid8 NOT NULL,
++  "user_id" uuid NOT NULL,
++  "write_op" text NOT NULL,
++  CONSTRAINT "occ_active_write_context_pkey" PRIMARY KEY ("txid", "user_id"),
++  CONSTRAINT "occ_active_write_context_op_check" CHECK ("write_op" IN ('INSERT', 'UPDATE'))
++);
++
++ALTER TABLE "exo_internal"."occ_active_write_context" OWNER TO "postgres";
++ALTER TABLE "exo_internal"."occ_active_write_context" ENABLE ROW LEVEL SECURITY;
++
++REVOKE ALL ON TABLE "exo_internal"."occ_active_write_context" FROM PUBLIC, "anon", "authenticated";
++GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "exo_internal"."occ_active_write_context" TO "postgres", "service_role", "exo_occ_rpc_definer";
++
++DROP POLICY IF EXISTS "occ_rpc_definer_manage_write_context" ON "exo_internal"."occ_active_write_context";
++CREATE POLICY "occ_rpc_definer_manage_write_context" ON "exo_internal"."occ_active_write_context"
++  FOR ALL
++  TO "postgres", "service_role", "exo_occ_rpc_definer"
++  USING (true)
++  WITH CHECK (true);
++
++-- ============================================================================
++-- 3. REVOKE EXCESSIVE TABLE PRIVILEGES & HARDEN RLS ON USER_WORKSPACES
  -- ============================================================================
  
 --- Revoke all table-level permissions from anon and public
++GRANT USAGE ON SCHEMA "public" TO "exo_occ_rpc_definer";
++GRANT USAGE ON SCHEMA "auth" TO "exo_occ_rpc_definer";
++GRANT SELECT ON TABLE "auth"."users" TO "exo_occ_rpc_definer";
++
  REVOKE ALL ON TABLE "public"."user_workspaces" FROM PUBLIC;
  REVOKE ALL ON TABLE "public"."user_workspaces" FROM "anon";
 -
@@ -7615,59 +8015,71 @@ index ddcee0e..1828363 100644
  REVOKE ALL ON TABLE "public"."user_workspaces" FROM "authenticated";
 -GRANT SELECT, INSERT, UPDATE ON TABLE "public"."user_workspaces" TO "authenticated";
 +REVOKE ALL ON TABLE "public"."user_workspaces" FROM "service_role";
-+-- Only SELECT is granted directly to authenticated; all writes MUST pass through
-+-- the SECURITY DEFINER RPC sync_workspace_with_concurrency() to enforce OCC.
++REVOKE ALL ON TABLE "public"."user_workspaces" FROM "exo_occ_rpc_definer";
++-- Only SELECT is granted directly to authenticated; all client writes MUST pass
++-- through sync_workspace_with_concurrency() owned by exo_occ_rpc_definer.
 +GRANT SELECT ON TABLE "public"."user_workspaces" TO "authenticated";
++GRANT SELECT, INSERT, UPDATE ON TABLE "public"."user_workspaces" TO "exo_occ_rpc_definer";
 +GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "public"."user_workspaces" TO "postgres", "service_role";
 +
-+-- Scope RLS policies to authenticated and require OCC RPC context for INSERT/UPDATE
++-- Scope RLS policies to authenticated & exo_occ_rpc_definer and require
++-- effective role CURRENT_USER = 'exo_occ_rpc_definer' (unforgeable by client SQL)
++-- for INSERT and UPDATE row checks.
 +DROP POLICY IF EXISTS "Users can view own workspace" ON "public"."user_workspaces";
 +CREATE POLICY "Users can view own workspace" ON "public"."user_workspaces"
 +  FOR SELECT
-+  TO "authenticated"
++  TO "authenticated", "exo_occ_rpc_definer"
 +  USING ((auth.uid() = user_id));
 +
 +DROP POLICY IF EXISTS "Users can insert own workspace" ON "public"."user_workspaces";
 +CREATE POLICY "Users can insert own workspace" ON "public"."user_workspaces"
 +  FOR INSERT
-+  TO "authenticated"
++  TO "authenticated", "exo_occ_rpc_definer"
 +  WITH CHECK (
 +    (auth.uid() = user_id)
-+    AND (COALESCE(pg_catalog.current_setting('exo.occ_rpc_active', true), '') = 'true')
++    AND (CURRENT_USER = 'exo_occ_rpc_definer'::name)
 +  );
 +
 +DROP POLICY IF EXISTS "Users can update own workspace" ON "public"."user_workspaces";
 +CREATE POLICY "Users can update own workspace" ON "public"."user_workspaces"
 +  FOR UPDATE
-+  TO "authenticated"
++  TO "authenticated", "exo_occ_rpc_definer"
 +  USING ((auth.uid() = user_id))
 +  WITH CHECK (
 +    (auth.uid() = user_id)
-+    AND (COALESCE(pg_catalog.current_setting('exo.occ_rpc_active', true), '') = 'true')
++    AND (CURRENT_USER = 'exo_occ_rpc_definer'::name)
 +  );
  
  -- ============================================================================
 --- 3. REVOKE UNSAFE DEFAULT PRIVILEGES IN PUBLIC SCHEMA
-+-- 3. REVOKE UNSAFE DEFAULT PRIVILEGES (GLOBAL & IN SCHEMA PUBLIC)
++-- 4. REVOKE UNSAFE DEFAULT PRIVILEGES (GLOBAL & IN SCHEMA PUBLIC)
  -- ============================================================================
 +-- Note: In PostgreSQL, newly created functions grant EXECUTE to PUBLIC by default.
 +-- Revoking only from "anon", "authenticated" is insufficient unless PUBLIC is also
 +-- revoked both globally (all schemas) and in schema "public".
++
++ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" REVOKE ALL ON TABLES FROM PUBLIC, "anon", "authenticated";
++ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" REVOKE ALL ON SEQUENCES FROM PUBLIC, "anon", "authenticated";
++ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" REVOKE ALL ON FUNCTIONS FROM PUBLIC, "anon", "authenticated";
  
 -ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON TABLES FROM "anon", "authenticated";
 -ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON SEQUENCES FROM "anon", "authenticated";
 -ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON FUNCTIONS FROM "anon", "authenticated";
-+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" REVOKE ALL ON TABLES FROM PUBLIC, "anon", "authenticated";
-+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" REVOKE ALL ON SEQUENCES FROM PUBLIC, "anon", "authenticated";
-+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" REVOKE ALL ON FUNCTIONS FROM PUBLIC, "anon", "authenticated";
-+
 +ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON TABLES FROM PUBLIC, "anon", "authenticated";
 +ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON SEQUENCES FROM PUBLIC, "anon", "authenticated";
 +ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON FUNCTIONS FROM PUBLIC, "anon", "authenticated";
++
++ALTER DEFAULT PRIVILEGES FOR ROLE "exo_occ_rpc_definer" REVOKE ALL ON TABLES FROM PUBLIC, "anon", "authenticated";
++ALTER DEFAULT PRIVILEGES FOR ROLE "exo_occ_rpc_definer" REVOKE ALL ON SEQUENCES FROM PUBLIC, "anon", "authenticated";
++ALTER DEFAULT PRIVILEGES FOR ROLE "exo_occ_rpc_definer" REVOKE ALL ON FUNCTIONS FROM PUBLIC, "anon", "authenticated";
++
++ALTER DEFAULT PRIVILEGES FOR ROLE "exo_occ_rpc_definer" IN SCHEMA "public" REVOKE ALL ON TABLES FROM PUBLIC, "anon", "authenticated";
++ALTER DEFAULT PRIVILEGES FOR ROLE "exo_occ_rpc_definer" IN SCHEMA "public" REVOKE ALL ON SEQUENCES FROM PUBLIC, "anon", "authenticated";
++ALTER DEFAULT PRIVILEGES FOR ROLE "exo_occ_rpc_definer" IN SCHEMA "public" REVOKE ALL ON FUNCTIONS FROM PUBLIC, "anon", "authenticated";
  
  -- ============================================================================
 --- 4. SERVER-ENFORCED UPDATED_AT AND OPTIMISTIC CONCURRENCY REVISION
-+-- 4. SERVER-ENFORCED UPDATED_AT, REVISION & DATABASE-LEVEL OCC WRITE GUARD
++-- 5. SERVER-ENFORCED UPDATED_AT, REVISION & UNFORGEABLE OCC WRITE GUARD
  -- ============================================================================
  
 --- Add revision tracking column (backward-compatible, defaults to 1)
@@ -7679,14 +8091,15 @@ index ddcee0e..1828363 100644
  CREATE OR REPLACE FUNCTION public.handle_user_workspace_updated_at()
  RETURNS TRIGGER
  LANGUAGE plpgsql
-@@ -127,17 +172,50 @@ BEGIN
+@@ -127,19 +242,60 @@ BEGIN
  END;
  $$;
  
 --- Secure the trigger function permissions (least privilege)
 +ALTER FUNCTION public.handle_user_workspace_updated_at() OWNER TO "postgres";
  REVOKE ALL ON FUNCTION public.handle_user_workspace_updated_at() FROM PUBLIC, "anon", "authenticated";
- GRANT EXECUTE ON FUNCTION public.handle_user_workspace_updated_at() TO "postgres", "service_role";
+-GRANT EXECUTE ON FUNCTION public.handle_user_workspace_updated_at() TO "postgres", "service_role";
++GRANT EXECUTE ON FUNCTION public.handle_user_workspace_updated_at() TO "postgres", "service_role", "exo_occ_rpc_definer";
  
 --- Bind trigger to user_workspaces
  DROP TRIGGER IF EXISTS trg_user_workspaces_updated_at ON public.user_workspaces;
@@ -7695,15 +8108,23 @@ index ddcee0e..1828363 100644
    FOR EACH ROW
    EXECUTE FUNCTION public.handle_user_workspace_updated_at();
  
-+-- Database-level guard preventing any direct INSERT/UPDATE from bypassing OCC RPC
++-- Unforgeable database-level guard preventing any direct INSERT/UPDATE from
++-- bypassing sync_workspace_with_concurrency(), even if a client sets arbitrary
++-- custom GUC session variables or temporarily holds table grants.
 +CREATE OR REPLACE FUNCTION public.enforce_workspace_write_via_rpc()
 +RETURNS TRIGGER
 +LANGUAGE plpgsql
 +SECURITY DEFINER
-+SET search_path = pg_catalog, public, auth
++SET search_path = pg_catalog, public, auth, exo_internal
 +AS $$
 +BEGIN
-+  IF COALESCE(pg_catalog.current_setting('exo.occ_rpc_active', true), '') = 'true' THEN
++  IF EXISTS (
++    SELECT 1
++    FROM exo_internal.occ_active_write_context c
++    WHERE c.txid = pg_catalog.pg_current_xact_id()
++      AND c.user_id = NEW.user_id
++      AND c.write_op = TG_OP
++  ) THEN
 +    RETURN NEW;
 +  END IF;
 +
@@ -7721,7 +8142,7 @@ index ddcee0e..1828363 100644
 +
 +ALTER FUNCTION public.enforce_workspace_write_via_rpc() OWNER TO "postgres";
 +REVOKE ALL ON FUNCTION public.enforce_workspace_write_via_rpc() FROM PUBLIC, "anon", "authenticated";
-+GRANT EXECUTE ON FUNCTION public.enforce_workspace_write_via_rpc() TO "postgres", "service_role";
++GRANT EXECUTE ON FUNCTION public.enforce_workspace_write_via_rpc() TO "postgres", "service_role", "exo_occ_rpc_definer";
 +
 +DROP TRIGGER IF EXISTS trg_enforce_workspace_write_via_rpc ON public.user_workspaces;
 +CREATE TRIGGER trg_enforce_workspace_write_via_rpc
@@ -7730,9 +8151,22 @@ index ddcee0e..1828363 100644
 +  EXECUTE FUNCTION public.enforce_workspace_write_via_rpc();
 +
  -- ============================================================================
- -- 5. ATOMIC CONCURRENCY-CONTROLLED WORKSPACE SYNC RPC
+--- 5. ATOMIC CONCURRENCY-CONTROLLED WORKSPACE SYNC RPC
++-- 6. ATOMIC CONCURRENCY-CONTROLLED WORKSPACE SYNC RPC (OWNED BY NOLOGIN DEFINER)
  -- ============================================================================
-@@ -157,9 +235,16 @@ DECLARE
+ 
+ CREATE OR REPLACE FUNCTION public.sync_workspace_with_concurrency(
+@@ -149,18 +305,23 @@ CREATE OR REPLACE FUNCTION public.sync_workspace_with_concurrency(
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+-SET search_path = pg_catalog, public, auth
++SET search_path = pg_catalog, public, auth, exo_internal
+ AS $$
+ DECLARE
+   v_uid uuid := auth.uid();
++  v_txid xid8 := pg_catalog.pg_current_xact_id();
+   v_current_rev integer;
    v_updated_at timestamptz;
  BEGIN
    IF v_uid IS NULL THEN
@@ -7744,36 +8178,36 @@ index ddcee0e..1828363 100644
 +    RAISE EXCEPTION 'Invalid workspace payload: expected JSON object' USING ERRCODE = '22023';
    END IF;
  
-+  -- Mark transaction context as authorized inside OCC RPC
-+  PERFORM pg_catalog.set_config('exo.occ_rpc_active', 'true', true);
-+
-   -- 1. Attempt to lock the existing workspace row for this user
+-  -- 1. Attempt to lock the existing workspace row for this user
++  -- 1. Attempt to lock the existing workspace row for this authenticated user
    SELECT revision, updated_at
    INTO v_current_rev, v_updated_at
-@@ -171,6 +256,7 @@ BEGIN
-   IF FOUND THEN
-     -- Concurrency check: Reject NULL or mismatched expected revision
-     IF p_expected_revision IS NULL OR p_expected_revision <> v_current_rev THEN
-+      PERFORM pg_catalog.set_config('exo.occ_rpc_active', 'false', true);
-       RETURN jsonb_build_object(
-         'status', 'conflict',
-         'current_revision', v_current_rev,
-@@ -179,7 +265,7 @@ BEGIN
+   FROM public.user_workspaces
+@@ -179,7 +340,12 @@ BEGIN
        );
      END IF;
  
 -    -- Update row with payload data (using valid COALESCE syntax)
-+    -- Update row with payload data (using standard SQL COALESCE)
++    -- Authorize single statement in unforgeable private write-context table
++    INSERT INTO exo_internal.occ_active_write_context (txid, user_id, write_op)
++    VALUES (v_txid, v_uid, 'UPDATE')
++    ON CONFLICT (txid, user_id) DO UPDATE SET write_op = EXCLUDED.write_op;
++
++    -- Update row with payload data (strictly bound to v_uid = auth.uid())
      UPDATE public.user_workspaces
      SET
        subjects = COALESCE(p_payload->'subjects', subjects),
-@@ -196,6 +282,17 @@ BEGIN
+@@ -194,9 +360,26 @@ BEGIN
+     WHERE user_id = v_uid
+     RETURNING revision, updated_at INTO v_current_rev, v_updated_at;
  
++    DELETE FROM exo_internal.occ_active_write_context
++    WHERE txid = v_txid AND user_id = v_uid;
++
    -- 3. Handle concurrent first-time workspace creation safely
    ELSE
 +    -- For first-time creation, expected revision must be NULL or 1
 +    IF p_expected_revision IS NOT NULL AND p_expected_revision <> 1 THEN
-+      PERFORM pg_catalog.set_config('exo.occ_rpc_active', 'false', true);
 +      RETURN jsonb_build_object(
 +        'status', 'conflict',
 +        'current_revision', 0,
@@ -7783,40 +8217,45 @@ index ddcee0e..1828363 100644
 +    END IF;
 +
      BEGIN
++      INSERT INTO exo_internal.occ_active_write_context (txid, user_id, write_op)
++      VALUES (v_txid, v_uid, 'INSERT')
++      ON CONFLICT (txid, user_id) DO UPDATE SET write_op = EXCLUDED.write_op;
++
        INSERT INTO public.user_workspaces (
          user_id,
-@@ -219,13 +316,13 @@ BEGIN
+         user_email,
+@@ -217,9 +400,14 @@ BEGIN
+         1
+       )
        RETURNING revision, updated_at INTO v_current_rev, v_updated_at;
++
++      DELETE FROM exo_internal.occ_active_write_context
++      WHERE txid = v_txid AND user_id = v_uid;
      EXCEPTION
        WHEN unique_violation THEN
 -        -- Another concurrent request created the row first; lock and report conflict
++        DELETE FROM exo_internal.occ_active_write_context
++        WHERE txid = v_txid AND user_id = v_uid;
++
          SELECT revision, updated_at
          INTO v_current_rev, v_updated_at
          FROM public.user_workspaces
-         WHERE user_id = v_uid
-         FOR UPDATE;
- 
-+        PERFORM pg_catalog.set_config('exo.occ_rpc_active', 'false', true);
-         RETURN jsonb_build_object(
-           'status', 'conflict',
-           'current_revision', v_current_rev,
-@@ -235,7 +332,7 @@ BEGIN
+@@ -235,7 +423,6 @@ BEGIN
      END;
    END IF;
  
 -  -- Return lightweight status, revision, and updated_at (NOT the multi-megabyte payload)
-+  PERFORM pg_catalog.set_config('exo.occ_rpc_active', 'false', true);
    RETURN jsonb_build_object(
      'status', 'success',
      'revision', v_current_rev,
-@@ -244,14 +341,14 @@ BEGIN
+@@ -244,14 +431,14 @@ BEGIN
  END;
  $$;
  
-+ALTER FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) OWNER TO "postgres";
++ALTER FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) OWNER TO "exo_occ_rpc_definer";
  REVOKE ALL ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) FROM PUBLIC, "anon";
 -GRANT EXECUTE ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) TO "authenticated";
-+GRANT EXECUTE ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) TO "authenticated", "service_role", "postgres";
++GRANT EXECUTE ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) TO "authenticated", "service_role", "postgres", "exo_occ_rpc_definer";
  
  -- ============================================================================
  -- 6. HARDEN EXISTING SECURITY DEFINER TRIGGER FUNCTIONS
@@ -7826,7 +8265,7 @@ index ddcee0e..1828363 100644
  CREATE OR REPLACE FUNCTION public.enforce_workspace_media_security()
    RETURNS TRIGGER
    LANGUAGE plpgsql
-@@ -264,7 +361,6 @@ BEGIN
+@@ -264,7 +451,6 @@ BEGIN
      NEW.user_email
    );
  
@@ -7834,7 +8273,7 @@ index ddcee0e..1828363 100644
    IF auth.uid() IS NOT NULL THEN
      IF TG_OP = 'INSERT' THEN
        NEW.can_upload_media := false;
-@@ -277,10 +373,10 @@ BEGIN
+@@ -277,10 +463,10 @@ BEGIN
  END;
  $$;
  
@@ -7846,7 +8285,7 @@ index ddcee0e..1828363 100644
  CREATE OR REPLACE FUNCTION public.protect_vip_status_column()
    RETURNS TRIGGER
    LANGUAGE plpgsql
-@@ -295,10 +391,10 @@ BEGIN
+@@ -295,10 +481,10 @@ BEGIN
  END;
  $$;
  
@@ -7858,7 +8297,7 @@ index ddcee0e..1828363 100644
  CREATE OR REPLACE FUNCTION public.rls_auto_enable()
    RETURNS event_trigger
    LANGUAGE plpgsql
-@@ -331,5 +427,6 @@ BEGIN
+@@ -331,5 +517,6 @@ BEGIN
  END;
  $$;
  
@@ -8026,7 +8465,7 @@ index 1a521f8..b1a236a 100644
    LANGUAGE plpgsql
 diff --git a/supabase/rollbacks/20261103140000_safe_rollback_concurrency_only.sql b/supabase/rollbacks/20261103140000_safe_rollback_concurrency_only.sql
 new file mode 100644
-index 0000000..57b6129
+index 0000000..e77d73d
 --- /dev/null
 +++ b/supabase/rollbacks/20261103140000_safe_rollback_concurrency_only.sql
 @@ -0,0 +1,67 @@
@@ -8065,27 +8504,27 @@ index 0000000..57b6129
 +DROP TRIGGER IF EXISTS trg_enforce_workspace_write_via_rpc ON public.user_workspaces;
 +DROP FUNCTION IF EXISTS public.enforce_workspace_write_via_rpc();
 +
-+-- 2. Allow RLS-checked INSERT and UPDATE on own row for authenticated (never anon!)
++-- 2. Allow RLS-checked INSERT and UPDATE on own row for authenticated & exo_occ_rpc_definer (never anon!)
 +REVOKE ALL ON TABLE "public"."user_workspaces" FROM PUBLIC, "anon", "authenticated";
-+GRANT SELECT, INSERT, UPDATE ON TABLE "public"."user_workspaces" TO "authenticated";
++GRANT SELECT, INSERT, UPDATE ON TABLE "public"."user_workspaces" TO "authenticated", "exo_occ_rpc_definer";
 +GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "public"."user_workspaces" TO "postgres", "service_role";
 +
 +DROP POLICY IF EXISTS "Users can view own workspace" ON "public"."user_workspaces";
 +CREATE POLICY "Users can view own workspace" ON "public"."user_workspaces"
 +  FOR SELECT
-+  TO "authenticated"
++  TO "authenticated", "exo_occ_rpc_definer"
 +  USING ((auth.uid() = user_id));
 +
 +DROP POLICY IF EXISTS "Users can insert own workspace" ON "public"."user_workspaces";
 +CREATE POLICY "Users can insert own workspace" ON "public"."user_workspaces"
 +  FOR INSERT
-+  TO "authenticated"
++  TO "authenticated", "exo_occ_rpc_definer"
 +  WITH CHECK ((auth.uid() = user_id));
 +
 +DROP POLICY IF EXISTS "Users can update own workspace" ON "public"."user_workspaces";
 +CREATE POLICY "Users can update own workspace" ON "public"."user_workspaces"
 +  FOR UPDATE
-+  TO "authenticated"
++  TO "authenticated", "exo_occ_rpc_definer"
 +  USING ((auth.uid() = user_id))
 +  WITH CHECK ((auth.uid() = user_id));
 +
@@ -8097,49 +8536,22 @@ index 0000000..57b6129
 +ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON TABLES FROM PUBLIC, "anon", "authenticated";
 +ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON SEQUENCES FROM PUBLIC, "anon", "authenticated";
 +ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON FUNCTIONS FROM PUBLIC, "anon", "authenticated";
-diff --git a/20261103140000_fix_security_and_privileges.sql b/supabase/schema.sql
-similarity index 52%
-rename from 20261103140000_fix_security_and_privileges.sql
-rename to supabase/schema.sql
-index ddcee0e..f79c47b 100644
---- a/20261103140000_fix_security_and_privileges.sql
+diff --git a/supabase/schema.sql b/supabase/schema.sql
+new file mode 100644
+index 0000000..979f92b
+--- /dev/null
 +++ b/supabase/schema.sql
-@@ -1,125 +1,126 @@
- -- ============================================================================
---- Migration: 20261103140000_fix_security_and_privileges.sql
---- Description:
----   Comprehensive security hardening, privilege reduction, optimistic concurrency
----   control, and storage privacy enforcement for Exo Academic Platform.
+@@ -0,0 +1,531 @@
++-- ============================================================================
 +-- Exo Academic Platform — Canonical Final Database Schema (supabase/schema.sql)
 +-- Represents the complete, hardened database state after all migrations
 +-- (20261103133622_remote_schema.sql + 20261103140000_fix_security_and_privileges.sql)
- --
---- Key Fixes:
----   1. Ensures storage bucket 'lecture_media' is explicitly private (public = false).
----   2. Resolves confirmed VIP storage policy bypass on storage.objects by dropping
----      permissive upload policy and strictly requiring can_upload_media = true for
----      both INSERT and UPDATE operations.
----   3. Revokes excessive database grants (TRUNCATE, REFERENCES, TRIGGER, MAINTAIN, DELETE)
----      from anon and authenticated roles on public.user_workspaces.
----   4. Revokes unsafe default privileges in public schema for role postgres.
----   5. Implements server-enforced updated_at trigger and revision column for
----      optimistic concurrency control across multi-device synchronizations.
----   6. Implements atomic concurrency-controlled RPC sync_workspace_with_concurrency
----      that rejects mismatched or missing revisions, safely handles concurrent
----      first-time workspace creation, and returns lightweight metadata only.
----   7. Fixes COALESCE SQL syntax: replaces erroneous qualified coalesce calls with standard COALESCE.
----   8. Hardens all SECURITY DEFINER functions with pg_catalog first in search_path
----      and schema-qualified object references.
----   9. Enforces least privilege on all internal trigger functions.
----
---- Reversibility: Reversible via supabase/rollbacks/20261103140000_rollback_fix_security_and_privileges.sql
---- Safety: Non-destructive, preserves all existing user records and columns.
++--
 +-- Initializing a fresh database from this file produces the exact final state
 +-- with revision-based optimistic concurrency control, hardened SECURITY DEFINER
 +-- functions, private storage bucket & VIP policies, and least-privilege grants.
- -- ============================================================================
- 
--SET local check_function_bodies = off;
++-- ============================================================================
++
 +SET statement_timeout = 0;
 +SET lock_timeout = 0;
 +SET idle_in_transaction_session_timeout = 0;
@@ -8157,76 +8569,73 @@ index ddcee0e..f79c47b 100644
 +CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
 +CREATE EXTENSION IF NOT EXISTS "supabase_vault" WITH SCHEMA "vault";
 +CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
- 
- -- ============================================================================
---- 1. STORAGE BUCKET CONFIGURATION & VIP POLICY ENFORCEMENT
-+-- 1. DEFAULT PRIVILEGES HARDENING (GLOBAL & IN SCHEMA PUBLIC)
- -- ============================================================================
++
++-- ============================================================================
++-- 1. DEDICATED NOLOGIN RPC DEFINER ROLE & DEFAULT PRIVILEGES HARDENING
++-- ============================================================================
 +-- Applied before creating functions/tables so no object ever inherits unsafe
 +-- PUBLIC, anon, or authenticated privileges during fresh schema bootstrap.
- 
---- Ensure the lecture_media bucket exists and is explicitly PRIVATE (public = false)
--INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
--VALUES (
--  'lecture_media',
--  'lecture_media',
--  false,
--  52428800, -- 50 MiB limit
--  ARRAY['application/pdf', 'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a', 'audio/x-m4a', 'audio/aac']::text[]
--)
--ON CONFLICT (id) DO UPDATE SET
--  public = false;
++
++DO $$
++BEGIN
++  IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'exo_occ_rpc_definer') THEN
++    CREATE ROLE "exo_occ_rpc_definer" NOLOGIN NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
++  ELSE
++    ALTER ROLE "exo_occ_rpc_definer" NOLOGIN NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
++  END IF;
++END
++$$;
++
++REVOKE "exo_occ_rpc_definer" FROM "anon", "authenticated";
++GRANT "exo_occ_rpc_definer" TO "postgres";
++
 +ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" REVOKE ALL ON TABLES FROM PUBLIC, "anon", "authenticated";
 +ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" REVOKE ALL ON SEQUENCES FROM PUBLIC, "anon", "authenticated";
 +ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" REVOKE ALL ON FUNCTIONS FROM PUBLIC, "anon", "authenticated";
- 
---- Drop the overly permissive upload policy that bypassed the VIP check
--DROP POLICY IF EXISTS "Users can upload their own lecture media" ON "storage"."objects";
++
 +ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON TABLES FROM PUBLIC, "anon", "authenticated";
 +ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON SEQUENCES FROM PUBLIC, "anon", "authenticated";
 +ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON FUNCTIONS FROM PUBLIC, "anon", "authenticated";
- 
---- Enforce strict VIP verification for uploads (INSERT)
--DROP POLICY IF EXISTS "Allow VIP users to upload media" ON "storage"."objects";
--CREATE POLICY "Allow VIP users to upload media" ON "storage"."objects"
--  FOR INSERT
--  TO "authenticated"
--  WITH CHECK (
--    (bucket_id = 'lecture_media'::text)
--    AND ((storage.foldername(name))[1] = (auth.uid())::text)
--    AND (EXISTS (
--      SELECT 1 FROM public.user_workspaces w
--      WHERE w.user_id = auth.uid() AND w.can_upload_media = true
--    ))
--  );
++
++ALTER DEFAULT PRIVILEGES FOR ROLE "exo_occ_rpc_definer" REVOKE ALL ON TABLES FROM PUBLIC, "anon", "authenticated";
++ALTER DEFAULT PRIVILEGES FOR ROLE "exo_occ_rpc_definer" REVOKE ALL ON SEQUENCES FROM PUBLIC, "anon", "authenticated";
++ALTER DEFAULT PRIVILEGES FOR ROLE "exo_occ_rpc_definer" REVOKE ALL ON FUNCTIONS FROM PUBLIC, "anon", "authenticated";
++
++ALTER DEFAULT PRIVILEGES FOR ROLE "exo_occ_rpc_definer" IN SCHEMA "public" REVOKE ALL ON TABLES FROM PUBLIC, "anon", "authenticated";
++ALTER DEFAULT PRIVILEGES FOR ROLE "exo_occ_rpc_definer" IN SCHEMA "public" REVOKE ALL ON SEQUENCES FROM PUBLIC, "anon", "authenticated";
++ALTER DEFAULT PRIVILEGES FOR ROLE "exo_occ_rpc_definer" IN SCHEMA "public" REVOKE ALL ON FUNCTIONS FROM PUBLIC, "anon", "authenticated";
++
 +-- ============================================================================
-+-- 2. TABLES & CONSTRAINTS
++-- 2. PRIVATE INTERNAL WRITE-CONTEXT SCHEMA & TABLES
 +-- ============================================================================
- 
---- Enforce strict VIP verification for overwriting/updating media (UPDATE)
--DROP POLICY IF EXISTS "Users can update their own lecture media" ON "storage"."objects";
--DROP POLICY IF EXISTS "Allow VIP users to update media" ON "storage"."objects";
--CREATE POLICY "Allow VIP users to update media" ON "storage"."objects"
--  FOR UPDATE
--  TO "authenticated"
--  USING (
--    (bucket_id = 'lecture_media'::text)
--    AND ((storage.foldername(name))[1] = (auth.uid())::text)
--    AND (EXISTS (
--      SELECT 1 FROM public.user_workspaces w
--      WHERE w.user_id = auth.uid() AND w.can_upload_media = true
--    ))
--  )
--  WITH CHECK (
--    (bucket_id = 'lecture_media'::text)
--    AND ((storage.foldername(name))[1] = (auth.uid())::text)
--    AND (EXISTS (
--      SELECT 1 FROM public.user_workspaces w
--      WHERE w.user_id = auth.uid() AND w.can_upload_media = true
--    ))
--  );
++
 +SET default_tablespace = '';
 +SET default_table_access_method = "heap";
++
++CREATE SCHEMA IF NOT EXISTS "exo_internal" AUTHORIZATION "postgres";
++REVOKE ALL ON SCHEMA "exo_internal" FROM PUBLIC, "anon", "authenticated";
++GRANT USAGE ON SCHEMA "exo_internal" TO "postgres", "service_role", "exo_occ_rpc_definer";
++
++CREATE TABLE IF NOT EXISTS "exo_internal"."occ_active_write_context" (
++    "txid" "xid8" NOT NULL,
++    "user_id" "uuid" NOT NULL,
++    "write_op" "text" NOT NULL,
++    CONSTRAINT "occ_active_write_context_pkey" PRIMARY KEY ("txid", "user_id"),
++    CONSTRAINT "occ_active_write_context_op_check" CHECK (("write_op" = ANY (ARRAY['INSERT'::"text", 'UPDATE'::"text"])))
++);
++
++ALTER TABLE "exo_internal"."occ_active_write_context" OWNER TO "postgres";
++ALTER TABLE "exo_internal"."occ_active_write_context" ENABLE ROW LEVEL SECURITY;
++
++REVOKE ALL ON TABLE "exo_internal"."occ_active_write_context" FROM PUBLIC, "anon", "authenticated";
++GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "exo_internal"."occ_active_write_context" TO "postgres", "service_role", "exo_occ_rpc_definer";
++
++DROP POLICY IF EXISTS "occ_rpc_definer_manage_write_context" ON "exo_internal"."occ_active_write_context";
++CREATE POLICY "occ_rpc_definer_manage_write_context" ON "exo_internal"."occ_active_write_context"
++  FOR ALL
++  TO "postgres", "service_role", "exo_occ_rpc_definer"
++  USING (true)
++  WITH CHECK (true);
 +
 +CREATE TABLE IF NOT EXISTS "public"."user_workspaces" (
 +    "user_id" "uuid" NOT NULL,
@@ -8245,15 +8654,11 @@ index ddcee0e..f79c47b 100644
 +
 +ALTER TABLE "public"."user_workspaces" OWNER TO "postgres";
 +ALTER TABLE "public"."user_workspaces" ENABLE ROW LEVEL SECURITY;
- 
- -- ============================================================================
---- 2. REVOKE EXCESSIVE TABLE PRIVILEGES ON USER_WORKSPACES
++
++-- ============================================================================
 +-- 3. HARDENED SECURITY DEFINER TRIGGER FUNCTIONS & CONCURRENCY RPC
- -- ============================================================================
- 
---- Revoke all table-level permissions from anon and public
--REVOKE ALL ON TABLE "public"."user_workspaces" FROM PUBLIC;
--REVOKE ALL ON TABLE "public"."user_workspaces" FROM "anon";
++-- ============================================================================
++
 +CREATE OR REPLACE FUNCTION public.enforce_workspace_media_security()
 +  RETURNS TRIGGER
 +  LANGUAGE plpgsql
@@ -8265,10 +8670,7 @@ index ddcee0e..f79c47b 100644
 +    (SELECT pg_catalog.lower(email) FROM auth.users WHERE id = NEW.user_id),
 +    NEW.user_email
 +  );
- 
---- Revoke all table-level permissions from authenticated, then re-grant strictly needed DML
--REVOKE ALL ON TABLE "public"."user_workspaces" FROM "authenticated";
--GRANT SELECT, INSERT, UPDATE ON TABLE "public"."user_workspaces" TO "authenticated";
++
 +  IF auth.uid() IS NOT NULL THEN
 +    IF TG_OP = 'INSERT' THEN
 +      NEW.can_upload_media := false;
@@ -8276,24 +8678,15 @@ index ddcee0e..f79c47b 100644
 +      NEW.can_upload_media := COALESCE(OLD.can_upload_media, false);
 +    END IF;
 +  END IF;
- 
---- ============================================================================
---- 3. REVOKE UNSAFE DEFAULT PRIVILEGES IN PUBLIC SCHEMA
---- ============================================================================
++
 +  RETURN NEW;
 +END;
 +$$;
- 
--ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON TABLES FROM "anon", "authenticated";
--ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON SEQUENCES FROM "anon", "authenticated";
--ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON FUNCTIONS FROM "anon", "authenticated";
++
 +ALTER FUNCTION public.enforce_workspace_media_security() OWNER TO "postgres";
 +REVOKE ALL ON FUNCTION public.enforce_workspace_media_security() FROM PUBLIC, "anon", "authenticated";
 +GRANT EXECUTE ON FUNCTION public.enforce_workspace_media_security() TO "postgres", "service_role";
- 
---- ============================================================================
---- 4. SERVER-ENFORCED UPDATED_AT AND OPTIMISTIC CONCURRENCY REVISION
---- ============================================================================
++
 +CREATE OR REPLACE FUNCTION public.protect_vip_status_column()
 +  RETURNS TRIGGER
 +  LANGUAGE plpgsql
@@ -8307,59 +8700,45 @@ index ddcee0e..f79c47b 100644
 +  RETURN NEW;
 +END;
 +$$;
- 
---- Add revision tracking column (backward-compatible, defaults to 1)
--ALTER TABLE "public"."user_workspaces"
--  ADD COLUMN IF NOT EXISTS "revision" integer NOT NULL DEFAULT 1;
++
 +ALTER FUNCTION public.protect_vip_status_column() OWNER TO "postgres";
 +REVOKE ALL ON FUNCTION public.protect_vip_status_column() FROM PUBLIC, "anon", "authenticated";
 +GRANT EXECUTE ON FUNCTION public.protect_vip_status_column() TO "postgres", "service_role";
- 
---- Server-side timestamp and revision management trigger function
---- Hardened with pg_catalog first in search_path and standard COALESCE syntax
- CREATE OR REPLACE FUNCTION public.handle_user_workspace_updated_at()
--RETURNS TRIGGER
--LANGUAGE plpgsql
--SECURITY DEFINER
--SET search_path = pg_catalog, public
--AS $$
++
++CREATE OR REPLACE FUNCTION public.handle_user_workspace_updated_at()
 +  RETURNS TRIGGER
 +  LANGUAGE plpgsql
 +  SECURITY DEFINER
 +  SET search_path = pg_catalog, public
 +  AS $$
- BEGIN
-   NEW.updated_at := pg_catalog.now();
-   NEW.revision := COALESCE(OLD.revision, 0) + 1;
-@@ -127,20 +128,72 @@ BEGIN
- END;
- $$;
- 
---- Secure the trigger function permissions (least privilege)
++BEGIN
++  NEW.updated_at := pg_catalog.now();
++  NEW.revision := COALESCE(OLD.revision, 0) + 1;
++  RETURN NEW;
++END;
++$$;
++
 +ALTER FUNCTION public.handle_user_workspace_updated_at() OWNER TO "postgres";
- REVOKE ALL ON FUNCTION public.handle_user_workspace_updated_at() FROM PUBLIC, "anon", "authenticated";
- GRANT EXECUTE ON FUNCTION public.handle_user_workspace_updated_at() TO "postgres", "service_role";
- 
---- Bind trigger to user_workspaces
--DROP TRIGGER IF EXISTS trg_user_workspaces_updated_at ON public.user_workspaces;
--CREATE TRIGGER trg_user_workspaces_updated_at
--  BEFORE UPDATE ON public.user_workspaces
--  FOR EACH ROW
--  EXECUTE FUNCTION public.handle_user_workspace_updated_at();
++REVOKE ALL ON FUNCTION public.handle_user_workspace_updated_at() FROM PUBLIC, "anon", "authenticated";
++GRANT EXECUTE ON FUNCTION public.handle_user_workspace_updated_at() TO "postgres", "service_role", "exo_occ_rpc_definer";
++
 +CREATE OR REPLACE FUNCTION public.enforce_workspace_write_via_rpc()
 +RETURNS TRIGGER
 +LANGUAGE plpgsql
 +SECURITY DEFINER
-+SET search_path = pg_catalog, public, auth
++SET search_path = pg_catalog, public, auth, exo_internal
 +AS $$
 +BEGIN
-+  IF COALESCE(pg_catalog.current_setting('exo.occ_rpc_active', true), '') = 'true' THEN
++  IF EXISTS (
++    SELECT 1
++    FROM exo_internal.occ_active_write_context c
++    WHERE c.txid = pg_catalog.pg_current_xact_id()
++      AND c.user_id = NEW.user_id
++      AND c.write_op = TG_OP
++  ) THEN
 +    RETURN NEW;
 +  END IF;
- 
---- ============================================================================
---- 5. ATOMIC CONCURRENCY-CONTROLLED WORKSPACE SYNC RPC
---- ============================================================================
++
 +  IF auth.uid() IS NOT NULL
 +     OR pg_catalog.current_setting('request.jwt.claim.role', true) IN ('anon', 'authenticated')
 +     OR current_user IN ('anon', 'authenticated')
@@ -8374,7 +8753,7 @@ index ddcee0e..f79c47b 100644
 +
 +ALTER FUNCTION public.enforce_workspace_write_via_rpc() OWNER TO "postgres";
 +REVOKE ALL ON FUNCTION public.enforce_workspace_write_via_rpc() FROM PUBLIC, "anon", "authenticated";
-+GRANT EXECUTE ON FUNCTION public.enforce_workspace_write_via_rpc() TO "postgres", "service_role";
++GRANT EXECUTE ON FUNCTION public.enforce_workspace_write_via_rpc() TO "postgres", "service_role", "exo_occ_rpc_definer";
 +
 +CREATE OR REPLACE FUNCTION public.rls_auto_enable()
 +  RETURNS event_trigger
@@ -8411,51 +8790,76 @@ index ddcee0e..f79c47b 100644
 +ALTER FUNCTION public.rls_auto_enable() OWNER TO "postgres";
 +REVOKE ALL ON FUNCTION public.rls_auto_enable() FROM PUBLIC, "anon", "authenticated";
 +GRANT EXECUTE ON FUNCTION public.rls_auto_enable() TO "postgres", "service_role";
- 
- CREATE OR REPLACE FUNCTION public.sync_workspace_with_concurrency(
-   p_payload jsonb,
-@@ -157,9 +210,16 @@ DECLARE
-   v_updated_at timestamptz;
- BEGIN
-   IF v_uid IS NULL THEN
--    RAISE EXCEPTION 'Not authenticated';
++
++CREATE OR REPLACE FUNCTION public.sync_workspace_with_concurrency(
++  p_payload jsonb,
++  p_expected_revision integer DEFAULT NULL
++)
++RETURNS jsonb
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = pg_catalog, public, auth, exo_internal
++AS $$
++DECLARE
++  v_uid uuid := auth.uid();
++  v_txid xid8 := pg_catalog.pg_current_xact_id();
++  v_current_rev integer;
++  v_updated_at timestamptz;
++BEGIN
++  IF v_uid IS NULL THEN
 +    RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '42501';
 +  END IF;
 +
 +  IF p_payload IS NULL OR pg_catalog.jsonb_typeof(p_payload) <> 'object' THEN
 +    RAISE EXCEPTION 'Invalid workspace payload: expected JSON object' USING ERRCODE = '22023';
-   END IF;
- 
-+  -- Mark transaction context as authorized inside OCC RPC
-+  PERFORM pg_catalog.set_config('exo.occ_rpc_active', 'true', true);
++  END IF;
 +
-   -- 1. Attempt to lock the existing workspace row for this user
-   SELECT revision, updated_at
-   INTO v_current_rev, v_updated_at
-@@ -171,6 +231,7 @@ BEGIN
-   IF FOUND THEN
-     -- Concurrency check: Reject NULL or mismatched expected revision
-     IF p_expected_revision IS NULL OR p_expected_revision <> v_current_rev THEN
-+      PERFORM pg_catalog.set_config('exo.occ_rpc_active', 'false', true);
-       RETURN jsonb_build_object(
-         'status', 'conflict',
-         'current_revision', v_current_rev,
-@@ -179,7 +240,7 @@ BEGIN
-       );
-     END IF;
- 
--    -- Update row with payload data (using valid COALESCE syntax)
-+    -- Update row with payload data (using standard SQL COALESCE)
-     UPDATE public.user_workspaces
-     SET
-       subjects = COALESCE(p_payload->'subjects', subjects),
-@@ -196,6 +257,17 @@ BEGIN
- 
-   -- 3. Handle concurrent first-time workspace creation safely
-   ELSE
++  -- 1. Attempt to lock the existing workspace row for this authenticated user
++  SELECT revision, updated_at
++  INTO v_current_rev, v_updated_at
++  FROM public.user_workspaces
++  WHERE user_id = v_uid
++  FOR UPDATE;
++
++  -- 2. Handle existing workspace update
++  IF FOUND THEN
++    -- Concurrency check: Reject NULL or mismatched expected revision
++    IF p_expected_revision IS NULL OR p_expected_revision <> v_current_rev THEN
++      RETURN jsonb_build_object(
++        'status', 'conflict',
++        'current_revision', v_current_rev,
++        'current_updated_at', v_updated_at,
++        'message', 'Workspace has been modified by another device (revision mismatch)'
++      );
++    END IF;
++
++    -- Authorize single statement in unforgeable private write-context table
++    INSERT INTO exo_internal.occ_active_write_context (txid, user_id, write_op)
++    VALUES (v_txid, v_uid, 'UPDATE')
++    ON CONFLICT (txid, user_id) DO UPDATE SET write_op = EXCLUDED.write_op;
++
++    -- Update row with payload data (strictly bound to v_uid = auth.uid())
++    UPDATE public.user_workspaces
++    SET
++      subjects = COALESCE(p_payload->'subjects', subjects),
++      schedule = COALESCE(p_payload->'schedule', schedule),
++      logs = COALESCE(p_payload->'logs', logs),
++      annotations = CASE
++        WHEN p_payload ? 'annotations' THEN p_payload->'annotations'
++        ELSE annotations
++      END,
++      academy_progress = COALESCE(p_payload->'academy_progress', academy_progress),
++      user_email = COALESCE(p_payload->>'user_email', user_email)
++    WHERE user_id = v_uid
++    RETURNING revision, updated_at INTO v_current_rev, v_updated_at;
++
++    DELETE FROM exo_internal.occ_active_write_context
++    WHERE txid = v_txid AND user_id = v_uid;
++
++  -- 3. Handle concurrent first-time workspace creation safely
++  ELSE
 +    -- For first-time creation, expected revision must be NULL or 1
 +    IF p_expected_revision IS NOT NULL AND p_expected_revision <> 1 THEN
-+      PERFORM pg_catalog.set_config('exo.occ_rpc_active', 'false', true);
 +      RETURN jsonb_build_object(
 +        'status', 'conflict',
 +        'current_revision', 0,
@@ -8464,58 +8868,70 @@ index ddcee0e..f79c47b 100644
 +      );
 +    END IF;
 +
-     BEGIN
-       INSERT INTO public.user_workspaces (
-         user_id,
-@@ -219,13 +291,13 @@ BEGIN
-       RETURNING revision, updated_at INTO v_current_rev, v_updated_at;
-     EXCEPTION
-       WHEN unique_violation THEN
--        -- Another concurrent request created the row first; lock and report conflict
-         SELECT revision, updated_at
-         INTO v_current_rev, v_updated_at
-         FROM public.user_workspaces
-         WHERE user_id = v_uid
-         FOR UPDATE;
- 
-+        PERFORM pg_catalog.set_config('exo.occ_rpc_active', 'false', true);
-         RETURN jsonb_build_object(
-           'status', 'conflict',
-           'current_revision', v_current_rev,
-@@ -235,7 +307,7 @@ BEGIN
-     END;
-   END IF;
- 
--  -- Return lightweight status, revision, and updated_at (NOT the multi-megabyte payload)
-+  PERFORM pg_catalog.set_config('exo.occ_rpc_active', 'false', true);
-   RETURN jsonb_build_object(
-     'status', 'success',
-     'revision', v_current_rev,
-@@ -244,92 +316,148 @@ BEGIN
- END;
- $$;
- 
-+ALTER FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) OWNER TO "postgres";
- REVOKE ALL ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) FROM PUBLIC, "anon";
--GRANT EXECUTE ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) TO "authenticated";
-+GRANT EXECUTE ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) TO "authenticated", "service_role", "postgres";
- 
- -- ============================================================================
---- 6. HARDEN EXISTING SECURITY DEFINER TRIGGER FUNCTIONS
++    BEGIN
++      INSERT INTO exo_internal.occ_active_write_context (txid, user_id, write_op)
++      VALUES (v_txid, v_uid, 'INSERT')
++      ON CONFLICT (txid, user_id) DO UPDATE SET write_op = EXCLUDED.write_op;
++
++      INSERT INTO public.user_workspaces (
++        user_id,
++        user_email,
++        subjects,
++        schedule,
++        logs,
++        annotations,
++        academy_progress,
++        revision
++      ) VALUES (
++        v_uid,
++        p_payload->>'user_email',
++        COALESCE(p_payload->'subjects', '[]'::jsonb),
++        COALESCE(p_payload->'schedule', '{}'::jsonb),
++        COALESCE(p_payload->'logs', '[]'::jsonb),
++        COALESCE(p_payload->'annotations', '{}'::jsonb),
++        COALESCE(p_payload->'academy_progress', '[]'::jsonb),
++        1
++      )
++      RETURNING revision, updated_at INTO v_current_rev, v_updated_at;
++
++      DELETE FROM exo_internal.occ_active_write_context
++      WHERE txid = v_txid AND user_id = v_uid;
++    EXCEPTION
++      WHEN unique_violation THEN
++        DELETE FROM exo_internal.occ_active_write_context
++        WHERE txid = v_txid AND user_id = v_uid;
++
++        SELECT revision, updated_at
++        INTO v_current_rev, v_updated_at
++        FROM public.user_workspaces
++        WHERE user_id = v_uid
++        FOR UPDATE;
++
++        RETURN jsonb_build_object(
++          'status', 'conflict',
++          'current_revision', v_current_rev,
++          'current_updated_at', v_updated_at,
++          'message', 'Concurrent workspace initialization detected'
++        );
++    END;
++  END IF;
++
++  RETURN jsonb_build_object(
++    'status', 'success',
++    'revision', v_current_rev,
++    'updated_at', v_updated_at
++  );
++END;
++$$;
++
++ALTER FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) OWNER TO "exo_occ_rpc_definer";
++REVOKE ALL ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) FROM PUBLIC, "anon";
++GRANT EXECUTE ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) TO "authenticated", "service_role", "postgres", "exo_occ_rpc_definer";
++
++-- ============================================================================
 +-- 4. TRIGGERS & EVENT TRIGGERS
- -- ============================================================================
- 
---- Explicitly harden enforce_workspace_media_security() with pg_catalog first and standard COALESCE
--CREATE OR REPLACE FUNCTION public.enforce_workspace_media_security()
--  RETURNS TRIGGER
--  LANGUAGE plpgsql
--  SECURITY DEFINER
--  SET search_path = pg_catalog, public, auth
--  AS $$
--BEGIN
--  NEW.user_email := COALESCE(
--    (SELECT pg_catalog.lower(email) FROM auth.users WHERE id = NEW.user_id),
--    NEW.user_email
++-- ============================================================================
++
 +DROP TRIGGER IF EXISTS trg_enforce_workspace_write_via_rpc ON public.user_workspaces;
 +CREATE TRIGGER trg_enforce_workspace_write_via_rpc
 +  BEFORE INSERT OR UPDATE ON public.user_workspaces
@@ -8553,39 +8969,28 @@ index ddcee0e..f79c47b 100644
 +DROP POLICY IF EXISTS "Users can view own workspace" ON "public"."user_workspaces";
 +CREATE POLICY "Users can view own workspace" ON "public"."user_workspaces"
 +  FOR SELECT
-+  TO "authenticated"
++  TO "authenticated", "exo_occ_rpc_definer"
 +  USING ((auth.uid() = user_id));
 +
 +DROP POLICY IF EXISTS "Users can insert own workspace" ON "public"."user_workspaces";
 +CREATE POLICY "Users can insert own workspace" ON "public"."user_workspaces"
 +  FOR INSERT
-+  TO "authenticated"
++  TO "authenticated", "exo_occ_rpc_definer"
 +  WITH CHECK (
 +    (auth.uid() = user_id)
-+    AND (COALESCE(pg_catalog.current_setting('exo.occ_rpc_active', true), '') = 'true')
-   );
- 
--  -- Protect VIP status: prevent client manipulation from authenticated JWTs
--  IF auth.uid() IS NOT NULL THEN
--    IF TG_OP = 'INSERT' THEN
--      NEW.can_upload_media := false;
--    ELSIF TG_OP = 'UPDATE' THEN
--      NEW.can_upload_media := COALESCE(OLD.can_upload_media, false);
--    END IF;
--  END IF;
++    AND (CURRENT_USER = 'exo_occ_rpc_definer'::name)
++  );
++
 +DROP POLICY IF EXISTS "Users can update own workspace" ON "public"."user_workspaces";
 +CREATE POLICY "Users can update own workspace" ON "public"."user_workspaces"
 +  FOR UPDATE
-+  TO "authenticated"
++  TO "authenticated", "exo_occ_rpc_definer"
 +  USING ((auth.uid() = user_id))
 +  WITH CHECK (
 +    (auth.uid() = user_id)
-+    AND (COALESCE(pg_catalog.current_setting('exo.occ_rpc_active', true), '') = 'true')
++    AND (CURRENT_USER = 'exo_occ_rpc_definer'::name)
 +  );
- 
--  RETURN NEW;
--END;
--$$;
++
 +INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 +VALUES (
 +  'lecture_media',
@@ -8598,9 +9003,7 @@ index ddcee0e..f79c47b 100644
 +  public = false,
 +  file_size_limit = EXCLUDED.file_size_limit,
 +  allowed_mime_types = EXCLUDED.allowed_mime_types;
- 
--REVOKE ALL ON FUNCTION public.enforce_workspace_media_security() FROM PUBLIC, "anon", "authenticated";
--GRANT EXECUTE ON FUNCTION public.enforce_workspace_media_security() TO "postgres", "service_role";
++
 +DROP POLICY IF EXISTS "Users can upload their own lecture media" ON "storage"."objects";
 +DROP POLICY IF EXISTS "Allow VIP users to upload media" ON "storage"."objects";
 +CREATE POLICY "Allow VIP users to upload media" ON "storage"."objects"
@@ -8614,21 +9017,7 @@ index ddcee0e..f79c47b 100644
 +      WHERE w.user_id = auth.uid() AND w.can_upload_media = true
 +    ))
 +  );
- 
---- Explicitly harden protect_vip_status_column() with pg_catalog first
--CREATE OR REPLACE FUNCTION public.protect_vip_status_column()
--  RETURNS TRIGGER
--  LANGUAGE plpgsql
--  SECURITY DEFINER
--  SET search_path = pg_catalog, public
--  AS $$
--BEGIN
--  IF pg_catalog.current_setting('request.jwt.claim.role', true) = 'authenticated' THEN
--    NEW.can_upload_media := OLD.can_upload_media;
--  END IF;
--  RETURN NEW;
--END;
--$$;
++
 +DROP POLICY IF EXISTS "Users can update their own lecture media" ON "storage"."objects";
 +DROP POLICY IF EXISTS "Allow VIP users to update media" ON "storage"."objects";
 +CREATE POLICY "Allow VIP users to update media" ON "storage"."objects"
@@ -8650,9 +9039,7 @@ index ddcee0e..f79c47b 100644
 +      WHERE w.user_id = auth.uid() AND w.can_upload_media = true
 +    ))
 +  );
- 
--REVOKE ALL ON FUNCTION public.protect_vip_status_column() FROM PUBLIC, "anon", "authenticated";
--GRANT EXECUTE ON FUNCTION public.protect_vip_status_column() TO "postgres", "service_role";
++
 +DROP POLICY IF EXISTS "Users can delete their own lecture media" ON "storage"."objects";
 +CREATE POLICY "Users can delete their own lecture media" ON "storage"."objects"
 +  FOR DELETE
@@ -8661,39 +9048,7 @@ index ddcee0e..f79c47b 100644
 +    (bucket_id = 'lecture_media'::text)
 +    AND ((storage.foldername(name))[1] = ( SELECT (auth.uid())::text AS uid))
 +  );
- 
---- Harden rls_auto_enable() with pg_catalog
--CREATE OR REPLACE FUNCTION public.rls_auto_enable()
--  RETURNS event_trigger
--  LANGUAGE plpgsql
--  SECURITY DEFINER
--  SET search_path = pg_catalog
--  AS $$
--DECLARE
--  cmd record;
--  tbl name;
--BEGIN
--  FOR cmd IN
--    SELECT *
--    FROM pg_event_trigger_ddl_commands()
--    WHERE command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
--      AND object_type IN ('table','partitioned table')
--  LOOP
--     IF cmd.schema_name IS NOT NULL AND cmd.schema_name IN ('public') AND cmd.schema_name NOT IN ('pg_catalog','information_schema') AND cmd.schema_name NOT LIKE 'pg_toast%' AND cmd.schema_name NOT LIKE 'pg_temp%' THEN
--      BEGIN
--        SELECT c.relname INTO tbl FROM pg_catalog.pg_class c WHERE c.oid = cmd.objid;
--        EXECUTE pg_catalog.format('alter table if exists %I.%I enable row level security', cmd.schema_name, tbl);
--        RAISE LOG 'rls_auto_enable: enabled RLS on %', cmd.object_identity;
--      EXCEPTION
--        WHEN OTHERS THEN
--          RAISE WARNING 'rls_auto_enable: failed to enable RLS on %: %', cmd.object_identity, SQLERRM;
--      END;
--     ELSE
--        RAISE LOG 'rls_auto_enable: skip % (either system schema or not in enforced list: %.)', cmd.object_identity, cmd.schema_name;
--     END IF;
--  END LOOP;
--END;
--$$;
++
 +DROP POLICY IF EXISTS "Users can view own lecture media" ON "storage"."objects";
 +CREATE POLICY "Users can view own lecture media" ON "storage"."objects"
 +  FOR SELECT
@@ -8702,19 +9057,21 @@ index ddcee0e..f79c47b 100644
 +    (bucket_id = 'lecture_media'::text)
 +    AND ((storage.foldername(name))[1] = (auth.uid())::text)
 +  );
- 
--REVOKE ALL ON FUNCTION public.rls_auto_enable() FROM PUBLIC, "anon", "authenticated";
--GRANT EXECUTE ON FUNCTION public.rls_auto_enable() TO "postgres", "service_role";
++
 +-- ============================================================================
 +-- 6. SCHEMA & TABLE GRANTS (LEAST PRIVILEGE)
 +-- ============================================================================
 +
-+GRANT USAGE ON SCHEMA "public" TO "postgres", "anon", "authenticated", "service_role";
++GRANT USAGE ON SCHEMA "public" TO "postgres", "anon", "authenticated", "service_role", "exo_occ_rpc_definer";
++GRANT USAGE ON SCHEMA "auth" TO "exo_occ_rpc_definer";
++GRANT SELECT ON TABLE "auth"."users" TO "exo_occ_rpc_definer";
 +
 +REVOKE ALL ON TABLE "public"."user_workspaces" FROM PUBLIC;
 +REVOKE ALL ON TABLE "public"."user_workspaces" FROM "anon";
 +REVOKE ALL ON TABLE "public"."user_workspaces" FROM "authenticated";
++REVOKE ALL ON TABLE "public"."user_workspaces" FROM "exo_occ_rpc_definer";
 +GRANT SELECT ON TABLE "public"."user_workspaces" TO "authenticated";
++GRANT SELECT, INSERT, UPDATE ON TABLE "public"."user_workspaces" TO "exo_occ_rpc_definer";
 +GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "public"."user_workspaces" TO "postgres", "service_role";
 diff --git a/sw.js b/sw.js
 index ca0471e..eb76cb5 100644
@@ -10072,10 +10429,10 @@ index 0000000..2cbdb19
 +});
 diff --git a/test_phase4_2_1_pg16_concurrency.js b/test_phase4_2_1_pg16_concurrency.js
 new file mode 100644
-index 0000000..5062314
+index 0000000..b61712f
 --- /dev/null
 +++ b/test_phase4_2_1_pg16_concurrency.js
-@@ -0,0 +1,816 @@
+@@ -0,0 +1,1112 @@
 +// ============================================================================
 +// Exo Academic Platform — Phase 4.2.1 Real PostgreSQL 16 Concurrency & Parity Suite
 +// Category: Real PostgreSQL 16 Server Integration & Multi-Connection Concurrency Proof
@@ -10567,11 +10924,11 @@ index 0000000..5062314
 +  const migDefAcl = (await migClient.query(defAclQuery)).rows;
 +  const freshDefAcl = (await freshClient.query(defAclQuery)).rows;
 +  assert(
-+    JSON.stringify(migDefAcl) === JSON.stringify(freshDefAcl) && migDefAcl.length === 1,
-+    'Parity [9/10] Global and schema-scoped ALTER DEFAULT PRIVILEGES entries match between migrated DB and schema.sql'
++    JSON.stringify(migDefAcl) === JSON.stringify(freshDefAcl) && migDefAcl.length >= 2,
++    'Parity [9/10] Global and schema-scoped ALTER DEFAULT PRIVILEGES entries (postgres & exo_occ_rpc_definer) match between migrated DB and schema.sql'
 +  );
 +
-+  // 3.10 Storage Bucket Configuration
++  // 3.10 Storage Bucket Configuration & Internal OCC Write-Context Schema Parity
 +  const bucketQuery = `
 +    SELECT id, name, public, file_size_limit, allowed_mime_types
 +    FROM storage.buckets
@@ -10579,12 +10936,23 @@ index 0000000..5062314
 +  `;
 +  const migBucket = (await migClient.query(bucketQuery)).rows;
 +  const freshBucket = (await freshClient.query(bucketQuery)).rows;
++  const internalCtxQuery = `
++    SELECT c.relname, c.relrowsecurity, c.relacl::text, pg_get_constraintdef(con.oid) AS condef
++    FROM pg_class c
++    JOIN pg_namespace n ON c.relnamespace = n.oid
++    JOIN pg_constraint con ON con.conrelid = c.oid
++    WHERE n.nspname = 'exo_internal' AND c.relname = 'occ_active_write_context'
++    ORDER BY con.conname
++  `;
++  const migInternal = (await migClient.query(internalCtxQuery)).rows;
++  const freshInternal = (await freshClient.query(internalCtxQuery)).rows;
 +  assert(
 +    JSON.stringify(migBucket) === JSON.stringify(freshBucket) &&
++      JSON.stringify(migInternal) === JSON.stringify(freshInternal) &&
 +      migBucket.length === 1 &&
 +      migBucket[0].public === false &&
 +      Number(migBucket[0].file_size_limit) === 52428800,
-+    'Parity [10/10] Storage bucket lecture_media properties (public=false, 50MB limit, allowed_mime_types) match between migrated DB and schema.sql'
++    'Parity [10/10] Storage bucket lecture_media and private exo_internal.occ_active_write_context schema match between migrated DB and schema.sql'
 +  );
 +
 +  await freshClient.end();
@@ -10870,6 +11238,291 @@ index 0000000..5062314
 +    'First-time workspace row created by Connection 1 remains intact at revision 1 after concurrent unique_violation recovery'
 +  );
 +
++  // --------------------------------------------------------------------------
++  // SECTION 6: Custom GUC Forgery Attack & Unforgeable OCC RPC Proof on PostgreSQL 16
++  // --------------------------------------------------------------------------
++  console.log('\n--- SECTION 6: Custom GUC Forgery Attack (exo.occ_rpc_active) & Unforgeable OCC RPC Proof ---');
++
++  const userB = 'bbbbbbbb-1111-2222-3333-444455556666';
++  const userNoWorkspace = 'dddddddd-1111-2222-3333-444455556666';
++  await migClient.query(`INSERT INTO auth.users (id, email) VALUES ($1, $2), ($3, $4)`, [
++    userB,
++    'bob.victim@exo.edu',
++    userNoWorkspace,
++    'dave.noworkspace@exo.edu'
++  ]);
++
++  // Seed User B workspace at revision 1 so we can prove zero cross-account leakage after attacks
++  await conn2.query('BEGIN');
++  await conn2.query('SET LOCAL ROLE authenticated');
++  await conn2.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
++  await conn2.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [userB]);
++  const seedUserBRes = await conn2.query(
++    `SELECT public.sync_workspace_with_concurrency($1::jsonb, NULL) AS res`,
++    [JSON.stringify({ subjects: [{ id: 'sub_b_protected', name: 'Bob Protected Subject' }] })]
++  );
++  await conn2.query('COMMIT');
++  assert(
++    seedUserBRes.rows[0].res.status === 'success' && seedUserBRes.rows[0].res.revision === 1,
++    'Seeded User B workspace at revision 1 on PostgreSQL 16 for cross-account isolation verification'
++  );
++
++  // 6.1 Temporarily grant INSERT, UPDATE on public.user_workspaces to authenticated from admin connection (migClient)
++  //     to test the exact forgery attack scenario where authenticated attempts to forge exo.occ_rpc_active = 'true'
++  await migClient.query(`GRANT INSERT, UPDATE ON TABLE public.user_workspaces TO authenticated;`);
++
++  // Attack 1: Authenticated session sets exo.occ_rpc_active = 'true' manually and attempts direct UPDATE on own row
++  let forgedUpdateError = null;
++  let forgedGucValue = null;
++  try {
++    await conn1.query('BEGIN');
++    await conn1.query('SET LOCAL ROLE authenticated');
++    await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
++    await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [userA]);
++    const gucRes = await conn1.query(`SELECT pg_catalog.set_config('exo.occ_rpc_active', 'true', true) AS val`);
++    forgedGucValue = gucRes.rows[0].val;
++    await conn1.query(
++      `UPDATE public.user_workspaces SET subjects = '[{"id":"forged_guc_hijack"}]'::jsonb WHERE user_id = $1`,
++      [userA]
++    );
++    await conn1.query('COMMIT');
++  } catch (err) {
++    forgedUpdateError = err;
++    await conn1.query('ROLLBACK');
++  }
++  assert(
++    forgedGucValue === 'true' &&
++      forgedUpdateError !== null &&
++      forgedUpdateError.code === '42501' &&
++      String(forgedUpdateError.message).includes('OCC_BYPASS_FORBIDDEN'),
++    'Forged GUC Attack Blocked (UPDATE): Setting exo.occ_rpc_active = "true" in authenticated session with temporary UPDATE grant is rejected with OCC_BYPASS_FORBIDDEN (42501)'
++  );
++
++  // Attack 2: Authenticated session sets exo.occ_rpc_active = 'true' manually and attempts direct INSERT
++  let forgedInsertError = null;
++  try {
++    await conn1.query('BEGIN');
++    await conn1.query('SET LOCAL ROLE authenticated');
++    await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
++    await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [userNoWorkspace]);
++    await conn1.query(`SELECT pg_catalog.set_config('exo.occ_rpc_active', 'true', true)`);
++    await conn1.query(
++      `INSERT INTO public.user_workspaces (user_id, subjects, revision) VALUES ($1, '[{"id":"forged_insert"}]'::jsonb, 99)`,
++      [userNoWorkspace]
++    );
++    await conn1.query('COMMIT');
++  } catch (err) {
++    forgedInsertError = err;
++    await conn1.query('ROLLBACK');
++  }
++  assert(
++    forgedInsertError !== null &&
++      forgedInsertError.code === '42501' &&
++      String(forgedInsertError.message).includes('OCC_BYPASS_FORBIDDEN'),
++    'Forged GUC Attack Blocked (INSERT): Setting exo.occ_rpc_active = "true" in authenticated session with temporary INSERT grant is rejected with OCC_BYPASS_FORBIDDEN (42501)'
++  );
++
++  // Attack 3: Authenticated session (session_user = authenticated) attempts SET ROLE exo_occ_rpc_definer
++  //           or direct write to exo_internal.occ_active_write_context
++  let setDefinerRoleError = null;
++  try {
++    await conn1.query('BEGIN');
++    await conn1.query('SET LOCAL SESSION AUTHORIZATION authenticated');
++    await conn1.query('SET LOCAL ROLE exo_occ_rpc_definer');
++    await conn1.query('COMMIT');
++  } catch (err) {
++    setDefinerRoleError = err;
++    await conn1.query('ROLLBACK');
++  }
++  let forgeInternalTableError = null;
++  try {
++    await conn1.query('BEGIN');
++    await conn1.query('SET LOCAL SESSION AUTHORIZATION authenticated');
++    await conn1.query(
++      `INSERT INTO exo_internal.occ_active_write_context (txid, user_id, write_op) VALUES (pg_catalog.pg_current_xact_id(), $1, 'UPDATE')`,
++      [userA]
++    );
++    await conn1.query('COMMIT');
++  } catch (err) {
++    forgeInternalTableError = err;
++    await conn1.query('ROLLBACK');
++  }
++  assert(
++    setDefinerRoleError !== null &&
++      String(setDefinerRoleError.message).includes('permission denied to set role') &&
++      forgeInternalTableError !== null &&
++      String(forgeInternalTableError.message).includes('permission denied'),
++    'Role & Internal Context Forgery Blocked: authenticated cannot SET ROLE exo_occ_rpc_definer or access schema exo_internal'
++  );
++
++  // Attack 4: Same-Transaction Piggyback Attack — Authenticated session calls valid sync_workspace_with_concurrency()
++  //           and then attempts a direct UPDATE in the SAME transaction right after the RPC returns
++  let piggybackError = null;
++  try {
++    await conn1.query('BEGIN');
++    await conn1.query('SET LOCAL ROLE authenticated');
++    await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
++    await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [userA]);
++    await conn1.query(`SELECT public.sync_workspace_with_concurrency($1::jsonb, 3) AS res`, [
++      JSON.stringify({ subjects: [{ id: 'sub_legit_before_piggyback', name: 'Legit RPC Step' }] })
++    ]);
++    // Attempt direct UPDATE in the exact same transaction (same txid!)
++    await conn1.query(
++      `UPDATE public.user_workspaces SET subjects = '[{"id":"piggyback_hijack"}]'::jsonb WHERE user_id = $1`,
++      [userA]
++    );
++    await conn1.query('COMMIT');
++  } catch (err) {
++    piggybackError = err;
++    await conn1.query('ROLLBACK');
++  }
++  assert(
++    piggybackError !== null &&
++      piggybackError.code === '42501' &&
++      String(piggybackError.message).includes('OCC_BYPASS_FORBIDDEN'),
++    'Same-Transaction Piggyback Attack Blocked: Direct UPDATE immediately following sync_workspace_with_concurrency() in the same transaction is rejected'
++  );
++
++  // Attack 5: Independent Second Layer Proof — Even if trg_enforce_workspace_write_via_rpc is temporarily disabled,
++  //           the RLS policy WITH CHECK (CURRENT_USER = 'exo_occ_rpc_definer') independently blocks direct UPDATE with forged GUC
++  await migClient.query(`ALTER TABLE public.user_workspaces DISABLE TRIGGER trg_enforce_workspace_write_via_rpc;`);
++  let rlsBlockedForgedError = null;
++  try {
++    await conn1.query('BEGIN');
++    await conn1.query('SET LOCAL ROLE authenticated');
++    await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
++    await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [userA]);
++    await conn1.query(`SELECT pg_catalog.set_config('exo.occ_rpc_active', 'true', true)`);
++    await conn1.query(
++      `UPDATE public.user_workspaces SET subjects = '[{"id":"rls_bypass_attempt"}]'::jsonb WHERE user_id = $1`,
++      [userA]
++    );
++    await conn1.query('COMMIT');
++  } catch (err) {
++    rlsBlockedForgedError = err;
++    await conn1.query('ROLLBACK');
++  } finally {
++    await migClient.query(`ALTER TABLE public.user_workspaces ENABLE TRIGGER trg_enforce_workspace_write_via_rpc;`);
++  }
++  assert(
++    rlsBlockedForgedError !== null &&
++      rlsBlockedForgedError.code === '42501' &&
++      String(rlsBlockedForgedError.message).includes('row-level security policy'),
++    'Independent RLS Layer Proven: Even with trigger temporarily disabled and exo.occ_rpc_active = "true", RLS WITH CHECK (CURRENT_USER = exo_occ_rpc_definer) rejects direct UPDATE (42501)'
++  );
++
++  // 6.2 Authorized update via sync_workspace_with_concurrency() in authenticated session succeeds normally
++  await conn1.query('BEGIN');
++  await conn1.query('SET LOCAL ROLE authenticated');
++  await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
++  await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [userA]);
++  const legitRpcAfterAttacks = await conn1.query(
++    `SELECT public.sync_workspace_with_concurrency($1::jsonb, 3) AS res`,
++    [
++      JSON.stringify({
++        subjects: [{ id: 'sub_legit_rev4', name: 'Authorized RPC Update After Forgery Blocks' }]
++      })
++    ]
++  );
++  await conn1.query('COMMIT');
++  assert(
++    legitRpcAfterAttacks.rows[0].res.status === 'success' && legitRpcAfterAttacks.rows[0].res.revision === 4,
++    'Authorized sync_workspace_with_concurrency() update succeeds for User A (revision 3 -> 4)'
++  );
++
++  // Restore strict table privilege revocation on public.user_workspaces
++  await migClient.query(`REVOKE INSERT, UPDATE ON TABLE public.user_workspaces FROM authenticated;`);
++
++  // Verify User B row was completely unaffected by all forgery attempts and User A updates
++  const userBAfterForgeryTests = (
++    await migClient.query(`SELECT revision, subjects, user_email FROM public.user_workspaces WHERE user_id = $1`, [
++      userB
++    ])
++  ).rows[0];
++  assert(
++    userBAfterForgeryTests.revision === 1 &&
++      userBAfterForgeryTests.subjects.length === 1 &&
++      userBAfterForgeryTests.subjects[0].id === 'sub_b_protected' &&
++      userBAfterForgeryTests.user_email === 'bob.victim@exo.edu',
++    'Cross-account isolation intact: User B workspace remained untouched at revision 1 throughout all forgery tests'
++  );
++
++  // --------------------------------------------------------------------------
++  // SECTION 7: auth.uid() Identity Binding & Anti-Spoofing Proof on PostgreSQL 16
++  // --------------------------------------------------------------------------
++  console.log('\n--- SECTION 7: auth.uid() Identity Binding & Anti-Spoofing Verification ---');
++
++  // 7.1 Payload Spoofing Test: User A passes User B's user_id, User B's email, can_upload_media=true, and revision=999
++  //     inside p_payload to sync_workspace_with_concurrency().
++  await conn1.query('BEGIN');
++  await conn1.query('SET LOCAL ROLE authenticated');
++  await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
++  await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [userA]);
++  const spoofPayloadRes = await conn1.query(
++    `SELECT public.sync_workspace_with_concurrency($1::jsonb, 4) AS res`,
++    [
++      JSON.stringify({
++        user_id: userB,
++        user_email: 'bob.victim@exo.edu',
++        can_upload_media: true,
++        revision: 999,
++        subjects: [{ id: 'sub_spoof_test', name: 'Bound Strictly to auth.uid()' }]
++      })
++    ]
++  );
++  await conn1.query('COMMIT');
++
++  const userAAfterSpoof = (
++    await migClient.query(
++      `SELECT user_id, user_email, can_upload_media, revision, subjects FROM public.user_workspaces WHERE user_id = $1`,
++      [userA]
++    )
++  ).rows[0];
++  const userBAfterSpoof = (
++    await migClient.query(
++      `SELECT user_id, user_email, can_upload_media, revision, subjects FROM public.user_workspaces WHERE user_id = $1`,
++      [userB]
++    )
++  ).rows[0];
++  assert(
++    spoofPayloadRes.rows[0].res.status === 'success' &&
++      userAAfterSpoof.revision === 5 &&
++      userAAfterSpoof.user_email === 'alice.concurrency@exo.edu' &&
++      userAAfterSpoof.can_upload_media === false &&
++      userBAfterSpoof.revision === 1 &&
++      userBAfterSpoof.subjects[0].id === 'sub_b_protected',
++    'Identity Anti-Spoofing Proven: sync_workspace_with_concurrency ignores spoofed user_id/user_email/can_upload_media in payload, enforces auth.uid() and auth.users email, and never touches User B'
++  );
++
++  // 7.2 Role Escalation Prevention: Verify authenticated (session_user = authenticated) cannot escalate to postgres or service_role
++  let escalatePostgresErr = null;
++  try {
++    await conn1.query('BEGIN');
++    await conn1.query('SET LOCAL SESSION AUTHORIZATION authenticated');
++    await conn1.query('SET LOCAL ROLE postgres');
++    await conn1.query('COMMIT');
++  } catch (err) {
++    escalatePostgresErr = err;
++    await conn1.query('ROLLBACK');
++  }
++  let escalateServiceRoleErr = null;
++  try {
++    await conn1.query('BEGIN');
++    await conn1.query('SET LOCAL SESSION AUTHORIZATION authenticated');
++    await conn1.query('SET LOCAL ROLE service_role');
++    await conn1.query('COMMIT');
++  } catch (err) {
++    escalateServiceRoleErr = err;
++    await conn1.query('ROLLBACK');
++  }
++  assert(
++    escalatePostgresErr !== null &&
++      String(escalatePostgresErr.message).includes('permission denied to set role') &&
++      escalateServiceRoleErr !== null &&
++      String(escalateServiceRoleErr.message).includes('permission denied to set role'),
++    'Role Escalation Blocked: authenticated session cannot SET ROLE to postgres or service_role'
++  );
++
 +  await conn1.end();
 +  await conn2.end();
 +  await connMonitor.end();
@@ -10894,10 +11547,10 @@ index 0000000..5062314
 +});
 diff --git a/test_phase4_2_postgres_integration.js b/test_phase4_2_postgres_integration.js
 new file mode 100644
-index 0000000..0541eb7
+index 0000000..3a5ded8
 --- /dev/null
 +++ b/test_phase4_2_postgres_integration.js
-@@ -0,0 +1,988 @@
+@@ -0,0 +1,996 @@
 +// ============================================================================
 +// Exo Academic Platform — Phase 4.2 Embedded PostgreSQL Compatibility Test Suite
 +// Category: Embedded PostgreSQL Compatibility Tests (@electric-sql/pglite WASM Engine)
@@ -11347,21 +12000,29 @@ index 0000000..0541eb7
 +    'Direct INSERT on user_workspaces by authenticated role is blocked by PostgreSQL table privilege revocation'
 +  );
 +
-+  // 4.3 Defense-in-Depth: Even if INSERT/UPDATE table privileges were granted, trg_enforce_workspace_write_via_rpc blocks direct write!
++  // 4.3 Defense-in-Depth & GUC Forgery Resistance: Even if INSERT/UPDATE table privileges are granted
++  //     AND the client manually sets exo.occ_rpc_active = 'true', trg_enforce_workspace_write_via_rpc blocks direct write!
 +  await dbMigrated.exec(`GRANT INSERT, UPDATE ON TABLE public.user_workspaces TO authenticated;`);
-+  const triggerBlockedUpdate = await execAsSupabaseSession(
-+    dbMigrated,
-+    'authenticated',
-+    userA,
-+    `UPDATE public.user_workspaces SET subjects = '[{"id":"bypass_attempt"}]'::jsonb WHERE user_id = $1`,
-+    [userA]
-+  );
++  await dbMigrated.exec(`BEGIN; SET LOCAL ROLE authenticated;`);
++  await dbMigrated.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
++  await dbMigrated.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [userA]);
++  await dbMigrated.query(`SELECT pg_catalog.set_config('exo.occ_rpc_active', 'true', true)`);
++  let triggerBlockedUpdateError = null;
++  try {
++    await dbMigrated.query(
++      `UPDATE public.user_workspaces SET subjects = '[{"id":"forged_guc_bypass"}]'::jsonb WHERE user_id = $1`,
++      [userA]
++    );
++    await dbMigrated.exec(`COMMIT;`);
++  } catch (err) {
++    triggerBlockedUpdateError = err;
++    await dbMigrated.exec(`ROLLBACK;`);
++  }
 +  await dbMigrated.exec(`REVOKE INSERT, UPDATE ON TABLE public.user_workspaces FROM authenticated;`);
 +  assert(
-+    triggerBlockedUpdate.ok === false &&
-+      (String(triggerBlockedUpdate.error?.message || '').includes('OCC_BYPASS_FORBIDDEN') ||
-+        String(triggerBlockedUpdate.error?.message || '').includes('row-level security')),
-+    'Defense-in-depth trigger (enforce_workspace_write_via_rpc) and RLS block direct UPDATE even if table privileges are granted'
++    triggerBlockedUpdateError !== null &&
++      String(triggerBlockedUpdateError.message || '').includes('OCC_BYPASS_FORBIDDEN'),
++    'Unforgeable OCC guard (enforce_workspace_write_via_rpc) blocks direct UPDATE even when table privileges are granted and exo.occ_rpc_active is forged to "true"'
 +  );
 +
 +  // 4.4 Valid sequential update via sync_workspace_with_concurrency increments revision 1 -> 2

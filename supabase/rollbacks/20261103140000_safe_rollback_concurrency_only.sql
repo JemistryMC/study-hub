@@ -33,27 +33,27 @@ SET local check_function_bodies = off;
 DROP TRIGGER IF EXISTS trg_enforce_workspace_write_via_rpc ON public.user_workspaces;
 DROP FUNCTION IF EXISTS public.enforce_workspace_write_via_rpc();
 
--- 2. Allow RLS-checked INSERT and UPDATE on own row for authenticated (never anon!)
+-- 2. Allow RLS-checked INSERT and UPDATE on own row for authenticated & exo_occ_rpc_definer (never anon!)
 REVOKE ALL ON TABLE "public"."user_workspaces" FROM PUBLIC, "anon", "authenticated";
-GRANT SELECT, INSERT, UPDATE ON TABLE "public"."user_workspaces" TO "authenticated";
+GRANT SELECT, INSERT, UPDATE ON TABLE "public"."user_workspaces" TO "authenticated", "exo_occ_rpc_definer";
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "public"."user_workspaces" TO "postgres", "service_role";
 
 DROP POLICY IF EXISTS "Users can view own workspace" ON "public"."user_workspaces";
 CREATE POLICY "Users can view own workspace" ON "public"."user_workspaces"
   FOR SELECT
-  TO "authenticated"
+  TO "authenticated", "exo_occ_rpc_definer"
   USING ((auth.uid() = user_id));
 
 DROP POLICY IF EXISTS "Users can insert own workspace" ON "public"."user_workspaces";
 CREATE POLICY "Users can insert own workspace" ON "public"."user_workspaces"
   FOR INSERT
-  TO "authenticated"
+  TO "authenticated", "exo_occ_rpc_definer"
   WITH CHECK ((auth.uid() = user_id));
 
 DROP POLICY IF EXISTS "Users can update own workspace" ON "public"."user_workspaces";
 CREATE POLICY "Users can update own workspace" ON "public"."user_workspaces"
   FOR UPDATE
-  TO "authenticated"
+  TO "authenticated", "exo_occ_rpc_definer"
   USING ((auth.uid() = user_id))
   WITH CHECK ((auth.uid() = user_id));
 

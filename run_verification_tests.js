@@ -332,7 +332,7 @@ async function main() {
     'Atomic concurrency RPC sync_workspace_with_concurrency present in both migration and final schema.sql'
   );
 
-  // 3.6 Security Definer Search Path Hardening
+  // 3.6 Security Definer Search Path Hardening & Unforgeable OCC RPC Proof
   assert(
     forwardMigration.includes('CREATE OR REPLACE FUNCTION public.protect_vip_status_column()') &&
       forwardMigration.includes('SET search_path = pg_catalog, public'),
@@ -345,8 +345,18 @@ async function main() {
   );
   assert(
     forwardMigration.includes('sync_workspace_with_concurrency') &&
-      forwardMigration.includes('SET search_path = pg_catalog, public, auth'),
-    'sync_workspace_with_concurrency hardened with search_path = pg_catalog, public, auth'
+      forwardMigration.includes('SET search_path = pg_catalog, public, auth, exo_internal'),
+    'sync_workspace_with_concurrency hardened with search_path = pg_catalog, public, auth, exo_internal'
+  );
+  assert(
+    !forwardMigration.includes('exo.occ_rpc_active') &&
+      !finalSchema.includes('exo.occ_rpc_active') &&
+      !safeRollback.includes('exo.occ_rpc_active') &&
+      forwardMigration.includes('exo_occ_rpc_definer') &&
+      forwardMigration.includes('exo_internal.occ_active_write_context') &&
+      finalSchema.includes('exo_occ_rpc_definer') &&
+      finalSchema.includes('exo_internal.occ_active_write_context'),
+    'Zero reliance on forgeable custom GUC (exo.occ_rpc_active) in migrations/schema; unforgeable NOLOGIN role exo_occ_rpc_definer and private exo_internal.occ_active_write_context enforced'
   );
 
   // 3.7 Rollback Safety Gate & Safe Emergency Rollback Alternative

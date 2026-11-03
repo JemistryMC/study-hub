@@ -489,11 +489,11 @@ async function main() {
   const migDefAcl = (await migClient.query(defAclQuery)).rows;
   const freshDefAcl = (await freshClient.query(defAclQuery)).rows;
   assert(
-    JSON.stringify(migDefAcl) === JSON.stringify(freshDefAcl) && migDefAcl.length === 1,
-    'Parity [9/10] Global and schema-scoped ALTER DEFAULT PRIVILEGES entries match between migrated DB and schema.sql'
+    JSON.stringify(migDefAcl) === JSON.stringify(freshDefAcl) && migDefAcl.length >= 2,
+    'Parity [9/10] Global and schema-scoped ALTER DEFAULT PRIVILEGES entries (postgres & exo_occ_rpc_definer) match between migrated DB and schema.sql'
   );
 
-  // 3.10 Storage Bucket Configuration
+  // 3.10 Storage Bucket Configuration & Internal OCC Write-Context Schema Parity
   const bucketQuery = `
     SELECT id, name, public, file_size_limit, allowed_mime_types
     FROM storage.buckets
@@ -501,12 +501,23 @@ async function main() {
   `;
   const migBucket = (await migClient.query(bucketQuery)).rows;
   const freshBucket = (await freshClient.query(bucketQuery)).rows;
+  const internalCtxQuery = `
+    SELECT c.relname, c.relrowsecurity, c.relacl::text, pg_get_constraintdef(con.oid) AS condef
+    FROM pg_class c
+    JOIN pg_namespace n ON c.relnamespace = n.oid
+    JOIN pg_constraint con ON con.conrelid = c.oid
+    WHERE n.nspname = 'exo_internal' AND c.relname = 'occ_active_write_context'
+    ORDER BY con.conname
+  `;
+  const migInternal = (await migClient.query(internalCtxQuery)).rows;
+  const freshInternal = (await freshClient.query(internalCtxQuery)).rows;
   assert(
     JSON.stringify(migBucket) === JSON.stringify(freshBucket) &&
+      JSON.stringify(migInternal) === JSON.stringify(freshInternal) &&
       migBucket.length === 1 &&
       migBucket[0].public === false &&
       Number(migBucket[0].file_size_limit) === 52428800,
-    'Parity [10/10] Storage bucket lecture_media properties (public=false, 50MB limit, allowed_mime_types) match between migrated DB and schema.sql'
+    'Parity [10/10] Storage bucket lecture_media and private exo_internal.occ_active_write_context schema match between migrated DB and schema.sql'
   );
 
   await freshClient.end();
@@ -790,6 +801,291 @@ async function main() {
       afterInitRace.subjects.length === 1 &&
       afterInitRace.subjects[0].id === 'sub_init_conn1',
     'First-time workspace row created by Connection 1 remains intact at revision 1 after concurrent unique_violation recovery'
+  );
+
+  // --------------------------------------------------------------------------
+  // SECTION 6: Custom GUC Forgery Attack & Unforgeable OCC RPC Proof on PostgreSQL 16
+  // --------------------------------------------------------------------------
+  console.log('\n--- SECTION 6: Custom GUC Forgery Attack (exo.occ_rpc_active) & Unforgeable OCC RPC Proof ---');
+
+  const userB = 'bbbbbbbb-1111-2222-3333-444455556666';
+  const userNoWorkspace = 'dddddddd-1111-2222-3333-444455556666';
+  await migClient.query(`INSERT INTO auth.users (id, email) VALUES ($1, $2), ($3, $4)`, [
+    userB,
+    'bob.victim@exo.edu',
+    userNoWorkspace,
+    'dave.noworkspace@exo.edu'
+  ]);
+
+  // Seed User B workspace at revision 1 so we can prove zero cross-account leakage after attacks
+  await conn2.query('BEGIN');
+  await conn2.query('SET LOCAL ROLE authenticated');
+  await conn2.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
+  await conn2.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [userB]);
+  const seedUserBRes = await conn2.query(
+    `SELECT public.sync_workspace_with_concurrency($1::jsonb, NULL) AS res`,
+    [JSON.stringify({ subjects: [{ id: 'sub_b_protected', name: 'Bob Protected Subject' }] })]
+  );
+  await conn2.query('COMMIT');
+  assert(
+    seedUserBRes.rows[0].res.status === 'success' && seedUserBRes.rows[0].res.revision === 1,
+    'Seeded User B workspace at revision 1 on PostgreSQL 16 for cross-account isolation verification'
+  );
+
+  // 6.1 Temporarily grant INSERT, UPDATE on public.user_workspaces to authenticated from admin connection (migClient)
+  //     to test the exact forgery attack scenario where authenticated attempts to forge exo.occ_rpc_active = 'true'
+  await migClient.query(`GRANT INSERT, UPDATE ON TABLE public.user_workspaces TO authenticated;`);
+
+  // Attack 1: Authenticated session sets exo.occ_rpc_active = 'true' manually and attempts direct UPDATE on own row
+  let forgedUpdateError = null;
+  let forgedGucValue = null;
+  try {
+    await conn1.query('BEGIN');
+    await conn1.query('SET LOCAL ROLE authenticated');
+    await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
+    await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [userA]);
+    const gucRes = await conn1.query(`SELECT pg_catalog.set_config('exo.occ_rpc_active', 'true', true) AS val`);
+    forgedGucValue = gucRes.rows[0].val;
+    await conn1.query(
+      `UPDATE public.user_workspaces SET subjects = '[{"id":"forged_guc_hijack"}]'::jsonb WHERE user_id = $1`,
+      [userA]
+    );
+    await conn1.query('COMMIT');
+  } catch (err) {
+    forgedUpdateError = err;
+    await conn1.query('ROLLBACK');
+  }
+  assert(
+    forgedGucValue === 'true' &&
+      forgedUpdateError !== null &&
+      forgedUpdateError.code === '42501' &&
+      String(forgedUpdateError.message).includes('OCC_BYPASS_FORBIDDEN'),
+    'Forged GUC Attack Blocked (UPDATE): Setting exo.occ_rpc_active = "true" in authenticated session with temporary UPDATE grant is rejected with OCC_BYPASS_FORBIDDEN (42501)'
+  );
+
+  // Attack 2: Authenticated session sets exo.occ_rpc_active = 'true' manually and attempts direct INSERT
+  let forgedInsertError = null;
+  try {
+    await conn1.query('BEGIN');
+    await conn1.query('SET LOCAL ROLE authenticated');
+    await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
+    await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [userNoWorkspace]);
+    await conn1.query(`SELECT pg_catalog.set_config('exo.occ_rpc_active', 'true', true)`);
+    await conn1.query(
+      `INSERT INTO public.user_workspaces (user_id, subjects, revision) VALUES ($1, '[{"id":"forged_insert"}]'::jsonb, 99)`,
+      [userNoWorkspace]
+    );
+    await conn1.query('COMMIT');
+  } catch (err) {
+    forgedInsertError = err;
+    await conn1.query('ROLLBACK');
+  }
+  assert(
+    forgedInsertError !== null &&
+      forgedInsertError.code === '42501' &&
+      String(forgedInsertError.message).includes('OCC_BYPASS_FORBIDDEN'),
+    'Forged GUC Attack Blocked (INSERT): Setting exo.occ_rpc_active = "true" in authenticated session with temporary INSERT grant is rejected with OCC_BYPASS_FORBIDDEN (42501)'
+  );
+
+  // Attack 3: Authenticated session (session_user = authenticated) attempts SET ROLE exo_occ_rpc_definer
+  //           or direct write to exo_internal.occ_active_write_context
+  let setDefinerRoleError = null;
+  try {
+    await conn1.query('BEGIN');
+    await conn1.query('SET LOCAL SESSION AUTHORIZATION authenticated');
+    await conn1.query('SET LOCAL ROLE exo_occ_rpc_definer');
+    await conn1.query('COMMIT');
+  } catch (err) {
+    setDefinerRoleError = err;
+    await conn1.query('ROLLBACK');
+  }
+  let forgeInternalTableError = null;
+  try {
+    await conn1.query('BEGIN');
+    await conn1.query('SET LOCAL SESSION AUTHORIZATION authenticated');
+    await conn1.query(
+      `INSERT INTO exo_internal.occ_active_write_context (txid, user_id, write_op) VALUES (pg_catalog.pg_current_xact_id(), $1, 'UPDATE')`,
+      [userA]
+    );
+    await conn1.query('COMMIT');
+  } catch (err) {
+    forgeInternalTableError = err;
+    await conn1.query('ROLLBACK');
+  }
+  assert(
+    setDefinerRoleError !== null &&
+      String(setDefinerRoleError.message).includes('permission denied to set role') &&
+      forgeInternalTableError !== null &&
+      String(forgeInternalTableError.message).includes('permission denied'),
+    'Role & Internal Context Forgery Blocked: authenticated cannot SET ROLE exo_occ_rpc_definer or access schema exo_internal'
+  );
+
+  // Attack 4: Same-Transaction Piggyback Attack — Authenticated session calls valid sync_workspace_with_concurrency()
+  //           and then attempts a direct UPDATE in the SAME transaction right after the RPC returns
+  let piggybackError = null;
+  try {
+    await conn1.query('BEGIN');
+    await conn1.query('SET LOCAL ROLE authenticated');
+    await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
+    await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [userA]);
+    await conn1.query(`SELECT public.sync_workspace_with_concurrency($1::jsonb, 3) AS res`, [
+      JSON.stringify({ subjects: [{ id: 'sub_legit_before_piggyback', name: 'Legit RPC Step' }] })
+    ]);
+    // Attempt direct UPDATE in the exact same transaction (same txid!)
+    await conn1.query(
+      `UPDATE public.user_workspaces SET subjects = '[{"id":"piggyback_hijack"}]'::jsonb WHERE user_id = $1`,
+      [userA]
+    );
+    await conn1.query('COMMIT');
+  } catch (err) {
+    piggybackError = err;
+    await conn1.query('ROLLBACK');
+  }
+  assert(
+    piggybackError !== null &&
+      piggybackError.code === '42501' &&
+      String(piggybackError.message).includes('OCC_BYPASS_FORBIDDEN'),
+    'Same-Transaction Piggyback Attack Blocked: Direct UPDATE immediately following sync_workspace_with_concurrency() in the same transaction is rejected'
+  );
+
+  // Attack 5: Independent Second Layer Proof — Even if trg_enforce_workspace_write_via_rpc is temporarily disabled,
+  //           the RLS policy WITH CHECK (CURRENT_USER = 'exo_occ_rpc_definer') independently blocks direct UPDATE with forged GUC
+  await migClient.query(`ALTER TABLE public.user_workspaces DISABLE TRIGGER trg_enforce_workspace_write_via_rpc;`);
+  let rlsBlockedForgedError = null;
+  try {
+    await conn1.query('BEGIN');
+    await conn1.query('SET LOCAL ROLE authenticated');
+    await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
+    await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [userA]);
+    await conn1.query(`SELECT pg_catalog.set_config('exo.occ_rpc_active', 'true', true)`);
+    await conn1.query(
+      `UPDATE public.user_workspaces SET subjects = '[{"id":"rls_bypass_attempt"}]'::jsonb WHERE user_id = $1`,
+      [userA]
+    );
+    await conn1.query('COMMIT');
+  } catch (err) {
+    rlsBlockedForgedError = err;
+    await conn1.query('ROLLBACK');
+  } finally {
+    await migClient.query(`ALTER TABLE public.user_workspaces ENABLE TRIGGER trg_enforce_workspace_write_via_rpc;`);
+  }
+  assert(
+    rlsBlockedForgedError !== null &&
+      rlsBlockedForgedError.code === '42501' &&
+      String(rlsBlockedForgedError.message).includes('row-level security policy'),
+    'Independent RLS Layer Proven: Even with trigger temporarily disabled and exo.occ_rpc_active = "true", RLS WITH CHECK (CURRENT_USER = exo_occ_rpc_definer) rejects direct UPDATE (42501)'
+  );
+
+  // 6.2 Authorized update via sync_workspace_with_concurrency() in authenticated session succeeds normally
+  await conn1.query('BEGIN');
+  await conn1.query('SET LOCAL ROLE authenticated');
+  await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
+  await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [userA]);
+  const legitRpcAfterAttacks = await conn1.query(
+    `SELECT public.sync_workspace_with_concurrency($1::jsonb, 3) AS res`,
+    [
+      JSON.stringify({
+        subjects: [{ id: 'sub_legit_rev4', name: 'Authorized RPC Update After Forgery Blocks' }]
+      })
+    ]
+  );
+  await conn1.query('COMMIT');
+  assert(
+    legitRpcAfterAttacks.rows[0].res.status === 'success' && legitRpcAfterAttacks.rows[0].res.revision === 4,
+    'Authorized sync_workspace_with_concurrency() update succeeds for User A (revision 3 -> 4)'
+  );
+
+  // Restore strict table privilege revocation on public.user_workspaces
+  await migClient.query(`REVOKE INSERT, UPDATE ON TABLE public.user_workspaces FROM authenticated;`);
+
+  // Verify User B row was completely unaffected by all forgery attempts and User A updates
+  const userBAfterForgeryTests = (
+    await migClient.query(`SELECT revision, subjects, user_email FROM public.user_workspaces WHERE user_id = $1`, [
+      userB
+    ])
+  ).rows[0];
+  assert(
+    userBAfterForgeryTests.revision === 1 &&
+      userBAfterForgeryTests.subjects.length === 1 &&
+      userBAfterForgeryTests.subjects[0].id === 'sub_b_protected' &&
+      userBAfterForgeryTests.user_email === 'bob.victim@exo.edu',
+    'Cross-account isolation intact: User B workspace remained untouched at revision 1 throughout all forgery tests'
+  );
+
+  // --------------------------------------------------------------------------
+  // SECTION 7: auth.uid() Identity Binding & Anti-Spoofing Proof on PostgreSQL 16
+  // --------------------------------------------------------------------------
+  console.log('\n--- SECTION 7: auth.uid() Identity Binding & Anti-Spoofing Verification ---');
+
+  // 7.1 Payload Spoofing Test: User A passes User B's user_id, User B's email, can_upload_media=true, and revision=999
+  //     inside p_payload to sync_workspace_with_concurrency().
+  await conn1.query('BEGIN');
+  await conn1.query('SET LOCAL ROLE authenticated');
+  await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
+  await conn1.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [userA]);
+  const spoofPayloadRes = await conn1.query(
+    `SELECT public.sync_workspace_with_concurrency($1::jsonb, 4) AS res`,
+    [
+      JSON.stringify({
+        user_id: userB,
+        user_email: 'bob.victim@exo.edu',
+        can_upload_media: true,
+        revision: 999,
+        subjects: [{ id: 'sub_spoof_test', name: 'Bound Strictly to auth.uid()' }]
+      })
+    ]
+  );
+  await conn1.query('COMMIT');
+
+  const userAAfterSpoof = (
+    await migClient.query(
+      `SELECT user_id, user_email, can_upload_media, revision, subjects FROM public.user_workspaces WHERE user_id = $1`,
+      [userA]
+    )
+  ).rows[0];
+  const userBAfterSpoof = (
+    await migClient.query(
+      `SELECT user_id, user_email, can_upload_media, revision, subjects FROM public.user_workspaces WHERE user_id = $1`,
+      [userB]
+    )
+  ).rows[0];
+  assert(
+    spoofPayloadRes.rows[0].res.status === 'success' &&
+      userAAfterSpoof.revision === 5 &&
+      userAAfterSpoof.user_email === 'alice.concurrency@exo.edu' &&
+      userAAfterSpoof.can_upload_media === false &&
+      userBAfterSpoof.revision === 1 &&
+      userBAfterSpoof.subjects[0].id === 'sub_b_protected',
+    'Identity Anti-Spoofing Proven: sync_workspace_with_concurrency ignores spoofed user_id/user_email/can_upload_media in payload, enforces auth.uid() and auth.users email, and never touches User B'
+  );
+
+  // 7.2 Role Escalation Prevention: Verify authenticated (session_user = authenticated) cannot escalate to postgres or service_role
+  let escalatePostgresErr = null;
+  try {
+    await conn1.query('BEGIN');
+    await conn1.query('SET LOCAL SESSION AUTHORIZATION authenticated');
+    await conn1.query('SET LOCAL ROLE postgres');
+    await conn1.query('COMMIT');
+  } catch (err) {
+    escalatePostgresErr = err;
+    await conn1.query('ROLLBACK');
+  }
+  let escalateServiceRoleErr = null;
+  try {
+    await conn1.query('BEGIN');
+    await conn1.query('SET LOCAL SESSION AUTHORIZATION authenticated');
+    await conn1.query('SET LOCAL ROLE service_role');
+    await conn1.query('COMMIT');
+  } catch (err) {
+    escalateServiceRoleErr = err;
+    await conn1.query('ROLLBACK');
+  }
+  assert(
+    escalatePostgresErr !== null &&
+      String(escalatePostgresErr.message).includes('permission denied to set role') &&
+      escalateServiceRoleErr !== null &&
+      String(escalateServiceRoleErr.message).includes('permission denied to set role'),
+    'Role Escalation Blocked: authenticated session cannot SET ROLE to postgres or service_role'
   );
 
   await conn1.end();
