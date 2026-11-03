@@ -1,81 +1,94 @@
-# تقرير المراجعة الهندسية والأمنية الشاملة لمنصة Exo — Phase 4.1 & Phase 4.2
+# تقرير المراجعة الهندسية والأمنية الشاملة لمنصة Exo — Phase 4.1, Phase 4.2 & Phase 4.2.1
 
 ## نطاق المراجعة والتنفيذ الفعلي
-يوثق هذا التقرير النتائج والتعديلات المنفذة والمختبرة فعليًا في **Exo Phase 4.1** و**Phase 4.2** لعزل الحسابات، ومنع سباقات التزامن (`Race Conditions`)، وضمان متانة معاملات `IndexedDB`، وتأمين قواعد بيانات وسياسات `PostgreSQL / Supabase` مع التحقق منها على محرك **PostgreSQL 16** حقيقي ومتصفح **Headless Chromium** حقيقي.
+يوثق هذا التقرير النتائج والتعديلات المنفذة والمختبرة فعليًا في **Exo Phase 4.1** و**Phase 4.2** و**Phase 4.2.1** لعزل الحسابات، ومنع سباقات التزامن (`Race Conditions`)، وضمان متانة معاملات `IndexedDB`، وتأمين قواعد بيانات وسياسات `PostgreSQL / Supabase` مع الفصل الكامل والصريح بين:
+1. **اختبارات التوافق المضمنة (`Embedded PostgreSQL Compatibility Tests — PGlite WASM`)** في `test_phase4_2_postgres_integration.js`.
+2. **اختبارات خادم PostgreSQL 16 الفعلي والتزامن متعدد الاتصالات (`Real PostgreSQL 16 Multi-Connection Concurrency & 10-Point Schema Parity Proof`)** في `test_phase4_2_1_pg16_concurrency.js`.
+3. **اختبارات المتصفح الفعلي (`Real Headless Chromium + IndexedDB v4 E2E`)** في `test_phase4_1_chromium_e2e.js`.
 
 ### هيكل ملفات قاعدة البيانات المنظم (`supabase/`):
 - `supabase/config.toml` — إعدادات مشروع Supabase المحلية والـ Auth والـ Storage.
 - `supabase/schema.sql` — المخطط النهائي الكامل (`Canonical Final Schema`) الذي يعكس حالة قاعدة البيانات بعد تطبيق جميع الـ Migrations (بما في ذلك العمود `revision`، والدالة `sync_workspace_with_concurrency`، ودوال الحماية، وسياسات `RLS` و`Storage`، وتقليص الصلاحيات).
-- `supabase/migrations/20261103133622_remote_schema.sql` — مخطط القاعدة الأساسي الأولي (Baseline Migration).
+- `supabase/migrations/20261103133622_remote_schema.sql` — مخطط القاعدة الأساسي الأولي (Baseline Migration، متوافق بالكامل مع PostgreSQL 16 بعد إزالة صلاحية `MAINTAIN` الخاصة بـ PostgreSQL 17+).
 - `supabase/migrations/20261103140000_fix_security_and_privileges.sql` — ترقية الأمان، سحب الصلاحيات الزائدة والافتراضية (`ALTER DEFAULT PRIVILEGES`)، فرض التحكم التفاؤلي في التزامن (`OCC`) عبر `revision` و`sync_workspace_with_concurrency`، وإصلاح سياسات `Storage`.
 - `supabase/rollbacks/20261103140000_safe_rollback_concurrency_only.sql` — **البديل الآمن للتراجع في حالات الطوارئ**: يرفع قيد المنع الصارم للكتابة المباشرة (`trg_enforce_workspace_write_via_rpc`) عند الضرورة التشغيلية، مع الحفاظ الكامل على عزل الحسابات (`RLS`)، وسياسات VIP للرفع (`can_upload_media = true`)، وسحب الصلاحيات الخطرة والافتراضية.
-- `supabase/rollbacks/20261103140000_rollback_fix_security_and_privileges.sql` — نص التراجع التاريخي إلى حالة الـ Baseline (معزول خارج `migrations/` ومحمي ببوابة أمان `exo.allow_unsafe_legacy_rollback = 'I_ACCEPT_SECURITY_DOWNGRADE'` لمنع تشغيله بالخطأ لأنه يعيد الثغرات القديمة).
+- `supabase/rollbacks/20261103140000_rollback_fix_security_and_privileges.sql` — نص التراجع التاريخي إلى حالة الـ Baseline (معزول خارج `migrations/` ومحمي ببوابة أمان `exo.allow_unsafe_legacy_rollback = 'I_ACCEPT_SECURITY_DOWNGRADE'` لمنع تشغيله بالخطأ).
 
 ---
 
-## القسم الأول: إصلاحات قاعدة البيانات والأمان في Phase 4.1 و Phase 4.2
+## القسم الأول: إصلاحات قاعدة البيانات وإثبات التزامن على PostgreSQL 16 الفعلي (Phase 4.2.1)
 
-### 1. معالجة صلاحيات الدوال الافتراضية (`PostgreSQL Default Function Privileges`) وصلاحيات التنفيذ (`EXECUTE`)
-- **المشكلة المكتشفة**: في PostgreSQL، تحصل أي دالة جديدة ينشئها الدور `postgres` تلقائيًا على صلاحية `EXECUTE` لصالح `PUBLIC`. سحب الصلاحيات الافتراضية من `"anon", "authenticated"` فقط دون `PUBLIC`، أو قصره على `IN SCHEMA "public"` فقط، يترك `anon` و`authenticated` قادرين على تنفيذ الدوال المستقبلية بالوراثة من `PUBLIC`.
-- **الإصلاح المنفذ والمختبر على PostgreSQL 16**:
-  - تطبيق `ALTER DEFAULT PRIVILEGES FOR ROLE "postgres"` على المستوى العام (جميع الـ Schemas) وداخل `IN SCHEMA "public"` لسحب جميع الصلاحيات من `PUBLIC, "anon", "authenticated"` على `FUNCTIONS` و`TABLES` و`SEQUENCES`.
-  - سحب صلاحية `EXECUTE` من `PUBLIC, "anon", "authenticated"` على جميع دوال الـ Triggers الداخلية (`public.enforce_workspace_media_security()`, `public.protect_vip_status_column()`, `public.handle_user_workspace_updated_at()`, `public.enforce_workspace_write_via_rpc()`, `public.rls_auto_enable()`) وحصرها في `"postgres", "service_role"`.
-  - حصر صلاحية `EXECUTE` للدور `"authenticated"` في دالة RPC واحدة فقط: `public.sync_workspace_with_concurrency(jsonb, integer)`، مع منع `"anon"` و`PUBLIC` من تنفيذها.
+### 1. الفرق الهندسي الصريح بين محرك PGlite المضمن وخادم PostgreSQL 16 الفعلي
+- **محرك PGlite (`@electric-sql/pglite` 0.5.15 — `test_phase4_2_postgres_integration.js`)**:
+  - يعمل كمحرك PostgreSQL مضمن أحادي الاتصال (`Single-Connection WebAssembly Engine`) مبني من نواة PostgreSQL 18.6 (`server_version_num = 180006` على `wasm32-unknown-emscripten`).
+  - يختبر صحة قواعد SQL، وسياسات `RLS`، والـ Triggers، ومنطق الدوال داخل اتصال واحد، لكنه **لا يثبت** التوافق مع PostgreSQL 16 ولا يختبر التزامن الفعلي متعدد الاتصالات (`Multi-Connection Row Locking`).
+- **خادم PostgreSQL 16 الفعلي (`postgres:16` — `test_phase4_2_1_pg16_concurrency.js`)**:
+  - يتصل بخادم PostgreSQL 16 حقيقي مستقل (`PostgreSQL 16.15`, `server_version_num = 160015`) عبر مكتبة `pg` واتصالات TCP متوازية ومستقلة (`pg_backend_pid()`).
+  - يتحقق في بداية الاختبار عبر بوابة إلزامية (`SELECT version()` و`SHOW server_version_num`) من أن الإصدار الرئيسي (`Major Version`) هو `16` حصريًا، ويفشل الاختبار فورًا إذا كان المحرك PGlite أو إصدارًا مختلفًا.
+  - كشف تشغيل PostgreSQL 16 الفعلي وجود كلمة الصلاحية `MAINTAIN` (الخاصة بـ PostgreSQL 17+) في ملف الـ Baseline `20261103133622_remote_schema.sql` والتي كان محرك PGlite 18.6 يقبلها دون خطأ بينما يرفضها PostgreSQL 16، وتم تصحيحها.
 
-### 2. اتساق المخطط النهائي (`supabase/schema.sql`)
-- تم تحديث `supabase/schema.sql` ليطابق الحالة النهائية بعد جميع الـ Migrations بنسبة 100%، وتم التحقق برمجيًا في `test_phase4_2_postgres_integration.js` من تطابق الأعمدة (`revision`)، والـ Triggers (`trg_user_workspaces_updated_at`, `trg_enforce_workspace_write_via_rpc`, `trg_enforce_workspace_media_security`, `trg_protect_vip_status`)، وسياسات `RLS`، ومصفوفة صلاحيات الجداول والدوال بين قاعدة بيانات مبنية من الـ Migrations وقاعدة بيانات جديدة مبنية من `supabase/schema.sql` وحده.
+### 2. توثيق واختبار الإضافات الأربعة (`Extensions`) المستثناة في PGlite
+يعلن الملف `supabase/schema.sql` عن أربع إضافات (`Extensions`). يوضح الجدول التالي حالة كل إضافة في بيئة PGlite المضمنة مقابل بيئة PostgreSQL 16 الفعلية:
 
-### 3. فرض التحكم التفاؤلي في التزامن (`Optimistic Concurrency Enforcement`) ومنع تجاوز الـ RPC
-- **المشكلة المكتشفة**:
-  1. على مستوى العميل (`index.html`): كان المسار `syncWorkspaceOnLogin()` ينفذ تحديثًا مباشرًا `.from('user_workspaces').update({ user_email: ... })` يتجاوز دالة `sync_workspace_with_concurrency` ويرفع `revision` في الخادم دون علم العميل، كما لم تكن `applyCloudWorkspacePayload()` تحفظ `cloudRow.revision` في `localStorage`.
-  2. على مستوى قاعدة البيانات: كان الدور `authenticated` يملك صلاحية `INSERT, UPDATE` مباشرة على جدول `public.user_workspaces`، مما يسمح بتجاوز `sync_workspace_with_concurrency`.
-- **الإصلاح المنفذ والمختبر**:
-  - في `index.html`: إزالة الاستدعاء المباشر `.update()` وتوجيه تحديث البريد عبر `pushWorkspaceToCloud(false, false, opCtx)` الذي يستدعي `sync_workspace_with_concurrency(p_payload, p_expected_revision)`، وحفظ `cloudRow.revision` داخل `applyCloudWorkspacePayload()`.
-  - في قاعدة البيانات (`public.user_workspaces`):
-    - العمود `revision integer NOT NULL DEFAULT 1` مع الدالة `public.handle_user_workspace_updated_at()` والـ Trigger `trg_user_workspaces_updated_at` لتحديث `updated_at := pg_catalog.now()` وزيادة `revision := COALESCE(OLD.revision, 0) + 1` عند كل تحديث.
-    - الدالة `public.sync_workspace_with_concurrency(p_payload jsonb, p_expected_revision integer)` تقفل الصف عبر `FOR UPDATE`، وتتحقق من تطابق `p_expected_revision = v_current_rev`، وتعيد `{ "status": "conflict", "current_revision": v_current_rev }` عند وجود تعارض أو `{ "status": "success", "revision": v_current_rev }` عند النجاح، كما تعالج سباق الإنشاء الأول (`unique_violation`).
-    - قصر صلاحيات الجدول المباشرة للدور `authenticated` على `GRANT SELECT ON TABLE "public"."user_workspaces" TO "authenticated"` (وسحب `INSERT, UPDATE, DELETE, TRUNCATE`)، مع إضافة دالة الحماية `public.enforce_workspace_write_via_rpc()` والـ Trigger `trg_enforce_workspace_write_via_rpc` وشرط `current_setting('exo.occ_rpc_active', true) = 'true'` في سياسات RLS لضمان استحالة تجاوز `sync_workspace_with_concurrency` حتى لو مُنحت صلاحيات جدول مستقبلًا.
+| الإضافة (`Extension`) | الـ Schema | حالتها في `PGlite` (WASM) | حالتها في `PostgreSQL 16` الفعلي (`postgres:16`) | الاستخدام الفعلي في Exo |
+| :--- | :---: | :---: | :---: | :--- |
+| **`pg_stat_statements`** | `extensions` | مستثناة (غير مدمجة في WASM) | **مثبتة ومختبرة فعليًا** (`postgresql-contrib-16`) | إحصاءات أداء استعلامات Supabase؛ لا يعتمد عليها منطق التطبيق. |
+| **`pgcrypto`** | `extensions` | مستثناة في التهيئة الافتراضية | **مثبتة ومختبرة فعليًا** (`gen_random_uuid()`, `digest()`) | دوال التشفير وتوليد المعرفات القياسية في Supabase. |
+| **`uuid-ossp`** | `extensions` | مستثناة في التهيئة الافتراضية | **مثبتة ومختبرة فعليًا** (`uuid_generate_v4()`) | توليد معرفات UUID القياسية. |
+| **`supabase_vault`** | `vault` | مستثناة (خاصة بمنصة Supabase) | **مستثناة وموثقة صراحةً** (إضافة سحابية خاصة بصورة Supabase) | غير مستخدمة إطلاقًا في أي جدول أو دالة أو سياسة في Exo. |
 
-### 4. سياسات رفع Storage وقيد VIP (`lecture_media`)
-- جعل الـ bucket `lecture_media` خاصًا (`public = false`) بحجم أقصى `52428800` بايت.
-- حذف السياسة المتساهلة `"Users can upload their own lecture media"` والإبقاء على السياسات الصارمة `"Allow VIP users to upload media"` (`FOR INSERT`) و`"Allow VIP users to update media"` (`FOR UPDATE`) التي تشترط ملكية المجلد (`(storage.foldername(name))[1] = (auth.uid())::text`) وتفعيل `w.can_upload_media = true` في `public.user_workspaces`.
+### 3. إثبات التزامن الحقيقي متعدد الاتصالات (`Real Multi-Connection Concurrency Proof`) على PostgreSQL 16
+في `test_phase4_2_1_pg16_concurrency.js`، تم فتح ثلاث اتصالات TCP مستقلة (`conn1`, `conn2`, `connMonitor`) والتحقق من اختلاف معرفات عمليات الخادم (`pid1 !== pid2 !== pidMonitor` عبر `SELECT pg_backend_pid()`):
+1. **إثبات التداخل الفعلي وقفل الصف (`SELECT ... FOR UPDATE` Row Lock Contention)**:
+   - يقرأ الجهازان (`conn1` و`conn2`) نفس رقم النسخة الأساسي (`revision = 1`).
+   - يبدأ `conn1` معاملة (`BEGIN`) ويستدعي `sync_workspace_with_concurrency(payload1, 1)` فيحصل على قفل `FOR UPDATE` على صف المستخدم ويرفع النسخة إلى `2` مع إبقاء المعاملة مفتوحة قبل `COMMIT`.
+   - أثناء احتفاظ `conn1` بالقفل، يبدأ `conn2` معاملته المستقلة ويستدعي `sync_workspace_with_concurrency(payload2, 1)`.
+   - يتحقق اتصال المراقبة `connMonitor` من جدولي النظام `pg_stat_activity` و`pg_locks` ويثبت أن عملية الخادم `pid2` متوقفة فعليًا في حالة انتظار قفل (`wait_event_type = 'Lock'`, `wait_event = 'transactionid'`, `granted = false`) بسبب قفل `conn1`.
+   - عند تنفيذ `COMMIT` في `conn1`، يتحرر `conn2` ويعيد تقييم الصف المحدث (`revision = 2`) ويرفض التحديث المتعارض معيدًا `{ "status": "conflict", "current_revision": 2 }` دون أي فقدان لبيانات `conn1`.
+2. **سباق التحديث المتزامن عبر حاجز التزامن (`Barrier-Synchronized Simultaneous Race`)**:
+   - ينتظر الاتصالان `conn1` و`conn2` عند حاجز تزامن (`Promise Barrier`) لإرسال طلب التحديث بنفس `expected_revision = 2` في نفس اللحظة الزمنية عبر مقبسي TCP مستقلين، ويثبت الاختبار نجاح اتصال واحد فقط (`revision = 3`) وحصول الآخر على `conflict` (`current_revision = 3`).
+3. **إثبات سباق الإنشاء للمرة الأولى ومسار `unique_violation` (`Concurrent First-Time Initialization Race`)**:
+   - لمستخدم جديد لا يملك أي صف في `public.user_workspaces`، يبدأ `conn1` معاملة `sync_workspace_with_concurrency(init1, NULL)` فيدخل مسار `NOT FOUND -> INSERT` ويحجز قفل الفهرس الفريد (`user_workspaces_pkey`) قبل `COMMIT`.
+   - أثناء بقاء `conn1` مفتوحًا، يستدعي `conn2` نفس الدالة `sync_workspace_with_concurrency(init2, NULL)`؛ ولأن `conn1` لم يلتزم بعد، يرى `conn2` أيضًا `NOT FOUND` ويدخل مسار `INSERT` ويتوقف في `pg_locks` بانتظار قفل الفهرس الفريد (`Lock:transactionid`).
+   - يرصد `connMonitor` توقف `conn2` فعليًا داخل `INSERT`، ثم يلتزم `conn1` (`COMMIT`)، فيُطلق PostgreSQL 16 استثناء `unique_violation` (`23505`) داخل `conn2` الذي تلتقطه كتلة `EXCEPTION WHEN unique_violation` وتعيد `{ "status": "conflict", "current_revision": 1, "message": "Concurrent workspace initialization detected" }` بأمان تام ودون فقدان بيانات `conn1`.
+
+### 4. تدقيق التطابق الشامل (`10-Dimension Catalog Parity Audit`) بين `schema.sql` والـ Migrations
+بعد توحيد صلاحيات `service_role` في `20261103140000_fix_security_and_privileges.sql` وتوحيد `search_path` عند فحص كتالوج النظام، يثبت `test_phase4_2_1_pg16_concurrency.js` التطابق في العناصر العشرة التالية على PostgreSQL 16:
+1. الأعمدة وأنواع البيانات وقابلية `NULL` والقيم الافتراضية (`Default Values`) لجدول `public.user_workspaces` (10 أعمدة).
+2. القيود (`PRIMARY KEY` و`FOREIGN KEY ... ON DELETE CASCADE` عبر `pg_get_constraintdef`).
+3. الفهارس (`user_workspaces_pkey` عبر `pg_indexes`).
+4. سياسات `RLS` السبعة على `public.user_workspaces` و`storage.objects` شاملةً `permissive` و`roles` و`cmd` وتعبيرات `USING` (`qual`) و`WITH CHECK` (`with_check`).
+5. الـ Triggers الأربعة على `public.user_workspaces` وتعريفاتها الكاملة (`pg_get_triggerdef`).
+6. الـ Event Trigger (`ensure_rls` -> `public.rls_auto_enable`).
+7. الدوال الست في `public` شاملةً `SECURITY DEFINER`، و`search_path` (`proconfig`)، وصلاحيات `proacl`، ونص الدالة الكامل (`pg_get_functiondef`).
+8. صلاحيات جدول `public.user_workspaces` (`relacl` و`role_table_grants`) وحالة تفعيل `RLS`.
+9. الصلاحيات الافتراضية (`pg_default_acl`) بعد تطبيق `ALTER DEFAULT PRIVILEGES`.
+10. خصائص `storage.buckets` للـ bucket `lecture_media` (`public = false`, `file_size_limit = 52428800`, `allowed_mime_types`).
+- **الاستثناءات الموثقة صراحةً**: إضافة `supabase_vault` مستثناة في بيئة PostgreSQL 16 القياسية (`postgres:16`) لأنها إضافة خاصة بالمنصة السحابية لـ Supabase، والإضافات الأربعة (`pg_stat_statements`, `pgcrypto`, `supabase_vault`, `uuid-ossp`) مستثناة في بيئة PGlite المضمنة.
 
 ---
 
-## القسم الثاني: إصلاحات عزل الحسابات وسلامة `IndexedDB` في الواجهة (`index.html`)
+## القسم الثاني: نتائج الاختبارات المفصولة حسب فئاتها الخمس (Phase 4.2.1)
 
-1. **سياق العملية غير القابل للتغيير (`Account Operation Context`)**:
-   - كل عملية غير متزامنة تنشئ سياقًا ثابتًا عبر `createAccountOperationContext()` مرتبطًا بـ `uid` ورقم الجيل `currentSessionGeneration`، وتتحقق من `opCtx.isCurrent()` قبل وبعد كل `await`.
-2. **عقد الإرجاع الصريح في `getAllAnnotationsMapFromDB()`**:
-   - تعيد الدالة `{ ok: true, verifiedMap, quarantined }` عند النجاح أو `{ ok: false, error: { code, message } }` عند الفشل، ويتوقف `pushWorkspaceToCloud()` فورًا عند فشل القراءة لمنع رفع بيانات فارغة للسحابة.
-3. **الملكية المزدوجة الصارمة (`hasStrictDualRecordOwnership`) ورفض المفاتيح الأجنبية (`CROSS_ACCOUNT_KEY_VIOLATION`)**:
-   - التحقق من البادئة `usr_<sanitizedUid>::` وحقل `item.userId === canonicalUid` معًا، ورفض أي مفتاح أجنبي في `toScopedKey()` و`resolveAuthorizedScopedKey()` قبل استخراج المعرف الخام.
-4. **متانة معاملات خزنة الاستعادة (`Two-Phase Recovery Vault Durability`)**:
-   - انتظار `vTx.oncomplete` في `annotation_recovery_vault` ثم `tx.oncomplete` في `annotations` قبل تحديث `inMemoryAnnotationsCache` أو حذف مدخلات الخزنة الملتزمة.
-
----
-
-## القسم الثالث: نتائج الاختبارات المفصولة حسب فئاتها
-
-تم تشغيل جميع الاختبارات فعليًا عبر `npm test` (`run_all_tests.js`) وجاءت النتائج مفصولة كالتالي:
+تم تشغيل جميع الاختبارات فعليًا عبر `npm test` (`run_all_tests.js`) وجاءت النتائج مفصولة بدقة كالتالي:
 
 | الفئة | ملف الاختبار | البيئة الفعلية | عدد الفحوصات | النتيجة |
 | :--- | :--- | :--- | :---: | :---: |
 | **1. اختبارات التشفير الإنتاجي والفحص الثابت** | `run_verification_tests.js` | Node.js Web Crypto (`index.html`) + فحص SQL/SW | **49** | **49 PASS / 0 FAIL** |
 | **2. اختبارات الوحدات والمنطق غير المتزامن (Unit Tests)** | `run_comprehensive_verification.js`<br>`test_phase3_cross_account_isolation.js`<br>`test_phase4_regressions.js` | Node.js + محاكي معاملات IDB | **102**<br>(42 + 25 + 35) | **102 PASS / 0 FAIL** |
-| **3. اختبارات تكامل قاعدة البيانات الحقيقية (DB Integration)** | `test_phase4_2_postgres_integration.js` | **PostgreSQL 16 حقيقي (`@electric-sql/pglite`)** | **41** | **41 PASS / 0 FAIL** |
-| **4. اختبارات المتصفح الشاملة (Browser E2E)** | `test_phase4_1_chromium_e2e.js` | **Headless Chromium + Real IndexedDB v4** | **42** | **42 PASS / 0 FAIL** |
-| **الإجمالي الكلي** | **جميع الحزم (6 ملفات اختبار)** | **Node.js + PostgreSQL 16 + Chromium** | **234** | **234 PASS / 0 FAIL** |
+| **3. اختبارات التوافق المضمنة (Embedded PG Compatibility)** | `test_phase4_2_postgres_integration.js` | **PGlite WASM (`PG 18.6 Single-Connection`)** | **41** | **41 PASS / 0 FAIL** |
+| **4. اختبارات خادم PostgreSQL 16 الفعلي والتزامن متعدد الاتصالات** | `test_phase4_2_1_pg16_concurrency.js` | **PostgreSQL 16.15 حقيقي (`Multi-Connection TCP`)** | **29** | **29 PASS / 0 FAIL** |
+| **5. اختبارات المتصفح الشاملة (Browser E2E)** | `test_phase4_1_chromium_e2e.js` | **Headless Chromium + Real IndexedDB v4** | **42** | **42 PASS / 0 FAIL** |
+| **الإجمالي الكلي** | **جميع الحزم (7 ملفات اختبار)** | **Node.js + PGlite + PostgreSQL 16.15 + Chromium** | **263** | **263 PASS / 0 FAIL** |
 
 ---
 
-## القسم الرابع: المصادر والمراجع التقنية المعتمدة
+## القسم الثالث: المصادر والمراجع التقنية المعتمدة
 
-1. **W3C Indexed Database API 3.0 (§4.3 Transaction Lifetime & Commit Semantics)** — `https://www.w3.org/TR/IndexedDB-3/#transaction-lifetime-concept`
-2. **MDN Web Docs — `IDBTransaction.oncomplete` Guarantees** — `https://developer.mozilla.org/en-US/docs/Web/API/IDBTransaction/complete_event`
-3. **PostgreSQL 16 Documentation — Row Security Policies (`CREATE POLICY`)** — `https://www.postgresql.org/docs/current/ddl-rowsecurity.html`
-4. **PostgreSQL 16 Documentation — `ALTER DEFAULT PRIVILEGES` & Default `PUBLIC` Function `EXECUTE`** — `https://www.postgresql.org/docs/current/sql-alterdefaultprivileges.html`
-5. **PostgreSQL 16 Documentation — Writing `SECURITY DEFINER` Functions Safely (`search_path`)** — `https://www.postgresql.org/docs/current/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY`
-6. **Supabase Documentation — Storage Access Control & RLS** — `https://supabase.com/docs/guides/storage/security/access-control`
-7. **OWASP ASVS v4.0.3 — Session Management & Multi-Tenant Client Storage Isolation** — `https://owasp.org/www-project-application-security-verification-standard/`
-8. **NIST SP 800-132 — Recommendation for Password-Based Key Derivation (`PBKDF2-HMAC-SHA256`)** — `https://csrc.nist.gov/publications/detail/sp/800-132/final`
+1. **PostgreSQL 16 Documentation — Explicit Locking (`SELECT ... FOR UPDATE` & Read Committed Row Locking)** — `https://www.postgresql.org/docs/16/explicit-locking.html`
+2. **PostgreSQL 16 Documentation — `pg_locks` & `pg_stat_activity` System Views** — `https://www.postgresql.org/docs/16/view-pg-locks.html`
+3. **PostgreSQL 16 Documentation — Row Security Policies (`CREATE POLICY` `USING` vs `WITH CHECK`)** — `https://www.postgresql.org/docs/16/ddl-rowsecurity.html`
+4. **PostgreSQL 16 Documentation — `ALTER DEFAULT PRIVILEGES` & Default `PUBLIC` Function `EXECUTE`** — `https://www.postgresql.org/docs/16/sql-alterdefaultprivileges.html`
+5. **PostgreSQL 16 Documentation — Writing `SECURITY DEFINER` Functions Safely (`search_path`)** — `https://www.postgresql.org/docs/16/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY`
+6. **W3C Indexed Database API 3.0 (§4.3 Transaction Lifetime & Commit Semantics)** — `https://www.w3.org/TR/IndexedDB-3/#transaction-lifetime-concept`
+7. **NIST SP 800-132 — Recommendation for Password-Based Key Derivation (`PBKDF2-HMAC-SHA256`)** — `https://csrc.nist.gov/publications/detail/sp/800-132/final`

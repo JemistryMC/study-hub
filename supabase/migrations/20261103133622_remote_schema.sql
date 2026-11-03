@@ -168,7 +168,7 @@ REVOKE ALL ON FUNCTION "public"."rls_auto_enable"() FROM "postgres";
 GRANT EXECUTE ON FUNCTION "public"."rls_auto_enable"() TO "postgres";
 GRANT EXECUTE ON FUNCTION "public"."rls_auto_enable"() TO "service_role";
 
-GRANT DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE "public"."user_workspaces" TO "anon", "authenticated";
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE "public"."user_workspaces" TO "anon", "authenticated";
 REVOKE ALL ON TABLE "public"."user_workspaces" FROM "postgres";
-GRANT DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE "public"."user_workspaces" TO "postgres";
-GRANT DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE "public"."user_workspaces" TO "service_role";
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE "public"."user_workspaces" TO "postgres";
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE "public"."user_workspaces" TO "service_role";

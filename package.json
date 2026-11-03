@@ -1,16 +1,18 @@
 {
   "name": "exo-academic-platform",
   "private": true,
-  "version": "1.4.2",
+  "version": "1.4.2-1",
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
     "build": "node build.js",
-    "lint": "node --check server.js && node --check build.js && node --check run_all_tests.js && node --check test_phase4_1_chromium_e2e.js && node --check test_phase4_2_postgres_integration.js",
+    "lint": "node --check server.js && node --check build.js && node --check run_all_tests.js && node --check test_phase4_1_chromium_e2e.js && node --check test_phase4_2_postgres_integration.js && node --check test_phase4_2_1_pg16_concurrency.js",
     "test:setup": "npx playwright install --with-deps chromium",
     "test:static": "node run_verification_tests.js",
     "test:unit": "node run_comprehensive_verification.js && node test_phase3_cross_account_isolation.js && node test_phase4_regressions.js",
-    "test:db": "node test_phase4_2_postgres_integration.js",
+    "test:pglite": "node test_phase4_2_postgres_integration.js",
+    "test:pg16": "node test_phase4_2_1_pg16_concurrency.js",
+    "test:db": "node test_phase4_2_postgres_integration.js && node test_phase4_2_1_pg16_concurrency.js",
     "test:e2e": "node test_phase4_1_chromium_e2e.js",
     "test": "node run_all_tests.js"
   },
@@ -19,6 +21,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.15",
+    "pg": "8.23.1",
     "playwright": "1.64.1"
   }
 }

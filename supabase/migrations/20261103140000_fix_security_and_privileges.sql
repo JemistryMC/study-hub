@@ -105,6 +105,7 @@ CREATE POLICY "Allow VIP users to update media" ON "storage"."objects"
 REVOKE ALL ON TABLE "public"."user_workspaces" FROM PUBLIC;
 REVOKE ALL ON TABLE "public"."user_workspaces" FROM "anon";
 REVOKE ALL ON TABLE "public"."user_workspaces" FROM "authenticated";
+REVOKE ALL ON TABLE "public"."user_workspaces" FROM "service_role";
 -- Only SELECT is granted directly to authenticated; all writes MUST pass through
 -- the SECURITY DEFINER RPC sync_workspace_with_concurrency() to enforce OCC.
 GRANT SELECT ON TABLE "public"."user_workspaces" TO "authenticated";

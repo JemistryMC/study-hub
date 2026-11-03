@@ -1,10 +1,17 @@
 // ============================================================================
-// Exo Academic Platform — Phase 4.2 Real PostgreSQL Integration Test Suite
-// Category: Real Database Integration Tests (PostgreSQL 16 via @electric-sql/pglite)
+// Exo Academic Platform — Phase 4.2 Embedded PostgreSQL Compatibility Test Suite
+// Category: Embedded PostgreSQL Compatibility Tests (@electric-sql/pglite WASM Engine)
 //
-// Executes actual SQL migrations, schema.sql, RLS policies, storage.objects policies,
-// ALTER DEFAULT PRIVILEGES, triggers, and sync_workspace_with_concurrency() RPC
-// against a real PostgreSQL 16 engine — NOT a JavaScript mock.
+// Important Scope & Engine Distinction (Phase 4.2.1):
+//   - PGlite (@electric-sql/pglite 0.5.15) is a single-connection WebAssembly
+//     build of PostgreSQL (reporting PG 18.6 on wasm32-unknown-emscripten).
+//   - It validates SQL syntax, RLS policies, storage.objects policies, triggers,
+//     ALTER DEFAULT PRIVILEGES, and single-connection RPC logic in an embedded engine.
+//   - It does NOT prove PostgreSQL 16 compatibility or multi-connection concurrency,
+//     and skips 4 extensions (pg_stat_statements, pgcrypto, supabase_vault, uuid-ossp).
+//   - Real PostgreSQL 16 verification (major=16 gate, extensions, 10-dimension
+//     catalog parity, and multi-connection concurrency proof) is executed in
+//     `test_phase4_2_1_pg16_concurrency.js`.
 // ============================================================================
 
 const fs = require('fs');
@@ -139,13 +146,15 @@ async function execAsSupabaseSession(db, role, userId, sqlQuery, params = []) {
 
 async function main() {
   console.log('======================================================================');
-  console.log('EXO PHASE 4.2: REAL POSTGRESQL 16 DATABASE INTEGRATION TEST SUITE');
+  console.log('EXO PHASE 4.2: EMBEDDED POSTGRESQL COMPATIBILITY SUITE (PGLITE WASM)');
   console.log('======================================================================\n');
 
   // --------------------------------------------------------------------------
-  // SECTION 1: Apply Real Migrations on PostgreSQL & Verify Schema Parity with schema.sql
+  // SECTION 1: Apply Migrations in Embedded PGlite & Verify Core Object Parity
+  // (Note: 4 extensions [pg_stat_statements, pgcrypto, supabase_vault, uuid-ossp]
+  //  are excluded in PGlite WASM; full PG16 parity is tested in test_phase4_2_1_pg16_concurrency.js)
   // --------------------------------------------------------------------------
-  console.log('--- SECTION 1: Real PostgreSQL Migration Execution & Final Schema Parity ---');
+  console.log('--- SECTION 1: Embedded PGlite Migration Execution & Core Object Compatibility ---');
 
   const dbMigrated = new PGlite();
   await dbMigrated.exec(SUPABASE_PG_BOOTSTRAP_SQL);
@@ -155,18 +164,20 @@ async function main() {
 
   await dbMigrated.exec(baselineMigrationSql);
   await dbMigrated.exec(forwardMigrationSql);
-  assert(true, 'Real PostgreSQL 16 cleanly executed 20261103133622_remote_schema.sql + 20261103140000_fix_security_and_privileges.sql');
+  assert(true, 'Embedded PGlite cleanly executed 20261103133622_remote_schema.sql + 20261103140000_fix_security_and_privileges.sql');
 
-  // Initialize a second independent PostgreSQL database from supabase/schema.sql alone
+  // Initialize a second independent PGlite instance from supabase/schema.sql (with 4 WASM-unsupported extensions stripped)
   const dbFreshSchema = new PGlite();
   await dbFreshSchema.exec(SUPABASE_PG_BOOTSTRAP_SQL);
   const finalSchemaSql = stripUnsupportedExtensionsForPglite(fs.readFileSync('supabase/schema.sql', 'utf8'));
   await dbFreshSchema.exec(finalSchemaSql);
-  assert(true, 'Fresh PostgreSQL 16 instance initialized cleanly from supabase/schema.sql alone');
+  await dbMigrated.exec('SET search_path = public, auth, storage, extensions;');
+  await dbFreshSchema.exec('SET search_path = public, auth, storage, extensions;');
+  assert(true, 'Fresh PGlite instance initialized from supabase/schema.sql (with 4 unsupported WASM extensions excluded)');
 
   // Compare columns on public.user_workspaces between dbMigrated and dbFreshSchema
   const colsQuery = `
-    SELECT column_name, data_type, is_nullable
+    SELECT column_name, data_type, is_nullable, column_default
     FROM information_schema.columns
     WHERE table_schema = 'public' AND table_name = 'user_workspaces'
     ORDER BY column_name
@@ -176,12 +187,12 @@ async function main() {
   assert(
     JSON.stringify(migratedCols) === JSON.stringify(freshCols) &&
       migratedCols.some((c) => c.column_name === 'revision' && c.data_type === 'integer'),
-    'supabase/schema.sql columns (including revision integer NOT NULL) match migrated database 100%'
+    'supabase/schema.sql columns and defaults (including revision integer NOT NULL) match migrated PGlite database'
   );
 
-  // Compare RLS policies on public.user_workspaces and storage.objects
+  // Compare RLS policies on public.user_workspaces and storage.objects (including USING and WITH CHECK)
   const policiesQuery = `
-    SELECT schemaname, tablename, policyname, cmd, roles
+    SELECT schemaname, tablename, policyname, permissive, cmd, roles, qual, with_check
     FROM pg_policies
     WHERE (schemaname = 'public' AND tablename = 'user_workspaces')
        OR (schemaname = 'storage' AND tablename = 'objects')
@@ -191,7 +202,7 @@ async function main() {
   const freshPolicies = (await dbFreshSchema.query(policiesQuery)).rows;
   assert(
     JSON.stringify(migratedPolicies) === JSON.stringify(freshPolicies),
-    'supabase/schema.sql RLS policies on user_workspaces and storage.objects match migrated database 100%'
+    'supabase/schema.sql RLS policy names, roles, USING, and WITH CHECK match migrated PGlite database'
   );
 
   // Compare triggers on public.user_workspaces
@@ -209,7 +220,7 @@ async function main() {
     JSON.stringify(migratedTriggers) === JSON.stringify(freshTriggers) &&
       migratedTriggers.includes('trg_user_workspaces_updated_at') &&
       migratedTriggers.includes('trg_enforce_workspace_write_via_rpc'),
-    'supabase/schema.sql triggers on user_workspaces match migrated database 100%'
+    'supabase/schema.sql triggers on user_workspaces match migrated PGlite database'
   );
 
   // --------------------------------------------------------------------------
@@ -960,7 +971,7 @@ async function main() {
 
   console.log('\n======================================================================');
   console.log(
-    `TOTAL REAL POSTGRESQL INTEGRATION CHECKS: ${testsPassed + testsFailed} | PASSED: ${testsPassed} | FAILED: ${testsFailed}`
+    `TOTAL EMBEDDED PGLITE COMPATIBILITY CHECKS: ${testsPassed + testsFailed} | PASSED: ${testsPassed} | FAILED: ${testsFailed}`
   );
   console.log('======================================================================\n');
 

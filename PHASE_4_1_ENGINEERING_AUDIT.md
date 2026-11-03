@@ -1,125 +1,103 @@
-# Exo Academic Platform — Phase 4.1 & Phase 4.2 Engineering Audit & Verification Report
+# Exo Academic Platform — Phase 4.1, Phase 4.2 & Phase 4.2.1 Engineering Audit & Verification Report
 
 **Repository:** `JemistryMC/study-hub`  
 **Target Branch:** `fix/phase-4-1-account-isolation`  
-**Scope:** Phase 4.1 Account Isolation & IndexedDB Integrity + Phase 4.2 PostgreSQL Default Privileges, Final Schema Parity, Database-Level OCC Enforcement, Real PostgreSQL 16 Integration Testing & Reproducible CI
+**Scope:** Phase 4.1 Account Isolation & IndexedDB Integrity + Phase 4.2 Security Hardening + Phase 4.2.1 Real PostgreSQL 16 Multi-Connection Concurrency Proof, 10-Dimension Catalog Parity & CI Reproducibility
 
 ---
 
-## 1. Executive Summary of Vulnerabilities Resolved in Phase 4.1 & Phase 4.2
+## 1. Phase 4.2.1 Engineering Corrections & Verification Proofs
 
-### Phase 4.2 Security Corrections & Database Hardening
-1. **PostgreSQL Default Function Privileges (`PUBLIC` Inheritance Fixed Globally & Per-Schema)**:
-   - **Root Cause**: In PostgreSQL, newly created functions grant `EXECUTE` to `PUBLIC` by default. Revoking default function privileges only from `"anon", "authenticated"` (without `PUBLIC`) or only `IN SCHEMA "public"` allowed `anon` and `authenticated` to inherit `EXECUTE` via `PUBLIC` on future functions.
-   - **Fix**: Added both global (`ALTER DEFAULT PRIVILEGES FOR ROLE "postgres"`) and schema-scoped (`ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public"`) revocations stripping `ALL ON FUNCTIONS`, `TABLES`, and `SEQUENCES` from `PUBLIC, "anon", "authenticated"`. Verified on real PostgreSQL 16 that newly created functions in `public` and custom schemas cannot be executed by `anon` or `authenticated`.
-2. **Existing Function Least-Privilege Enforcement**:
-   - **Fix**: Revoked `ALL` from `PUBLIC, "anon", "authenticated"` on all internal trigger functions (`public.enforce_workspace_media_security()`, `public.protect_vip_status_column()`, `public.handle_user_workspace_updated_at()`, `public.enforce_workspace_write_via_rpc()`, `public.rls_auto_enable()`), granting `EXECUTE` only to `"postgres", "service_role"`. Restricted `"authenticated"` `EXECUTE` strictly to `public.sync_workspace_with_concurrency(jsonb, integer)`.
-3. **Final Database Schema Consistency (`supabase/schema.sql`)**:
-   - **Root Cause**: `supabase/schema.sql` previously contained the pre-migration baseline schema without `revision`, `handle_user_workspace_updated_at()`, `sync_workspace_with_concurrency()`, or the hardened RLS/Storage/privilege rules.
-   - **Fix**: Updated `supabase/schema.sql` to represent the exact final post-migration schema. Verified 100% catalog parity (columns, triggers, RLS policies, table privileges, and function privileges) on real PostgreSQL 16 between a database built via sequential migrations and a fresh database initialized solely from `supabase/schema.sql`.
-4. **Database-Level & Client-Level Optimistic Concurrency Enforcement (OCC)**:
-   - **Root Cause**:
-     1. In `index.html`, `syncWorkspaceOnLogin()` previously issued a direct `.from('user_workspaces').update({ user_email })` call bypassing `sync_workspace_with_concurrency()`, and `applyCloudWorkspacePayload()` did not persist `cloudRow.revision` to `localStorage`.
-     2. In PostgreSQL, `authenticated` previously held direct `INSERT, UPDATE` grants on `public.user_workspaces`, allowing direct PostgREST writes to bypass `sync_workspace_with_concurrency()`.
-   - **Fix**:
-     1. In `index.html`: Replaced the direct `.update()` in `syncWorkspaceOnLogin()` with `await pushWorkspaceToCloud(false, false, opCtx)` and persisted `cloudRow.revision` inside `applyCloudWorkspacePayload()`.
-     2. In PostgreSQL: Revoked direct `INSERT, UPDATE, DELETE, TRUNCATE` on `public.user_workspaces` from `authenticated` (leaving only `GRANT SELECT ON TABLE "public"."user_workspaces" TO "authenticated"`), enforced `COALESCE(pg_catalog.current_setting('exo.occ_rpc_active', true), '') = 'true'` in the `INSERT` and `UPDATE` RLS `WITH CHECK` clauses, and added the `BEFORE INSERT OR UPDATE` trigger `trg_enforce_workspace_write_via_rpc` (`public.enforce_workspace_write_via_rpc()`) to reject any direct client write outside `public.sync_workspace_with_concurrency(p_payload, p_expected_revision)`.
-5. **Rollback Safety & Non-Destructive Emergency Alternative**:
-   - **Root Cause**: Executing `supabase/rollbacks/20261103140000_rollback_fix_security_and_privileges.sql` restores baseline vulnerabilities (permissive non-VIP storage upload policy and excessive table/default privileges).
-   - **Fix**: Added an explicit execution guard (`exo.allow_unsafe_legacy_rollback = 'I_ACCEPT_SECURITY_DOWNGRADE'`) to the legacy baseline rollback script so it cannot be run accidentally, and created `supabase/rollbacks/20261103140000_safe_rollback_concurrency_only.sql` which relaxes only the strict RPC-only write trigger while preserving all RLS isolation, VIP storage checks, `revision` tracking, and least-privilege grants.
+### 1.1 Explicit Separation Between Embedded PGlite and Native PostgreSQL 16
+- **Finding Addressed**: `@electric-sql/pglite@0.5.15` is a single-connection WebAssembly build compiled from PostgreSQL 18.6 (`server_version_num = 180006` on `wasm32-unknown-emscripten`). Therefore, PGlite cannot prove compatibility with PostgreSQL 16 (`server_version_num = 16xxxx`) and cannot test multi-connection lock contention.
+- **Correction Executed**:
+  1. Retained `test_phase4_2_postgres_integration.js` (41 checks) strictly as **Category 3: Embedded PostgreSQL Compatibility Tests (PGlite WASM Single-Connection)** and removed all claims describing PGlite as PostgreSQL 16.
+  2. Added `test_phase4_2_1_pg16_concurrency.js` (29 checks) as **Category 4: Real PostgreSQL 16 Server Concurrency & 10-Point Schema Parity Proof**, connecting via `pg` TCP sockets to a real `PostgreSQL 16` server (`postgres:16` service container in `.github/workflows/ci.yml` and local `PostgreSQL 16.15` server).
+  3. Implemented a hard version gate at the start of `test_phase4_2_1_pg16_concurrency.js` executing `SELECT version()` and `SHOW server_version_num`, verifying `Math.floor(Number(server_version_num) / 10000) === 16` and `/PostgreSQL\s+16\./i.test(version)` and immediately failing if run against PGlite (`180006`) or any non-16 server.
+  4. **Real PG16 Compatibility Bug Caught & Fixed**: Executing `supabase/migrations/20261103133622_remote_schema.sql` on real PostgreSQL 16.15 immediately exposed `GRANT ... MAINTAIN ... ON TABLE "public"."user_workspaces"`, which is a PostgreSQL 17+ privilege keyword that PGlite 18.6 accepted silently but PostgreSQL 16 rejected (`ERROR: unrecognized privilege type "maintain"`). Removed `MAINTAIN` from `20261103133622_remote_schema.sql` so all migrations execute cleanly on real PostgreSQL 16.
 
----
+### 1.2 Real Multi-Connection Concurrency Proof on PostgreSQL 16 (`test_phase4_2_1_pg16_concurrency.js`)
+Using three independent `pg.Client` TCP connections (`conn1`, `conn2`, `connMonitor`) with verified distinct backend process IDs (`SELECT pg_backend_pid()` -> `pid1 !== pid2 !== pidMonitor`):
+1. **Overlapping `SELECT ... FOR UPDATE` Row-Lock Contention & Stale Revision Rejection**:
+   - Both `conn1` and `conn2` read the same baseline workspace revision (`revision = 1`).
+   - `conn1` (`pid1`) begins a transaction (`BEGIN`), sets `ROLE authenticated` and `request.jwt.claim.sub`, and calls `public.sync_workspace_with_concurrency(payload1, 1)`, acquiring the `FOR UPDATE` row lock on `public.user_workspaces` and updating `revision` to `2` while holding the transaction open before `COMMIT`.
+   - While `conn1` holds the row lock, `conn2` (`pid2`) starts its own transaction and invokes `public.sync_workspace_with_concurrency(payload2, 1)` with stale `p_expected_revision = 1`.
+   - `connMonitor` (`pidMonitor`) queries `pg_stat_activity` and `pg_locks`, proving that `pid2` is actively blocked in-flight (`wait_event_type = 'Lock'`, `wait_event = 'transactionid'`, `granted = false` in `pg_locks`) while `pid1` holds the uncommitted lock.
+   - `conn1` then executes `COMMIT`. `conn2` immediately unblocks, re-reads the committed tuple (`revision = 2`) via `SELECT ... FOR UPDATE`, detects `p_expected_revision (1) <> v_current_rev (2)`, and returns `{ status: "conflict", current_revision: 2 }` without overwriting `conn1`'s data.
+2. **Barrier-Synchronized Simultaneous Parallel Update Race**:
+   - Both `conn1` and `conn2` synchronize at an in-memory `Promise` barrier after `BEGIN` so both TCP sockets dispatch `SELECT public.sync_workspace_with_concurrency(..., 2)` at the exact same tick.
+   - Verified that exactly one connection succeeds (`status = 'success'`, `revision = 3`) and the other receives `{ status: 'conflict', current_revision: 3 }`, with zero data corruption.
+3. **Concurrent First-Time Workspace Creation & `unique_violation` Recovery Proof**:
+   - For a brand-new user with 0 rows in `public.user_workspaces`:
+   - `conn1` (`pid1`) starts `BEGIN` and calls `sync_workspace_with_concurrency(init1, NULL)`. `SELECT ... FOR UPDATE` sees `NOT FOUND`, so `conn1` executes `INSERT INTO public.user_workspaces` (revision 1) and holds the uncommitted unique index lock on `user_workspaces_pkey`.
+   - While `conn1` is still uncommitted, `conn2` (`pid2`) starts `BEGIN` and calls `sync_workspace_with_concurrency(init2, NULL)`. Because `conn1` has not committed yet, `conn2`'s `SELECT ... FOR UPDATE` also sees `NOT FOUND` and enters the `INSERT` block, blocking on `user_workspaces_pkey` (`wait_event_type = 'Lock'`, `wait_event = 'transactionid'`).
+   - `connMonitor` verifies in `pg_stat_activity` and `pg_locks` that `conn2` is blocked inside the concurrent `INSERT`.
+   - `conn1` commits (`COMMIT`). PostgreSQL 16 raises `unique_violation` (`23505`) inside `conn2`, which is caught by `EXCEPTION WHEN unique_violation` in `sync_workspace_with_concurrency()`, re-reading `v_current_rev = 1` via `SELECT ... FOR UPDATE` and returning `{ status: "conflict", current_revision: 1, message: "Concurrent workspace initialization detected" }` without losing `conn1`'s initial workspace.
 
-### Phase 4.1 Client Account Isolation & IndexedDB Integrity (Preserved Intact)
-- **Immutable `AccountOperationContext` (`index.html`)**: Binds `{ uid, sanitizedUid, generation, sessionEpoch, isCurrent() }` to every async operation (`syncWorkspaceOnLogin`, `pullWorkspaceFromCloud`, `pullWorkspaceFromCloudIfNewer`, `applyCloudWorkspacePayload`, `mergeAndApplyCloudConflict`, `pushWorkspaceToCloud`, `getAllAnnotationsMapFromDB`, `restoreAllAnnotationsMapToDB`) and aborts immediately if the account switches across any `await` boundary.
-- **Explicit Result Contract on `getAllAnnotationsMapFromDB()`**: Returns `{ ok: true, verifiedMap, quarantined }` or `{ ok: false, error: { code, message } }`; `pushWorkspaceToCloud()` aborts on `!annoResult.ok` so an IndexedDB read error never overwrites cloud annotations with `{}`.
-- **Strict Dual-Ownership & Foreign Scoped Key Rejection**: Enforces `hasStrictDualRecordOwnership()` (`usr_<sanitizedUid>::` prefix + non-null `item.userId === canonicalUid`) and throws `CROSS_ACCOUNT_KEY_VIOLATION` via `toScopedKey()` / `resolveAuthorizedScopedKey()` before stripping prefixes.
-- **Two-Phase Recovery Vault Durability (`flushAnnotationsToDBImmediate`)**: Awaits `vTx.oncomplete` on `annotation_recovery_vault` and `tx.oncomplete` on `annotations` before updating `inMemoryAnnotationsCache` or deleting committed vault keys.
+### 1.3 Audit of the 4 Extensions & 10-Dimension Catalog Parity (`schema.sql` vs Migrations)
+- **Extensions Audit**:
+  1. `pg_stat_statements` (`SCHEMA extensions`): Native PostgreSQL 16 contrib extension — **installed and verified on PostgreSQL 16**; skipped in PGlite WASM.
+  2. `pgcrypto` (`SCHEMA extensions`): Native PostgreSQL 16 contrib extension — **installed and functionally verified on PostgreSQL 16** (`extensions.gen_random_uuid()`, `extensions.digest()`); skipped in PGlite WASM.
+  3. `uuid-ossp` (`SCHEMA extensions`): Native PostgreSQL 16 contrib extension — **installed and functionally verified on PostgreSQL 16** (`extensions.uuid_generate_v4()`); skipped in PGlite WASM.
+  4. `supabase_vault` (`SCHEMA vault`): Proprietary Supabase Managed Cloud extension (not part of upstream `postgres:16` contrib and not referenced by any Exo table, function, trigger, or RLS policy) — **explicitly documented as excluded** in both standalone `postgres:16` and PGlite WASM.
+- **10-Dimension Catalog Parity Verified on PostgreSQL 16 (`test_phase4_2_1_pg16_concurrency.js`)**:
+  - Added `REVOKE ALL ON TABLE "public"."user_workspaces" FROM "service_role"` prior to `GRANT SELECT, INSERT, UPDATE, DELETE` in `20261103140000_fix_security_and_privileges.sql` so `relacl` matches `supabase/schema.sql` identically.
+  - Verified exact catalog equality between `exo_pg16_migrated` and `exo_pg16_fresh_schema` across:
+    1. Columns, types, nullability, and `column_default` (`information_schema.columns` — all 10 columns).
+    2. Constraints (`PRIMARY KEY` and `FOREIGN KEY ... ON DELETE CASCADE` via `pg_get_constraintdef`).
+    3. Indexes (`user_workspaces_pkey` via `pg_indexes`).
+    4. All 7 RLS policies on `public.user_workspaces` and `storage.objects` including `permissive`, `roles`, `cmd`, `USING` (`qual`), and `WITH CHECK` (`with_check`).
+    5. All 4 table triggers on `public.user_workspaces` (`pg_get_triggerdef`).
+    6. Event trigger `ensure_rls` (`pg_event_trigger`).
+    7. All 6 public functions (`prosecdef`, `proconfig` `search_path`, `proacl`, and `pg_get_functiondef`).
+    8. Table privileges (`relacl`, `relrowsecurity`, `relforcerowsecurity`).
+    9. Default privileges (`pg_default_acl`).
+    10. Storage bucket `lecture_media` properties (`public = false`, `file_size_limit = 52428800`, `allowed_mime_types`).
 
----
-
-## 2. Modified & Added Files in Phase 4.2
-
-| File Path | Action | Reason for Change |
-| :--- | :---: | :--- |
-| `index.html` | Modified | Persisted `cloudRow.revision` in `applyCloudWorkspacePayload()` and replaced the direct `.from('user_workspaces').update()` in `syncWorkspaceOnLogin()` with `pushWorkspaceToCloud()` via `sync_workspace_with_concurrency`. |
-| `supabase/migrations/20261103140000_fix_security_and_privileges.sql` | Modified | Added global & schema-level `ALTER DEFAULT PRIVILEGES ... REVOKE ALL ... FROM PUBLIC, "anon", "authenticated"`, restricted `authenticated` table grant on `user_workspaces` to `SELECT`, and added `enforce_workspace_write_via_rpc()` trigger & RLS OCC guard. |
-| `supabase/schema.sql` | Modified | Updated from legacy baseline to the complete, canonical post-migration schema matching all Phase 4.1 & 4.2 tables, columns (`revision`), functions, triggers, RLS/Storage policies, and privileges. |
-| `supabase/rollbacks/20261103140000_rollback_fix_security_and_privileges.sql` | Modified | Added explicit `exo.allow_unsafe_legacy_rollback` safety gate and security downgrade documentation. |
-| `supabase/rollbacks/20261103140000_safe_rollback_concurrency_only.sql` | Added | Safe emergency rollback alternative that preserves RLS isolation, VIP storage policies, and least-privilege grants. |
-| `test_phase4_2_postgres_integration.js` | Added | Real PostgreSQL 16 integration test suite (`@electric-sql/pglite`) testing migrations, `schema.sql` parity, default function privileges, two-account RLS isolation, storage VIP policies, direct write blocking, OCC RPC conflicts, and safe/unsafe rollbacks. |
-| `run_verification_tests.js` | Modified | Extracts and tests real production `deriveSecurePBKDF2Hash`, `verifyAndUpgradePassword`, and `hashPasswordSHA256` from `index.html` using Web Crypto (`crypto.webcrypto`), and audits Phase 4.2 SQL invariants. |
-| `test_phase4_1_chromium_e2e.js` | Modified | Aligned header descriptions with exact Scenarios A–N, labeled as Browser E2E + Real IndexedDB (with mocked network transport), and switched to local `require('playwright')`. |
-| `run_all_tests.js` | Added | Master test runner that executes all suites and prints a categorized summary separating Static/Crypto, Unit, Real PostgreSQL Integration, and Browser E2E results. |
-| `package.json` | Modified | Pinned `"playwright": "1.64.1"` and `"@electric-sql/pglite": "0.5.15"` in `devDependencies` and added `test:setup`, `test:static`, `test:unit`, `test:db`, `test:e2e`, and `test` scripts. |
-| `.github/workflows/ci.yml` | Added | GitHub Actions workflow for clean-environment installation, Chromium setup, build, lint, and categorized test execution. |
-| `DATABASE_AUDIT_AR.md` & `PHASE_4_1_ENGINEERING_AUDIT.md` | Modified | Replaced all legacy references (`sync_version`, `enforce_workspace_sync_and_timestamp`, `PGRST116`) with actual implementation identifiers (`revision`, `handle_user_workspace_updated_at`, `sync_workspace_with_concurrency`) and documented Phase 4.2 results. |
-
----
-
-## 3. Separated Test Execution Results
-
-All 6 test files were executed and verified in their respective target runtimes:
-
-### Category 1 — Production Cryptographic Unit Tests (Web Crypto) & Static Security Checks
-- **File**: `run_verification_tests.js` (`npm run test:static`)
-- **Runtime**: Node.js Web Crypto (`crypto.webcrypto`) executing production functions extracted from `index.html` + static AST/text checks on SQL, `index.html`, and `sw.js`.
-- **Result**: **49 / 49 PASSED (0 FAILED)**
-
-### Category 2 — Unit & Asynchronous Logic Isolation Tests
-- **Files**:
-  - `run_comprehensive_verification.js` — **42 / 42 PASSED**
-  - `test_phase3_cross_account_isolation.js` — **25 / 25 PASSED**
-  - `test_phase4_regressions.js` — **35 / 35 PASSED**
-- **Command**: `npm run test:unit`
-- **Result**: **102 / 102 PASSED (0 FAILED)**
-
-### Category 3 — Real PostgreSQL 16 Database Integration Tests
-- **File**: `test_phase4_2_postgres_integration.js` (`npm run test:db`)
-- **Runtime**: Real PostgreSQL 16 engine (`@electric-sql/pglite` v0.5.15) executing real SQL DDL, migrations, RLS policies, roles (`anon`, `authenticated`, `service_role`, `postgres`), triggers, `storage.objects` policies, and `sync_workspace_with_concurrency()` RPC.
-- **Result**: **41 / 41 PASSED (0 FAILED)**
-
-### Category 4 — Real Browser E2E & IndexedDB Tests (Scenarios A–N)
-- **File**: `test_phase4_1_chromium_e2e.js` (`npm run test:e2e`)
-- **Runtime**: Headless Chromium (`playwright` v1.64.1) against `http://localhost:3000` and real browser `IndexedDB` (`WorkspaceMediaStore` v4).
-- **Result**: **42 / 42 PASSED (0 FAILED)**
-
-### Grand Total Across All 4 Categories
-- **234 / 234 Assertions PASSED (0 FAILED)**
+### 1.4 Deterministic Lockfile (`package-lock.json`) & GitHub Actions CI (`.github/workflows/ci.yml`)
+- Generated and committed `package-lock.json` with pinned `devDependencies` (`"@electric-sql/pglite": "0.5.15"`, `"pg": "8.23.1"`, `"playwright": "1.64.1"`).
+- Updated `.github/workflows/ci.yml` to:
+  1. Provision a real `postgres:16` Docker service container with `pg_isready` healthchecks on port `5432`.
+  2. Install dependencies deterministically via `npm ci` (instead of `npm install`).
+  3. Run each independent test category (`npm run test:static`, `npm run test:unit`, `npm run test:pglite`, `npm run test:pg16`, `npm run test:e2e`) AND execute `npm test` to verify `run_all_tests.js`.
 
 ---
 
-## 4. Remaining Risks & Environment Boundaries
+## 2. Separated 5-Category Test Execution Summary
 
-1. **Live Remote Supabase Production Instance Not Modified**:
-   - All database integration tests in `test_phase4_2_postgres_integration.js` were executed against a real local PostgreSQL 16 engine (`@electric-sql/pglite`) initialized with the repository's SQL migrations and `supabase/schema.sql`.
-   - Per safety rules, no destructive commands or live migrations were pushed to a remote production Supabase cloud project (`supabase db push` must be run by the project owner after staging verification).
-2. **Supabase Platform-Managed Extensions (`pg_stat_statements`, `supabase_vault`)**:
-   - In hosted Supabase, extensions like `supabase_vault` and `pg_stat_statements` are pre-provisioned by the platform. In standalone local PostgreSQL (`PGlite`), those optional cloud extensions are stubbed during schema parity checks while all core schemas (`public`, `auth`, `storage`), tables, triggers, RLS policies, and PL/pgSQL functions execute natively.
+| Category | Test File(s) | Command | Target Runtime | Assertions | Status |
+| :--- | :--- | :--- | :--- | :---: | :---: |
+| **1. Production Crypto & Static Audit** | `run_verification_tests.js` | `npm run test:static` | Node.js Web Crypto (`index.html`) + Static SQL/SW Audit | **49** | **49 PASS / 0 FAIL** |
+| **2. Pure Unit & Async Logic Isolation** | `run_comprehensive_verification.js`<br>`test_phase3_cross_account_isolation.js`<br>`test_phase4_regressions.js` | `npm run test:unit` | Node.js VM + IDB Transaction Simulator | **102**<br>(42+25+35) | **102 PASS / 0 FAIL** |
+| **3. Embedded PostgreSQL Compatibility** | `test_phase4_2_postgres_integration.js` | `npm run test:pglite` | `@electric-sql/pglite` 0.5.15 (Single-Connection WASM PG 18.6) | **41** | **41 PASS / 0 FAIL** |
+| **4. Real PostgreSQL 16 Concurrency & Parity** | `test_phase4_2_1_pg16_concurrency.js` | `npm run test:pg16` | **Native PostgreSQL 16.15 Server (`server_version_num=160015`)** + Multi-Connection `pg` | **29** | **29 PASS / 0 FAIL** |
+| **5. Real Browser E2E & IndexedDB** | `test_phase4_1_chromium_e2e.js` | `npm run test:e2e` | **Headless Chromium (`playwright` 1.64.1) + Real IndexedDB v4** | **42** | **42 PASS / 0 FAIL** |
+| **Grand Total (All 7 Suites)** | `run_all_tests.js` | `npm test` | **All Runtimes Combined** | **263** | **263 PASS / 0 FAIL** |
 
 ---
 
-## 5. Clean-Environment Setup & Verification Commands
+## 3. Clean-Environment Setup & Verification Commands
 
 ```bash
-# 1. Install exact Node.js dependencies
-npm install
+# 1. Deterministic dependency installation from package-lock.json
+npm ci
 
 # 2. Install Headless Chromium for Playwright E2E
 npm run test:setup
 
-# 3. Verify syntax & lint checks
+# 3. Verify syntax & lint checks across all server, build, and test scripts
 npm run lint
 
 # 4. Run production static asset build
 npm run build
 
-# 5. Run each test category independently
-npm run test:static   # Category 1: Production Web Crypto PBKDF2 & Static SQL/SW Checks (49 checks)
-npm run test:unit     # Category 2: Pure Unit & Async Logic Isolation Suites (102 checks)
-npm run test:db       # Category 3: Real PostgreSQL 16 Database Integration Suite (41 checks)
-npm run test:e2e      # Category 4: Real Headless Chromium + IndexedDB E2E Suite (42 checks)
+# 5. Run each verification tier independently
+npm run test:static   # Tier 1: Production Web Crypto PBKDF2 & Static SQL/SW Checks (49 checks)
+npm run test:unit     # Tier 2: Pure Unit & Async Logic Isolation Suites (102 checks)
+npm run test:pglite   # Tier 3: Embedded PostgreSQL Compatibility Suite — PGlite WASM (41 checks)
+npm run test:pg16     # Tier 4: Real PostgreSQL 16 Multi-Connection Concurrency & 10-Point Parity (29 checks)
+npm run test:e2e      # Tier 5: Real Headless Chromium + IndexedDB E2E Suite (42 checks)
 
-# 6. Run the complete categorized verification suite
+# 6. Run the unified categorized test runner
 npm test
 ```

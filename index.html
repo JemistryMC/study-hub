@@ -25594,8 +25594,11 @@ function togglePdfAudioPlayerBar(forceState) {
         let sb6ClickedKeys = new Set();
 
         function openHelpModal(targetMod = null) {
-            renderNewUserOnboardingHub();
-            document.getElementById('helpModalOverlay').classList.add('active');
+            if (typeof renderNewUserOnboardingHub === 'function') {
+                renderNewUserOnboardingHub();
+            }
+            const overlay = document.getElementById('helpModalOverlay');
+            if (overlay) overlay.classList.add('active');
             if (targetMod) {
                 switchAcademyModule(targetMod);
             }
@@ -25603,20 +25606,144 @@ function togglePdfAudioPlayerBar(forceState) {
                 initSb3MiniCanvas();
                 sb3Inited = true;
             }
+            updateAcademyXpUI();
         }
 
         function switchAcademyModule(modNum) {
+            const targetMod = Math.max(1, Math.min(9, Number(modNum) || 1));
             for (let i = 1; i <= 9; i++) {
                 const nav = document.getElementById(`acadNav_${i}`);
                 const pane = document.getElementById(`acadPane_${i}`);
-                if (nav) nav.classList.toggle('active', i === modNum);
-                if (pane) pane.classList.toggle('active', i === modNum);
+                if (nav) nav.classList.toggle('active', i === targetMod);
+                if (pane) pane.classList.toggle('active', i === targetMod);
+            }
+            const topLabel = document.getElementById('egTopSliderLabel');
+            if (topLabel) topLabel.textContent = `القسم ${Math.min(targetMod, 6)} من 6`;
+            const topSlider = document.getElementById('egTopModuleRangeSlider');
+            if (topSlider) topSlider.value = String(Math.min(targetMod, 6));
+            const segBar = document.getElementById('egSegmentedProgressBar');
+            if (segBar) {
+                const segItems = segBar.querySelectorAll('.eg-seg-bar-item');
+                segItems.forEach((item, idx) => {
+                    item.classList.toggle('active', idx === (targetMod - 1));
+                });
             }
             const stage = document.getElementById('academyStageContainer');
             if (stage) stage.scrollTop = 0;
-            if (modNum === 3 && !sb3Inited) {
+            if (targetMod === 3 && !sb3Inited) {
                 initSb3MiniCanvas();
                 sb3Inited = true;
+            }
+        }
+
+        function initSb3MiniCanvas() {
+            const inkCanvas = document.getElementById('sb3InkCanvas');
+            const laserCanvas = document.getElementById('sb3LaserCanvas');
+            const statusMsg = document.getElementById('sb3StatusMsg');
+            if (!inkCanvas) {
+                sb3Inited = true;
+                return;
+            }
+            const ctx = inkCanvas.getContext && inkCanvas.getContext('2d');
+            if (!ctx) {
+                sb3Inited = true;
+                return;
+            }
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            let drawing = false;
+            let lastX = 0;
+            let lastY = 0;
+
+            const getCanvasPos = (ev) => {
+                const rect = inkCanvas.getBoundingClientRect();
+                const scaleX = rect.width > 0 ? (inkCanvas.width / rect.width) : 1;
+                const scaleY = rect.height > 0 ? (inkCanvas.height / rect.height) : 1;
+                return {
+                    x: (ev.clientX - rect.left) * scaleX,
+                    y: (ev.clientY - rect.top) * scaleY
+                };
+            };
+
+            inkCanvas.onpointerdown = (ev) => {
+                drawing = true;
+                const pos = getCanvasPos(ev);
+                lastX = pos.x;
+                lastY = pos.y;
+            };
+
+            inkCanvas.onpointermove = (ev) => {
+                if (!drawing) return;
+                const pos = getCanvasPos(ev);
+                ctx.save();
+                if (sb3Tool === 'eraser') {
+                    ctx.globalCompositeOperation = 'destination-out';
+                    ctx.lineWidth = 16;
+                } else if (sb3Tool === 'highlighter') {
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.strokeStyle = 'rgba(250, 204, 21, 0.35)';
+                    ctx.lineWidth = 14;
+                } else {
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.strokeStyle = '#2dd4bf';
+                    ctx.lineWidth = 3;
+                }
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+                ctx.restore();
+                lastX = pos.x;
+                lastY = pos.y;
+                if (statusMsg) statusMsg.textContent = 'تم حفظ الكتابة التجريبية تلقائياً ✓';
+            };
+
+            const stopDraw = () => {
+                drawing = false;
+            };
+            inkCanvas.onpointerup = stopDraw;
+            inkCanvas.onpointercancel = stopDraw;
+            inkCanvas.onpointerleave = stopDraw;
+
+            if (laserCanvas && laserCanvas.getContext) {
+                const lCtx = laserCanvas.getContext('2d');
+                if (lCtx) lCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+            }
+            if (statusMsg && !statusMsg.textContent) {
+                statusMsg.textContent = 'استوديو الكتابة جاهز ✓';
+            }
+            sb3Inited = true;
+        }
+
+        function updateAcademyXpUI() {
+            if (!Array.isArray(completedAcademyModules)) {
+                completedAcademyModules = [];
+            }
+            const xpBadge = document.getElementById('academyXpBadge');
+            if (xpBadge) {
+                xpBadge.textContent = `${completedAcademyModules.length * 50} XP`;
+            }
+            const checklist = document.getElementById('helpModalInteractiveChecklist');
+            if (checklist) {
+                checklist.setAttribute('data-completed-count', String(completedAcademyModules.length));
+            }
+        }
+
+        function triggerInteractiveKeyDemo(keyChar) {
+            const normalized = String(keyChar || '').toUpperCase();
+            sb6ClickedKeys.add(normalized);
+            const labels = {
+                '1': 'فتح غرفة المركز الدراسي (1)',
+                '2': 'فتح غرفة التخطيط الأسبوعي (2)',
+                '3': 'فتح غرفة السجل والتقارير (3)',
+                'N': 'إضافة جلسة مذاكرة جديدة (N)',
+                'Z': 'تبديل وضع التركيز الصافي (Z)',
+                'H': 'محاذاة السلايد طولياً / عرضياً (H / W)',
+                'T': 'تفعيل أداة النص بالكيبورد (T)',
+                'P': 'تثبيت دبوس صوتي على السلايد (P)'
+            };
+            if (typeof showToast === 'function') {
+                showToast(`⌨️ اختصار فعّال: ${labels[normalized] || normalized}`);
             }
         }
 
@@ -25638,7 +25765,7 @@ function togglePdfAudioPlayerBar(forceState) {
             playChimeSound();
         }
 
-        
+
         // Safe stubs for any legacy references
         function spinBreakWheel() { showToast('خذ استراحة هادئة لمدة 5 دقائق واشرب الماء 💧', 'info'); }
         function flipPharmaTriviaCard() {}

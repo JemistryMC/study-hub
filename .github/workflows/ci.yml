@@ -1,4 +1,4 @@
-name: Exo Phase 4.2 CI — Build, Lint, Unit, PostgreSQL Integration & Chromium E2E
+name: Exo Phase 4.2.1 CI — Build, Lint, Unit, PGlite, Real PostgreSQL 16 Concurrency & Chromium E2E
 
 on:
   push:
@@ -11,8 +11,26 @@ on:
 
 jobs:
   verify:
-    name: Build, Lint & Full Verification Suite
+    name: Build, Lint & Full Verification Suite (PostgreSQL 16 + Chromium)
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      PG16_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
 
     steps:
       - name: Checkout Repository
@@ -22,9 +40,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
 
-      - name: Install Dependencies
-        run: npm install
+      - name: Install Deterministic Dependencies (npm ci)
+        run: npm ci
 
       - name: Install Headless Chromium for Playwright E2E
         run: npm run test:setup
@@ -41,8 +60,14 @@ jobs:
       - name: 2. Run Pure Unit & Asynchronous Logic Isolation Suites
         run: npm run test:unit
 
-      - name: 3. Run Real PostgreSQL 16 Database Integration Suite
-        run: npm run test:db
+      - name: 3. Run Embedded PostgreSQL Compatibility Suite (PGlite WASM)
+        run: npm run test:pglite
 
-      - name: 4. Run Real Headless Chromium + IndexedDB Browser E2E Suite
+      - name: 4. Run Real PostgreSQL 16 Concurrency & 10-Point Schema Parity Suite
+        run: npm run test:pg16
+
+      - name: 5. Run Real Headless Chromium + IndexedDB Browser E2E Suite
         run: npm run test:e2e
+
+      - name: 6. Verify Unified Test Runner (npm test -> run_all_tests.js)
+        run: npm test

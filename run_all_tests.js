@@ -1,10 +1,11 @@
 // ============================================================================
-// Exo Academic Platform — Phase 4.2 Categorized Verification & Test Runner
-// Strictly separates results into:
-//   1. Production Cryptographic & Static Security Checks
-//   2. Unit & Asynchronous Isolation Logic Tests
-//   3. Real PostgreSQL 16 Database Integration Tests
-//   4. Real Headless Chromium + IndexedDB Browser E2E Tests
+// Exo Academic Platform — Phase 4.2.1 Categorized Verification & Test Runner
+// Strictly separates results into 5 distinct verification tiers:
+//   1. Production Cryptographic (Web Crypto PBKDF2) & Static Security Checks
+//   2. Unit & Asynchronous Logic Isolation Tests
+//   3. Embedded PostgreSQL Compatibility Tests (PGlite WASM Single-Connection)
+//   4. Real PostgreSQL 16 Server Integration & Multi-Connection Concurrency Proof
+//   5. Real Headless Chromium + IndexedDB Browser E2E Tests (Scenarios A–N)
 // ============================================================================
 
 const { spawnSync } = require('child_process');
@@ -27,11 +28,15 @@ const SUITES = [
     file: 'test_phase4_regressions.js'
   },
   {
-    category: '3. Real PostgreSQL 16 Database Integration Tests (Migrations, RLS, Storage, OCC RPC)',
+    category: '3. Embedded PostgreSQL Compatibility Tests (PGlite WASM Single-Connection)',
     file: 'test_phase4_2_postgres_integration.js'
   },
   {
-    category: '4. Real Headless Chromium + IndexedDB Browser E2E Tests (Scenarios A–N)',
+    category: '4. Real PostgreSQL 16 Server Concurrency & 10-Point Schema Parity Proof',
+    file: 'test_phase4_2_1_pg16_concurrency.js'
+  },
+  {
+    category: '5. Real Headless Chromium + IndexedDB Browser E2E Tests (Scenarios A–N)',
     file: 'test_phase4_1_chromium_e2e.js'
   }
 ];
@@ -78,7 +83,7 @@ function main() {
   }
 
   console.log('\n========================================================================================');
-  console.log('EXO PHASE 4.2 — CATEGORIZED TEST EXECUTION SUMMARY');
+  console.log('EXO PHASE 4.2.1 — CATEGORIZED TEST EXECUTION SUMMARY');
   console.log('========================================================================================');
   for (const r of results) {
     console.log(

@@ -133,11 +133,11 @@ REVOKE ALL ON FUNCTION public.handle_user_workspace_updated_at() FROM PUBLIC, "a
 GRANT EXECUTE ON FUNCTION public.handle_user_workspace_updated_at() TO "postgres", "service_role";
 
 CREATE OR REPLACE FUNCTION public.enforce_workspace_write_via_rpc()
-  RETURNS TRIGGER
-  LANGUAGE plpgsql
-  SECURITY DEFINER
-  SET search_path = pg_catalog, public, auth
-  AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, auth
+AS $$
 BEGIN
   IF COALESCE(pg_catalog.current_setting('exo.occ_rpc_active', true), '') = 'true' THEN
     RETURN NEW;
@@ -217,15 +217,19 @@ BEGIN
     RAISE EXCEPTION 'Invalid workspace payload: expected JSON object' USING ERRCODE = '22023';
   END IF;
 
+  -- Mark transaction context as authorized inside OCC RPC
   PERFORM pg_catalog.set_config('exo.occ_rpc_active', 'true', true);
 
+  -- 1. Attempt to lock the existing workspace row for this user
   SELECT revision, updated_at
   INTO v_current_rev, v_updated_at
   FROM public.user_workspaces
   WHERE user_id = v_uid
   FOR UPDATE;
 
+  -- 2. Handle existing workspace update
   IF FOUND THEN
+    -- Concurrency check: Reject NULL or mismatched expected revision
     IF p_expected_revision IS NULL OR p_expected_revision <> v_current_rev THEN
       PERFORM pg_catalog.set_config('exo.occ_rpc_active', 'false', true);
       RETURN jsonb_build_object(
@@ -236,6 +240,7 @@ BEGIN
       );
     END IF;
 
+    -- Update row with payload data (using standard SQL COALESCE)
     UPDATE public.user_workspaces
     SET
       subjects = COALESCE(p_payload->'subjects', subjects),
@@ -250,7 +255,9 @@ BEGIN
     WHERE user_id = v_uid
     RETURNING revision, updated_at INTO v_current_rev, v_updated_at;
 
+  -- 3. Handle concurrent first-time workspace creation safely
   ELSE
+    -- For first-time creation, expected revision must be NULL or 1
     IF p_expected_revision IS NOT NULL AND p_expected_revision <> 1 THEN
       PERFORM pg_catalog.set_config('exo.occ_rpc_active', 'false', true);
       RETURN jsonb_build_object(
