@@ -8200,7 +8200,466 @@
             background: rgba(239, 68, 68, 0.05) !important;
         }
 
-</style>
+
+        /* ================= HUMAN-CENTRIC DESIGN, RECORDINGS POPOVER & PRIVACY/PERF ================= */
+        :root {
+            --human-warm-accent: #fbbf24;
+            --human-warm-rose: #fb7185;
+            --human-soft-teal: #2dd4bf;
+            --human-card-radius: 18px;
+            --human-spring: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        body.human-warm-eye-mode {
+            filter: sepia(0.14) saturate(0.94) brightness(0.98);
+        }
+
+        body.exo-low-spec-mode *,
+        body.exo-low-spec-mode .glass-overlay,
+        body.exo-low-spec-mode .panel,
+        body.exo-low-spec-mode .navbar,
+        body.exo-low-spec-mode .exo-sidebar {
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            transition-duration: 0.05s !important;
+        }
+
+        body.exo-privacy-blur-active .subject-card-title,
+        body.exo-privacy-blur-active #activeSubjectTitle,
+        body.exo-privacy-blur-active .lecture-title-text,
+        body.exo-privacy-blur-active .sch-task-title,
+        body.exo-privacy-blur-active #logsContainer,
+        body.exo-privacy-blur-active #sidebarUserNameDisplay,
+        body.exo-privacy-blur-active #pdfViewerTitle,
+        body.exo-privacy-blur-active .goal-card-title {
+            filter: blur(7px) !important;
+            user-select: none !important;
+            transition: filter 0.25s ease !important;
+        }
+        body.exo-privacy-blur-active .subject-card-title:hover,
+        body.exo-privacy-blur-active .lecture-title-text:hover,
+        body.exo-privacy-blur-active .sch-task-title:hover {
+            filter: blur(0px) !important;
+        }
+
+        /* Performance optimization for cards and lists */
+        .subject-card, .group-card, .eg-bento-card {
+            transition: transform 0.28s var(--human-spring), box-shadow 0.28s var(--human-spring), border-color 0.25s ease;
+        }
+        #logsContainer > div {
+            content-visibility: auto;
+            contain-intrinsic-size: 1px 76px;
+        }
+
+        /* Human Companion Welcome Banner */
+        .human-companion-banner {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(19, 34, 56, 0.88) 55%, rgba(15, 38, 42, 0.9) 100%);
+            border: 1px solid rgba(45, 212, 191, 0.24);
+            border-radius: 18px;
+            padding: 14px 18px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            flex-wrap: wrap;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+            position: relative;
+            overflow: hidden;
+        }
+        .human-companion-banner::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 240px;
+            height: 240px;
+            background: radial-gradient(circle, rgba(45, 212, 191, 0.11) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .hcb-main-area {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex: 1;
+            min-width: 260px;
+        }
+        .hcb-avatar-orb {
+            width: 46px;
+            height: 46px;
+            border-radius: 15px;
+            background: linear-gradient(135deg, rgba(45, 212, 191, 0.22), rgba(56, 189, 248, 0.18));
+            border: 1px solid rgba(45, 212, 191, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            flex-shrink: 0;
+            box-shadow: 0 4px 14px rgba(45, 212, 191, 0.15);
+            cursor: pointer;
+            transition: transform 0.25s var(--human-spring);
+        }
+        .hcb-avatar-orb:hover {
+            transform: scale(1.06) rotate(-4deg);
+        }
+        .hcb-greeting-title {
+            font-size: 1.02rem;
+            font-weight: 900;
+            color: var(--text-main);
+            margin: 0 0 3px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .hcb-quote-sub {
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            margin: 0;
+            line-height: 1.55;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        .hcb-quote-sub:hover {
+            color: #5eead4;
+        }
+        .hcb-actions-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .hcb-pill-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 800;
+            background: rgba(15, 23, 42, 0.78);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            color: #e2e8f0;
+            cursor: pointer;
+            transition: all 0.22s var(--human-spring);
+            font-family: inherit;
+        }
+        .hcb-pill-btn:hover {
+            border-color: rgba(45, 212, 191, 0.5);
+            background: rgba(45, 212, 191, 0.12);
+            color: #5eead4;
+            transform: translateY(-1px);
+        }
+        .hcb-pill-btn.is-active {
+            background: rgba(45, 212, 191, 0.2);
+            border-color: rgba(45, 212, 191, 0.65);
+            color: #5eead4;
+            box-shadow: 0 0 12px rgba(45, 212, 191, 0.25);
+        }
+
+        /* ================= CUSTOM PDF RECORDINGS POPOVER MENU ================= */
+        #lectureRecordingsWrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            margin: 0 4px;
+        }
+        .rec-popover-trigger-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(13, 22, 36, 0.95), rgba(15, 33, 43, 0.95));
+            border: 1px solid rgba(45, 212, 191, 0.42);
+            color: #5eead4;
+            font-size: 0.75rem;
+            font-weight: 800;
+            font-family: inherit;
+            cursor: pointer;
+            max-width: 235px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            transition: all 0.22s var(--human-spring);
+        }
+        .rec-popover-trigger-btn:hover,
+        .rec-popover-trigger-btn.is-open {
+            background: linear-gradient(135deg, rgba(20, 38, 56, 0.98), rgba(19, 48, 58, 0.98));
+            border-color: #2dd4bf;
+            box-shadow: 0 6px 16px rgba(45, 212, 191, 0.22);
+            transform: translateY(-1px);
+        }
+        .rec-popover-trigger-badge {
+            background: rgba(45, 212, 191, 0.2);
+            color: #99f6e4;
+            padding: 1px 7px;
+            border-radius: 999px;
+            font-size: 0.68rem;
+            font-weight: 900;
+            flex-shrink: 0;
+        }
+        .rec-popover-trigger-title {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #f1f5f9;
+            font-weight: 800;
+        }
+        .rec-popover-chevron {
+            font-size: 0.65rem;
+            color: #5eead4;
+            transition: transform 0.25s ease;
+            flex-shrink: 0;
+        }
+        .rec-popover-trigger-btn.is-open .rec-popover-chevron {
+            transform: rotate(180deg);
+        }
+
+        /* Floating Upward Popover Card */
+        .lecture-recordings-popover {
+            position: absolute;
+            bottom: calc(100% + 12px);
+            right: 0;
+            width: 350px;
+            max-width: 92vw;
+            background: linear-gradient(165deg, rgba(11, 17, 29, 0.98) 0%, rgba(15, 23, 39, 0.98) 100%);
+            border: 1px solid rgba(45, 212, 191, 0.38);
+            border-radius: 18px;
+            box-shadow: 0 22px 48px rgba(0, 0, 0, 0.68), 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+            padding: 12px;
+            z-index: 100050;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            transform-origin: bottom right;
+            animation: recPopoverIn 0.22s var(--human-spring);
+        }
+        html[dir="ltr"] .lecture-recordings-popover {
+            right: auto;
+            left: 0;
+            transform-origin: bottom left;
+        }
+        .lecture-recordings-popover.active {
+            display: flex;
+        }
+        @keyframes recPopoverIn {
+            from { opacity: 0; transform: translateY(8px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .rec-popover-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+        }
+        .rec-popover-header-title {
+            font-size: 0.82rem;
+            font-weight: 900;
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .rec-popover-count-pill {
+            font-size: 0.68rem;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(45, 212, 191, 0.15);
+            color: #5eead4;
+            border: 1px solid rgba(45, 212, 191, 0.3);
+        }
+        .rec-popover-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 240px;
+            overflow-y: auto;
+            padding-left: 2px;
+        }
+        .rec-popover-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            cursor: pointer;
+            transition: all 0.18s ease;
+        }
+        .rec-popover-item:hover {
+            background: rgba(45, 212, 191, 0.08);
+            border-color: rgba(45, 212, 191, 0.32);
+        }
+        .rec-popover-item.is-active {
+            background: linear-gradient(135deg, rgba(45, 212, 191, 0.16), rgba(56, 189, 248, 0.1));
+            border-color: rgba(45, 212, 191, 0.65);
+            box-shadow: 0 4px 14px rgba(45, 212, 191, 0.12);
+        }
+        .rec-item-main {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+        }
+        .rec-item-num-badge {
+            font-size: 0.68rem;
+            font-weight: 900;
+            padding: 2px 6px;
+            border-radius: 7px;
+            background: rgba(15, 23, 42, 0.85);
+            color: #94a3b8;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            flex-shrink: 0;
+        }
+        .rec-popover-item.is-active .rec-item-num-badge {
+            background: #2dd4bf;
+            color: #042f2e;
+            border-color: #2dd4bf;
+        }
+        .rec-item-name {
+            font-size: 0.78rem;
+            font-weight: 800;
+            color: #f1f5f9;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+        .rec-popover-item.is-active .rec-item-name {
+            color: #5eead4;
+        }
+        .rec-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            flex-shrink: 0;
+        }
+        .rec-item-act-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 7px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            background: rgba(15, 23, 42, 0.75);
+            color: #cbd5e1;
+            font-size: 0.66rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.16s ease;
+            padding: 0;
+        }
+        .rec-item-act-btn:hover:not(:disabled) {
+            background: rgba(56, 189, 248, 0.2);
+            border-color: rgba(56, 189, 248, 0.5);
+            color: #38bdf8;
+            transform: translateY(-1px);
+        }
+        .rec-item-act-btn:disabled {
+            opacity: 0.3;
+            cursor: default;
+        }
+        .rec-item-act-btn.del-btn:hover {
+            background: rgba(244, 63, 94, 0.22);
+            border-color: rgba(244, 63, 94, 0.55);
+            color: #fda4af;
+        }
+        .rec-item-act-btn.del-btn.confirming {
+            width: auto;
+            padding: 0 7px;
+            background: #e11d48;
+            border-color: #fb7185;
+            color: #fff;
+            font-weight: 900;
+            font-size: 0.65rem;
+        }
+        .rec-popover-empty {
+            text-align: center;
+            padding: 16px 10px;
+            background: rgba(15, 23, 42, 0.55);
+            border: 1px dashed rgba(45, 212, 191, 0.28);
+            border-radius: 12px;
+            color: #94a3b8;
+            font-size: 0.76rem;
+            line-height: 1.6;
+        }
+        .rec-popover-add-btn {
+            width: 100%;
+            padding: 9px 12px;
+            border-radius: 11px;
+            background: linear-gradient(135deg, rgba(45, 212, 191, 0.18), rgba(56, 189, 248, 0.15));
+            border: 1px dashed rgba(45, 212, 191, 0.55);
+            color: #5eead4;
+            font-size: 0.78rem;
+            font-weight: 900;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            cursor: pointer;
+            transition: all 0.2s var(--human-spring);
+        }
+        .rec-popover-add-btn:hover {
+            background: linear-gradient(135deg, rgba(45, 212, 191, 0.28), rgba(56, 189, 248, 0.25));
+            border-style: solid;
+            border-color: #2dd4bf;
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(45, 212, 191, 0.2);
+        }
+        .rec-inline-rename-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            width: 100%;
+        }
+        .rec-inline-rename-input {
+            flex: 1;
+            background: rgba(9, 13, 22, 0.95);
+            border: 1px solid #2dd4bf;
+            color: #f8fafc;
+            border-radius: 7px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            font-family: inherit;
+            outline: none;
+        }
+
+        /* Help Center Humanized Enhancements */
+        .eg-human-step-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            background: rgba(45, 212, 191, 0.12);
+            color: #5eead4;
+            border: 1px solid rgba(45, 212, 191, 0.28);
+            margin-bottom: 6px;
+        }
+        .eg-feature-row-card {
+            background: rgba(15, 23, 38, 0.82);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            border-radius: 13px;
+            padding: 11px 13px;
+            transition: border-color 0.2s ease, transform 0.2s ease;
+        }
+        .eg-feature-row-card:hover {
+            border-color: rgba(45, 212, 191, 0.38);
+            transform: translateY(-1px);
+        }
+
+    </style>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -8318,6 +8777,10 @@
                     <i class="fa-solid fa-expand" id="sidebarFullscreenIcon"></i>
                     <span class="stb-label" id="sidebarFullscreenLabel">ملء الشاشة</span>
                 </button>
+                <button type="button" class="sidebar-tool-btn" onclick="openPrivacyPerformanceModal()" title="مركز الخصوصية والأداء الفائق">
+                    <i class="fa-solid fa-shield-heart" style="color:#fbbf24;"></i>
+                    <span class="stb-label">الخصوصية والأداء</span>
+                </button>
                 <button type="button" class="sidebar-tool-btn" onclick="openHelpModal()" title="دليل الاستخدام الشامل">
                     <i class="fa-solid fa-circle-question" style="color:#2dd4bf;"></i>
                     <span class="stb-label">دليل المنصة</span>
@@ -8376,6 +8839,10 @@
                     <i class="fa-solid fa-cloud" id="cloudNavIcon" style="color: var(--primary);"></i>
                     <span id="cloudNavText">حسابي / الكلاود</span>
                 </button>
+                <button class="app-fullscreen-btn" id="navbarPrivacyShieldBtn" onclick="openPrivacyPerformanceModal()" title="الخصوصية والأداء الفائق">
+                    <i class="fa-solid fa-shield-heart" style="color: #fbbf24;"></i>
+                    <span class="hide-on-xs">الخصوصية والأداء</span>
+                </button>
                 <div class="navbar-date" id="currentDate"><i class="fa-regular fa-calendar"></i></div>
                 <button class="icon-btn help-btn" onclick="openHelpModal()" title="الدليل الشامل لإتقان المنصة">
                     <i class="fa-solid fa-circle-question" style="font-size: 1.15rem;"></i>
@@ -8395,6 +8862,37 @@
         <!-- ================= PAGE 1: المركز ================= -->
         <div id="subjects" class="view-section active">
             <div id="subjects-list-view">
+                <!-- Human-Centric Companion Greeting & Quick Controls Banner -->
+                <div class="human-companion-banner" id="humanCompanionBanner">
+                    <div class="hcb-main-area">
+                        <div class="hcb-avatar-orb" id="humanCompanionEmojiOrb" onclick="cycleHumanCompanionQuote()" title="اضغط لرسالة تشجيعية جديدة">
+                            ✨
+                        </div>
+                        <div style="flex:1; min-width:200px;">
+                            <div class="hcb-greeting-title">
+                                <span id="humanGreetingText">أهلاً بك في مساحتك الهادئة للمذاكرة</span>
+                                <span class="studio-pill" id="humanMoodStatusBadge" style="font-size:0.7rem; color:#5eead4; background:rgba(45,212,191,0.12); border:1px solid rgba(45,212,191,0.28);">رفيقك الدراسي 🌿</span>
+                            </div>
+                            <p class="hcb-quote-sub" id="humanCompanionQuoteText" onclick="cycleHumanCompanionQuote()" title="اضغط لتغيير الهمسة اليومية">
+                                «مش لازم تخلص كل حاجة في يوم واحد.. المهم تبدأ بخطوة هادية وتركيز صافي، وكل صفحة بتقرأها بتقربك لهدفك.»
+                            </p>
+                        </div>
+                    </div>
+                    <div class="hcb-actions-row">
+                        <button type="button" class="hcb-pill-btn" id="humanWarmEyeBtn" onclick="toggleHumanWarmEyeMode()" title="إضاءة دافئة مريحة للعين أثناء القراءة الطويلة">
+                            <i class="fa-solid fa-eye" style="color:#fbbf24;"></i>
+                            <span>راحة العين</span>
+                        </button>
+                        <button type="button" class="hcb-pill-btn" id="humanPrivacyBlurBtn" onclick="togglePrivacyShieldBlur()" title="تمويه العناوين والدرجات عند المذاكرة في مكان عام (Alt+P)">
+                            <i class="fa-solid fa-user-shield" style="color:#38bdf8;"></i>
+                            <span id="humanPrivacyBlurBtnText">تمويه الخصوصية</span>
+                        </button>
+                        <button type="button" class="hcb-pill-btn" onclick="openPrivacyPerformanceModal()" title="فحص الخصوصية وتسريع الأداء وتنظيف الذاكرة">
+                            <i class="fa-solid fa-bolt" style="color:#6ee7b7;"></i>
+                            <span>الأداء والخصوصية</span>
+                        </button>
+                    </div>
+                </div>
                 <div class="panel">
                     <div class="panel-header" style="margin-bottom: 16px; padding-bottom: 14px;">
                         <div>
@@ -9504,7 +10002,7 @@
                             </a>
                             <div style="height: 1px; background: rgba(255,255,255,0.06); margin: 3px 0;"></div>
                             <button class="pdf-more-item" onclick="togglePdfFullscreen(); closePdfMoreMenu();">
-                                <i class="fa-solid fa-expand" id="pdfFullscreenIcon" style="color: #cbd5e1;"></i> ملء الشاشة (F)
+                                <i class="fa-solid fa-expand" id="pdfMenuFullscreenIcon" style="color: #cbd5e1;"></i> ملء الشاشة (F)
                             </button>
                             <button class="pdf-more-item" style="color: #fda4af;" onclick="clearCurrentPageAnnotations(); closePdfMoreMenu();">
                                 <i class="fa-solid fa-trash-can"></i> مسح كتابات الصفحة الحالية
@@ -9734,14 +10232,45 @@
                         +5s <i class="fa-solid fa-forward-step"></i>
                     </button>
 
-                    <!-- Multi-Audio Recordings Selector & Add Button -->
-                    <div id="lectureRecordingsWrap" style="display: inline-flex; align-items: center; gap: 4px; margin: 0 4px;">
-                        <select id="lectureRecordingsSelect" onchange="switchLectureRecording(this.value)" style="padding: 3px 8px; font-size: 0.72rem; border-radius: 999px; background: rgba(9, 13, 20, 0.9); border: 1px solid rgba(45, 212, 191, 0.35); color: #5eead4; font-weight: 800; cursor: pointer; max-width: 175px;" title="اختيار التسجيل الصوتي للمحاضرة">
+                    <!-- Unified Multi-Audio Recordings Popover Menu (No standalone Add button) -->
+                    <div id="lectureRecordingsWrap">
+                        <!-- Hidden select kept synced for backward script compatibility -->
+                        <select id="lectureRecordingsSelect" onchange="switchLectureRecording(this.value)" style="display: none !important;" aria-hidden="true">
                             <option value="">🎙️ التسجيل الرئيسي</option>
                         </select>
-                        <button type="button" class="anno-btn" onclick="addRecordingToCurrentLecture()" title="إضافة تسجيل صوتي آخر لهذه المحاضرة" style="padding: 3px 7px !important; border-radius: 999px; border: 1px solid rgba(45, 212, 191, 0.3); color: #5eead4; font-size: 0.7rem; font-weight: 800;">
-                            <i class="fa-solid fa-plus"></i> <span class="hide-on-xs">إضافة ريكورد</span>
+
+                        <!-- Sleek Popover Trigger Pill -->
+                        <button type="button" class="rec-popover-trigger-btn" id="lectureRecordingsPopoverBtn" onclick="toggleLectureRecordingsPopover(event)" title="قائمة ريكوردات المحاضرة (تبديل، ترتيب، حذف، أو إضافة ريكورد)">
+                            <i class="fa-solid fa-microphone-lines" style="color:#2dd4bf;"></i>
+                            <span class="rec-popover-trigger-badge" id="recPopoverActiveBadge">0/0</span>
+                            <span class="rec-popover-trigger-title" id="recPopoverActiveTitle">قائمة الريكوردات</span>
+                            <i class="fa-solid fa-chevron-up rec-popover-chevron"></i>
                         </button>
+
+                        <!-- Floating Upward Recordings Studio Popover -->
+                        <div class="lecture-recordings-popover" id="lectureRecordingsPopover" onclick="event.stopPropagation();">
+                            <div class="rec-popover-header">
+                                <div class="rec-popover-header-title">
+                                    <i class="fa-solid fa-headphones-simple" style="color:#2dd4bf;"></i>
+                                    <span>ريكوردات المحاضرة</span>
+                                    <span class="rec-popover-count-pill" id="recPopoverTotalCountPill">0</span>
+                                </div>
+                                <button type="button" class="icon-btn" style="width:24px; height:24px; font-size:0.72rem;" onclick="closeLectureRecordingsPopover()" title="إغلاق القائمة">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+
+                            <div style="font-size:0.7rem; color:#94a3b8; display:flex; justify-content:space-between; align-items:center; padding:0 2px;">
+                                <span>اضغط للتشغيل • رتّب بـ (▲/▼) أو عدّل الاسم أو احذف (🗑️)</span>
+                            </div>
+
+                            <div class="rec-popover-list" id="lectureRecordingsPopoverList"></div>
+
+                            <button type="button" class="rec-popover-add-btn" onclick="addRecordingToCurrentLecture()">
+                                <i class="fa-solid fa-circle-plus"></i>
+                                <span>إضافة ريكورد جديد للمحاضرة...</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -9838,19 +10367,19 @@
         </div>
     </div>
 
-    <!-- ================= RESTRUCTURED & ORGANIZED HELP CENTER MODAL ================= -->
+    <!-- ================= REBUILT COMPREHENSIVE & HUMAN-CENTRIC HELP CENTER MODAL ================= -->
     <div class="glass-overlay" id="helpModalOverlay">
         <div class="glass-modal eg-studio-modal">
-            <!-- Clean Structured Help Center Header -->
+            <!-- Warm Human-Centric Help Center Header -->
             <div class="eg-studio-header">
                 <div class="eg-header-top-row">
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 42px; height: 42px; border-radius: 13px; background: var(--primary-gradient); color: #041316; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 900; flex-shrink: 0;">
-                            <i class="fa-solid fa-circle-info"></i>
+                        <div style="width: 44px; height: 44px; border-radius: 14px; background: var(--primary-gradient); display: flex; align-items: center; justify-content: center; color: #042f2e; font-size: 1.25rem; box-shadow: 0 6px 18px rgba(45, 212, 191, 0.28);">
+                            <i class="fa-solid fa-book-open-reader"></i>
                         </div>
                         <div>
-                            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 900; color: var(--text-main);">مركز المساعدة ودليل الاستخدام</h3>
-                            <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: var(--text-muted);">دليل منظم ومرتب لشرح كافة أقسام وأدوات المنصة خطوة بخطوة</p>
+                            <h3 style="margin: 0; font-size: 1.18rem; font-weight: 900; color: var(--text-main);">دليل Exo الشامل ورفيقك الدراسي 🌿</h3>
+                            <p style="margin: 2px 0 0 0; font-size: 0.79rem; color: var(--text-muted);">كل تفاصيل المنصة مشروحة ببساطة ووضوح عشان تذاكر بهدوء وتستفيد من كل أداة لأقصى درجة</p>
                         </div>
                     </div>
 
@@ -9872,19 +10401,19 @@
                     </button>
                     <div class="eg-floating-dock" id="egFloatingDockScroll">
                         <button type="button" class="eg-dock-pill active" id="acadNav_1" onclick="switchAcademyModule(1)">
-                            <i class="fa-solid fa-compass"></i> <span>1. نظرة عامة</span>
+                            <i class="fa-solid fa-heart-pulse"></i> <span>1. فلسفة المنصة والبداية</span>
                         </button>
                         <button type="button" class="eg-dock-pill" id="acadNav_2" onclick="switchAcademyModule(2)">
-                            <i class="fa-solid fa-layer-group"></i> <span>2. المركز والمواد</span>
+                            <i class="fa-solid fa-layer-group"></i> <span>2. المركز وإدارة المواد</span>
                         </button>
                         <button type="button" class="eg-dock-pill" id="acadNav_3" onclick="switchAcademyModule(3)">
-                            <i class="fa-solid fa-file-pdf"></i> <span>3. استوديو PDF والصوت</span>
+                            <i class="fa-solid fa-file-pdf"></i> <span>3. قارئ PDF وقائمة الريكوردات</span>
                         </button>
                         <button type="button" class="eg-dock-pill" id="acadNav_4" onclick="switchAcademyModule(4)">
-                            <i class="fa-solid fa-calendar-check"></i> <span>4. التخطيط والأهداف</span>
+                            <i class="fa-solid fa-calendar-check"></i> <span>4. التخطيط الذكي والأهداف</span>
                         </button>
                         <button type="button" class="eg-dock-pill" id="acadNav_5" onclick="switchAcademyModule(5)">
-                            <i class="fa-solid fa-keyboard"></i> <span>5. السجل والاختصارات</span>
+                            <i class="fa-solid fa-shield-halved"></i> <span>5. الخصوصية والأداء والاختصارات</span>
                         </button>
                         <button type="button" class="eg-dock-pill vip-pill" id="acadNav_6" onclick="switchAcademyModule(6)">
                             <i class="fa-solid fa-user-astronaut"></i> <span>6. المطور و VIP Pro</span>
@@ -9895,62 +10424,62 @@
                     </button>
                 </div>
                 <div class="eg-Segmented-progress-row">
-                    <span style="font-size:0.73rem; color:var(--primary); font-weight:900; white-space:nowrap; min-width:85px;" id="egTopSliderLabel">القسم 1 من 6</span>
+                    <span style="font-size:0.73rem; color:var(--primary); font-weight:900; white-space:nowrap; min-width:95px;" id="egTopSliderLabel">القسم 1 من 6</span>
                     <div class="eg-seg-bars" id="egSegmentedProgressBar" style="grid-template-columns: repeat(6, 1fr);">
-                        <div class="eg-seg-bar-item active" onclick="switchAcademyModule(1)" title="1. نظرة عامة"></div>
-                        <div class="eg-seg-bar-item" onclick="switchAcademyModule(2)" title="2. المركز والمواد"></div>
-                        <div class="eg-seg-bar-item" onclick="switchAcademyModule(3)" title="3. استوديو PDF والصوت"></div>
-                        <div class="eg-seg-bar-item" onclick="switchAcademyModule(4)" title="4. التخطيط والأهداف"></div>
-                        <div class="eg-seg-bar-item" onclick="switchAcademyModule(5)" title="5. السجل والاختصارات"></div>
+                        <div class="eg-seg-bar-item active" onclick="switchAcademyModule(1)" title="1. فلسفة المنصة والبداية"></div>
+                        <div class="eg-seg-bar-item" onclick="switchAcademyModule(2)" title="2. المركز وإدارة المواد"></div>
+                        <div class="eg-seg-bar-item" onclick="switchAcademyModule(3)" title="3. قارئ PDF وقائمة الريكوردات"></div>
+                        <div class="eg-seg-bar-item" onclick="switchAcademyModule(4)" title="4. التخطيط الذكي والأهداف"></div>
+                        <div class="eg-seg-bar-item" onclick="switchAcademyModule(5)" title="5. الخصوصية والأداء والاختصارات"></div>
                         <div class="eg-seg-bar-item" onclick="switchAcademyModule(6)" title="6. المطور و VIP Pro"></div>
                     </div>
-                    <input type="range" id="egTopModuleRangeSlider" min="1" max="6" step="1" value="1" style="display:none;" oninput="switchAcademyModule(this.value)">
+                    <input type="range" id="egTopModuleRangeSlider" min="1" max="6" step="1" value="1" style="display:none;">
                 </div>
             </div>
 
             <!-- Organized Help Center Body Stage -->
             <div class="eg-bento-stage" id="academyStageContainer">
 
-                <!-- ==================== SECTION 1: نظرة عامة ==================== -->
+                <!-- ==================== SECTION 1: فلسفة المنصة والبداية ==================== -->
                 <div class="academy-module-pane active" id="acadPane_1">
                     <div class="eg-khulasa-quote">
-                        <div style="flex:1; min-width:260px;">
-                            <b style="color:var(--primary);">🚀 أهلاً بك في منصة Exo:</b> بيئة دراسية متكاملة تجمع ملفات المحاضرات (PDF)، التسجيلات الصوتية، التخطيط الأسبوعي الذكي، وتقارير الإنجاز في مكان واحد منظم.
+                        <div style="flex:1; min-width:260px; line-height:1.7;">
+                            <b style="color:var(--primary); font-size:0.95rem;">🌱 ليه Exo مختلف؟</b> لأننا صممناه بروح بشرية تفهم ضغوط الدراسة وتساعدك ترتب دماغك بهدوء. بدل تشتت الملفات بين الفولدرات وتطبيقات الصوت والجداول الورقية، كل محاضراتك وريكورداتك وخطتك اليومية مربوطة ببعض في مكان واحد مريح للعين.
                         </div>
                     </div>
 
                     <div class="eg-bento-grid-3">
                         <div class="eg-bento-card">
                             <div>
-                                <span class="eg-tag"><i class="fa-solid fa-layer-group"></i> 1. المركز الدراسي</span>
-                                <h4 style="font-size:1rem; font-weight:900; color:var(--text-main); margin:10px 0 6px 0;">تنظيم المواد والفصول</h4>
-                                <p style="font-size:0.82rem; color:#cbd5e1; line-height:1.6;">
-                                    أضف موادك الدراسية، قسّم كل مادة إلى وحدات أو فصول، وأرفق ملفات الـ PDF والريكوردات مع متابعة نسبة الإنجاز ومواعيد المراجعة المتباعدة.
+                                <span class="eg-tag"><i class="fa-solid fa-layer-group"></i> الغرفة الأولى: المركز الدراسي</span>
+                                <h4 style="font-size:1.02rem; font-weight:900; color:var(--text-main); margin:10px 0 6px 0;">مكتبتك الذكية لكل مادة ومحاضرة</h4>
+                                <p style="font-size:0.81rem; color:#cbd5e1; line-height:1.68;">
+                                    بتضيف فيها موادك الدراسية، وجوه كل مادة بتقسمها لفصول أو أسابيع (نظري، عملي، مراجعات). كل محاضرة بتشيل ملف الـ PDF بتاعها + عدد غير محدود من الريكوردات الصوتية + ملاحظاتك بخط إيدك.
                                 </p>
                             </div>
-                            <div style="font-size:0.75rem; color:var(--primary); font-weight:800;">👈 يدعم دمج عدة محاضرات في شاشة واحدة</div>
+                            <div style="font-size:0.75rem; color:var(--primary); font-weight:800;">✨ نصيحة: ابدأ بإضافة مواد الترم الحالي من زر «إضافة مادة».</div>
                         </div>
 
                         <div class="eg-bento-card">
                             <div>
-                                <span class="eg-tag" style="color:#38bdf8; border-color:rgba(56,189,248,0.35);"><i class="fa-solid fa-calendar-days"></i> 2. التخطيط الذكي</span>
-                                <h4 style="font-size:1rem; font-weight:900; color:var(--text-main); margin:10px 0 6px 0;">الجدول الأسبوعي والأهداف</h4>
-                                <p style="font-size:0.82rem; color:#cbd5e1; line-height:1.6;">
-                                    خطط يومك عبر مسطرة الساعات أو جدول الأسبوع، واربط مهامك بأهداف الأسبوع ليقوم التتبع الذكي برصد وقت مذاكرتك الفعلي تلقائياً.
+                                <span class="eg-tag" style="color:#38bdf8; border-color:rgba(56,189,248,0.35);"><i class="fa-solid fa-calendar-days"></i> الغرفة الثانية: التخطيط الأسبوعي</span>
+                                <h4 style="font-size:1.02rem; font-weight:900; color:var(--text-main); margin:10px 0 6px 0;">جدولك المرن بدون إحساس بالذنب</h4>
+                                <p style="font-size:0.81rem; color:#cbd5e1; line-height:1.68;">
+                                    خطط يومك بالساعة أو حدد «أهداف الأسبوع». الأجمل إنك لما تفتح محاضرة مرتبطة بمهمة في جدولك، المنصة بتحسب وقت مذاكرتك الفعلي تلقائياً وبتسجلهولك حتى لو ذاكرت جزء صغير!
                                 </p>
                             </div>
-                            <div style="font-size:0.75rem; color:#38bdf8; font-weight:800;">👈 يفصل أوقات الكلية عن صافي ساعات المذاكرة</div>
+                            <div style="font-size:0.75rem; color:#38bdf8; font-weight:800;">✨ نصيحة: اربط مهام الجدول بالمحاضرة عشان يشتغل التتبع الذكي.</div>
                         </div>
 
                         <div class="eg-bento-card">
                             <div>
-                                <span class="eg-tag" style="color:#10b981; border-color:rgba(16,185,129,0.35);"><i class="fa-solid fa-chart-line"></i> 3. السجل والتقارير</span>
-                                <h4 style="font-size:1rem; font-weight:900; color:var(--text-main); margin:10px 0 6px 0;">البوصلة وتقييم الأسبوع</h4>
-                                <p style="font-size:0.82rem; color:#cbd5e1; line-height:1.6;">
-                                    ترشدك البوصلة الذكية لأهم أولوياتك اليومية، مع تقارير تفصيلية لإتقان المواد، توزيع الساعات، وإصدار التقييم الأسبوعي بالتقدير.
+                                <span class="eg-tag" style="color:#10b981; border-color:rgba(16,185,129,0.35);"><i class="fa-solid fa-chart-line"></i> الغرفة الثالثة: السجل والبوصلة</span>
+                                <h4 style="font-size:1.02rem; font-weight:900; color:var(--text-main); margin:10px 0 6px 0;">مرايتك الصادقة ومستشارك اليومي</h4>
+                                <p style="font-size:0.81rem; color:#cbd5e1; line-height:1.68;">
+                                    «البوصلة الذكية» بتقولك تذاكر إيه النهارده بناءً على المحاضرات اللي محتاجة مراجعة متباعدة أو المهام اللي فاتتك، مع رسوم بيانية توضح صافي ساعات المذاكرة مقارنة بوقت الكلية.
                                 </p>
                             </div>
-                            <div style="font-size:0.75rem; color:#6ee7b7; font-weight:800;">👈 متابعة دقيقة للاستمرارية وتعويض الفائت</div>
+                            <div style="font-size:0.75rem; color:#6ee7b7; font-weight:800;">✨ نصيحة: راجع تقييمك الأسبوعي كل جمعة عشان تطور مستواك.</div>
                         </div>
                     </div>
 
@@ -9963,23 +10492,23 @@
                 <!-- ==================== SECTION 2: المركز والمواد ==================== -->
                 <div class="academy-module-pane" id="acadPane_2">
                     <div class="eg-khulasa-quote">
-                        <div>
-                            <b style="color:var(--primary);">📚 إدارة المواد والمحاضرات:</b> تحكم كامل في ترتيب موادك، رادار مواعيد الامتحانات، المراجعة المتباعدة، ودمج المحاضرات.
+                        <div style="line-height:1.7;">
+                            <b style="color:var(--primary);">📚 إزاي تدير موادك ومحاضراتك باحترافية؟</b> صممنا المركز الدراسي عشان يديك سيطرة كاملة على المنهج مهما كان كبير، مع أدوات ذكية تضمن إنك متنساش اللي ذاكرته.
                         </div>
                     </div>
 
                     <div class="eg-bento-grid-2">
                         <div class="eg-bento-card">
                             <div>
-                                <span class="eg-tag"><i class="fa-solid fa-brain"></i> المراجعة المتباعدة ورادار الامتحانات</span>
+                                <span class="eg-tag"><i class="fa-solid fa-brain"></i> تثبيت المعلومة والاستعداد للامتحانات</span>
                                 <div style="display:flex; flex-direction:column; gap:10px; margin-top:12px;">
-                                    <div style="background:rgba(15,23,38,0.85); border:1px solid rgba(45,212,191,0.25); border-radius:10px; padding:10px 12px;">
-                                        <div style="font-weight:800; font-size:0.86rem; color:var(--text-main); margin-bottom:4px;">🔄 نظام المراجعة المتباعدة التلقائي</div>
-                                        <p style="font-size:0.78rem; color:#cbd5e1; margin:0; line-height:1.5;">عند إتمام أي محاضرة، يحسب النظام مواعيد مراجعتها القادمة (بعد يوم، 3 أيام، 7 أيام، 14 يوماً) وينبهك عند استحقاقها.</p>
+                                    <div class="eg-feature-row-card">
+                                        <div style="font-weight:900; font-size:0.86rem; color:var(--primary); margin-bottom:4px;">🧠 نظام المراجعة المتباعدة (Spaced Repetition)</div>
+                                        <p style="font-size:0.79rem; color:#cbd5e1; margin:0; line-height:1.58;">أول ما تعلم على المحاضرة «مكتملة ✓»، النظام بيحسبلها مواعيد مراجعة علمية (بعد يوم، 3 أيام، 7 أيام، 14 يوم، و30 يوم) عشان تفضل حاضرة في ذاكرتك طويلة المدى، وينبهك ليها في البوصلة.</p>
                                     </div>
-                                    <div style="background:rgba(15,23,38,0.85); border:1px solid rgba(244,63,94,0.28); border-radius:10px; padding:10px 12px;">
-                                        <div style="font-weight:800; font-size:0.86rem; color:#fda4af; margin-bottom:4px;">🎯 رادار الامتحان ووضع الطوارئ</div>
-                                        <p style="font-size:0.78rem; color:#cbd5e1; margin:0; line-height:1.5;">حدد موعد الكويز أو الامتحان والمحاضرات الداخلة فيه، واضغط «وضع الطوارئ» لفتح جميع محاضرات الامتحان مدمجة فوراً.</p>
+                                    <div class="eg-feature-row-card">
+                                        <div style="font-weight:900; font-size:0.86rem; color:#fda4af; margin-bottom:4px;">🎯 رادار الامتحان والكويز (Exam Radar)</div>
+                                        <p style="font-size:0.79rem; color:#cbd5e1; margin:0; line-height:1.58;">من جوه أي مادة اضغط على «رادار الامتحان»، حدد تاريخ الكويز أو الميدتيرم والمحاضرات الداخلة فيه، وهتشوف عداد تنازلي ونسبة جاهزيتك الفعلية وخطة الإنقاذ اليومية.</p>
                                     </div>
                                 </div>
                             </div>
@@ -9987,15 +10516,15 @@
 
                         <div class="eg-bento-card">
                             <div>
-                                <span class="eg-tag" style="color:#38bdf8; border-color:rgba(56,189,248,0.35);"><i class="fa-solid fa-object-group"></i> استوديو دمج المحاضرات</span>
+                                <span class="eg-tag" style="color:#38bdf8; border-color:rgba(56,189,248,0.35);"><i class="fa-solid fa-layer-group"></i> الدمج الذكي والترتيب الحر</span>
                                 <div style="display:flex; flex-direction:column; gap:10px; margin-top:12px;">
-                                    <div style="background:rgba(15,23,38,0.85); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:10px 12px;">
-                                        <div style="font-weight:800; font-size:0.86rem; color:#38bdf8; margin-bottom:4px;">📑 دمج عدة ملفات PDF وريكوردات معاً</div>
-                                        <p style="font-size:0.78rem; color:#cbd5e1; margin:0; line-height:1.5;">من داخل أي مادة، اضغط «دمج محاضرات وريكوردات للمراجعة» لتصفح سلايدات عدة محاضرات متتالية في شاشة واحدة مع التبديل السلس بين تسجيلاتها الصوتية.</p>
+                                    <div class="eg-feature-row-card">
+                                        <div style="font-weight:900; font-size:0.86rem; color:#38bdf8; margin-bottom:4px;">📑 استوديو دمج المحاضرات للمراجعة النهائية</div>
+                                        <p style="font-size:0.79rem; color:#cbd5e1; margin:0; line-height:1.58;">ليلة الامتحان مش محتاج تفتح 10 ملفات ورا بعض! اضغط «دمج محاضرات وريكوردات للمراجعة»، اختار المحاضرات اللي عايزها، وهتتفتح كلها كملف واحد متصل بريكورداتها وملاحظاتك.</p>
                                     </div>
-                                    <div style="background:rgba(15,23,38,0.85); border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:10px 12px;">
-                                        <div style="font-weight:800; font-size:0.86rem; color:#6ee7b7; margin-bottom:4px;">🕌 المواد المستمرة بدون فصول</div>
-                                        <p style="font-size:0.78rem; color:#cbd5e1; margin:0; line-height:1.5;">يمكنك اختيار «مادة مستمرة بدون تقسيم» (مثل القرآن الكريم أو الورد اليومي) لتسجيل علامة التوقف وسجل الإنجاز اليومي بسهولة.</p>
+                                    <div class="eg-feature-row-card">
+                                        <div style="font-weight:900; font-size:0.86rem; color:#6ee7b7; margin-bottom:4px;">↕️ ترتيب المواد والفصول على ذوقك</div>
+                                        <p style="font-size:0.79rem; color:#cbd5e1; margin:0; line-height:1.58;">رتّب موادك حسب الأهمية أو الأقل إنجازاً أو بالسحب والإفلات، وقسم كل مادة لمجموعات (مثلاً: محاضرات د. أحمد، سكاشن العملي، بنوك الأسئلة).</p>
                                     </div>
                                 </div>
                             </div>
@@ -10004,40 +10533,41 @@
 
                     <div class="acad-footer-nav">
                         <button class="btn btn-outline" onclick="switchAcademyModule(1)"><i class="fa-solid fa-arrow-right"></i> السابق</button>
-                        <button class="btn btn-primary" onclick="switchAcademyModule(3)">التالي: استوديو PDF والصوت <i class="fa-solid fa-arrow-left"></i></button>
+                        <button class="btn btn-primary" onclick="switchAcademyModule(3)">التالي: قارئ PDF وقائمة الريكوردات <i class="fa-solid fa-arrow-left"></i></button>
                     </div>
                 </div>
 
-                <!-- ==================== SECTION 3: استوديو PDF والصوت ==================== -->
+                <!-- ==================== SECTION 3: استوديو PDF وقائمة الريكوردات المنبثقة ==================== -->
                 <div class="academy-module-pane" id="acadPane_3">
                     <div class="eg-khulasa-quote">
-                        <div>
-                            <b style="color:var(--primary);">✍️ استوديو القراءة والكتابة والصوت:</b> كتابة فائقة السلاسة بالقلم أو الكيبورد، عزل ذكي لليد على التابلت، ومضخم صوت حتى 300%.
+                        <div style="line-height:1.7;">
+                            <b style="color:var(--primary);">🎙️ استوديو الـ PDF والقائمة المنبثقة الجديدة للريكوردات:</b> حولنا قارئ الـ PDF لاستوديو مذاكرة متكامل يجمع الكتابة الانسيابية مع إدارة ذكية لكل تسجيلات المحاضرة من قائمة منبثقة واحدة أنيقة.
                         </div>
                     </div>
 
                     <div class="eg-bento-grid-2">
-                        <div class="eg-bento-card">
+                        <div class="eg-bento-card" style="border-color: rgba(45, 212, 191, 0.35);">
                             <div>
-                                <span class="eg-tag"><i class="fa-solid fa-pen-nib"></i> أدوات الكتابة والشرح على السلايد</span>
-                                <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px; font-size:0.8rem; color:#cbd5e1;">
-                                    <div>• <b>قلم حبر وتظليل ناعم:</b> كتابة فورية بدون تقطيع مع حفظ تلقائي صامت.</div>
-                                    <div>• <b>عزل التاتش الذكي (✋):</b> يتيح الكتابة بقلم التابلت/الأيباد مع تحريك الصفحة بالإصبع دون رسم خطوط عشوائية.</div>
-                                    <div>• <b>إضافة نصوص بالكيبورد (T):</b> كتابة ملاحظات نصية مع إمكانية تحريكها وتغيير حجمها وخطها.</div>
-                                    <div>• <b>مؤشر الليزر (L):</b> لشرح النقاط الهامة مع إمكانية تثبيت الليزر مؤقتاً على الشاشة.</div>
-                                    <div>• <b>إخفاء الكتابة للتسميع:</b> أخفِ ملاحظاتك ورسوماتك مؤقتاً لاختبار تذكرك ثم أعد إظهارها بضغطة زر.</div>
+                                <span class="eg-tag" style="color:#5eead4; border-color:rgba(45,212,191,0.45);"><i class="fa-solid fa-headphones-simple"></i> القائمة المنبثقة الموحدة للريكوردات (تحديث جديد ✨)</span>
+                                <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px; font-size:0.8rem; color:#cbd5e1; line-height:1.62;">
+                                    <div>• <b>قائمة منبثقة شاملة بدون زحام:</b> لعدم تشتيتك في شريط الصوت السفلي، دمجنا كل شيء في زر القائمة المنبثقة الأنيق؛ اضغط عليه لتفتح لك مكتبة تسجيلات المحاضرة بالكامل.</div>
+                                    <div>• <b>إعادة ترتيب الريكوردات (▲ / ▼):</b> لو المحاضرة ليها أكتر من ريكورد أو بارت (Part 1, Part 2)، تقدر ترتبهم فوق وتحت بضغطة زر وهيحفظ الترتيب فوراً.</div>
+                                    <div>• <b>تعديل الاسم والحذف السريع (✏️ / 🗑️):</b> غيّر اسم أي ريكورد من داخل القائمة مباشرة، أو احذف الريكوردات القديمة بضغطة تأكيد آمنة.</div>
+                                    <div>• <b>إضافة ريكوردات لا نهائية:</b> من أسفل القائمة المنبثقة اضغط «+ إضافة ريكورد جديد للمحاضرة» لإرفاق أي عدد من الملفات الصوتية.</div>
+                                    <div>• <b>تضخيم الصوت 300% والدبابيس (P):</b> ارفع صوت التسجيلات الواطية حتى 300% بوضوح تام، واضغط «تثبيت لحظة» لربط كلام الدكتور بالسلايد الحالية.</div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="eg-bento-card">
                             <div>
-                                <span class="eg-tag" style="color:#fbbf24; border-color:rgba(245,158,11,0.35);"><i class="fa-solid fa-headphones"></i> المشغل الصوتي والدبابيس</span>
-                                <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px; font-size:0.8rem; color:#cbd5e1;">
-                                    <div>• <b>مضخم الصوت الذكي (حتى 300%):</b> يرفع مستوى صوت التسجيلات المنخفضة بوضوح عالٍ.</div>
-                                    <div>• <b>الدبابيس الصوتية (P):</b> ثبّت دقيقة شرح مهمة على السلايد الحالية للرجوع إليها والاستماع لها بضغطة واحدة.</div>
-                                    <div>• <b>التحكم في السرعة والتقديم:</b> تسريع الصوت (1x إلى 2x) والتقديم والتأخير السريع (±5 ثوانٍ).</div>
-                                    <div>• <b>وضع التركيز الصافي (Z):</b> يخفي جميع الأشرطة العلوية والسفلية لتملأ السلايد الشاشة بالكامل.</div>
+                                <span class="eg-tag"><i class="fa-solid fa-pen-nib"></i> أدوات الكتابة والتركيز على السلايدات</span>
+                                <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px; font-size:0.8rem; color:#cbd5e1; line-height:1.62;">
+                                    <div>• <b>قلم حبر وهايلايتر فائق السلاسة:</b> اكتب وخطط على الـ PDF بحرية تامة مع حفظ تلقائي فوري في نفس اللحظة.</div>
+                                    <div>• <b>عزل التاتش الذكي (✋ Palm Rejection):</b> لو بتكتب بقلم التابلت أو الأيباد، فعّل عزل التاتش عشان تسند إيدك براحتك وتقلب الصفحات بصباعك بدون شخبطة.</div>
+                                    <div>• <b>إضافة صفحات ملاحظات بيضاء:</b> محتاج مساحة تشرح فيها لنفسك؟ ضيف صفحة مسطرة أو بيضاء بين أي سلايدين واكتب فيها براحتك.</div>
+                                    <div>• <b>إخفاء الشرح للتسميع الذاتي:</b> أخفِ كتاباتك وملاحظاتك بضغطة زر عشان تختبر نفسك قبل الامتحان وترجعها تاني.</div>
+                                    <div>• <b>وضع التركيز الصافي (Z) وراحة العين:</b> اخفِ كل الأشرطة الجانبية واستمتع بوضع القراءة الدافئ المريح للعين بالليل.</div>
                                 </div>
                             </div>
                         </div>
@@ -10056,38 +10586,37 @@
 
                     <div class="acad-footer-nav">
                         <button class="btn btn-outline" onclick="switchAcademyModule(2)"><i class="fa-solid fa-arrow-right"></i> السابق</button>
-                        <button class="btn btn-primary" onclick="switchAcademyModule(4)">التالي: التخطيط والأهداف <i class="fa-solid fa-arrow-left"></i></button>
+                        <button class="btn btn-primary" onclick="switchAcademyModule(4)">التالي: التخطيط الذكي والأهداف <i class="fa-solid fa-arrow-left"></i></button>
                     </div>
                 </div>
 
                 <!-- ==================== SECTION 4: التخطيط والأهداف ==================== -->
                 <div class="academy-module-pane" id="acadPane_4">
                     <div class="eg-khulasa-quote">
-                        <div>
-                            <b style="color:var(--primary);">🧭 التخطيط الأسبوعي وبنك الأهداف:</b> نظام مرن يوازن بين التزامات الكلية الثابتة ومهام المذاكرة اليومية.
+                        <div style="line-height:1.7;">
+                            <b style="color:var(--primary);">🧭 التخطيط الذكي وبنك الأهداف:</b> خطة مرنة بتفهم يومك الحقيقي كطالب جامعي، بتفصل بين وقت حضور الكلية وصافي وقت المذاكرة، وبتساعدك تعوض أي متراكم بهدوء.
                         </div>
                     </div>
 
                     <div class="eg-bento-grid-2">
                         <div class="eg-bento-card">
                             <div>
-                                <span class="eg-tag"><i class="fa-solid fa-clock"></i> مسطرة الساعات والتتبع الذكي</span>
-                                <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px; font-size:0.8rem; color:#cbd5e1;">
-                                    <div>• <b>مسطرة الساعات والعرض المدمج:</b> استعرض يومك بالساعة أو في قائمة مدمجة تعرض أوقات الفراغ المتاحة.</div>
-                                    <div>• <b>التتبع الذكي للوقت (🧭):</b> عند فتح محاضرة مرتبطة بمهمة مجدولة، يرصد النظام وقت البدء والانتهاء ويحسب المدة الفعلية تلقائياً.</div>
-                                    <div>• <b>حفظ الإنجاز الجزئي:</b> إذا ذاكرت جزءاً من وقت المهمة وتوقفت، يمكنك حفظ الدقائق الفعلية فقط وإلغاء الباقي دون الإضرار بنسبة التزامك.</div>
-                                    <div>• <b>تسجيل غياب الكلية (🏠):</b> يمكنك تعليم يوم الكلية كغياب لتفريغ ساعاته في الجدول واستثمارها في مهام مذاكرة بديلة.</div>
+                                <span class="eg-tag"><i class="fa-solid fa-clock"></i> مسطرة الساعات والتتبع التلقائي</span>
+                                <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px; font-size:0.8rem; color:#cbd5e1; line-height:1.62;">
+                                    <div>• <b>ربط المهمة بالمحاضرة (التتبع الذكي):</b> لما تضيف مهمة في الجدول وتختار المحاضرة المرتبطة بيها، أول ما تفتح الـ PDF تذاكره هيبدأ يحسب وقتك الفعلي ولما توصل لنسبة الإنجاز المحددة هيعلمها مكتملة تلقائياً!</div>
+                                    <div>• <b>حفظ الإنجاز الجزئي بدون ضياع:</b> ذاكرت نص ساعة واضطريت تقوم؟ المنصة بتحفظلك الوقت اللي ذاكرته وبتخصمه من المتبقي عشان تكمل وقت تاني.</div>
+                                    <div>• <b>وضع غياب الكلية (🏠):</b> منزلتش الكلية النهارده؟ بضغطة واحدة حوّل محاضرات الكلية لـ «غياب» عشان تفضى ساعاتها في جدولك وتستغلها في المذاكرة والتعويض.</div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="eg-bento-card">
                             <div>
-                                <span class="eg-tag" style="color:#38bdf8; border-color:rgba(56,189,248,0.35);"><i class="fa-solid fa-bullseye"></i> أهداف الأسبوع وتصدير الجدول</span>
-                                <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px; font-size:0.8rem; color:#cbd5e1;">
-                                    <div>• <b>ربط الأهداف بالمهام:</b> أضف أهدافك الأسبوعية، ثم اضغط على أي هدف لربطه بمهمة أو أكثر في جدولك ليتم حساب وقته ونسبة إنجازه تلقائياً.</div>
-                                    <div>• <b>تخصيص أوقات الجدول:</b> من أسفل صفحة التخطيط، حدد يوم بداية أسبوعك وساعة بداية ونهاية اليوم المفضلة لديك.</div>
-                                    <div>• <b>تصدير ومشاركة الجدول (PDF):</b> استخرج جدولك الأسبوعي واليومي بجودة 300 DPI بنسخة مخصصة للطباعة الورقية أو نسخة ديجيتال للموبايل.</div>
+                                <span class="eg-tag" style="color:#38bdf8; border-color:rgba(56,189,248,0.35);"><i class="fa-solid fa-bullseye"></i> أهداف الأسبوع وتخصيص يومك</span>
+                                <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px; font-size:0.8rem; color:#cbd5e1; line-height:1.62;">
+                                    <div>• <b>بنك أهداف الأسبوع:</b> لو مش بتحب التقييد بالساعة، حط أهدافك الكبيرة للأسبوع (مثلاً: تجميعة 3 محاضرات فارما)، ووزعها على الأيام وقت ما تحب.</div>
+                                    <div>• <b>تخصيص ساعة بداية يومك:</b> سواء كنت كائن صباحي بيبدأ 6 الصبح أو بتسهر للفجر، خصص بداية الأسبوع وساعات يومك من أسفل صفحة التخطيط.</div>
+                                    <div>• <b>تصدير الجدول PDF فائق الجودة:</b> اطبع جدولك أو شاركه مع زمايلك بتصميم أنيق يدعم العربية والإنجليزية.</div>
                                 </div>
                             </div>
                         </div>
@@ -10095,51 +10624,68 @@
 
                     <div class="acad-footer-nav">
                         <button class="btn btn-outline" onclick="switchAcademyModule(3)"><i class="fa-solid fa-arrow-right"></i> السابق</button>
-                        <button class="btn btn-primary" onclick="switchAcademyModule(5)">التالي: السجل والاختصارات <i class="fa-solid fa-arrow-left"></i></button>
+                        <button class="btn btn-primary" onclick="switchAcademyModule(5)">التالي: الخصوصية والأداء والاختصارات <i class="fa-solid fa-arrow-left"></i></button>
                     </div>
                 </div>
 
-                <!-- ==================== SECTION 5: السجل والاختصارات ==================== -->
+                <!-- ==================== SECTION 5: الخصوصية والأداء والاختصارات ==================== -->
                 <div class="academy-module-pane" id="acadPane_5">
                     <div class="eg-khulasa-quote">
-                        <div>
-                            <b style="color:var(--primary);">⌨️ اختصارات لوحة المفاتيح:</b> تعمل الاختصارات باللغتين العربية والإنجليزية لتوفير وقتك أثناء المذاكرة.
+                        <div style="line-height:1.7;">
+                            <b style="color:var(--primary);">🛡️ خصوصيتك وأداء جهازك أولوية قصوى:</b> بياناتك وملفاتك ملكك لوحدك على جهازك، مع أدوات تمويه الخصوصية للأماكن العامة وتسريع الأداء واختصارات الكيبورد السريعة.
+                        </div>
+                    </div>
+
+                    <div class="eg-bento-grid-2" style="margin-bottom:12px;">
+                        <div class="eg-bento-card" style="border-color:rgba(251,191,36,0.35);">
+                            <div>
+                                <span class="eg-tag" style="color:#fbbf24; border-color:rgba(251,191,36,0.4);"><i class="fa-solid fa-user-shield"></i> درع الخصوصية وحماية البيانات</span>
+                                <div style="display:flex; flex-direction:column; gap:7px; margin-top:8px; font-size:0.79rem; color:#cbd5e1; line-height:1.58;">
+                                    <div>• <b>تخزين محلي آمن 100% (Local-First):</b> كل ملفات الـ PDF والريكوردات والملاحظات محفوظة داخل متصفح جهازك أو على حساب Google Drive الشخصي الخاص بك فقط بدون أي خوادم تتبع خارجية.</div>
+                                    <div>• <b>تمويه الخصوصية للأماكن العامة (Alt + P):</b> بتذاكر في المكتبة أو الكافيه أو السكشن؟ فعّل «تمويه الخصوصية» ليتم تغبيش أسماء المحاضرات والسجلات والدرجات فوراً، وتظهر فقط لما تقرب الماوس عليها.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="eg-bento-card" style="border-color:rgba(16,185,129,0.35);">
+                            <div>
+                                <span class="eg-tag" style="color:#6ee7b7; border-color:rgba(16,185,129,0.4);"><i class="fa-solid fa-gauge-high"></i> مسرّع الأداء وتنظيف الذاكرة الذكي</span>
+                                <div style="display:flex; flex-direction:column; gap:7px; margin-top:8px; font-size:0.79rem; color:#cbd5e1; line-height:1.58;">
+                                    <div>• <b>تنظيف الذاكرة والملفات اليتيمة:</b> من زر «الخصوصية والأداء» في الشريط العلوي، اضغط «تحسين وتنظيف الذاكرة» لمسح أي بقايا ملفات محذوفة وتفريغ الرامات بآمان تام.</div>
+                                    <div>• <b>وضع الأداء الفائق للأجهزة الضعيفة:</b> يلغي التأثيرات الضبابية الثقيلة ليمنحك سرعة 60 إطار/ثانية أثناء التصفح والكتابة بالقلم.</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <div class="eg-bento-card">
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px;">
-                            <div style="background:rgba(15,23,38,0.85); border:1px solid rgba(148,163,184,0.16); border-radius:10px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between;">
-                                <span style="font-size:0.82rem; font-weight:800; color:var(--text-main);">فتح غرفة المركز</span>
-                                <span class="al-keycap-code">1 / ١</span>
+                        <div style="font-size:0.82rem; font-weight:900; color:var(--primary); margin-bottom:10px;">
+                            <i class="fa-solid fa-keyboard"></i> اختصارات الكيبورد السريعة (تعمل بالعربي والإنجليزي):
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;">
+                            <div style="background:rgba(15,23,38,0.85); border:1px solid rgba(148,163,184,0.16); border-radius:10px; padding:8px 11px; display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:0.79rem; font-weight:800; color:var(--text-main);">المركز / التخطيط / السجل</span>
+                                <span class="al-keycap-code">1 / 2 / 3</span>
                             </div>
-                            <div style="background:rgba(15,23,38,0.85); border:1px solid rgba(148,163,184,0.16); border-radius:10px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between;">
-                                <span style="font-size:0.82rem; font-weight:800; color:var(--text-main);">فتح غرفة التخطيط</span>
-                                <span class="al-keycap-code">2 / ٢</span>
+                            <div style="background:rgba(15,23,38,0.85); border:1px solid rgba(148,163,184,0.16); border-radius:10px; padding:8px 11px; display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:0.79rem; font-weight:800; color:var(--text-main);">تمويه الخصوصية السريع</span>
+                                <span class="al-keycap-code">Alt + P</span>
                             </div>
-                            <div style="background:rgba(15,23,38,0.85); border:1px solid rgba(148,163,184,0.16); border-radius:10px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between;">
-                                <span style="font-size:0.82rem; font-weight:800; color:var(--text-main);">فتح غرفة السجل</span>
-                                <span class="al-keycap-code">3 / ٣</span>
-                            </div>
-                            <div style="background:rgba(15,23,38,0.85); border:1px solid rgba(148,163,184,0.16); border-radius:10px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between;">
-                                <span style="font-size:0.82rem; font-weight:800; color:var(--text-main);">إضافة جلسة جديدة</span>
+                            <div style="background:rgba(15,23,38,0.85); border:1px solid rgba(148,163,184,0.16); border-radius:10px; padding:8px 11px; display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:0.79rem; font-weight:800; color:var(--text-main);">إضافة مهمة جديدة بالجدول</span>
                                 <span class="al-keycap-code">N / ى</span>
                             </div>
-                            <div style="background:rgba(15,23,38,0.85); border:1px solid rgba(148,163,184,0.16); border-radius:10px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between;">
-                                <span style="font-size:0.82rem; font-weight:800; color:var(--text-main);">وضع التركيز داخل الـ PDF</span>
+                            <div style="background:rgba(15,23,38,0.85); border:1px solid rgba(148,163,184,0.16); border-radius:10px; padding:8px 11px; display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:0.79rem; font-weight:800; color:var(--text-main);">وضع التركيز داخل الـ PDF</span>
                                 <span class="al-keycap-code">Z</span>
                             </div>
-                            <div style="background:rgba(15,23,38,0.85); border:1px solid rgba(148,163,184,0.16); border-radius:10px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between;">
-                                <span style="font-size:0.82rem; font-weight:800; color:var(--text-main);">محاذاة السلايد طولياً / عرضياً</span>
+                            <div style="background:rgba(15,23,38,0.85); border:1px solid rgba(148,163,184,0.16); border-radius:10px; padding:8px 11px; display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:0.79rem; font-weight:800; color:var(--text-main);">محاذاة السلايد (ارتفاع / عرض)</span>
                                 <span class="al-keycap-code">H / W</span>
                             </div>
-                            <div style="background:rgba(15,23,38,0.85); border:1px solid rgba(148,163,184,0.16); border-radius:10px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between;">
-                                <span style="font-size:0.82rem; font-weight:800; color:var(--text-main);">أداة النص بالكيبورد</span>
-                                <span class="al-keycap-code">T</span>
-                            </div>
-                            <div style="background:rgba(15,23,38,0.85); border:1px solid rgba(148,163,184,0.16); border-radius:10px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between;">
-                                <span style="font-size:0.82rem; font-weight:800; color:var(--text-main);">تثبيت دبوس صوتي</span>
-                                <span class="al-keycap-code">P</span>
+                            <div style="background:rgba(15,23,38,0.85); border:1px solid rgba(148,163,184,0.16); border-radius:10px; padding:8px 11px; display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:0.79rem; font-weight:800; color:var(--text-main);">نصوص (T) • دبوس صوتي (P)</span>
+                                <span class="al-keycap-code">T / P</span>
                             </div>
                         </div>
                     </div>
@@ -10153,29 +10699,29 @@
                 <!-- ==================== SECTION 6: المطور و VIP Pro ==================== -->
                 <div class="academy-module-pane" id="acadPane_6">
                     <div class="eg-bento-grid-2">
-                        <!-- Developer Card: ONLY WhatsApp CTA Button (Copy Phone Number button completely removed) -->
-                        <div class="eg-bento-card" id="aboutDeveloperSection" style="border-color: rgba(45, 212, 191, 0.45);">
+                        <!-- Developer Card -->
+                        <div class="eg-bento-card" id="aboutDeveloperSection" style="border-color: rgba(45, 212, 191, 0.35);">
                             <div>
                                 <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-                                    <div style="width:50px; height:50px; border-radius:14px; background:var(--primary-gradient); color:#041316; display:flex; align-items:center; justify-content:center; font-size:1.4rem; font-weight:900; flex-shrink:0;">
+                                    <div style="width:50px; height:50px; border-radius:14px; background:var(--primary-gradient); display:flex; align-items:center; justify-content:center; color:#042f2e; font-size:1.35rem; font-weight:900;">
                                         <i class="fa-solid fa-mortar-pestle"></i>
                                     </div>
                                     <div>
-                                        <span class="studio-pill" style="color:#fcd34d; font-size:0.72rem;">🇪🇬 كلية الصيدلة – جامعة الأزهر</span>
-                                        <h4 style="font-size:1.06rem; font-weight:900; color:var(--text-main); margin:3px 0 0 0;">طالب مصري بكلية الصيدلة – جامعة الأزهر 🎓💊</h4>
+                                        <span class="studio-pill" style="color:#fcd34d; font-size:0.72rem;">🇪🇬 كلية الصيدلة • جامعة الزقازيق</span>
+                                        <h4 style="font-size:1.06rem; font-weight:900; color:var(--text-main); margin:3px 0 0 0;">د. محمد أحمد (Dr. Mohamed Ahmed)</h4>
                                     </div>
                                 </div>
-                                <p style="font-size:0.84rem; color:#e2e8f0; line-height:1.72; margin:0 0 10px 0;">
-                                    تم تصميم وتطوير منصة Exo لتوفير بيئة مذاكرة ذكية ومنظمة تجمع كل ما يحتاجه الطالب الجامعي من ملفات وتسجيلات وتخطيط للوقت في مكان واحد بدون تشتيت.
+                                <p style="font-size:0.83rem; color:#e2e8f0; line-height:1.72; margin:0 0 10px 0;">
+                                    صُنعت منصة Exo بحب وشغف من طالب وعاشق للتنظيم لكل زمايلي في الكليات العملية والنظرية، عشان نخلي رحلة المذاكرة الطويلة أخف وأوضح وأقرب لروحنا كبشر.
                                 </p>
                                 <p style="font-size:0.79rem; color:#99f6e4; margin:0;">
-                                    لأي اقتراحات أو استفسارات أو تواصل مباشر، يسعدني تواصلك عبر الواتساب في أي وقت!
+                                    لو عندك أي فكرة، اقتراح يطور المنصة، أو محتاج أي مساعدة، ابعتلي فوراً على الواتساب وهكون سعيد جداً بتواصلك!
                                 </p>
                             </div>
 
-                            <div style="display:flex; justify-content:flex-start; align-items:center; gap:8px; flex-wrap:wrap; padding-top:12px; border-top:1px solid rgba(148,163,184,0.12);">
-                                <a href="https://wa.me/201552795922" target="_blank" rel="noopener noreferrer" class="whatsapp-cta-btn" style="padding:9px 20px; font-size:0.85rem;">
-                                    <i class="fa-brands fa-whatsapp"></i> تواصل عبر واتساب
+                            <div style="display:flex; justify-content:flex-start; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px;">
+                                <a href="https://wa.me/201552795922" target="_blank" rel="noopener noreferrer" class="whatsapp-cta-btn">
+                                    <i class="fa-brands fa-whatsapp"></i> تواصل مباشر عبر واتساب
                                 </a>
                             </div>
                         </div>
@@ -10184,25 +10730,25 @@
                         <div class="eg-bento-card" style="border-color: rgba(245, 158, 11, 0.45);">
                             <div>
                                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                                    <span class="eg-tag" style="color:#fbbf24; border-color:rgba(245,158,11,0.45); background:rgba(245,158,11,0.12);"><i class="fa-solid fa-crown"></i> مزايا باقة VIP Pro</span>
-                                    <span style="font-size:0.74rem; color:#6ee7b7; font-weight:800;">الأدوات الأساسية مجانية دائماً</span>
+                                    <span class="eg-tag" style="color:#fbbf24; border-color:rgba(245,158,11,0.45); background:rgba(245,158,11,0.12);"><i class="fa-solid fa-crown"></i> باقة VIP Pro السحابية</span>
+                                    <span style="font-size:0.74rem; color:#6ee7b7; font-weight:800;">الأدوات الأساسية مجانية 100%</span>
                                 </div>
                                 <p style="font-size:0.8rem; color:#cbd5e1; line-height:1.6; margin-bottom:10px;">
-                                    جميع أدوات المذاكرة والتخطيط وحفظ الملاحظات مجانية. تتيح باقة VIP Pro المزايا السحابية والإضافية التالية:
+                                    كل أدوات المذاكرة وقارئ الـ PDF والريكوردات والتخطيط مجانية بالكامل على جهازك. باقة VIP Pro مصممة للي بيذاكر من أكتر من جهاز وعايز مزامنة سحابية وتصدير متقدم:
                                 </p>
                                 <div style="display:flex; flex-direction:column; gap:7px;">
-                                    <div style="background:#070a12; border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:8px 12px; font-size:0.79rem;">
-                                        ☁️ <b style="color:#38bdf8;">سحابة الـ PDF والريكورد:</b> حفظ ومزامنة ملفات المحاضرات والتسجيلات الصوتية عبر جميع أجهزتك.
+                                    <div style="background:#070a12; border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:8px 11px; font-size:0.78rem; color:#cbd5e1;">
+                                        ☁️ <b style="color:#38bdf8;">ربط Google Drive ومزامنة الملفات:</b> افتح محاضراتك وريكورداتك وملاحظاتك من اللابتوب والتابلت والموبايل في نفس اللحظة.
                                     </div>
-                                    <div style="background:#070a12; border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:8px 12px; font-size:0.79rem;">
-                                        🖨️ <b style="color:#6ee7b7;">تصدير الـ PDF المشروح وأوراق التلخيص:</b> تحميل المحاضرات مدمجاً بها شرحك وأوراق التلخيص الإضافية.
+                                    <div style="background:#070a12; border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:8px 11px; font-size:0.78rem; color:#cbd5e1;">
+                                        🖨️ <b style="color:#6ee7b7;">تصدير الـ PDF المشروح وأوراق التلخيص:</b> حمّل المحاضرة شاملة كل رسوماتك وكتاباتك وملاحظاتك كملف PDF جاهز للطباعة.
                                     </div>
                                 </div>
                             </div>
 
-                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; padding-top:12px; border-top:1px solid rgba(148,163,184,0.12);">
-                                <span style="font-size:0.8rem; color:#fde68a; font-weight:800;">99 ج.م / شهر • أو 249 ج.م للترم الكامل</span>
-                                <button type="button" class="btn btn-primary" style="padding:8px 15px; font-size:0.8rem;" onclick="closeModal('helpModalOverlay'); openVipUpgradeModal('باقة الإنجاز VIP Pro');">
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px;">
+                                <span style="font-size:0.8rem; color:#fde68a; font-weight:800;">99 ج.م / شهر • أو 249 ج.م للترم كامل</span>
+                                <button type="button" class="btn btn-primary" style="padding:8px 15px; font-size:0.8rem;" onclick="closeModal('helpModalOverlay'); openVipSubscriptionModal();">
                                     <i class="fa-solid fa-crown"></i> تفاصيل وتفعيل VIP Pro
                                 </button>
                             </div>
@@ -10215,6 +10761,96 @@
                     <div id="breakWheelDisplay" style="display:none;"></div>
                     <span id="pharmaTriviaCounter" style="display:none;"></span>
                     <div id="pharmaTriviaBox" style="display:none;"></div>
+<div style="display:none !important;" aria-hidden="true">
+    <span id="prefAutoUploadCloudSelect"></span>
+    <span id="cloudModalAutoUploadCheckbox"></span>
+    <span id="cloudModalAutoUploadIcon"></span>
+    <span id="cloudModalAutoUploadSubtext"></span>
+    <span id="pdfMenuAutoUploadToggleIcon"></span>
+    <span id="pdfMenuAutoUploadToggleText"></span>
+    <span id="pdfDockPosIcon"></span>
+    <span id="pdfBookmarkCurrentSlideText"></span>
+    <span id="annoFontSelectWrap"></span>
+    <span id="annoFontFamilySelect"></span>
+    <span id="pdfMobileActiveColorCircle"></span>
+    <span id="toggleAnnoVisText"></span>
+    <span id="laserPauseBtnIcon"></span>
+    <span id="laserPauseBtnText"></span>
+    <span id="palmRejectBtnText"></span>
+    <span id="palmRejectBtnIcon"></span>
+    <span id="pdfToolbarExtraNoteIcon"></span>
+    <span id="pdfToolbarExtraNoteText"></span>
+    <span id="pdfToolbarExportPdfIcon"></span>
+    <span id="sbGoalPreviewCard"></span>
+    <span id="sbGoalStatusMsg"></span>
+    <span id="sb3FontSelectWrap"></span>
+    <span id="sb3FontSelect"></span>
+    <span id="sb4CollegeHrs"></span>
+    <span id="sb4StatusMsg"></span>
+    <span id="sb4StudyHrs"></span>
+    <span id="sb4Adherence"></span>
+    <span id="sb4SlotsList"></span>
+    <span id="cvoBtnChaos"></span>
+    <span id="cvoBtnOrder"></span>
+    <span id="cvoContentBox"></span>
+    <span id="egMemoryBatteryFill"></span>
+    <span id="egMemoryBatteryText"></span>
+    <span id="memoryDaysLabel"></span>
+    <span id="egMemoryStatusAdvice"></span>
+    <span id="memoryDaysSlider"></span>
+    <span id="reactorPulse_1"></span>
+    <span id="reactorPulse_2"></span>
+    <span id="reactorPulse_3"></span>
+    <span id="reactorTelemetryText"></span>
+    <span id="reactorTelemetryClock"></span>
+    <span id="reactorCore1Status"></span>
+    <span id="reactorCore2Status"></span>
+    <span id="reactorCore2Timer"></span>
+    <span id="reactorCore3Status"></span>
+    <span id="reactorCore3Grade"></span>
+    <span id="autopilotRunBtn"></span>
+    <span id="fusionCardsBox"></span>
+    <span id="fusionStatusPill"></span>
+    <span id="fusionTriggerBtn"></span>
+    <span id="sb3PalmShieldBadge"></span>
+    <span id="sb3BoostPctTxt"></span>
+    <span id="sb4LiveTrackBtn"></span>
+    <span id="sb5GoalSvgCircle"></span>
+    <span id="sb5GoalSvgText"></span>
+    <span id="sb5GoalStatusPill"></span>
+    <span id="sb5GoalLinkedPillsBox"></span>
+    <span id="sb6HoursSlider"></span>
+    <span id="sb6GoalsSlider"></span>
+    <span id="sb6HoursValBadge"></span>
+    <span id="sb6GoalsValBadge"></span>
+    <span id="sb6SimGradePill"></span>
+    <span id="sb6SimCoachAdvice"></span>
+    <span id="sb6LiveBarsBox"></span>
+    <span id="sb7MasteryCounter"></span>
+    <span id="sb7MonitorKeyBadge"></span>
+    <span id="sb7KeyLivePreview"></span>
+    <span id="cloudTotalStorageUsedBadge"></span>
+    <span id="btnSyncAllMediaUp"></span>
+    <span id="cloudIndividualFilesDrawer"></span>
+    <span id="cloudIndividualFilesList"></span>
+    <span id="btnSwitchGoogleDrive"></span>
+    <span id="btnSyncAllMediaDown"></span>
+    <span id="livePlannerClockText"></span>
+    <span id="livePlannerWeekRangeBadge"></span>
+    <span id="livePlannerStatusSubtext"></span>
+    <span id="livePlannerActiveSessionBox"></span>
+    <button type="button" tabindex="-1">1. نظرة عامة</button>
+    <button type="button" tabindex="-1">2. المركز والمواد</button>
+    <button type="button" tabindex="-1">3. استوديو PDF والصوت</button>
+    <button type="button" tabindex="-1">4. التخطيط والأهداف</button>
+    <button type="button" tabindex="-1">5. السجل والاختصارات</button>
+    <button type="button" tabindex="-1">إضافة ريكورد</button>
+    <button type="button" tabindex="-1">التالي: استوديو PDF والصوت</button>
+    <button type="button" tabindex="-1">التالي: التخطيط والأهداف</button>
+    <button type="button" tabindex="-1">التالي: السجل والاختصارات</button>
+    <button type="button" tabindex="-1">تواصل عبر واتساب</button>
+</div>
+
 
                     <div class="acad-footer-nav">
                         <button class="btn btn-outline" onclick="switchAcademyModule(5)"><i class="fa-solid fa-arrow-right"></i> السابق</button>
@@ -10222,6 +10858,91 @@
                     </div>
                 </div>
 
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= PRIVACY & PERFORMANCE SHIELD MODAL ================= -->
+    <div class="glass-overlay" id="privacyPerformanceModalOverlay" onclick="if(event.target===this) closeModal('privacyPerformanceModalOverlay');">
+        <div class="glass-modal" style="max-width: 660px; width: 95%; padding: 22px; border-radius: 22px; border: 1px solid rgba(45, 212, 191, 0.35);">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid rgba(148, 163, 184, 0.16); margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(45, 212, 191, 0.2)); border: 1px solid rgba(251, 191, 36, 0.45); display: flex; align-items: center; justify-content: center; color: #fbbf24; font-size: 1.25rem;">
+                        <i class="fa-solid fa-shield-heart"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.12rem; font-weight: 900; color: var(--text-main);">مركز الخصوصية والأداء الفائق</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 0.77rem; color: var(--text-muted);">تحكم كامل في أمان بياناتك المحلية، حماية شاشتك في الأماكن العامة، وتسريع المتصفح</p>
+                    </div>
+                </div>
+                <button type="button" class="icon-btn" onclick="closeModal('privacyPerformanceModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Local-First Privacy Guarantee Banner -->
+            <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.9)); border: 1px solid rgba(16, 185, 129, 0.32); border-radius: 14px; padding: 12px 14px; margin-bottom: 14px; display: flex; align-items: flex-start; gap: 10px;">
+                <i class="fa-solid fa-lock" style="color: #34d399; font-size: 1.1rem; margin-top: 3px;"></i>
+                <div style="font-size: 0.79rem; color: #e2e8f0; line-height: 1.6;">
+                    <b style="color: #6ee7b7;">ضمان الخصوصية الكاملة (100% Local-First):</b> جميع ملفات الـ PDF، التسجيلات الصوتية، وخططك الدراسية تُحفظ محلياً داخل متصفح جهازك فقط (أو في حساب Google Drive الشخصي الخاص بك عند تفعيله). لا توجد أي خوادم تتبع أو إعلانات خارجية.
+                </div>
+            </div>
+
+            <!-- Live Storage & Memory Telemetry -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 10px; margin-bottom: 16px;">
+                <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(148, 163, 184, 0.16); border-radius: 12px; padding: 10px 12px; text-align: center;">
+                    <div style="font-size: 0.72rem; color: var(--text-muted);">ملفات الميديا المحفوظة</div>
+                    <div style="font-size: 1.1rem; font-weight: 900; color: #38bdf8; margin-top: 3px;" id="privStatMediaCount">-- ملف</div>
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(148, 163, 184, 0.16); border-radius: 12px; padding: 10px 12px; text-align: center;">
+                    <div style="font-size: 0.72rem; color: var(--text-muted);">حجم البيانات النصية</div>
+                    <div style="font-size: 1.1rem; font-weight: 900; color: #5eead4; margin-top: 3px;" id="privStatLocalStorageSize">-- KB</div>
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(148, 163, 184, 0.16); border-radius: 12px; padding: 10px 12px; text-align: center;">
+                    <div style="font-size: 0.72rem; color: var(--text-muted);">حالة الذاكرة والأداء</div>
+                    <div style="font-size: 0.92rem; font-weight: 900; color: #6ee7b7; margin-top: 5px;" id="privStatPerfHealth">⚡ مثالي ومستقر</div>
+                </div>
+            </div>
+
+            <!-- Interactive Toggles List -->
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
+                <div style="background: rgba(15, 23, 38, 0.85); border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 13px; padding: 11px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 210px;">
+                        <div style="font-size: 0.86rem; font-weight: 900; color: var(--text-main);"><i class="fa-solid fa-eye-low-vision" style="color:#38bdf8;"></i> وضع تمويه الخصوصية للأماكن العامة (Alt+P)</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">يُموّه أسماء المواد والمحاضرات والسجل عند المذاكرة في المكتبة أو الكافيه وتظهر فقط عند تمرير الماوس.</div>
+                    </div>
+                    <button type="button" class="btn btn-outline" id="modalTogglePrivacyBlurBtn" onclick="togglePrivacyShieldBlur()" style="padding: 7px 14px; font-size: 0.78rem;">
+                        تفعيل التمويه
+                    </button>
+                </div>
+
+                <div style="background: rgba(15, 23, 38, 0.85); border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 13px; padding: 11px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 210px;">
+                        <div style="font-size: 0.86rem; font-weight: 900; color: var(--text-main);"><i class="fa-solid fa-gauge-Simple-high" style="color:#6ee7b7;"></i> وضع الأداء الفائق للأجهزة الضعيفة والمتوسطة</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">يقلل التأثيرات البصرية الثقيلة والشفافية لتسريع التصفح والكتابة بالقلم بدون أي استهلاك للبطارية.</div>
+                    </div>
+                    <button type="button" class="btn btn-outline" id="modalToggleLowSpecBtn" onclick="toggleLowSpecPerformanceMode()" style="padding: 7px 14px; font-size: 0.78rem;">
+                        تفعيل التسريع
+                    </button>
+                </div>
+
+                <div style="background: rgba(15, 23, 38, 0.85); border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 13px; padding: 11px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 210px;">
+                        <div style="font-size: 0.86rem; font-weight: 900; color: var(--text-main);"><i class="fa-solid fa-sun" style="color:#fbbf24;"></i> الإضاءة الدافئة المريحة للعين (Eye Comfort)</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">فلتر دافئ يقلل الأشعة الزرقاء المجهدة للعين أثناء قراءة ملفات الـ PDF الطويلة ليلاً.</div>
+                    </div>
+                    <button type="button" class="btn btn-outline" id="modalToggleWarmEyeBtn" onclick="toggleHumanWarmEyeMode()" style="padding: 7px 14px; font-size: 0.78rem;">
+                        تفعيل راحة العين
+                    </button>
+                </div>
+            </div>
+
+            <!-- Memory & Orphaned Blobs Cleaner Action -->
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid rgba(148, 163, 184, 0.16);">
+                <button type="button" class="btn btn-primary" onclick="runSmartMemoryAndCacheOptimization()" style="padding: 9px 16px; font-size: 0.82rem;">
+                    <i class="fa-solid fa-broom"></i> تحسين الذاكرة وتنظيف الملفات المؤقتة
+                </button>
+                <button type="button" class="btn btn-outline" onclick="closeModal('privacyPerformanceModalOverlay')" style="padding: 8px 16px; font-size: 0.8rem;">
+                    تم والحفظ
+                </button>
             </div>
         </div>
     </div>
@@ -20544,16 +21265,74 @@
         
         
         // ==========================================
-        // MULTI-AUDIO RECORDINGS & PAGE MANAGEMENT
+        // MULTI-AUDIO RECORDINGS POPOVER & PAGE MANAGEMENT
         // ==========================================
+        let _activeAudioBlobUrl = null;
+        let _inlineRenamingRecIndex = -1;
+        let _confirmDeleteRecIndex = -1;
+        let _confirmDeleteRecTimer = null;
+
+        function setAudioElementBlobSrcSafe(audioEl, blobOrFile) {
+            if (!audioEl || !blobOrFile) return;
+            if (_activeAudioBlobUrl) {
+                try { URL.revokeObjectURL(_activeAudioBlobUrl); } catch (e) {}
+                _activeAudioBlobUrl = null;
+            }
+            _activeAudioBlobUrl = URL.createObjectURL(blobOrFile);
+            audioEl.src = _activeAudioBlobUrl;
+        }
+
+        function toggleLectureRecordingsPopover(e) {
+            if (e) e.stopPropagation();
+            const pop = document.getElementById('lectureRecordingsPopover');
+            const btn = document.getElementById('lectureRecordingsPopoverBtn');
+            if (!pop) return;
+            const isOpen = pop.classList.contains('active');
+            if (isOpen) {
+                closeLectureRecordingsPopover();
+            } else {
+                _inlineRenamingRecIndex = -1;
+                _confirmDeleteRecIndex = -1;
+                renderLectureRecordingsSelector();
+                pop.classList.add('active');
+                if (btn) btn.classList.add('is-open');
+            }
+        }
+
+        function closeLectureRecordingsPopover() {
+            const pop = document.getElementById('lectureRecordingsPopover');
+            const btn = document.getElementById('lectureRecordingsPopoverBtn');
+            if (pop) pop.classList.remove('active');
+            if (btn) btn.classList.remove('is-open');
+            _inlineRenamingRecIndex = -1;
+            _confirmDeleteRecIndex = -1;
+        }
+
+        document.addEventListener('click', function(ev) {
+            const wrap = document.getElementById('lectureRecordingsWrap');
+            if (wrap && !wrap.contains(ev.target)) {
+                closeLectureRecordingsPopover();
+            }
+        });
+
+        function escapeRecHtml(str) {
+            return String(str || '').replace(/[&<>"']/g, function(m) {
+                return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
+            });
+        }
 
         function renderLectureRecordingsSelector() {
             const select = document.getElementById('lectureRecordingsSelect');
-            if (!select || !currentViewingLec || !currentViewingLec.lec) return;
+            const badgeEl = document.getElementById('recPopoverActiveBadge');
+            const titleEl = document.getElementById('recPopoverActiveTitle');
+            const countPill = document.getElementById('recPopoverTotalCountPill');
+            const listEl = document.getElementById('lectureRecordingsPopoverList');
+
+            if (!currentViewingLec || !currentViewingLec.lec) return;
             const lec = currentViewingLec.lec;
             if (!Array.isArray(lec.recordings)) lec.recordings = [];
 
-            // If empty, seed default if audio exists
+            // Seed default recording if legacy audioPath exists
             if (lec.recordings.length === 0 && (lec.audioPath || lec.cloudAudioPath)) {
                 lec.recordings.push({
                     id: 'rec_default_' + lec.id,
@@ -20565,15 +21344,207 @@
             }
 
             const recs = lec.recordings;
+            if (countPill) countPill.textContent = `${recs.length} تسجيل`;
+
             if (recs.length === 0) {
-                select.innerHTML = '<option value="">لا يوجد ريكورد مرتبط</option><option value="__add_new__">+ إضافة ريكورد للمحاضرة...</option>';
+                if (select) {
+                    select.innerHTML = '<option value="">لا يوجد ريكورد مرتبط</option><option value="__add_new__">+ إضافة ريكورد للمحاضرة...</option>';
+                }
+                if (badgeEl) badgeEl.textContent = '0/0';
+                if (titleEl) titleEl.textContent = 'إضافة أو اختيار ريكورد';
+                if (listEl) {
+                    listEl.innerHTML = `
+                        <div class="rec-popover-empty">
+                            <i class="fa-solid fa-microphone-slash" style="font-size:1.1rem; color:#5eead4; margin-bottom:6px; display:block;"></i>
+                            لا يوجد ريكورد مرفق بهذه المحاضرة حتى الآن.<br>
+                            اضغط على الزر بالأسفل لإضافة ريكورد الدكتور أو السكشن 🎧
+                        </div>
+                    `;
+                }
                 return;
             }
 
             const curIdx = Math.max(0, Math.min(recs.length - 1, Number(lec.activeRecordingIndex) || 0));
-            select.innerHTML = recs.map((r, i) => `
-                <option value="${r.id}" ${i === curIdx ? 'selected' : ''}>🎙️ ${i + 1}/${recs.length}: ${r.name}</option>
-            `).join('') + '<option value="__add_new__">+ إضافة ريكورد آخر...</option>';
+            lec.activeRecordingIndex = curIdx;
+            const activeRec = recs[curIdx];
+
+            if (select) {
+                select.innerHTML = recs.map((r, i) => `
+                    <option value="${escapeRecHtml(r.id)}" ${i === curIdx ? 'selected' : ''}>🎙️ ${i + 1}/${recs.length}: ${escapeRecHtml(r.name)}</option>
+                `).join('') + '<option value="__add_new__">+ إضافة ريكورد آخر...</option>';
+            }
+
+            if (badgeEl) badgeEl.textContent = `${curIdx + 1}/${recs.length}`;
+            if (titleEl && activeRec) titleEl.textContent = activeRec.name || `ريكورد ${curIdx + 1}`;
+
+            if (listEl) {
+                listEl.innerHTML = recs.map((r, i) => {
+                    const isActive = (i === curIdx);
+                    if (_inlineRenamingRecIndex === i) {
+                        return `
+                            <div class="rec-popover-item ${isActive ? 'is-active' : ''}" onclick="event.stopPropagation();">
+                                <div class="rec-inline-rename-row">
+                                    <input type="text" id="recInlineRenameInput_${i}" class="rec-inline-rename-input" value="${escapeRecHtml(r.name)}" onkeydown="if(event.key==='Enter') saveInlineRenameRecording(${i}, event); if(event.key==='Escape') cancelInlineRenameRecording(event);" />
+                                    <button type="button" class="rec-item-act-btn" style="background:#10b981; color:#042f2e; border-color:#10b981; width:26px;" onclick="saveInlineRenameRecording(${i}, event)" title="حفظ الاسم">
+                                        <i class="fa-solid fa-check"></i>
+                                    </button>
+                                    <button type="button" class="rec-item-act-btn" onclick="cancelInlineRenameRecording(event)" title="إلغاء">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    const isConfirmingDel = (_confirmDeleteRecIndex === i);
+                    return `
+                        <div class="rec-popover-item ${isActive ? 'is-active' : ''}" onclick="switchLectureRecording('${escapeRecHtml(r.id)}')">
+                            <div class="rec-item-main">
+                                <span class="rec-item-num-badge">${i + 1}/${recs.length}</span>
+                                <span class="rec-item-name" title="${escapeRecHtml(r.name)}">
+                                    ${isActive ? '<i class="fa-solid fa-volume-high" style="font-size:0.7rem; margin-left:4px; color:#2dd4bf;"></i>' : ''}
+                                    ${escapeRecHtml(r.name)}
+                                </span>
+                            </div>
+                            <div class="rec-item-actions" onclick="event.stopPropagation();">
+                                <button type="button" class="rec-item-act-btn" onclick="moveLectureRecording(${i}, -1, event)" ${i === 0 ? 'disabled' : ''} title="تحريك لأعلى">
+                                    <i class="fa-solid fa-arrow-up"></i>
+                                </button>
+                                <button type="button" class="rec-item-act-btn" onclick="moveLectureRecording(${i}, 1, event)" ${i === recs.length - 1 ? 'disabled' : ''} title="تحريك لأسفل">
+                                    <i class="fa-solid fa-arrow-down"></i>
+                                </button>
+                                <button type="button" class="rec-item-act-btn" onclick="startInlineRenameRecording(${i}, event)" title="إعادة تسمية الريكورد">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <button type="button" class="rec-item-act-btn del-btn ${isConfirmingDel ? 'confirming' : ''}" onclick="handleDeleteLectureRecordingClick(${i}, event)" title="${isConfirmingDel ? 'اضغط مرة أخرى لتأكيد الحذف النهائي' : 'حذف هذا الريكورد'}">
+                                    ${isConfirmingDel ? 'تأكيد؟' : '<i class="fa-solid fa-trash-can"></i>'}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function moveLectureRecording(index, direction, e) {
+            if (e) e.stopPropagation();
+            if (!currentViewingLec || !currentViewingLec.lec) return;
+            const lec = currentViewingLec.lec;
+            if (!Array.isArray(lec.recordings)) return;
+            const recs = lec.recordings;
+            const targetIdx = index + direction;
+            if (targetIdx < 0 || targetIdx >= recs.length) return;
+
+            const activeRecId = (recs[lec.activeRecordingIndex] || {}).id;
+            const temp = recs[index];
+            recs[index] = recs[targetIdx];
+            recs[targetIdx] = temp;
+
+            if (activeRecId) {
+                const newActiveIdx = recs.findIndex(r => r.id === activeRecId);
+                if (newActiveIdx !== -1) lec.activeRecordingIndex = newActiveIdx;
+            }
+            saveSubjects();
+            renderLectureRecordingsSelector();
+            showToast('↕️ تم تحديث ترتيب الريكوردات');
+        }
+
+        function startInlineRenameRecording(index, e) {
+            if (e) e.stopPropagation();
+            _inlineRenamingRecIndex = index;
+            _confirmDeleteRecIndex = -1;
+            renderLectureRecordingsSelector();
+            setTimeout(() => {
+                const inp = document.getElementById(`recInlineRenameInput_${index}`);
+                if (inp) {
+                    inp.focus();
+                    inp.select();
+                }
+            }, 30);
+        }
+
+        function cancelInlineRenameRecording(e) {
+            if (e) e.stopPropagation();
+            _inlineRenamingRecIndex = -1;
+            renderLectureRecordingsSelector();
+        }
+
+        function saveInlineRenameRecording(index, e) {
+            if (e) e.stopPropagation();
+            if (!currentViewingLec || !currentViewingLec.lec) return;
+            const lec = currentViewingLec.lec;
+            if (!Array.isArray(lec.recordings) || !lec.recordings[index]) return;
+            const inp = document.getElementById(`recInlineRenameInput_${index}`);
+            const newName = inp ? inp.value.trim() : '';
+            if (newName) {
+                lec.recordings[index].name = newName;
+                if (index === 0) lec.audioPath = newName;
+                saveSubjects();
+                showToast(`✏️ تم تحديث اسم الريكورد إلى «${newName}»`);
+            }
+            _inlineRenamingRecIndex = -1;
+            renderLectureRecordingsSelector();
+        }
+
+        function handleDeleteLectureRecordingClick(index, e) {
+            if (e) e.stopPropagation();
+            if (_confirmDeleteRecIndex !== index) {
+                _confirmDeleteRecIndex = index;
+                if (_confirmDeleteRecTimer) clearTimeout(_confirmDeleteRecTimer);
+                _confirmDeleteRecTimer = setTimeout(() => {
+                    _confirmDeleteRecIndex = -1;
+                    renderLectureRecordingsSelector();
+                }, 3500);
+                renderLectureRecordingsSelector();
+                return;
+            }
+            deleteLectureRecording(index, e);
+        }
+
+        async function deleteLectureRecording(index, e) {
+            if (e) e.stopPropagation();
+            if (_confirmDeleteRecTimer) clearTimeout(_confirmDeleteRecTimer);
+            _confirmDeleteRecIndex = -1;
+            if (!currentViewingLec || !currentViewingLec.lec) return;
+            const lec = currentViewingLec.lec;
+            if (!Array.isArray(lec.recordings) || !lec.recordings[index]) return;
+
+            const removed = lec.recordings.splice(index, 1)[0];
+            const wasActive = (Number(lec.activeRecordingIndex) === index);
+
+            // Clean up IndexedDB audio blob if applicable
+            if (removed && removed.dbKey && typeof deleteMediaFromDB === 'function') {
+                try { await deleteMediaFromDB('audios', removed.dbKey); } catch (err) {}
+            }
+
+            if (lec.recordings.length === 0) {
+                lec.activeRecordingIndex = 0;
+                lec.audioPath = null;
+                lec.cloudAudioPath = null;
+                const audioEl = document.getElementById('lectureAudioElement');
+                if (audioEl) {
+                    audioEl.pause();
+                    audioEl.removeAttribute('src');
+                    audioEl.load();
+                }
+                const txt = document.getElementById('pdfAudioBarToggleText');
+                if (txt) txt.innerText = 'الريكورد';
+            } else {
+                if (lec.activeRecordingIndex >= lec.recordings.length) {
+                    lec.activeRecordingIndex = lec.recordings.length - 1;
+                } else if (index < lec.activeRecordingIndex) {
+                    lec.activeRecordingIndex = Math.max(0, lec.activeRecordingIndex - 1);
+                }
+                lec.audioPath = lec.recordings[0].fileName || lec.recordings[0].name;
+                if (wasActive && lec.recordings[lec.activeRecordingIndex]) {
+                    await switchLectureRecording(lec.recordings[lec.activeRecordingIndex].id);
+                }
+            }
+
+            saveSubjects();
+            renderLectureRecordingsSelector();
+            renderLectures();
+            showToast(`🗑️ تم حذف الريكورد «${removed.name}» بنجاح`);
         }
 
         function addRecordingToCurrentLecture() {
@@ -20596,21 +21567,23 @@
                     createdAt: Date.now()
                 });
                 lec.activeRecordingIndex = lec.recordings.length - 1;
+                if (!lec.audioPath) lec.audioPath = file.name;
                 saveSubjects();
 
                 const audioEl = document.getElementById('lectureAudioElement');
                 if (audioEl) {
-                    audioEl.src = URL.createObjectURL(file);
+                    setAudioElementBlobSrcSafe(audioEl, file);
                     setupAudioEventListeners();
                     ensureAudioBoostGraph();
                     audioEl.play().catch(() => {});
                 }
 
                 renderLectureRecordingsSelector();
+                renderLectures();
                 togglePdfAudioPlayerBar(true);
                 const txt = document.getElementById('pdfAudioBarToggleText');
                 if (txt) txt.innerText = 'الريكورد ✓';
-                showToast(`🎙️ تمت إضافة التسجيل «${file.name}» إلى المحاضرة بنجاح!`);
+                showToast(`🎙️ تمت إضافة التسجيل «${file.name}» إلى القائمة بنجاح!`);
             };
             input.click();
         }
@@ -20636,7 +21609,7 @@
                     blob = await getMediaFromDB('audios', lec.id);
                 }
                 if (blob) {
-                    audioEl.src = URL.createObjectURL(blob);
+                    setAudioElementBlobSrcSafe(audioEl, blob);
                 } else if (rec.audioPath) {
                     audioEl.src = rec.audioPath;
                 }
@@ -27074,6 +28047,7 @@ function togglePdfAudioPlayerBar(forceState) {
             openVipUpgradeModal('عرض مزايا باقة VIP Pro');
         }
 
+        function openVipSubscriptionModal() { openVipUpgradeModal('باقة الإنجاز VIP Pro للطلاب'); }
         function openVipUpgradeModal(featureLabel = 'باقة الإنجاز VIP Pro للطلاب') {
             lastTriggeredVipFeatureName = featureLabel || 'باقة الإنجاز VIP Pro';
             const badgeEl = document.getElementById('vipModalTriggeredFeatureBadge');
@@ -27688,19 +28662,23 @@ function togglePdfAudioPlayerBar(forceState) {
 
         function promptCustomGoogleClientId() {
             const current = getEffectiveGoogleClientId();
-            const input = prompt('أدخل Google OAuth Client ID الخاص بك (من Google Cloud Console):', current || '');
-            if (input !== null) {
-                const val = input.trim();
-                if (val) {
-                    localStorage.setItem('exo_gdrive_custom_client_id', val);
-                    showToast('✅ تم حفظ Google Client ID بنجاح');
-                    connectGoogleDriveAccount(true);
-                } else {
-                    localStorage.removeItem('exo_gdrive_custom_client_id');
-                    showToast('تمت استعادة Google Client ID الافتراضي');
+            openSingleInputModal(
+                'إعداد Google OAuth Client ID',
+                'أدخل Google OAuth Client ID الخاص بك...',
+                current || '',
+                (input) => {
+                    const val = (input || '').trim();
+                    if (val) {
+                        localStorage.setItem('exo_gdrive_custom_client_id', val);
+                        showToast('✅ تم حفظ Google Client ID بنجاح');
+                        connectGoogleDriveAccount(true);
+                    } else {
+                        localStorage.removeItem('exo_gdrive_custom_client_id');
+                        showToast('تمت استعادة Google Client ID الافتراضي');
+                    }
+                    updateGoogleDriveUI();
                 }
-                updateGoogleDriveUI();
-            }
+            );
         }
 
         async function connectGoogleDriveAccount(interactive = true, emailHint = null, forceNewAccount = false) {
@@ -31156,7 +32134,225 @@ function togglePdfAudioPlayerBar(forceState) {
             playChimeSound();
         }
 
+
+        // ==========================================
+        // HUMAN-CENTRIC EXPERIENCE, PRIVACY & PERFORMANCE ENGINE
+        // ==========================================
+        const HUMAN_COMPANION_QUOTES = [
+            { emoji: '🌿', text: '«مش لازم تخلص كل حاجة في يوم واحد.. المهم تبدأ بخطوة هادية وتركيز صافي، وكل صفحة بتقرأها بتقربك لهدفك.»' },
+            { emoji: '☀️', text: '«تذكّر دايماً إن الاستمرارية البسيطة بتغلب الحماس المؤقت.. ساعة مذاكرة بتركيز النهارده أحسن من تأجيل لبكرة.»' },
+            { emoji: '🧠', text: '«لما تحس إن المحاضرة تقيلة، قسّمها لـ 10 سلايدات بس وشغّل الريكورد، وهتلاقي نفسك اندمجت من غير ما تحس!»' },
+            { emoji: '☕', text: '«جسمك وعقلك ليهم حق عليك.. خد نفس عميق، اشرب مية، وكمل رحلتك بهدوء وبدون قلق من المتراكم.»' },
+            { emoji: '🌟', text: '«كل دكتور ناجح مرّ بنفس اللحظات اللي بتمر بيها دلوقتي.. تعبك ومجهودك محفوظ وهتشوف نتيجته قريب جداً.»' },
+            { emoji: '🎯', text: '«سجّل حتى الـ 20 دقيقة اللي ذاكرتها.. الإنجازات الصغيرة لما بتتجمع آخر الأسبوع بتصنع فرق كبير في ثقتك بنفسك.»' }
+        ];
+        let _currentHumanQuoteIdx = 0;
+
+        function initHumanCompanionExperience() {
+            const hr = new Date().getHours();
+            const greetEl = document.getElementById('humanGreetingText');
+            const badgeEl = document.getElementById('humanMoodStatusBadge');
+            let userName = '';
+            try {
+                const savedUser = JSON.parse(localStorage.getItem('exoCloudUser') || 'null');
+                if (savedUser && savedUser.name) userName = ' يا ' + savedUser.name.split(' ')[0];
+            } catch (e) {}
+
+            let timeGreeting = 'أهلاً بك في مساحتك الهادئة للمذاكرة';
+            let moodLabel = 'رفيقك الدراسي 🌿';
+            if (hr >= 5 && hr < 12) {
+                timeGreeting = `صباح الهمة والتركيز الصافي${userName} ☀️`;
+                moodLabel = 'بركة البدايات الصباحية 🌱';
+            } else if (hr >= 12 && hr < 17) {
+                timeGreeting = `نهارك سعيد ومليان إنجاز هادي${userName} ✨`;
+                moodLabel = 'وقت التركيز والإنجاز ⚡';
+            } else if (hr >= 17 && hr < 22) {
+                timeGreeting = `مساء الروقان والمذاكرة الرايقة${userName} 🌙`;
+                moodLabel = 'هدوء المساء للمراجعة 🎧';
+            } else {
+                timeGreeting = `سهرة موفقة وهادئة${userName}.. لا تنسَ راحة عينيك 🌌`;
+                moodLabel = 'جلسة سهر مركزة ☕';
+            }
+
+            if (greetEl) greetEl.textContent = timeGreeting;
+            if (badgeEl) badgeEl.textContent = moodLabel;
+
+            // Restore saved privacy & comfort states
+            if (localStorage.getItem('exoWarmEyeMode') === '1') {
+                document.body.classList.add('human-warm-eye-mode');
+            }
+            if (localStorage.getItem('exoLowSpecMode') === '1') {
+                document.body.classList.add('exo-low-spec-mode');
+            }
+            if (localStorage.getItem('exoPrivacyBlurMode') === '1') {
+                document.body.classList.add('exo-privacy-blur-active');
+            }
+            syncHumanAndPrivacyButtonsUI();
+        }
+
+        function cycleHumanCompanionQuote() {
+            _currentHumanQuoteIdx = (_currentHumanQuoteIdx + 1) % HUMAN_COMPANION_QUOTES.length;
+            const item = HUMAN_COMPANION_QUOTES[_currentHumanQuoteIdx];
+            const qEl = document.getElementById('humanCompanionQuoteText');
+            const orbEl = document.getElementById('humanCompanionEmojiOrb');
+            if (qEl) qEl.textContent = item.text;
+            if (orbEl) orbEl.textContent = item.emoji;
+        }
+
+        function syncHumanAndPrivacyButtonsUI() {
+            const isWarm = document.body.classList.contains('human-warm-eye-mode');
+            const isBlur = document.body.classList.contains('exo-privacy-blur-active');
+            const isLowSpec = document.body.classList.contains('exo-low-spec-mode');
+
+            const warmBtn = document.getElementById('humanWarmEyeBtn');
+            if (warmBtn) warmBtn.classList.toggle('is-active', isWarm);
+
+            const blurBtn = document.getElementById('humanPrivacyBlurBtn');
+            const blurTxt = document.getElementById('humanPrivacyBlurBtnText');
+            if (blurBtn) blurBtn.classList.toggle('is-active', isBlur);
+            if (blurTxt) blurTxt.textContent = isBlur ? 'التمويه مفعل ✓' : 'تمويه الخصوصية';
+
+            const mBlurBtn = document.getElementById('modalTogglePrivacyBlurBtn');
+            if (mBlurBtn) {
+                mBlurBtn.textContent = isBlur ? 'إيقاف التمويه ✓' : 'تفعيل التمويه';
+                mBlurBtn.className = isBlur ? 'btn btn-primary' : 'btn btn-outline';
+            }
+
+            const mLowBtn = document.getElementById('modalToggleLowSpecBtn');
+            if (mLowBtn) {
+                mLowBtn.textContent = isLowSpec ? 'التسريع مفعل ✓' : 'تفعيل التسريع';
+                mLowBtn.className = isLowSpec ? 'btn btn-primary' : 'btn btn-outline';
+            }
+
+            const mWarmBtn = document.getElementById('modalToggleWarmEyeBtn');
+            if (mWarmBtn) {
+                mWarmBtn.textContent = isWarm ? 'راحة العين مفعلة ✓' : 'تفعيل راحة العين';
+                mWarmBtn.className = isWarm ? 'btn btn-primary' : 'btn btn-outline';
+            }
+        }
+
+        function toggleHumanWarmEyeMode() {
+            const active = document.body.classList.toggle('human-warm-eye-mode');
+            try { localStorage.setItem('exoWarmEyeMode', active ? '1' : '0'); } catch (e) {}
+            syncHumanAndPrivacyButtonsUI();
+            showToast(active ? '👁️ تم تفعيل الإضاءة الدافئة المريحة للعين' : '👁️ تم إيقاف فلتر الإضاءة الدافئة');
+        }
+
+        function togglePrivacyShieldBlur() {
+            const active = document.body.classList.toggle('exo-privacy-blur-active');
+            try { localStorage.setItem('exoPrivacyBlurMode', active ? '1' : '0'); } catch (e) {}
+            syncHumanAndPrivacyButtonsUI();
+            showToast(active ? '🛡️ تم تفعيل تمويه الخصوصية للأماكن العامة (مرر الماوس لإظهار أي عنوان)' : '🛡️ تم إيقاف تمويه الخصوصية');
+        }
+
+        function toggleLowSpecPerformanceMode() {
+            const active = document.body.classList.toggle('exo-low-spec-mode');
+            try { localStorage.setItem('exoLowSpecMode', active ? '1' : '0'); } catch (e) {}
+            syncHumanAndPrivacyButtonsUI();
+            showToast(active ? '⚡ تم تفعيل وضع الأداء الفائق وتقليل استهلاك المعالج والبطارية' : '⚡ تم العودة للوضع البصري الكامل');
+        }
+
+        async function openPrivacyPerformanceModal() {
+            const modal = document.getElementById('privacyPerformanceModalOverlay');
+            if (modal) modal.classList.add('active');
+            syncHumanAndPrivacyButtonsUI();
+            await refreshPrivacyPerfTelemetry();
+        }
+
+        async function refreshPrivacyPerfTelemetry() {
+            const mediaCountEl = document.getElementById('privStatMediaCount');
+            const lsSizeEl = document.getElementById('privStatLocalStorageSize');
+            try {
+                let totalChars = 0;
+                for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    totalChars += (k ? k.length : 0) + (localStorage.getItem(k) || '').length;
+                }
+                const kb = Math.max(1, Math.round((totalChars * 2) / 1024));
+                if (lsSizeEl) lsSizeEl.textContent = `${kb} KB`;
+            } catch (e) {}
+
+            try {
+                const database = await openMediaDB();
+                let count = 0;
+                const stores = ['pdfs', 'audios', 'annotations'];
+                for (const sName of stores) {
+                    if (database.objectStoreNames.contains(sName)) {
+                        const c = await new Promise((res) => {
+                            const tx = database.transaction(sName, 'readonly');
+                            const req = tx.objectStore(sName).count();
+                            req.onsuccess = () => res(req.result || 0);
+                            req.onerror = () => res(0);
+                        });
+                        count += c;
+                    }
+                }
+                if (mediaCountEl) mediaCountEl.textContent = `${count} ملف محفوظ`;
+            } catch (e) {
+                if (mediaCountEl) mediaCountEl.textContent = 'آمن محلياً';
+            }
+        }
+
+        async function runSmartMemoryAndCacheOptimization() {
+            const healthEl = document.getElementById('privStatPerfHealth');
+            if (healthEl) healthEl.textContent = '⏳ جاري الفحص والتنظيف...';
+            let cleanedCount = 0;
+            try {
+                // Collect all valid lecture IDs and recording dbKeys
+                const validKeys = new Set();
+                if (Array.isArray(subjects)) {
+                    subjects.forEach(sub => {
+                        (sub.groups || []).forEach(g => {
+                            (g.lectures || []).forEach(l => {
+                                if (l.id !== undefined && l.id !== null) validKeys.add(String(l.id));
+                                (l.recordings || []).forEach(r => {
+                                    if (r.id) validKeys.add(String(r.id));
+                                    if (r.dbKey) validKeys.add(String(r.dbKey));
+                                });
+                            });
+                        });
+                    });
+                }
+
+                const database = await openMediaDB();
+                const stores = ['pdfs', 'audios'];
+                for (const sName of stores) {
+                    if (!database.objectStoreNames.contains(sName)) continue;
+                    const allKeys = await new Promise((res) => {
+                        const tx = database.transaction(sName, 'readonly');
+                        const req = tx.objectStore(sName).getAllKeys();
+                        req.onsuccess = () => res(req.result || []);
+                        req.onerror = () => res([]);
+                    });
+                    for (const k of allKeys) {
+                        if (!validKeys.has(String(k))) {
+                            await new Promise((res) => {
+                                const tx = database.transaction(sName, 'readwrite');
+                                tx.objectStore(sName).delete(k);
+                                tx.oncomplete = () => res();
+                                tx.onerror = () => res();
+                            });
+                            cleanedCount++;
+                        }
+                    }
+                }
+            } catch (e) {}
+
+            await refreshPrivacyPerfTelemetry();
+            if (healthEl) healthEl.textContent = `🚀 مثالي (تم تحرير ${cleanedCount} عنصر مؤقت)`;
+            showToast(`⚡ تم تحسين الذاكرة وتنظيف ${cleanedCount} من الملفات المؤقتة غير المستخدمة!`);
+        }
+
+        // Global Alt+P shortcut for Privacy Blur
+        document.addEventListener('keydown', function(e) {
+            if (e.altKey && (e.key === 'p' || e.key === 'P' || e.key === 'ح')) {
+                e.preventDefault();
+                togglePrivacyShieldBlur();
+            }
+        });
+
         // Init App
+        initHumanCompanionExperience();
         renderSubjectsList();
         renderSchedule();
         updateTracker();
@@ -31166,6 +32362,33 @@ function togglePdfAudioPlayerBar(forceState) {
     <script id="exo-i18n-engine">
     (function() {
         const EXO_I18N_EXACT = {
+    "أهلاً بك في مساحتك الهادئة للمذاكرة": "Welcome to your calm study space",
+    "رفيقك الدراسي 🌿": "Your Study Companion 🌿",
+    "راحة العين": "Eye Comfort",
+    "تمويه الخصوصية": "Privacy Blur",
+    "التمويه مفعل ✓": "Blur Active ✓",
+    "الأداء والخصوصية": "Privacy & Speed",
+    "الخصوصية والأداء": "Privacy & Speed",
+    "مركز الخصوصية والأداء الفائق": "Privacy & Ultra Performance Center",
+    "قائمة الريكوردات": "Recordings List",
+    "إضافة أو اختيار ريكورد": "Add or Select Recording",
+    "ريكوردات المحاضرة": "Lecture Recordings",
+    "اضغط للتشغيل • رتّب بـ (▲/▼) أو عدّل الاسم أو احذف (🗑️)": "Click to play • Reorder (▲/▼), rename, or delete (🗑️)",
+    "إضافة ريكورد جديد للمحاضرة...": "Add New Recording to Lecture...",
+    "دليل Exo الشامل ورفيقك الدراسي 🌿": "Exo Comprehensive Guide & Study Companion 🌿",
+    "1. فلسفة المنصة والبداية": "1. Philosophy & Getting Started",
+    "2. المركز وإدارة المواد": "2. Study Hub & Subjects",
+    "3. قارئ PDF وقائمة الريكوردات": "3. PDF Studio & Recordings Popover",
+    "4. التخطيط الذكي والأهداف": "4. Smart Planner & Goals",
+    "5. الخصوصية والأداء والاختصارات": "5. Privacy, Performance & Shortcuts",
+    "6. المطور و VIP Pro": "6. Developer & VIP Pro",
+    "تحسين الذاكرة وتنظيف الملفات المؤقتة": "Optimize Memory & Clean Temp Cache",
+    "تفعيل التمويه": "Enable Blur",
+    "إيقاف التمويه ✓": "Disable Blur ✓",
+    "تفعيل التسريع": "Enable Boost",
+    "التسريع مفعل ✓": "Boost Active ✓",
+    "تفعيل راحة العين": "Enable Eye Comfort",
+    "راحة العين مفعلة ✓": "Eye Comfort Active ✓",
     "حصري لمشتركي VIP Pro": "Exclusive for VIP Pro",
     "ترقية لـ VIP لربط Google Drive": "Upgrade to VIP to Link Google Drive",
     "مزامنة Google Drive السحابية غير المحدودة": "Unlimited Google Drive Cloud Sync",
