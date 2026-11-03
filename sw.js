@@ -1,5 +1,7 @@
-// Exo Academic Platform Service Worker (PWA)
+// Exo Academic Platform Service Worker (PWA) — Phase 4.1
 // Cache Version v5 — Strict Same-Origin Static Asset Allowlist
+// Reference: W3C Service Workers Specification (https://www.w3.org/TR/service-workers/)
+//            OWASP ASVS v4.0.3 — Client-Side Cache & Origin Isolation
 
 const CACHE_NAME = 'exo-workspace-cache-v5';
 const STATIC_ASSET_ALLOWLIST = new Set([

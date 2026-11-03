@@ -1,3 +1,7 @@
+-- ============================================================================
+-- Exo Academic Platform — Baseline Remote Schema Migration
+-- File: supabase/migrations/20261103133622_remote_schema.sql
+-- ============================================================================
 SET local check_function_bodies = off;
 
 CREATE TABLE "public"."user_workspaces" (
@@ -152,30 +156,19 @@ CREATE EVENT TRIGGER "ensure_rls"
   EXECUTE FUNCTION "public"."rls_auto_enable"();
 
 REVOKE ALL ON FUNCTION "public"."enforce_workspace_media_security"() FROM "postgres";
-
 GRANT EXECUTE ON FUNCTION "public"."enforce_workspace_media_security"() TO "postgres";
-
 GRANT EXECUTE ON FUNCTION "public"."enforce_workspace_media_security"() TO "service_role";
 
 GRANT EXECUTE ON FUNCTION "public"."protect_vip_status_column"() TO PUBLIC, "anon", "authenticated";
-
 REVOKE ALL ON FUNCTION "public"."protect_vip_status_column"() FROM "postgres";
-
 GRANT EXECUTE ON FUNCTION "public"."protect_vip_status_column"() TO "postgres";
-
 GRANT EXECUTE ON FUNCTION "public"."protect_vip_status_column"() TO "service_role";
 
 REVOKE ALL ON FUNCTION "public"."rls_auto_enable"() FROM "postgres";
-
 GRANT EXECUTE ON FUNCTION "public"."rls_auto_enable"() TO "postgres";
-
 GRANT EXECUTE ON FUNCTION "public"."rls_auto_enable"() TO "service_role";
 
 GRANT DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE "public"."user_workspaces" TO "anon", "authenticated";
-
 REVOKE ALL ON TABLE "public"."user_workspaces" FROM "postgres";
-
 GRANT DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE "public"."user_workspaces" TO "postgres";
-
 GRANT DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE "public"."user_workspaces" TO "service_role";
-

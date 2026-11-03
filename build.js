@@ -1,3 +1,4 @@
+// Exo Academic Platform — Phase 4.1 Static Build & Distribution Bundler
 const fs = require('fs');
 const path = require('path');
 

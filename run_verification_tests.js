@@ -1,6 +1,17 @@
 // ============================================================================
-// Exo Academic Platform: Comprehensive Verification & Security Test Suite
-// Covers: Security, Cryptography, Concurrency, Persistence, RLS & Schema Audits
+// Exo Academic Platform — Phase 4.1 Security, Cryptography & SQL Audit Suite
+// Covers: PBKDF2-HMAC-SHA256 Key Derivation, Optimistic Concurrency Control,
+//         IndexedDB Transaction Persistence, RLS Policies & Schema Audits
+//
+// Technical References & Sources:
+//   - NIST SP 800-132 (Recommendation for Password-Based Key Derivation):
+//     https://csrc.nist.gov/publications/detail/sp/800-132/final
+//   - PostgreSQL 16 Row Level Security & Privilege Hardening:
+//     https://www.postgresql.org/docs/current/ddl-rowsecurity.html
+//   -PostgreSQL SECURITY DEFINER Functions Safe Writing Guidelines:
+//     https://www.postgresql.org/docs/current/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY
+//   - W3C Service Workers & Cache Storage Specification:
+//     https://www.w3.org/TR/service-workers/
 // ============================================================================
 
 const crypto = require('crypto');

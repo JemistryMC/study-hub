@@ -1,3 +1,4 @@
+// Exo Academic Platform — Phase 4.1 Local Development & Static Asset Server
 const http = require('http');
 const fs = require('fs');
 const path = require('path');

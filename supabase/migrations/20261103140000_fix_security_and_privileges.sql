@@ -1,8 +1,14 @@
 -- ============================================================================
--- Migration: 20261103140000_fix_security_and_privileges.sql
--- Description:
---   Comprehensive security hardening, privilege reduction, optimistic concurrency
---   control, and storage privacy enforcement for Exo Academic Platform.
+-- Exo Academic Platform — Phase 4.1 Security & Concurrency Forward Migration
+-- File: supabase/migrations/20261103140000_fix_security_and_privileges.sql
+--
+-- Official Technical References & Standards:
+--   - PostgreSQL Row Security Policies (Permissive OR combination & Table-level Grants):
+--     https://www.postgresql.org/docs/current/ddl-rowsecurity.html
+--   - PostgreSQL SECURITY DEFINER Safe Writing (pg_catalog search_path hardening):
+--     https://www.postgresql.org/docs/current/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY
+--   - Supabase Storage Access Control & Private Buckets:
+--     https://supabase.com/docs/guides/storage/security/access-control
 --
 -- Key Fixes:
 --   1. Ensures storage bucket 'lecture_media' is explicitly private (public = false).
@@ -17,7 +23,7 @@
 --   6. Implements atomic concurrency-controlled RPC sync_workspace_with_concurrency
 --      that rejects mismatched or missing revisions, safely handles concurrent
 --      first-time workspace creation, and returns lightweight metadata only.
---   7. Fixes COALESCE SQL syntax: replaces erroneous qualified coalesce calls with standard COALESCE.
+--   7. Fixes COALESCE SQL syntax: uses standard SQL COALESCE construct.
 --   8. Hardens all SECURITY DEFINER functions with pg_catalog first in search_path
 --      and schema-qualified object references.
 --   9. Enforces least privilege on all internal trigger functions.
@@ -88,11 +94,8 @@ CREATE POLICY "Allow VIP users to update media" ON "storage"."objects"
 -- 2. REVOKE EXCESSIVE TABLE PRIVILEGES ON USER_WORKSPACES
 -- ============================================================================
 
--- Revoke all table-level permissions from anon and public
 REVOKE ALL ON TABLE "public"."user_workspaces" FROM PUBLIC;
 REVOKE ALL ON TABLE "public"."user_workspaces" FROM "anon";
-
--- Revoke all table-level permissions from authenticated, then re-grant strictly needed DML
 REVOKE ALL ON TABLE "public"."user_workspaces" FROM "authenticated";
 GRANT SELECT, INSERT, UPDATE ON TABLE "public"."user_workspaces" TO "authenticated";
 
@@ -108,12 +111,9 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON FU
 -- 4. SERVER-ENFORCED UPDATED_AT AND OPTIMISTIC CONCURRENCY REVISION
 -- ============================================================================
 
--- Add revision tracking column (backward-compatible, defaults to 1)
 ALTER TABLE "public"."user_workspaces"
   ADD COLUMN IF NOT EXISTS "revision" integer NOT NULL DEFAULT 1;
 
--- Server-side timestamp and revision management trigger function
--- Hardened with pg_catalog first in search_path and standard COALESCE syntax
 CREATE OR REPLACE FUNCTION public.handle_user_workspace_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -127,11 +127,9 @@ BEGIN
 END;
 $$;
 
--- Secure the trigger function permissions (least privilege)
 REVOKE ALL ON FUNCTION public.handle_user_workspace_updated_at() FROM PUBLIC, "anon", "authenticated";
 GRANT EXECUTE ON FUNCTION public.handle_user_workspace_updated_at() TO "postgres", "service_role";
 
--- Bind trigger to user_workspaces
 DROP TRIGGER IF EXISTS trg_user_workspaces_updated_at ON public.user_workspaces;
 CREATE TRIGGER trg_user_workspaces_updated_at
   BEFORE UPDATE ON public.user_workspaces
@@ -219,7 +217,6 @@ BEGIN
       RETURNING revision, updated_at INTO v_current_rev, v_updated_at;
     EXCEPTION
       WHEN unique_violation THEN
-        -- Another concurrent request created the row first; lock and report conflict
         SELECT revision, updated_at
         INTO v_current_rev, v_updated_at
         FROM public.user_workspaces
@@ -235,7 +232,6 @@ BEGIN
     END;
   END IF;
 
-  -- Return lightweight status, revision, and updated_at (NOT the multi-megabyte payload)
   RETURN jsonb_build_object(
     'status', 'success',
     'revision', v_current_rev,
@@ -251,7 +247,6 @@ GRANT EXECUTE ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer)
 -- 6. HARDEN EXISTING SECURITY DEFINER TRIGGER FUNCTIONS
 -- ============================================================================
 
--- Explicitly harden enforce_workspace_media_security() with pg_catalog first and standard COALESCE
 CREATE OR REPLACE FUNCTION public.enforce_workspace_media_security()
   RETURNS TRIGGER
   LANGUAGE plpgsql
@@ -264,7 +259,6 @@ BEGIN
     NEW.user_email
   );
 
-  -- Protect VIP status: prevent client manipulation from authenticated JWTs
   IF auth.uid() IS NOT NULL THEN
     IF TG_OP = 'INSERT' THEN
       NEW.can_upload_media := false;
@@ -280,7 +274,6 @@ $$;
 REVOKE ALL ON FUNCTION public.enforce_workspace_media_security() FROM PUBLIC, "anon", "authenticated";
 GRANT EXECUTE ON FUNCTION public.enforce_workspace_media_security() TO "postgres", "service_role";
 
--- Explicitly harden protect_vip_status_column() with pg_catalog first
 CREATE OR REPLACE FUNCTION public.protect_vip_status_column()
   RETURNS TRIGGER
   LANGUAGE plpgsql
@@ -298,7 +291,6 @@ $$;
 REVOKE ALL ON FUNCTION public.protect_vip_status_column() FROM PUBLIC, "anon", "authenticated";
 GRANT EXECUTE ON FUNCTION public.protect_vip_status_column() TO "postgres", "service_role";
 
--- Harden rls_auto_enable() with pg_catalog
 CREATE OR REPLACE FUNCTION public.rls_auto_enable()
   RETURNS event_trigger
   LANGUAGE plpgsql

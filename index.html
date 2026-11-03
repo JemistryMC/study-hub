@@ -19288,21 +19288,57 @@
         let localMediaCache = { pdfs: new Set(), audios: new Set() };
 
         // =========================================================================
-        // CANONICAL USER IDENTITY & UNIFIED INDEXEDDB KEY ISOLATION
-        // Standard Invariants:
-        //   - IndexedDB Key: usr_<sanitized UUID>::<rawId>
-        //   - Stored userId: <raw canonical UUID> (Never store 'usr_' prefix in userId!)
+        // EXO PHASE 4.1 — CANONICAL USER IDENTITY, ACCOUNT OPERATION CONTEXT,
+        //                 SYNC CONCURRENCY & INDEXEDDB TRANSACTION INTEGRITY
+        // =========================================================================
+        // Architectural Invariants (Phase 4.1 Sections 2–10):
+        //   1. Immutable Account Operation Context (`createAccountOperationContext`):
+        //      Every async operation captures `{ uid, sanitizedUid, generation, sessionEpoch, isCurrent() }`
+        //      at entry and re-validates `ctx.isCurrent()` after every `await` boundary.
+        //   2. Strict Dual-Ownership Verification (`hasStrictDualRecordOwnership`):
+        //      - IndexedDB Key Format: `usr_<sanitized UUID>::<rawId>`
+        //      - Stored Record Metadata: `userId === <raw canonical UUID>` (never prefixed with `usr_`)
+        //      - Missing, null, or mismatched `userId` is strictly quarantined and never exported.
+        //   3. Foreign Key Rejection (`toScopedKey` / `resolveAuthorizedScopedKey`):
+        //      Foreign-scoped keys (`usr_B::...` while Account A is active) throw `CROSS_ACCOUNT_KEY_VIOLATION`
+        //      before raw ID extraction can ever strip the foreign owner prefix.
+        //   4. Durable Two-Phase Annotation Commit (`flushAnnotationsToDBImmediate`):
+        //      Awaits `vTx.oncomplete` on `annotation_recovery_vault`, then `tx.oncomplete` on `annotations`,
+        //      updates `inMemoryAnnotationsCache` only after primary transaction commit, and deletes
+        //      vault recovery entries only in Step 4 after durable commit.
+        //
+        // Technical Sources & Standards:
+        //   - W3C Indexed Database API 3.0 (Transaction Lifetime & Commit Semantics):
+        //     https://www.w3.org/TR/IndexedDB-3/#transaction-lifetime-concept
+        //   - MDN Web Docs — IDBTransaction.oncomplete & Durability Guarantees:
+        //     https://developer.mozilla.org/en-US/docs/Web/API/IDBTransaction/complete_event
+        //   - OWASP Application Security Verification Standard (ASVS v4.0.3 — Session & Multi-Tenant Isolation):
+        //     https://owasp.org/www-project-application-security-verification-standard/
+        //   - Supabase Auth & Row Level Security (RLS) Concurrency Patterns:
+        //     https://supabase.com/docs/guides/database/postgres/row-level-security
         // =========================================================================
 
+        let currentSessionGeneration = 0;
+        const isolatedPendingAnnotationsByUser = {};
+        let annotationMutationSeq = 0;
+        let workspaceMutationSeq = 0;
+
+        function bumpAccountSessionGeneration() {
+            currentSessionGeneration += 1;
+            return currentSessionGeneration;
+        }
+
         function getCanonicalUserId(userObj = null) {
-            const user = userObj || currentCloudUser;
+            const user = userObj || (typeof currentCloudUser !== 'undefined' ? currentCloudUser : null);
             if (user && user.id) {
                 return String(user.id);
             }
-            const activeSession = JSON.parse(localStorage.getItem('pharmaActiveAccountSessionV1') || 'null');
-            if (activeSession && activeSession.id) {
-                return String(activeSession.id);
-            }
+            try {
+                const activeSession = JSON.parse(localStorage.getItem('pharmaActiveAccountSessionV1') || 'null');
+                if (activeSession && activeSession.id) {
+                    return String(activeSession.id);
+                }
+            } catch (e) {}
             return 'local';
         }
 
@@ -19310,9 +19346,64 @@
             return String(rawUserId || 'local').replace(/[^a-zA-Z0-9_-]/g, '_');
         }
 
+        function sanitizeForScopedKey(rawUserId) {
+            return sanitizeUserIdForPrefix(rawUserId);
+        }
+
         function getUserStoragePrefix(rawUserId = null) {
             const canonicalUid = rawUserId ? String(rawUserId) : getCanonicalUserId();
             return 'usr_' + sanitizeUserIdForPrefix(canonicalUid);
+        }
+
+        function createAccountOperationContext(explicitUid = null, explicitGen = null) {
+            const activeUid = getCanonicalUserId();
+            const uid = (explicitUid !== null && explicitUid !== undefined) ? String(explicitUid) : activeUid;
+            const sanitizedUid = sanitizeUserIdForPrefix(uid);
+            const isAuthorizedAtCreation = (uid === activeUid);
+            const gen = (explicitGen !== null && explicitGen !== undefined)
+                ? Number(explicitGen)
+                : (isAuthorizedAtCreation ? currentSessionGeneration : -1);
+
+            return Object.freeze({
+                ok: isAuthorizedAtCreation,
+                error: isAuthorizedAtCreation ? null : {
+                    code: 'UNAUTHORIZED_TARGET_USER',
+                    message: `Target user '${uid}' does not match active session user '${activeUid}'`
+                },
+                uid,
+                sanitizedUid,
+                generation: gen,
+                sessionEpoch: gen,
+                authorized: isAuthorizedAtCreation,
+                isCurrent() {
+                    if (!this.authorized || this.generation < 0) return false;
+                    return (this.generation === currentSessionGeneration) && (this.uid === getCanonicalUserId());
+                }
+            });
+        }
+
+        function resolveAccountOperationContext(ctxOrUserId = null, explicitCtx = null) {
+            if (explicitCtx && typeof explicitCtx === 'object' && typeof explicitCtx.isCurrent === 'function') {
+                if (ctxOrUserId !== null && ctxOrUserId !== undefined && typeof ctxOrUserId !== 'object') {
+                    const targetUid = String(ctxOrUserId);
+                    if (explicitCtx.uid !== targetUid) {
+                        return createAccountOperationContext(targetUid, -1);
+                    }
+                }
+                return explicitCtx;
+            }
+            if (ctxOrUserId && typeof ctxOrUserId === 'object' && typeof ctxOrUserId.isCurrent === 'function') {
+                return ctxOrUserId;
+            }
+            if (ctxOrUserId !== null && ctxOrUserId !== undefined && typeof ctxOrUserId !== 'object') {
+                return createAccountOperationContext(String(ctxOrUserId));
+            }
+            return createAccountOperationContext();
+        }
+
+        function getAccountBackupStorageKey(rawUserId = null) {
+            const uid = rawUserId ? String(rawUserId) : getCanonicalUserId();
+            return `pharmaAccountWorkspace_${uid}`;
         }
 
         function extractUserIdFromScopedKey(scopedKey) {
@@ -19326,8 +19417,15 @@
             return null;
         }
 
-        function extractRawIdFromScopedKey(scopedKey) {
+        function extractRawIdFromScopedKey(scopedKey, expectedUserId = null) {
             const str = String(scopedKey || '');
+            if (expectedUserId !== null && expectedUserId !== undefined) {
+                const expectedSanitized = sanitizeUserIdForPrefix(expectedUserId);
+                const existingOwner = extractUserIdFromScopedKey(str);
+                if (existingOwner !== null && existingOwner !== expectedSanitized) {
+                    throw new Error(`CROSS_ACCOUNT_KEY_VIOLATION: Key '${str}' belongs to '${existingOwner}', not '${expectedSanitized}'`);
+                }
+            }
             const standardMatch = str.match(/^usr_[^:]+::(.*)$/);
             if (standardMatch) return standardMatch[1];
             const misScopedMatch = str.match(/^[0-9a-fA-F-]{36}::(.*)$/);
@@ -19352,7 +19450,7 @@
             if (existingKeyPrefix !== null) {
                 if (existingKeyPrefix === sanitizedUid) {
                     // Same user, but was previously mis-scoped as UUID::id -> repair to usr_<sanitized>::id
-                    const cleanRawId = extractRawIdFromScopedKey(idStr);
+                    const cleanRawId = extractRawIdFromScopedKey(idStr, canonicalUid);
                     return `${expectedPrefix}${cleanRawId}`;
                 } else {
                     // Strictly REJECT foreign account key!
@@ -19364,7 +19462,55 @@
             return `${expectedPrefix}${idStr}`;
         }
 
-        // --- Safe Legacy Data Ownership & Provenance Check ---
+        function resolveAuthorizedScopedKey(inputKeyOrRawId, rawUserId = null) {
+            const canonicalUid = rawUserId ? String(rawUserId) : getCanonicalUserId();
+            // Validate ownership on the original input BEFORE extracting raw ID!
+            const scopedKey = toScopedKey(inputKeyOrRawId, canonicalUid);
+            const cleanRawId = extractRawIdFromScopedKey(scopedKey, canonicalUid);
+            return { scopedKey, cleanRawId, rawId: cleanRawId, canonicalUid };
+        }
+
+        function hasStrictDualRecordOwnership(item, canonicalUid) {
+            if (!item || !item.id || !canonicalUid) return false;
+            const itemKey = String(item.id);
+            const sanitizedUid = sanitizeUserIdForPrefix(canonicalUid);
+            const expectedPrefix = `usr_${sanitizedUid}::`;
+            if (!itemKey.startsWith(expectedPrefix)) return false;
+            const keyPrefixUserId = extractUserIdFromScopedKey(itemKey);
+            const itemUserId = item.userId ? String(item.userId) : null;
+            if (!itemUserId) return false;
+            return (keyPrefixUserId === sanitizedUid) && (itemUserId === String(canonicalUid));
+        }
+
+        function hasVerifiedLegacyProvenance(item, canonicalUid) {
+            if (!item || !item.id || !canonicalUid) return false;
+            const key = String(item.id);
+            if (key.startsWith('_cloudMedia_')) return false;
+            const sanitizedUid = sanitizeUserIdForPrefix(canonicalUid);
+            // Already properly scoped for this user -> not a legacy record
+            if (key.startsWith(`usr_${sanitizedUid}::`)) return false;
+            // Belongs to another usr_ prefix -> foreign record, never claim
+            if (key.startsWith('usr_')) return false;
+
+            // Provenance requirement: Never rely on lecture ID presence in subjects!
+            // The record MUST carry explicit matching userId / ownerUid metadata.
+            const explicitOwner = item.userId ? String(item.userId) : (item.ownerUid ? String(item.ownerUid) : null);
+            if (!explicitOwner || explicitOwner !== String(canonicalUid)) {
+                return false;
+            }
+
+            // If key is in legacy mis-scoped UUID::recordId format, prefix must ALSO match sanitizedUid
+            if (key.includes('::')) {
+                const keyOwner = extractUserIdFromScopedKey(key);
+                if (!keyOwner || keyOwner !== sanitizedUid) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // Retained only as a UI helper; NEVER used for claiming legacy database records
         function isLectureInActiveUserWorkspace(rawLecId) {
             if (!rawLecId) return false;
             const strId = String(rawLecId);
@@ -19375,143 +19521,148 @@
             );
         }
 
-        // Deliberate, verified claiming of legacy records (only for lectures in active curriculum)
-        async function claimAndMigrateLegacyRecords(targetUserId = null) {
+        // Strict provenance-verified claiming of legacy records (never claims anonymous or lecture-ID-only records)
+        async function claimAndMigrateLegacyRecords(targetUserId = null, opCtx = null) {
             if (!dbInstance) await initPdfDB();
-            const canonicalUid = getCanonicalUserId();
+            const ctx = resolveAccountOperationContext(opCtx || targetUserId);
+            const activeUid = getCanonicalUserId();
 
-            // Strict Validation: Cannot claim for a different account than current authenticated user
-            if (targetUserId && String(targetUserId) !== canonicalUid) {
+            if (targetUserId && String(targetUserId) !== activeUid) {
                 console.error('Cannot claim legacy records for unauthenticated target user:', targetUserId);
-                return { success: false, migrated: 0, reason: 'user_mismatch' };
+                return { success: false, ok: false, migrated: 0, quarantined: 0, reason: 'user_mismatch' };
+            }
+            if (!ctx.isCurrent() || !dbInstance) {
+                return { success: false, ok: false, migrated: 0, quarantined: 0, reason: !dbInstance ? 'db_unavailable' : 'context_expired' };
             }
 
+            const canonicalUid = ctx.uid;
             let migratedCount = 0;
             let quarantinedCount = 0;
+            let skippedCount = 0;
 
-            await new Promise((resolve) => {
+            const txOutcome = await new Promise((resolve) => {
                 try {
                     const tx = dbInstance.transaction(['pdfs', 'audios', 'annotations'], 'readwrite');
                     const pdfStore = tx.objectStore('pdfs');
                     const audStore = tx.objectStore('audios');
                     const annoStore = tx.objectStore('annotations');
 
-                    // 1. Annotations
+                    const processStoreItems = (store, items, payloadField) => {
+                        const existingKeys = new Set((items || []).map(it => String(it && it.id ? it.id : '')));
+                        (items || []).forEach(item => {
+                            if (!item || !item.id) return;
+                            const key = String(item.id);
+                            if (key.startsWith('_cloudMedia_') || key.startsWith('usr_')) return;
+
+                            if (hasVerifiedLegacyProvenance(item, canonicalUid)) {
+                                const rawId = extractRawIdFromScopedKey(key, canonicalUid);
+                                const scoped = toScopedKey(rawId, canonicalUid);
+                                // Idempotent: do not duplicate or overwrite if target scoped key already exists
+                                if (existingKeys.has(scoped)) {
+                                    skippedCount++;
+                                    return;
+                                }
+                                const migratedRecord = {
+                                    id: scoped,
+                                    rawId: rawId,
+                                    userId: canonicalUid,
+                                    updatedAt: item.updatedAt || Date.now()
+                                };
+                                migratedRecord[payloadField] = item[payloadField];
+                                store.put(migratedRecord);
+                                existingKeys.add(scoped);
+                                migratedCount++;
+                            } else {
+                                quarantinedCount++;
+                            }
+                        });
+                    };
+
                     const annoReq = annoStore.getAll();
-                    annoReq.onsuccess = () => {
-                        (annoReq.result || []).forEach(item => {
-                            const key = String(item.id);
-                            // Only consider unscoped records
-                            if (!key.startsWith('usr_') && !key.startsWith('_cloudMedia_') && !key.includes('::')) {
-                                if (isLectureInActiveUserWorkspace(key)) {
-                                    const scoped = toScopedKey(key, canonicalUid);
-                                    annoStore.put({
-                                        id: scoped,
-                                        rawId: key,
-                                        userId: canonicalUid, // Raw canonical UUID
-                                        pages: item.pages,
-                                        updatedAt: Date.now()
-                                    });
-                                    migratedCount++;
-                                } else {
-                                    quarantinedCount++;
-                                }
-                            }
-                        });
-                    };
+                    annoReq.onsuccess = () => processStoreItems(annoStore, annoReq.result || [], 'pages');
 
-                    // 2. PDFs
                     const pdfReq = pdfStore.getAll();
-                    pdfReq.onsuccess = () => {
-                        (pdfReq.result || []).forEach(item => {
-                            const key = String(item.id);
-                            if (!key.startsWith('usr_') && !key.includes('::')) {
-                                if (isLectureInActiveUserWorkspace(key)) {
-                                    const scoped = toScopedKey(key, canonicalUid);
-                                    pdfStore.put({
-                                        id: scoped,
-                                        rawId: key,
-                                        userId: canonicalUid, // Raw canonical UUID
-                                        blob: item.blob,
-                                        updatedAt: Date.now()
-                                    });
-                                    migratedCount++;
-                                } else {
-                                    quarantinedCount++;
-                                }
-                            }
-                        });
-                    };
+                    pdfReq.onsuccess = () => processStoreItems(pdfStore, pdfReq.result || [], 'blob');
 
-                    // 3. Audios
                     const audReq = audStore.getAll();
-                    audReq.onsuccess = () => {
-                        (audReq.result || []).forEach(item => {
-                            const key = String(item.id);
-                            if (!key.startsWith('usr_') && !key.includes('::')) {
-                                if (isLectureInActiveUserWorkspace(key)) {
-                                    const scoped = toScopedKey(key, canonicalUid);
-                                    audStore.put({
-                                        id: scoped,
-                                        rawId: key,
-                                        userId: canonicalUid, // Raw canonical UUID
-                                        blob: item.blob,
-                                        updatedAt: Date.now()
-                                    });
-                                    migratedCount++;
-                                } else {
-                                    quarantinedCount++;
-                                }
-                            }
-                        });
-                    };
+                    audReq.onsuccess = () => processStoreItems(audStore, audReq.result || [], 'blob');
 
-                    tx.oncomplete = () => {
-                        refreshLocalMediaCache();
-                        resolve();
-                    };
-                    tx.onerror = () => resolve();
+                    tx.oncomplete = () => resolve({ ok: true });
+                    tx.onerror = (e) => resolve({ ok: false, reason: 'tx_error', error: tx.error || e });
+                    tx.onabort = (e) => resolve({ ok: false, reason: 'tx_aborted', error: tx.error || e });
                 } catch (e) {
-                    resolve();
+                    resolve({ ok: false, reason: 'tx_exception', error: e });
                 }
             });
 
-            return { success: true, migrated: migratedCount, quarantined: quarantinedCount };
+            if (!txOutcome.ok || !ctx.isCurrent()) {
+                return {
+                    success: false,
+                    ok: false,
+                    migrated: 0,
+                    migratedCount: 0,
+                    quarantined: quarantinedCount,
+                    quarantinedCount: quarantinedCount,
+                    skipped: skippedCount,
+                    skippedCount: skippedCount,
+                    reason: !ctx.isCurrent() ? 'context_expired' : (txOutcome.reason || 'tx_failed')
+                };
+            }
+
+            await refreshLocalMediaCache(ctx);
+            return {
+                success: true,
+                ok: true,
+                migrated: migratedCount,
+                migratedCount: migratedCount,
+                quarantined: quarantinedCount,
+                quarantinedCount: quarantinedCount,
+                skipped: skippedCount,
+                skippedCount: skippedCount
+            };
         }
 
-        function refreshLocalMediaCache() {
+        function refreshLocalMediaCache(opCtx = null) {
             return new Promise((resolve) => {
                 if (!dbInstance) return resolve(localMediaCache);
                 try {
-                    const canonicalUid = getCanonicalUserId();
+                    const ctx = resolveAccountOperationContext(opCtx);
+                    if (!ctx.isCurrent()) return resolve(localMediaCache);
+                    const canonicalUid = ctx.uid;
                     const activePrefix = getUserStoragePrefix(canonicalUid) + '::';
 
                     const tx = dbInstance.transaction(['pdfs', 'audios'], 'readonly');
-                    const pdfReq = tx.objectStore('pdfs').getAllKeys();
-                    const audReq = tx.objectStore('audios').getAllKeys();
+                    const pdfReq = tx.objectStore('pdfs').getAll();
+                    const audReq = tx.objectStore('audios').getAll();
+
+                    let nextPdfs = new Set();
+                    let nextAudios = new Set();
 
                     pdfReq.onsuccess = () => {
-                        const allKeys = (pdfReq.result || []).map(k => String(k));
-                        // ONLY include keys strictly scoped to THIS user's activePrefix
-                        const userKeys = allKeys
-                            .filter(k => k.startsWith(activePrefix))
-                            .map(k => extractRawIdFromScopedKey(k));
-                        localMediaCache.pdfs = new Set(userKeys);
+                        const allItems = pdfReq.result || [];
+                        const userKeys = allItems
+                            .filter(item => hasStrictDualRecordOwnership(item, canonicalUid) && String(item.id).startsWith(activePrefix))
+                            .map(item => extractRawIdFromScopedKey(item.id, canonicalUid));
+                        nextPdfs = new Set(userKeys);
                     };
 
                     audReq.onsuccess = () => {
-                        const allKeys = (audReq.result || []).map(k => String(k));
-                        const userKeys = allKeys
-                            .filter(k => k.startsWith(activePrefix))
-                            .map(k => extractRawIdFromScopedKey(k));
-                        localMediaCache.audios = new Set(userKeys);
+                        const allItems = audReq.result || [];
+                        const userKeys = allItems
+                            .filter(item => hasStrictDualRecordOwnership(item, canonicalUid) && String(item.id).startsWith(activePrefix))
+                            .map(item => extractRawIdFromScopedKey(item.id, canonicalUid));
+                        nextAudios = new Set(userKeys);
                     };
 
                     tx.oncomplete = () => {
+                        if (!ctx.isCurrent()) return resolve(localMediaCache);
+                        localMediaCache.pdfs = nextPdfs;
+                        localMediaCache.audios = nextAudios;
                         if (activeSubjectId) renderGroups();
                         resolve(localMediaCache);
                     };
                     tx.onerror = () => resolve(localMediaCache);
+                    tx.onabort = () => resolve(localMediaCache);
                 } catch (e) {
                     resolve(localMediaCache);
                 }
@@ -19526,10 +19677,13 @@
                     tx.objectStore('pdfs').clear();
                     tx.objectStore('audios').clear();
                     tx.objectStore('annotations').clear();
-                    localMediaCache.pdfs.clear();
-                    localMediaCache.audios.clear();
-                    tx.oncomplete = () => resolve();
+                    tx.oncomplete = () => {
+                        localMediaCache.pdfs.clear();
+                        localMediaCache.audios.clear();
+                        resolve();
+                    };
                     tx.onerror = () => resolve();
+                    tx.onabort = () => resolve();
                 } catch (e) {
                     resolve();
                 }
@@ -19543,8 +19697,15 @@
             if (dbInstance) return Promise.resolve(dbInstance);
             if (dbReadyPromise) return dbReadyPromise;
             dbReadyPromise = new Promise((resolve) => {
-                // Version 4 Upgrade: Guarantees annotation_recovery_vault is created for all users
-                const req = indexedDB.open('WorkspaceMediaStore', 4);
+                let req;
+                try {
+                    // Version 4 Upgrade: Guarantees annotation_recovery_vault is created for all users
+                    req = indexedDB.open('WorkspaceMediaStore', 4);
+                } catch (openErr) {
+                    console.error('Exception opening WorkspaceMediaStore IndexedDB:', openErr);
+                    dbReadyPromise = null;
+                    return resolve(null);
+                }
 
                 req.onupgradeneeded = (e) => {
                     const db = e.target.result;
@@ -19564,15 +19725,44 @@
                     }
                 };
 
-                req.onsuccess = async (e) => {
-                    dbInstance = e.target.result;
-                    refreshLocalMediaCache();
+                req.onblocked = (e) => {
+                    console.warn('WorkspaceMediaStore IndexedDB open blocked by older connection:', e);
+                    dbReadyPromise = null;
+                    resolve(null);
+                };
 
-                    // Asynchronous crash recovery: Await transaction completion before declaring ready
+                req.onsuccess = async (e) => {
+                    const openedDb = e.target.result;
+                    openedDb.onversionchange = () => {
+                        try {
+                            openedDb.close();
+                        } catch (closeErr) {}
+                        if (dbInstance === openedDb) {
+                            dbInstance = null;
+                        }
+                        dbReadyPromise = null;
+                    };
+                    openedDb.onclose = () => {
+                        if (dbInstance === openedDb) {
+                            dbInstance = null;
+                        }
+                        dbReadyPromise = null;
+                    };
+
+                    dbInstance = openedDb;
+
+                    // Asynchronous crash recovery: Await recovery completion before declaring ready
                     try {
-                        await recoverUncommittedAnnotations(dbInstance);
+                        await recoverUncommittedAnnotations(openedDb);
                     } catch (recErr) {
                         console.warn('Crash recovery warning:', recErr);
+                    }
+
+                    // Await local media cache population before resolving
+                    try {
+                        await refreshLocalMediaCache();
+                    } catch (cacheErr) {
+                        console.warn('Refresh local media cache warning:', cacheErr);
                     }
 
                     resolve(dbInstance);
@@ -19580,35 +19770,69 @@
 
                 req.onerror = (e) => {
                     console.error('Failed to open WorkspaceMediaStore IndexedDB v4:', e);
+                    dbInstance = null;
+                    dbReadyPromise = null;
                     resolve(null);
                 };
             });
             return dbReadyPromise;
         }
 
-        async function recoverUncommittedAnnotations(db) {
-            if (!db) return false;
+        async function recoverUncommittedAnnotations(dbOrCtx = null, opCtx = null) {
+            const isFirstArgDb = Boolean(dbOrCtx && typeof dbOrCtx === 'object' && dbOrCtx.objectStoreNames);
+            const db = isFirstArgDb ? dbOrCtx : dbInstance;
+            const effectiveCtx = isFirstArgDb ? opCtx : (opCtx || dbOrCtx);
+            if (!db || !db.objectStoreNames) return false;
+            const ctx = resolveAccountOperationContext(effectiveCtx);
+            if (!ctx.ok || !ctx.isCurrent()) return false;
+            const canonicalUid = ctx.uid;
+            let vaultOpSuccess = true;
+            let legacyOpSuccess = true;
 
-            // 1. Recover uncommitted full annotation strokes from IndexedDB vault
+            // 1. Recover uncommitted full annotation strokes from IndexedDB vault with strict per-record ownership validation
             if (db.objectStoreNames.contains('annotation_recovery_vault')) {
-                await new Promise((resVault) => {
+                vaultOpSuccess = await new Promise((resVault) => {
                     try {
                         const vTx = db.transaction(['annotation_recovery_vault', 'annotations'], 'readwrite');
                         const vStore = vTx.objectStore('annotation_recovery_vault');
                         const aStore = vTx.objectStore('annotations');
                         const vReq = vStore.getAll();
+                        let recoveredCount = 0;
+
                         vReq.onsuccess = () => {
-                            const recovered = vReq.result || [];
-                            if (recovered.length > 0) {
-                                recovered.forEach(rItem => {
-                                    if (rItem && rItem.pages && rItem.id) {
-                                        aStore.put(rItem);
-                                    }
-                                });
-                                vStore.clear();
-                                console.log(`Successfully recovered ${recovered.length} uncommitted annotation records from vault`);
+                            const allVaultRecords = vReq.result || [];
+                            allVaultRecords.forEach(rItem => {
+                                if (!rItem || !rItem.id || !rItem.pages || typeof rItem.pages !== 'object') {
+                                    // Malformed record stays quarantined in vault
+                                    return;
+                                }
+                                // Strict Dual Ownership Check: only recover records strictly owned by canonicalUid
+                                // Conflicted or anonymous records remain quarantined in annotation_recovery_vault!
+                                if (hasStrictDualRecordOwnership(rItem, canonicalUid)) {
+                                    const rawId = rItem.rawId || extractRawIdFromScopedKey(rItem.id, canonicalUid);
+                                    aStore.put({
+                                        id: String(rItem.id),
+                                        rawId: String(rawId),
+                                        userId: canonicalUid,
+                                        pages: rItem.pages,
+                                        updatedAt: rItem.updatedAt || Date.now()
+                                    });
+                                    // Delete ONLY the recovered record after putting into annotations in the same atomic transaction
+                                    vStore.delete(rItem.id);
+                                    recoveredCount++;
+                                } else {
+                                    console.warn('Quarantined uncommitted vault record (missing or foreign/conflicted ownership):', {
+                                        id: rItem.id,
+                                        userId: rItem.userId || null,
+                                        activeUser: canonicalUid
+                                    });
+                                }
+                            });
+                            if (recoveredCount > 0) {
+                                console.log(`Successfully staged ${recoveredCount} verified annotation records from vault`);
                             }
                         };
+                        vReq.onerror = () => resVault(false);
                         vTx.oncomplete = () => resVault(true);
                         vTx.onerror = () => resVault(false);
                         vTx.onabort = () => resVault(false);
@@ -19618,32 +19842,58 @@
                 });
             }
 
-            // 2. Recover from legacy sessionStorage fallback if present
+            // 2. Recover from legacy sessionStorage fallback if present (strictly verifying ownership)
             try {
                 const legacyRaw = sessionStorage.getItem('_exoPendingAnnoRecoverable_') ||
                                   sessionStorage.getItem('_exoPendingAnnoBackup_');
                 if (legacyRaw) {
                     const parsed = JSON.parse(legacyRaw);
-                    if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].pages) {
-                        await new Promise((resLegacy) => {
-                            const lTx = db.transaction('annotations', 'readwrite');
-                            const lStore = lTx.objectStore('annotations');
-                            parsed.forEach(entry => {
-                                if (entry && entry.id && entry.pages) lStore.put(entry);
-                            });
-                            lTx.oncomplete = () => {
-                                sessionStorage.removeItem('_exoPendingAnnoRecoverable_');
-                                sessionStorage.removeItem('_exoPendingAnnoBackup_');
-                                resLegacy(true);
-                            };
-                            lTx.onerror = () => resLegacy(false);
-                            lTx.onabort = () => resLegacy(false);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        const verifiedEntries = [];
+                        const quarantinedEntries = [];
+                        parsed.forEach(entry => {
+                            if (entry && entry.pages && hasStrictDualRecordOwnership(entry, canonicalUid)) {
+                                verifiedEntries.push({
+                                    id: String(entry.id),
+                                    rawId: String(entry.rawId || extractRawIdFromScopedKey(entry.id, canonicalUid)),
+                                    userId: canonicalUid,
+                                    pages: entry.pages,
+                                    updatedAt: entry.updatedAt || Date.now()
+                                });
+                            } else if (entry) {
+                                quarantinedEntries.push(entry);
+                            }
                         });
+
+                        if (verifiedEntries.length > 0) {
+                            legacyOpSuccess = await new Promise((resLegacy) => {
+                                try {
+                                    const lTx = db.transaction('annotations', 'readwrite');
+                                    const lStore = lTx.objectStore('annotations');
+                                    verifiedEntries.forEach(entry => lStore.put(entry));
+                                    lTx.oncomplete = () => {
+                                        if (quarantinedEntries.length === 0) {
+                                            sessionStorage.removeItem('_exoPendingAnnoRecoverable_');
+                                            sessionStorage.removeItem('_exoPendingAnnoBackup_');
+                                        } else {
+                                            sessionStorage.setItem('_exoPendingAnnoRecoverable_', JSON.stringify(quarantinedEntries));
+                                        }
+                                        resLegacy(true);
+                                    };
+                                    lTx.onerror = () => resLegacy(false);
+                                    lTx.onabort = () => resLegacy(false);
+                                } catch (err) {
+                                    resLegacy(false);
+                                }
+                            });
+                        }
                     }
                 }
-            } catch (e) {}
+            } catch (e) {
+                legacyOpSuccess = false;
+            }
 
-            return true;
+            return Boolean(vaultOpSuccess && legacyOpSuccess);
         }
         initPdfDB();
 
@@ -19658,44 +19908,108 @@
             }
         }
 
-        async function deleteMediaFromDB(storeName, id) {
-            const canonicalUid = getCanonicalUserId();
-            const cleanRawId = extractRawIdFromScopedKey(id);
-            const scopedKey = toScopedKey(cleanRawId, canonicalUid);
+        const ALLOWED_MEDIA_STORES = new Set(['pdfs', 'audios']);
 
-            if (sessionMediaBlobRamCache[storeName]) {
-                sessionMediaBlobRamCache[storeName].delete(scopedKey);
-                sessionMediaBlobRamCache[storeName].delete(cleanRawId);
+        async function deleteMediaFromDB(storeName, id, targetUserIdOrCtx = null, opCtx = null) {
+            if (!ALLOWED_MEDIA_STORES.has(storeName)) {
+                console.error('Rejected deleteMediaFromDB: invalid storeName:', storeName);
+                return false;
             }
-            if (localMediaCache[storeName]) localMediaCache[storeName].delete(cleanRawId);
+            if (id === null || id === undefined || String(id).trim() === '') return false;
+
+            const ctx = resolveAccountOperationContext(targetUserIdOrCtx, opCtx);
+            if (!ctx.ok || !ctx.isCurrent()) return false;
+
+            let scopedKey, cleanRawId;
+            try {
+                const resolved = resolveAuthorizedScopedKey(id, ctx.uid);
+                scopedKey = resolved.scopedKey;
+                cleanRawId = resolved.cleanRawId;
+            } catch (ownErr) {
+                console.error('Rejected cross-account media delete attempt:', ownErr.message);
+                return false;
+            }
+
             if (!dbInstance) await initPdfDB();
+            if (!dbInstance || !ctx.isCurrent()) return false;
 
             return new Promise((resolve) => {
-                if (!dbInstance) return resolve(false);
                 try {
                     const tx = dbInstance.transaction(storeName, 'readwrite');
                     const store = tx.objectStore(storeName);
-                    // Safe Delete: Delete ONLY this account's scopedKey!
-                    // NEVER delete unscoped legacy records or another account's scoped records!
-                    store.delete(scopedKey);
-                    tx.oncomplete = () => resolve(true);
-                    tx.onerror = () => resolve(false);
+                    const getReq = store.get(scopedKey);
+                    let ownershipConflict = false;
+
+                    getReq.onsuccess = () => {
+                        const existing = getReq.result;
+                        if (existing) {
+                            const existingUser = existing.userId ? String(existing.userId) : null;
+                            if (!existingUser || existingUser !== ctx.uid) {
+                                ownershipConflict = true;
+                                console.warn('Refusing to delete media record with missing or mismatched userId metadata:', {
+                                    scopedKey,
+                                    existingUser,
+                                    activeUser: ctx.uid
+                                });
+                                try { tx.abort(); } catch (e) {}
+                                return;
+                            }
+                        }
+                        store.delete(scopedKey);
+                    };
+
+                    tx.oncomplete = () => {
+                        if (ownershipConflict) return resolve(false);
+                        // Only evict from RAM cache and localMediaCache AFTER durable transaction completion!
+                        if (ctx.isCurrent()) {
+                            if (sessionMediaBlobRamCache[storeName]) {
+                                sessionMediaBlobRamCache[storeName].delete(scopedKey);
+                            }
+                            if (localMediaCache[storeName]) {
+                                localMediaCache[storeName].delete(cleanRawId);
+                            }
+                        }
+                        resolve(true);
+                    };
+                    tx.onerror = (e) => {
+                        console.error(`IndexedDB deleteMediaFromDB error (${storeName}):`, tx.error || e);
+                        resolve(false);
+                    };
                     tx.onabort = () => resolve(false);
                 } catch (e) {
+                    console.error(`Exception in deleteMediaFromDB (${storeName}):`, e);
                     resolve(false);
                 }
             });
         }
 
-        async function saveMediaToDB(storeName, id, fileBlob) {
-            if (!dbInstance) await initPdfDB();
-            return new Promise((resolve) => {
-                if (!dbInstance || !fileBlob) return resolve();
-                try {
-                    const canonicalUid = getCanonicalUserId();
-                    const cleanRawId = extractRawIdFromScopedKey(id);
-                    const scopedKey = toScopedKey(cleanRawId, canonicalUid);
+        async function saveMediaToDB(storeName, id, fileBlob, targetUserIdOrCtx = null, opCtx = null) {
+            if (!ALLOWED_MEDIA_STORES.has(storeName)) {
+                console.error('Rejected saveMediaToDB: invalid storeName:', storeName);
+                return false;
+            }
+            if (id === null || id === undefined || String(id).trim() === '' || !fileBlob || !(fileBlob instanceof Blob)) {
+                return false;
+            }
 
+            const ctx = resolveAccountOperationContext(targetUserIdOrCtx, opCtx);
+            if (!ctx.ok || !ctx.isCurrent()) return false;
+
+            let scopedKey, cleanRawId;
+            try {
+                const resolved = resolveAuthorizedScopedKey(id, ctx.uid);
+                scopedKey = resolved.scopedKey;
+                cleanRawId = resolved.cleanRawId;
+            } catch (ownErr) {
+                console.error('Rejected cross-account media save attempt:', ownErr.message);
+                return false;
+            }
+
+            if (!dbInstance) await initPdfDB();
+            if (!dbInstance || !ctx.isCurrent()) return false;
+
+            return new Promise((resolve) => {
+                try {
                     const tx = dbInstance.transaction(storeName, 'readwrite');
                     const store = tx.objectStore(storeName);
 
@@ -19703,31 +20017,34 @@
                     store.put({
                         id: scopedKey,
                         rawId: cleanRawId,
-                        userId: canonicalUid,
+                        userId: ctx.uid,
                         blob: fileBlob,
                         updatedAt: Date.now()
                     });
 
                     tx.oncomplete = () => {
-                        // Only update RAM cache AFTER transaction completes durably!
+                        if (!ctx.isCurrent()) return resolve(false);
+                        // Only update RAM cache AFTER transaction completes durably, and ONLY under scopedKey (never unscoped alias!)
                         if (sessionMediaBlobRamCache[storeName]) {
                             sessionMediaBlobRamCache[storeName].set(scopedKey, fileBlob);
-                            sessionMediaBlobRamCache[storeName].set(cleanRawId, fileBlob);
                             if (sessionMediaBlobRamCache[storeName].size > 20) {
                                 const oldest = sessionMediaBlobRamCache[storeName].keys().next().value;
                                 sessionMediaBlobRamCache[storeName].delete(oldest);
                             }
                         }
-                        if (storeName === 'pdfs' || storeName === 'audios') {
+                        if (localMediaCache[storeName]) {
                             localMediaCache[storeName].add(cleanRawId);
                         }
                         resolve(true);
                     };
                     tx.onerror = (e) => {
-                        console.error(`Failed to save media ${storeName} ${cleanRawId}:`, e);
+                        console.error(`Failed to save media ${storeName} ${cleanRawId}:`, tx.error || e);
                         resolve(false);
                     };
-                    tx.onabort = () => resolve(false);
+                    tx.onabort = (e) => {
+                        console.error(`Aborted saving media ${storeName} ${cleanRawId}:`, tx.error || e);
+                        resolve(false);
+                    };
                 } catch (e) {
                     console.error(`Exception saving media ${storeName}:`, e);
                     resolve(false);
@@ -19735,15 +20052,28 @@
             });
         }
 
-        async function getMediaFromDB(storeName, id) {
-            const canonicalUid = getCanonicalUserId();
-            const cleanRawId = extractRawIdFromScopedKey(id);
-            const scopedKey = toScopedKey(cleanRawId, canonicalUid);
+        async function getMediaFromDB(storeName, id, targetUserIdOrCtx = null, opCtx = null) {
+            if (!ALLOWED_MEDIA_STORES.has(storeName)) return null;
+            if (id === null || id === undefined || String(id).trim() === '') return null;
+
+            const ctx = resolveAccountOperationContext(targetUserIdOrCtx, opCtx);
+            if (!ctx.ok || !ctx.isCurrent()) return null;
+
+            let scopedKey, cleanRawId;
+            try {
+                const resolved = resolveAuthorizedScopedKey(id, ctx.uid);
+                scopedKey = resolved.scopedKey;
+                cleanRawId = resolved.cleanRawId;
+            } catch (ownErr) {
+                console.error('Rejected cross-account media read attempt:', ownErr.message);
+                return null;
+            }
 
             if (sessionMediaBlobRamCache[storeName] && sessionMediaBlobRamCache[storeName].has(scopedKey)) {
                 const cached = sessionMediaBlobRamCache[storeName].get(scopedKey);
                 if (storeName === 'pdfs' && cached) {
                     const isRealPdf = await isValidPdfBlob(cached);
+                    if (!ctx.isCurrent()) return null;
                     if (!isRealPdf) {
                         sessionMediaBlobRamCache[storeName].delete(scopedKey);
                     } else {
@@ -19755,36 +20085,48 @@
             }
 
             if (!dbInstance) await initPdfDB();
+            if (!dbInstance || !ctx.isCurrent()) return null;
+
             return new Promise((resolve) => {
-                if (!dbInstance) return resolve(null);
                 try {
                     const tx = dbInstance.transaction(storeName, 'readonly');
                     const store = tx.objectStore(storeName);
 
-                    // 1. Check user-scoped key with strict ownership verification
+                    // Check user-scoped key with strict dual ownership verification (both key and userId metadata!)
                     const req = store.get(scopedKey);
                     req.onsuccess = async () => {
-                        let resItem = req.result;
+                        if (!ctx.isCurrent()) return resolve(null);
+                        const resItem = req.result;
                         if (resItem && resItem.blob) {
-                            // Strict Ownership Check
-                            const itemUserId = resItem.userId ? String(resItem.userId) : null;
-                            if (itemUserId && itemUserId !== canonicalUid) {
-                                console.warn('Quarantined foreign media access:', { scopedKey, recordUser: itemUserId, activeUser: canonicalUid });
-                                return resolve(null); // Quarantined
+                            // Strict Dual Ownership Check: missing userId or mismatched userId -> Quarantine!
+                            if (!hasStrictDualRecordOwnership(resItem, ctx.uid)) {
+                                console.warn('Quarantined media access (missing or mismatched userId/key ownership):', {
+                                    scopedKey,
+                                    recordUser: resItem.userId || null,
+                                    activeUser: ctx.uid
+                                });
+                                return resolve(null);
                             }
                             const blob = resItem.blob;
                             if (storeName === 'pdfs' && !(await isValidPdfBlob(blob))) return resolve(null);
-                            if (sessionMediaBlobRamCache[storeName]) sessionMediaBlobRamCache[storeName].set(scopedKey, blob);
+                            if (!ctx.isCurrent()) return resolve(null);
+                            if (sessionMediaBlobRamCache[storeName]) {
+                                sessionMediaBlobRamCache[storeName].set(scopedKey, blob);
+                            }
                             return resolve(blob);
                         }
 
-                        // 2. Unclaimed Legacy Quarantine:
+                        // Unclaimed Legacy Quarantine:
                         // NEVER automatically return or migrate unscoped legacy records!
-                        // Unscoped records remain in quarantine until explicitly claimed via claimAndMigrateLegacyRecords.
                         return resolve(null);
                     };
-                    req.onerror = () => resolve(null);
+                    req.onerror = (e) => {
+                        console.error(`IndexedDB getMediaFromDB error (${storeName}):`, req.error || e);
+                        resolve(null);
+                    };
+                    tx.onabort = () => resolve(null);
                 } catch (e) {
+                    console.error(`Exception in getMediaFromDB (${storeName}):`, e);
                     resolve(null);
                 }
             });
@@ -19822,6 +20164,7 @@
         function syncMergedAnnotationsToLectureRecords(specificPageKey = null) {
             if (!mergedContinuousPdfMode || !mergedPageToLectureMap) return [];
             const touchedLecIds = new Set();
+            const canonicalUid = getCanonicalUserId();
             const keysToSync = specificPageKey
                 ? [String(specificPageKey)]
                 : Object.keys(mergedPageToLectureMap);
@@ -19851,14 +20194,15 @@
                     mInfo.lecAnnos._audioPins[localP] = pageAnnotations._audioPins[compKey];
                 }
 
-                inMemoryAnnotationsCache[mInfo.lecId] = mInfo.lecAnnos;
-                pendingAnnoSaveMap[mInfo.lecId] = mInfo.lecAnnos;
+                const scopedLecId = toScopedKey(mInfo.lecId, canonicalUid);
+                inMemoryAnnotationsCache[scopedLecId] = mInfo.lecAnnos;
+                pendingAnnoSaveMap[scopedLecId] = mInfo.lecAnnos;
                 touchedLecIds.add(mInfo.lecId);
             });
             return Array.from(touchedLecIds);
         }
 
-        function flushPendingAnnotationsSave(triggerCloudImmediately = false) {
+        async function flushPendingAnnotationsSave(triggerCloudImmediately = false, opCtx = null) {
             if (autoSaveTimer) {
                 clearTimeout(autoSaveTimer);
                 autoSaveTimer = null;
@@ -19868,82 +20212,141 @@
             }
             const lecIds = Object.keys(pendingAnnoSaveMap);
             // If no pending annotations, durable success
-            if (lecIds.length === 0) return Promise.resolve(true);
+            if (lecIds.length === 0) return true;
 
             // If IndexedDB is unavailable while pending annotations exist, return failure!
             if (!dbInstance) {
                 console.error('Cannot flush annotations: IndexedDB is not available');
-                return Promise.resolve(false);
+                return false;
             }
 
-            return new Promise((resolve) => {
-                const canonicalUid = getCanonicalUserId();
-                const snapshotMap = {};
-                const entriesToSave = lecIds.map(id => {
-                    const cleanRawId = extractRawIdFromScopedKey(id);
-                    const scopedId = toScopedKey(cleanRawId, canonicalUid);
+            const ctx = resolveAccountOperationContext(opCtx);
+            const canonicalUid = ctx.uid;
+            const snapshotMap = {};
+            const entriesToSave = [];
+
+            for (const id of lecIds) {
+                try {
+                    const { scopedKey: scopedId, cleanRawId } = resolveAuthorizedScopedKey(id, canonicalUid);
                     const data = pendingAnnoSaveMap[id];
                     snapshotMap[id] = data;
-                    inMemoryAnnotationsCache[scopedId] = data;
-                    return {
+                    entriesToSave.push({
                         id: scopedId,
                         rawId: cleanRawId,
                         userId: canonicalUid, // Standard Invariant: raw canonical UUID
                         pages: data,
                         updatedAt: Date.now()
-                    };
-                });
+                    });
+                } catch (ownErr) {
+                    console.error('Rejected foreign key in pendingAnnoSaveMap during flush:', ownErr.message);
+                    return false;
+                }
+            }
 
-                // Write to recovery vault first
+            if (entriesToSave.length === 0) return true;
+
+            // Step 1: Durably commit to annotation_recovery_vault FIRST and await vTx.oncomplete!
+            if (!dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
+                console.error('Cannot flush annotations: annotation_recovery_vault store is missing');
+                return false;
+            }
+
+            const vaultCommitted = await new Promise((resolveVault) => {
                 try {
                     const vTx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
                     const vStore = vTx.objectStore('annotation_recovery_vault');
                     entriesToSave.forEach(e => vStore.put(e));
-                } catch (vErr) {
-                    console.warn('Recovery vault write warning:', vErr);
+                    vTx.oncomplete = () => resolveVault(true);
+                    vTx.onerror = (vErr) => {
+                        console.error('Recovery vault transaction failed:', vTx.error || vErr);
+                        resolveVault(false);
+                    };
+                    vTx.onabort = (vErr) => {
+                        console.error('Recovery vault transaction aborted:', vTx.error || vErr);
+                        resolveVault(false);
+                    };
+                } catch (vEx) {
+                    console.error('Exception writing to annotation_recovery_vault:', vEx);
+                    resolveVault(false);
                 }
+            });
 
+            // [Exo Phase 4.1 — Section 7] W3C IndexedDB 3.0 §4.3: Never declare flush successful if recovery vault transaction fails or aborts!
+            if (!vaultCommitted) {
+                return false;
+            }
+
+            // Step 2: Commit to primary annotations objectStore and await tx.oncomplete!
+            const mainCommitted = await new Promise((resolveMain) => {
                 try {
                     const tx = dbInstance.transaction('annotations', 'readwrite');
                     const store = tx.objectStore('annotations');
                     entriesToSave.forEach(entry => store.put(entry));
 
                     tx.oncomplete = () => {
-                        // Durably committed to IndexedDB!
-                        lecIds.forEach(id => {
-                            if (pendingAnnoSaveMap[id] === snapshotMap[id]) {
-                                delete pendingAnnoSaveMap[id];
-                            }
-                        });
-                        // Clean up vault entries that are now committed
-                        try {
-                            const cTx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
-                            const cStore = cTx.objectStore('annotation_recovery_vault');
-                            entriesToSave.forEach(e => cStore.delete(e.id));
-                        } catch (cErr) {}
-
-                        dirtyAnnotationsForCloud = true;
-                        if (triggerCloudImmediately) {
-                            localStorage.setItem('pharmaWorkspaceDirty', '1');
-                            if (annoCloudSyncTimer) clearTimeout(annoCloudSyncTimer);
-                            pushWorkspaceToCloud(false, true);
-                        }
-                        resolve(true);
+                        resolveMain(true);
                     };
-
                     tx.onerror = (txErr) => {
-                        console.error('IndexedDB annotations commit error:', txErr);
-                        resolve(false);
+                        console.error('IndexedDB annotations commit error:', tx.error || txErr);
+                        resolveMain(false);
                     };
-                    tx.onabort = () => resolve(false);
+                    tx.onabort = (txErr) => {
+                        console.error('IndexedDB annotations commit aborted:', tx.error || txErr);
+                        resolveMain(false);
+                    };
                 } catch (e) {
                     console.error('Exception writing annotations to IndexedDB:', e);
-                    resolve(false);
+                    resolveMain(false);
                 }
             });
+
+            // [Exo Phase 4.1 — Section 7] If primary annotations transaction fails, keep recovery vault entries intact for crash recovery and return false!
+            if (!mainCommitted) {
+                return false;
+            }
+
+            // Step 3: Primary transaction succeeded durably! Update RAM cache and pendingAnnoSaveMap
+            lecIds.forEach(id => {
+                if (pendingAnnoSaveMap[id] === snapshotMap[id]) {
+                    delete pendingAnnoSaveMap[id];
+                }
+            });
+            if (ctx.isCurrent()) {
+                entriesToSave.forEach(entry => {
+                    inMemoryAnnotationsCache[entry.id] = entry.pages;
+                });
+            }
+
+            // Step 4: Now that primary annotations are durably committed, delete ONLY these committed entries from vault
+            await new Promise((resolveCleanup) => {
+                try {
+                    const cTx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+                    const cStore = cTx.objectStore('annotation_recovery_vault');
+                    entriesToSave.forEach(e => cStore.delete(e.id));
+                    cTx.oncomplete = () => resolveCleanup(true);
+                    cTx.onerror = () => resolveCleanup(false);
+                    cTx.onabort = () => resolveCleanup(false);
+                } catch (cErr) {
+                    resolveCleanup(false);
+                }
+            });
+
+            annotationMutationSeq += 1;
+            dirtyAnnotationsForCloud = true;
+            if (typeof markUserWorkspaceDirtyState === 'function') {
+                markUserWorkspaceDirtyState(canonicalUid, true, true);
+            }
+
+            if (triggerCloudImmediately && ctx.isCurrent()) {
+                localStorage.setItem('pharmaWorkspaceDirty', '1');
+                if (annoCloudSyncTimer) clearTimeout(annoCloudSyncTimer);
+                await pushWorkspaceToCloud(false, true, ctx);
+            }
+
+            return true;
         }
 
-        // Flush immediately if user refreshes or closes the browser tab while PDF is open
+        // Best-effort additional flush triggers on pagehide/beforeunload (supplementing durable idle autosave)
         window.addEventListener('pagehide', () => {
             flushPendingAnnotationsSave(false);
         });
@@ -19951,7 +20354,7 @@
             flushPendingAnnotationsSave(false);
         });
 
-        function normalizeAndRecoverLectureAnnotations(lecId, rawPages) {
+        function normalizeAndRecoverLectureAnnotations(lecId, rawPages, rawUserId = null) {
             const pages = (rawPages && typeof rawPages === 'object') ? rawPages : {};
             if (String(lecId).startsWith('_cloudMedia_')) return pages;
             const prefixSlide = `${lecId}_p_`;
@@ -20024,28 +20427,41 @@
             });
 
             if (migrated) {
-                pendingAnnoSaveMap[lecId] = pages;
+                try {
+                    const scopedKey = toScopedKey(lecId, rawUserId);
+                    pendingAnnoSaveMap[scopedKey] = pages;
+                } catch (e) {}
             }
             return pages;
         }
 
-        function saveAnnotationsToDB(lecId, pagesData, specificPageKey = null) {
-            if (!dbInstance) return;
-            lastPenActivityTimeMs = performance.now();
+        function saveAnnotationsToDB(lecId, pagesData, specificPageKey = null, opCtx = null) {
+            if (!dbInstance) return false;
+            const ctx = resolveAccountOperationContext(opCtx);
+            if (!ctx.isCurrent()) return false;
 
-            const scopedId = toScopedKey(lecId);
+            lastPenActivityTimeMs = performance.now();
+            annotationMutationSeq += 1;
+
             if (mergedContinuousPdfMode) {
                 syncMergedAnnotationsToLectureRecords(specificPageKey);
-            } else if (lecId && pagesData) {
-                const numOrStrId = isNaN(Number(lecId)) ? lecId : Number(lecId);
+            } else if (lecId !== null && lecId !== undefined && pagesData) {
+                let scopedId;
+                try {
+                    scopedId = toScopedKey(lecId, ctx.uid);
+                } catch (ownErr) {
+                    console.error('Rejected cross-account saveAnnotationsToDB attempt:', ownErr.message);
+                    return false;
+                }
+                // Store strictly under scopedId — never under unscoped raw ID!
                 inMemoryAnnotationsCache[scopedId] = pagesData;
-                inMemoryAnnotationsCache[numOrStrId] = pagesData;
                 pendingAnnoSaveMap[scopedId] = pagesData;
             }
 
             if (autoSaveTimer) clearTimeout(autoSaveTimer);
-            // Only flush to IndexedDB when the user has completely stopped writing for 45 seconds (or immediately when closing the PDF / switching tabs)
+            // Durable idle autosave during active study (commits to vault + IndexedDB within ~350ms of stroke pause)
             const scheduleIdleSaveTick = () => {
+                if (!ctx.isCurrent()) return;
                 const idleElapsed = performance.now() - (lastPenActivityTimeMs || 0);
                 if (isActivelyDrawingOnPdf || idleElapsed < 300) {
                     autoSaveTimer = setTimeout(scheduleIdleSaveTick, 350);
@@ -20053,60 +20469,87 @@
                 }
                 if (window.requestIdleCallback) {
                     window.requestIdleCallback(() => {
-                        if (!isActivelyDrawingOnPdf && (performance.now() - (lastPenActivityTimeMs || 0)) >= 300) {
-                            flushPendingAnnotationsSave(false);
+                        if (ctx.isCurrent() && !isActivelyDrawingOnPdf && (performance.now() - (lastPenActivityTimeMs || 0)) >= 300) {
+                            flushPendingAnnotationsSave(false, ctx);
                         }
-                    }, { timeout: 5000 });
+                    }, { timeout: 1000 });
                 } else {
-                    flushPendingAnnotationsSave(false);
+                    flushPendingAnnotationsSave(false, ctx);
                 }
             };
             autoSaveTimer = setTimeout(scheduleIdleSaveTick, 350);
+            return true;
         }
 
-        async function getAnnotationsFromDB(lecId) {
-            if (!lecId) return {};
-            const canonicalUid = getCanonicalUserId();
-            const cleanRawId = extractRawIdFromScopedKey(lecId);
-            const scopedId = toScopedKey(cleanRawId, canonicalUid);
+        async function getAnnotationsFromDB(lecId, targetUserId = null, opCtx = null) {
+            if (lecId === null || lecId === undefined || String(lecId).trim() === '') return {};
+            const ctx = resolveAccountOperationContext(opCtx || targetUserId);
+            if (targetUserId && String(targetUserId) !== getCanonicalUserId()) {
+                console.error('Rejected getAnnotationsFromDB for unauthorized targetUserId:', targetUserId);
+                return {};
+            }
+            if (!ctx.isCurrent()) return {};
 
-            if (inMemoryAnnotationsCache[scopedId] && !String(lecId).startsWith('_cloudMedia_')) {
+            const canonicalUid = ctx.uid;
+            let scopedId, cleanRawId;
+            try {
+                const resolved = resolveAuthorizedScopedKey(lecId, canonicalUid);
+                scopedId = resolved.scopedKey;
+                cleanRawId = resolved.cleanRawId;
+            } catch (ownErr) {
+                console.error('Rejected cross-account getAnnotationsFromDB attempt:', ownErr.message);
+                return {};
+            }
+
+            if (inMemoryAnnotationsCache[scopedId] && !String(cleanRawId).startsWith('_cloudMedia_')) {
                 if (!inMemoryAnnotationsCacheNormalized[scopedId]) {
-                    inMemoryAnnotationsCache[scopedId] = normalizeAndRecoverLectureAnnotations(cleanRawId, inMemoryAnnotationsCache[scopedId]);
+                    inMemoryAnnotationsCache[scopedId] = normalizeAndRecoverLectureAnnotations(cleanRawId, inMemoryAnnotationsCache[scopedId], canonicalUid);
                     inMemoryAnnotationsCacheNormalized[scopedId] = true;
                 }
                 return inMemoryAnnotationsCache[scopedId];
             }
 
             if (!dbInstance) await initPdfDB();
+            if (!dbInstance || !ctx.isCurrent()) return {};
+
             return new Promise((resolve) => {
-                if (!dbInstance) return resolve({});
                 try {
                     const tx = dbInstance.transaction('annotations', 'readonly');
                     const store = tx.objectStore('annotations');
 
-                    // 1. Check user-scoped key with strict ownership verification
+                    // 1. Check user-scoped key with strict dual ownership verification (both key and userId metadata!)
                     const req = store.get(scopedId);
                     req.onsuccess = () => {
+                        if (!ctx.isCurrent()) return resolve({});
                         if (req.result && req.result.pages) {
-                            const itemUserId = req.result.userId ? String(req.result.userId) : null;
-                            if (itemUserId && itemUserId !== canonicalUid) {
-                                console.warn('Quarantined foreign annotation read attempt:', { scopedId, recordUser: itemUserId, activeUser: canonicalUid });
-                                return resolve({}); // Quarantined
+                            // Strict Dual Ownership Check: missing userId or mismatched userId -> Quarantine!
+                            if (!hasStrictDualRecordOwnership(req.result, canonicalUid)) {
+                                console.warn('Quarantined annotation read attempt (missing or mismatched userId/key ownership):', {
+                                    scopedId,
+                                    recordUser: req.result.userId || null,
+                                    activeUser: canonicalUid
+                                });
+                                return resolve({});
                             }
-                            const norm = normalizeAndRecoverLectureAnnotations(cleanRawId, req.result.pages);
-                            inMemoryAnnotationsCache[scopedId] = norm;
-                            inMemoryAnnotationsCacheNormalized[scopedId] = true;
+                            const norm = normalizeAndRecoverLectureAnnotations(cleanRawId, req.result.pages, canonicalUid);
+                            if (ctx.isCurrent()) {
+                                inMemoryAnnotationsCache[scopedId] = norm;
+                                inMemoryAnnotationsCacheNormalized[scopedId] = true;
+                            }
                             return resolve(norm);
                         }
 
                         // 2. Unclaimed Legacy Quarantine:
-                        // NEVER automatically read or migrate unscoped legacy annotations into an active account!
-                        // Unscoped records remain in quarantine until explicitly claimed via claimAndMigrateLegacyRecords.
+                        // NEVER automatically read or migrate unscoped legacy annotations!
                         return resolve({});
                     };
-                    req.onerror = () => resolve({});
+                    req.onerror = (e) => {
+                        console.error('IndexedDB getAnnotationsFromDB error:', req.error || e);
+                        resolve({});
+                    };
+                    tx.onabort = () => resolve({});
                 } catch (e) {
+                    console.error('Exception in getAnnotationsFromDB:', e);
                     resolve({});
                 }
             });
@@ -25649,7 +26092,43 @@ function togglePdfAudioPlayerBar(forceState) {
         }
 
         async function handleAuthSessionChange(userObj, shouldInitialSync = false) {
+            const prevUser = currentCloudUser;
+            const prevUid = prevUser && prevUser.id ? String(prevUser.id) : getCanonicalUserId();
+            const nextUid = userObj && userObj.id ? String(userObj.id) : 'local';
+            const isAccountChanging = (prevUid !== nextUid) || (Boolean(prevUser) !== Boolean(userObj));
+
+            // P1 Safety: Never drop pendingAnnoSaveMap on session change!
+            // Flush pending annotations under the previous account context first; if flush fails, isolate them per-UID.
+            const pendingKeys = Object.keys(pendingAnnoSaveMap);
+            if (pendingKeys.length > 0) {
+                const prevCtx = createAccountOperationContext(prevUid, currentSessionGeneration);
+                let flushedOk = false;
+                try {
+                    flushedOk = await flushPendingAnnotationsSave(false, prevCtx);
+                } catch (flushErr) {
+                    flushedOk = false;
+                }
+                if (!flushedOk) {
+                    if (!isolatedPendingAnnotationsByUser[prevUid]) {
+                        isolatedPendingAnnotationsByUser[prevUid] = {};
+                    }
+                    Object.keys(pendingAnnoSaveMap).forEach(k => {
+                        try {
+                            const scopedForPrev = toScopedKey(k, prevUid);
+                            isolatedPendingAnnotationsByUser[prevUid][scopedForPrev] = pendingAnnoSaveMap[k];
+                        } catch (e) {}
+                    });
+                }
+            }
+
+            // Bump session generation epoch whenever account identity changes
+            if (isAccountChanging) {
+                bumpAccountSessionGeneration();
+            }
+
             currentCloudUser = userObj || null;
+            const activeCtx = createAccountOperationContext(nextUid, currentSessionGeneration);
+
             // Reset in-memory caches for the new session
             inMemoryAnnotationsCache = {};
             inMemoryAnnotationsCacheNormalized = {};
@@ -25659,7 +26138,22 @@ function togglePdfAudioPlayerBar(forceState) {
             localMediaCache.audios.clear();
             sessionMediaBlobRamCache.pdfs.clear();
             sessionMediaBlobRamCache.audios.clear();
-            if (dbInstance) refreshLocalMediaCache();
+
+            // If this returning account had previously isolated uncommitted annotations, restore & flush them safely
+            if (isolatedPendingAnnotationsByUser[nextUid] && Object.keys(isolatedPendingAnnotationsByUser[nextUid]).length > 0) {
+                Object.assign(pendingAnnoSaveMap, isolatedPendingAnnotationsByUser[nextUid]);
+                delete isolatedPendingAnnotationsByUser[nextUid];
+                if (dbInstance) {
+                    try {
+                        await flushPendingAnnotationsSave(false, activeCtx);
+                    } catch (e) {}
+                }
+            }
+
+            if (dbInstance) {
+                await refreshLocalMediaCache(activeCtx);
+                if (!activeCtx.isCurrent()) return;
+            }
             const outView = document.getElementById('cloudLoggedOutView');
             const inView = document.getElementById('cloudLoggedInView');
 
@@ -25669,7 +26163,7 @@ function togglePdfAudioPlayerBar(forceState) {
 
                 // Restore user's Google Drive link from local user vault immediately
                 try {
-                    const userVaultRaw = localStorage.getItem('pharmaGdriveSync_' + currentCloudUser.id);
+                    const userVaultRaw = localStorage.getItem('pharmaGdriveSync_' + activeCtx.uid);
                     if (userVaultRaw) {
                         const uVault = JSON.parse(userVaultRaw);
                         if (uVault && uVault.linked && uVault.userEmail) {
@@ -25677,7 +26171,7 @@ function togglePdfAudioPlayerBar(forceState) {
                             localStorage.setItem('exo_gdrive_user_email', uVault.userEmail);
                             if (uVault.folderId) localStorage.setItem('exo_gdrive_folder_id', uVault.folderId);
                             if (uVault.quotaInfo) localStorage.setItem('exo_gdrive_quota_info', uVault.quotaInfo);
-                            localStorage.setItem('exo_gdrive_bound_user_id', String(currentCloudUser.id));
+                            localStorage.setItem('exo_gdrive_bound_user_id', activeCtx.uid);
                         }
                     }
                 } catch (e) {}
@@ -25697,7 +26191,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 }
 
                 if (shouldInitialSync) {
-                    await syncWorkspaceOnLogin();
+                    await syncWorkspaceOnLogin(activeCtx);
                 }
             } else {
                 if (outView) outView.style.display = 'block';
@@ -25724,9 +26218,9 @@ function togglePdfAudioPlayerBar(forceState) {
             return String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
         }
 
-        function recordUploadedMediaInRegistry(storeName, lecObj, meta = {}) {
+        function recordUploadedMediaInRegistry(storeName, lecObj, meta = {}, targetUid = null) {
             if (!lecObj) return;
-            const uid = currentCloudUser?.id || 'local';
+            const uid = targetUid ? String(targetUid) : getCanonicalUserId();
             const isPdf = storeName === 'pdfs';
             const path = meta.path || (isPdf ? lecObj.cloudPdfPath : lecObj.cloudAudioPath) || '';
             const url = meta.url || (isPdf ? lecObj.cloudPdfUrl : lecObj.cloudAudioUrl) || '';
@@ -25758,9 +26252,9 @@ function togglePdfAudioPlayerBar(forceState) {
             saveCloudMediaRegistry();
         }
 
-        function findMediaInCloudRegistry(storeName, lecObj, optionalBlob = null) {
+        function findMediaInCloudRegistry(storeName, lecObj, optionalBlob = null, targetUid = null) {
             if (!lecObj) return null;
-            const uid = currentCloudUser?.id || 'local';
+            const uid = targetUid ? String(targetUid) : getCanonicalUserId();
             const isPdf = storeName === 'pdfs';
 
             // 1. Direct Lecture ID match
@@ -25795,8 +26289,9 @@ function togglePdfAudioPlayerBar(forceState) {
             return normMediaKeyStr(a) !== normMediaKeyStr(b);
         }
 
-        function snapshotCurrentSubjectsMediaToRegistry(subjectList) {
+        function snapshotCurrentSubjectsMediaToRegistry(subjectList, targetUid = null) {
             if (!Array.isArray(subjectList)) return;
+            const uid = targetUid ? String(targetUid) : getCanonicalUserId();
             subjectList.forEach(s => {
                 (s.groups || []).forEach(g => {
                     (g.lectures || []).forEach(l => {
@@ -25806,7 +26301,7 @@ function togglePdfAudioPlayerBar(forceState) {
                                 url: l.cloudPdfUrl,
                                 size: l.cloudPdfSize,
                                 fileName: l.path
-                            });
+                            }, uid);
                         }
                         if (l.cloudAudioUploaded || l.cloudAudioPath || l.cloudAudioUrl) {
                             recordUploadedMediaInRegistry('audios', l, {
@@ -25814,15 +26309,16 @@ function togglePdfAudioPlayerBar(forceState) {
                                 url: l.cloudAudioUrl,
                                 size: l.cloudAudioSize,
                                 fileName: l.audioPath
-                            });
+                            }, uid);
                         }
                     });
                 });
             });
         }
 
-        function healSubjectsFromCloudRegistry() {
+        function healSubjectsFromCloudRegistry(targetUid = null) {
             if (!Array.isArray(subjects)) return false;
+            const uid = targetUid ? String(targetUid) : getCanonicalUserId();
             let healedAny = false;
             subjects.forEach(s => {
                 (s.groups || []).forEach(g => {
@@ -25830,9 +26326,9 @@ function togglePdfAudioPlayerBar(forceState) {
                         // First record if lecture already has cloud flags
                         if (l.cloudPdfUploaded || l.cloudPdfPath || l.cloudPdfUrl) {
                             if (!l.cloudPdfUploaded) { l.cloudPdfUploaded = true; healedAny = true; }
-                            recordUploadedMediaInRegistry('pdfs', l);
+                            recordUploadedMediaInRegistry('pdfs', l, {}, uid);
                         } else {
-                            const regPdf = findMediaInCloudRegistry('pdfs', l);
+                            const regPdf = findMediaInCloudRegistry('pdfs', l, null, uid);
                             if (regPdf && regPdf.uploaded) {
                                 l.cloudPdfUploaded = true;
                                 if (regPdf.path && !l.cloudPdfPath) l.cloudPdfPath = regPdf.path;
@@ -25844,9 +26340,9 @@ function togglePdfAudioPlayerBar(forceState) {
 
                         if (l.cloudAudioUploaded || l.cloudAudioPath || l.cloudAudioUrl) {
                             if (!l.cloudAudioUploaded) { l.cloudAudioUploaded = true; healedAny = true; }
-                            recordUploadedMediaInRegistry('audios', l);
+                            recordUploadedMediaInRegistry('audios', l, {}, uid);
                         } else {
-                            const regAud = findMediaInCloudRegistry('audios', l);
+                            const regAud = findMediaInCloudRegistry('audios', l, null, uid);
                             if (regAud && regAud.uploaded) {
                                 l.cloudAudioUploaded = true;
                                 if (regAud.path && !l.cloudAudioPath) l.cloudAudioPath = regAud.path;
@@ -25865,8 +26361,8 @@ function togglePdfAudioPlayerBar(forceState) {
         }
 
         // Live Media Reconciliation: Uses Google Drive file IDs and local registry
-        async function reconcileCloudMediaWithStorageBucket(pushIfHealed = false) {
-            healSubjectsFromCloudRegistry();
+        async function reconcileCloudMediaWithStorageBucket(pushIfHealed = false, targetUid = null) {
+            healSubjectsFromCloudRegistry(targetUid);
             return false;
         }
         async function _legacy_disabled_reconcileCloudMediaWithStorageBucket(pushIfHealed = false) {
@@ -28349,31 +28845,38 @@ function togglePdfAudioPlayerBar(forceState) {
 
 
 
-        async function handleCloudSignOut() {
-            if (!currentCloudUser) return { success: true, reason: 'not_logged_in' };
-            const userChoice = confirm('هل أنت متأكد من تسجيل الخروج؟');
-            if (!userChoice) return { success: false, reason: 'cancelled' };
-
-            const canonicalUid = getCanonicalUserId();
-
-            // 1. Flush pending annotations and verify result
-            const flushOk = await flushPendingAnnotationsSave(false);
-            if (!flushOk) {
-                showToast('خطأ: تعذر حفظ كتابات التابلت محلياً. تم إيقاف تسجيل الخروج لحماية بياناتك من الضياع ⚠️', 'error');
-                return { success: false, reason: 'flush_failed' };
+        async function handleCloudSignOut(skipConfirm = false) {
+            if (!currentCloudUser) return { success: true, reason: 'not_logged_in', backupSuccess: true };
+            if (!skipConfirm) {
+                const userChoice = confirm('هل أنت متأكد من تسجيل الخروج؟');
+                if (!userChoice) return { success: false, reason: 'cancelled', backupSuccess: false };
             }
 
-            // 2. Await any in-flight cloud sync currently running
-            if (activeCloudSyncPromise) {
+            const opCtx = createAccountOperationContext();
+            const canonicalUid = opCtx.uid;
+            const userEmailSnapshot = String(currentCloudUser.email || '').toLowerCase();
+
+            // 1. Flush pending annotations under current account context and verify result
+            const flushOk = await flushPendingAnnotationsSave(false, opCtx);
+            if (!flushOk) {
+                showToast('خطأ: تعذر حفظ كتابات التابلت محلياً. تم إيقاف تسجيل الخروج لحماية بياناتك من الضياع ⚠️', 'error');
+                return { success: false, reason: 'flush_failed', backupSuccess: false };
+            }
+
+            // 2. Await any in-flight cloud sync currently running for this account
+            const accountSyncState = activeCloudSyncByAccount.get(canonicalUid);
+            if (accountSyncState && accountSyncState.promise) {
+                try { await accountSyncState.promise; } catch (e) {}
+            } else if (activeCloudSyncPromise) {
                 try { await activeCloudSyncPromise; } catch (e) {}
             }
 
             // 3. Attempt final cloud synchronization if dirty and online
             let finalSyncRes = null;
             const isDirty = (localStorage.getItem('pharmaWorkspaceDirty') === '1') || dirtyAnnotationsForCloud;
-            if (supabaseClient && navigator.onLine && isDirty) {
+            if (supabaseClient && navigator.onLine && isDirty && opCtx.isCurrent()) {
                 try {
-                    finalSyncRes = await pushWorkspaceToCloud(false, true);
+                    finalSyncRes = await pushWorkspaceToCloud(false, true, opCtx);
                 } catch (syncErr) {
                     console.warn('Final cloud sync before logout failed:', syncErr);
                 }
@@ -28382,45 +28885,61 @@ function togglePdfAudioPlayerBar(forceState) {
             const finalSyncOk = Boolean(finalSyncRes && finalSyncRes.status === 'success');
 
             // 4. Per-Account local backup MUST protect annotations, subjects, schedule, logs
+            // Never claim backup success if reading annotations or writing localStorage fails!
+            let localVaultBackupOk = false;
+            let localVaultBackupError = null;
             try {
-                const accountKey = `pharmaAccountWorkspace_${canonicalUid}`;
-                const annoRes = await getAllAnnotationsMapFromDB(canonicalUid);
-                const userAnnotations = (annoRes && !annoRes.error) ? (annoRes.verifiedMap || annoRes) : {};
-                const localVaultSnapshot = {
-                    user_id: canonicalUid,
-                    user_email: (currentCloudUser.email || "").toLowerCase(),
-                    subjects: subjects || [],
-                    schedule: {
-                        version: 3,
-                        events: scheduleEvents || [],
-                        backlog: scheduleBacklog || [],
-                        plannerPrefs: plannerPrefs,
-                        weeklyReports: weeklyReports || [],
-                        pdfFitMode: currentPdfFitMode || 'height',
-                        cloudMediaRegistry: cloudMediaRegistry || {},
-                        _tombstones: getLocalTombstones(),
-                        gdriveSync: {
-                            linked: Boolean(localStorage.getItem('exo_gdrive_connected') === '1'),
-                            userEmail: localStorage.getItem('exo_gdrive_user_email') || '',
-                            folderId: localStorage.getItem('exo_gdrive_folder_id') || '',
-                            quotaInfo: localStorage.getItem('exo_gdrive_quota_info') || ''
-                        }
-                    },
-                    logs: logs || [],
-                    academy_progress: completedAcademyModules || [],
-                    annotations: userAnnotations, // Annotations protected in vault
-                    updated_at: new Date().toISOString()
-                };
-                localStorage.setItem(accountKey, JSON.stringify(localVaultSnapshot));
+                const accountKey = getAccountBackupStorageKey(canonicalUid);
+                const annoRes = await getAllAnnotationsMapFromDB(canonicalUid, opCtx);
+                if (!annoRes || !annoRes.ok || annoRes.error) {
+                    localVaultBackupOk = false;
+                    localVaultBackupError = (annoRes && annoRes.error && annoRes.error.code) || 'ANNOTATIONS_READ_FAILED';
+                    console.error('Per-account vault backup aborted: could not safely read annotations from DB:', annoRes?.error);
+                } else {
+                    const userAnnotations = annoRes.verifiedMap || {};
+                    const localVaultSnapshot = {
+                        user_id: canonicalUid,
+                        user_email: userEmailSnapshot,
+                        subjects: subjects || [],
+                        schedule: {
+                            version: 3,
+                            events: scheduleEvents || [],
+                            backlog: scheduleBacklog || [],
+                            plannerPrefs: plannerPrefs,
+                            weeklyReports: weeklyReports || [],
+                            pdfFitMode: currentPdfFitMode || 'height',
+                            cloudMediaRegistry: cloudMediaRegistry || {},
+                            _tombstones: getLocalTombstones(canonicalUid),
+                            gdriveSync: {
+                                linked: Boolean(localStorage.getItem('exo_gdrive_connected') === '1'),
+                                userEmail: localStorage.getItem('exo_gdrive_user_email') || '',
+                                folderId: localStorage.getItem('exo_gdrive_folder_id') || '',
+                                quotaInfo: localStorage.getItem('exo_gdrive_quota_info') || ''
+                            }
+                        },
+                        logs: logs || [],
+                        academy_progress: completedAcademyModules || [],
+                        annotations: userAnnotations, // Verified annotations protected in vault
+                        updated_at: new Date().toISOString()
+                    };
+                    localStorage.setItem(accountKey, JSON.stringify(localVaultSnapshot));
+                    localVaultBackupOk = true;
+                }
             } catch (vaultErr) {
+                localVaultBackupOk = false;
+                localVaultBackupError = vaultErr?.message || 'VAULT_WRITE_FAILED';
                 console.warn('Per-account vault backup warning:', vaultErr);
             }
 
-            // 5. If final sync failed or changes remain unsynced, preserve dirty flag!
-            if (!finalSyncOk && isDirty) {
+            // 5. If final sync failed or backup had an issue, preserve dirty flag!
+            if ((!finalSyncOk && isDirty) || !localVaultBackupOk) {
                 localStorage.setItem('pharmaWorkspaceDirty', '1');
                 dirtyAnnotationsForCloud = true;
-                showToast('تنبيه: تم حفظ جميع بياناتك ومذكراتك بأمان على هذا الجهاز. ستتم المزامنة السحابية فور عودة الاتصال 🔒');
+                if (!localVaultBackupOk) {
+                    showToast('تنبيه: تعذر تحديث النسخة الاحتياطية المحلية بالكامل، لكن بياناتك في قاعدة البيانات المحلية محفوظة ⚠️', 'error');
+                } else {
+                    showToast('تنبيه: تم حفظ جميع بياناتك ومذكراتك بأمان على هذا الجهاز. ستتم المزامنة السحابية فور عودة الاتصال 🔒');
+                }
             }
 
             // 6. Revoke Google token
@@ -28468,122 +28987,342 @@ function togglePdfAudioPlayerBar(forceState) {
             renderSchedule();
             updateTracker();
             updateCloudMediaStatsUI();
-            showToast('تم تسجيل الخروج بأمان مع الحفاظ على جميع ملفاتك ومذكراتك المحلية 🔒');
+            if (localVaultBackupOk) {
+                showToast('تم تسجيل الخروج بأمان مع الحفاظ على جميع ملفاتك ومذكراتك المحلية 🔒');
+            }
 
             return {
                 success: true,
+                backupSuccess: localVaultBackupOk,
+                backupError: localVaultBackupError,
                 syncedToCloud: finalSyncOk,
-                isDirty: isDirty && !finalSyncOk
+                isDirty: (isDirty && !finalSyncOk) || !localVaultBackupOk
             };
         }
 
-        function getAllAnnotationsMapFromDB(targetUserId = null) {
-            const canonicalUid = targetUserId ? String(targetUserId) : getCanonicalUserId();
-            const expectedPrefix = `usr_${canonicalUid}::`;
+        // --- P0 Hardened Account-Scoped Annotation Reader (Explicit Result Contract) ---
+        function getAllAnnotationsMapFromDB(targetUserId = null, ctx = null) {
+            const opCtx = resolveAccountOperationContext(targetUserId, ctx);
+            if (!opCtx.ok) {
+                return Promise.resolve({
+                    ok: false,
+                    error: opCtx.error || { code: 'UNAUTHORIZED_TARGET_USER', message: 'Target user mismatch with active session' }
+                });
+            }
+            if (!opCtx.isCurrent()) {
+                return Promise.resolve({
+                    ok: false,
+                    error: { code: 'ACCOUNT_CONTEXT_EXPIRED', message: 'Account session switched before reading annotations' }
+                });
+            }
+
+            const canonicalUid = opCtx.uid;
+            const sanitizedUid = opCtx.sanitizedUid;
 
             return new Promise((resolve) => {
-                if (!dbInstance) return resolve({});
+                if (!dbInstance) {
+                    return resolve({
+                        ok: false,
+                        error: { code: 'DB_NOT_INITIALIZED', message: 'IndexedDB instance is not initialized' }
+                    });
+                }
+                let settled = false;
+                const finish = (result) => {
+                    if (settled) return;
+                    settled = true;
+                    resolve(result);
+                };
+
                 try {
                     const tx = dbInstance.transaction('annotations', 'readonly');
                     const store = tx.objectStore('annotations');
                     const req = store.getAll();
+
                     req.onsuccess = () => {
+                        if (!opCtx.isCurrent()) {
+                            return finish({
+                                ok: false,
+                                error: { code: 'ACCOUNT_CONTEXT_EXPIRED', message: 'Account session changed while reading annotations' }
+                            });
+                        }
                         const verifiedMap = {};
+                        const quarantined = [];
                         (req.result || []).forEach(item => {
                             if (!item || !item.pages || String(item.id).startsWith('_cloudMedia_')) return;
 
                             const itemKey = String(item.id);
-                            const itemUserId = item.userId ? String(item.userId) : null;
+                            const itemUserId = (item.userId !== undefined && item.userId !== null && String(item.userId).trim() !== '')
+                                ? String(item.userId)
+                                : null;
                             const keyPrefixUserId = extractUserIdFromScopedKey(itemKey);
 
                             // P0 Dual Ownership Verification:
-                            // BOTH the key prefix AND the internal ownership metadata MUST match canonicalUid!
-                            // Any conflicting metadata is quarantined and NEVER exported!
-                            const isStrictMatch = (keyPrefixUserId === canonicalUid) &&
-                                                  (itemUserId === canonicalUid);
-
-                            if (isStrictMatch) {
-                                const rawLecId = extractRawIdFromScopedKey(itemKey);
+                            // BOTH the key prefix AND non-empty internal ownership metadata MUST match canonicalUid!
+                            if (hasStrictDualRecordOwnership(item, canonicalUid)) {
+                                const rawLecId = extractRawIdFromScopedKey(itemKey, canonicalUid);
                                 verifiedMap[rawLecId] = item.pages;
-                                inMemoryAnnotationsCache[itemKey] = item.pages;
+                                if (opCtx.isCurrent()) {
+                                    inMemoryAnnotationsCache[itemKey] = item.pages;
+                                }
                             } else {
-                                // Mismatched or foreign record: Quarantine!
-                                if (keyPrefixUserId !== null || itemUserId !== null) {
-                                    console.warn('Quarantined conflicted annotation record (ownership mismatch):', {
-                                        key: itemKey,
-                                        keyPrefixUserId,
-                                        itemUserId,
-                                        requestedUser: canonicalUid
-                                    });
+                                // Mismatched, missing-userId, or foreign record: Quarantine!
+                                const qEntry = {
+                                    key: itemKey,
+                                    keyPrefixUserId,
+                                    itemUserId,
+                                    requestedUser: canonicalUid
+                                };
+                                quarantined.push(qEntry);
+                                if (keyPrefixUserId === sanitizedUid || (itemUserId && sanitizeForScopedKey(itemUserId) === sanitizedUid) || keyPrefixUserId === null || itemUserId === null) {
+                                    console.warn('Quarantined conflicted or unverified annotation record:', qEntry);
                                 }
                             }
                         });
-                        resolve(verifiedMap);
+                        finish({
+                            ok: true,
+                            verifiedMap,
+                            quarantined
+                        });
                     };
-                    req.onerror = () => resolve({});
+
+                    req.onerror = () => {
+                        finish({
+                            ok: false,
+                            error: {
+                                code: 'IDB_READ_ERROR',
+                                message: req.error?.message || 'Failed to read annotations from IndexedDB'
+                            }
+                        });
+                    };
+
+                    tx.onerror = () => {
+                        finish({
+                            ok: false,
+                            error: {
+                                code: 'IDB_TX_ERROR',
+                                message: tx.error?.message || 'Annotations read transaction failed'
+                            }
+                        });
+                    };
+
+                    tx.onabort = () => {
+                        finish({
+                            ok: false,
+                            error: {
+                                code: 'IDB_TX_ABORTED',
+                                message: tx.error?.message || 'Annotations read transaction aborted'
+                            }
+                        });
+                    };
                 } catch (e) {
-                    resolve({});
+                    finish({
+                        ok: false,
+                        error: {
+                            code: 'IDB_EXCEPTION',
+                            message: e?.message || 'Exception while reading annotations from IndexedDB'
+                        }
+                    });
                 }
             });
         }
 
-        // --- Account-Scoped Annotation Restoration (Persists Scoped Keys & Canonical Ownership) ---
-        function restoreAllAnnotationsMapToDB(annotationsMap, targetUserId = null) {
-            const canonicalUid = targetUserId ? String(targetUserId) : getCanonicalUserId();
+        // --- P0 Hardened Account-Scoped Annotation Restoration ---
+        function restoreAllAnnotationsMapToDB(annotationsMap, targetUserId = null, ctx = null) {
+            const opCtx = resolveAccountOperationContext(targetUserId, ctx);
+            if (!opCtx.ok) {
+                return Promise.resolve({
+                    ok: false,
+                    error: opCtx.error || { code: 'UNAUTHORIZED_TARGET_USER', message: 'Target user mismatch with active session' }
+                });
+            }
+            if (!opCtx.isCurrent()) {
+                return Promise.resolve({
+                    ok: false,
+                    error: { code: 'ACCOUNT_CONTEXT_EXPIRED', message: 'Account session switched before restoring annotations' }
+                });
+            }
+            if (!dbInstance) {
+                return Promise.resolve({
+                    ok: false,
+                    error: { code: 'DB_NOT_INITIALIZED', message: 'IndexedDB instance is not initialized' }
+                });
+            }
+            if (!annotationsMap || typeof annotationsMap !== 'object' || Array.isArray(annotationsMap)) {
+                return Promise.resolve({
+                    ok: false,
+                    error: { code: 'INVALID_ANNOTATIONS_MAP', message: 'annotationsMap must be a valid non-null object' }
+                });
+            }
+
+            const canonicalUid = opCtx.uid;
+            const sanitizedUid = opCtx.sanitizedUid;
+
+            // Pre-validate ownership of EVERY key and record BEFORE opening write transaction
+            const stagedRecords = [];
+            try {
+                const mapKeys = Object.keys(annotationsMap);
+                for (let i = 0; i < mapKeys.length; i++) {
+                    const entryKey = mapKeys[i];
+                    if (String(entryKey).startsWith('_cloudMedia_')) continue;
+
+                    // Reject foreign scoped keys (e.g. usr_B::123) immediately — never strip and re-scope!
+                    const { scopedKey, rawId } = resolveAuthorizedScopedKey(entryKey, canonicalUid);
+                    const rawVal = annotationsMap[entryKey];
+                    if (!rawVal || typeof rawVal !== 'object') continue;
+
+                    // If caller passed a wrapped record object with userId metadata, verify it matches canonicalUid
+                    if (rawVal.userId !== undefined && rawVal.userId !== null && sanitizeForScopedKey(rawVal.userId) !== sanitizedUid) {
+                        throw new Error(`CROSS_ACCOUNT_RECORD_VIOLATION: Record userId "${rawVal.userId}" does not match target user "${canonicalUid}"`);
+                    }
+
+                    const pagesSource = (rawVal.pages && typeof rawVal.pages === 'object' && !Array.isArray(rawVal.pages))
+                        ? rawVal.pages
+                        : rawVal;
+                    const normPages = normalizeAndRecoverLectureAnnotations(rawId, pagesSource);
+
+                    stagedRecords.push({
+                        scopedKey,
+                        rawId,
+                        normPages,
+                        record: {
+                            id: scopedKey,
+                            rawId: rawId,
+                            userId: canonicalUid,
+                            pages: normPages,
+                            updatedAt: Date.now()
+                        }
+                    });
+                }
+            } catch (validationErr) {
+                return Promise.resolve({
+                    ok: false,
+                    error: {
+                        code: 'CROSS_ACCOUNT_KEY_VIOLATION',
+                        message: validationErr?.message || 'Foreign or unauthorized key detected in restoreAllAnnotationsMapToDB'
+                    }
+                });
+            }
+
+            if (stagedRecords.length === 0) {
+                return Promise.resolve({ ok: true, restoredCount: 0 });
+            }
+
             return new Promise((resolve) => {
-                if (!dbInstance || !annotationsMap || typeof annotationsMap !== 'object') return resolve();
+                let settled = false;
+                const finish = (res) => {
+                    if (settled) return;
+                    settled = true;
+                    resolve(res);
+                };
+
                 try {
                     const tx = dbInstance.transaction('annotations', 'readwrite');
                     const store = tx.objectStore('annotations');
-                    Object.keys(annotationsMap).forEach(rawLecId => {
-                        if (String(rawLecId).startsWith('_cloudMedia_')) return;
-                        const cleanRawId = extractRawIdFromScopedKey(rawLecId);
-                        const scopedKey = toScopedKey(cleanRawId, canonicalUid);
-                        const normPages = normalizeAndRecoverLectureAnnotations(cleanRawId, annotationsMap[rawLecId]);
 
-                        inMemoryAnnotationsCache[scopedKey] = normPages;
-                        inMemoryAnnotationsCacheNormalized[scopedKey] = true;
-
-                        // Always persist with account-scoped key and canonical userId metadata
-                        store.put({
-                            id: scopedKey,
-                            rawId: cleanRawId,
-                            userId: canonicalUid, // Raw canonical UUID
-                            pages: normPages,
-                            updatedAt: Date.now()
-                        });
+                    stagedRecords.forEach(item => {
+                        store.put(item.record);
                     });
-                    tx.oncomplete = () => resolve();
-                    tx.onerror = () => resolve();
+
+                    tx.oncomplete = () => {
+                        // Update inMemoryAnnotationsCache ONLY after transaction commits and if context is still current
+                        if (opCtx.isCurrent()) {
+                            stagedRecords.forEach(item => {
+                                inMemoryAnnotationsCache[item.scopedKey] = item.normPages;
+                                inMemoryAnnotationsCacheNormalized[item.scopedKey] = true;
+                            });
+                        }
+                        finish({ ok: true, restoredCount: stagedRecords.length });
+                    };
+
+                    tx.onerror = () => {
+                        finish({
+                            ok: false,
+                            error: {
+                                code: 'IDB_TX_ERROR',
+                                message: tx.error?.message || 'Annotations restore transaction failed'
+                            }
+                        });
+                    };
+
+                    tx.onabort = () => {
+                        finish({
+                            ok: false,
+                            error: {
+                                code: 'IDB_TX_ABORTED',
+                                message: tx.error?.message || 'Annotations restore transaction aborted'
+                            }
+                        });
+                    };
                 } catch (e) {
-                    resolve();
+                    finish({
+                        ok: false,
+                        error: {
+                            code: 'IDB_EXCEPTION',
+                            message: e?.message || 'Exception during restoreAllAnnotationsMapToDB'
+                        }
+                    });
                 }
             });
         }
 
         let dirtyAnnotationsForCloud = false;
+        let localWorkspaceMutationSeq = 0;
+        let localAnnotationsMutationSeq = 0;
+        const activeCloudSyncByAccount = new Map();
         let currentCloudWorkspaceRevision = Number(localStorage.getItem('pharmaWorkspaceRevision_' + (currentCloudUser?.id || 'local')) || 1);
 
         // --- Tombstone Management for Accurate Cross-Device Deletion Sync ---
-        function getLocalTombstones() {
-            const uid = currentCloudUser ? currentCloudUser.id : 'local';
+        function getLocalTombstones(targetUid = null) {
+            const uid = targetUid ? String(targetUid) : (currentCloudUser ? String(currentCloudUser.id) : 'local');
             return JSON.parse(localStorage.getItem('pharmaTombstones_' + uid) || '{"subjects":{},"lectures":{},"events":{}}');
         }
 
-        function recordTombstone(entityType, id) {
-            const uid = currentCloudUser ? currentCloudUser.id : 'local';
-            const stones = getLocalTombstones();
+        function recordTombstone(entityType, id, targetUid = null) {
+            const uid = targetUid ? String(targetUid) : (currentCloudUser ? String(currentCloudUser.id) : 'local');
+            const stones = getLocalTombstones(uid);
             if (!stones[entityType]) stones[entityType] = {};
             stones[entityType][String(id)] = Date.now();
             localStorage.setItem('pharmaTombstones_' + uid, JSON.stringify(stones));
         }
 
-        // --- Genuine Three-Way Non-Destructive Conflict Resolution ---
-        async function mergeAndApplyCloudConflict(remoteRow, localPayload) {
-            if (!remoteRow) return;
-            console.log('Resolving concurrency conflict between Remote Rev ' + remoteRow.revision + ' and Local Changes...');
+        // --- Deterministic Full-Geometry Stroke Signature for Conflict Merging ---
+        function computeStrokeUniqueSignature(s) {
+            if (!s || typeof s !== 'object') return 'null';
+            if (s.id) return `id:${s.id}`;
+            const tool = String(s.tool || 'pen');
+            const color = String(s.color || '');
+            const size = Number(s.size || s.width || 0).toFixed(2);
+            const opacity = Number(s.opacity ?? 1).toFixed(2);
+            const text = s.text !== undefined ? `txt:${String(s.text)}:${Number(s.x || 0).toFixed(2)},${Number(s.y || 0).toFixed(2)}` : '';
+            const pts = Array.isArray(s.points)
+                ? s.points.map(pt => {
+                    if (Array.isArray(pt)) {
+                        return `${Number(pt[0] || 0).toFixed(2)},${Number(pt[1] || 0).toFixed(2)}`;
+                    }
+                    if (pt && typeof pt === 'object') {
+                        return `${Number(pt.x || 0).toFixed(2)},${Number(pt.y || 0).toFixed(2)}`;
+                    }
+                    return String(pt);
+                }).join(';')
+                : '';
+            return `${tool}|${color}|${size}|${opacity}|${text}|${pts}`;
+        }
 
-            const localTombstones = getLocalTombstones();
+        // --- Genuine Three-Way Non-Destructive Conflict Resolution (Account-Context Bound) ---
+        async function mergeAndApplyCloudConflict(remoteRow, localPayload, ctx = null) {
+            if (!remoteRow) return { ok: false, reason: 'missing_remote_row' };
+            const opCtx = resolveAccountOperationContext(ctx?.uid || localPayload?.user_id || null, ctx);
+            if (!opCtx.ok || !opCtx.isCurrent()) {
+                return { ok: false, reason: 'account_context_invalid' };
+            }
+            const uid = opCtx.uid;
+            if (remoteRow.user_id && sanitizeForScopedKey(remoteRow.user_id) !== opCtx.sanitizedUid) {
+                return { ok: false, reason: 'remote_row_user_mismatch' };
+            }
+
+            console.log('Resolving concurrency conflict between Remote Rev ' + remoteRow.revision + ' and Local Changes for user ' + uid + '...');
+
+            const localTombstones = getLocalTombstones(uid);
             const remoteTombstones = (remoteRow.schedule && remoteRow.schedule._tombstones) || { subjects: {}, lectures: {}, events: {} };
 
             // 1. Merge Tombstones (Union of deletions across both devices)
@@ -28592,10 +29331,73 @@ function togglePdfAudioPlayerBar(forceState) {
                 lectures: Object.assign({}, remoteTombstones.lectures, localTombstones.lectures),
                 events: Object.assign({}, remoteTombstones.events, localTombstones.events)
             };
-            const uid = currentCloudUser ? currentCloudUser.id : 'local';
+
+            // 2. Merge Annotations FIRST before mutating local state so we can abort cleanly if DB read/write fails
+            if (remoteRow.annotations && typeof remoteRow.annotations === 'object') {
+                const remoteAnnos = remoteRow.annotations;
+                const localAnnosRes = await getAllAnnotationsMapFromDB(uid, opCtx);
+                if (!opCtx.isCurrent()) {
+                    return { ok: false, reason: 'account_switched' };
+                }
+                if (!localAnnosRes || !localAnnosRes.ok || localAnnosRes.error) {
+                    console.error('Conflict merge aborted: failed to read local annotations safely:', localAnnosRes?.error);
+                    return { ok: false, reason: 'local_annotations_read_failed', error: localAnnosRes?.error };
+                }
+
+                const localAnnos = localAnnosRes.verifiedMap || {};
+                const unifiedAnnos = Object.assign({}, localAnnos);
+
+                Object.keys(remoteAnnos).forEach(rawKey => {
+                    if (String(rawKey).startsWith('_cloudMedia_')) return;
+                    let lecId = rawKey;
+                    try {
+                        lecId = resolveAuthorizedScopedKey(rawKey, uid).rawId;
+                    } catch (e) {
+                        console.warn('Skipping foreign annotation key in remote conflict payload:', rawKey);
+                        return;
+                    }
+
+                    if (!unifiedAnnos[lecId]) {
+                        unifiedAnnos[lecId] = remoteAnnos[rawKey];
+                    } else {
+                        const rPages = normalizeAndRecoverLectureAnnotations(lecId, remoteAnnos[rawKey] || {});
+                        const lPages = normalizeAndRecoverLectureAnnotations(lecId, unifiedAnnos[lecId] || {});
+                        const mergedPages = Object.assign({}, lPages);
+                        Object.keys(rPages).forEach(pNum => {
+                            if (!mergedPages[pNum]) {
+                                mergedPages[pNum] = rPages[pNum];
+                            } else if (Array.isArray(rPages[pNum]) && Array.isArray(mergedPages[pNum])) {
+                                const strokeSigSet = new Set(mergedPages[pNum].map(s => computeStrokeUniqueSignature(s)));
+                                rPages[pNum].forEach(rs => {
+                                    const sig = computeStrokeUniqueSignature(rs);
+                                    if (!strokeSigSet.has(sig)) {
+                                        mergedPages[pNum].push(rs);
+                                        strokeSigSet.add(sig);
+                                    }
+                                });
+                            }
+                        });
+                        unifiedAnnos[lecId] = mergedPages;
+                    }
+                });
+
+                const restoreRes = await restoreAllAnnotationsMapToDB(unifiedAnnos, uid, opCtx);
+                if (!opCtx.isCurrent()) {
+                    return { ok: false, reason: 'account_switched' };
+                }
+                if (!restoreRes || !restoreRes.ok) {
+                    console.error('Conflict merge aborted: failed to restore merged annotations:', restoreRes?.error);
+                    return { ok: false, reason: 'annotations_restore_failed', error: restoreRes?.error };
+                }
+            }
+
+            if (!opCtx.isCurrent()) {
+                return { ok: false, reason: 'account_switched' };
+            }
+
             localStorage.setItem('pharmaTombstones_' + uid, JSON.stringify(unifiedTombstones));
 
-            // 2. Merge Subjects & Lectures (Respecting deletions and newer timestamps)
+            // 3. Merge Subjects & Lectures (Respecting deletions and newer timestamps)
             const remoteSubs = Array.isArray(remoteRow.subjects) ? remoteRow.subjects : [];
             const localSubs = Array.isArray(localPayload.subjects) ? localPayload.subjects : [];
             const mergedSubMap = new Map();
@@ -28642,7 +29444,7 @@ function togglePdfAudioPlayerBar(forceState) {
             subjects = Array.from(mergedSubMap.values());
             localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
 
-            // 3. Merge Schedule Events & Backlog
+            // 4. Merge Schedule Events & Backlog
             const remoteEvents = Array.isArray(remoteRow.schedule?.events) ? remoteRow.schedule.events : [];
             const localEvents = Array.isArray(localPayload.schedule?.events) ? localPayload.schedule.events : [];
             const eventMap = new Map();
@@ -28665,7 +29467,7 @@ function togglePdfAudioPlayerBar(forceState) {
             localBacklog.forEach(b => backlogMap.set(b.id, b));
             scheduleBacklog = Array.from(backlogMap.values());
 
-            // 4. Merge Weekly Reports & Goals
+            // 5. Merge Weekly Reports & Goals
             const remoteReports = Array.isArray(remoteRow.schedule?.weeklyReports) ? remoteRow.schedule.weeklyReports : [];
             const localReports = Array.isArray(localPayload.schedule?.weeklyReports) ? localPayload.schedule.weeklyReports : [];
             const reportMap = new Map();
@@ -28674,11 +29476,11 @@ function togglePdfAudioPlayerBar(forceState) {
             weeklyReports = Array.from(reportMap.values());
             localStorage.setItem('pharmaWeeklyReportsV1', JSON.stringify(weeklyReports));
 
-            // 5. Merge Planner Preferences
+            // 6. Merge Planner Preferences
             plannerPrefs = Object.assign({}, remoteRow.schedule?.plannerPrefs, localPayload.schedule?.plannerPrefs);
             localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
 
-            // 6. Merge Logs
+            // 7. Merge Logs
             const remoteLogs = Array.isArray(remoteRow.logs) ? remoteRow.logs : [];
             const localLogs = Array.isArray(localPayload.logs) ? localPayload.logs : [];
             const logMap = new Map();
@@ -28687,54 +29489,21 @@ function togglePdfAudioPlayerBar(forceState) {
             logs = Array.from(logMap.values());
             localStorage.setItem('pharmaLogsV4', JSON.stringify(logs));
 
-            // 7. Merge Academy Progress
+            // 8. Merge Academy Progress
             const remoteAcad = Array.isArray(remoteRow.academy_progress) ? remoteRow.academy_progress : [];
             const localAcad = Array.isArray(localPayload.academy_progress) ? localPayload.academy_progress : [];
             completedAcademyModules = Array.from(new Set([...remoteAcad, ...localAcad]));
             localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(completedAcademyModules));
 
-            // 8. Merge Cloud Media Registry
+            // 9. Merge Cloud Media Registry
             if (remoteRow.schedule?.cloudMediaRegistry) {
                 cloudMediaRegistry = Object.assign({}, remoteRow.schedule.cloudMediaRegistry, cloudMediaRegistry);
                 saveCloudMediaRegistry();
             }
 
-            // 9. Merge Annotations (Page-by-page stroke union)
-            if (remoteRow.annotations && typeof remoteRow.annotations === 'object') {
-                const remoteAnnos = remoteRow.annotations;
-                const localAnnos = (await getAllAnnotationsMapFromDB()) || {};
-                const unifiedAnnos = Object.assign({}, localAnnos);
-
-                Object.keys(remoteAnnos).forEach(lecId => {
-                    if (!unifiedAnnos[lecId]) {
-                        unifiedAnnos[lecId] = remoteAnnos[lecId];
-                    } else {
-                        const rPages = remoteAnnos[lecId] || {};
-                        const lPages = unifiedAnnos[lecId] || {};
-                        const mergedPages = Object.assign({}, lPages);
-                        Object.keys(rPages).forEach(pNum => {
-                            if (!mergedPages[pNum]) {
-                                mergedPages[pNum] = rPages[pNum];
-                            } else if (Array.isArray(rPages[pNum]) && Array.isArray(mergedPages[pNum])) {
-                                const strokeSigSet = new Set(mergedPages[pNum].map(s => `${s.tool}:${s.color}:${(s.points||[]).length}`));
-                                rPages[pNum].forEach(rs => {
-                                    const sig = `${rs.tool}:${rs.color}:${(rs.points||[]).length}`;
-                                    if (!strokeSigSet.has(sig)) {
-                                        mergedPages[pNum].push(rs);
-                                        strokeSigSet.add(sig);
-                                    }
-                                });
-                            }
-                        });
-                        unifiedAnnos[lecId] = mergedPages;
-                    }
-                });
-                await restoreAllAnnotationsMapToDB(unifiedAnnos);
-            }
-
             // 10. Update local revision to remote revision
             currentCloudWorkspaceRevision = Number(remoteRow.revision || 1);
-            const userRevKey = 'pharmaWorkspaceRevision_' + (currentCloudUser ? currentCloudUser.id : 'local');
+            const userRevKey = 'pharmaWorkspaceRevision_' + uid;
             localStorage.setItem(userRevKey, String(currentCloudWorkspaceRevision));
             localStorage.setItem('pharmaLastCloudSyncIso', remoteRow.updated_at || new Date().toISOString());
 
@@ -28745,10 +29514,14 @@ function togglePdfAudioPlayerBar(forceState) {
 
             showToast('🔄 تم دمج تعديلاتك مع أحدث بيانات السحابة بنجاح دون فقدان أي بيانات');
 
-            // Re-sync unified state back to cloud
+            // Re-sync unified state back to cloud under the same account context
             setTimeout(() => {
-                pushWorkspaceToCloud(false, false);
+                if (opCtx.isCurrent()) {
+                    pushWorkspaceToCloud(false, false, opCtx);
+                }
             }, 1200);
+
+            return { ok: true, revision: currentCloudWorkspaceRevision };
         }
         let lastCloudPullTimestampMs = Date.now();
         let lastUploadedAnnotationsSignature = '';
@@ -28769,34 +29542,51 @@ function togglePdfAudioPlayerBar(forceState) {
 
         // --- Auto-Save Trigger on Any Data Change (Bandwidth & Disk-IO Optimized) ---
         function markLocalWorkspaceModified(includeAnnotations = false) {
-            if (includeAnnotations) dirtyAnnotationsForCloud = true;
+            localWorkspaceMutationSeq++;
+            if (includeAnnotations) {
+                dirtyAnnotationsForCloud = true;
+                localAnnotationsMutationSeq++;
+            }
             localStorage.setItem('pharmaWorkspaceUpdatedAt', String(Date.now()));
             localStorage.setItem('pharmaWorkspaceDirty', '1');
             if (!currentCloudUser || isBulkMediaUploading) return;
+            const scheduledCtx = createAccountOperationContext();
             updateCloudNavUI('syncing');
             if (cloudAutoSaveTimer) clearTimeout(cloudAutoSaveTimer);
             // 4s smart debounce coalesces rapid edits into a single ultra-lightweight metadata write (~3 KB)
             cloudAutoSaveTimer = setTimeout(() => {
-                if (!isBulkMediaUploading) pushWorkspaceToCloud(false, false);
+                if (!isBulkMediaUploading && scheduledCtx.isCurrent()) {
+                    pushWorkspaceToCloud(false, false, scheduledCtx);
+                }
             }, 4000);
         }
 
-        async function pushWorkspaceToCloud(manualNotify = false, forceIncludeAnnotations = false) {
+        async function pushWorkspaceToCloud(manualNotify = false, forceIncludeAnnotations = false, ctx = null) {
             if (!currentCloudUser) return Promise.resolve({ status: 'offline', error: 'not_logged_in' });
-            if (isCloudSyncing && activeCloudSyncPromise) {
-                return activeCloudSyncPromise; // Await ongoing sync
+            const opCtx = resolveAccountOperationContext(ctx?.uid || currentCloudUser.id, ctx);
+            if (!opCtx.ok || !opCtx.isCurrent()) {
+                return Promise.resolve({ status: 'aborted', reason: 'account_switched' });
             }
 
-            const syncUserId = String(currentCloudUser.id);
+            const syncUserId = opCtx.uid;
+            const existingAccountSync = activeCloudSyncByAccount.get(syncUserId);
+            if (existingAccountSync && existingAccountSync.promise && existingAccountSync.generation === opCtx.generation) {
+                return existingAccountSync.promise; // Await ongoing sync for this same account session
+            }
+
             isCloudSyncing = true;
             updateCloudNavUI('syncing');
 
-            activeCloudSyncPromise = (async () => {
+            let syncPromise = null;
+            syncPromise = (async () => {
                 try {
                     // Check if user changed during initialization
-                    if (!currentCloudUser || String(currentCloudUser.id) !== syncUserId) {
+                    if (!opCtx.isCurrent()) {
                         return { status: 'aborted', reason: 'account_switched' };
                     }
+
+                    const mutationSeqAtStart = localWorkspaceMutationSeq;
+                    const annoSeqAtStart = localAnnotationsMutationSeq;
 
                     const isPdfModalOpenNow = Boolean(document.getElementById('pdfViewerModalOverlay')?.classList.contains('active'));
                     const shouldSendAnnotations = Boolean(
@@ -28810,7 +29600,7 @@ function togglePdfAudioPlayerBar(forceState) {
 
                     const payload = {
                         user_id: syncUserId,
-                        user_email: (currentCloudUser.email || "").toLowerCase(),
+                        user_email: (currentCloudUser?.email || "").toLowerCase(),
                         subjects: subjects || [],
                         schedule: {
                             version: 3,
@@ -28820,7 +29610,7 @@ function togglePdfAudioPlayerBar(forceState) {
                             weeklyReports: weeklyReports || [],
                             pdfFitMode: currentPdfFitMode || 'height',
                             cloudMediaRegistry: cloudMediaRegistry || {},
-                            _tombstones: getLocalTombstones(),
+                            _tombstones: getLocalTombstones(syncUserId),
                             gdriveSync: {
                                 linked: Boolean(localStorage.getItem('exo_gdrive_connected') === '1'),
                                 userEmail: localStorage.getItem('exo_gdrive_user_email') || '',
@@ -28836,32 +29626,42 @@ function togglePdfAudioPlayerBar(forceState) {
                     let annotationsActuallyIncluded = false;
                     let currentSig = '';
                     if (shouldSendAnnotations) {
-                        const annoResult = await getAllAnnotationsMapFromDB(syncUserId);
+                        const annoResult = await getAllAnnotationsMapFromDB(syncUserId, opCtx);
+                        if (!opCtx.isCurrent()) {
+                            return { status: 'aborted', reason: 'account_switched' };
+                        }
                         // Safety Gate: If reading local annotations failed due to a DB error, ABORT!
                         // Never send an empty payload when DB read failed, as it would wipe cloud annotations!
-                        if (annoResult && annoResult.error) {
-                            console.error('Aborting cloud sync: local annotations could not be read safely:', annoResult.error);
-                            return { status: 'error', error: 'LOCAL_ANNOTATIONS_READ_ERROR' };
+                        if (!annoResult || !annoResult.ok || annoResult.error) {
+                            console.error('Aborting cloud sync: local annotations could not be read safely:', annoResult?.error);
+                            return { status: 'error', error: 'LOCAL_ANNOTATIONS_READ_ERROR', details: annoResult?.error };
                         }
-                        const verifiedAnnotations = (annoResult && annoResult.verifiedMap) ? annoResult.verifiedMap : annoResult;
-                        const serializedAnnos = JSON.stringify(verifiedAnnotations || {});
+                        const verifiedAnnotations = annoResult.verifiedMap || {};
+                        const serializedAnnos = JSON.stringify(verifiedAnnotations);
                         currentSig = computeFastStringSignature(serializedAnnos);
-                        if (manualNotify || currentSig !== lastUploadedAnnotationsSignature) {
+                        if (manualNotify || forceIncludeAnnotations || currentSig !== lastUploadedAnnotationsSignature) {
                             payload.annotations = verifiedAnnotations;
                             annotationsActuallyIncluded = true;
                         }
                     }
 
-                    // Per-account local vault backup
+                    if (!opCtx.isCurrent()) {
+                        return { status: 'aborted', reason: 'account_switched' };
+                    }
+
+                    // Per-account local vault backup (preserving any previously backed-up annotations if not included in this lightweight push)
                     try {
-                        const accountKey = `pharmaAccountWorkspace_${syncUserId}`;
+                        const accountKey = getAccountBackupStorageKey(syncUserId);
+                        const existingVault = JSON.parse(localStorage.getItem(accountKey) || 'null');
                         const lightweightVaultCopy = Object.assign({}, payload);
-                        delete lightweightVaultCopy.annotations;
+                        if (!lightweightVaultCopy.annotations && existingVault && existingVault.annotations) {
+                            lightweightVaultCopy.annotations = existingVault.annotations;
+                        }
                         localStorage.setItem(accountKey, JSON.stringify(lightweightVaultCopy));
                     } catch (quotaErr) {}
 
                     // Verify user has not switched before executing network call
-                    if (!currentCloudUser || String(currentCloudUser.id) !== syncUserId) {
+                    if (!opCtx.isCurrent()) {
                         return { status: 'aborted', reason: 'account_switched' };
                     }
 
@@ -28873,6 +29673,10 @@ function togglePdfAudioPlayerBar(forceState) {
                             p_payload: payload,
                             p_expected_revision: expectedRev
                         });
+
+                        if (!opCtx.isCurrent()) {
+                            return { status: 'aborted', reason: 'account_switched' };
+                        }
 
                         if (rpcErr) {
                             console.error('RPC Concurrency Error:', rpcErr);
@@ -28887,8 +29691,11 @@ function togglePdfAudioPlayerBar(forceState) {
                                     .select('*')
                                     .eq('user_id', syncUserId)
                                     .maybeSingle();
+                                if (!opCtx.isCurrent()) {
+                                    return { status: 'aborted', reason: 'account_switched' };
+                                }
                                 if (freshRemote) {
-                                    await mergeAndApplyCloudConflict(freshRemote, payload);
+                                    await mergeAndApplyCloudConflict(freshRemote, payload, opCtx);
                                     return { status: 'conflict', current_revision: rpcRes.current_revision };
                                 }
                             } else if (rpcRes.status === 'success') {
@@ -28899,19 +29706,30 @@ function togglePdfAudioPlayerBar(forceState) {
                     }
 
                     // Check again if user switched during network wait
-                    if (!currentCloudUser || String(currentCloudUser.id) !== syncUserId) {
+                    if (!opCtx.isCurrent()) {
                         return { status: 'aborted', reason: 'account_switched' };
                     }
 
                     if (serverSyncConfirmed && rpcResultData) {
                         currentCloudWorkspaceRevision = Number(rpcResultData.revision);
                         localStorage.setItem(userRevKey, String(currentCloudWorkspaceRevision));
-                        if (annotationsActuallyIncluded) {
+
+                        const noNewAnnotationMutations = (localAnnotationsMutationSeq === annoSeqAtStart);
+                        if (annotationsActuallyIncluded && noNewAnnotationMutations) {
                             lastUploadedAnnotationsSignature = currentSig;
                             dirtyAnnotationsForCloud = false;
                         }
+
                         localStorage.setItem('pharmaLastCloudSyncIso', nowIso);
-                        localStorage.removeItem('pharmaWorkspaceDirty');
+
+                        // Only clear pharmaWorkspaceDirty if no newer local modifications occurred while sync was in-flight
+                        const noNewWorkspaceMutations = (localWorkspaceMutationSeq === mutationSeqAtStart);
+                        if (noNewWorkspaceMutations && !dirtyAnnotationsForCloud) {
+                            localStorage.removeItem('pharmaWorkspaceDirty');
+                        } else {
+                            localStorage.setItem('pharmaWorkspaceDirty', '1');
+                        }
+
                         updateCloudNavUI('synced');
                         const timeEl = document.getElementById('cloudLastSyncedTime');
                         if (timeEl) {
@@ -28943,6 +29761,9 @@ function togglePdfAudioPlayerBar(forceState) {
                         return { status: 'offline' };
                     }
                 } catch (err) {
+                    if (!opCtx.isCurrent()) {
+                        return { status: 'aborted', reason: 'account_switched' };
+                    }
                     console.error('Cloud synchronization failure:', err);
                     localStorage.setItem('pharmaWorkspaceDirty', '1');
                     updateCloudNavUI('error');
@@ -28959,26 +29780,80 @@ function togglePdfAudioPlayerBar(forceState) {
                     }
                     return { status: 'error', error: err.message || 'sync_failed' };
                 } finally {
-                    isCloudSyncing = false;
-                    activeCloudSyncPromise = null;
+                    const currentEntry = activeCloudSyncByAccount.get(syncUserId);
+                    if (currentEntry && currentEntry.promise === syncPromise) {
+                        activeCloudSyncByAccount.delete(syncUserId);
+                    }
+                    // Only clear global sync indicators if this operation still belongs to the active account session!
+                    if (opCtx.isCurrent()) {
+                        isCloudSyncing = false;
+                        if (activeCloudSyncPromise === syncPromise) {
+                            activeCloudSyncPromise = null;
+                        }
+                    }
                 }
             })();
 
-            return activeCloudSyncPromise;
+            activeCloudSyncByAccount.set(syncUserId, {
+                uid: syncUserId,
+                generation: opCtx.generation,
+                promise: syncPromise
+            });
+            activeCloudSyncPromise = syncPromise;
+
+            return syncPromise;
         }
 
-        async function applyCloudWorkspacePayload(cloudRow, showSuccessToast = false) {
-            if (!cloudRow) return;
+        async function applyCloudWorkspacePayload(cloudRow, showSuccessToast = false, ctx = null) {
+            if (!cloudRow) return { ok: false, status: 'aborted', reason: 'empty_payload' };
+            const opCtx = resolveAccountOperationContext(ctx?.uid || cloudRow.user_id || null, ctx);
+            if (!opCtx.ok || !opCtx.isCurrent()) {
+                return { ok: false, status: 'aborted', reason: 'account_switched' };
+            }
+            if (cloudRow.user_id && sanitizeForScopedKey(cloudRow.user_id) !== opCtx.sanitizedUid) {
+                return { ok: false, status: 'aborted', reason: 'payload_user_mismatch' };
+            }
+
+            const targetUid = opCtx.uid;
+
+            // If annotations are present, restore them to IndexedDB FIRST under explicit targetUid & opCtx
+            // before mutating global workspace state, and verify context after await!
+            if (cloudRow.annotations && typeof cloudRow.annotations === 'object') {
+                const restoreRes = await restoreAllAnnotationsMapToDB(cloudRow.annotations, targetUid, opCtx);
+                if (!opCtx.isCurrent()) {
+                    return { ok: false, status: 'aborted', reason: 'account_switched' };
+                }
+                if (!restoreRes || !restoreRes.ok) {
+                    console.error('applyCloudWorkspacePayload aborted: annotations restore failed:', restoreRes?.error);
+                    return { ok: false, status: 'error', reason: 'annotations_restore_failed', error: restoreRes?.error };
+                }
+                if (currentViewingLec && currentViewingLec.lec) {
+                    const loadedAnnos = await getAnnotationsFromDB(currentViewingLec.lec.id, targetUid, opCtx);
+                    if (!opCtx.isCurrent()) {
+                        return { ok: false, status: 'aborted', reason: 'account_switched' };
+                    }
+                    pageAnnotations = loadedAnnos;
+                    renderedPagesSet.forEach(pNum => {
+                        redrawPageAnnotations(pNum);
+                        renderAudioPinsForPage(pNum);
+                    });
+                }
+            }
+
+            if (!opCtx.isCurrent()) {
+                return { ok: false, status: 'aborted', reason: 'account_switched' };
+            }
+
             currentUserCanUploadMedia = Boolean(cloudRow.can_upload_media);
-            // Snapshot any existing local media upload flags into cloudMediaRegistry before applying cloudRow so an older cloud snapshot never erases uploaded file status!
-            snapshotCurrentSubjectsMediaToRegistry(subjects);
+            // Snapshot any existing local media upload flags into cloudMediaRegistry before applying cloudRow
+            snapshotCurrentSubjectsMediaToRegistry(subjects, targetUid);
             if (cloudRow.schedule && cloudRow.schedule.cloudMediaRegistry && typeof cloudRow.schedule.cloudMediaRegistry === 'object') {
                 cloudMediaRegistry = Object.assign({}, cloudRow.schedule.cloudMediaRegistry, cloudMediaRegistry);
                 saveCloudMediaRegistry();
             }
             subjects = Array.isArray(cloudRow.subjects) ? cloudRow.subjects : [];
-            snapshotCurrentSubjectsMediaToRegistry(subjects);
-            healSubjectsFromCloudRegistry();
+            snapshotCurrentSubjectsMediaToRegistry(subjects, targetUid);
+            healSubjectsFromCloudRegistry(targetUid);
             localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
 
             if (cloudRow.schedule && typeof cloudRow.schedule === 'object') {
@@ -29002,19 +29877,18 @@ function togglePdfAudioPlayerBar(forceState) {
                     currentPdfFitMode = cloudRow.schedule.pdfFitMode;
                     localStorage.setItem('pharmaPdfFitMode', currentPdfFitMode);
                 }
-                if (cloudRow.schedule.gdriveSync && typeof cloudRow.schedule.gdriveSync === 'object' && currentCloudUser) {
+                if (cloudRow.schedule.gdriveSync && typeof cloudRow.schedule.gdriveSync === 'object' && opCtx.isCurrent()) {
                     const syncInfo = cloudRow.schedule.gdriveSync;
                     if (syncInfo.linked && syncInfo.userEmail) {
                         localStorage.setItem('exo_gdrive_connected', '1');
                         localStorage.setItem('exo_gdrive_user_email', syncInfo.userEmail);
                         if (syncInfo.folderId) localStorage.setItem('exo_gdrive_folder_id', syncInfo.folderId);
                         if (syncInfo.quotaInfo) localStorage.setItem('exo_gdrive_quota_info', syncInfo.quotaInfo);
-                        localStorage.setItem('exo_gdrive_bound_user_id', String(currentCloudUser.id));
-                        localStorage.setItem('pharmaGdriveSync_' + currentCloudUser.id, JSON.stringify(syncInfo));
+                        localStorage.setItem('exo_gdrive_bound_user_id', targetUid);
+                        localStorage.setItem('pharmaGdriveSync_' + targetUid, JSON.stringify(syncInfo));
                         if (typeof updateGoogleDriveUI === 'function') {
                             updateGoogleDriveUI();
                         }
-
                     }
                 }
             } else {
@@ -29040,21 +29914,17 @@ function togglePdfAudioPlayerBar(forceState) {
             localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(completedAcademyModules));
             updateAcademyXpUI();
 
-            if (cloudRow.annotations && typeof cloudRow.annotations === 'object') {
-                await restoreAllAnnotationsMapToDB(cloudRow.annotations);
-                if (currentViewingLec && currentViewingLec.lec) {
-                    pageAnnotations = await getAnnotationsFromDB(currentViewingLec.lec.id);
-                    renderedPagesSet.forEach(pNum => {
-                        redrawPageAnnotations(pNum);
-                        renderAudioPinsForPage(pNum);
-                    });
-                }
+            await refreshLocalMediaCache(opCtx);
+            if (!opCtx.isCurrent()) {
+                return { ok: false, status: 'aborted', reason: 'account_switched' };
             }
 
-            await refreshLocalMediaCache();
             if (!hasReconciledBucketThisSession) {
                 hasReconciledBucketThisSession = true;
-                await reconcileCloudMediaWithStorageBucket(false);
+                await reconcileCloudMediaWithStorageBucket(false, targetUid);
+                if (!opCtx.isCurrent()) {
+                    return { ok: false, status: 'aborted', reason: 'account_switched' };
+                }
             }
             updateCloudMediaStatsUI();
 
@@ -29076,10 +29946,16 @@ function togglePdfAudioPlayerBar(forceState) {
             if (showSuccessToast) {
                 showToast('☁️ تم استرجاع ومزامنة أحدث بيانات حسابك بنجاح!');
             }
+            return { ok: true, status: 'applied', userId: targetUid };
         }
 
-        async function pullWorkspaceFromCloud(manualNotify = false) {
-            if (!currentCloudUser) return;
+        async function pullWorkspaceFromCloud(manualNotify = false, ctx = null) {
+            if (!currentCloudUser) return { status: 'aborted', reason: 'not_logged_in' };
+            const opCtx = resolveAccountOperationContext(ctx?.uid || currentCloudUser.id, ctx);
+            if (!opCtx.ok || !opCtx.isCurrent()) {
+                return { status: 'aborted', reason: 'account_switched' };
+            }
+
             updateCloudNavUI('syncing');
             try {
                 let data = null;
@@ -29087,35 +29963,57 @@ function togglePdfAudioPlayerBar(forceState) {
                     const res = await supabaseClient
                         .from('user_workspaces')
                         .select('*')
-                        .eq('user_id', currentCloudUser.id)
+                        .eq('user_id', opCtx.uid)
                         .maybeSingle();
+                    if (!opCtx.isCurrent()) {
+                        return { status: 'aborted', reason: 'account_switched' };
+                    }
                     if (!res.error && res.data) data = res.data;
                 }
                 if (!data) {
-                    const accountKey = `pharmaAccountWorkspace_${currentCloudUser.email || currentCloudUser.id}`;
+                    const accountKey = getAccountBackupStorageKey(opCtx.uid);
                     data = JSON.parse(localStorage.getItem(accountKey) || 'null');
                 }
-                if (!data) {
-                    await pushWorkspaceToCloud(manualNotify);
-                    return;
+                if (!opCtx.isCurrent()) {
+                    return { status: 'aborted', reason: 'account_switched' };
                 }
-                await applyCloudWorkspacePayload(data, manualNotify);
+                if (!data) {
+                    return await pushWorkspaceToCloud(manualNotify, false, opCtx);
+                }
+                return await applyCloudWorkspacePayload(data, manualNotify, opCtx);
             } catch (err) {
-                updateCloudNavUI('synced');
+                if (opCtx.isCurrent()) {
+                    updateCloudNavUI('synced');
+                }
+                return { status: 'error', error: err?.message || 'pull_failed' };
             }
         }
 
-        async function syncWorkspaceOnLogin() {
-            if (!currentCloudUser) return;
-            if (isLoginSyncInProgress && String(lastLoginSyncUserId) === String(currentCloudUser.id)) return;
+        async function syncWorkspaceOnLogin(ctx = null) {
+            if (!currentCloudUser) return { status: 'aborted', reason: 'not_logged_in' };
+            const opCtx = resolveAccountOperationContext(ctx?.uid || currentCloudUser.id, ctx);
+            if (!opCtx.ok || !opCtx.isCurrent()) {
+                return { status: 'aborted', reason: 'account_switched' };
+            }
+
+            if (isLoginSyncInProgress && String(lastLoginSyncUserId) === opCtx.uid) {
+                return { status: 'already_in_progress', userId: opCtx.uid };
+            }
             isLoginSyncInProgress = true;
-            lastLoginSyncUserId = currentCloudUser.id;
-            if (!dbInstance) await initPdfDB();
-            updateCloudNavUI('syncing');
+            lastLoginSyncUserId = opCtx.uid;
+
             try {
+                if (!dbInstance) {
+                    await initPdfDB();
+                    if (!opCtx.isCurrent()) {
+                        return { status: 'aborted', reason: 'account_switched' };
+                    }
+                }
+                updateCloudNavUI('syncing');
+
                 const lastLoggedUserId = localStorage.getItem('pharmaLastActiveUserIdV1');
-                const isSwitchingDifferentUser = Boolean(lastLoggedUserId && String(lastLoggedUserId) !== String(currentCloudUser.id));
-                localStorage.setItem('pharmaLastActiveUserIdV1', String(currentCloudUser.id));
+                const isSwitchingDifferentUser = Boolean(lastLoggedUserId && String(lastLoggedUserId) !== opCtx.uid);
+                localStorage.setItem('pharmaLastActiveUserIdV1', opCtx.uid);
 
                 if (isSwitchingDifferentUser) {
                     // Wipe any leftover local state from the previous user before syncing the new user
@@ -29131,7 +30029,8 @@ function togglePdfAudioPlayerBar(forceState) {
                     localStorage.setItem('pharmaLogsV4', '[]');
                     localStorage.removeItem('pharmaWorkspaceDirty');
                     // Data Protection: Preserving local IndexedDB stores without destructive clearing
-            localMediaCache.pdfs.clear(); localMediaCache.audios.clear();
+                    localMediaCache.pdfs.clear();
+                    localMediaCache.audios.clear();
                 }
 
                 let data = null;
@@ -29139,61 +30038,94 @@ function togglePdfAudioPlayerBar(forceState) {
                     const res = await supabaseClient
                         .from('user_workspaces')
                         .select('*')
-                        .eq('user_id', currentCloudUser.id)
+                        .eq('user_id', opCtx.uid)
                         .maybeSingle();
+                    if (!opCtx.isCurrent()) {
+                        return { status: 'aborted', reason: 'account_switched' };
+                    }
                     if (!res.error && res.data) data = res.data;
                 }
                 if (!data) {
-                    const accountKey = `pharmaAccountWorkspace_${currentCloudUser.email || currentCloudUser.id}`;
+                    const accountKey = getAccountBackupStorageKey(opCtx.uid);
                     data = JSON.parse(localStorage.getItem(accountKey) || 'null');
+                }
+
+                if (!opCtx.isCurrent()) {
+                    return { status: 'aborted', reason: 'account_switched' };
                 }
 
                 currentUserCanUploadMedia = Boolean(data && data.can_upload_media);
                 updateCloudMediaStatsUI();
 
                 if (data) {
-                    await applyCloudWorkspacePayload(data, false);
-                    if (!data.user_email && currentCloudUser.email && supabaseClient && navigator.onLine) {
+                    const applyRes = await applyCloudWorkspacePayload(data, false, opCtx);
+                    if (!opCtx.isCurrent()) {
+                        return { status: 'aborted', reason: 'account_switched' };
+                    }
+                    if (!data.user_email && currentCloudUser?.email && supabaseClient && navigator.onLine && opCtx.isCurrent()) {
                         await supabaseClient
                             .from('user_workspaces')
                             .update({ user_email: currentCloudUser.email.toLowerCase() })
-                            .eq('user_id', currentCloudUser.id);
+                            .eq('user_id', opCtx.uid);
                     }
+                    return applyRes;
                 } else {
                     // Brand new account with no cloud row yet: ensure clean empty weeklyReports if switching accounts
-                    await applyCloudWorkspacePayload({
+                    const applyRes = await applyCloudWorkspacePayload({
+                        user_id: opCtx.uid,
                         can_upload_media: false,
                         subjects: subjects,
                         schedule: { version: 3, events: scheduleEvents, backlog: scheduleBacklog, plannerPrefs: plannerPrefs, weeklyReports: weeklyReports },
                         logs: logs,
                         annotations: {}
-                    }, false);
-                    await pushWorkspaceToCloud(false);
+                    }, false, opCtx);
+                    if (!opCtx.isCurrent()) {
+                        return { status: 'aborted', reason: 'account_switched' };
+                    }
+                    await pushWorkspaceToCloud(false, false, opCtx);
+                    return applyRes;
                 }
             } catch (err) {
-                updateCloudNavUI('synced');
+                if (opCtx.isCurrent()) {
+                    updateCloudNavUI('synced');
+                }
+                return { status: 'error', error: err?.message || 'login_sync_failed' };
             } finally {
-                isLoginSyncInProgress = false;
-                lastCloudPullTimestampMs = Date.now();
+                if (String(lastLoginSyncUserId) === opCtx.uid) {
+                    isLoginSyncInProgress = false;
+                }
+                if (opCtx.isCurrent()) {
+                    lastCloudPullTimestampMs = Date.now();
+                }
             }
         }
 
         // Ultra-lightweight 100-byte timestamp check before downloading multi-megabyte workspace rows!
-        async function pullWorkspaceFromCloudIfNewer() {
-            if (!currentCloudUser || !supabaseClient || !navigator.onLine || isCloudSyncing || isBulkMediaUploading) return;
+        async function pullWorkspaceFromCloudIfNewer(ctx = null) {
+            if (!currentCloudUser || !supabaseClient || !navigator.onLine || isCloudSyncing || isBulkMediaUploading) return { status: 'skipped' };
+            const opCtx = resolveAccountOperationContext(ctx?.uid || currentCloudUser.id, ctx);
+            if (!opCtx.ok || !opCtx.isCurrent()) {
+                return { status: 'aborted', reason: 'account_switched' };
+            }
             try {
                 const { data: metaRow, error } = await supabaseClient
                     .from('user_workspaces')
                     .select('updated_at, can_upload_media')
-                    .eq('user_id', currentCloudUser.id)
+                    .eq('user_id', opCtx.uid)
                     .maybeSingle();
-                if (error || !metaRow) return;
+                if (!opCtx.isCurrent()) {
+                    return { status: 'aborted', reason: 'account_switched' };
+                }
+                if (error || !metaRow) return { status: 'no_remote_row' };
                 currentUserCanUploadMedia = Boolean(metaRow.can_upload_media);
                 const lastLocalSyncIso = localStorage.getItem('pharmaLastCloudSyncIso') || '';
                 if (metaRow.updated_at && (!lastLocalSyncIso || new Date(metaRow.updated_at).getTime() > new Date(lastLocalSyncIso).getTime() + 2000)) {
-                    await pullWorkspaceFromCloud(false);
+                    return await pullWorkspaceFromCloud(false, opCtx);
                 }
-            } catch (e) {}
+                return { status: 'up_to_date' };
+            } catch (e) {
+                return { status: 'error', error: e?.message };
+            }
         }
 
         function setupRealtimeWorkspaceSubscription() {
@@ -29206,23 +30138,28 @@ function togglePdfAudioPlayerBar(forceState) {
         }
 
         window.addEventListener('online', () => {
-            if (currentCloudUser) pushWorkspaceToCloud(false);
+            if (currentCloudUser) {
+                const onlineCtx = createAccountOperationContext();
+                pushWorkspaceToCloud(false, false, onlineCtx);
+            }
         });
         window.addEventListener('offline', () => {
             if (currentCloudUser) updateCloudNavUI('offline');
         });
-        document.addEventListener('visibilitychange', () => {
+        document.addEventListener('visibilitychange', async () => {
             if (document.visibilityState === 'hidden') {
-                // Flush any pending local annotations to IndexedDB first, then sync to Cloud once when hiding/closing tab
-                flushPendingAnnotationsSave(false);
-                if (dirtyAnnotationsForCloud || localStorage.getItem('pharmaWorkspaceDirty') === '1') {
-                    pushWorkspaceToCloud(false, dirtyAnnotationsForCloud);
+                const visCtx = createAccountOperationContext();
+                // Flush any pending local annotations to IndexedDB FIRST (awaiting completion), then sync to Cloud once when hiding/closing tab
+                await flushPendingAnnotationsSave(false, visCtx);
+                if (visCtx.isCurrent() && (dirtyAnnotationsForCloud || localStorage.getItem('pharmaWorkspaceDirty') === '1')) {
+                    await pushWorkspaceToCloud(false, dirtyAnnotationsForCloud, visCtx);
                 }
             } else if (document.visibilityState === 'visible' && currentCloudUser && supabaseClient && navigator.onLine) {
                 // Check only a 100-byte timestamp every 15 minutes instead of blindly downloading megabytes of JSONB!
                 if (Date.now() - lastCloudPullTimestampMs > 15 * 60 * 1000 && localStorage.getItem('pharmaWorkspaceDirty') !== '1') {
                     lastCloudPullTimestampMs = Date.now();
-                    pullWorkspaceFromCloudIfNewer();
+                    const visCtx = createAccountOperationContext();
+                    await pullWorkspaceFromCloudIfNewer(visCtx);
                 }
             }
         });

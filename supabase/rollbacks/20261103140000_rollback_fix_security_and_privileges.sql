@@ -1,6 +1,7 @@
 -- ============================================================================
--- Migration Rollback: 20261103140000_rollback_fix_security_and_privileges.sql
--- Location: supabase/rollbacks/ (Strictly outside supabase/migrations/)
+-- Exo Academic Platform — Phase 4.1 Migration Rollback Script
+-- File: supabase/rollbacks/20261103140000_rollback_fix_security_and_privileges.sql
+-- Location: supabase/rollbacks/ (Strictly isolated outside supabase/migrations/)
 --
 -- SECURITY DOWNGRADE & LIMITATION WARNING:
 --   Executing this rollback script intentionally reverts the security fixes introduced
@@ -88,7 +89,6 @@ ALTER TABLE "public"."user_workspaces" DROP COLUMN IF EXISTS "revision";
 -- 5. ROLLBACK FUNCTION DEFINITIONS & EXECUTE GRANTS (Matches Baseline)
 -- ============================================================================
 
--- Revert protect_vip_status_column() to baseline definition and grants
 CREATE OR REPLACE FUNCTION public.protect_vip_status_column()
   RETURNS TRIGGER
   LANGUAGE plpgsql
@@ -107,7 +107,6 @@ REVOKE ALL ON FUNCTION "public"."protect_vip_status_column"() FROM "postgres";
 GRANT EXECUTE ON FUNCTION "public"."protect_vip_status_column"() TO "postgres";
 GRANT EXECUTE ON FUNCTION "public"."protect_vip_status_column"() TO "service_role";
 
--- Revert enforce_workspace_media_security() to baseline definition and grants
 CREATE OR REPLACE FUNCTION public.enforce_workspace_media_security()
   RETURNS TRIGGER
   LANGUAGE plpgsql
@@ -138,7 +137,6 @@ REVOKE ALL ON FUNCTION "public"."enforce_workspace_media_security"() FROM "postg
 GRANT EXECUTE ON FUNCTION "public"."enforce_workspace_media_security"() TO "postgres";
 GRANT EXECUTE ON FUNCTION "public"."enforce_workspace_media_security"() TO "service_role";
 
--- Revert rls_auto_enable() to baseline definition and grants
 CREATE OR REPLACE FUNCTION public.rls_auto_enable()
   RETURNS event_trigger
   LANGUAGE plpgsql

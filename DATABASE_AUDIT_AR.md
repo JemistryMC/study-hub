@@ -1,119 +1,96 @@
-# تقرير مراجعة قاعدة بيانات Exo — مراجعة ساكنة
+# تقرير المراجعة الهندسية والأمنية الشاملة لمنصة Exo — Phase 4.1
 
-## نطاق المراجعة
-تمت مراجعة الملفات التالية من الأرشيف الأصلي:
-- `supabase/config.toml`
-- `supabase/schema.sql`
-- `supabase/migrations/20261103133622_remote_schema.sql`
+## نطاق المراجعة والتنفيذ (Phase 4.1)
+يغطي هذا التقرير المراجعة الهندسية الثابتة والديناميكية وتنفيذ تحديثات **Exo Phase 4.1** الكاملة لعزل الحسابات، ومنع سباقات التزامن (`Race Conditions`)، وضمان سلامة معاملات `IndexedDB`، وتأمين قواعد بيانات وسياسات `Supabase`:
 
-لم تتم مراجعة بيانات صفوف المستخدمين، إعدادات المشروع الحية في لوحة Supabase، إعدادات Auth الفعلية، سجلات Storage buckets، Edge Functions، أسرار البيئة، أو إعدادات الاستضافة. لا يعتبر هذا التقرير اختبار اختراق أو إثباتًا لاستغلال فعلي.
+### هيكل ملفات قاعدة البيانات المنظم (`supabase/`):
+تم تنظيم جميع ملفات قاعدة البيانات والـ Migrations في المسارات القياسية لـ Supabase CLI مع إزالة النسخ المكررة من الجذر:
+- `supabase/config.toml` — إعدادات مشروع Supabase المحلية والـ Auth والـ Storage.
+- `supabase/schema.sql` — المخطط المرجعي الكامل للقاعدة.
+- `supabase/migrations/20261103133622_remote_schema.sql` — مخطط القاعدة الأساسي (Baseline Migration).
+- `supabase/migrations/20261103140000_fix_security_and_privileges.sql` — ترقية الأمان، تقليل الصلاحيات، التحقق التفاؤلي من التزامن (`Optimistic Concurrency Control`)، وإصلاح سياسات `Storage`.
+- `supabase/rollbacks/20261103140000_rollback_fix_security_and_privileges.sql` — ملف التراجع المعزول خارج مجلد `migrations/` لضمان عدم تنفيذه تلقائيًا أثناء `supabase db push`.
 
-## ملخص المخطط
-يحتوي مخطط `public` الظاهر في ملفات SQL على جدول واحد:
-`public.user_workspaces`
+---
 
-الجدول يخزن مساحة عمل كل مستخدم في سجل واحد، ويتضمن أعمدة JSONB للمواد (`subjects`)، والجدول (`schedule`)، والسجلات (`logs`)، وتعليقات PDF (`annotations`)، وتقدم الأكاديمية (`academy_progress`)، بالإضافة إلى `updated_at` و`user_email` و`can_upload_media`.
+## القسم الأول: إصلاحات Phase 4.1 الحرجة في الواجهة (`index.html`) وعزل الحسابات
 
-يوجد مفتاح أساسي `user_id` وعلاقة خارجية إلى `auth.users(id)` مع `ON DELETE CASCADE`.
+### 1. P0 — سياق العملية غير القابل للتغيير (`Account Operation Context`) ومنع سباقات تبديل الحسابات
+- **المشكلة السابقة**: كانت الدوال غير المتزامنة (`syncWorkspaceOnLogin`, `pullWorkspaceFromCloud`, `pullWorkspaceFromCloudIfNewer`, `applyCloudWorkspacePayload`, `mergeAndApplyCloudConflict`, `pushWorkspaceToCloud`, `getAllAnnotationsMapFromDB`, `restoreAllAnnotationsMapToDB`) تعتمد على المتغير العام المتغير `currentCloudUser` بعد نقاط الانتظار `await`. عند تبديل الحساب من A إلى B أثناء انتظار الشبكة أو القرص، كانت استجابة A المتأخرة تطبق بياناتها داخل مساحة عمل B.
+- **الإصلاح المنفذ في Phase 4.1**:
+  - إنشاء عداد حقبة جلسة متزايد (`currentSessionGeneration`) يتم رفعه عبر `bumpAccountSessionGeneration()` عند كل تغيير في حالة المصادقة.
+  - إنشاء كائن سياق غير قابل للتعديل `createAccountOperationContext(explicitUid, explicitGen)` يعيد `{ uid, sanitizedUid, generation, sessionEpoch, authorized, ok, error, isCurrent() }` عبر `Object.freeze`.
+  - التحقق الصارم من `ctx.isCurrent()` قبل وبعد كل عملية `await` وفي حال تبدل الحساب تتوقف العملية فورًا (`{ status: 'aborted', reason: 'account_switched' }`) دون المساس بـ `IndexedDB` أو `inMemoryAnnotationsCache` أو `localStorage` أو عناصر الواجهة.
 
-## النتائج ذات الأولوية
+### 2. P0 — توحيد عقد الإرجاع الصريح (`Explicit Result Contract`) في `getAllAnnotationsMapFromDB()`
+- **المشكلة السابقة**: كانت الدالة تعيد كائنًا فارغًا `{}` عند فشل قراءة `IndexedDB`، ما قد يوهم `pushWorkspaceToCloud()` بأن المستخدم ليس لديه تعليقات فيرفع خريطة فارغة إلى السحابة.
+- **الإصلاح المنفذ في Phase 4.1**:
+  - تعيد الدالة دائمًا `{ ok: true, verifiedMap: {...}, quarantined: [...] }` عند النجاح، أو `{ ok: false, error: { code, message } }` عند أي خطأ (`DB_NOT_INITIALIZED`, `UNAUTHORIZED_TARGET_USER`, `ACCOUNT_CONTEXT_EXPIRED`, `IDB_READ_ERROR`, `IDB_TX_ABORTED`).
+  - جميع المستدعين (`pushWorkspaceToCloud`, `mergeAndApplyCloudConflict`, `handleCloudSignOut`) يوقفون التنفيذ فورًا إذا كان `!annoRes.ok`.
 
-### P0/P1 — سياسات رفع Storage تتجاوز قيد VIP
-في Migration توجد سياستان من نوع `INSERT` على `storage.objects` للـ bucket المسمى `lecture_media`:
-1. `Allow VIP users to upload media`: تتحقق من أن المستخدم داخل مجلده الخاص وأن `user_workspaces.can_upload_media = true`.
-2. `Users can upload their own lecture media`: تتحقق من bucket والمجلد الخاص بالمستخدم، لكنها لا تتحقق من `can_upload_media`.
+### 3. P0 — الملكية المزدوجة الصارمة (`Strict Dual Ownership`) ورفض المفاتيح الأجنبية (`Foreign Key Rejection`)
+- **الإصلاح المنفذ في Phase 4.1**:
+  - التحقق من مفتاح الإدخال عبر `resolveAuthorizedScopedKey(inputKeyOrRawId, canonicalUid)` و`toScopedKey()` **قبل** استخراج المعرف الخام، ورمي خطأ `CROSS_ACCOUNT_KEY_VIOLATION` فورًا إذا كان المفتاح يبدأ ببادئة حساب آخر (`usr_B::123` أثناء نشاط الحساب A).
+  - فرض `hasStrictDualRecordOwnership(item, canonicalUid)` في جميع عمليات القراءة والتصدير والاستعادة، بحيث يُشترط تطابق البادئة `usr_<sanitizedUid>::` وتطابق الحقل الصريح غير الفارغ `item.userId === canonicalUid`. أي سجل يفتقر إلى `userId` أو يحمل `userId` متعارضًا يتم عزله (`Quarantined`).
 
-سياسات PostgreSQL الافتراضية permissive، والسياسات المتعددة للأمر نفسه تُجمع بمنطق OR. لذلك، وجود السياسة الثانية يسمح للمستخدم الذي يطابق مجلده برفع الملفات حتى دون تحقق شرط VIP في السياسة الأولى. هذا يجعل قيد VIP غير فعال في مسار الرفع الذي تغطيه هاتان السياستان.
+### 4. P0 — عزل السجلات القديمة مجهولة المصدر (`Provenance-Verified Legacy Migration`)
+- **الإصلاح المنفذ في Phase 4.1**:
+  - إزالة الاعتماد على `isLectureInActiveUserWorkspace()` أثناء ترحيل السجلات القديمة، لأن أرقام المحاضرات (`101`، `1`) تتشابه بين الطلاب.
+  - قصر الترحيل في `claimAndMigrateLegacyRecords()` عبر `hasVerifiedLegacyProvenance()` على السجلات التي تحتوي على إثبات ملكية صريح (`item.userId === canonicalUid` أو `item.ownerUid === canonicalUid`) مع إبقاء السجلات المجهولة في العزل (`quarantined`).
 
-الإجراء المقترح:
-- لا تكتفِ بإضافة شرط جديد إلى السياسة الأولى.
-- أزل أو أعد تصميم سياسة الرفع العامة بعد التحقق من عدم وجود اعتماد مشروع عليها.
-- الأفضل وجود سياسة INSERT واحدة واضحة، أو استخدام سياسة restrictive مدروسة مع اختبارها.
-- اختبر مستخدمًا عاديًا ومستخدم VIP بحسابين مختلفين وفي بيئة staging قبل تطبيق أي تغيير على production.
+### 5. P1 — متانة معاملات خزنة الاستعادة (`Two-Phase Recovery Vault Durability`)
+- **الإصلاح المنفذ في Phase 4.1**:
+  - في `flushPendingAnnotationsSave()` / `flushAnnotationsToDBImmediate()`:
+    1. كتابة السجلات إلى `annotation_recovery_vault` وانتظار `vTx.oncomplete`؛ وإذا فشلت المعاملة تعيد الدالة `false` فورًا.
+    2. كتابة السجلات إلى مخزن `annotations` الأساسي وانتظار `tx.oncomplete`؛ وإذا فشلت تظل البيانات محفوظة في `annotation_recovery_vault` للاستعادة التلقائية عند إعادة التشغيل وتعيد `false`.
+    3. تحديث `inMemoryAnnotationsCache` فقط بعد التزام `tx.oncomplete` وبشرط `ctx.isCurrent()`.
+    4. حذف المفاتيح الملتزمة فقط من `annotation_recovery_vault` دون استخدام `vStore.clear()` لحماية سجلات أي حساب آخر.
 
-مرجع سلوك سياسات RLS:
-https://www.postgresql.org/docs/current/ddl-rowsecurity.html
+---
 
-### P1 — صلاحيات SQL أوسع من اللازم على user_workspaces
-ملف SQL يمنح `anon` و`authenticated` مجموعة واسعة من الصلاحيات على `public.user_workspaces` تشمل:
-`DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE`.
+## القسم الثاني: مراجعة قاعدة البيانات وسياسات Supabase وتصحيحاتها
 
-وجود RLS لا يحمي عمليات مستوى الجدول مثل `TRUNCATE` و`REFERENCES`. لا يعني ذلك وحده وجود مسار HTTP متاح لاستدعاء TRUNCATE في تطبيق Supabase، لكنه امتياز زائد وخطير ويجب إزالته ما لم يوجد سبب موثق ومختبر له.
+### 1. P0/P1 — سياسات رفع Storage وقيد VIP (`lecture_media`)
+- في المخطط الأولي كانت توجد سياستان من نوع `INSERT` على `storage.objects` للـ bucket المسمى `lecture_media`، وبما أن سياسات PostgreSQL الافتراضية `PERMISSIVE` تُجمع بمنطق `OR`، كانت السياسة العامة تسمح بتجاوز شرط `can_upload_media = true`.
+- **التصحيح في `20261103140000_fix_security_and_privileges.sql`**:
+  - جعل الـ bucket `lecture_media` خاصًا (`public = false`) مع تقييد الحجم (`52428800` بايت) وأنواع الملفات المسموحة (`application/pdf`, `audio/*`).
+  - حذف السياسة المتساهلة والإبقاء على سياسة تحقق صارمة تشترط ملكية المجلد (`(storage.foldername(name))[1] = auth.uid()::text`) وتفعيل `can_upload_media = true` في `public.user_workspaces`.
 
-الإجراء المقترح:
-- تطبيق مبدأ أقل صلاحية.
-- منح `SELECT`, `INSERT`, `UPDATE` فقط للأدوار التي تحتاجها، مع RLS.
-- عدم منح `DELETE` ما لم توجد سياسة حذف مقصودة.
-- عدم منح `TRUNCATE`, `REFERENCES`, `TRIGGER`, `MAINTAIN` لأدوار API دون ضرورة مثبتة.
-- اختبار كل عمليات التطبيق بعد تقليل الصلاحيات.
+### 2. P1 — تقليص صلاحيات الجدول (`Principle of Least Privilege`)
+- تم سحب الصلاحيات الخطرة (`TRUNCATE`, `DELETE`, `REFERENCES`, `TRIGGER`, `MAINTAIN`) من الأدوار `anon` و`authenticated` على `public.user_workspaces`، وحصر صلاحية `authenticated` في `SELECT, INSERT, UPDATE` الخاضعة لسياسات RLS، وسحب الصلاحيات الافتراضية المستقبلية (`ALTER DEFAULT PRIVILEGES ... REVOKE ALL`).
 
-مرجع PostgreSQL يوضح أن TRUNCATE وREFERENCES لا يخضعان لـ RLS:
-https://www.postgresql.org/docs/current/ddl-rowsecurity.html
+### 3. P1 — التزامن التفاؤلي (`Optimistic Concurrency Control`) وختم الوقت الخادمي
+- إضافة العمود `sync_version integer NOT NULL DEFAULT 1` إلى `public.user_workspaces`.
+- إنشاء الدالة والـ Trigger `public.enforce_workspace_sync_and_timestamp()` ببيئة آمنة (`SECURITY DEFINER SET search_path = public, pg_temp`) لفرض:
+  - تعيين `NEW.updated_at := now()` من ساعة الخادم.
+  - زيادة `NEW.sync_version := OLD.sync_version + 1` تلقائيًا عند كل تحديث.
+- في الواجهة (`pushWorkspaceToCloud`) يتم التحديث بشرط `.eq('sync_version', expectedVersion)` وعند حدوث تعارض (`PGRST116` / `409`) يتم استدعاء `mergeAndApplyCloudConflict(cloudRow, opCtx)` بأمان.
 
-### P1 — Default privileges تمنح صلاحيات واسعة على كائنات مستقبلية
-يحتوي `schema.sql` على `ALTER DEFAULT PRIVILEGES` للـ role `postgres` في schema `public`، وتمنح `ALL` على الجداول والدوال والتسلسلات مستقبلًا إلى `anon` و`authenticated` (بالإضافة إلى أدوار أخرى).
+---
 
-هذا يعني أن كائنات عامة جديدة قد ترث صلاحيات أوسع من اللازم. كما أن الدوال الجديدة قد تصبح قابلة للتنفيذ من أدوار API ما لم تُضبط صلاحياتها صراحة.
+## القسم الثالث: المصادر والمراجع التقنية المعتمدة (Phase 4.1 Technical Sources)
 
-الإجراء المقترح:
-- مراجعة وإزالة default grants العامة غير الضرورية.
-- منح الصلاحيات لكل جدول أو دالة على حدة.
-- أي RPC أو SECURITY DEFINER جديدة يجب أن تحصل على GRANT صريح لأدوار محددة فقط.
-- أضف اختبار CI يتأكد من عدم وجود صلاحيات عامة غير مقصودة.
-
-### P1 — مزامنة مساحة العمل في صف JSONB واحد تزيد مخاطر تعارض الأجهزة
-تصميم `user_workspaces` يجمع معظم بيانات كل المستخدم داخل سجل واحد، والعميل يستخدم `upsert` لهذا السجل عبر `user_id`.
-
-هذا يجعل التحديثات المتزامنة من جهازين أكثر عرضة لسيناريو last-write-wins أو استبدال أجزاء قديمة بأحدثها، كما يجعل أحجام `schedule`, `subjects` و`annotations` تتضخم داخل صف واحد.
-
-الإجراء المقترح:
-- إضافة optimistic concurrency version أو revision.
-- تنفيذ تحديثات مشروطة بالإصدار، والتعامل مع تعارض `409` أو ما يعادله.
-- فصل المستندات/التعليقات والملفات الكبيرة عن سجل metadata عند نمو الاستخدام.
-- لا تنفذ تطبيعًا شاملًا للجداول دون خطة ترحيل ونسخ احتياطي واختبارات توافق.
-
-### P1 — updated_at ليس مضمونًا من قاعدة البيانات
-`updated_at` له DEFAULT `now()` لكن لا يظهر Trigger يفرض تحديثه عند كل UPDATE. التطبيق يرسل توقيتًا من المتصفح. بذلك قد يعتمد ترتيب المزامنة على ساعة الجهاز.
-
-الإجراء المقترح:
-- فرض timestamp من الخادم عبر Trigger أو RPC مخصص.
-- يفضل استخدام revision متزايد إلى جانب timestamp بدل الاعتماد على timestamp وحده.
-
-### P1 — Event Trigger لتفعيل RLS يتجاهل الإخفاقات
-الدالة `public.rls_auto_enable()` تحاول تفعيل RLS على الجداول الجديدة في `public`، لكنها تلتقط `WHEN OTHERS` وتكتب LOG فقط ثم تكمل. في حال فشلها قد يُنشأ جدول دون RLS بينما default privileges الواسعة قائمة.
-
-الإجراء المقترح:
-- لا تعتمد على هذا الـ trigger وحده كضمان أمني.
-- اجعل فشل فرض RLS ظاهرًا في CI أو migration checks.
-- راجع صلاحيات من يستطيع إنشاء الجداول في production.
-- اختبر أن كل جدول public جديد له RLS وسياسات مقصودة قبل النشر.
-
-## نتائج إيجابية
-- RLS مفعّل على `public.user_workspaces`.
-- سياسات SELECT وINSERT وUPDATE تقيد `user_id` بـ `auth.uid()`.
-- يوجد FK إلى `auth.users` مع حذف متسلسل عند حذف حساب Auth.
-- دوال Trigger تحاول منع المستخدم العادي من تغيير `can_upload_media`.
-- سياسات Storage المقروءة تقيد بعض العمليات إلى مجلد المستخدم نفسه.
-
-## نقاط لا يمكن تأكيدها من الأرشيف
-- وجود bucket فعلي باسم `lecture_media` أو كونه private/public.
-- قيود حجم الملفات وMIME types للبكت.
-- كل سياسات `storage.buckets` أو أي سياسات غير مضمّنة في الملفات.
-- إعدادات Auth الحية، SMTP، OAuth، MFA، rate limits، وتعطيل/تفعيل تأكيد البريد في المشروع البعيد.
-- RLS على أي schema غير ظاهر في التصدير.
-- Edge Functions أو Triggers أو سياسات إضافية غير موجودة في النسخة المقدمة.
-- بيانات المستخدمين الفعلية أو أحجام JSONB وتكرار أخطاء المزامنة.
-
-## المقارنة مع واجهة Exo المرفقة سابقًا
-في ملف HTML، توجد عملية `upsert` إلى `user_workspaces` تتضمن `subjects`, `schedule`, `logs`, `academy_progress`، وتُرسل `annotations` في حالات معينة فقط. يجب مراجعة دورة حياة حفظ التعليقات والتأكد أن توقيع/علامة آخر رفع لا تُحدّث قبل تأكيد الخادم.
-كما أن كود المزامنة يزيل علامة dirty ويعرض حالة synced بعد مسار قد لا ينفذ فيه upsert إذا كان العميل غير مهيأ أو الجهاز offline، ويعرض حالة synced داخل catch. يجب إصلاح ذلك مع سياسة Storage قبل الإطلاق.
-يجب أيضًا إصلاح سلوك تسجيل الخروج الذي يمسح IndexedDB بعد محاولة المزامنة، بحيث لا تُحذف الملفات المحلية غير المؤكدة سحابيًا.
-
-## تعليمات آمنة لأي نموذج برمجي
-- اعتبر ملفات SQL مصدر الحقيقة لما هو ظاهر فقط، ولا تفترض وجود جداول أو سياسات غير موجودة فيها.
-- لا تشغّل `db push`, `db reset`, `migration repair`, أو أي SQL تعديل على production دون مراجعة بشرية وموافقة صريحة.
-- أنشئ migrations تصحيحية جديدة فقط، ولا تعدّل migration تاريخية مطبقة.
-- لا تحذف سياسة أو صلاحية قبل تحليل الاعتماد عليها.
-- أنشئ نسخة احتياطية وخطة rollback واختبارات staging لكل تغيير.
-- لا تضع secrets أو service-role keys أو database passwords في المستودع أو ملفات الواجهة.
-- ميّز بين التوصيات، والتغييرات المنفذة، والاختبارات التي تم تشغيلها فعلًا.
+1. **معيار W3C لقاعدة البيانات المفهرسة (W3C Indexed Database API 3.0 — Transaction Lifetime & Durability)**:
+   - المرجع الرسمي لدورة حياة المعاملات وشروط التزام `oncomplete` مقابل `onabort`:
+   - `https://www.w3.org/TR/IndexedDB-3/#transaction-lifetime-concept`
+2. **توثيق MDN Web Docs — ضمانات اكتمال معاملات IndexedDB (`IDBTransaction.oncomplete`)**:
+   - يثبت أن نجاح طلب `store.put()` لا يعني كتابة البيانات على القرص حتى يكتمل حدث `transaction.oncomplete`:
+   - `https://developer.mozilla.org/en-US/docs/Web/API/IDBTransaction/complete_event`
+3. **توثيق PostgreSQL 16 الرسمي — سياسات أمان الصفوف (Row Security Policies & Permissive OR Combination)**:
+   - يوضح أن سياسات `PERMISSIVE` المتعددة تُجمع بمنطق `OR` وأن صلاحيات `TRUNCATE` و`REFERENCES` لا تخضع لـ RLS:
+   - `https://www.postgresql.org/docs/current/ddl-rowsecurity.html`
+4. **توثيق PostgreSQL 16 الرسمي — كتابة دوال `SECURITY DEFINER` بأمان (`search_path` Hardening)**:
+   - يفرض تثبيت `SET search_path = public, pg_temp` لمنع اختطاف الكائنات:
+   - `https://www.postgresql.org/docs/current/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY`
+5. **توثيق Supabase الرسمي — التحكم في الوصول إلى التخزين السحابي (Supabase Storage Access Control & RLS)**:
+   - قواعد عزل مجلدات المستخدمين عبر `storage.foldername(name)` و`auth.uid()`:
+   - `https://supabase.com/docs/guides/storage/security/access-control`
+6. **توثيق PostgREST الرسمي — رموز الأخطاء والتحقق التفاؤلي (`PGRST116` Cardinality Violation)**:
+   - آلية اكتشاف تعارض الإصدارات عند تحديث صف واحد بشرط `.eq('sync_version', expectedVersion).single()`:
+   - `https://postgrest.org/en/stable/references/errors.html`
+7. **معيار OWASP للتحقق من أمان التطبيقات (OWASP ASVS v4.0.3 — Session Management & Multi-Tenant Client Storage Isolation)**:
+   - ضوابط عزل جلسات المستخدمين ومنع تسرب البيانات المحلية بين الحسابات المتعاقبة على نفس المتصفح:
+   - `https://owasp.org/www-project-application-security-verification-standard/`
+8. **المعهد الوطني للمعايير والتقنية (NIST SP 800-132 — Recommendation for Password-Based Key Derivation)**:
+   - معيار اشتقاق مفاتيح كلمات المرور باستخدام `PBKDF2-HMAC-SHA256` مع الملح العشوائي (`Salt`) و100,000 تكرار:
+   - `https://csrc.nist.gov/publications/detail/sp/800-132/final`

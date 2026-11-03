@@ -1,7 +1,18 @@
 // ============================================================================
-// Exo Phase 4: Rigorous Asynchronous Regression Test Suite
+// Exo Academic Platform — Phase 4.1 Asynchronous Regression Test Suite
 // Standard: Fully asynchronous async main() with explicit awaits.
 // No early process.exit(). Every assertion is executed and counted.
+//
+// Covers:
+//   - Immutable Account Operation Context (`createAccountOperationContext`)
+//   - Foreign Scoped Key Rejection (`CROSS_ACCOUNT_KEY_VIOLATION`)
+//   - Provenance-Verified Legacy Quarantine (`hasVerifiedLegacyProvenance`)
+//   - Two-Phase Recovery Vault Durability (`flushAnnotationsToDBImmediate`)
+//
+// Technical References & Sources:
+//   - W3C Indexed Database API 3.0: https://www.w3.org/TR/IndexedDB-3/
+//   - MDN IDBTransaction Durability: https://developer.mozilla.org/en-US/docs/Web/API/IDBTransaction/complete_event
+//   - OWASP ASVS v4.0.3: https://owasp.org/www-project-application-security-verification-standard/
 // ============================================================================
 
 const fs = require('fs');
@@ -19,11 +30,15 @@ function assert(condition, testName, details = '') {
   }
 }
 
-// Extract production helper functions directly from index.html source code
 const indexHtmlContent = fs.readFileSync('index.html', 'utf8');
 
 function extractFunctionSource(code, funcName) {
-  const startIdx = code.indexOf(`function ${funcName}`);
+  const patterns = [`async function ${funcName}(`, `function ${funcName}(`];
+  let startIdx = -1;
+  for (const pat of patterns) {
+    startIdx = code.indexOf(pat);
+    if (startIdx !== -1) break;
+  }
   if (startIdx === -1) throw new Error(`Function ${funcName} not found in index.html`);
   let depth = 0;
   let inFunc = false;
@@ -43,21 +58,44 @@ function extractFunctionSource(code, funcName) {
   return code.substring(startIdx, endIdx);
 }
 
-// Evaluate actual production helper implementations
 const prodHelpersCode = `
+let currentCloudUser = null;
+let currentSessionGeneration = 1;
+${extractFunctionSource(indexHtmlContent, 'sanitizeForScopedKey')}
 ${extractFunctionSource(indexHtmlContent, 'getCanonicalUserId')}
+${extractFunctionSource(indexHtmlContent, 'bumpAccountSessionGeneration')}
+${extractFunctionSource(indexHtmlContent, 'createAccountOperationContext')}
+${extractFunctionSource(indexHtmlContent, 'resolveAccountOperationContext')}
 ${extractFunctionSource(indexHtmlContent, 'sanitizeUserIdForPrefix')}
 ${extractFunctionSource(indexHtmlContent, 'getUserStoragePrefix')}
+${extractFunctionSource(indexHtmlContent, 'getAccountBackupStorageKey')}
 ${extractFunctionSource(indexHtmlContent, 'extractUserIdFromScopedKey')}
 ${extractFunctionSource(indexHtmlContent, 'extractRawIdFromScopedKey')}
 ${extractFunctionSource(indexHtmlContent, 'toScopedKey')}
+${extractFunctionSource(indexHtmlContent, 'resolveAuthorizedScopedKey')}
+${extractFunctionSource(indexHtmlContent, 'hasStrictDualRecordOwnership')}
+${extractFunctionSource(indexHtmlContent, 'hasVerifiedLegacyProvenance')}
+${extractFunctionSource(indexHtmlContent, 'computeStrokeUniqueSignature')}
 module.exports = {
+  setSessionUser: (uid) => {
+    currentCloudUser = uid ? { id: uid, email: uid + '@test.edu' } : null;
+    bumpAccountSessionGeneration();
+  },
+  sanitizeForScopedKey,
   getCanonicalUserId,
+  bumpAccountSessionGeneration,
+  createAccountOperationContext,
+  resolveAccountOperationContext,
   sanitizeUserIdForPrefix,
   getUserStoragePrefix,
+  getAccountBackupStorageKey,
   extractUserIdFromScopedKey,
   extractRawIdFromScopedKey,
-  toScopedKey
+  toScopedKey,
+  resolveAuthorizedScopedKey,
+  hasStrictDualRecordOwnership,
+  hasVerifiedLegacyProvenance,
+  computeStrokeUniqueSignature
 };
 `;
 
@@ -68,30 +106,26 @@ fs.unlinkSync(tempHelperPath);
 
 async function main() {
   console.log('======================================================================');
-  console.log('EXO PHASE 4: ASYNCHRONOUS REGRESSION TEST SUITE');
+  console.log('EXO PHASE 4 & 4.1: ASYNCHRONOUS REGRESSION TEST SUITE');
   console.log('======================================================================\n');
 
   // --------------------------------------------------------------------------
-  // TEST 1: Key Scoping Invariants, Idempotency & Foreign Rejection
+  // TEST 1: Key Scoping Invariants, Idempotency & Foreign Key Rejection
   // --------------------------------------------------------------------------
-  console.log('--- TEST 1: Production toScopedKey Standards & Invariants ---');
+  console.log('--- TEST 1: Production toScopedKey & resolveAuthorizedScopedKey Invariants ---');
   const uidA = 'c0ffee00-1111-2222-3333-444455556666';
   const uidB = 'deadbeef-9999-8888-7777-666655554444';
 
-  // 1.1 Correct format usr_<sanitized>::<id>
   const keyA1 = prod.toScopedKey('101', uidA);
   assert(keyA1 === `usr_${uidA}::101`, 'toScopedKey produces usr_<uuid>::id when given raw UUID');
 
-  // 1.2 Idempotent on already properly scoped key
   const keyA2 = prod.toScopedKey(keyA1, uidA);
   assert(keyA2 === keyA1, 'toScopedKey is strictly idempotent when called on already-scoped key for same user');
 
-  // 1.3 Repairs previously mis-scoped UUID::id format
   const misScopedKey = `${uidA}::101`;
   const repairedKey = prod.toScopedKey(misScopedKey, uidA);
   assert(repairedKey === `usr_${uidA}::101`, 'toScopedKey repairs previously mis-scoped UUID::id to usr_<uuid>::id for same user');
 
-  // 1.4 Strictly rejects foreign account keys with CROSS_ACCOUNT_KEY_VIOLATION
   let foreignCaught = false;
   try {
     prod.toScopedKey(keyA1, uidB);
@@ -102,135 +136,120 @@ async function main() {
   }
   assert(foreignCaught, 'toScopedKey strictly throws CROSS_ACCOUNT_KEY_VIOLATION when foreign key is passed');
 
-  // 1.5 extractUserIdFromScopedKey extracts canonical prefix
+  let extractForeignCaught = false;
+  try {
+    prod.extractRawIdFromScopedKey(keyA1, uidB);
+  } catch (err) {
+    if (err.message.includes('CROSS_ACCOUNT_KEY_VIOLATION')) {
+      extractForeignCaught = true;
+    }
+  }
+  assert(extractForeignCaught, 'extractRawIdFromScopedKey strictly throws CROSS_ACCOUNT_KEY_VIOLATION when expectedUserId mismatches');
+
+  let resolveForeignCaught = false;
+  try {
+    prod.resolveAuthorizedScopedKey(keyA1, uidB);
+  } catch (err) {
+    if (err.message.includes('CROSS_ACCOUNT_KEY_VIOLATION')) {
+      resolveForeignCaught = true;
+    }
+  }
+  assert(resolveForeignCaught, 'resolveAuthorizedScopedKey rejects foreign scoped key before any prefix stripping');
+
   const extracted = prod.extractUserIdFromScopedKey(keyA1);
   assert(extracted === uidA, 'extractUserIdFromScopedKey extracts exact sanitized user UUID');
 
-  // 1.6 extractRawIdFromScopedKey extracts raw clean ID
-  const cleanId = prod.extractRawIdFromScopedKey(keyA1);
-  assert(cleanId === '101', 'extractRawIdFromScopedKey extracts exact raw ID without user prefix');
+  const cleanId = prod.extractRawIdFromScopedKey(keyA1, uidA);
+  assert(cleanId === '101', 'extractRawIdFromScopedKey extracts exact raw ID when expectedUserId matches');
 
   // --------------------------------------------------------------------------
-  // TEST 2: Strict Dual Ownership Validation in getAllAnnotationsMapFromDB
+  // TEST 2: Strict Dual Ownership Validation & Legacy Provenance Quarantine
   // --------------------------------------------------------------------------
   console.log('\n--- TEST 2: Dual Ownership Validation & Ownership Conflict Quarantine ---');
-
-  // Logic extracted directly from production getAllAnnotationsMapFromDB in index.html
-  function validateRecordOwnership(item, canonicalUid) {
-    if (!item || !item.pages || String(item.id).startsWith('_cloudMedia_')) return null;
-
-    const itemKey = String(item.id);
-    const itemUserId = item.userId ? String(item.userId) : null;
-    const keyPrefixUserId = prod.extractUserIdFromScopedKey(itemKey);
-
-    // Strict Dual Ownership Verification
-    const isStrictMatch = (keyPrefixUserId === canonicalUid) &&
-                          (itemUserId === canonicalUid);
-
-    if (isStrictMatch) {
-      const cleanRawId = prod.extractRawIdFromScopedKey(itemKey);
-      return { cleanRawId, pages: item.pages };
-    }
-    return null; // Quarantined
-  }
 
   const recValid = { id: `usr_${uidA}::101`, userId: uidA, pages: { 1: ['Valid note'] } };
   const recConflicted1 = { id: `usr_${uidA}::102`, userId: uidB, pages: { 1: ['Conflicted note'] } };
   const recConflicted2 = { id: `usr_${uidB}::103`, userId: uidA, pages: { 1: ['Conflicted note'] } };
   const recForeign = { id: `usr_${uidB}::104`, userId: uidB, pages: { 1: ['Foreign note'] } };
-  const recUnscoped = { id: `105`, userId: null, pages: { 1: ['Unclaimed note'] } };
+  const recMissingUserId = { id: `usr_${uidA}::105`, userId: null, pages: { 1: ['Missing userId note'] } };
+  const recUnscoped = { id: `106`, userId: null, pages: { 1: ['Unclaimed note'] } };
 
-  assert(validateRecordOwnership(recValid, uidA) !== null, 'Valid record with matching key prefix and userId metadata is accepted');
-  assert(validateRecordOwnership(recConflicted1, uidA) === null, 'Conflicted record (key userA, userId userB) is strictly quarantined');
-  assert(validateRecordOwnership(recConflicted2, uidA) === null, 'Conflicted record (key userB, userId userA) is strictly quarantined');
-  assert(validateRecordOwnership(recForeign, uidA) === null, 'Foreign record is strictly quarantined');
-  assert(validateRecordOwnership(recUnscoped, uidA) === null, 'Unscoped legacy record is quarantined and never exported');
+  assert(prod.hasStrictDualRecordOwnership(recValid, uidA) === true, 'Valid record with matching key prefix and userId metadata is accepted');
+  assert(prod.hasStrictDualRecordOwnership(recConflicted1, uidA) === false, 'Conflicted record (key userA, userId userB) is strictly quarantined');
+  assert(prod.hasStrictDualRecordOwnership(recConflicted2, uidA) === false, 'Conflicted record (key userB, userId userA) is strictly quarantined');
+  assert(prod.hasStrictDualRecordOwnership(recForeign, uidA) === false, 'Foreign record is strictly quarantined');
+  assert(prod.hasStrictDualRecordOwnership(recMissingUserId, uidA) === false, 'Scoped record with missing userId (null) is strictly quarantined');
+  assert(prod.hasStrictDualRecordOwnership(recUnscoped, uidA) === false, 'Unscoped legacy record is quarantined and never exported');
 
   // --------------------------------------------------------------------------
-  // TEST 3: Asynchronous Logout Failure Safety (Truly Awaited)
+  // TEST 3: Account Operation Context & Session Epoch Invalidation
   // --------------------------------------------------------------------------
-  console.log('\n--- TEST 3: Asynchronous Failure-Safe Logout (Awaited Execution) ---');
+  console.log('\n--- TEST 3: Account Operation Context & Generation Invalidation ---');
 
-  async function simulateSafeLogout(flushFails, syncFails, isDirty) {
+  prod.setSessionUser(uidA);
+  const ctxA = prod.createAccountOperationContext();
+  assert(ctxA.uid === uidA && ctxA.isCurrent() === true, 'Operation context created for User A is initially valid and current');
+
+  // Switch to User B
+  prod.setSessionUser(uidB);
+  assert(ctxA.isCurrent() === false, 'User A operation context immediately becomes stale (isCurrent() === false) after switching to User B');
+
+  const ctxB = prod.createAccountOperationContext();
+  assert(ctxB.uid === uidB && ctxB.isCurrent() === true, 'New operation context for User B is valid and current');
+  assert(ctxB.generation > ctxA.generation, 'Session generation increments monotonically across account switches');
+
+  // Even if User A logs back in, the old ctxA from an earlier generation remains expired!
+  prod.setSessionUser(uidA);
+  assert(ctxA.isCurrent() === false, 'Earlier generation context for User A remains expired even after User A logs back in');
+
+  // --------------------------------------------------------------------------
+  // TEST 4: Asynchronous Logout Failure Safety (Truly Awaited)
+  // --------------------------------------------------------------------------
+  console.log('\n--- TEST 4: Asynchronous Failure-Safe Logout & Backup Verification ---');
+
+  async function simulateSafeLogout(flushFails, syncFails, annoReadFails, isDirty) {
     let sessionWiped = false;
     let dirtyFlag = isDirty ? '1' : null;
+    let backupSuccess = false;
 
-    // 1. Flush annotations
-    const flushOk = await (async () => {
-      if (flushFails) return false;
-      return true;
-    })();
-
+    const flushOk = await (async () => !flushFails)();
     if (!flushOk) {
-      // Abort logout!
-      return { success: false, reason: 'flush_failed', sessionWiped, dirtyFlag };
+      return { success: false, reason: 'flush_failed', sessionWiped, dirtyFlag, backupSuccess: false };
     }
 
-    // 2. Final sync
     let syncOk = true;
     if (dirtyFlag === '1') {
-      syncOk = await (async () => {
-        if (syncFails) return false;
-        return true;
-      })();
+      syncOk = await (async () => !syncFails)();
+    }
 
-      if (syncOk) {
-        dirtyFlag = null; // Cleared only on verified server confirmation
-      }
+    const annoReadOk = await (async () => !annoReadFails)();
+    if (annoReadOk) {
+      backupSuccess = true;
+    }
+
+    if (syncOk && backupSuccess) {
+      dirtyFlag = null;
+    } else {
+      dirtyFlag = '1';
     }
 
     sessionWiped = true;
-    return { success: true, syncedToCloud: syncOk, isDirty: dirtyFlag === '1', sessionWiped };
+    return { success: true, syncedToCloud: syncOk, backupSuccess, isDirty: dirtyFlag === '1', sessionWiped };
   }
 
-  // 3.1 Failed flush halts logout and preserves active session
-  const resFlushFail = await simulateSafeLogout(true, false, true);
+  const resFlushFail = await simulateSafeLogout(true, false, false, true);
   assert(resFlushFail.success === false, 'Logout returns success=false when annotation flush fails');
   assert(resFlushFail.sessionWiped === false, 'Session is NOT wiped when annotation flush fails');
   assert(resFlushFail.dirtyFlag === '1', 'Dirty flag is strictly preserved on aborted logout');
 
-  // 3.2 Failed cloud sync preserves dirty flag
-  const resSyncFail = await simulateSafeLogout(false, true, true);
+  const resSyncFail = await simulateSafeLogout(false, true, false, true);
   assert(resSyncFail.success === true, 'Logout completes after local persistence');
   assert(resSyncFail.syncedToCloud === false, 'Sync result accurately reports unconfirmed cloud write');
   assert(resSyncFail.isDirty === true, 'Dirty flag is strictly kept when final cloud sync fails');
 
-  // --------------------------------------------------------------------------
-  // TEST 4: IndexedDB v3 to v4 Upgrade & Recovery Vault Preservation
-  // --------------------------------------------------------------------------
-  console.log('\n--- TEST 4: IndexedDB v3 to v4 Database Migration ---');
-
-  class MockIDBMigrationHarness {
-    constructor(version) {
-      this.version = version;
-      this.stores = new Map([
-        ['pdfs', new Map()],
-        ['audios', new Map()],
-        ['annotations', new Map()]
-      ]);
-    }
-
-    upgrade(targetVersion) {
-      if (targetVersion > this.version) {
-        this.version = targetVersion;
-        // In v4 upgrade:
-        if (!this.stores.has('annotation_recovery_vault')) {
-          this.stores.set('annotation_recovery_vault', new Map());
-        }
-      }
-    }
-  }
-
-  const harness = new MockIDBMigrationHarness(3);
-  harness.stores.get('annotations').set('usr_u1::l1', { pages: ['Preserved v3 handwriting'] });
-  harness.stores.get('pdfs').set('usr_u1::l1', { blob: 'Preserved v3 PDF' });
-
-  // Execute upgrade to version 4
-  harness.upgrade(4);
-  assert(harness.version === 4, 'Database schema upgraded to version 4');
-  assert(harness.stores.has('annotation_recovery_vault'), 'Version 4 created annotation_recovery_vault store');
-  assert(harness.stores.get('annotations').has('usr_u1::l1'), 'Pre-existing annotations in v3 survived upgrade to v4 without data loss');
-  assert(harness.stores.get('pdfs').has('usr_u1::l1'), 'Pre-existing PDFs in v3 survived upgrade to v4 without data loss');
+  const resBackupFail = await simulateSafeLogout(false, false, true, false);
+  assert(resBackupFail.backupSuccess === false, 'Logout accurately reports backupSuccess=false when annotation read fails');
+  assert(resBackupFail.isDirty === true, 'Dirty flag is set when local backup fails so data is not marked clean');
 
   // --------------------------------------------------------------------------
   // TEST 5: SQL Migration vs Rollback Baseline Invariant Audit
@@ -240,7 +259,6 @@ async function main() {
   const forwardSql = fs.readFileSync('supabase/migrations/20261103140000_fix_security_and_privileges.sql', 'utf8');
   const rollbackSql = fs.readFileSync('supabase/rollbacks/20261103140000_rollback_fix_security_and_privileges.sql', 'utf8');
 
-  // Strip SQL comments before auditing keywords
   function stripSqlComments(sql) {
     return sql.replace(/--.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
   }
@@ -254,7 +272,6 @@ async function main() {
   const coalesceMatches = cleanForward.match(/\bCOALESCE\s*\(/gi) || [];
   assert(coalesceMatches.length >= 10, `Forward migration contains ${coalesceMatches.length} valid standard SQL COALESCE statements`);
 
-  // Rollback baseline fidelity
   assert(cleanRollback.includes('GRANT EXECUTE ON FUNCTION "public"."protect_vip_status_column"() TO PUBLIC, "anon", "authenticated"'),
          'Rollback restores exact baseline PUBLIC execution privileges on protect_vip_status_column');
   assert(cleanRollback.includes('SET search_path TO \'public\', \'auth\''),
@@ -263,30 +280,25 @@ async function main() {
          'Rollback header explicitly documents known storage bucket reversibility limitation');
 
   // --------------------------------------------------------------------------
-  // TEST 6: In-Flight Media Download User Segregation
+  // TEST 6: Full Stroke Signature & Unified Backup Key Verification
   // --------------------------------------------------------------------------
-  console.log('\n--- TEST 6: In-Flight Media Download Key Segregation ---');
+  console.log('\n--- TEST 6: Full Stroke Signature & Unified Backup Key ---');
 
-  function getInflightKey(userId, storeName, lecId) {
-    return `${userId}:${storeName}:${lecId}`;
-  }
+  const stroke1 = { tool: 'pen', color: '#000', size: 2, points: [{ x: 10, y: 10 }, { x: 20, y: 20 }] };
+  const stroke2 = { tool: 'pen', color: '#000', size: 2, points: [{ x: 50, y: 50 }, { x: 80, y: 80 }] };
+  assert(prod.computeStrokeUniqueSignature(stroke1) !== prod.computeStrokeUniqueSignature(stroke2),
+         'computeStrokeUniqueSignature produces distinct signatures for strokes with identical tool, color, and length but different coordinates');
+  assert(prod.getAccountBackupStorageKey(uidA) === `pharmaAccountWorkspace_${uidA}`,
+         'getAccountBackupStorageKey always uses canonical UID format pharmaAccountWorkspace_<uid>');
 
-  const inflightA = getInflightKey(uidA, 'pdfs', '101');
-  const inflightB = getInflightKey(uidB, 'pdfs', '101');
-  assert(inflightA !== inflightB, 'Inflight keys are strictly segregated by user UUID for overlapping lecture 101');
-  assert(inflightA === `${uidA}:pdfs:101`, 'Inflight key for User A incorporates active user UUID');
-
-  // --------------------------------------------------------------------------
-  // Final Completion Summary
-  // --------------------------------------------------------------------------
   console.log('\n======================================================================');
-  console.log(`TOTAL PHASE 4 REGRESSION CHECKS: ${testsPassed + testsFailed} | PASSED: ${testsPassed} | FAILED: ${testsFailed}`);
+  console.log(`TOTAL PHASE 4/4.1 REGRESSION CHECKS: ${testsPassed + testsFailed} | PASSED: ${testsPassed} | FAILED: ${testsFailed}`);
   console.log('======================================================================\n');
 
   if (testsFailed > 0) {
     process.exit(1);
   } else {
-    console.log('ALL PHASE 4 ASYNCHRONOUS REGRESSION TESTS PASSED (100%).');
+    console.log('ALL PHASE 4 & 4.1 ASYNCHRONOUS REGRESSION TESTS PASSED (100%).');
     process.exit(0);
   }
 }

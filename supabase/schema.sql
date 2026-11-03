@@ -1,5 +1,8 @@
-
-
+-- ============================================================================
+-- Exo Academic Platform — Baseline Exported Schema (supabase/schema.sql)
+-- Organized under supabase/ per Phase 4.1 Section 10 Architecture Standards
+-- Reference: https://www.postgresql.org/docs/current/ddl-rowsecurity.html
+-- ============================================================================
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -12,38 +15,12 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
-
 COMMENT ON SCHEMA "public" IS 'standard public schema';
 
-
-
 CREATE EXTENSION IF NOT EXISTS "pg_stat_statements" WITH SCHEMA "extensions";
-
-
-
-
-
-
 CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
-
-
-
-
-
-
 CREATE EXTENSION IF NOT EXISTS "supabase_vault" WITH SCHEMA "vault";
-
-
-
-
-
-
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
-
-
-
-
-
 
 CREATE OR REPLACE FUNCTION "public"."enforce_workspace_media_security"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
@@ -68,9 +45,7 @@ BEGIN
 END;
 $$;
 
-
 ALTER FUNCTION "public"."enforce_workspace_media_security"() OWNER TO "postgres";
-
 
 CREATE OR REPLACE FUNCTION "public"."protect_vip_status_column"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
@@ -83,9 +58,7 @@ BEGIN
 END;
 $$;
 
-
 ALTER FUNCTION "public"."protect_vip_status_column"() OWNER TO "postgres";
-
 
 CREATE OR REPLACE FUNCTION "public"."rls_auto_enable"() RETURNS "event_trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
@@ -117,13 +90,10 @@ BEGIN
 END;
 $$;
 
-
 ALTER FUNCTION "public"."rls_auto_enable"() OWNER TO "postgres";
 
 SET default_tablespace = '';
-
 SET default_table_access_method = "heap";
-
 
 CREATE TABLE IF NOT EXISTS "public"."user_workspaces" (
     "user_id" "uuid" NOT NULL,
@@ -137,305 +107,56 @@ CREATE TABLE IF NOT EXISTS "public"."user_workspaces" (
     "can_upload_media" boolean DEFAULT false NOT NULL
 );
 
-
 ALTER TABLE "public"."user_workspaces" OWNER TO "postgres";
-
 
 ALTER TABLE ONLY "public"."user_workspaces"
     ADD CONSTRAINT "user_workspaces_pkey" PRIMARY KEY ("user_id");
 
-
-
 CREATE OR REPLACE TRIGGER "trg_enforce_workspace_media_security" BEFORE INSERT OR UPDATE ON "public"."user_workspaces" FOR EACH ROW EXECUTE FUNCTION "public"."enforce_workspace_media_security"();
 
-
-
 CREATE OR REPLACE TRIGGER "trg_protect_vip_status" BEFORE UPDATE ON "public"."user_workspaces" FOR EACH ROW EXECUTE FUNCTION "public"."protect_vip_status_column"();
-
-
 
 ALTER TABLE ONLY "public"."user_workspaces"
     ADD CONSTRAINT "user_workspaces_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
-
-
 CREATE POLICY "Users can insert own workspace" ON "public"."user_workspaces" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
-
-
-
 CREATE POLICY "Users can update own workspace" ON "public"."user_workspaces" FOR UPDATE USING (("auth"."uid"() = "user_id"));
-
-
-
 CREATE POLICY "Users can view own workspace" ON "public"."user_workspaces" FOR SELECT USING (("auth"."uid"() = "user_id"));
-
-
 
 ALTER TABLE "public"."user_workspaces" ENABLE ROW LEVEL SECURITY;
 
-
-
-
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
-
-
-
-
-
 
 GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 REVOKE ALL ON FUNCTION "public"."enforce_workspace_media_security"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."enforce_workspace_media_security"() TO "service_role";
-
-
 
 GRANT ALL ON FUNCTION "public"."protect_vip_status_column"() TO "anon";
 GRANT ALL ON FUNCTION "public"."protect_vip_status_column"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."protect_vip_status_column"() TO "service_role";
 
-
-
 REVOKE ALL ON FUNCTION "public"."rls_auto_enable"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."rls_auto_enable"() TO "service_role";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 GRANT ALL ON TABLE "public"."user_workspaces" TO "anon";
 GRANT ALL ON TABLE "public"."user_workspaces" TO "authenticated";
 GRANT ALL ON TABLE "public"."user_workspaces" TO "service_role";
-
-
-
-
-
-
-
-
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "service_role";
 
-
-
-
-
-
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "postgres";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "service_role";
 
-
-
-
-
-
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "postgres";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
