@@ -123,7 +123,8 @@ Patch Phase 4.2.4.4 عدّل migration تاريخية:
 - لا mocks لإثبات PostgreSQL الحقيقي.
 - لا secrets أو credentials في Git.
 - لا Production Supabase.
-- لا force-push أو merge إلى main.
+- لا تعدّل `Deploying` أو فرع الاسترجاع.
+- لا تنفذ Sync أو Force Push بنفسك؛ المالك يراجع ويقرر.
 - لا ادعاء 312/312 دون logs مطابقة للـ SHA.
 
 ## ملف التسليم
