@@ -239,6 +239,10 @@ BEGIN
 END;
 $$;
 
+-- PostgreSQL non-superuser ownership transfer (AlterFunctionOwner_internal) requires CREATE privilege on containing schema.
+-- Grant temporary CREATE on schema public, transfer ownership, and immediately revoke CREATE.
+GRANT CREATE ON SCHEMA "public" TO "exo_occ_rpc_definer";
 ALTER FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) OWNER TO "exo_occ_rpc_definer";
+REVOKE CREATE ON SCHEMA "public" FROM "exo_occ_rpc_definer";
 REVOKE ALL ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) FROM PUBLIC, "anon";
-GRANT EXECUTE ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) TO "authenticated", "postgres", "service_role";
+GRANT EXECUTE ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) TO "authenticated", "service_role", "postgres", "exo_occ_rpc_definer";

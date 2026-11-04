@@ -27,19 +27,21 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: supabase_admin
+          POSTGRES_PASSWORD: supabase_admin_disposable_pass
           POSTGRES_DB: postgres
+          POSTGRES_INITDB_ARGS: "--set=cluster_name=exo_disposable_pg16"
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U postgres"
+          --health-cmd="pg_isready -U supabase_admin -d postgres"
           --health-interval=5s
           --health-timeout=5s
           --health-retries=10
 
     env:
-      PG16_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+      PG16_DATABASE_URL: postgresql://supabase_admin:supabase_admin_disposable_pass@127.0.0.1:5432/postgres
+      PG16_DISPOSABLE_CLUSTER: "true"
 
     steps:
       - name: Checkout Repository

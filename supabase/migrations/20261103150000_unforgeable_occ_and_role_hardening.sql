@@ -49,7 +49,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'exo_occ_rpc_definer') THEN
     CREATE ROLE "exo_occ_rpc_definer" NOLOGIN NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
   ELSE
-    ALTER ROLE "exo_occ_rpc_definer" NOLOGIN NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+    ALTER ROLE "exo_occ_rpc_definer" NOLOGIN NOINHERIT NOCREATEDB NOCREATEROLE;
   END IF;
 END
 $$;
@@ -313,6 +313,12 @@ BEGIN
 END;
 $$;
 
+-- PostgreSQL requires the target new owner role to have CREATE privilege on the schema
+-- when a non-superuser (such as Hosted Supabase's `postgres` migration role) executes
+-- ALTER FUNCTION ... OWNER TO. We grant CREATE temporarily for the ownership transfer
+-- and immediately revoke it so `exo_occ_rpc_definer` retains USAGE only at rest.
+GRANT CREATE ON SCHEMA "public" TO "exo_occ_rpc_definer";
 ALTER FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) OWNER TO "exo_occ_rpc_definer";
+REVOKE CREATE ON SCHEMA "public" FROM "exo_occ_rpc_definer";
 REVOKE ALL ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) FROM PUBLIC, "anon";
 GRANT EXECUTE ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) TO "authenticated", "service_role", "postgres", "exo_occ_rpc_definer";

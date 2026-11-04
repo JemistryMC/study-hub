@@ -394,6 +394,22 @@ async function main() {
     'Safe rollback script relaxes RPC-only trigger while preserving VIP storage policies and least privilege'
   );
 
+  // 3.10 Non-Superuser Ownership Transfer & Dual-Path Migration Compatibility (Phase 4.2.4.4.1)
+  assert(
+    historicalMigration150.includes('GRANT CREATE ON SCHEMA "public" TO "exo_occ_rpc_definer"') &&
+      historicalMigration150.includes('REVOKE CREATE ON SCHEMA "public" FROM "exo_occ_rpc_definer"') &&
+      forwardMigration160.includes('GRANT CREATE ON SCHEMA "public" TO "exo_occ_rpc_definer"') &&
+      forwardMigration160.includes('REVOKE CREATE ON SCHEMA "public" FROM "exo_occ_rpc_definer"') &&
+      finalSchema.includes('GRANT CREATE ON SCHEMA "public" TO "exo_occ_rpc_definer"') &&
+      finalSchema.includes('REVOKE CREATE ON SCHEMA "public" FROM "exo_occ_rpc_definer"'),
+    'Both Fresh Install (150000) and Existing Upgrade (160000) plus schema.sql enforce temporary CREATE grant and immediate revocation for non-superuser ownership transfer'
+  );
+  assert(
+    finalSchema.includes('GRANT USAGE ON SCHEMA "public" TO "postgres", "anon", "authenticated", "service_role", "exo_occ_rpc_definer";') &&
+      finalSchema.includes('REVOKE CREATE ON SCHEMA "public" FROM "exo_occ_rpc_definer";'),
+    'Principle of least privilege strictly enforced: exo_occ_rpc_definer retains USAGE only on schema public with zero persistent CREATE privilege'
+  );
+
   // --------------------------------------------------------------------------
   // SUITE 4: Service Worker (sw.js) Verification
   // --------------------------------------------------------------------------
