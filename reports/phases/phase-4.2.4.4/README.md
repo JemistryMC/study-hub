@@ -1,6 +1,6 @@
 # Phase 4.2.4.4 — Isolated Bootstrap, Clean Migration Execution & Dual-Path Proof
 
-**Status: Awaiting local Gemini implementation.**
+**Status: Patch received; changes requested; not approved.**
 
 Acceptance requirements:
 - Separate authenticated bootstrap and migration-runner connections.
@@ -11,3 +11,8 @@ Acceptance requirements:
 - Post-migration catalog/ACL/RLS/trigger verification in both paths.
 - Complete logs tied to the exact resulting code SHA.
 - No live Supabase access or production migrations.
+
+
+Independent review: [chatgpt-review.md](chatgpt-review.md)
+
+The patch is an artifact on main only. No Phase 4.2.4.4 source-code files have been applied to Deploying, and the claimed 312/312 result has not been verified on GitHub.
