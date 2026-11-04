@@ -162,11 +162,13 @@ async function main() {
   const baselineMigrationSql = fs.readFileSync('supabase/migrations/20261103133622_remote_schema.sql', 'utf8');
   const phase421MigrationSql = fs.readFileSync('supabase/migrations/20261103140000_fix_security_and_privileges.sql', 'utf8');
   const forwardMigrationSql = fs.readFileSync('supabase/migrations/20261103150000_unforgeable_occ_and_role_hardening.sql', 'utf8');
+  const hostedAuthCompatMigrationSql = fs.readFileSync('supabase/migrations/20261103160000_hosted_supabase_auth_compat.sql', 'utf8');
 
   await dbMigrated.exec(baselineMigrationSql);
   await dbMigrated.exec(phase421MigrationSql);
   await dbMigrated.exec(forwardMigrationSql);
-  assert(true, 'Embedded PGlite cleanly executed migrations in timestamp order (20261103133622 + 20261103140000 + 20261103150000)');
+  await dbMigrated.exec(hostedAuthCompatMigrationSql);
+  assert(true, 'Embedded PGlite cleanly executed migrations in timestamp order (20261103133622 + 20261103140000 + 20261103150000 + 20261103160000)');
 
   // Initialize a second independent PGlite instance from supabase/schema.sql (with 4 WASM-unsupported extensions stripped)
   const dbFreshSchema = new PGlite();

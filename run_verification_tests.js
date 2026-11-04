@@ -243,15 +243,16 @@ async function main() {
   // --------------------------------------------------------------------------
   console.log('\n=== SUITE 3: Backend SQL Migration, Schema & Rollback Static Audit ===');
 
-  const historicalMigration = fs.readFileSync('supabase/migrations/20261103140000_fix_security_and_privileges.sql', 'utf8');
-  const forwardMigration = fs.readFileSync('supabase/migrations/20261103150000_unforgeable_occ_and_role_hardening.sql', 'utf8');
+  const historicalMigration140 = fs.readFileSync('supabase/migrations/20261103140000_fix_security_and_privileges.sql', 'utf8');
+  const historicalMigration150 = fs.readFileSync('supabase/migrations/20261103150000_unforgeable_occ_and_role_hardening.sql', 'utf8');
+  const forwardMigration160 = fs.readFileSync('supabase/migrations/20261103160000_hosted_supabase_auth_compat.sql', 'utf8');
   const finalSchema = fs.readFileSync('supabase/schema.sql', 'utf8');
   const safeRollback = fs.readFileSync('supabase/rollbacks/20261103140000_safe_rollback_concurrency_only.sql', 'utf8');
   const legacyRollback = fs.readFileSync('supabase/rollbacks/20261103140000_rollback_fix_security_and_privileges.sql', 'utf8');
 
   // 3.1 VIP Storage Policy Bypass Fix
   assert(
-    historicalMigration.includes('DROP POLICY IF EXISTS "Users can upload their own lecture media" ON "storage"."objects"'),
+    historicalMigration140.includes('DROP POLICY IF EXISTS "Users can upload their own lecture media" ON "storage"."objects"'),
     'Permissive upload policy bypassing VIP check is dropped in historical migration'
   );
   assert(
@@ -259,19 +260,19 @@ async function main() {
     'Final schema.sql does not contain permissive non-VIP upload policy'
   );
   assert(
-    historicalMigration.includes('CREATE POLICY "Allow VIP users to upload media" ON "storage"."objects"') &&
-      historicalMigration.includes('w.can_upload_media = true'),
+    historicalMigration140.includes('CREATE POLICY "Allow VIP users to upload media" ON "storage"."objects"') &&
+      historicalMigration140.includes('w.can_upload_media = true'),
     'Strict VIP check (can_upload_media = true) is enforced on storage INSERT'
   );
   assert(
-    historicalMigration.includes('CREATE POLICY "Allow VIP users to update media" ON "storage"."objects"') &&
-      historicalMigration.includes('FOR UPDATE'),
+    historicalMigration140.includes('CREATE POLICY "Allow VIP users to update media" ON "storage"."objects"') &&
+      historicalMigration140.includes('FOR UPDATE'),
     'Strict VIP check is enforced on storage UPDATE'
   );
 
   // 3.2 Storage Bucket Private By Default
   assert(
-    historicalMigration.includes('INSERT INTO storage.buckets') && historicalMigration.includes('public = false'),
+    historicalMigration140.includes('INSERT INTO storage.buckets') && historicalMigration140.includes('public = false'),
     'Bucket lecture_media is explicitly configured as private (public = false) in migration'
   );
   assert(
@@ -281,28 +282,28 @@ async function main() {
 
   // 3.3 Database Privileges Revocation & Direct Write OCC Enforcement
   assert(
-    historicalMigration.includes('REVOKE ALL ON TABLE "public"."user_workspaces" FROM "anon"'),
+    historicalMigration140.includes('REVOKE ALL ON TABLE "public"."user_workspaces" FROM "anon"'),
     'All table privileges on user_workspaces revoked from anon'
   );
   assert(
-    historicalMigration.includes('REVOKE ALL ON TABLE "public"."user_workspaces" FROM "authenticated"') &&
-      historicalMigration.includes('GRANT SELECT ON TABLE "public"."user_workspaces" TO "authenticated"'),
+    historicalMigration140.includes('REVOKE ALL ON TABLE "public"."user_workspaces" FROM "authenticated"') &&
+      historicalMigration140.includes('GRANT SELECT ON TABLE "public"."user_workspaces" TO "authenticated"'),
     'Authenticated role is restricted to SELECT on user_workspaces (writes enforced via OCC RPC)'
   );
   assert(
-    !historicalMigration.includes('GRANT TRUNCATE') &&
-      !historicalMigration.includes('GRANT TRIGGER') &&
-      !historicalMigration.includes('GRANT REFERENCES'),
+    !historicalMigration140.includes('GRANT TRUNCATE') &&
+      !historicalMigration140.includes('GRANT TRIGGER') &&
+      !historicalMigration140.includes('GRANT REFERENCES'),
     'No TRUNCATE, TRIGGER, or REFERENCES granted to API roles'
   );
 
   // 3.4 Global & Schema Default Privileges Revocation (Including PUBLIC!)
   assert(
-    historicalMigration.includes('ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" REVOKE ALL ON FUNCTIONS FROM PUBLIC, "anon", "authenticated"'),
+    historicalMigration140.includes('ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" REVOKE ALL ON FUNCTIONS FROM PUBLIC, "anon", "authenticated"'),
     'Global default function privileges revoked from PUBLIC, anon, and authenticated in historical migration'
   );
   assert(
-    historicalMigration.includes('ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON FUNCTIONS FROM PUBLIC, "anon", "authenticated"'),
+    historicalMigration140.includes('ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON FUNCTIONS FROM PUBLIC, "anon", "authenticated"'),
     'Schema-level default function privileges revoked from PUBLIC, anon, and authenticated in historical migration'
   );
   assert(
@@ -313,58 +314,74 @@ async function main() {
 
   // 3.5 Server-enforced updated_at, revision, OCC write guard, and Concurrency RPC in both migration and schema.sql
   assert(
-    historicalMigration.includes('ADD COLUMN IF NOT EXISTS "revision" integer NOT NULL DEFAULT 1') &&
+    historicalMigration140.includes('ADD COLUMN IF NOT EXISTS "revision" integer NOT NULL DEFAULT 1') &&
       finalSchema.includes('"revision" integer DEFAULT 1 NOT NULL'),
     'Revision column present with default 1 in both migration and final schema.sql'
   );
   assert(
-    historicalMigration.includes('CREATE OR REPLACE FUNCTION public.handle_user_workspace_updated_at()') &&
+    historicalMigration140.includes('CREATE OR REPLACE FUNCTION public.handle_user_workspace_updated_at()') &&
       finalSchema.includes('CREATE OR REPLACE FUNCTION public.handle_user_workspace_updated_at()'),
     'Trigger function handle_user_workspace_updated_at() present in both migration and final schema.sql'
   );
   assert(
-    forwardMigration.includes('CREATE OR REPLACE FUNCTION public.enforce_workspace_write_via_rpc()') &&
+    historicalMigration150.includes('CREATE OR REPLACE FUNCTION public.enforce_workspace_write_via_rpc()') &&
       finalSchema.includes('CREATE OR REPLACE FUNCTION public.enforce_workspace_write_via_rpc()'),
     'Database-level OCC guard enforce_workspace_write_via_rpc() present in forward migration and final schema.sql'
   );
   assert(
-    forwardMigration.includes('CREATE OR REPLACE FUNCTION public.sync_workspace_with_concurrency') &&
+    forwardMigration160.includes('CREATE OR REPLACE FUNCTION public.sync_workspace_with_concurrency') &&
       finalSchema.includes('CREATE OR REPLACE FUNCTION public.sync_workspace_with_concurrency'),
     'Atomic concurrency RPC sync_workspace_with_concurrency present in forward migration and final schema.sql'
   );
 
   // 3.6 Security Definer Search Path Hardening & Unforgeable Forward Migration Proof
   assert(
-    historicalMigration.includes('CREATE OR REPLACE FUNCTION public.protect_vip_status_column()') &&
-      historicalMigration.includes('SET search_path = pg_catalog, public'),
+    historicalMigration140.includes('CREATE OR REPLACE FUNCTION public.protect_vip_status_column()') &&
+      historicalMigration140.includes('SET search_path = pg_catalog, public'),
     'protect_vip_status_column hardened with fixed search_path = pg_catalog, public'
   );
   assert(
-    forwardMigration.includes('sync_workspace_with_concurrency') &&
-      forwardMigration.includes('SET search_path = pg_catalog, public, auth, exo_internal'),
-    'sync_workspace_with_concurrency hardened with search_path = pg_catalog, public, auth, exo_internal in forward migration'
+    forwardMigration160.includes('sync_workspace_with_concurrency') &&
+      forwardMigration160.includes('SET search_path = pg_catalog, public, exo_internal'),
+    'sync_workspace_with_concurrency hardened with search_path = pg_catalog, public, exo_internal (no auth dependency)'
   );
   assert(
-    !forwardMigration.includes('exo.occ_rpc_active') &&
+    !forwardMigration160.includes('exo.occ_rpc_active') &&
       !finalSchema.includes('exo.occ_rpc_active') &&
       !safeRollback.includes('exo.occ_rpc_active') &&
-      forwardMigration.includes('exo_occ_rpc_definer') &&
-      forwardMigration.includes('exo_internal.occ_active_write_context') &&
+      forwardMigration160.includes('exo_occ_rpc_definer') &&
       finalSchema.includes('exo_occ_rpc_definer') &&
       finalSchema.includes('exo_internal.occ_active_write_context'),
-    'Zero reliance on forgeable custom GUC (exo.occ_rpc_active) in forward migration/schema; unforgeable NOLOGIN role exo_occ_rpc_definer and private exo_internal.occ_active_write_context enforced'
+    'Zero reliance on forgeable custom GUC in forward migration/schema; unforgeable NOLOGIN role exo_occ_rpc_definer and private exo_internal enforced'
   );
 
-  // 3.7 Historical Migration Preservation & Migration Sequence
+  // 3.7 Hosted Supabase Auth Schema Compatibility & Narrow Identity Helper Proof (Phase 4.2.4)
   assert(
-    historicalMigration.includes('exo.occ_rpc_active') &&
-      forwardMigration.includes('20261103150000_unforgeable_occ_and_role_hardening.sql') &&
-      forwardMigration.includes('DROP POLICY IF EXISTS "Users can insert own workspace"') &&
-      forwardMigration.includes('ALTER FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) OWNER TO "exo_occ_rpc_definer"'),
-    'Historical migration 20261103140000 preserved in original Phase 4.2.1 state; forward migration 20261103150000 cleanly upgrades to unforgeable OCC architecture'
+    forwardMigration160.includes('CREATE OR REPLACE FUNCTION "exo_internal"."current_request_uid"()') &&
+      forwardMigration160.includes('SECURITY DEFINER') &&
+      forwardMigration160.includes("SET search_path = ''") &&
+      forwardMigration160.includes('OWNER TO "postgres"') &&
+      finalSchema.includes('CREATE OR REPLACE FUNCTION "exo_internal"."current_request_uid"()') &&
+      finalSchema.includes("SET search_path = ''"),
+    'Narrow SECURITY DEFINER identity helper exo_internal.current_request_uid() is defined with empty search_path and owned by postgres'
+  );
+  assert(
+    forwardMigration160.includes('REVOKE USAGE ON SCHEMA "auth" FROM "exo_occ_rpc_definer"') &&
+      !finalSchema.includes('GRANT USAGE ON SCHEMA "auth" TO "exo_occ_rpc_definer"') &&
+      finalSchema.includes('GRANT USAGE ON SCHEMA "exo_internal" TO "authenticated", "exo_occ_rpc_definer"') &&
+      finalSchema.includes('USING ((exo_internal.current_request_uid() = user_id))'),
+    'Hosted Supabase auth schema isolation enforced: zero auth USAGE granted to exo_occ_rpc_definer, RLS and RPC route identity via exo_internal helper'
   );
 
-  // 3.8 Rollback Safety Gate & Safe Emergency Rollback Alternative
+  // 3.8 Historical Migration Preservation & Migration Sequence
+  assert(
+    historicalMigration140.includes('exo.occ_rpc_active') &&
+      historicalMigration150.includes('20261103150000_unforgeable_occ_and_role_hardening.sql') &&
+      forwardMigration160.includes('20261103160000_hosted_supabase_auth_compat.sql'),
+    'Historical migrations 20261103140000 and 20261103150000 strictly preserved; forward migration 20261103160000 cleanly extends security architecture'
+  );
+
+  // 3.9 Rollback Safety Gate & Safe Emergency Rollback Alternative
   assert(
     legacyRollback.includes("exo.allow_unsafe_legacy_rollback") &&
       legacyRollback.includes("UNSAFE_ROLLBACK_BLOCKED"),

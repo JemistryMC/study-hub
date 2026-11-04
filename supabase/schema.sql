@@ -93,6 +93,20 @@ CREATE POLICY "occ_rpc_definer_manage_write_context" ON "exo_internal"."occ_acti
   USING (true)
   WITH CHECK (true);
 
+CREATE OR REPLACE FUNCTION "exo_internal"."current_request_uid"()
+RETURNS uuid
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT auth.uid();
+$$;
+
+ALTER FUNCTION "exo_internal"."current_request_uid"() OWNER TO "postgres";
+REVOKE ALL ON FUNCTION "exo_internal"."current_request_uid"() FROM PUBLIC, "anon";
+GRANT EXECUTE ON FUNCTION "exo_internal"."current_request_uid"() TO "postgres", "service_role", "authenticated", "exo_occ_rpc_definer";
+
 CREATE TABLE IF NOT EXISTS "public"."user_workspaces" (
     "user_id" "uuid" NOT NULL,
     "subjects" "jsonb" DEFAULT '[]'::"jsonb",
@@ -254,10 +268,10 @@ CREATE OR REPLACE FUNCTION public.sync_workspace_with_concurrency(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, auth, exo_internal
+SET search_path = pg_catalog, public, exo_internal
 AS $$
 DECLARE
-  v_uid uuid := auth.uid();
+  v_uid uuid := exo_internal.current_request_uid();
   v_txid xid8 := pg_catalog.pg_current_xact_id();
   v_current_rev integer;
   v_updated_at timestamptz;
@@ -294,7 +308,7 @@ BEGIN
     VALUES (v_txid, v_uid, 'UPDATE')
     ON CONFLICT (txid, user_id) DO UPDATE SET write_op = EXCLUDED.write_op;
 
-    -- Update row with payload data (strictly bound to v_uid = auth.uid())
+    -- Update row with payload data (strictly bound to v_uid from request context)
     UPDATE public.user_workspaces
     SET
       subjects = COALESCE(p_payload->'subjects', subjects),
@@ -426,14 +440,14 @@ DROP POLICY IF EXISTS "Users can view own workspace" ON "public"."user_workspace
 CREATE POLICY "Users can view own workspace" ON "public"."user_workspaces"
   FOR SELECT
   TO "authenticated", "exo_occ_rpc_definer"
-  USING ((auth.uid() = user_id));
+  USING ((exo_internal.current_request_uid() = user_id));
 
 DROP POLICY IF EXISTS "Users can insert own workspace" ON "public"."user_workspaces";
 CREATE POLICY "Users can insert own workspace" ON "public"."user_workspaces"
   FOR INSERT
   TO "authenticated", "exo_occ_rpc_definer"
   WITH CHECK (
-    (auth.uid() = user_id)
+    (exo_internal.current_request_uid() = user_id)
     AND (CURRENT_USER = 'exo_occ_rpc_definer'::name)
   );
 
@@ -441,9 +455,9 @@ DROP POLICY IF EXISTS "Users can update own workspace" ON "public"."user_workspa
 CREATE POLICY "Users can update own workspace" ON "public"."user_workspaces"
   FOR UPDATE
   TO "authenticated", "exo_occ_rpc_definer"
-  USING ((auth.uid() = user_id))
+  USING ((exo_internal.current_request_uid() = user_id))
   WITH CHECK (
-    (auth.uid() = user_id)
+    (exo_internal.current_request_uid() = user_id)
     AND (CURRENT_USER = 'exo_occ_rpc_definer'::name)
   );
 
@@ -519,8 +533,7 @@ CREATE POLICY "Users can view own lecture media" ON "storage"."objects"
 -- ============================================================================
 
 GRANT USAGE ON SCHEMA "public" TO "postgres", "anon", "authenticated", "service_role", "exo_occ_rpc_definer";
-GRANT USAGE ON SCHEMA "auth" TO "exo_occ_rpc_definer";
-GRANT SELECT ON TABLE "auth"."users" TO "exo_occ_rpc_definer";
+GRANT USAGE ON SCHEMA "exo_internal" TO "authenticated", "exo_occ_rpc_definer";
 
 REVOKE ALL ON TABLE "public"."user_workspaces" FROM PUBLIC;
 REVOKE ALL ON TABLE "public"."user_workspaces" FROM "anon";

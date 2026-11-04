@@ -1,18 +1,19 @@
-# تقرير المراجعة الهندسية والأمنية الشاملة لمنصة Exo — Phase 4.1, 4.2, 4.2.1, 4.2.2 & 4.2.3 (Forward Migration Safety & Auth Boundary)
+# تقرير المراجعة الهندسية والأمنية الشاملة لمنصة Exo — Phase 4.1, 4.2, 4.2.1, 4.2.2, 4.2.3 & 4.2.4 (Hosted Supabase Auth Compatibility)
 
 ## نطاق المراجعة والتنفيذ الفعلي
-يوثق هذا التقرير النتائج والتعديلات المنفذة والمختبرة فعليًا عبر مسار التطوير الشامل (**Phase 4.1, Phase 4.2, Phase 4.2.1, Phase 4.2.2, Phase 4.2.3**) لعزل الحسابات، ومنع سباقات التزامن (`Race Conditions`)، وضمان متانة معاملات `IndexedDB`، وتأمين قواعد بيانات وسياسات `PostgreSQL / Supabase` مع التحقق من مساري النشر (التثبيت الجديد والتحديث المباشر لقواعد البيانات الحالية):
+يوثق هذا التقرير النتائج والتعديلات المنفذة والمختبرة فعليًا عبر مسار التطوير الشامل (**Phase 4.1, Phase 4.2, Phase 4.2.1, Phase 4.2.2, Phase 4.2.3, Phase 4.2.4**) لعزل الحسابات، ومنع سباقات التزامن (`Race Conditions`)، وضمان متانة معاملات `IndexedDB`، وتأمين قواعد بيانات وسياسات `PostgreSQL / Supabase` مع التحقق من مساري النشر (التثبيت الجديد والتحديث المباشر لقواعد البيانات الحالية) والتوافق الكامل مع بنية استضافة Supabase السحابية (`Hosted Supabase Managed Auth Schema`):
 1. **اختبارات التوافق المضمنة (`Embedded PostgreSQL Compatibility Tests — PGlite WASM`)** في `test_phase4_2_postgres_integration.js`.
-2. **اختبارات خادم PostgreSQL 16 الفعلي والتزامن متعدد الاتصالات ومساري النشر A وB (`Real PostgreSQL 16 Multi-Connection Concurrency, Dual-Path Parity & Unforgeable OCC`)** في `test_phase4_2_1_pg16_concurrency.js`.
+2. **اختبارات خادم PostgreSQL 16 الفعلي والتزامن متعدد الاتصالات ومساري النشر A وB ومحاكاة استضافة Supabase السحابية (`Real PostgreSQL 16 Multi-Connection Concurrency, Dual-Path Parity, Hosted Auth Fixture & Unforgeable OCC`)** في `test_phase4_2_1_pg16_concurrency.js`.
 3. **اختبارات المتصفح الفعلي (`Real Headless Chromium + IndexedDB v4 E2E`)** في `test_phase4_1_chromium_e2e.js`.
 4. **الفحص الثابت والتشفيري الصارم (`Production PBKDF2 & Static Migration Audit`)** في `run_verification_tests.js`.
 
 ### هيكل ملفات قاعدة البيانات المنظم (`supabase/`):
 - `supabase/config.toml` — إعدادات مشروع Supabase المحلية والـ Auth والـ Storage.
-- `supabase/schema.sql` — المخطط النهائي الكنسي الكامل (`Canonical Final Schema`) الذي يعكس حالة قاعدة البيانات بعد تطبيق جميع الـ Migrations (بما في ذلك الدور المخصص `exo_occ_rpc_definer`، والمخطط الخاص `exo_internal.occ_active_write_context`، والعمود `revision`، والدالة `sync_workspace_with_concurrency`، ودوال الحماية، وسياسات `RLS` و`Storage`، وتقليص الصلاحيات).
+- `supabase/schema.sql` — المخطط النهائي الكنسي الكامل (`Canonical Final Schema`) الذي يعكس حالة قاعدة البيانات بعد تطبيق جميع الـ Migrations الأربعة (بما في ذلك دالة الهوية الآمنة `exo_internal.current_request_uid()`، والدور المخصص `exo_occ_rpc_definer` بدون أي ارتباط بمخطط `auth`، والمخطط الخاص `exo_internal.occ_active_write_context`، والعمود `revision`، والدالة `sync_workspace_with_concurrency`، ودوال الحماية، وسياسات `RLS` و`Storage`، وتقليص الصلاحيات).
 - `supabase/migrations/20261103133622_remote_schema.sql` — مخطط القاعدة الأساسي الأولي (Baseline Migration، متوافق بالكامل مع PostgreSQL 16 بعد إزالة صلاحية `MAINTAIN` الخاصة بـ PostgreSQL 17+).
 - `supabase/migrations/20261103140000_fix_security_and_privileges.sql` — **الهجرة التاريخية الأصلية المحفوظة بالكامل (Phase 4.2.1 Historical Reference)**: تم استرجاعها بدقة وفق مرجع الالتزام `5b8c5ab1fd2d78ec23934a6e50e0a786ac6775c9` دون أي تعديل لاحق عليها لحماية قواعد البيانات الحالية من انحراف النشر (`Deployment Drift`).
-- `supabase/migrations/20261103150000_unforgeable_occ_and_role_hardening.sql` — **الهجرة الأمامية الآمنة الجديدة (Phase 4.2.3 Forward Migration)**: تحمل ختمًا زمنيًا لاحقًا وتنفذ الترقية الكاملة من تصميم GUC التاريخي إلى التصميم الجديد غير القابل للتزوير (`exo_occ_rpc_definer` + `exo_internal.occ_active_write_context`) وتعديل سياسات RLS وTriggers ونقل الملكية وإعداد الصلاحيات الافتراضية.
+- `supabase/migrations/20261103150000_unforgeable_occ_and_role_hardening.sql` — **الهجرة التاريخية المحفوظة (Phase 4.2.3 Forward Migration)**: أنشأت الدور `exo_occ_rpc_definer` والمخطط `exo_internal` مع الحفاظ على تسلسل الهجرات.
+- `supabase/migrations/20261103160000_hosted_supabase_auth_compat.sql` — **الهجرة الأمامية الجديدة لتوافق استضافة Supabase السحابية (Phase 4.2.4 Forward Migration)**: تعالج قيود صلاحيات مخطط `auth` في Supabase السحابية عبر تقديم دالة الهوية `exo_internal.current_request_uid()`، وسحب صلاحيات `auth` عن الدور `exo_occ_rpc_definer`، وتعديل سياسات RLS ودالة RPC.
 - `supabase/rollbacks/20261103140000_safe_rollback_concurrency_only.sql` — **البديل الآمن للتراجع في حالات الطوارئ**: يرفع قيد المنع الصارم للكتابة المباشرة (`trg_enforce_workspace_write_via_rpc`) عند الضرورة التشغيلية، مع الحفاظ الكامل على عزل الحسابات (`RLS`)، وسياسات VIP للرفع (`can_upload_media = true`)، وسحب الصلاحيات الخطرة والافتراضية.
 - `supabase/rollbacks/20261103140000_rollback_fix_security_and_privileges.sql` — نص التراجع التاريخي إلى حالة الـ Baseline (معزول خارج `migrations/` ومحمي ببوابة أمان `exo.allow_unsafe_legacy_rollback = 'I_ACCEPT_SECURITY_DOWNGRADE'` لمنع تشغيله بالخطأ).
 
@@ -98,29 +99,51 @@
 
 ---
 
-## القسم الثالث: نتائج الاختبارات المفصولة حسب فئاتها الخمس (276 / 276)
+## القسم الثالث: نتائج الاختبارات المفصولة حسب فئاتها الخمس (288 / 288)
 
 تم تشغيل جميع الاختبارات فعليًا عبر `npm test` (`run_all_tests.js`) وجاءت النتائج مفصولة بدقة كالتالي:
 
 | الفئة | ملف الاختبار | البيئة الفعلية | عدد الفحوصات | النتيجة |
 | :--- | :--- | :--- | :--- | :---: | :---: |
-| **1. اختبارات التشفير الإنتاجي والفحص الثابت** | `run_verification_tests.js` | Node.js Web Crypto (`index.html`) + فحص SQL/SW | **50** | **50 PASS / 0 FAIL** |
+| **1. اختبارات التشفير الإنتاجي والفحص الثابت** | `run_verification_tests.js` | Node.js Web Crypto (`index.html`) + فحص SQL/SW | **52** | **52 PASS / 0 FAIL** |
 | **2. اختبارات الوحدات والمنطق غير المتزامن (Unit Tests)** | `run_comprehensive_verification.js`<br>`test_phase3_cross_account_isolation.js`<br>`test_phase4_regressions.js` | Node.js + محاكي معاملات IDB | **102**<br>(42 + 25 + 35) | **102 PASS / 0 FAIL** |
 | **3. اختبارات التوافق المضمنة (Embedded PG Compatibility)** | `test_phase4_2_postgres_integration.js` | **PGlite WASM (`PG 18.6 Single-Connection`)** | **41** | **41 PASS / 0 FAIL** |
-| **4. خادم PostgreSQL 16 الفعلي ومساري النشر والتزامن** | `test_phase4_2_1_pg16_concurrency.js` | **PostgreSQL 16.15 حقيقي (`Multi-Connection TCP`)** | **41** | **41 PASS / 0 FAIL** |
+| **4. خادم PostgreSQL 16 الفعلي ومساري النشر ومحاكاة Supabase** | `test_phase4_2_1_pg16_concurrency.js` | **PostgreSQL 16.15 حقيقي (`Multi-Connection TCP`)** | **51** | **51 PASS / 0 FAIL** |
 | **5. اختبارات المتصفح الشاملة (Browser E2E)** | `test_phase4_1_chromium_e2e.js` | **Headless Chromium + Real IndexedDB v4** | **42** | **42 PASS / 0 FAIL** |
-| **الإجمالي الكلي** | **جميع الحزم (7 ملفات اختبار)** | **Node.js + PGlite + PostgreSQL 16.15 + Chromium** | **276** | **276 PASS / 0 FAIL** |
+| **الإجمالي الكلي** | **جميع الحزم (7 ملفات اختبار)** | **Node.js + PGlite + PostgreSQL 16.15 + Chromium** | **288** | **288 PASS / 0 FAIL** |
 
 ---
 
-## القسم الرابع: التمييز الصريح لحدود الأمان بين قاعدة البيانات وبوابة Supabase Auth / PostgREST
+## القسم الرابع: معالجة قيود مخطط Auth في استضافة Supabase السحابية (Phase 4.2.4)
+
+### 1. المشكلة المكتشفة في البيئات السحابية المُدارة (`Hosted Supabase Environment`)
+في استضافة Supabase السحابية:
+1. المخطط `auth` مملوك لـ `supabase_admin`، وجداول ودوال `auth` مملوكة لـ `supabase_auth_admin`.
+2. الدور `postgres` يمتلك `USAGE` على المخطط `auth` دون خيار التفويض (`WITHOUT GRANT OPTION`).
+3. محاولة منح صلاحيات `GRANT USAGE ON SCHEMA auth TO exo_occ_rpc_definer` تفشل على Supabase السحابية أو لا يكون لها أي تأثير (كما هو موضح رسميًا في قاعدة معارف Supabase).
+4. لذلك، استدعاء `auth.uid()` مباشرة من داخل دالة `SECURITY DEFINER` مملوكة للدور `exo_occ_rpc_definer` يرفع خطأ انتهاك الصلاحيات (`42501 permission denied for schema auth`).
+
+### 2. الحل الهندسي المنفذ: دالة الهوية الآمنة `exo_internal.current_request_uid()`
+تم تصميم وتنفيذ الحل وفق أفضل الممارسات المعتمدة من Supabase:
+1. إنشاء دالة وسيطة ضيقة `exo_internal.current_request_uid()` داخل المخطط الخاص `exo_internal`:
+   - مملوكة للدور `postgres` (الذي يمتلك صلاحية `USAGE` الأصلية على `auth`).
+   - معرّفة كـ `SECURITY DEFINER` ومحصنة بـ `SET search_path = ''`.
+   - تسحب صلاحية `EXECUTE` عن `PUBLIC` و`anon`، وتُمنح لـ `postgres` و`service_role` و`authenticated` و`exo_occ_rpc_definer`.
+2. استبدال جميع استدعاءات `auth.uid()` المباشرة داخل دالة `sync_workspace_with_concurrency()` وسياسات RLS بدالة `exo_internal.current_request_uid()`.
+3. تعديل `search_path` لدالة `sync_workspace_with_concurrency` ليقتصر على `pg_catalog, public, exo_internal` وإزالة `auth` تمامًا.
+4. إثبات ذلك عمليًا في القسم 8 من `test_phase4_2_1_pg16_concurrency.js` حيث ثبت أن استدعاء `auth.uid()` مباشرة من `exo_occ_rpc_definer` يفشل بخطأ `42501`، بينما ينجح استدعاء `sync_workspace_with_concurrency()` كاملاً عبر دالة الهوية الوسيطة بدون أي صلاحيات على مخطط `auth`.
+
+---
+
+## القسم الخامس: التمييز الصريح لحدود الأمان بين قاعدة البيانات وبوابة Supabase Auth / PostgREST
 
 ### 1. ما تم إثباته قطعيًا داخل PostgreSQL 16
 - تم إثبات أن محرك قاعدة البيانات نفسه، تحت أدوار `anon` و`authenticated`، يفرض حماية غير قابلة للتزوير:
-  1. عزل الحسابات بـ `auth.uid()`.
+  1. عزل الحسابات بـ `auth.uid()` عبر `exo_internal.current_request_uid()`.
   2. منع التلاعب بحمولة JSON أو انتحال معرّفات مستخدمين آخرين.
   3. منع الكتابة المباشرة وتزوير متغيرات GUC.
   4. فرض أقفال التزامن الحقيقية `SELECT ... FOR UPDATE` ورفض التحديثات المتعارضة.
+  5. استقلالية دور `exo_occ_rpc_definer` عن مخطط `auth` وتوافقه التام مع قيود الاستضافة السحابية.
 
 ### 2. ما لا تثبته اختبارات PostgreSQL المحلية (الحدود الخارجية لـ Supabase Auth)
 - تحاكي اختبارات قاعدة البيانات مطالبات JWT عبر ضبط جلسة الاتصال:

@@ -264,16 +264,19 @@ async function main() {
     'Version gate strictly fails on PGlite (180006 WASM) and non-16 PostgreSQL versions (150019)'
   );
 
-  // Prepare three clean databases on the real PostgreSQL 16 server:
-  //   1. exo_pg16_fresh_install (Path A: 20261103133622 + 20261103140000 + 20261103150000 in timestamp order)
-  //   2. exo_pg16_existing_upgrade (Path B: starts at historical Phase 4.2.1 state, then applies only 20261103150000)
+  // Prepare clean databases on the real PostgreSQL 16 server:
+  //   1. exo_pg16_fresh_install (Path A: 133622 + 140000 + 150000 + 160000 in timestamp order)
+  //   2. exo_pg16_existing_upgrade (Path B: starts at historical Phase 4.2.3 state, then applies only 160000)
   //   3. exo_pg16_fresh_schema (Canonical baseline from supabase/schema.sql)
+  //   4. exo_pg16_hosted_supabase_fixture (Hosted Supabase ownership fixture)
   await adminClient.query('DROP DATABASE IF EXISTS exo_pg16_fresh_install WITH (FORCE);');
   await adminClient.query('DROP DATABASE IF EXISTS exo_pg16_existing_upgrade WITH (FORCE);');
   await adminClient.query('DROP DATABASE IF EXISTS exo_pg16_fresh_schema WITH (FORCE);');
+  await adminClient.query('DROP DATABASE IF EXISTS exo_pg16_hosted_supabase_fixture WITH (FORCE);');
   await adminClient.query('CREATE DATABASE exo_pg16_fresh_install;');
   await adminClient.query('CREATE DATABASE exo_pg16_existing_upgrade;');
   await adminClient.query('CREATE DATABASE exo_pg16_fresh_schema;');
+  await adminClient.query('CREATE DATABASE exo_pg16_hosted_supabase_fixture;');
   await adminClient.end();
 
   // --------------------------------------------------------------------------
@@ -306,30 +309,37 @@ async function main() {
     'supabase/migrations/20261103140000_fix_security_and_privileges.sql',
     'utf8'
   );
-  const forwardMigrationSql = fs.readFileSync(
+  const phase422ForwardMigrationSql = fs.readFileSync(
     'supabase/migrations/20261103150000_unforgeable_occ_and_role_hardening.sql',
+    'utf8'
+  );
+  const phase424ForwardMigrationSql = fs.readFileSync(
+    'supabase/migrations/20261103160000_hosted_supabase_auth_compat.sql',
     'utf8'
   );
 
   // Path A — Fresh installation:
-  // Apply baseline migration (133622) -> original Phase 4.2.1 migration (140000) -> new forward migration (150000)
+  // Apply all migrations in timestamp order: 133622 -> 140000 -> 150000 -> 160000
   await pathAClient.query(baselineMigrationSql);
   await pathAClient.query(phase421HistoricalMigrationSql);
-  await pathAClient.query(forwardMigrationSql);
+  await pathAClient.query(phase422ForwardMigrationSql);
+  await pathAClient.query(phase424ForwardMigrationSql);
   assert(
     true,
-    'Path A (Fresh Install): Cleanly executed migrations in timestamp order (20261103133622 + 20261103140000 + 20261103150000)'
+    'Path A (Fresh Install): Cleanly executed migrations in timestamp order (133622 + 140000 + 150000 + 160000)'
   );
 
   // Path B — Existing database upgrade:
-  // First, construct the EXACT historical Phase 4.2.1 database state:
+  // First, construct the EXACT historical Phase 4.2.3 database state (133622 + 140000 + 150000):
   await pathBClient.query(baselineMigrationSql);
   await pathBClient.query(phase421HistoricalMigrationSql);
-  // Verify database is at historical Phase 4.2.1 state (has GUC check, sync_workspace owned by postgres)
+  await pathBClient.query(phase422ForwardMigrationSql);
+  // Verify database is at historical Phase 4.2.3 state (owns sync_workspace, has auth in search_path)
   const preUpgradeCheck = (
     await pathBClient.query(`
       SELECT
         p.proowner::regrole::text AS owner,
+        p.proconfig::text AS proconfig,
         pg_get_functiondef(p.oid) AS fndef
       FROM pg_proc p
       JOIN pg_namespace n ON n.oid = p.pronamespace
@@ -337,15 +347,15 @@ async function main() {
     `)
   ).rows[0];
   assert(
-    preUpgradeCheck.owner === 'postgres' && preUpgradeCheck.fndef.includes('exo.occ_rpc_active'),
-    'Path B (Pre-Upgrade): Successfully verified existing database state at Phase 4.2.1 (owned by postgres with GUC check)'
+    preUpgradeCheck.owner === 'exo_occ_rpc_definer' && preUpgradeCheck.proconfig.includes('auth'),
+    'Path B (Pre-Upgrade): Successfully verified existing database state at Phase 4.2.3 (owned by exo_occ_rpc_definer with auth in search_path)'
   );
 
-  // Now apply ONLY the new forward migration (20261103150000) to upgrade the live database:
-  await pathBClient.query(forwardMigrationSql);
+  // Now apply ONLY the new forward migration (20261103160000) to upgrade the live database:
+  await pathBClient.query(phase424ForwardMigrationSql);
   assert(
     true,
-    'Path B (Existing Upgrade): Cleanly applied 20261103150000 forward migration on top of historical Phase 4.2.1 database'
+    'Path B (Existing Upgrade): Cleanly applied 20261103160000 forward migration on top of historical Phase 4.2.3 database'
   );
 
   // Reference Database — Fresh schema bootstrap from supabase/schema.sql
@@ -513,11 +523,11 @@ async function main() {
 
   // 3.7 Functions (SECURITY DEFINER, search_path proconfig, ACLs, and full function definitions)
   const funcsQuery = `
-    SELECT p.proname, p.prosecdef, p.proconfig, p.proacl::text, pg_get_functiondef(p.oid) AS fndef
+    SELECT n.nspname, p.proname, p.prosecdef, p.proconfig, p.proacl::text, pg_get_functiondef(p.oid) AS fndef
     FROM pg_proc p
     JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public'
-    ORDER BY p.proname
+    WHERE n.nspname IN ('public', 'exo_internal')
+    ORDER BY n.nspname, p.proname
   `;
   const pathAFuncs = (await pathAClient.query(funcsQuery)).rows;
   const pathBFuncs = (await pathBClient.query(funcsQuery)).rows;
@@ -525,8 +535,8 @@ async function main() {
   assert(
     JSON.stringify(pathAFuncs) === JSON.stringify(freshFuncs) &&
       JSON.stringify(pathBFuncs) === JSON.stringify(freshFuncs) &&
-      pathAFuncs.length === 6,
-    'Parity [7/10] All 6 public functions (SECURITY DEFINER, search_path, ACLs, and bodies) match across Path A, Path B, and schema.sql'
+      pathAFuncs.length === 7,
+    'Parity [7/10] All 7 functions across public & exo_internal (SECURITY DEFINER, search_path, ACLs, and bodies) match across Path A, Path B, and schema.sql'
   );
 
   // 3.8 Table Privileges & RLS Enablement Flags
@@ -590,6 +600,96 @@ async function main() {
       pathABucket[0].public === false &&
       Number(pathABucket[0].file_size_limit) === 52428800,
     'Parity [10/10] Storage bucket lecture_media and private exo_internal.occ_active_write_context schema match across Path A, Path B, and schema.sql'
+  );
+
+  // 3.11 Hosted Supabase Auth Identity Helper & Privileges Isolation Audit
+  const helperProc = (
+    await pathBClient.query(`
+      SELECT
+        p.proname,
+        p.prosecdef,
+        p.proowner::regrole::text AS owner,
+        p.proconfig,
+        has_function_privilege('anon', p.oid, 'EXECUTE') AS anon_exec,
+        has_function_privilege('authenticated', p.oid, 'EXECUTE') AS auth_exec,
+        has_function_privilege('exo_occ_rpc_definer', p.oid, 'EXECUTE') AS definer_exec,
+        has_function_privilege('service_role', p.oid, 'EXECUTE') AS service_exec
+      FROM pg_proc p
+      JOIN pg_namespace n ON p.pronamespace = n.oid
+      WHERE n.nspname = 'exo_internal' AND p.proname = 'current_request_uid'
+    `)
+  ).rows[0];
+  assert(
+    helperProc &&
+      helperProc.prosecdef === true &&
+      helperProc.owner === 'postgres' &&
+      Array.isArray(helperProc.proconfig) &&
+      helperProc.proconfig.some((c) => c === 'search_path=""' || c === 'search_path=') &&
+      helperProc.anon_exec === false &&
+      helperProc.auth_exec === true &&
+      helperProc.definer_exec === true &&
+      helperProc.service_exec === true,
+    'Phase 4.2.4 Catalog Audit: exo_internal.current_request_uid() is SECURITY DEFINER, owned by postgres, search_path="", anon EXECUTE revoked, authenticated/definer granted'
+  );
+
+  const definerRoleAttrs = (
+    await pathBClient.query(`
+      SELECT rolname, rolcanlogin, rolinherit, rolcreaterole, rolcreatedb, rolreplication, rolbypassrls
+      FROM pg_roles
+      WHERE rolname = 'exo_occ_rpc_definer'
+    `)
+  ).rows[0];
+  assert(
+    definerRoleAttrs &&
+      definerRoleAttrs.rolcanlogin === false &&
+      definerRoleAttrs.rolinherit === false &&
+      definerRoleAttrs.rolcreaterole === false &&
+      definerRoleAttrs.rolcreatedb === false &&
+      definerRoleAttrs.rolreplication === false &&
+      definerRoleAttrs.rolbypassrls === false,
+    'Definer Role Security Attributes: exo_occ_rpc_definer has NOLOGIN, NOINHERIT, NOCREATEROLE, NOCREATEDB, NOREPLICATION, NOBYPASSRLS'
+  );
+
+  const unauthMembers = (
+    await pathBClient.query(`
+      SELECT r.rolname AS member, m.rolname AS target_role
+      FROM pg_auth_members am
+      JOIN pg_roles r ON am.member = r.oid
+      JOIN pg_roles m ON am.roleid = m.oid
+      WHERE (m.rolname = 'exo_occ_rpc_definer' OR r.rolname = 'exo_occ_rpc_definer')
+        AND r.rolname IN ('anon', 'authenticated')
+    `)
+  ).rows;
+  assert(
+    unauthMembers.length === 0,
+    'Role Membership Isolation: Neither anon nor authenticated is a member of exo_occ_rpc_definer in pg_auth_members'
+  );
+
+  const definerAuthCheck = (
+    await pathBClient.query(`
+      SELECT
+        has_schema_privilege('exo_occ_rpc_definer', 'auth', 'USAGE') AS definer_auth_usage,
+        has_table_privilege('exo_occ_rpc_definer', 'auth.users', 'SELECT') AS definer_users_select
+    `)
+  ).rows[0];
+  assert(
+    definerAuthCheck.definer_auth_usage === false && definerAuthCheck.definer_users_select === false,
+    'Phase 4.2.4 Privilege Audit: exo_occ_rpc_definer possesses NO USAGE on schema auth and NO SELECT on auth.users'
+  );
+
+  const directAuthCalls = (
+    await pathBClient.query(`
+      SELECT p.proname
+      FROM pg_proc p
+      JOIN pg_namespace n ON p.pronamespace = n.oid
+      WHERE n.nspname = 'public'
+        AND p.proname = 'sync_workspace_with_concurrency'
+        AND pg_get_functiondef(p.oid) ~* 'auth\\.uid\\(\\)'
+    `)
+  ).rows;
+  assert(
+    directAuthCalls.length === 0,
+    'Phase 4.2.4 Function Audit: sync_workspace_with_concurrency contains 0 direct calls to auth.uid(), routing through exo_internal.current_request_uid()'
   );
 
   // Close Path A client and reference fresh client; proceed with Path B (live upgraded DB) for concurrency & security suites
@@ -1167,6 +1267,154 @@ async function main() {
   await conn2.end();
   await connMonitor.end();
   await migClient.end();
+
+  // --------------------------------------------------------------------------
+  // SECTION 8: Hosted-Supabase Managed Auth Schema Isolation & Execution Proof
+  // --------------------------------------------------------------------------
+  console.log('\n--- SECTION 8: Hosted Supabase Managed Auth Schema Isolation Proof ---');
+
+  const fixtureClient = new Client({
+    connectionString: getDbUrl('exo_pg16_hosted_supabase_fixture')
+  });
+  await fixtureClient.connect();
+
+  await fixtureClient.query(SUPABASE_PG16_BOOTSTRAP_SQL);
+
+  // Install contrib extensions
+  await fixtureClient.query(`
+    CREATE EXTENSION IF NOT EXISTS "pg_stat_statements" WITH SCHEMA "extensions";
+    CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
+  `);
+
+  // Ensure managed auth roles exist
+  await fixtureClient.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_admin') THEN
+        CREATE ROLE supabase_admin NOLOGIN;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_auth_admin') THEN
+        CREATE ROLE supabase_auth_admin NOLOGIN;
+      END IF;
+    END
+    $$;
+  `);
+
+  // Run the full sequence of 4 migrations on the fixture
+  await fixtureClient.query(baselineMigrationSql);
+  await fixtureClient.query(phase421HistoricalMigrationSql);
+  await fixtureClient.query(phase422ForwardMigrationSql);
+  await fixtureClient.query(phase424ForwardMigrationSql);
+
+  // Model realistic hosted Supabase auth schema ownership:
+  // - Schema auth owned by supabase_admin
+  // - Tables/functions in auth owned by supabase_auth_admin
+  // - supabase_auth_admin, postgres, anon, authenticated have USAGE on schema auth
+  // - exo_occ_rpc_definer has NO privilege on schema auth
+  await fixtureClient.query(`
+    ALTER SCHEMA auth OWNER TO supabase_admin;
+    ALTER TABLE auth.users OWNER TO supabase_auth_admin;
+    ALTER FUNCTION auth.uid() OWNER TO supabase_auth_admin;
+
+    REVOKE ALL ON SCHEMA auth FROM PUBLIC, anon, authenticated, exo_occ_rpc_definer;
+    GRANT USAGE ON SCHEMA auth TO supabase_auth_admin, postgres, service_role, anon, authenticated;
+
+    REVOKE ALL ON TABLE auth.users FROM PUBLIC, anon, authenticated, exo_occ_rpc_definer;
+    GRANT SELECT ON TABLE auth.users TO postgres, service_role, anon, authenticated;
+  `);
+
+  // Assert schema auth ownership and lack of usage for exo_occ_rpc_definer
+  const fixtureOwnership = (
+    await fixtureClient.query(`
+      SELECT
+        n.nspname,
+        n.nspowner::regrole::text AS schema_owner,
+        has_schema_privilege('exo_occ_rpc_definer', 'auth', 'USAGE') AS definer_auth_usage,
+        has_schema_privilege('postgres', 'auth', 'USAGE') AS postgres_auth_usage
+      FROM pg_namespace n
+      WHERE n.nspname = 'auth'
+    `)
+  ).rows[0];
+  assert(
+    fixtureOwnership.schema_owner === 'supabase_admin' &&
+      fixtureOwnership.definer_auth_usage === false &&
+      fixtureOwnership.postgres_auth_usage === true,
+    'Hosted Supabase Fixture: schema auth is owned by supabase_admin; exo_occ_rpc_definer has NO USAGE on auth; postgres has USAGE'
+  );
+
+  // Demonstrate that direct invocation of auth.uid() by exo_occ_rpc_definer fails with permission denied (42501)
+  let directAuthUidError = null;
+  try {
+    await fixtureClient.query('BEGIN');
+    await fixtureClient.query('SET LOCAL ROLE exo_occ_rpc_definer');
+    await fixtureClient.query('SELECT auth.uid()');
+    await fixtureClient.query('COMMIT');
+  } catch (err) {
+    directAuthUidError = err;
+    await fixtureClient.query('ROLLBACK');
+  }
+  assert(
+    directAuthUidError !== null &&
+      (directAuthUidError.code === '42501' || String(directAuthUidError.message).includes('permission denied for schema auth')),
+    'Direct auth.uid() invocation fails for exo_occ_rpc_definer without auth schema USAGE (raises 42501 permission denied)'
+  );
+
+  // Demonstrate that exo_occ_rpc_definer CAN successfully invoke exo_internal.current_request_uid()
+  // because the helper is owned by postgres (which has USAGE on auth) with SECURITY DEFINER
+  const helperFromDefinerRes = (
+    await fixtureClient.query(`
+      SELECT exo_internal.current_request_uid() AS resolved_uid
+    `)
+  ).rows[0];
+  assert(
+    helperFromDefinerRes && helperFromDefinerRes.resolved_uid === null,
+    'Identity helper exo_internal.current_request_uid() executes cleanly without request JWT context (returns NULL)'
+  );
+
+  // Seed a user in the hosted fixture
+  const hostedUser = 'eeeeeeee-1111-2222-3333-444455556666';
+  await fixtureClient.query(`INSERT INTO auth.users (id, email) VALUES ($1, $2)`, [
+    hostedUser,
+    'hosted.compat@exo.edu'
+  ]);
+
+  // Execute sync_workspace_with_concurrency() under authenticated role in the hosted fixture
+  // to prove end-to-end OCC RPC execution succeeds without any auth schema grants on exo_occ_rpc_definer
+  await fixtureClient.query('BEGIN');
+  await fixtureClient.query('SET LOCAL ROLE authenticated');
+  await fixtureClient.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
+  await fixtureClient.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [hostedUser]);
+
+  const hostedSync1 = await fixtureClient.query(
+    `SELECT public.sync_workspace_with_concurrency($1::jsonb, NULL) AS res`,
+    [JSON.stringify({ subjects: [{ id: 'sub_hosted_1', name: 'Hosted Compat Test' }] })]
+  );
+  await fixtureClient.query('COMMIT');
+
+  assert(
+    hostedSync1.rows[0].res.status === 'success' && hostedSync1.rows[0].res.revision === 1,
+    'Hosted Supabase Fixture OCC Create: sync_workspace_with_concurrency succeeds via identity helper at revision 1'
+  );
+
+  // Execute update at revision 1 -> 2 under authenticated role
+  await fixtureClient.query('BEGIN');
+  await fixtureClient.query('SET LOCAL ROLE authenticated');
+  await fixtureClient.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
+  await fixtureClient.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [hostedUser]);
+
+  const hostedSync2 = await fixtureClient.query(
+    `SELECT public.sync_workspace_with_concurrency($1::jsonb, 1) AS res`,
+    [JSON.stringify({ subjects: [{ id: 'sub_hosted_1', name: 'Hosted Compat Test Updated' }] })]
+  );
+  await fixtureClient.query('COMMIT');
+
+  assert(
+    hostedSync2.rows[0].res.status === 'success' && hostedSync2.rows[0].res.revision === 2,
+    'Hosted Supabase Fixture OCC Update: sync_workspace_with_concurrency updates revision 1 -> 2 without auth schema privileges'
+  );
+
+  await fixtureClient.end();
 
   console.log('\n======================================================================');
   console.log(
