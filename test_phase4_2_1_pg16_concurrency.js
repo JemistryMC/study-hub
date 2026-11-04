@@ -46,6 +46,48 @@ const DEFAULT_PG16_URL = 'postgresql://postgres:postgres@127.0.0.1:5432/postgres
 let activePg16AdminUrl = process.env.PG16_DATABASE_URL || DEFAULT_PG16_URL;
 let ephemeralClusterState = null;
 
+// Only explicitly allowlisted databases created and owned by the current test execution may be trusted or dropped.
+// Pre-existing databases (even if matching exo_pg16_%) belonging to another process or prior run are never trusted.
+const ALLOWED_TEST_DATABASE_NAMES = Object.freeze(
+  new Set([
+    'exo_pg16_fresh_install',
+    'exo_pg16_existing_upgrade',
+    'exo_pg16_fresh_schema',
+    'exo_pg16_scratch_experiment',
+    'exo_pg16_path_a_fresh',
+    'exo_pg16_path_b_upgrade'
+  ])
+);
+const ownedDatabasesCreatedByThisRun = new Set();
+
+async function createOwnedTestDatabase(client, dbName, ownerClause = '') {
+  if (!ALLOWED_TEST_DATABASE_NAMES.has(dbName)) {
+    throw new Error(`Refusing to create non-allowlisted test database: ${dbName}`);
+  }
+  const existing = (await client.query(`SELECT 1 FROM pg_database WHERE datname = $1`, [dbName])).rows;
+  if (existing.length > 0 && !ownedDatabasesCreatedByThisRun.has(dbName)) {
+    throw new Error(
+      `Refusing to overwrite or drop pre-existing unowned database "${dbName}" not created by this test execution.`
+    );
+  }
+  if (existing.length > 0 && ownedDatabasesCreatedByThisRun.has(dbName)) {
+    await client.query(`DROP DATABASE ${dbName} WITH (FORCE);`);
+    ownedDatabasesCreatedByThisRun.delete(dbName);
+  }
+  await client.query(`CREATE DATABASE ${dbName}${ownerClause ? ' ' + ownerClause : ''};`);
+  ownedDatabasesCreatedByThisRun.add(dbName);
+}
+
+async function dropOwnedTestDatabase(client, dbName) {
+  if (!ALLOWED_TEST_DATABASE_NAMES.has(dbName) || !ownedDatabasesCreatedByThisRun.has(dbName)) {
+    throw new Error(
+      `Refusing to drop database "${dbName}" because it was not created and owned by the current test execution.`
+    );
+  }
+  await client.query(`DROP DATABASE IF EXISTS ${dbName} WITH (FORCE);`);
+  ownedDatabasesCreatedByThisRun.delete(dbName);
+}
+
 // B1 Fix: Explicitly set pathname (database), username, and password on the target URL
 function getDbUrl(dbName, user, password, baseUrlOverride) {
   const url = new URL(baseUrlOverride || activePg16AdminUrl);
@@ -75,6 +117,126 @@ function isForbiddenRemoteHost(hostname) {
     h.includes('amazonaws.com') ||
     h.includes('neon.tech')
   );
+}
+
+// Validate server-reported inet_server_addr()::text without defaulting missing values to 127.0.0.1.
+// Accepts loopback (127.0.0.0/8, ::1) or valid private/container-network addresses (RFC 1918 10/8,
+// 172.16/12 including Docker bridge 172.17.x.x / 172.18.x.x, 192.168/16, and RFC 4193 fc00::/7).
+// Rejects missing/null/empty addresses, public IPs, CGNAT (100.64/10), link-local (169.254/16), and hostnames.
+function isAllowedDisposableServerAddr(serverAddr) {
+  if (typeof serverAddr !== 'string') return false;
+  const trimmed = serverAddr.trim();
+  if (!trimmed) return false;
+  if (isForbiddenRemoteHost(trimmed)) return false;
+
+  const parts = trimmed.split('/');
+  if (parts.length > 2) return false;
+  const rawIp = parts[0].replace(/^\[|\]$/g, '').trim();
+  if (!rawIp) return false;
+
+  const ipVersion = net.isIP(rawIp);
+  if (ipVersion === 0) return false;
+
+  if (parts.length === 2) {
+    if (!/^\d+$/.test(parts[1])) return false;
+    const prefixLen = Number(parts[1]);
+    if (ipVersion === 4 && (prefixLen < 0 || prefixLen > 32)) return false;
+    if (ipVersion === 6 && (prefixLen < 0 || prefixLen > 128)) return false;
+  }
+
+  if (ipVersion === 4) {
+    const octets = rawIp.split('.').map((n) => Number(n));
+    if (octets.length !== 4 || octets.some((o) => !Number.isInteger(o) || o < 0 || o > 255)) {
+      return false;
+    }
+    const [a, b] = octets;
+    if (a === 127) return true;
+    if (a === 10) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    return false;
+  }
+
+  if (ipVersion === 6) {
+    const lower = rawIp.toLowerCase();
+    if (lower === '::1' || lower === '0:0:0:0:0:0:0:1') return true;
+    if (lower.startsWith('::ffff:')) {
+      const mappedV4 = lower.slice('::ffff:'.length);
+      if (net.isIP(mappedV4) === 4) {
+        return isAllowedDisposableServerAddr(mappedV4);
+      }
+    }
+    if (/^f[cd][0-9a-f]{2}:/i.test(lower)) return true;
+    return false;
+  }
+
+  return false;
+}
+
+// Unified server-side disposable-cluster identity evaluation used by BOTH inspectCandidateCluster() and Section 8.
+function evaluateDisposableClusterIdentity({
+  clientHostname,
+  serverAddr,
+  clusterName,
+  serverDataDirReal,
+  expectedEphemeralDataDirReal,
+  bootstrapSuperuser,
+  sessionUser,
+  postgresRoleOid,
+  unknownDbs
+}) {
+  const clientIsLoopback =
+    typeof clientHostname === 'string' &&
+    clientHostname.trim().length > 0 &&
+    isLoopbackHost(clientHostname) &&
+    !isForbiddenRemoteHost(clientHostname);
+
+  const serverAddrValid = isAllowedDisposableServerAddr(serverAddr);
+
+  const hasDisposableClusterName = clusterName === 'exo_disposable_pg16';
+  const hasVerifiedEphemeralDataDir =
+    serverDataDirReal !== null &&
+    expectedEphemeralDataDirReal !== null &&
+    serverDataDirReal === expectedEphemeralDataDirReal;
+  const hasClusterMarker = hasDisposableClusterName || hasVerifiedEphemeralDataDir;
+
+  const hasBootstrapSuperuserIdentity = bootstrapSuperuser === 'supabase_admin';
+  const hasCleanDatabaseInventory = Array.isArray(unknownDbs) && unknownDbs.length === 0;
+
+  const preRoleCreationIsolated =
+    clientIsLoopback &&
+    serverAddrValid &&
+    hasClusterMarker &&
+    hasBootstrapSuperuserIdentity &&
+    hasCleanDatabaseInventory;
+
+  const canBootstrapCreatePostgresRole =
+    preRoleCreationIsolated &&
+    (postgresRoleOid === null || postgresRoleOid === undefined) &&
+    sessionUser === 'supabase_admin';
+
+  // PostgreSQL (src/backend/commands/user.c:868) forbids ALTER ROLE ... NOSUPERUSER on BOOTSTRAP_SUPERUSERID (OID 10).
+  // Therefore, a cluster can only run Hosted Supabase non-superuser postgres tests if postgres is NOT OID 10.
+  const postgresCanBeDemoted =
+    postgresRoleOid !== null &&
+    postgresRoleOid !== undefined &&
+    Number(postgresRoleOid) > 10;
+
+  const disposable = preRoleCreationIsolated && postgresCanBeDemoted;
+
+  return {
+    clientIsLoopback,
+    serverAddrValid,
+    hasDisposableClusterName,
+    hasVerifiedEphemeralDataDir,
+    hasClusterMarker,
+    hasBootstrapSuperuserIdentity,
+    hasCleanDatabaseInventory,
+    preRoleCreationIsolated,
+    canBootstrapCreatePostgresRole,
+    postgresCanBeDemoted,
+    disposable
+  };
 }
 
 function canonicalizeExistingPath(targetPath) {
@@ -117,6 +279,7 @@ async function inspectCandidateCluster(connectionString) {
     return {
       reachable: false,
       disposable: false,
+      bootstrapCreatedPostgresRole: false,
       reason: `Host "${parsed.hostname}" is not a local loopback address or matches a forbidden remote host`
     };
   }
@@ -138,61 +301,70 @@ async function inspectCandidateCluster(connectionString) {
       `)
     ).rows[0];
 
-    const nonTestDbs = (
+    const allNonSystemDbs = (
       await probe.query(`
         SELECT datname
         FROM pg_database
         WHERE datistemplate = false
           AND datname NOT IN ('postgres', 'supabase_admin')
-          AND datname NOT LIKE 'exo_pg16_%'
+        ORDER BY datname
       `)
     ).rows.map((r) => r.datname);
 
-    const hasDisposableClusterName = meta.cluster_name === 'exo_disposable_pg16';
+    const nonTestDbs = allNonSystemDbs.filter((dbName) => !ownedDatabasesCreatedByThisRun.has(dbName));
+
     const serverDataDirReal = canonicalizeExistingPath(meta.data_dir);
     const expectedEphemeralDataDirReal =
       ephemeralClusterState !== null ? canonicalizeExistingPath(ephemeralClusterState.dataDir) : null;
-    const hasVerifiedEphemeralDataDir =
-      serverDataDirReal !== null &&
-      expectedEphemeralDataDirReal !== null &&
-      serverDataDirReal === expectedEphemeralDataDirReal;
-    const hasServerObservedDisposableIdentity =
-      isLoopbackHost(meta.server_addr || '127.0.0.1') &&
-      !isForbiddenRemoteHost(meta.server_addr || '') &&
-      (hasDisposableClusterName || hasVerifiedEphemeralDataDir) &&
-      meta.bootstrap_superuser === 'supabase_admin' &&
-      nonTestDbs.length === 0;
 
-    if (
-      hasServerObservedDisposableIdentity &&
-      meta.postgres_role_oid === null &&
-      meta.session_user === 'supabase_admin'
-    ) {
+    let identityEval = evaluateDisposableClusterIdentity({
+      clientHostname: parsed.hostname,
+      serverAddr: meta.server_addr,
+      clusterName: meta.cluster_name,
+      serverDataDirReal,
+      expectedEphemeralDataDirReal,
+      bootstrapSuperuser: meta.bootstrap_superuser,
+      sessionUser: meta.session_user,
+      postgresRoleOid: meta.postgres_role_oid,
+      unknownDbs: nonTestDbs
+    });
+
+    let bootstrapCreatedPostgresRole = false;
+    if (identityEval.canBootstrapCreatePostgresRole) {
       await probe.query(
         `CREATE ROLE postgres WITH SUPERUSER INHERIT CREATEDB CREATEROLE LOGIN NOREPLICATION NOBYPASSRLS PASSWORD 'postgres';`
       );
+      bootstrapCreatedPostgresRole = true;
       meta.postgres_role_oid = (
         await probe.query(`SELECT oid::int AS oid FROM pg_roles WHERE rolname = 'postgres'`)
       ).rows[0].oid;
+      identityEval = evaluateDisposableClusterIdentity({
+        clientHostname: parsed.hostname,
+        serverAddr: meta.server_addr,
+        clusterName: meta.cluster_name,
+        serverDataDirReal,
+        expectedEphemeralDataDirReal,
+        bootstrapSuperuser: meta.bootstrap_superuser,
+        sessionUser: meta.session_user,
+        postgresRoleOid: meta.postgres_role_oid,
+        unknownDbs: nonTestDbs
+      });
     }
 
     await probe.end();
 
-    // PostgreSQL (src/backend/commands/user.c:868) forbids ALTER ROLE ... NOSUPERUSER on BOOTSTRAP_SUPERUSERID (OID 10).
-    // Therefore, a cluster can only run Hosted Supabase non-superuser postgres tests if postgres is NOT OID 10.
-    const postgresCanBeDemoted =
-      meta.postgres_role_oid !== null && Number(meta.postgres_role_oid) > 10;
-
-    const disposable = hasServerObservedDisposableIdentity && postgresCanBeDemoted;
+    const disposable = identityEval.disposable;
 
     return {
       reachable: true,
       disposable,
+      bootstrapCreatedPostgresRole,
+      identityEval,
       meta,
       nonTestDbs,
       reason: disposable
-        ? `Verified disposable cluster (cluster_name="${meta.cluster_name}", data_dir="${meta.data_dir}", bootstrap_superuser="${meta.bootstrap_superuser}", postgres_oid=${meta.postgres_role_oid}, nonTestDbs=0)`
-        : `Server at ${parsed.hostname}:${parsed.port || 5432} failed server-side disposable verification (cluster_name="${meta.cluster_name}", bootstrap_superuser="${meta.bootstrap_superuser}", postgres_oid=${meta.postgres_role_oid}, nonTestDbs=${JSON.stringify(nonTestDbs)})`
+        ? `Verified disposable cluster (server_addr="${meta.server_addr}", cluster_name="${meta.cluster_name}", data_dir="${meta.data_dir}", bootstrap_superuser="${meta.bootstrap_superuser}", postgres_oid=${meta.postgres_role_oid}, nonTestDbs=0)`
+        : `Server at ${parsed.hostname}:${parsed.port || 5432} failed server-side disposable verification (server_addr="${meta.server_addr}", cluster_name="${meta.cluster_name}", bootstrap_superuser="${meta.bootstrap_superuser}", postgres_oid=${meta.postgres_role_oid}, nonTestDbs=${JSON.stringify(nonTestDbs)})`
     };
   } catch (err) {
     try {
@@ -201,6 +373,7 @@ async function inspectCandidateCluster(connectionString) {
     return {
       reachable: false,
       disposable: false,
+      bootstrapCreatedPostgresRole: false,
       reason: err.message
     };
   }
@@ -241,7 +414,7 @@ async function ensurePostgres16ServerAvailable() {
       chmod 700 "${dataDir}" "${sockDir}" &&
       su - postgres -c "/usr/lib/postgresql/16/bin/initdb -D '${dataDir}' -U supabase_admin -c cluster_name=exo_disposable_pg16 --auth-local=trust --auth-host=scram-sha-256" >/dev/null &&
       su - postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -w -D '${dataDir}' -o '-h 127.0.0.1 -p ${ephemeralPort} -k ${sockDir} -c cluster_name=exo_disposable_pg16' -l '${logFile}' start" >/dev/null &&
-      su - postgres -c "/usr/lib/postgresql/16/bin/psql -h '${sockDir}' -p ${ephemeralPort} -U supabase_admin -d postgres -c \\"ALTER ROLE supabase_admin WITH PASSWORD 'supabase_admin_disposable_pass'; CREATE ROLE postgres WITH SUPERUSER INHERIT CREATEDB CREATEROLE LOGIN NOREPLICATION NOBYPASSRLS PASSWORD 'postgres';\\"" >/dev/null
+      su - postgres -c "/usr/lib/postgresql/16/bin/psql -h '${sockDir}' -p ${ephemeralPort} -U supabase_admin -d postgres -c \\"ALTER ROLE supabase_admin WITH PASSWORD 'supabase_admin_disposable_pass';\\"" >/dev/null
     `;
     const res = spawnSync('bash', ['-c', startCmd], { stdio: 'inherit' });
     if (res.status !== 0) {
@@ -249,12 +422,13 @@ async function ensurePostgres16ServerAvailable() {
     }
 
     ephemeralClusterState.clusterStarted = true;
-    activePg16AdminUrl = `postgresql://postgres:postgres@127.0.0.1:${ephemeralPort}/postgres`;
+    const bootstrapConnectUrl = `postgresql://supabase_admin:supabase_admin_disposable_pass@127.0.0.1:${ephemeralPort}/postgres`;
 
-    const verifyEphemeral = await inspectCandidateCluster(activePg16AdminUrl);
+    const verifyEphemeral = await inspectCandidateCluster(bootstrapConnectUrl);
     if (!verifyEphemeral.reachable || !verifyEphemeral.disposable) {
       throw new Error(`Ephemeral PostgreSQL 16 cluster failed isolation check: ${verifyEphemeral.reason}`);
     }
+    activePg16AdminUrl = getDbUrl('postgres', 'postgres', 'postgres', bootstrapConnectUrl);
     return verifyEphemeral;
   }
 
@@ -610,18 +784,235 @@ async function main() {
     'Version gate strictly fails on PGlite (180006 WASM) and non-16 PostgreSQL versions (150019)'
   );
 
-  // Prepare clean databases on the real PostgreSQL 16 server:
+  // Focused Regression Coverage (1-6): Disposable Cluster Network & Identity Validation
+  // Case 1: Client URL 127.0.0.1 + Docker bridge server address 172.18.0.2 (and 172.18.0.2/16) + valid disposable cluster markers -> accepted
+  const regCase1DockerPlain = evaluateDisposableClusterIdentity({
+    clientHostname: '127.0.0.1',
+    serverAddr: '172.18.0.2',
+    clusterName: 'exo_disposable_pg16',
+    serverDataDirReal: null,
+    expectedEphemeralDataDirReal: null,
+    bootstrapSuperuser: 'supabase_admin',
+    sessionUser: 'supabase_admin',
+    postgresRoleOid: 16384,
+    unknownDbs: []
+  });
+  const regCase1DockerCidr = evaluateDisposableClusterIdentity({
+    clientHostname: '127.0.0.1',
+    serverAddr: '172.18.0.2/16',
+    clusterName: 'exo_disposable_pg16',
+    serverDataDirReal: null,
+    expectedEphemeralDataDirReal: null,
+    bootstrapSuperuser: 'supabase_admin',
+    sessionUser: 'supabase_admin',
+    postgresRoleOid: 16384,
+    unknownDbs: []
+  });
+  assert(
+    regCase1DockerPlain.disposable === true &&
+      regCase1DockerPlain.serverAddrValid === true &&
+      regCase1DockerCidr.disposable === true &&
+      regCase1DockerCidr.serverAddrValid === true,
+    'Isolation Regression [1/6]: Client URL 127.0.0.1 + Docker bridge server_addr 172.18.0.2 (and 172.18.0.2/16) + valid disposable cluster markers is ACCEPTED'
+  );
+
+  // Case 2: Client URL 127.0.0.1 + public or non-private server address -> rejected
+  const publicOrInvalidServerAddrs = [
+    '8.8.8.8',
+    '54.230.10.5/32',
+    '1.1.1.1',
+    '172.15.255.1',
+    '172.32.0.1',
+    '100.64.0.1',
+    '169.254.169.254',
+    '2001:4860:4860::8888',
+    'db.ABCD.supabase.co'
+  ];
+  const allPublicAddrsRejected = publicOrInvalidServerAddrs.every((addr) => {
+    const r = evaluateDisposableClusterIdentity({
+      clientHostname: '127.0.0.1',
+      serverAddr: addr,
+      clusterName: 'exo_disposable_pg16',
+      serverDataDirReal: null,
+      expectedEphemeralDataDirReal: null,
+      bootstrapSuperuser: 'supabase_admin',
+      sessionUser: 'supabase_admin',
+      postgresRoleOid: 16384,
+      unknownDbs: []
+    });
+    return (
+      r.serverAddrValid === false &&
+      r.preRoleCreationIsolated === false &&
+      r.canBootstrapCreatePostgresRole === false &&
+      r.disposable === false
+    );
+  });
+  assert(
+    allPublicAddrsRejected === true,
+    'Isolation Regression [2/6]: Client URL 127.0.0.1 + public or non-private server_addr (8.8.8.8, 54.230.10.5, 172.15.x, 172.32.x, 100.64.x, 169.254.x, 2001:4860::) is REJECTED'
+  );
+
+  // Case 3: Missing or invalid cluster marker -> rejected
+  const invalidClusterMarkerCases = [
+    { clusterName: null, serverDataDirReal: '/var/lib/postgresql/data', expectedEphemeralDataDirReal: null },
+    { clusterName: '', serverDataDirReal: '/var/lib/postgresql/data', expectedEphemeralDataDirReal: null },
+    { clusterName: 'main', serverDataDirReal: '/var/lib/postgresql/data', expectedEphemeralDataDirReal: '/tmp/other' },
+    { clusterName: 'production', serverDataDirReal: null, expectedEphemeralDataDirReal: null }
+  ];
+  const allInvalidMarkersRejected = invalidClusterMarkerCases.every((m) => {
+    const r = evaluateDisposableClusterIdentity({
+      clientHostname: '127.0.0.1',
+      serverAddr: '172.18.0.2',
+      clusterName: m.clusterName,
+      serverDataDirReal: m.serverDataDirReal,
+      expectedEphemeralDataDirReal: m.expectedEphemeralDataDirReal,
+      bootstrapSuperuser: 'supabase_admin',
+      sessionUser: 'supabase_admin',
+      postgresRoleOid: 16384,
+      unknownDbs: []
+    });
+    return (
+      r.hasClusterMarker === false &&
+      r.preRoleCreationIsolated === false &&
+      r.canBootstrapCreatePostgresRole === false &&
+      r.disposable === false
+    );
+  });
+  assert(
+    allInvalidMarkersRejected === true,
+    'Isolation Regression [3/6]: Missing or invalid cluster_name / non-matching data_directory marker is REJECTED'
+  );
+
+  // Case 4: Missing or invalid bootstrap superuser identity -> rejected
+  const invalidBootstrapSuperusers = [null, undefined, '', 'postgres', 'admin', 'rdsadmin'];
+  const allInvalidBootstrapRejected = invalidBootstrapSuperusers.every((bsRole) => {
+    const r = evaluateDisposableClusterIdentity({
+      clientHostname: '127.0.0.1',
+      serverAddr: '172.18.0.2',
+      clusterName: 'exo_disposable_pg16',
+      serverDataDirReal: null,
+      expectedEphemeralDataDirReal: null,
+      bootstrapSuperuser: bsRole,
+      sessionUser: 'supabase_admin',
+      postgresRoleOid: 16384,
+      unknownDbs: []
+    });
+    return (
+      r.hasBootstrapSuperuserIdentity === false &&
+      r.preRoleCreationIsolated === false &&
+      r.canBootstrapCreatePostgresRole === false &&
+      r.disposable === false
+    );
+  });
+  assert(
+    allInvalidBootstrapRejected === true,
+    'Isolation Regression [4/6]: Missing or invalid bootstrap superuser identity (OID 10 !== supabase_admin) is REJECTED'
+  );
+
+  // Case 5: Missing server address -> rejected (never defaults to 127.0.0.1)
+  const missingServerAddrs = [null, undefined, '', '   '];
+  const allMissingServerAddrsRejected = missingServerAddrs.every((addr) => {
+    const r = evaluateDisposableClusterIdentity({
+      clientHostname: '127.0.0.1',
+      serverAddr: addr,
+      clusterName: 'exo_disposable_pg16',
+      serverDataDirReal: null,
+      expectedEphemeralDataDirReal: null,
+      bootstrapSuperuser: 'supabase_admin',
+      sessionUser: 'supabase_admin',
+      postgresRoleOid: 16384,
+      unknownDbs: []
+    });
+    return (
+      r.serverAddrValid === false &&
+      r.preRoleCreationIsolated === false &&
+      r.canBootstrapCreatePostgresRole === false &&
+      r.disposable === false
+    );
+  });
+  assert(
+    allMissingServerAddrsRejected === true,
+    'Isolation Regression [5/6]: Missing/null/empty server_addr is REJECTED and never defaults to 127.0.0.1'
+  );
+
+  // Case 6: Missing postgres role is created ONLY after every isolation condition succeeds under verified bootstrap superuser,
+  // and unowned databases (even matching exo_pg16_%) block role creation and abort disposable verification on live PG16.
+  const roleCreationBlockedWhenUnisolated = [
+    { serverAddr: '8.8.8.8', clusterName: 'exo_disposable_pg16', bootstrapSuperuser: 'supabase_admin', sessionUser: 'supabase_admin', unknownDbs: [] },
+    { serverAddr: null, clusterName: 'exo_disposable_pg16', bootstrapSuperuser: 'supabase_admin', sessionUser: 'supabase_admin', unknownDbs: [] },
+    { serverAddr: '172.18.0.2', clusterName: 'main', bootstrapSuperuser: 'supabase_admin', sessionUser: 'supabase_admin', unknownDbs: [] },
+    { serverAddr: '172.18.0.2', clusterName: 'exo_disposable_pg16', bootstrapSuperuser: 'postgres', sessionUser: 'supabase_admin', unknownDbs: [] },
+    { serverAddr: '172.18.0.2', clusterName: 'exo_disposable_pg16', bootstrapSuperuser: 'supabase_admin', sessionUser: 'postgres', unknownDbs: [] },
+    { serverAddr: '172.18.0.2', clusterName: 'exo_disposable_pg16', bootstrapSuperuser: 'supabase_admin', sessionUser: 'supabase_admin', unknownDbs: ['exo_pg16_other_process_db'] }
+  ].every((cfg) => {
+    const r = evaluateDisposableClusterIdentity({
+      clientHostname: '127.0.0.1',
+      serverAddr: cfg.serverAddr,
+      clusterName: cfg.clusterName,
+      serverDataDirReal: null,
+      expectedEphemeralDataDirReal: null,
+      bootstrapSuperuser: cfg.bootstrapSuperuser,
+      sessionUser: cfg.sessionUser,
+      postgresRoleOid: null,
+      unknownDbs: cfg.unknownDbs
+    });
+    return r.canBootstrapCreatePostgresRole === false && r.disposable === false;
+  });
+
+  // Live PostgreSQL 16 proof for Case 6:
+  // 1) Set known password on supabase_admin, close postgres connection, connect as supabase_admin,
+  //    drop role postgres and create an unowned database exo_pg16_unowned_foreign_probe (NOT in ownedDatabasesCreatedByThisRun).
+  // 2) Verify inspectCandidateCluster() rejects the cluster because of exo_pg16_unowned_foreign_probe and does NOT create role postgres.
+  // 3) Drop exo_pg16_unowned_foreign_probe and verify inspectCandidateCluster() now creates role postgres as supabase_admin with OID > 10.
+  await adminClient.query(`ALTER ROLE supabase_admin WITH PASSWORD 'supabase_admin_disposable_pass';`);
+  await adminClient.end();
+
+  const liveBootstrapProbeUrl = getDbUrl('postgres', 'supabase_admin', 'supabase_admin_disposable_pass');
+  const liveBootstrapConn = new Client({ connectionString: liveBootstrapProbeUrl });
+  await liveBootstrapConn.connect();
+  let blockedLiveCheck = null;
+  let postgresExistsAfterBlocked = true;
+  let allowedLiveCheck = null;
+  try {
+    await liveBootstrapConn.query(`DROP ROLE IF EXISTS postgres;`);
+    await liveBootstrapConn.query(`CREATE DATABASE exo_pg16_unowned_foreign_probe;`);
+    blockedLiveCheck = await inspectCandidateCluster(liveBootstrapProbeUrl);
+    const pgRoleRowAfterBlocked = (
+      await liveBootstrapConn.query(`SELECT oid::int AS oid FROM pg_roles WHERE rolname = 'postgres'`)
+    ).rows[0];
+    postgresExistsAfterBlocked = Boolean(pgRoleRowAfterBlocked);
+  } finally {
+    await liveBootstrapConn.query(`DROP DATABASE IF EXISTS exo_pg16_unowned_foreign_probe WITH (FORCE);`);
+  }
+  allowedLiveCheck = await inspectCandidateCluster(liveBootstrapProbeUrl);
+  await liveBootstrapConn.end();
+
+  assert(
+    roleCreationBlockedWhenUnisolated === true &&
+      blockedLiveCheck !== null &&
+      blockedLiveCheck.disposable === false &&
+      blockedLiveCheck.bootstrapCreatedPostgresRole === false &&
+      Array.isArray(blockedLiveCheck.nonTestDbs) &&
+      blockedLiveCheck.nonTestDbs.includes('exo_pg16_unowned_foreign_probe') &&
+      postgresExistsAfterBlocked === false &&
+      allowedLiveCheck !== null &&
+      allowedLiveCheck.disposable === true &&
+      allowedLiveCheck.bootstrapCreatedPostgresRole === true &&
+      Number(allowedLiveCheck.meta.postgres_role_oid) > 10,
+    'Isolation Regression [6/6]: Missing postgres role is NOT created when any isolation or unowned exo_pg16_* database check fails, and IS created by verified bootstrap superuser (supabase_admin) once all isolation conditions succeed'
+  );
+
+  const section1SetupConn = new Client({ connectionString: activePg16AdminUrl });
+  await section1SetupConn.connect();
+
+  // Prepare clean owned databases on the verified disposable PostgreSQL 16 server:
   //   1. exo_pg16_fresh_install (Path A: 133622 + 140000 + 150000 + 160000 in timestamp order)
   //   2. exo_pg16_existing_upgrade (Path B: starts at historical Phase 4.2.3 state, then applies only 160000)
   //   3. exo_pg16_fresh_schema (Canonical baseline from supabase/schema.sql)
-  await adminClient.query('DROP DATABASE IF EXISTS exo_pg16_fresh_install WITH (FORCE);');
-  await adminClient.query('DROP DATABASE IF EXISTS exo_pg16_existing_upgrade WITH (FORCE);');
-  await adminClient.query('DROP DATABASE IF EXISTS exo_pg16_fresh_schema WITH (FORCE);');
-  await adminClient.query('DROP DATABASE IF EXISTS exo_pg16_hosted_supabase_fixture WITH (FORCE);');
-  await adminClient.query('CREATE DATABASE exo_pg16_fresh_install;');
-  await adminClient.query('CREATE DATABASE exo_pg16_existing_upgrade;');
-  await adminClient.query('CREATE DATABASE exo_pg16_fresh_schema;');
-  await adminClient.end();
+  await createOwnedTestDatabase(section1SetupConn, 'exo_pg16_fresh_install');
+  await createOwnedTestDatabase(section1SetupConn, 'exo_pg16_existing_upgrade');
+  await createOwnedTestDatabase(section1SetupConn, 'exo_pg16_fresh_schema');
+  await section1SetupConn.end();
 
   // --------------------------------------------------------------------------
   // SECTION 2: PostgreSQL 16 Deployment Paths & Extensions Audit
@@ -1652,48 +2043,59 @@ async function main() {
           current_setting('data_directory') AS data_dir,
           (SELECT rolname FROM pg_roles WHERE oid = 10) AS bootstrap_superuser,
           (SELECT oid::int FROM pg_roles WHERE rolname = 'postgres') AS postgres_role_oid,
-          (
-            SELECT count(*)::int
-            FROM pg_database
-            WHERE datistemplate = false
-              AND datname NOT IN ('postgres', 'supabase_admin')
-              AND datname NOT LIKE 'exo_pg16_%'
-          ) AS foreign_db_count,
           session_user,
           current_user
       `)
     ).rows[0];
 
+    const section8NonSystemDbs = (
+      await initialSuperConn.query(`
+        SELECT datname
+        FROM pg_database
+        WHERE datistemplate = false
+          AND datname NOT IN ('postgres', 'supabase_admin')
+        ORDER BY datname
+      `)
+    ).rows.map((r) => r.datname);
+
     const targetDataDirReal = canonicalizeExistingPath(targetClusterAudit.data_dir);
     const expectedEphemeralDirReal =
       ephemeralClusterState !== null ? canonicalizeExistingPath(ephemeralClusterState.dataDir) : null;
-    const hasVerifiedEphemeralDir =
-      targetDataDirReal !== null &&
-      expectedEphemeralDirReal !== null &&
-      targetDataDirReal === expectedEphemeralDirReal;
+    const unknownDbsInSection8 = section8NonSystemDbs.filter(
+      (dbName) => !ownedDatabasesCreatedByThisRun.has(dbName)
+    );
 
-    const isVerifiedDisposableTarget =
-      isLoopbackHost(targetClusterAudit.server_addr || '127.0.0.1') &&
-      !isForbiddenRemoteHost(targetClusterAudit.server_addr || '') &&
-      (targetClusterAudit.cluster_name === 'exo_disposable_pg16' || hasVerifiedEphemeralDir) &&
-      targetClusterAudit.bootstrap_superuser === 'supabase_admin' &&
-      Number(targetClusterAudit.postgres_role_oid) > 10 &&
-      Number(targetClusterAudit.foreign_db_count) === 0;
+
+    const section8IdentityEval = evaluateDisposableClusterIdentity({
+      clientHostname: new URL(activePg16AdminUrl).hostname,
+      serverAddr: targetClusterAudit.server_addr,
+      clusterName: targetClusterAudit.cluster_name,
+      serverDataDirReal: targetDataDirReal,
+      expectedEphemeralDataDirReal: expectedEphemeralDirReal,
+      bootstrapSuperuser: targetClusterAudit.bootstrap_superuser,
+      sessionUser: targetClusterAudit.session_user,
+      postgresRoleOid: targetClusterAudit.postgres_role_oid,
+      unknownDbs: unknownDbsInSection8
+    });
+
+    const isVerifiedDisposableTarget = section8IdentityEval.disposable;
 
     assert(
       isVerifiedDisposableTarget === true,
-      `B3 Disposable Target Verified: loopback=${targetClusterAudit.server_addr || '127.0.0.1'}:${targetClusterAudit.server_port}, cluster_name="${targetClusterAudit.cluster_name}", bootstrap_superuser="${targetClusterAudit.bootstrap_superuser}", postgres_oid=${targetClusterAudit.postgres_role_oid}, foreign_db_count=${targetClusterAudit.foreign_db_count}, data_dir="${targetClusterAudit.data_dir}"`
+      `B3 Disposable Target Verified: server_addr=${targetClusterAudit.server_addr}:${targetClusterAudit.server_port}, cluster_name="${targetClusterAudit.cluster_name}", bootstrap_superuser="${targetClusterAudit.bootstrap_superuser}", postgres_oid=${targetClusterAudit.postgres_role_oid}, unknown_db_count=${unknownDbsInSection8.length}, data_dir="${targetClusterAudit.data_dir}"`
     );
 
     if (!isVerifiedDisposableTarget) {
-      throw new Error('Aborting Section 8: target PostgreSQL 16 instance failed server-side disposable isolation verification.');
+      throw new Error(
+        `Aborting Section 8: target PostgreSQL 16 instance failed server-side disposable isolation verification (unknownDbs=${JSON.stringify(unknownDbsInSection8)}).`
+      );
     }
 
-    // Clean up databases and cluster-global role from Sections 2-7 before starting Section 8
+    // Clean up only the databases explicitly created and owned by Sections 1-7 before starting Section 8
     // so Path A (Fresh Install) starts from a genuinely clean state where exo_occ_rpc_definer does not pre-exist
-    await initialSuperConn.query('DROP DATABASE IF EXISTS exo_pg16_fresh_install WITH (FORCE);');
-    await initialSuperConn.query('DROP DATABASE IF EXISTS exo_pg16_existing_upgrade WITH (FORCE);');
-    await initialSuperConn.query('DROP DATABASE IF EXISTS exo_pg16_fresh_schema WITH (FORCE);');
+    await dropOwnedTestDatabase(initialSuperConn, 'exo_pg16_fresh_install');
+    await dropOwnedTestDatabase(initialSuperConn, 'exo_pg16_existing_upgrade');
+    await dropOwnedTestDatabase(initialSuperConn, 'exo_pg16_fresh_schema');
     await initialSuperConn.query(`
       DO $$
       BEGIN
@@ -1770,8 +2172,7 @@ async function main() {
     // Helper: Provision a hosted-Supabase-like database using ONLY the supabase_admin bootstrap connection,
     // without touching any objects created by migrations 150000 or 160000.
     async function provisionHostedDatabaseBootstrap(dbName) {
-      await bootstrapAdminConn.query(`DROP DATABASE IF EXISTS ${dbName} WITH (FORCE);`);
-      await bootstrapAdminConn.query(`CREATE DATABASE ${dbName} OWNER postgres;`);
+      await createOwnedTestDatabase(bootstrapAdminConn, dbName, 'OWNER postgres');
 
       const dbBootstrapConn = new Client({
         connectionString: getDbUrl(dbName, BOOTSTRAP_ADMIN_USER, BOOTSTRAP_ADMIN_PASS)
@@ -2797,21 +3198,13 @@ $$;
         }
       }
 
-      const dbsToDrop = [
-        'exo_pg16_scratch_experiment',
-        'exo_pg16_path_a_fresh',
-        'exo_pg16_path_b_upgrade',
-        'exo_pg16_hosted_supabase_fixture',
-        'exo_pg16_fresh_install',
-        'exo_pg16_existing_upgrade',
-        'exo_pg16_fresh_schema'
-      ];
+      const dbsToDrop = Array.from(ownedDatabasesCreatedByThisRun);
 
       for (const dbName of dbsToDrop) {
         try {
-          await bootstrapAdminConn.query(`DROP DATABASE IF EXISTS ${dbName} WITH (FORCE);`);
+          await dropOwnedTestDatabase(bootstrapAdminConn, dbName);
         } catch (err) {
-          cleanupErrors.push(`Failed dropping database ${dbName}: ${err.message}`);
+          cleanupErrors.push(`Failed dropping owned database ${dbName}: ${err.message}`);
         }
       }
 
@@ -2854,7 +3247,11 @@ $$;
       // B4 Catalog Verification: Query pg_database and all relevant pg_roles attributes to prove cleanup succeeded
       const remainingTestDbs = (
         await bootstrapAdminConn.query(`
-          SELECT datname FROM pg_database WHERE datname LIKE 'exo_pg16_%' ORDER BY datname
+          SELECT datname
+          FROM pg_database
+          WHERE datistemplate = false
+            AND datname NOT IN ('postgres', 'supabase_admin')
+          ORDER BY datname
         `)
       ).rows.map((r) => r.datname);
 
@@ -2957,6 +3354,7 @@ $$;
 
     assert(
       cleanupErrors.length === 0 &&
+        ownedDatabasesCreatedByThisRun.size === 0 &&
         cleanupVerifyResult !== null &&
         cleanupVerifyResult.remainingTestDbs.length === 0 &&
         cleanupVerifyResult.remainingTempRoles.length === 0 &&
@@ -2964,7 +3362,7 @@ $$;
         ephemeralTeardown.stopped === true &&
         ephemeralTeardown.dirRemoved === true &&
         ephemeralTeardown.directoryPreserved === false,
-      'B4 Catalog & Ephemeral Cluster Cleanup Integrity: all 7 exo_pg16_* databases and all 6 temporary roles removed from catalogs, all 7 postgres role attributes restored (rolsuper=true, rolinherit=true, rolcreaterole=true, rolcreatedb=true, rolcanlogin=true, rolreplication=false, rolbypassrls=false), and ephemeral cluster confirmed stopped before owned data_dir removal',
+      'B4 Catalog & Ephemeral Cluster Cleanup Integrity: all 6 owned exo_pg16_* databases and all 6 temporary roles removed from catalogs, all 7 postgres role attributes restored (rolsuper=true, rolinherit=true, rolcreaterole=true, rolcreatedb=true, rolcanlogin=true, rolreplication=false, rolbypassrls=false), and ephemeral cluster confirmed stopped before owned data_dir removal',
       cleanupErrors.join('; ') || JSON.stringify({ cleanupVerifyResult, ephemeralTeardown })
     );
   }
@@ -2982,7 +3380,26 @@ $$;
   }
 }
 
-main().catch((err) => {
+main().catch(async (err) => {
+  if (ownedDatabasesCreatedByThisRun.size > 0) {
+    const emergencyClient = new Client({ connectionString: activePg16AdminUrl });
+    try {
+      await emergencyClient.connect();
+      for (const dbName of Array.from(ownedDatabasesCreatedByThisRun)) {
+        try {
+          await dropOwnedTestDatabase(emergencyClient, dbName);
+        } catch (dropErr) {
+          console.error(`Emergency cleanup failed dropping owned database ${dbName}:`, dropErr.message);
+        }
+      }
+    } catch (connErr) {
+      console.error('Emergency database cleanup connection failed:', connErr.message);
+    } finally {
+      try {
+        await emergencyClient.end();
+      } catch (_) {}
+    }
+  }
   const td = teardownEphemeralPostgres16Cluster();
   if (td && (td.errors.length > 0 || !td.stopped || !td.dirRemoved)) {
     console.error(
@@ -2993,4 +3410,3 @@ main().catch((err) => {
   console.error('Fatal error in test_phase4_2_1_pg16_concurrency.js:', err);
   process.exit(1);
 });
-
