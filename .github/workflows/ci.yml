@@ -1,13 +1,22 @@
-name: Exo Phase 4.2.1 CI — Build, Lint, Unit, PGlite, Real PostgreSQL 16 Concurrency & Chromium E2E
+name: Exo CI — Build, Lint, Unit, PGlite, PostgreSQL 16 & Chromium
 
 on:
   push:
     branches:
       - main
+      - Deploying
       - "fix/**"
+    paths-ignore:
+      - "reports/**"
+      - "**/*.md"
+      - "**/*.patch"
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - "reports/**"
+      - "**/*.md"
+      - "**/*.patch"
 
 jobs:
   verify:
