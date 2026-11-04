@@ -959,47 +959,135 @@ async function main() {
     return r.canBootstrapCreatePostgresRole === false && r.disposable === false;
   });
 
-  // Live PostgreSQL 16 proof for Case 6:
-  // 1) Set known password on supabase_admin, close postgres connection, connect as supabase_admin,
-  //    drop role postgres and create an unowned database exo_pg16_unowned_foreign_probe (NOT in ownedDatabasesCreatedByThisRun).
-  // 2) Verify inspectCandidateCluster() rejects the cluster because of exo_pg16_unowned_foreign_probe and does NOT create role postgres.
-  // 3) Drop exo_pg16_unowned_foreign_probe and verify inspectCandidateCluster() now creates role postgres as supabase_admin with OID > 10.
+  // Live PostgreSQL 16 proof for Case 6 & Pre-Existing Probe Ownership Protection:
+  // 1) Set known password on supabase_admin, close postgres connection, and connect as supabase_admin.
+  // 2) Helper executeUnownedDatabaseIsolationProbe() tracks an explicit boolean (probeCreatedByThisExecution)
+  //    that is set to true ONLY after CREATE DATABASE completes successfully, and drops the probe database
+  //    in finally ONLY when probeCreatedByThisExecution === true.
+  // 3) Using a unique probe database name for this run (NOT in ownedDatabasesCreatedByThisRun), verify that
+  //    inspectCandidateCluster() rejects the cluster and does NOT create role postgres, and that cleanup drops
+  //    the probe database once verified owned.
+  // 4) Prove that if a database with the target probe name already exists before executeUnownedDatabaseIsolationProbe(),
+  //    CREATE DATABASE fails (SQLSTATE 42P04), probeCreatedByThisExecution remains false, and the pre-existing
+  //    database survives untouched with its original OID and is never dropped by the probe's finally block.
+  async function executeUnownedDatabaseIsolationProbe(conn, probeDbName, candidateUrl) {
+    if (!/^[a-z0-9_]+$/.test(probeDbName) || probeDbName.length > 63) {
+      throw new Error(`Invalid probe database identifier: ${probeDbName}`);
+    }
+    let probeCreatedByThisExecution = false;
+    try {
+      await conn.query(`CREATE DATABASE ${probeDbName};`);
+      probeCreatedByThisExecution = true;
+      const candidateInspection = await inspectCandidateCluster(candidateUrl);
+      const pgRoleRow = (
+        await conn.query(`SELECT oid::int AS oid FROM pg_roles WHERE rolname = 'postgres'`)
+      ).rows[0];
+      return {
+        probeCreatedByThisExecution,
+        candidateInspection,
+        postgresExistsAfterBlocked: Boolean(pgRoleRow)
+      };
+    } finally {
+      if (probeCreatedByThisExecution === true) {
+        await conn.query(`DROP DATABASE ${probeDbName} WITH (FORCE);`);
+      }
+    }
+  }
+
   await adminClient.query(`ALTER ROLE supabase_admin WITH PASSWORD 'supabase_admin_disposable_pass';`);
   await adminClient.end();
 
+  const uniqueProbeDbName = `exo_pg16_unowned_probe_${process.pid}_${Date.now()}`;
+  const preExistingProbeDbName = `exo_pg16_preexisting_${process.pid}_${Date.now()}`;
   const liveBootstrapProbeUrl = getDbUrl('postgres', 'supabase_admin', 'supabase_admin_disposable_pass');
   const liveBootstrapConn = new Client({ connectionString: liveBootstrapProbeUrl });
   await liveBootstrapConn.connect();
-  let blockedLiveCheck = null;
-  let postgresExistsAfterBlocked = true;
+
+  let probeExecutionResult = null;
+  let uniqueProbeRemovedAfterCleanup = false;
+  let preExistingCollisionSqlState = null;
+  let preExistingOidBeforeCollision = null;
+  let preExistingOidAfterCollision = null;
   let allowedLiveCheck = null;
   try {
     await liveBootstrapConn.query(`DROP ROLE IF EXISTS postgres;`);
-    await liveBootstrapConn.query(`CREATE DATABASE exo_pg16_unowned_foreign_probe;`);
-    blockedLiveCheck = await inspectCandidateCluster(liveBootstrapProbeUrl);
-    const pgRoleRowAfterBlocked = (
-      await liveBootstrapConn.query(`SELECT oid::int AS oid FROM pg_roles WHERE rolname = 'postgres'`)
-    ).rows[0];
-    postgresExistsAfterBlocked = Boolean(pgRoleRowAfterBlocked);
+    probeExecutionResult = await executeUnownedDatabaseIsolationProbe(
+      liveBootstrapConn,
+      uniqueProbeDbName,
+      liveBootstrapProbeUrl
+    );
+    const remainingUniqueProbeRows = (
+      await liveBootstrapConn.query(`SELECT oid::int AS oid FROM pg_database WHERE datname = $1`, [uniqueProbeDbName])
+    ).rows;
+    uniqueProbeRemovedAfterCleanup = remainingUniqueProbeRows.length === 0;
+
+    // Focused regression check: pre-existing database with the same name as a probe attempt
+    // must fail CREATE DATABASE (42P04) and must NEVER be dropped by executeUnownedDatabaseIsolationProbe's finally block.
+    let outerPreExistingFixtureCreated = false;
+    try {
+      await liveBootstrapConn.query(`CREATE DATABASE ${preExistingProbeDbName};`);
+      outerPreExistingFixtureCreated = true;
+      preExistingOidBeforeCollision = (
+        await liveBootstrapConn.query(`SELECT oid::int AS oid FROM pg_database WHERE datname = $1`, [
+          preExistingProbeDbName
+        ])
+      ).rows[0]?.oid ?? null;
+
+      try {
+        await executeUnownedDatabaseIsolationProbe(
+          liveBootstrapConn,
+          preExistingProbeDbName,
+          liveBootstrapProbeUrl
+        );
+      } catch (collisionErr) {
+        preExistingCollisionSqlState = collisionErr && collisionErr.code ? String(collisionErr.code) : 'UNKNOWN';
+      }
+
+      preExistingOidAfterCollision = (
+        await liveBootstrapConn.query(`SELECT oid::int AS oid FROM pg_database WHERE datname = $1`, [
+          preExistingProbeDbName
+        ])
+      ).rows[0]?.oid ?? null;
+    } finally {
+      if (outerPreExistingFixtureCreated === true) {
+        await liveBootstrapConn.query(`DROP DATABASE ${preExistingProbeDbName} WITH (FORCE);`);
+      }
+    }
+
+    allowedLiveCheck = await inspectCandidateCluster(liveBootstrapProbeUrl);
   } finally {
-    await liveBootstrapConn.query(`DROP DATABASE IF EXISTS exo_pg16_unowned_foreign_probe WITH (FORCE);`);
+    await liveBootstrapConn.end();
   }
-  allowedLiveCheck = await inspectCandidateCluster(liveBootstrapProbeUrl);
-  await liveBootstrapConn.end();
+
+  const blockedLiveCheck = probeExecutionResult ? probeExecutionResult.candidateInspection : null;
+  const postgresExistsAfterBlocked = probeExecutionResult
+    ? probeExecutionResult.postgresExistsAfterBlocked
+    : true;
 
   assert(
     roleCreationBlockedWhenUnisolated === true &&
+      probeExecutionResult !== null &&
+      probeExecutionResult.probeCreatedByThisExecution === true &&
       blockedLiveCheck !== null &&
       blockedLiveCheck.disposable === false &&
       blockedLiveCheck.bootstrapCreatedPostgresRole === false &&
       Array.isArray(blockedLiveCheck.nonTestDbs) &&
-      blockedLiveCheck.nonTestDbs.includes('exo_pg16_unowned_foreign_probe') &&
+      blockedLiveCheck.nonTestDbs.includes(uniqueProbeDbName) &&
       postgresExistsAfterBlocked === false &&
+      uniqueProbeRemovedAfterCleanup === true &&
       allowedLiveCheck !== null &&
       allowedLiveCheck.disposable === true &&
       allowedLiveCheck.bootstrapCreatedPostgresRole === true &&
       Number(allowedLiveCheck.meta.postgres_role_oid) > 10,
     'Isolation Regression [6/6]: Missing postgres role is NOT created when any isolation or unowned exo_pg16_* database check fails, and IS created by verified bootstrap superuser (supabase_admin) once all isolation conditions succeed'
+  );
+
+  assert(
+    preExistingCollisionSqlState === '42P04' &&
+      Number.isInteger(preExistingOidBeforeCollision) &&
+      preExistingOidBeforeCollision > 0 &&
+      preExistingOidAfterCollision === preExistingOidBeforeCollision,
+    'Probe Database Ownership Regression: Pre-existing database survives a failed CREATE DATABASE probe attempt (SQLSTATE 42P04) with unchanged OID and is never dropped by probe finally cleanup'
   );
 
   const section1SetupConn = new Client({ connectionString: activePg16AdminUrl });

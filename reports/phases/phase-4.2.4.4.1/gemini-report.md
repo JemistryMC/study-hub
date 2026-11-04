@@ -7,12 +7,11 @@
 - **Active Working Branch:** `main`
 - **Original Handoff Base Commit SHA on `main`:** `54e1f0852d324ae64c40743272ebac58f8043921`
 - **Prior Remote `main` Commit SHA #1:** `a7b7454c42583c62961dca0c683a28b8aca438c5` (failed in GitHub Actions Run [`41841407140`](https://github.com/JemistryMC/study-hub/actions/runs/41841407140) at Step 4 `Setup Node.js 20` due to missing `package-lock.json`).
-- **Current Remote `main` Commit SHA #2:** `7ab5beb30a48449c47d2c826dfaa73c25b545f10`
-- **Remote GitHub Actions Status on `7ab5beb30a48449c47d2c826dfaa73c25b545f10`:**
-  - Workflow Run: [`https://github.com/JemistryMC/study-hub/actions/runs/41850663053`](https://github.com/JemistryMC/study-hub/actions/runs/41850663053) (`Exo CI — Build, Lint, Unit, PGlite, PostgreSQL 16 & Chromium`)
-  - Result:
-    - Steps 1–9 (`Setup Node.js 20`, `npm ci`, `npm run lint`, `npm run build`, `npm run test:static` [54/54], `npm run test:unit` [102/102], `npm run test:pglite` [41/41], `npm run test:e2e` [42/42]) **PASSED**.
-    - Step 10 (`Run Real PostgreSQL 16 Concurrency & 10-Point Schema Parity Suite`, `npm run test:pg16`) **FAILED** because the GitHub Actions `postgres:16` service runs inside a Docker container. While the client connects to `127.0.0.1:5432`, PostgreSQL's server-side `inet_server_addr()::text` returns the container's internal Docker bridge IPv4 address (e.g. `172.18.0.2/16`) rather than `127.0.0.1`. Because `inspectCandidateCluster()` required `isLoopbackHost(meta.server_addr || '127.0.0.1')`, `hasServerObservedDisposableIdentity` evaluated to `false` before the conditional `CREATE ROLE postgres` could execute, leaving `postgres_oid=null` and aborting the test.
+- **Prior Remote `main` Commit SHA #2:** `7ab5beb30a48449c47d2c826dfaa73c25b545f10` (failed in GitHub Actions Run [`41850663053`](https://github.com/JemistryMC/study-hub/actions/runs/41850663053) at Step 10 `test:pg16` due to Docker bridge `inet_server_addr()` check).
+- **Current Remote `main` Commit SHA #3:** `b4a284503e5731aabd8ac298a0df66f5a24e03d7`
+- **Remote GitHub Actions Status on `b4a284503e5731aabd8ac298a0df66f5a24e03d7`:**
+  - Workflow Run: [`https://github.com/JemistryMC/study-hub/actions/runs/41855657244`](https://github.com/JemistryMC/study-hub/actions/runs/41855657244) (`Exo CI — Build, Lint, Unit, PGlite, PostgreSQL 16 & Chromium`)
+  - Result: **SUCCESS** (`95 / 95` in `npm run test:pg16`; `334 / 334` across the full CI pipeline).
 - **Recovery Branch & SHA (preserved untouched):** `backup/pre-gemini-security-2026-11-04` (`348d5d6dc2ebe2ce8d67a394671fa99320199975`)
 - **Reference Baseline Branch & Code SHA (preserved untouched):** `Deploying` (`e30fcc2beb063e18494cd224e4267bac45b0703a`)
 - **Resulting Corrected GitHub Commit SHA:** *Pending owner review and manual GitHub Sync of the corrected workspace (`GEMINI.md` Section 7).*
@@ -23,9 +22,9 @@
 
 ## 2. Complete File Inventory & Git Blob Identities
 
-The table below lists every file difference across the original handoff commit (`54e1f0852d324ae64c40743272ebac58f8043921`), the current remote `main` commit (`7ab5beb30a48449c47d2c826dfaa73c25b545f10`), and the current corrected workspace:
+The table below lists every file difference across the original handoff commit (`54e1f0852d324ae64c40743272ebac58f8043921`), the current remote `main` commit (`b4a284503e5731aabd8ac298a0df66f5a24e03d7`), and the current corrected workspace:
 
-| File Path | Status in `7ab5beb3` vs `54e1f085` | Status in Corrected Workspace vs `54e1f085` | Base Blob SHA (`54e1f085`) | Corrected Workspace Purpose |
+| File Path | Status in `b4a28450` vs `54e1f085` | Status in Corrected Workspace vs `54e1f085` | Base Blob SHA (`54e1f085`) | Corrected Workspace Purpose |
 | --- | --- | --- | --- | --- |
 | `package-lock.json` | Restored (`0` diff vs `54e1f085`) | **Restored (`0` diff vs `54e1f085`)** | `6bd3f13ecd85` | Exact 20,568-byte lockfile restored from `54e1f0852d324ae64c40743272ebac58f8043921` (`sha1: 6bd3f13ecd855f74a3e19a8ab8f4479fecf92bd7`). |
 | `.gitignore` | Modified (`+1/-0`) | Modified | `2c7c02cb5d` | Ignores `.pg16_ephemeral_tmp/` local temporary directory. |
@@ -34,12 +33,12 @@ The table below lists every file difference across the original handoff commit (
 | `supabase/migrations/20261103160000_hosted_supabase_auth_compat.sql` | Modified (`+5/-1`) | Modified | `bb5caa7214` | Adds temporary `GRANT CREATE ON SCHEMA "public" TO "exo_occ_rpc_definer"` + immediate `REVOKE CREATE` around `ALTER FUNCTION ... OWNER TO` so Existing Upgrade (Path B) succeeds independently under non-superuser `postgres`. |
 | `supabase/schema.sql` | Modified (`+5/-1`) | Modified | `14c45f5a7d` | Synchronizes canonical schema with temporary `GRANT CREATE` + immediate `REVOKE CREATE` and updated `ELSE ALTER ROLE`. |
 | `run_verification_tests.js` | Modified (`+16/-0`) | Modified | `83ed22bdb2` | Adds Suite 3.10 static verification checks (`54/54` total checks). |
-| `test_phase4_2_1_pg16_concurrency.js` | Modified | Modified | `4b55cfd7db` | Fixes Docker bridge `inet_server_addr()` validation in both `inspectCandidateCluster()` and Section 8, enforces strict owned-database inventory without `exo_pg16_%` wildcards, adds 6 focused regression checks (`95/95` total real PostgreSQL 16.15 checks). |
+| `test_phase4_2_1_pg16_concurrency.js` | Modified | Modified | `4b55cfd7db` | Fixes Docker bridge `inet_server_addr()` validation, enforces strict owned-database inventory, and adds explicit ownership tracking for the Isolation Regression [6/6] probe database plus a pre-existing database collision regression check (`96/96` total real PostgreSQL 16.15 checks). |
 | `reports/CURRENT.md` | Modified (`+4/-4`) | Modified | `9d0fb6ec26` | Updates current phase status pointer to reference `reports/phases/phase-4.2.4.4.1/gemini-report.md`. |
 | `reports/phases/phase-4.2.4.4.1/README.md` | Modified (`+1/-1`) | Modified | `02e75b789a` | Updates Phase 4.2.4.4.1 status line. |
 | `reports/phases/phase-4.2.4.4.1/gemini-report.md` | Added | Updated | *(new file)* | This corrected engineering report. |
 
-- Only `test_phase4_2_1_pg16_concurrency.js` and `reports/phases/phase-4.2.4.4.1/gemini-report.md` differ from `7ab5beb30a48449c47d2c826dfaa73c25b545f10`.
+- Only `test_phase4_2_1_pg16_concurrency.js` and `reports/phases/phase-4.2.4.4.1/gemini-report.md` differ from `b4a284503e5731aabd8ac298a0df66f5a24e03d7`.
 - Zero edits to `index.html`, `server.js`, `sw.js`, `package.json`, or any migrations.
 - Zero production Supabase connections or secrets used.
 
@@ -69,9 +68,10 @@ The table below lists every file difference across the original handoff commit (
      - Removed all `AND datname NOT LIKE 'exo_pg16_%'` filters.
      - Both `inspectCandidateCluster()` and Section 8 query all non-template databases outside `('postgres', 'supabase_admin')` and verify that every such database is in `ownedDatabasesCreatedByThisRun` (`unknownDbs.length === 0`). At startup (`inspectCandidateCluster()`), `ownedDatabasesCreatedByThisRun` is empty, so any pre-existing database outside `('postgres', 'supabase_admin')` — including an unowned `exo_pg16_*` database — causes immediate rejection before any role or database mutation.
      - `createOwnedTestDatabase()` and `dropOwnedTestDatabase()` refuse to overwrite or drop any database not created and owned by the current test execution.
-  5. **Guarded Bootstrap `postgres` Role Creation & Focused Regression Coverage (Cases 1–6):**
+  5. **Guarded Bootstrap `postgres` Role Creation, Probe Database Ownership Edge-Case Protection, & Focused Regression Coverage (Cases 1–6 + Probe Ownership Regression):**
      - `canBootstrapCreatePostgresRole` is `true` only when all 5 isolation conditions (`clientIsLoopback`, `serverAddrValid`, `hasClusterMarker`, `hasBootstrapSuperuserIdentity`, `hasCleanDatabaseInventory`) succeed AND `postgres_role_oid === null` AND `session_user === 'supabase_admin'`.
-     - Added 6 focused regression checks in Section 1 (`Isolation Regression [1/6]` through `[6/6]`), including live PostgreSQL 16 verification that an unowned `exo_pg16_unowned_foreign_probe` database blocks `CREATE ROLE postgres` and aborts `inspectCandidateCluster()`, and that once removed, `supabase_admin` creates `postgres` with `OID > 10`.
+     - In `Isolation Regression [6/6]`, `executeUnownedDatabaseIsolationProbe(conn, probeDbName, candidateUrl)` uses a unique probe database name per run (`exo_pg16_unowned_probe_${process.pid}_${Date.now()}`, not registered in `ownedDatabasesCreatedByThisRun` so `inspectCandidateCluster()` treats it as an unknown database), tracks an explicit boolean (`probeCreatedByThisExecution = false`) set to `true` **only after** `CREATE DATABASE` completes successfully, and drops the probe database in `finally` **only when** `probeCreatedByThisExecution === true`.
+     - Added a dedicated regression check (`Probe Database Ownership Regression`) proving that if a database with the target probe name already exists before `executeUnownedDatabaseIsolationProbe()` runs, `CREATE DATABASE` fails with `SQLSTATE 42P04`, `probeCreatedByThisExecution` remains `false`, and the pre-existing database survives untouched with its original `pg_database.oid` and is never dropped by the probe's `finally` block.
 
 ### Correction 3 (and Historical Migration / Path B) — Documented Pre-Upgrade Phase 4.2.3 Snapshot
 - **Issue in `a7b7454c42583c62961dca0c683a28b8aca438c5`:** Section 8.4 manually executed `GRANT CREATE ON SCHEMA "public" TO "exo_occ_rpc_definer"` before running `originalUnedited150000Sql` under `SET LOCAL ROLE postgres`. That manual grant was not part of the historical `150000` migration file.
@@ -120,8 +120,9 @@ The table below lists every file difference across the original handoff commit (
 ### 4.1 Remote GitHub Actions Status (Historical & Current)
 - **Commit `e30fcc2beb063e18494cd224e4267bac45b0703a` (`Deploying` baseline):** Passed `288 / 288` prior to Phase 4.2.4.4.
 - **Commit `a7b7454c42583c62961dca0c683a28b8aca438c5` (`main` prior sync #1):** **FAILED** in GitHub Actions Run [`41841407140`](https://github.com/JemistryMC/study-hub/actions/runs/41841407140) at Step 4 (`Setup Node.js 20`) due to missing `package-lock.json`.
-- **Commit `7ab5beb30a48449c47d2c826dfaa73c25b545f10` (`main` prior sync #2):** **FAILED** in GitHub Actions Run [`41850663053`](https://github.com/JemistryMC/study-hub/actions/runs/41850663053) at Step 10 (`Run Real PostgreSQL 16 Concurrency & 10-Point Schema Parity Suite`) because `inet_server_addr()` inside the GitHub Actions Docker container returned a Docker bridge IPv4 address rather than `127.0.0.1` (Steps 1–9 — `Setup Node.js 20`, `npm ci`, `lint`, `build`, `test:static` [54/54], `test:unit` [102/102], `test:pglite` [41/41], and `test:e2e` [42/42] — all passed in Run `41850663053`).
-- **Corrected Workspace (this delivery):** Not yet synced to GitHub `main` (per `GEMINI.md` Section 7, only the owner triggers GitHub Sync). Remote CI has therefore **not yet run** on this Docker network detection fix.
+- **Commit `7ab5beb30a48449c47d2c826dfaa73c25b545f10` (`main` prior sync #2):** **FAILED** in GitHub Actions Run [`41850663053`](https://github.com/JemistryMC/study-hub/actions/runs/41850663053) at Step 10 (`Run Real PostgreSQL 16 Concurrency & 10-Point Schema Parity Suite`) because `inet_server_addr()` inside the GitHub Actions Docker container returned a Docker bridge IPv4 address rather than `127.0.0.1`.
+- **Commit `b4a284503e5731aabd8ac298a0df66f5a24e03d7` (`main` current remote commit #3):** **PASSED (SUCCESS)** in GitHub Actions Run [`41855657244`](https://github.com/JemistryMC/study-hub/actions/runs/41855657244) (`95 / 95` in `npm run test:pg16`, `334 / 334` across the full `npm test` CI suite).
+- **Corrected Workspace (this delivery):** Adds the probe database ownership edge-case fix and regression check on top of `b4a284503e5731aabd8ac298a0df66f5a24e03d7`. Not yet synced to GitHub `main` (per `GEMINI.md` Section 7, only the owner triggers GitHub Sync).
 
 ### 4.2 Local Verification Summary (Executed Under Node.js `v20.20.2` Matching CI Major Version 20)
 
@@ -133,9 +134,9 @@ The table below lists every file difference across the original handoff commit (
 | 4 | `npm run test:static` | Node.js `v20.20.2` | 54 | 0 | `run_verification_tests.js` (Suites 1–4, including Suite 3.10) |
 | 5 | `npm run test:unit` | Node.js `v20.20.2` | 102 | 0 | `run_comprehensive_verification.js` (42) + `test_phase3_cross_account_isolation.js` (25) + `test_phase4_regressions.js` (35) |
 | 6 | `npm run test:pglite` | `@electric-sql/pglite` `0.5.15` | 41 | 0 | `test_phase4_2_postgres_integration.js` |
-| 7 | `npm run test:pg16` | Native PostgreSQL `16.15 (Debian 16.15-1.pgdg12+2)` + `pg` `8.23.1` | 95 | 0 | `test_phase4_2_1_pg16_concurrency.js` (Sections 1–8, including B1–B7, 6 isolation regressions, & owned DB cleanup) |
+| 7 | `npm run test:pg16` | Native PostgreSQL `16.15 (Debian 16.15-1.pgdg12+2)` + `pg` `8.23.1` | 96 | 0 | `test_phase4_2_1_pg16_concurrency.js` (Sections 1–8, including B1–B7, 6 isolation regressions, probe DB ownership regression, & owned DB cleanup) |
 | 8 | `npm run test:e2e` | `Chromium 156.0.8078.79` + `playwright` `1.64.1` | 42 | 0 | `test_phase4_1_chromium_e2e.js` (Scenarios A–N) |
-| 9 | `npm test` | All 7 suites combined (`run_all_tests.js`) | **334** | **0** | Full local verification suite under Node.js `v20.20.2` |
+| 9 | `npm test` | All 7 suites combined (`run_all_tests.js`) | **335** | **0** | Full local verification suite under Node.js `v20.20.2` |
 
 ---
 
@@ -174,7 +175,7 @@ found 0 vulnerabilities
 Build complete: static assets copied to dist/
 ```
 
-### 5.2 Unedited Raw Output of `npm run test:pg16` (95 / 95 Passed on PostgreSQL 16.15)
+### 5.2 Unedited Raw Output of `npm run test:pg16` (96 / 96 Passed on PostgreSQL 16.15)
 
 ```text
 === 7. npm run test:pg16 ===
@@ -189,7 +190,7 @@ EXO PHASE 4.2.1: REAL POSTGRESQL 16 CONCURRENCY & PARITY PROOF SUITE
 --- SECTION 1: Strict PostgreSQL 16 Server Version Gate ---
   Connected Server: PostgreSQL 16.15 (Debian 16.15-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
   server_version_num: 160015
-  Disposable Cluster Verification: Verified disposable cluster (server_addr="127.0.0.1/32", cluster_name="exo_disposable_pg16", data_dir="/tmp/exo_pg16_disposable_13992_.../data", bootstrap_superuser="supabase_admin", postgres_oid=16384, nonTestDbs=0)
+  Disposable Cluster Verification: Verified disposable cluster (server_addr="127.0.0.1/32", cluster_name="exo_disposable_pg16", data_dir="/tmp/exo_pg16_disposable_14606_WzGE4b/data", bootstrap_superuser="supabase_admin", postgres_oid=16384, nonTestDbs=0)
   [PASS] Server is verified native PostgreSQL 16 (major=16, server_version_num=160015)
   [PASS] Version gate strictly fails on PGlite (180006 WASM) and non-16 PostgreSQL versions (150019)
   [PASS] Isolation Regression [1/6]: Client URL 127.0.0.1 + Docker bridge server_addr 172.18.0.2 (and 172.18.0.2/16) + valid disposable cluster markers is ACCEPTED
@@ -198,6 +199,7 @@ EXO PHASE 4.2.1: REAL POSTGRESQL 16 CONCURRENCY & PARITY PROOF SUITE
   [PASS] Isolation Regression [4/6]: Missing or invalid bootstrap superuser identity (OID 10 !== supabase_admin) is REJECTED
   [PASS] Isolation Regression [5/6]: Missing/null/empty server_addr is REJECTED and never defaults to 127.0.0.1
   [PASS] Isolation Regression [6/6]: Missing postgres role is NOT created when any isolation or unowned exo_pg16_* database check fails, and IS created by verified bootstrap superuser (supabase_admin) once all isolation conditions succeed
+  [PASS] Probe Database Ownership Regression: Pre-existing database survives a failed CREATE DATABASE probe attempt (SQLSTATE 42P04) with unchanged OID and is never dropped by probe finally cleanup
 
 --- SECTION 2: PostgreSQL 16 Deployment Paths (Path A: Fresh Install, Path B: Existing Upgrade) ---
   [PASS] Path A (Fresh Install): Cleanly executed migrations in timestamp order (133622 + 140000 + 150000 + 160000)
@@ -306,11 +308,11 @@ EXO PHASE 4.2.1: REAL POSTGRESQL 16 CONCURRENCY & PARITY PROOF SUITE
   [PASS] B4 Catalog & Ephemeral Cluster Cleanup Integrity: all 6 owned exo_pg16_* databases and all 6 temporary roles removed from catalogs, all 7 postgres role attributes restored (rolsuper=true, rolinherit=true, rolcreaterole=true, rolcreatedb=true, rolcanlogin=true, rolreplication=false, rolbypassrls=false), and ephemeral cluster confirmed stopped before owned data_dir removal
 
 ======================================================================
-TOTAL REAL POSTGRESQL 16 CONCURRENCY & PARITY CHECKS: 95 | PASSED: 95 | FAILED: 0
+TOTAL REAL POSTGRESQL 16 CONCURRENCY & PARITY CHECKS: 96 | PASSED: 96 | FAILED: 0
 ======================================================================
 ```
 
-### 5.3 Unedited Raw Summary of `npm test` (All 7 Suites — 334 / 334 Passed Locally Under Node.js 20)
+### 5.3 Unedited Raw Summary of `npm test` (All 7 Suites — 335 / 335 Passed Locally Under Node.js 20)
 
 ```text
 ========================================================================================
@@ -321,10 +323,10 @@ EXO PHASE 4.2.1 — CATEGORIZED TEST EXECUTION SUMMARY
 [PASS] test_phase3_cross_account_isolation.js | Passed:  25 | Failed:  0 | 2. Unit & Asynchronous Logic Isolation Tests
 [PASS] test_phase4_regressions.js             | Passed:  35 | Failed:  0 | 2. Unit & Asynchronous Logic Isolation Tests
 [PASS] test_phase4_2_postgres_integration.js  | Passed:  41 | Failed:  0 | 3. Embedded PostgreSQL Compatibility Tests (PGlite WASM Single-Connection)
-[PASS] test_phase4_2_1_pg16_concurrency.js    | Passed:  95 | Failed:  0 | 4. Real PostgreSQL 16 Server Concurrency & 10-Point Schema Parity Proof
+[PASS] test_phase4_2_1_pg16_concurrency.js    | Passed:  96 | Failed:  0 | 4. Real PostgreSQL 16 Server Concurrency & 10-Point Schema Parity Proof
 [PASS] test_phase4_1_chromium_e2e.js          | Passed:  42 | Failed:  0 | 5. Real Headless Chromium + IndexedDB Browser E2E Tests (Scenarios A–N)
 ----------------------------------------------------------------------------------------
-GRAND TOTAL ASSERTIONS: 334 | PASSED: 334 | FAILED: 0
+GRAND TOTAL ASSERTIONS: 335 | PASSED: 335 | FAILED: 0
 ========================================================================================
 ```
 
@@ -335,8 +337,8 @@ GRAND TOTAL ASSERTIONS: 334 | PASSED: 334 | FAILED: 0
 1. **Historical Replay Limitation of Unedited `20261103150000`:** As proven in Section 8.1, the unedited `20261103150000` file from commit `e30fcc2beb063e18494cd224e4267bac45b0703a` cannot execute `ALTER FUNCTION ... OWNER TO "exo_occ_rpc_definer"` under a non-superuser `postgres` role after `20261103140000` revokes `PUBLIC` `CREATE` on `public`. Path B therefore uses a documented pre-upgrade Phase 4.2.3 catalog snapshot (`PHASE_4_2_3_PRE_UPGRADE_SNAPSHOT_SQL`) rather than claiming a non-superuser replay of the unedited `150000` file.
 2. **No Live Supabase Production Access:** Zero connections were made to any live or production Supabase environment. All PostgreSQL 16 verification ran against an isolated disposable cluster (`cluster_name = 'exo_disposable_pg16'`).
 3. **PostgREST Layer Simulation:** PostgREST JWT claim injection and role switching are tested in PostgreSQL 16 via `SET LOCAL ROLE authenticated` and `pg_catalog.set_config('request.jwt.claim.*', ..., true)`.
-4. **Remote GitHub Actions Verification Pending Owner Sync:** Commit `7ab5beb30a48449c47d2c826dfaa73c25b545f10` passed Steps 1–9 in GitHub Actions Run `41850663053` and failed at Step 10 (`test:pg16`) because of the Docker bridge `inet_server_addr()` check. That check and database inventory ownership are now corrected and verified locally (`95 / 95` in `test:pg16`, `334 / 334` total under Node.js `v20.20.2`) and await owner synchronization to `main` to trigger remote GitHub Actions verification on the new commit SHA.
+4. **Remote GitHub Actions Verification Pending Owner Sync of Probe Ownership Fix:** Commit `b4a284503e5731aabd8ac298a0df66f5a24e03d7` passed all 10 steps (`95 / 95` in `test:pg16`, `334 / 334` total) in GitHub Actions Run `41855657244`. This final probe database ownership edge-case correction is verified locally (`96 / 96` in `test:pg16`, `335 / 335` total under Node.js `v20.20.2`) and awaits owner synchronization to `main`.
 
 ## 7. Explicit Status
 
-- **Status:** `Implemented and locally tested` (Verified under Node.js `v20.20.2` across `npm ci` and all 7 test suites — `334 / 334` local assertions passed; remote CI on `7ab5beb30a48449c47d2c826dfaa73c25b545f10` passed Steps 1–9 and failed Step 10 prior to this Docker network detection fix; awaiting owner GitHub Sync of the corrected workspace).
+- **Status:** `Implemented and locally tested` (Verified under Node.js `v20.20.2` across `npm ci` and all 7 test suites — `335 / 335` local assertions passed; remote CI on `b4a284503e5731aabd8ac298a0df66f5a24e03d7` passed `334 / 334` in Run `41855657244`; awaiting owner GitHub Sync of the final probe database ownership edge-case fix).
