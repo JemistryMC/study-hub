@@ -1,44 +1,63 @@
-# Reports & AI Handoff
+# التقارير وتسليم العمل بين Gemini وChatGPT
 
-هذا المجلد هو نقطة تبادل التقارير بين صاحب المشروع وGemini وChatGPT. Gemini يعمل محليًا؛ صاحب المشروع هو من ينقل مخرجاته إلى GitHub. ChatGPT يقرأ هذه الملفات مباشرةً من المستودع، ويمكنه نشر سجل المراجعة هنا عند الطلب.
+هذا المجلد يحتوي على حالة المشروع ومخرجات كل مرحلة والمراجعات المستقلة.
 
-## الهيكل
+## اقرأ أولًا
 
-```text
+- [الحالة الحالية](CURRENT.md)
+- [تعليمات Gemini العامة](../GEMINI.md)
+- [قالب تقرير Gemini](templates/GEMINI_REPORT_TEMPLATE.md)
+- [قالب مراجعة ChatGPT](templates/CHATGPT_REVIEW_TEMPLATE.md)
+
+## بنية المجلد
+
+```
 reports/
 ├── CURRENT.md
 ├── README.md
-├── audits/       # التقارير الهندسية التاريخية
-├── patches/      # Unified diffs محفوظة كمرجع، وليست كودًا مطبقًا
+├── audits/          # تقارير التدقيق الهندسي المرجعية
+├── patches/         # Unified diffs تاريخية؛ ليست كودًا مطبقًا
 ├── phases/
-│   └── <phase>/
-│       ├── gemini-report.md
-│       ├── chatgpt-review.md
-│       └── decisions.md
+│   ├── phase-4.2.4.4/
+│   │   ├── README.md
+│   │   ├── chatgpt-review.md
+│   │   └── phase-4-2-4-4.patch
+│   └── phase-4.2.4.4.1/
+│       └── README.md
 └── templates/
     ├── GEMINI_REPORT_TEMPLATE.md
     └── CHATGPT_REVIEW_TEMPLATE.md
 ```
 
-## طريقة تسليم كل Phase
+## طريقة العمل
 
-1. بعد انتهاء Gemini محليًا، يُرفع نص تقريره إلى:
-   `reports/phases/<phase>/gemini-report.md`
-2. تُرفع ملفات الكود المعدّلة نفسها إلى فرع `Deploying`، وليس التقرير أو الـ Patch فقط.
-3. يجب أن يذكر التقرير Base SHA وCommit SHA الذي يحتوي على الكود، ورابط CI الذي اختبر هذا الـ SHA.
-4. إذا كان هناك Patch فقط ولم تُطبق تعديلاته على ملفات المشروع، نضعه في `reports/patches/` ونصنفه **غير مطبق**.
-5. بعد المراجعة، يُحفظ قرار ChatGPT في `chatgpt-review.md`، والقرارات البشرية النهائية في `decisions.md`.
+1. Gemini يقرأ `GEMINI.md` و`CURRENT.md` وملف المرحلة النشطة قبل لمس الكود.
+2. Gemini يعمل على فرع `Deploying` فقط.
+3. Gemini يغيّر الملفات المطلوبة في نطاق المرحلة ولا ينفذ إعادة كتابة أو مميزات غير مطلوبة.
+4. قبل Sync، يعرض Gemini الملفات المتغيرة والـ Diff والاختبارات والفرع المستهدف.
+5. المالك وحده يضغط GitHub Sync بعد التأكد أن الوجهة `Deploying`.
+6. بعد ظهور Commit فعلي على GitHub، تتم مراجعة SHA والـ diff وGitHub Actions.
+7. لا يتم دمج الكود إلى `main` إلا بعد موافقة المراجعة المستقلة والمالك.
 
 ## قواعد الأدلة
 
-- لا تكتب أرقام اختبارات تقديرية؛ استخدم المخرجات الفعلية.
-- افصل بين الاختبارات المحلية وGitHub Actions وStaging وProduction.
-- اذكر الاختبارات التي لم تُنفذ والقيود المتبقية.
-- لا تعتبر محاكاة PostgreSQL المحلية إثباتًا لتكامل JWT/PostgREST الحقيقي.
-- لا تضع أسرارًا أو بيانات اعتماد أو JWTs حقيقية في التقارير.
+- كل اختبار له أمر تشغيل واضح وoutput فعلي.
+- اربط النتائج بالـ source SHA الذي اختبرته.
+- افصل الاختبارات المحلية عن GitHub Actions وStaging وProduction.
+- لا تخلط PGlite مع PostgreSQL 16 الحقيقي.
+- لا تعتبر mock أو test double دليلًا على سلوك Supabase/PostgREST الحقيقي.
+- أظهر failures كما هي ولا تحذف اختبارات لإخفائها.
+- لا تضع كلمات مرور أو JWTs أو مفاتيح أو ملفات `.env` في التقارير.
+- لا تضع بيانات اعتماد حساسة في GitHub حتى لو كانت مخصصة للاختبارات.
 
-## الأرشيف الحالي
+## حالات المرحلة
 
-- `audits/` يحتوي على تقريري التدقيق التاريخيين اللذين كانا في جذر المستودع.
-- `patches/` يحتوي على Patches المرفوعة سابقًا، بما فيها Patch Phase 4.2.4.2 الذي كان مرفقًا بالـ PR #1.
-- بعض الـ Patches التاريخية متطابقة بايتًا؛ راجع `patches/README.md` قبل استخدام أي منها.
+استخدم إحدى الحالات بدقة:
+- `NOT STARTED`
+- `IN PROGRESS`
+- `CHANGES REQUESTED`
+- `IMPLEMENTED — LOCAL TESTS ONLY`
+- `CI VERIFIED`
+- `APPROVED`
+
+نجاح الاختبار المحلي لا يساوي CI VERIFIED، وCI VERIFIED لا يساوي APPROVED.
