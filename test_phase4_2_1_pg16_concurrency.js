@@ -65,12 +65,12 @@ async function ensurePostgres16ServerAvailable() {
   if (fs.existsSync('/usr/lib/postgresql/16/bin/pg_ctl')) {
     const startCmd = `
       (id postgres >/dev/null 2>&1 || useradd -m -s /bin/bash postgres) &&
-      mkdir -p /tmp/pg16_data /tmp/pg16_sock &&
-      chown -R postgres:postgres /tmp/pg16_data /tmp/pg16_sock &&
+      mkdir -p /tmp/pg16_data /tmp/pg16_sock /var/run/postgresql &&
+      chown -R postgres:postgres /tmp/pg16_data /tmp/pg16_sock /var/run/postgresql &&
       if [ ! -f /tmp/pg16_data/PG_VERSION ]; then
         su - postgres -c "/usr/lib/postgresql/16/bin/initdb -D /tmp/pg16_data -U postgres --auth=trust" >/dev/null
       fi &&
-      su - postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D /tmp/pg16_data status >/dev/null 2>&1 || /usr/lib/postgresql/16/bin/pg_ctl -D /tmp/pg16_data -o '-k /tmp/pg16_sock -p 5432' -l /tmp/pg16_data/logfile start >/dev/null"
+      su - postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D /tmp/pg16_data status >/dev/null 2>&1 || /usr/lib/postgresql/16/bin/pg_ctl -D /tmp/pg16_data -o '-h 127.0.0.1 -p 5432' -l /tmp/pg16_data/logfile start >/dev/null"
     `;
     spawnSync('bash', ['-c', startCmd], { stdio: 'inherit' });
   }
@@ -264,50 +264,91 @@ async function main() {
     'Version gate strictly fails on PGlite (180006 WASM) and non-16 PostgreSQL versions (150019)'
   );
 
-  // Prepare two clean databases on the real PostgreSQL 16 server:
-  //   1. exo_pg16_migrated (built from migrations)
-  //   2. exo_pg16_fresh_schema (built from supabase/schema.sql)
-  await adminClient.query('DROP DATABASE IF EXISTS exo_pg16_migrated WITH (FORCE);');
+  // Prepare three clean databases on the real PostgreSQL 16 server:
+  //   1. exo_pg16_fresh_install (Path A: 20261103133622 + 20261103140000 + 20261103150000 in timestamp order)
+  //   2. exo_pg16_existing_upgrade (Path B: starts at historical Phase 4.2.1 state, then applies only 20261103150000)
+  //   3. exo_pg16_fresh_schema (Canonical baseline from supabase/schema.sql)
+  await adminClient.query('DROP DATABASE IF EXISTS exo_pg16_fresh_install WITH (FORCE);');
+  await adminClient.query('DROP DATABASE IF EXISTS exo_pg16_existing_upgrade WITH (FORCE);');
   await adminClient.query('DROP DATABASE IF EXISTS exo_pg16_fresh_schema WITH (FORCE);');
-  await adminClient.query('CREATE DATABASE exo_pg16_migrated;');
+  await adminClient.query('CREATE DATABASE exo_pg16_fresh_install;');
+  await adminClient.query('CREATE DATABASE exo_pg16_existing_upgrade;');
   await adminClient.query('CREATE DATABASE exo_pg16_fresh_schema;');
   await adminClient.end();
 
   // --------------------------------------------------------------------------
-  // SECTION 2: PostgreSQL 16 Extensions Audit & Execution Verification
+  // SECTION 2: PostgreSQL 16 Deployment Paths & Extensions Audit
   // --------------------------------------------------------------------------
-  console.log('\n--- SECTION 2: PostgreSQL 16 Extensions Verification & Exclusion Audit ---');
+  console.log('\n--- SECTION 2: PostgreSQL 16 Deployment Paths (Path A: Fresh Install, Path B: Existing Upgrade) ---');
 
-  const migClient = new Client({ connectionString: getDbUrl('exo_pg16_migrated') });
+  const pathAClient = new Client({ connectionString: getDbUrl('exo_pg16_fresh_install') });
+  const pathBClient = new Client({ connectionString: getDbUrl('exo_pg16_existing_upgrade') });
   const freshClient = new Client({ connectionString: getDbUrl('exo_pg16_fresh_schema') });
-  await migClient.connect();
+  await pathAClient.connect();
+  await pathBClient.connect();
   await freshClient.connect();
 
-  await migClient.query(SUPABASE_PG16_BOOTSTRAP_SQL);
+  await pathAClient.query(SUPABASE_PG16_BOOTSTRAP_SQL);
+  await pathBClient.query(SUPABASE_PG16_BOOTSTRAP_SQL);
   await freshClient.query(SUPABASE_PG16_BOOTSTRAP_SQL);
 
-  // Install the 3 standard PostgreSQL 16 contrib extensions in exo_pg16_migrated as well
-  // so extension state is identical to Supabase's pre-migration platform bootstrap
-  await migClient.query(`
+  // Install the 3 standard PostgreSQL 16 contrib extensions in both migrated databases
+  const contribExtsSql = `
     CREATE EXTENSION IF NOT EXISTS "pg_stat_statements" WITH SCHEMA "extensions";
     CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
     CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
-  `);
+  `;
+  await pathAClient.query(contribExtsSql);
+  await pathBClient.query(contribExtsSql);
 
   const baselineMigrationSql = fs.readFileSync('supabase/migrations/20261103133622_remote_schema.sql', 'utf8');
-  const forwardMigrationSql = fs.readFileSync(
+  const phase421HistoricalMigrationSql = fs.readFileSync(
     'supabase/migrations/20261103140000_fix_security_and_privileges.sql',
     'utf8'
   );
-  await migClient.query(baselineMigrationSql);
-  await migClient.query(forwardMigrationSql);
-  assert(
-    true,
-    'Real PostgreSQL 16 executed 20261103133622_remote_schema.sql + 20261103140000_fix_security_and_privileges.sql without errors'
+  const forwardMigrationSql = fs.readFileSync(
+    'supabase/migrations/20261103150000_unforgeable_occ_and_role_hardening.sql',
+    'utf8'
   );
 
-  // In supabase/schema.sql, only "supabase_vault" (Supabase proprietary vault wrapper) is absent from vanilla postgres:16 contrib;
-  // "pg_stat_statements", "pgcrypto", and "uuid-ossp" execute natively on PostgreSQL 16!
+  // Path A — Fresh installation:
+  // Apply baseline migration (133622) -> original Phase 4.2.1 migration (140000) -> new forward migration (150000)
+  await pathAClient.query(baselineMigrationSql);
+  await pathAClient.query(phase421HistoricalMigrationSql);
+  await pathAClient.query(forwardMigrationSql);
+  assert(
+    true,
+    'Path A (Fresh Install): Cleanly executed migrations in timestamp order (20261103133622 + 20261103140000 + 20261103150000)'
+  );
+
+  // Path B — Existing database upgrade:
+  // First, construct the EXACT historical Phase 4.2.1 database state:
+  await pathBClient.query(baselineMigrationSql);
+  await pathBClient.query(phase421HistoricalMigrationSql);
+  // Verify database is at historical Phase 4.2.1 state (has GUC check, sync_workspace owned by postgres)
+  const preUpgradeCheck = (
+    await pathBClient.query(`
+      SELECT
+        p.proowner::regrole::text AS owner,
+        pg_get_functiondef(p.oid) AS fndef
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'public' AND p.proname = 'sync_workspace_with_concurrency'
+    `)
+  ).rows[0];
+  assert(
+    preUpgradeCheck.owner === 'postgres' && preUpgradeCheck.fndef.includes('exo.occ_rpc_active'),
+    'Path B (Pre-Upgrade): Successfully verified existing database state at Phase 4.2.1 (owned by postgres with GUC check)'
+  );
+
+  // Now apply ONLY the new forward migration (20261103150000) to upgrade the live database:
+  await pathBClient.query(forwardMigrationSql);
+  assert(
+    true,
+    'Path B (Existing Upgrade): Cleanly applied 20261103150000 forward migration on top of historical Phase 4.2.1 database'
+  );
+
+  // Reference Database — Fresh schema bootstrap from supabase/schema.sql
   const rawSchemaSql = fs.readFileSync('supabase/schema.sql', 'utf8');
   const pg16SchemaSql = rawSchemaSql.replace(
     /CREATE EXTENSION IF NOT EXISTS "supabase_vault"[^;]*;/g,
@@ -316,7 +357,7 @@ async function main() {
   await freshClient.query(pg16SchemaSql);
   assert(
     true,
-    'Real PostgreSQL 16 executed supabase/schema.sql with native pg_stat_statements, pgcrypto, and uuid-ossp extensions'
+    'Reference Database: Cleanly executed supabase/schema.sql on native PostgreSQL 16'
   );
 
   const installedExts = (
@@ -354,13 +395,14 @@ async function main() {
   );
 
   // --------------------------------------------------------------------------
-  // SECTION 3: Comprehensive 10-Point Schema Parity Audit (Migrated DB vs schema.sql)
+  // SECTION 3: Comprehensive 10-Point Schema Parity Audit (Path A vs Path B vs schema.sql)
   // --------------------------------------------------------------------------
   console.log('\n--- SECTION 3: Comprehensive 10-Dimension Schema Parity Audit on PostgreSQL 16 ---');
 
-  // Normalize session search_path on both connections before querying catalog deparse functions
+  // Normalize session search_path on all connections before querying catalog deparse functions
   // (supabase/schema.sql sets session search_path to '', which affects pg_get_triggerdef/pg_policies schema qualification)
-  await migClient.query(`SET search_path = public, auth, storage, extensions;`);
+  await pathAClient.query(`SET search_path = public, auth, storage, extensions;`);
+  await pathBClient.query(`SET search_path = public, auth, storage, extensions;`);
   await freshClient.query(`SET search_path = public, auth, storage, extensions;`);
 
   // 3.1 Columns, Types, Nullability & Default Values
@@ -370,11 +412,14 @@ async function main() {
     WHERE table_schema = 'public' AND table_name = 'user_workspaces'
     ORDER BY ordinal_position
   `;
-  const migCols = (await migClient.query(colsQuery)).rows;
+  const pathACols = (await pathAClient.query(colsQuery)).rows;
+  const pathBCols = (await pathBClient.query(colsQuery)).rows;
   const freshCols = (await freshClient.query(colsQuery)).rows;
   assert(
-    JSON.stringify(migCols) === JSON.stringify(freshCols) && migCols.length === 10,
-    'Parity [1/10] All 10 columns, data types, nullability, and Default Values match between migrated DB and schema.sql'
+    JSON.stringify(pathACols) === JSON.stringify(freshCols) &&
+      JSON.stringify(pathBCols) === JSON.stringify(freshCols) &&
+      pathACols.length === 10,
+    'Parity [1/10] All 10 columns, data types, nullability, and Default Values match across Path A, Path B, and schema.sql'
   );
 
   // 3.2 Constraints (PRIMARY KEY, FOREIGN KEY)
@@ -386,11 +431,14 @@ async function main() {
     WHERE n.nspname = 'public' AND t.relname = 'user_workspaces'
     ORDER BY conname
   `;
-  const migConstraints = (await migClient.query(constraintsQuery)).rows;
+  const pathAConstraints = (await pathAClient.query(constraintsQuery)).rows;
+  const pathBConstraints = (await pathBClient.query(constraintsQuery)).rows;
   const freshConstraints = (await freshClient.query(constraintsQuery)).rows;
   assert(
-    JSON.stringify(migConstraints) === JSON.stringify(freshConstraints) && migConstraints.length === 2,
-    'Parity [2/10] Table constraints (PK & FK ON DELETE CASCADE) match between migrated DB and schema.sql'
+    JSON.stringify(pathAConstraints) === JSON.stringify(freshConstraints) &&
+      JSON.stringify(pathBConstraints) === JSON.stringify(freshConstraints) &&
+      pathAConstraints.length === 2,
+    'Parity [2/10] Table constraints (PK & FK ON DELETE CASCADE) match across Path A, Path B, and schema.sql'
   );
 
   // 3.3 Indexes
@@ -400,11 +448,14 @@ async function main() {
     WHERE schemaname = 'public' AND tablename = 'user_workspaces'
     ORDER BY indexname
   `;
-  const migIndexes = (await migClient.query(indexesQuery)).rows;
+  const pathAIndexes = (await pathAClient.query(indexesQuery)).rows;
+  const pathBIndexes = (await pathBClient.query(indexesQuery)).rows;
   const freshIndexes = (await freshClient.query(indexesQuery)).rows;
   assert(
-    JSON.stringify(migIndexes) === JSON.stringify(freshIndexes) && migIndexes.length === 1,
-    'Parity [3/10] Indexes (user_workspaces_pkey) match between migrated DB and schema.sql'
+    JSON.stringify(pathAIndexes) === JSON.stringify(freshIndexes) &&
+      JSON.stringify(pathBIndexes) === JSON.stringify(freshIndexes) &&
+      pathAIndexes.length === 1,
+    'Parity [3/10] Indexes (user_workspaces_pkey) match across Path A, Path B, and schema.sql'
   );
 
   // 3.4 RLS Policies (including USING qual & WITH CHECK expressions)
@@ -415,11 +466,14 @@ async function main() {
        OR (schemaname = 'storage' AND tablename = 'objects')
     ORDER BY schemaname, tablename, policyname
   `;
-  const migRls = (await migClient.query(rlsQuery)).rows;
+  const pathARls = (await pathAClient.query(rlsQuery)).rows;
+  const pathBRls = (await pathBClient.query(rlsQuery)).rows;
   const freshRls = (await freshClient.query(rlsQuery)).rows;
   assert(
-    JSON.stringify(migRls) === JSON.stringify(freshRls) && migRls.length === 7,
-    'Parity [4/10] All 7 RLS policies (including exact USING and WITH CHECK expressions) match between migrated DB and schema.sql'
+    JSON.stringify(pathARls) === JSON.stringify(freshRls) &&
+      JSON.stringify(pathBRls) === JSON.stringify(freshRls) &&
+      pathARls.length === 7,
+    'Parity [4/10] All 7 RLS policies (including exact USING and WITH CHECK expressions) match across Path A, Path B, and schema.sql'
   );
 
   // 3.5 Triggers on public.user_workspaces
@@ -431,11 +485,14 @@ async function main() {
     WHERE n.nspname = 'public' AND c.relname = 'user_workspaces' AND NOT t.tgisinternal
     ORDER BY t.tgname
   `;
-  const migTriggers = (await migClient.query(triggersQuery)).rows;
+  const pathATriggers = (await pathAClient.query(triggersQuery)).rows;
+  const pathBTriggers = (await pathBClient.query(triggersQuery)).rows;
   const freshTriggers = (await freshClient.query(triggersQuery)).rows;
   assert(
-    JSON.stringify(migTriggers) === JSON.stringify(freshTriggers) && migTriggers.length === 4,
-    'Parity [5/10] All 4 table triggers and pg_get_triggerdef definitions match between migrated DB and schema.sql'
+    JSON.stringify(pathATriggers) === JSON.stringify(freshTriggers) &&
+      JSON.stringify(pathBTriggers) === JSON.stringify(freshTriggers) &&
+      pathATriggers.length === 4,
+    'Parity [5/10] All 4 table triggers and pg_get_triggerdef definitions match across Path A, Path B, and schema.sql'
   );
 
   // 3.6 Event Triggers
@@ -444,11 +501,14 @@ async function main() {
     FROM pg_event_trigger
     WHERE evtname = 'ensure_rls'
   `;
-  const migEvt = (await migClient.query(evtTriggersQuery)).rows;
+  const pathAEvt = (await pathAClient.query(evtTriggersQuery)).rows;
+  const pathBEvt = (await pathBClient.query(evtTriggersQuery)).rows;
   const freshEvt = (await freshClient.query(evtTriggersQuery)).rows;
   assert(
-    JSON.stringify(migEvt) === JSON.stringify(freshEvt) && migEvt.length === 1,
-    'Parity [6/10] Event trigger (ensure_rls -> public.rls_auto_enable) matches between migrated DB and schema.sql'
+    JSON.stringify(pathAEvt) === JSON.stringify(freshEvt) &&
+      JSON.stringify(pathBEvt) === JSON.stringify(freshEvt) &&
+      pathAEvt.length === 1,
+    'Parity [6/10] Event trigger (ensure_rls -> public.rls_auto_enable) matches across Path A, Path B, and schema.sql'
   );
 
   // 3.7 Functions (SECURITY DEFINER, search_path proconfig, ACLs, and full function definitions)
@@ -459,11 +519,14 @@ async function main() {
     WHERE n.nspname = 'public'
     ORDER BY p.proname
   `;
-  const migFuncs = (await migClient.query(funcsQuery)).rows;
+  const pathAFuncs = (await pathAClient.query(funcsQuery)).rows;
+  const pathBFuncs = (await pathBClient.query(funcsQuery)).rows;
   const freshFuncs = (await freshClient.query(funcsQuery)).rows;
   assert(
-    JSON.stringify(migFuncs) === JSON.stringify(freshFuncs) && migFuncs.length === 6,
-    'Parity [7/10] All 6 public functions (SECURITY DEFINER, search_path, ACLs, and bodies) match between migrated DB and schema.sql'
+    JSON.stringify(pathAFuncs) === JSON.stringify(freshFuncs) &&
+      JSON.stringify(pathBFuncs) === JSON.stringify(freshFuncs) &&
+      pathAFuncs.length === 6,
+    'Parity [7/10] All 6 public functions (SECURITY DEFINER, search_path, ACLs, and bodies) match across Path A, Path B, and schema.sql'
   );
 
   // 3.8 Table Privileges & RLS Enablement Flags
@@ -473,11 +536,13 @@ async function main() {
     JOIN pg_namespace n ON c.relnamespace = n.oid
     WHERE n.nspname = 'public' AND relname = 'user_workspaces'
   `;
-  const migAcl = (await migClient.query(tableAclQuery)).rows;
+  const pathAAcl = (await pathAClient.query(tableAclQuery)).rows;
+  const pathBAcl = (await pathBClient.query(tableAclQuery)).rows;
   const freshAcl = (await freshClient.query(tableAclQuery)).rows;
   assert(
-    JSON.stringify(migAcl) === JSON.stringify(freshAcl),
-    'Parity [8/10] Table ACL grants and RLS flags on public.user_workspaces match between migrated DB and schema.sql'
+    JSON.stringify(pathAAcl) === JSON.stringify(freshAcl) &&
+      JSON.stringify(pathBAcl) === JSON.stringify(freshAcl),
+    'Parity [8/10] Table ACL grants and RLS flags on public.user_workspaces match across Path A, Path B, and schema.sql'
   );
 
   // 3.9 Default Privileges (pg_default_acl)
@@ -486,11 +551,14 @@ async function main() {
     FROM pg_default_acl
     ORDER BY 1, 2, 3
   `;
-  const migDefAcl = (await migClient.query(defAclQuery)).rows;
+  const pathADefAcl = (await pathAClient.query(defAclQuery)).rows;
+  const pathBDefAcl = (await pathBClient.query(defAclQuery)).rows;
   const freshDefAcl = (await freshClient.query(defAclQuery)).rows;
   assert(
-    JSON.stringify(migDefAcl) === JSON.stringify(freshDefAcl) && migDefAcl.length >= 2,
-    'Parity [9/10] Global and schema-scoped ALTER DEFAULT PRIVILEGES entries (postgres & exo_occ_rpc_definer) match between migrated DB and schema.sql'
+    JSON.stringify(pathADefAcl) === JSON.stringify(freshDefAcl) &&
+      JSON.stringify(pathBDefAcl) === JSON.stringify(freshDefAcl) &&
+      pathADefAcl.length >= 2,
+    'Parity [9/10] Global and schema-scoped ALTER DEFAULT PRIVILEGES entries (postgres & exo_occ_rpc_definer) match across Path A, Path B, and schema.sql'
   );
 
   // 3.10 Storage Bucket Configuration & Internal OCC Write-Context Schema Parity
@@ -499,7 +567,8 @@ async function main() {
     FROM storage.buckets
     WHERE id = 'lecture_media'
   `;
-  const migBucket = (await migClient.query(bucketQuery)).rows;
+  const pathABucket = (await pathAClient.query(bucketQuery)).rows;
+  const pathBBucket = (await pathBClient.query(bucketQuery)).rows;
   const freshBucket = (await freshClient.query(bucketQuery)).rows;
   const internalCtxQuery = `
     SELECT c.relname, c.relrowsecurity, c.relacl::text, pg_get_constraintdef(con.oid) AS condef
@@ -509,18 +578,24 @@ async function main() {
     WHERE n.nspname = 'exo_internal' AND c.relname = 'occ_active_write_context'
     ORDER BY con.conname
   `;
-  const migInternal = (await migClient.query(internalCtxQuery)).rows;
+  const pathAInternal = (await pathAClient.query(internalCtxQuery)).rows;
+  const pathBInternal = (await pathBClient.query(internalCtxQuery)).rows;
   const freshInternal = (await freshClient.query(internalCtxQuery)).rows;
   assert(
-    JSON.stringify(migBucket) === JSON.stringify(freshBucket) &&
-      JSON.stringify(migInternal) === JSON.stringify(freshInternal) &&
-      migBucket.length === 1 &&
-      migBucket[0].public === false &&
-      Number(migBucket[0].file_size_limit) === 52428800,
-    'Parity [10/10] Storage bucket lecture_media and private exo_internal.occ_active_write_context schema match between migrated DB and schema.sql'
+    JSON.stringify(pathABucket) === JSON.stringify(freshBucket) &&
+      JSON.stringify(pathBBucket) === JSON.stringify(freshBucket) &&
+      JSON.stringify(pathAInternal) === JSON.stringify(freshInternal) &&
+      JSON.stringify(pathBInternal) === JSON.stringify(freshInternal) &&
+      pathABucket.length === 1 &&
+      pathABucket[0].public === false &&
+      Number(pathABucket[0].file_size_limit) === 52428800,
+    'Parity [10/10] Storage bucket lecture_media and private exo_internal.occ_active_write_context schema match across Path A, Path B, and schema.sql'
   );
 
+  // Close Path A client and reference fresh client; proceed with Path B (live upgraded DB) for concurrency & security suites
+  await pathAClient.end();
   await freshClient.end();
+  const migClient = pathBClient;
 
   // --------------------------------------------------------------------------
   // SECTION 4: Real Multi-Connection Concurrency Proof on PostgreSQL 16
@@ -553,9 +628,9 @@ async function main() {
   );
 
   // Open two independent connections (conn1, conn2) + one monitor connection (connMonitor)
-  const conn1 = new Client({ connectionString: getDbUrl('exo_pg16_migrated') });
-  const conn2 = new Client({ connectionString: getDbUrl('exo_pg16_migrated') });
-  const connMonitor = new Client({ connectionString: getDbUrl('exo_pg16_migrated') });
+  const conn1 = new Client({ connectionString: getDbUrl('exo_pg16_existing_upgrade') });
+  const conn2 = new Client({ connectionString: getDbUrl('exo_pg16_existing_upgrade') });
+  const connMonitor = new Client({ connectionString: getDbUrl('exo_pg16_existing_upgrade') });
   await conn1.connect();
   await conn2.connect();
   await connMonitor.connect();

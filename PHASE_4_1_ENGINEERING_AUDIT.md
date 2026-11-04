@@ -44,31 +44,46 @@
 
 1. **Native PostgreSQL 16 Server & Version Gate**:
    - `test_phase4_2_1_pg16_concurrency.js` connects to a real PostgreSQL 16 server (`PostgreSQL 16.15`, `server_version_num = 160015`) via `pg` TCP connections and enforces a strict version gate (`Major === 16`), while `test_phase4_2_postgres_integration.js` is retained strictly as **Embedded PostgreSQL Compatibility Tests (PGlite WASM)**.
-2. **Real Multi-Connection Concurrency Proof**:
+2. **Real Multi-Connection Concurrency & Dual-Path Migration Parity (Phase 4.2.3)**:
+   - Evaluated both deployment paths on native PostgreSQL 16:
+     - **Path A (Fresh Install)**: `20261103133622` -> `20261103140000` -> `20261103150000` applied in timestamp order.
+     - **Path B (Live Upgrade)**: Database starts at historical Phase 4.2.1 state, then applies only `20261103150000_unforgeable_occ_and_role_hardening.sql`.
    - Proven overlapping `SELECT ... FOR UPDATE` row-lock contention (`wait_event_type = 'Lock'`, `wait_event = 'transactionid'` observed via `pg_stat_activity` and `pg_locks` on a 3rd monitor connection), barrier-synchronized simultaneous updates, and concurrent first-time workspace creation triggering real `unique_violation` (`23505`) recovery.
-3. **10-Dimension Catalog Parity (`supabase/schema.sql` vs Migrations)**:
+3. **10-Dimension Catalog Parity (Path A vs Path B vs `supabase/schema.sql`)**:
    - Verified 100% parity across columns/defaults, PK/FK constraints, indexes, all RLS policies (including `USING` and `WITH CHECK`), triggers, event triggers, functions (`SECURITY DEFINER`, `search_path`, ACLs, bodies), table ACLs, `pg_default_acl` (`postgres` and `exo_occ_rpc_definer`), `storage.buckets`, and `exo_internal.occ_active_write_context`.
 
 ---
 
-## 3. Separated 5-Category Test Execution Summary (274 / 274 Passing)
+## 3. Separated 5-Category Test Execution Summary (276 / 276 Passing)
 
 | Category | Test File(s) | Command | Target Runtime | Assertions | Status |
 | :--- | :--- | :--- | :--- | :---: | :---: |
 | **1. Production Crypto & Static Audit** | `run_verification_tests.js` | `npm run test:static` | Node.js Web Crypto (`index.html`) + Static SQL/SW Audit | **50** | **50 PASS / 0 FAIL** |
 | **2. Pure Unit & Async Logic Isolation** | `run_comprehensive_verification.js`<br>`test_phase3_cross_account_isolation.js`<br>`test_phase4_regressions.js` | `npm run test:unit` | Node.js VM + IDB Transaction Simulator | **102**<br>(42+25+35) | **102 PASS / 0 FAIL** |
 | **3. Embedded PostgreSQL Compatibility** | `test_phase4_2_postgres_integration.js` | `npm run test:pglite` | `@electric-sql/pglite` 0.5.15 (Single-Connection WASM PG 18.6) | **41** | **41 PASS / 0 FAIL** |
-| **4. Real PostgreSQL 16 Concurrency, GUC Forgery & Parity** | `test_phase4_2_1_pg16_concurrency.js` | `npm run test:pg16` | **Native PostgreSQL 16.15 Server (`server_version_num=160015`)** + Multi-Connection `pg` | **39** | **39 PASS / 0 FAIL** |
+| **4. Real PostgreSQL 16 Concurrency, Paths & Parity** | `test_phase4_2_1_pg16_concurrency.js` | `npm run test:pg16` | **Native PostgreSQL 16.15 Server (`server_version_num=160015`)** + Multi-Connection `pg` | **41** | **41 PASS / 0 FAIL** |
 | **5. Real Browser E2E & IndexedDB** | `test_phase4_1_chromium_e2e.js` | `npm run test:e2e` | **Headless Chromium (`playwright` 1.64.1) + Real IndexedDB v4** | **42** | **42 PASS / 0 FAIL** |
-| **Grand Total (All 7 Suites)** | `run_all_tests.js` | `npm test` | **All Runtimes Combined** | **274** | **274 PASS / 0 FAIL** |
+| **Grand Total (All 7 Suites)** | `run_all_tests.js` | `npm test` | **All Runtimes Combined** | **276** | **276 PASS / 0 FAIL** |
 
 ---
 
-## 4. Residual Risks & Operational Considerations
+## 4. Auth Boundary Distinction & Staging Validation Procedure
 
-1. **PostgREST / Supabase Gateway JWT Secret Protection**:
-   - `auth.uid()` reads `request.jwt.claim.sub`, which is populated by Supabase PostgREST after verifying the signature of the client's Bearer JWT. Database roles `anon` and `authenticated` cannot escalate to `postgres`, `service_role`, or `exo_occ_rpc_definer`, nor can they spoof another user's ID through `sync_workspace_with_concurrency(p_payload, p_expected_revision)`. Operationally, the project's `JWT_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` must remain confidential on the backend infrastructure and never be exposed to client browsers.
-2. **Administrative `postgres` / `service_role` Maintenance Writes**:
-   - Administrative connections running as `postgres` or `service_role` (with `auth.uid() IS NULL`) remain permitted to perform administrative updates (such as toggling `can_upload_media = true` for VIP users). All application client writes (`authenticated`) are strictly forced through `sync_workspace_with_concurrency()`.
-3. **Production Migration Deployment**:
-   - The updated migration `supabase/migrations/20261103140000_fix_security_and_privileges.sql` is verified on PostgreSQL 16.15 and ready to be applied to the hosted Supabase instance upon PR merge.
+### 4.1 Boundary Distinction (PostgreSQL Engine vs Supabase GoTrue Auth)
+- **Engine-Level Enforcement (Fully Verified in PostgreSQL 16)**:
+  - Inside the database session, `auth.uid()` reads `request.jwt.claim.sub`. Tests in `test_phase4_2_1_pg16_concurrency.js` simulate this claim via `set_config('request.jwt.claim.sub', ...)`.
+  - The tests rigorously prove that an `authenticated` session cannot escalate roles, cannot tamper with payload user IDs, cannot write directly to `public.user_workspaces`, and cannot bypass OCC RPC or RLS.
+- **External Gateway Enforcement (Staging / Hosted Supabase Requirement)**:
+  - Local database tests do not verify cryptographic JWT signature validation (HMAC-SHA256 / RS256) performed by GoTrue Auth and PostgREST at the HTTP ingress before requests hit PostgreSQL.
+  - Setting `request.jwt.claim.sub` in SQL stubs does not substitute for real gateway token verification.
+
+### 4.2 Staging Validation Procedure
+1. **Invalid/Unsigned Token Rejection**:
+   - Issue an unauthenticated or tampered Bearer token to `POST /rest/v1/rpc/sync_workspace_with_concurrency`.
+   - Verify PostgREST returns `401 Unauthorized` before SQL execution.
+2. **Valid Authenticated User RPC Execution**:
+   - Sign in via Supabase client SDK and execute `sync_workspace_with_concurrency` with valid credentials.
+   - Verify `200 OK` response with `{ "status": "success", "revision": 1 }`.
+3. **Direct Table REST Write Blocking**:
+   - Issue `POST` or `PATCH` to `/rest/v1/user_workspaces` with the valid token.
+   - Verify request is rejected with `401/403` or `400 OCC_BYPASS_FORBIDDEN` (`42501`).

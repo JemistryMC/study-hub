@@ -527,5 +527,5 @@ REVOKE ALL ON TABLE "public"."user_workspaces" FROM "anon";
 REVOKE ALL ON TABLE "public"."user_workspaces" FROM "authenticated";
 REVOKE ALL ON TABLE "public"."user_workspaces" FROM "exo_occ_rpc_definer";
 GRANT SELECT ON TABLE "public"."user_workspaces" TO "authenticated";
-GRANT SELECT, INSERT, UPDATE ON TABLE "public"."user_workspaces" TO "exo_occ_rpc_definer";
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "public"."user_workspaces" TO "postgres", "service_role";
+GRANT SELECT, INSERT, UPDATE ON TABLE "public"."user_workspaces" TO "exo_occ_rpc_definer";
