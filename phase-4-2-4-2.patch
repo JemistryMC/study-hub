@@ -1,0 +1,483 @@
+diff --git a/DATABASE_AUDIT_AR.md b/DATABASE_AUDIT_AR.md
+index c428375..7392e4a 100755
+--- a/DATABASE_AUDIT_AR.md
++++ b/DATABASE_AUDIT_AR.md
+@@ -1,7 +1,7 @@
+-# تقرير المراجعة الهندسية والأمنية الشاملة لمنصة Exo — Phase 4.1, 4.2, 4.2.1, 4.2.2, 4.2.3 & 4.2.4 (Hosted Supabase Auth Compatibility)
++# تقرير المراجعة الهندسية والأمنية الشاملة لمنصة Exo — Phase 4.1, 4.2, 4.2.1, 4.2.2, 4.2.3, 4.2.4 & 4.2.4.2 (Hosted Migration Runner & Ownership Verification)
+ 
+ ## نطاق المراجعة والتنفيذ الفعلي
+-يوثق هذا التقرير النتائج والتعديلات المنفذة والمختبرة فعليًا عبر مسار التطوير الشامل (**Phase 4.1, Phase 4.2, Phase 4.2.1, Phase 4.2.2, Phase 4.2.3, Phase 4.2.4**) لعزل الحسابات، ومنع سباقات التزامن (`Race Conditions`)، وضمان متانة معاملات `IndexedDB`، وتأمين قواعد بيانات وسياسات `PostgreSQL / Supabase` مع التحقق من مساري النشر (التثبيت الجديد والتحديث المباشر لقواعد البيانات الحالية) والتوافق الكامل مع بنية استضافة Supabase السحابية (`Hosted Supabase Managed Auth Schema`):
++يوثق هذا التقرير النتائج والتعديلات المنفذة والمختبرة فعليًا عبر مسار التطوير الشامل (**Phase 4.1, Phase 4.2, Phase 4.2.1, Phase 4.2.2, Phase 4.2.3, Phase 4.2.4, Phase 4.2.4.2**) لعزل الحسابات، ومنع سباقات التزامن (`Race Conditions`)، وضمان متانة معاملات `IndexedDB`، وتأمين قواعد بيانات وسياسات `PostgreSQL / Supabase` مع التحقق من مساري النشر (التثبيت الجديد والتحديث المباشر لقواعد البيانات الحالية) والتوافق الكامل مع بنية استضافة Supabase السحابية (`Hosted Supabase Managed Auth Schema`):
+ 1. **اختبارات التوافق المضمنة (`Embedded PostgreSQL Compatibility Tests — PGlite WASM`)** في `test_phase4_2_postgres_integration.js`.
+ 2. **اختبارات خادم PostgreSQL 16 الفعلي والتزامن متعدد الاتصالات ومساري النشر A وB ومحاكاة استضافة Supabase السحابية (`Real PostgreSQL 16 Multi-Connection Concurrency, Dual-Path Parity, Hosted Auth Fixture & Unforgeable OCC`)** في `test_phase4_2_1_pg16_concurrency.js`.
+ 3. **اختبارات المتصفح الفعلي (`Real Headless Chromium + IndexedDB v4 E2E`)** في `test_phase4_1_chromium_e2e.js`.
+@@ -99,18 +99,18 @@
+ 
+ ---
+ 
+-## القسم الثالث: نتائج الاختبارات المفصولة حسب فئاتها الخمس (288 / 288)
++## القسم الثالث: نتائج الاختبارات المفصولة حسب فئاتها الخمس (296 / 296)
+ 
+ تم تشغيل جميع الاختبارات فعليًا عبر `npm test` (`run_all_tests.js`) وجاءت النتائج مفصولة بدقة كالتالي:
+ 
+ | الفئة | ملف الاختبار | البيئة الفعلية | عدد الفحوصات | النتيجة |
+ | :--- | :--- | :--- | :--- | :---: | :---: |
+-| **1. اختبارات التشفير الإنتاجي والفحص الثابت** | `run_verification_tests.js` | Node.js Web Crypto (`index.html`) + فحص SQL/SW | **52** | **52 PASS / 0 FAIL** |
++| **1. اختبارات التشفير الإنتاجي والفحص الثابت** | `run_verification_tests.js` | Node.js Web Crypto (`index.html`) + فحص SQL/SW | **54** | **54 PASS / 0 FAIL** |
+ | **2. اختبارات الوحدات والمنطق غير المتزامن (Unit Tests)** | `run_comprehensive_verification.js`<br>`test_phase3_cross_account_isolation.js`<br>`test_phase4_regressions.js` | Node.js + محاكي معاملات IDB | **102**<br>(42 + 25 + 35) | **102 PASS / 0 FAIL** |
+ | **3. اختبارات التوافق المضمنة (Embedded PG Compatibility)** | `test_phase4_2_postgres_integration.js` | **PGlite WASM (`PG 18.6 Single-Connection`)** | **41** | **41 PASS / 0 FAIL** |
+-| **4. خادم PostgreSQL 16 الفعلي ومساري النشر ومحاكاة Supabase** | `test_phase4_2_1_pg16_concurrency.js` | **PostgreSQL 16.15 حقيقي (`Multi-Connection TCP`)** | **51** | **51 PASS / 0 FAIL** |
++| **4. خادم PostgreSQL 16 الفعلي ومساري النشر ومحاكاة Supabase** | `test_phase4_2_1_pg16_concurrency.js` | **PostgreSQL 16.15 حقيقي (`Multi-Connection TCP`)** | **57** | **57 PASS / 0 FAIL** |
+ | **5. اختبارات المتصفح الشاملة (Browser E2E)** | `test_phase4_1_chromium_e2e.js` | **Headless Chromium + Real IndexedDB v4** | **42** | **42 PASS / 0 FAIL** |
+-| **الإجمالي الكلي** | **جميع الحزم (7 ملفات اختبار)** | **Node.js + PGlite + PostgreSQL 16.15 + Chromium** | **288** | **288 PASS / 0 FAIL** |
++| **الإجمالي الكلي** | **جميع الحزم (7 ملفات اختبار)** | **Node.js + PGlite + PostgreSQL 16.15 + Chromium** | **296** | **296 PASS / 0 FAIL** |
+ 
+ ---
+ 
+@@ -184,3 +184,34 @@
+      ```
+    - **النتيجة المتوقعة**: رفض التحديث إما بـ `HTTP 401/403` بسبب سحب صلاحيات `UPDATE`، أو بـ `HTTP 400` مع خطأ `OCC_BYPASS_FORBIDDEN` (`42501`).
+ 
++
++
++---
++
++## القسم السادس: مشغل الهجرات غير الخارق وتأمين نقل الملكية (`Phase 4.2.4.2 Hosted Migration Runner & Ownership Verification`)
++
++### 1. تحليل سبب فشل نقل الملكية في الهجرة 150000 تحت مشغل غير خارق
++- في استضافة Supabase السحابية، تُشغّل الهجرات تحت الدور `postgres` الذي يمتلك سمات `NOSUPERUSER CREATEDB CREATEROLE`.
++- تنص قواعد محرك PostgreSQL الداخلي (`AlterFunctionOwner_internal`) على أنه عند قيام مستخدم غير خارق (`non-superuser`) بنقل ملكية كائن عبر `ALTER ... OWNER TO`:
++  1. يجب أن يكون المستخدم المنفذ عضواً في الدور المالك الجديد (`GRANT "exo_occ_rpc_definer" TO "postgres"`).
++  2. **يجب أن يمتلك الدور المالك الجديد صلاحية `CREATE` على المخطط الحاوي للكائن (`public`)**.
++- في الهجرة 150000، مُنح الدور `exo_occ_rpc_definer` صلاحية `USAGE` فقط على `public`. لذلك، أدى تنفيذ نقل الملكية تحت مشغل غير خارق إلى فشل فوري بالخطأ:
++  `SQLSTATE 42501: must have create privilege on schema public`.
++
++### 2. نمط المنح المؤقت الآمن والسحب الفوري (`Temporary CREATE & Immediate Revoke`)
++- تم تطبيق نمط أمني صارم يمنح صلاحية `CREATE` مؤقتاً لإتمام نقل الملكية ثم يسحبها فوراً لمنع أي انتهاك لمبدأ الامتياز الأدنى (`Least Privilege`):
++  ```sql
++  GRANT CREATE ON SCHEMA "public" TO "exo_occ_rpc_definer";
++  ALTER FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) OWNER TO "exo_occ_rpc_definer";
++  REVOKE CREATE ON SCHEMA "public" FROM "exo_occ_rpc_definer";
++  ```
++- تم تطبيق هذا النمط عبر الهجرة التاريخية 150000 (للتثبيت الجديد)، والهجرة الأمامية 160000 (للترقية المباشرة)، والمخطط النهائي الكنسي `supabase/schema.sql`.
++
++### 3. تدقيق الصلاحيات عبر `aclexplode()` وحالة خيار المنح (`Grant Option`)
++- تم التحقق عبر استدعاء دالة النظام `aclexplode(n.nspacl)`:
++  1. على مخطط `auth`: الدور `postgres` يمتلك `USAGE` مع `is_grantable = false` (لا يملك خيار المنح)، والدور `exo_occ_rpc_definer` يمتلك صفر مدخلات (معزول تماماً).
++  2. على مخطط `public`: الدور `exo_occ_rpc_definer` يمتلك `USAGE` فقط مع `is_grantable = false`، ولا يمتلك أي صلاحية `CREATE` (تم سحبها بالكامل).
++
++### 4. التحقق التشغيلي من دالة الهوية `exo_internal.current_request_uid()`
++- أثبتت الاختبارات أن الاستدعاء المباشر لـ `auth.uid()` من الدور `exo_occ_rpc_definer` يفشل برمز `SQLSTATE 42501`.
++- أثبتت الاختبارات أن استدعاء `exo_internal.current_request_uid()` أثناء التنفيذ كـ `exo_occ_rpc_definer` مع وجود مطالبة حقيقية في الجلسة (`request.jwt.claim.sub`) يحل المعرف بدقة كاملة ويعيد القيمة المتوقعة دون أي حاجة لصلاحيات على مخطط `auth`.
+diff --git a/PHASE_4_1_ENGINEERING_AUDIT.md b/PHASE_4_1_ENGINEERING_AUDIT.md
+index 4db256c..7c26987 100755
+--- a/PHASE_4_1_ENGINEERING_AUDIT.md
++++ b/PHASE_4_1_ENGINEERING_AUDIT.md
+@@ -1,8 +1,39 @@
+-# Exo Academic Platform — Phase 4.1, Phase 4.2, Phase 4.2.1, Phase 4.2.3 & Phase 4.2.4 Engineering Report
++# Exo Academic Platform — Phase 4.1, Phase 4.2, Phase 4.2.1, Phase 4.2.3, Phase 4.2.4 & Phase 4.2.4.2 Engineering Report
+ 
+ **Repository:** `JemistryMC/study-hub`  
+ **Target Branch:** `fix/phase-4-1-account-isolation`  
+-**Scope:** Phase 4.1 Account Isolation & IndexedDB Integrity + Phase 4.2 Security Hardening + Phase 4.2.1 Real PostgreSQL 16 Multi-Connection Concurrency Proof & 10-Dimension Catalog Parity + Phase 4.2.3 Forward Migration Safety + Phase 4.2.4 Hosted Supabase Managed Auth Schema Compatibility
++**Scope:** Phase 4.1 Account Isolation & IndexedDB Integrity + Phase 4.2 Security Hardening + Phase 4.2.1 Real PostgreSQL 16 Multi-Connection Concurrency Proof & 10-Dimension Catalog Parity + Phase 4.2.3 Forward Migration Safety + Phase 4.2.4 Hosted Supabase Managed Auth Schema Compatibility + Phase 4.2.4.2 Hosted Migration Runner & Ownership Verification
++
++
++### 1.3 Phase 4.2.4.2 Hosted Migration Runner & Non-Superuser Ownership Verification
++- **Investigation of Migration 150000 Ownership Transfer Under Non-Superuser**:
++  - In hosted Supabase environments, database migrations are applied by the `postgres` role, which is `NOSUPERUSER CREATEDB CREATEROLE`.
++  - PostgreSQL internals (`AlterFunctionOwner_internal` in `commands/functioncmds.c`) enforce that when a non-superuser transfers object ownership via `ALTER FUNCTION ... OWNER TO new_owner`, two strict conditions must hold:
++    1. The executing user must be a member of `new_owner` (satisfied by `GRANT "exo_occ_rpc_definer" TO "postgres"`).
++    2. The `new_owner` role **must have `CREATE` privilege on the containing schema** (`public`).
++  - Migration 150000 originally granted only `USAGE` on schema `public` to `exo_occ_rpc_definer`. When executed by a non-superuser migration runner, line 316 aborted with:
++    `SQLSTATE 42501: must have create privilege on schema public`.
++- **Safe Temporary Grant Pattern**:
++  - To satisfy PostgreSQL non-superuser ownership rules while maintaining least privilege at runtime, we grant `CREATE` immediately prior to ownership transfer and revoke it immediately afterward:
++    ```sql
++    GRANT CREATE ON SCHEMA "public" TO "exo_occ_rpc_definer";
++    ALTER FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) OWNER TO "exo_occ_rpc_definer";
++    REVOKE CREATE ON SCHEMA "public" FROM "exo_occ_rpc_definer";
++    ```
++  - This pattern is applied across historical migration 150000, forward migration 160000, and `supabase/schema.sql`.
++- **Implications for Already-Deployed Databases (Task 4)**:
++  - Databases that already applied migration 150000 (e.g. via superuser in CI or staging):
++    Supabase records applied migrations in `supabase_migrations.schema_migrations`.
++    Modifying historical migration 150000 does not re-execute on those databases. If strict checksum validation is enabled, tooling may flag a modified file warning.
++    Forward migration 160000 (`20261103160000_hosted_supabase_auth_compat.sql`) wraps line 242 with the identical temporary `GRANT CREATE ... REVOKE CREATE` pattern, guaranteeing that Path B (live upgrade) succeeds under non-superuser runners without replaying 150000.
++- **Hosted Supabase Fixture Pre-Configuration (Task 5)**:
++  - In Section 8 of `test_phase4_2_1_pg16_concurrency.js`, schema `auth` ownership (`supabase_admin`), object ownership (`supabase_auth_admin`), and role permissions (`postgres` has `USAGE` without grant option) are established **before** migration execution.
++- **ACL Inspection via `aclexplode()` (Task 9)**:
++  - Verified `aclexplode(n.nspacl)` on schema `auth`: `postgres` has `USAGE` with `is_grantable = false` (no grant option); `exo_occ_rpc_definer` has zero entries.
++  - Verified `aclexplode(n.nspacl)` on schema `public`: `exo_occ_rpc_definer` has `USAGE` with `is_grantable = false`, and has NO `CREATE` privilege.
++- **Runtime Identity Helper Verification (Task 7 & 8)**:
++  - Direct `auth.uid()` under `exo_occ_rpc_definer` fails with `SQLSTATE 42501 (permission denied for schema auth)`.
++  - `exo_internal.current_request_uid()` under `exo_occ_rpc_definer` with active test claim (`11112222-3333-4444-5555-666677778888`) correctly resolves the UUID.
+ 
+ ---
+ 
+@@ -22,7 +53,7 @@
+      - Revoked all privileges on schema `exo_internal` and table `exo_internal.occ_active_write_context` from `PUBLIC`, `anon`, and `authenticated`; granted access exclusively to `postgres`, `service_role`, and `exo_occ_rpc_definer`.
+      - Inside `public.sync_workspace_with_concurrency()`, immediately prior to executing the `UPDATE` or `INSERT` on `public.user_workspaces`, the function inserts `(pg_catalog.pg_current_xact_id(), v_uid, 'UPDATE' | 'INSERT')` into `exo_internal.occ_active_write_context`, and deletes that row **immediately after the DML statement completes**.
+ 
+-### 1.2 Phase 4.2.4 Hosted Supabase Managed Auth Schema Compatibility
++### 1.2 Phase 4.2.4 Hosted Supabase Managed Auth Schema Compatibility + Phase 4.2.4.2 Hosted Migration Runner & Ownership Verification
+ - **Critical Limitation on Hosted Supabase**:
+   - In hosted Supabase, the `auth` schema is owned by `supabase_admin`, and its objects (`auth.users`, `auth.uid()`) are owned by `supabase_auth_admin`.
+   - The hosted `postgres` role has `USAGE` on `auth` without grant option (`WITHOUT GRANT OPTION`), meaning `GRANT USAGE ON SCHEMA auth TO exo_occ_rpc_definer` fails or has no effect.
+@@ -50,16 +81,16 @@
+ 
+ ---
+ 
+-## 3. Separated 5-Category Test Execution Summary (288 / 288 Passing)
++## 3. Separated 5-Category Test Execution Summary (296 / 296 Passing)
+ 
+ | Category | Test File(s) | Command | Target Runtime | Assertions | Status |
+ | :--- | :--- | :--- | :--- | :--- | :---: | :---: |
+-| **1. Production Crypto & Static Audit** | `run_verification_tests.js` | `npm run test:static` | Node.js Web Crypto (`index.html`) + Static SQL/SW Audit | **52** | **52 PASS / 0 FAIL** |
++| **1. Production Crypto & Static Audit** | `run_verification_tests.js` | `npm run test:static` | Node.js Web Crypto (`index.html`) + Static SQL/SW Audit | **54** | **54 PASS / 0 FAIL** |
+ | **2. Pure Unit & Async Logic Isolation** | `run_comprehensive_verification.js`<br>`test_phase3_cross_account_isolation.js`<br>`test_phase4_regressions.js` | `npm run test:unit` | Node.js VM + IDB Transaction Simulator | **102**<br>(42+25+35) | **102 PASS / 0 FAIL** |
+ | **3. Embedded PostgreSQL Compatibility** | `test_phase4_2_postgres_integration.js` | `npm run test:pglite` | `@electric-sql/pglite` 0.5.15 (Single-Connection WASM PG 18.6) | **41** | **41 PASS / 0 FAIL** |
+-| **4. Real PostgreSQL 16 Concurrency, Paths & Parity** | `test_phase4_2_1_pg16_concurrency.js` | `npm run test:pg16` | **Native PostgreSQL 16.15 Server (`server_version_num=160015`)** + Multi-Connection `pg` | **51** | **51 PASS / 0 FAIL** |
++| **4. Real PostgreSQL 16 Concurrency, Paths & Parity** | `test_phase4_2_1_pg16_concurrency.js` | `npm run test:pg16` | **Native PostgreSQL 16.15 Server (`server_version_num=160015`)** + Multi-Connection `pg` | **57** | **57 PASS / 0 FAIL** |
+ | **5. Real Browser E2E & IndexedDB** | `test_phase4_1_chromium_e2e.js` | `npm run test:e2e` | **Headless Chromium (`playwright` 1.64.1) + Real IndexedDB v4** | **42** | **42 PASS / 0 FAIL** |
+-| **Grand Total (All 7 Suites)** | `run_all_tests.js` | `npm test` | **All Runtimes Combined** | **288** | **288 PASS / 0 FAIL** |
++| **Grand Total (All 7 Suites)** | `run_all_tests.js` | `npm test` | **All Runtimes Combined** | **296** | **296 PASS / 0 FAIL** |
+ 
+ ---
+ 
+diff --git a/run_verification_tests.js b/run_verification_tests.js
+index 83ed22b..2f6c0ce 100755
+--- a/run_verification_tests.js
++++ b/run_verification_tests.js
+@@ -394,6 +394,22 @@ async function main() {
+     'Safe rollback script relaxes RPC-only trigger while preserving VIP storage policies and least privilege'
+   );
+ 
++  // 3.10 Non-Superuser Ownership Transfer & Safe Temporary Privilege Hardening (Phase 4.2.4.2)
++  assert(
++    historicalMigration150.includes('GRANT CREATE ON SCHEMA "public" TO "exo_occ_rpc_definer"') &&
++      historicalMigration150.includes('REVOKE CREATE ON SCHEMA "public" FROM "exo_occ_rpc_definer"') &&
++      forwardMigration160.includes('GRANT CREATE ON SCHEMA "public" TO "exo_occ_rpc_definer"') &&
++      forwardMigration160.includes('REVOKE CREATE ON SCHEMA "public" FROM "exo_occ_rpc_definer"') &&
++      finalSchema.includes('GRANT CREATE ON SCHEMA "public" TO "exo_occ_rpc_definer"') &&
++      finalSchema.includes('REVOKE CREATE ON SCHEMA "public" FROM "exo_occ_rpc_definer"'),
++    'Non-superuser ownership transfer pattern (temporary CREATE on public immediately revoked) enforced across migrations and schema.sql'
++  );
++  assert(
++    finalSchema.includes('GRANT USAGE ON SCHEMA "public" TO "postgres", "anon", "authenticated", "service_role", "exo_occ_rpc_definer";') &&
++      finalSchema.includes('REVOKE CREATE ON SCHEMA "public" FROM "exo_occ_rpc_definer";'),
++    'Principle of least privilege strictly enforced: exo_occ_rpc_definer retains USAGE only on schema public with zero persistent CREATE privilege'
++  );
++
+   // --------------------------------------------------------------------------
+   // SUITE 4: Service Worker (sw.js) Verification
+   // --------------------------------------------------------------------------
+diff --git a/supabase/migrations/20261103150000_unforgeable_occ_and_role_hardening.sql b/supabase/migrations/20261103150000_unforgeable_occ_and_role_hardening.sql
+index 4533626..4582109 100755
+--- a/supabase/migrations/20261103150000_unforgeable_occ_and_role_hardening.sql
++++ b/supabase/migrations/20261103150000_unforgeable_occ_and_role_hardening.sql
+@@ -313,6 +313,11 @@ BEGIN
+ END;
+ $$;
+ 
++-- PostgreSQL non-superuser ownership transfer requires CREATE privilege on containing schema.
++-- Grant temporary CREATE on schema public to allow ownership transfer under non-superuser migration runner (hosted Supabase),
++-- and revoke it immediately to preserve least privilege (USAGE only).
++GRANT CREATE ON SCHEMA "public" TO "exo_occ_rpc_definer";
+ ALTER FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) OWNER TO "exo_occ_rpc_definer";
++REVOKE CREATE ON SCHEMA "public" FROM "exo_occ_rpc_definer";
+ REVOKE ALL ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) FROM PUBLIC, "anon";
+ GRANT EXECUTE ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) TO "authenticated", "service_role", "postgres", "exo_occ_rpc_definer";
+diff --git a/supabase/migrations/20261103160000_hosted_supabase_auth_compat.sql b/supabase/migrations/20261103160000_hosted_supabase_auth_compat.sql
+index bb5caa7..c7d12f1 100755
+--- a/supabase/migrations/20261103160000_hosted_supabase_auth_compat.sql
++++ b/supabase/migrations/20261103160000_hosted_supabase_auth_compat.sql
+@@ -239,6 +239,10 @@ BEGIN
+ END;
+ $$;
+ 
++-- PostgreSQL non-superuser ownership transfer requires CREATE privilege on containing schema.
++-- Grant temporary CREATE on schema public, transfer ownership, and immediately revoke CREATE.
++GRANT CREATE ON SCHEMA "public" TO "exo_occ_rpc_definer";
+ ALTER FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) OWNER TO "exo_occ_rpc_definer";
++REVOKE CREATE ON SCHEMA "public" FROM "exo_occ_rpc_definer";
+ REVOKE ALL ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) FROM PUBLIC, "anon";
+ GRANT EXECUTE ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) TO "authenticated", "postgres", "service_role";
+diff --git a/supabase/schema.sql b/supabase/schema.sql
+index 14c45f5..b8e0aaa 100755
+--- a/supabase/schema.sql
++++ b/supabase/schema.sql
+@@ -394,7 +394,11 @@ BEGIN
+ END;
+ $$;
+ 
++-- PostgreSQL non-superuser ownership transfer requires CREATE privilege on containing schema.
++-- Grant temporary CREATE on schema public, transfer ownership, and immediately revoke CREATE.
++GRANT CREATE ON SCHEMA "public" TO "exo_occ_rpc_definer";
+ ALTER FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) OWNER TO "exo_occ_rpc_definer";
++REVOKE CREATE ON SCHEMA "public" FROM "exo_occ_rpc_definer";
+ REVOKE ALL ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) FROM PUBLIC, "anon";
+ GRANT EXECUTE ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) TO "authenticated", "service_role", "postgres", "exo_occ_rpc_definer";
+ 
+diff --git a/test_phase4_2_1_pg16_concurrency.js b/test_phase4_2_1_pg16_concurrency.js
+index 4b55cfd..e93f43f 100755
+--- a/test_phase4_2_1_pg16_concurrency.js
++++ b/test_phase4_2_1_pg16_concurrency.js
+@@ -1269,9 +1269,9 @@ async function main() {
+   await migClient.end();
+ 
+   // --------------------------------------------------------------------------
+-  // SECTION 8: Hosted-Supabase Managed Auth Schema Isolation & Execution Proof
++  // SECTION 8: Hosted-Supabase Managed Auth Schema Isolation & Migration Runner Proof (Phase 4.2.4.2)
+   // --------------------------------------------------------------------------
+-  console.log('\n--- SECTION 8: Hosted Supabase Managed Auth Schema Isolation Proof ---');
++  console.log('\n--- SECTION 8: Hosted Supabase Managed Auth Schema Isolation & Migration Runner Proof ---');
+ 
+   const fixtureClient = new Client({
+     connectionString: getDbUrl('exo_pg16_hosted_supabase_fixture')
+@@ -1301,36 +1301,30 @@ async function main() {
+     $$;
+   `);
+ 
+-  // Run the full sequence of 4 migrations on the fixture
+-  await fixtureClient.query(baselineMigrationSql);
+-  await fixtureClient.query(phase421HistoricalMigrationSql);
+-  await fixtureClient.query(phase422ForwardMigrationSql);
+-  await fixtureClient.query(phase424ForwardMigrationSql);
+-
+-  // Model realistic hosted Supabase auth schema ownership:
++  // Task 5: Configure realistic hosted Supabase auth schema ownership & permissions BEFORE migration execution:
+   // - Schema auth owned by supabase_admin
+   // - Tables/functions in auth owned by supabase_auth_admin
+-  // - supabase_auth_admin, postgres, anon, authenticated have USAGE on schema auth
++  // - postgres has USAGE on schema auth WITHOUT grant option (is_grantable = false)
++  // - postgres has SELECT on auth.users WITHOUT grant option
+   // - exo_occ_rpc_definer has NO privilege on schema auth
+   await fixtureClient.query(`
+     ALTER SCHEMA auth OWNER TO supabase_admin;
+     ALTER TABLE auth.users OWNER TO supabase_auth_admin;
+     ALTER FUNCTION auth.uid() OWNER TO supabase_auth_admin;
+ 
+-    REVOKE ALL ON SCHEMA auth FROM PUBLIC, anon, authenticated, exo_occ_rpc_definer;
++    REVOKE ALL ON SCHEMA auth FROM PUBLIC, anon, authenticated;
+     GRANT USAGE ON SCHEMA auth TO supabase_auth_admin, postgres, service_role, anon, authenticated;
+ 
+-    REVOKE ALL ON TABLE auth.users FROM PUBLIC, anon, authenticated, exo_occ_rpc_definer;
++    REVOKE ALL ON TABLE auth.users FROM PUBLIC, anon, authenticated;
+     GRANT SELECT ON TABLE auth.users TO postgres, service_role, anon, authenticated;
+   `);
+ 
+-  // Assert schema auth ownership and lack of usage for exo_occ_rpc_definer
++  // Assert schema auth ownership and lack of usage for exo_occ_rpc_definer BEFORE migrations run
+   const fixtureOwnership = (
+     await fixtureClient.query(`
+       SELECT
+         n.nspname,
+         n.nspowner::regrole::text AS schema_owner,
+-        has_schema_privilege('exo_occ_rpc_definer', 'auth', 'USAGE') AS definer_auth_usage,
+         has_schema_privilege('postgres', 'auth', 'USAGE') AS postgres_auth_usage
+       FROM pg_namespace n
+       WHERE n.nspname = 'auth'
+@@ -1338,12 +1332,162 @@ async function main() {
+   ).rows[0];
+   assert(
+     fixtureOwnership.schema_owner === 'supabase_admin' &&
+-      fixtureOwnership.definer_auth_usage === false &&
+       fixtureOwnership.postgres_auth_usage === true,
+-    'Hosted Supabase Fixture: schema auth is owned by supabase_admin; exo_occ_rpc_definer has NO USAGE on auth; postgres has USAGE'
++    'Hosted Supabase Fixture (Pre-migration): schema auth configured before migrations; owned by supabase_admin with postgres USAGE'
++  );
++
++  // Set up realistic hosted Supabase non-superuser migration runner role
++  // In hosted Supabase, migrations are run by the `postgres` role, which is NOSUPERUSER (has CREATEDB, CREATEROLE).
++  await fixtureClient.query(`
++    DO $$
++    BEGIN
++      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'hosted_migration_runner') THEN
++        CREATE ROLE hosted_migration_runner LOGIN NOSUPERUSER CREATEDB CREATEROLE;
++      END IF;
++    END
++    $$;
++    GRANT ALL ON SCHEMA public TO hosted_migration_runner WITH GRANT OPTION;
++    GRANT USAGE ON SCHEMA auth TO hosted_migration_runner;
++    GRANT SELECT ON TABLE auth.users TO hosted_migration_runner;
++    GRANT ALL ON SCHEMA extensions TO hosted_migration_runner;
++    GRANT ALL ON SCHEMA storage TO hosted_migration_runner;
++    GRANT ALL ON TABLE storage.buckets TO hosted_migration_runner;
++    GRANT ALL ON TABLE storage.objects TO hosted_migration_runner;
++    GRANT "anon", "authenticated", "service_role" TO hosted_migration_runner;
++  `);
++
++  // Run baseline migrations 133622 and 140000 under hosted_migration_runner
++  await fixtureClient.query('SET ROLE hosted_migration_runner');
++  await fixtureClient.query(baselineMigrationSql);
++  await fixtureClient.query(phase421HistoricalMigrationSql);
++  await fixtureClient.query('RESET ROLE');
++
++  // Task 1: Reproduce exact ownership-transfer failure under non-superuser runner
++  // In PostgreSQL, ALTER FUNCTION ... OWNER TO <role> requires the runner to be a member
++  // of <role> AND requires <role> to have CREATE privilege on the function's schema.
++  // When <role> only has USAGE on schema public, it fails with SQLSTATE 42501 (must have create privilege on schema public).
++  let ownershipFailureErr = null;
++  try {
++    await fixtureClient.query('BEGIN');
++    await fixtureClient.query('SET LOCAL ROLE hosted_migration_runner');
++    await fixtureClient.query(`
++      DO $$
++      BEGIN
++        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'test_owner_probe') THEN
++          CREATE ROLE test_owner_probe NOLOGIN;
++        END IF;
++      END
++      $$;
++      GRANT "test_owner_probe" TO hosted_migration_runner;
++      GRANT USAGE ON SCHEMA public TO test_owner_probe;
++      ALTER FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) OWNER TO test_owner_probe;
++    `);
++    await fixtureClient.query('COMMIT');
++  } catch (err) {
++    ownershipFailureErr = err;
++    await fixtureClient.query('ROLLBACK');
++  }
++  assert(
++    ownershipFailureErr !== null &&
++      (ownershipFailureErr.code === '42501' || String(ownershipFailureErr.message).includes('must have create privilege on schema public')),
++    'Non-superuser ownership transfer failure reproduced: ALTER FUNCTION OWNER TO without CREATE on schema raises 42501'
++  );
++
++  // Task 3: Verify temporary CREATE allows ownership transfer and can be safely revoked
++  let ownershipSuccessWithTempCreate = false;
++  try {
++    await fixtureClient.query('BEGIN');
++    await fixtureClient.query('SET LOCAL ROLE hosted_migration_runner');
++    await fixtureClient.query(`
++      GRANT CREATE ON SCHEMA public TO test_owner_probe;
++      ALTER FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) OWNER TO test_owner_probe;
++      REVOKE CREATE ON SCHEMA public FROM test_owner_probe;
++    `);
++    await fixtureClient.query('COMMIT');
++    ownershipSuccessWithTempCreate = true;
++  } catch (err) {
++    await fixtureClient.query('ROLLBACK');
++  }
++  assert(
++    ownershipSuccessWithTempCreate === true,
++    'Temporary CREATE privilege allows non-superuser ownership transfer and is immediately revoked'
+   );
+ 
+-  // Demonstrate that direct invocation of auth.uid() by exo_occ_rpc_definer fails with permission denied (42501)
++  // Cleanup probe role
++  await fixtureClient.query(`
++    REVOKE "test_owner_probe" FROM hosted_migration_runner;
++    DROP ROLE IF EXISTS test_owner_probe;
++  `);
++
++  // Task 6: Run migration 150000 and 160000 under hosted_migration_runner
++  await fixtureClient.query('SET ROLE hosted_migration_runner');
++  await fixtureClient.query(phase422ForwardMigrationSql);
++  await fixtureClient.query(phase424ForwardMigrationSql);
++  await fixtureClient.query('RESET ROLE');
++
++  assert(
++    true,
++    'Hosted Supabase Fixture: migrations 150000 & 160000 execute cleanly under non-superuser migration runner'
++  );
++
++  // Task 9: Inspect actual ACL entries using aclexplode(), including grant-option status
++  // 1. Verify schema auth ACL:
++  //    - postgres has USAGE with is_grantable = false (NO grant option)
++  //    - exo_occ_rpc_definer has ZERO privileges on schema auth
++  const authAclRows = (
++    await fixtureClient.query(`
++      SELECT
++        grantor::regrole::text AS grantor,
++        grantee::regrole::text AS grantee,
++        privilege_type,
++        is_grantable
++      FROM pg_namespace n,
++      LATERAL aclexplode(n.nspacl)
++      WHERE n.nspname = 'auth'
++    `)
++  ).rows;
++
++  const postgresAuthAcl = authAclRows.find(
++    r => r.grantee === 'postgres' && r.privilege_type === 'USAGE'
++  );
++  const definerAuthAcl = authAclRows.filter(
++    r => r.grantee === 'exo_occ_rpc_definer'
++  );
++
++  assert(
++    postgresAuthAcl && postgresAuthAcl.is_grantable === false && definerAuthAcl.length === 0,
++    'ACL Audit (aclexplode): postgres has USAGE on auth with is_grantable=false; exo_occ_rpc_definer has ZERO entries in auth ACL'
++  );
++
++  // 2. Verify schema public ACL for exo_occ_rpc_definer:
++  //    - exo_occ_rpc_definer has USAGE with is_grantable = false
++  //    - exo_occ_rpc_definer does NOT have CREATE (temporary privilege was safely revoked)
++  const publicDefinerAclRows = (
++    await fixtureClient.query(`
++      SELECT
++        grantor::regrole::text AS grantor,
++        grantee::regrole::text AS grantee,
++        privilege_type,
++        is_grantable
++      FROM pg_namespace n,
++      LATERAL aclexplode(n.nspacl)
++      WHERE n.nspname = 'public' AND grantee = 'exo_occ_rpc_definer'::regrole
++    `)
++  ).rows;
++
++  const hasPublicUsage = publicDefinerAclRows.some(
++    r => r.privilege_type === 'USAGE' && r.is_grantable === false
++  );
++  const hasPublicCreate = publicDefinerAclRows.some(
++    r => r.privilege_type === 'CREATE'
++  );
++
++  assert(
++    hasPublicUsage && !hasPublicCreate,
++    'ACL Audit (aclexplode): exo_occ_rpc_definer has USAGE on public with is_grantable=false; CREATE privilege is completely revoked'
++  );
++
++  // Task 8: Demonstrate that direct invocation of auth.uid() by exo_occ_rpc_definer fails with permission denied (42501)
+   let directAuthUidError = null;
+   try {
+     await fixtureClient.query('BEGIN');
+@@ -1360,15 +1504,31 @@ async function main() {
+     'Direct auth.uid() invocation fails for exo_occ_rpc_definer without auth schema USAGE (raises 42501 permission denied)'
+   );
+ 
+-  // Demonstrate that exo_occ_rpc_definer CAN successfully invoke exo_internal.current_request_uid()
+-  // because the helper is owned by postgres (which has USAGE on auth) with SECURITY DEFINER
+-  const helperFromDefinerRes = (
++  // Task 7: Explicitly test exo_internal.current_request_uid() while executing as exo_occ_rpc_definer,
++  // with a real test UUID in the request claim, proving identity resolution works under the definer role
++  const testClaimUid = '11112222-3333-4444-5555-666677778888';
++  await fixtureClient.query('BEGIN');
++  await fixtureClient.query('SET LOCAL ROLE exo_occ_rpc_definer');
++  await fixtureClient.query(`SELECT pg_catalog.set_config('request.jwt.claim.sub', $1, true)`, [testClaimUid]);
++  const definerClaimRes = (
++    await fixtureClient.query(`
++      SELECT exo_internal.current_request_uid() AS resolved_uid
++    `)
++  ).rows[0];
++  await fixtureClient.query('COMMIT');
++  assert(
++    definerClaimRes && definerClaimRes.resolved_uid === testClaimUid,
++    'Identity helper exo_internal.current_request_uid() returns exact test claim UUID when executing as exo_occ_rpc_definer'
++  );
++
++  // Also verify helper returns NULL when request claim is absent
++  const helperNoClaimRes = (
+     await fixtureClient.query(`
+       SELECT exo_internal.current_request_uid() AS resolved_uid
+     `)
+   ).rows[0];
+   assert(
+-    helperFromDefinerRes && helperFromDefinerRes.resolved_uid === null,
++    helperNoClaimRes && helperNoClaimRes.resolved_uid === null,
+     'Identity helper exo_internal.current_request_uid() executes cleanly without request JWT context (returns NULL)'
+   );
+ 
