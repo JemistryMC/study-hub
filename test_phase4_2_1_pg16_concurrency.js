@@ -23,6 +23,7 @@
 
 const fs = require('fs');
 const os = require('os');
+const net = require('net');
 const path = require('path');
 const crypto = require('crypto');
 const { spawnSync } = require('child_process');
@@ -76,8 +77,40 @@ function isForbiddenRemoteHost(hostname) {
   );
 }
 
+function canonicalizeExistingPath(targetPath) {
+  if (!targetPath) return null;
+  try {
+    return fs.realpathSync(String(targetPath));
+  } catch (_) {
+    return null;
+  }
+}
+
+function findAvailableLocalPort(preferredPort = 55432) {
+  return new Promise((resolve, reject) => {
+    const tryPort = (portToTry) => {
+      const srv = net.createServer();
+      srv.unref();
+      srv.on('error', (err) => {
+        if (err.code === 'EADDRINUSE' && portToTry !== 0) {
+          tryPort(0);
+        } else {
+          reject(err);
+        }
+      });
+      srv.listen(portToTry, '127.0.0.1', () => {
+        const addr = srv.address();
+        const chosenPort = addr && typeof addr === 'object' ? addr.port : preferredPort;
+        srv.close(() => resolve(chosenPort));
+      });
+    };
+    tryPort(preferredPort);
+  });
+}
+
 // Inspect live PostgreSQL server metadata to verify whether a candidate URL is a dedicated disposable cluster
-// where supabase_admin is the bootstrap superuser (OID 10) and postgres (OID > 10) can be altered to NOSUPERUSER
+// where supabase_admin is the bootstrap superuser (OID 10) and postgres (OID > 10) can be altered to NOSUPERUSER.
+// Never relies on environment flags (such as PG16_DISPOSABLE_CLUSTER) as a substitute for server-observed evidence.
 async function inspectCandidateCluster(connectionString) {
   const parsed = new URL(connectionString);
   if (!isLoopbackHost(parsed.hostname) || isForbiddenRemoteHost(parsed.hostname)) {
@@ -100,6 +133,7 @@ async function inspectCandidateCluster(connectionString) {
           current_setting('data_directory') AS data_dir,
           current_user,
           session_user,
+          (SELECT rolname FROM pg_roles WHERE oid = 10) AS bootstrap_superuser,
           (SELECT oid::int FROM pg_roles WHERE rolname = 'postgres') AS postgres_role_oid
       `)
     ).rows[0];
@@ -115,18 +149,27 @@ async function inspectCandidateCluster(connectionString) {
     ).rows.map((r) => r.datname);
 
     const hasDisposableClusterName = meta.cluster_name === 'exo_disposable_pg16';
-    const hasDisposableDataDir = String(meta.data_dir || '').includes('exo_pg16_disposable_');
-    const hasExplicitContainerFlag =
-      process.env.PG16_DISPOSABLE_CLUSTER === 'true' && nonTestDbs.length === 0;
+    const serverDataDirReal = canonicalizeExistingPath(meta.data_dir);
+    const expectedEphemeralDataDirReal =
+      ephemeralClusterState !== null ? canonicalizeExistingPath(ephemeralClusterState.dataDir) : null;
+    const hasVerifiedEphemeralDataDir =
+      serverDataDirReal !== null &&
+      expectedEphemeralDataDirReal !== null &&
+      serverDataDirReal === expectedEphemeralDataDirReal;
+    const hasServerObservedDisposableIdentity =
+      isLoopbackHost(meta.server_addr || '127.0.0.1') &&
+      !isForbiddenRemoteHost(meta.server_addr || '') &&
+      (hasDisposableClusterName || hasVerifiedEphemeralDataDir) &&
+      meta.bootstrap_superuser === 'supabase_admin' &&
+      nonTestDbs.length === 0;
 
     if (
-      (hasDisposableClusterName || hasDisposableDataDir || hasExplicitContainerFlag) &&
-      nonTestDbs.length === 0 &&
+      hasServerObservedDisposableIdentity &&
       meta.postgres_role_oid === null &&
       meta.session_user === 'supabase_admin'
     ) {
       await probe.query(
-        `CREATE ROLE postgres WITH SUPERUSER CREATEDB CREATEROLE LOGIN PASSWORD 'postgres';`
+        `CREATE ROLE postgres WITH SUPERUSER INHERIT CREATEDB CREATEROLE LOGIN NOREPLICATION NOBYPASSRLS PASSWORD 'postgres';`
       );
       meta.postgres_role_oid = (
         await probe.query(`SELECT oid::int AS oid FROM pg_roles WHERE rolname = 'postgres'`)
@@ -138,12 +181,9 @@ async function inspectCandidateCluster(connectionString) {
     // PostgreSQL (src/backend/commands/user.c:868) forbids ALTER ROLE ... NOSUPERUSER on BOOTSTRAP_SUPERUSERID (OID 10).
     // Therefore, a cluster can only run Hosted Supabase non-superuser postgres tests if postgres is NOT OID 10.
     const postgresCanBeDemoted =
-      meta.postgres_role_oid !== null && Number(meta.postgres_role_oid) !== 10;
+      meta.postgres_role_oid !== null && Number(meta.postgres_role_oid) > 10;
 
-    const disposable =
-      (hasDisposableClusterName || hasDisposableDataDir || hasExplicitContainerFlag) &&
-      nonTestDbs.length === 0 &&
-      postgresCanBeDemoted;
+    const disposable = hasServerObservedDisposableIdentity && postgresCanBeDemoted;
 
     return {
       reachable: true,
@@ -151,8 +191,8 @@ async function inspectCandidateCluster(connectionString) {
       meta,
       nonTestDbs,
       reason: disposable
-        ? `Verified disposable cluster (cluster_name="${meta.cluster_name}", data_dir="${meta.data_dir}", postgres_oid=${meta.postgres_role_oid}, nonTestDbs=0)`
-        : `Server at ${parsed.hostname}:${parsed.port || 5432} not ready for non-superuser postgres fixture (cluster_name="${meta.cluster_name}", postgres_oid=${meta.postgres_role_oid}, nonTestDbs=${JSON.stringify(nonTestDbs)})`
+        ? `Verified disposable cluster (cluster_name="${meta.cluster_name}", data_dir="${meta.data_dir}", bootstrap_superuser="${meta.bootstrap_superuser}", postgres_oid=${meta.postgres_role_oid}, nonTestDbs=0)`
+        : `Server at ${parsed.hostname}:${parsed.port || 5432} failed server-side disposable verification (cluster_name="${meta.cluster_name}", bootstrap_superuser="${meta.bootstrap_superuser}", postgres_oid=${meta.postgres_role_oid}, nonTestDbs=${JSON.stringify(nonTestDbs)})`
     };
   } catch (err) {
     try {
@@ -166,8 +206,9 @@ async function inspectCandidateCluster(connectionString) {
   }
 }
 
-// B3 Fix: Provision a genuinely isolated ephemeral PostgreSQL 16 cluster via initdb -U supabase_admin + pg_ctl in os.tmpdir()
-// if no verified disposable cluster is already running. Never mutate a shared workstation cluster.
+// B3 Fix: Provision a genuinely isolated ephemeral PostgreSQL 16 cluster via initdb -U supabase_admin + pg_ctl
+// inside a unique, securely created temporary directory owned exclusively by the current test run.
+// Never stops or deletes any other process's directory and never uses wildcard cleanup.
 async function ensurePostgres16ServerAvailable() {
   const initialCheck = await inspectCandidateCluster(activePg16AdminUrl);
   if (initialCheck.reachable && initialCheck.disposable) {
@@ -175,36 +216,39 @@ async function ensurePostgres16ServerAvailable() {
     return initialCheck;
   }
 
-  // If local PostgreSQL 16 binaries exist, spin up an isolated ephemeral cluster on a dedicated port & temp directory
-  // initialized with -U supabase_admin (OID 10, matching Hosted Supabase) and role postgres (OID > 10)
+  // If local PostgreSQL 16 binaries exist, spin up an isolated ephemeral cluster on an available loopback port
+  // and a unique mkdtempSync directory owned solely by this run.
   if (fs.existsSync('/usr/lib/postgresql/16/bin/pg_ctl') && fs.existsSync('/usr/lib/postgresql/16/bin/initdb')) {
-    const ephemeralPort = Number(process.env.EXO_EPHEMERAL_PG16_PORT || 55432);
-    const baseDir = path.join(os.tmpdir(), `exo_pg16_disposable_${process.pid}_${Date.now()}`);
+    const preferredPort = Number(process.env.EXO_EPHEMERAL_PG16_PORT || 55432);
+    const ephemeralPort = await findAvailableLocalPort(preferredPort);
+    const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), `exo_pg16_disposable_${process.pid}_`));
     const dataDir = path.join(baseDir, 'data');
     const sockDir = path.join(baseDir, 'sock');
     const logFile = path.join(baseDir, 'postgres.log');
 
+    ephemeralClusterState = {
+      baseDir,
+      dataDir,
+      sockDir,
+      ephemeralPort,
+      clusterStarted: false
+    };
+
     const startCmd = `
-      for d in /tmp/exo_pg16_disposable_*/data; do
-        if [ -d "$d" ]; then
-          su - postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D '$d' -m immediate stop" >/dev/null 2>&1 || true
-        fi
-      done
-      rm -rf /tmp/exo_pg16_disposable_* 2>/dev/null || true
       (id postgres >/dev/null 2>&1 || useradd -m -s /bin/bash postgres) &&
       mkdir -p "${dataDir}" "${sockDir}" &&
       chown -R postgres:postgres "${baseDir}" &&
-      chmod 700 "${dataDir}" &&
-      su - postgres -c "/usr/lib/postgresql/16/bin/initdb -D '${dataDir}' -U supabase_admin --auth-local=trust --auth-host=scram-sha-256" >/dev/null &&
-      su - postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D '${dataDir}' -o '-h 127.0.0.1 -p ${ephemeralPort} -k ${sockDir} -c cluster_name=exo_disposable_pg16' -l '${logFile}' start" >/dev/null &&
-      su - postgres -c "/usr/lib/postgresql/16/bin/psql -h '${sockDir}' -p ${ephemeralPort} -U supabase_admin -d postgres -c \\"ALTER ROLE supabase_admin WITH PASSWORD 'supabase_admin_disposable_pass'; CREATE ROLE postgres WITH SUPERUSER CREATEDB CREATEROLE LOGIN PASSWORD 'postgres';\\"" >/dev/null
+      chmod 700 "${dataDir}" "${sockDir}" &&
+      su - postgres -c "/usr/lib/postgresql/16/bin/initdb -D '${dataDir}' -U supabase_admin -c cluster_name=exo_disposable_pg16 --auth-local=trust --auth-host=scram-sha-256" >/dev/null &&
+      su - postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -w -D '${dataDir}' -o '-h 127.0.0.1 -p ${ephemeralPort} -k ${sockDir} -c cluster_name=exo_disposable_pg16' -l '${logFile}' start" >/dev/null &&
+      su - postgres -c "/usr/lib/postgresql/16/bin/psql -h '${sockDir}' -p ${ephemeralPort} -U supabase_admin -d postgres -c \\"ALTER ROLE supabase_admin WITH PASSWORD 'supabase_admin_disposable_pass'; CREATE ROLE postgres WITH SUPERUSER INHERIT CREATEDB CREATEROLE LOGIN NOREPLICATION NOBYPASSRLS PASSWORD 'postgres';\\"" >/dev/null
     `;
     const res = spawnSync('bash', ['-c', startCmd], { stdio: 'inherit' });
     if (res.status !== 0) {
       throw new Error(`Failed to initialize ephemeral PostgreSQL 16 cluster in ${baseDir}`);
     }
 
-    ephemeralClusterState = { baseDir, dataDir, sockDir, ephemeralPort };
+    ephemeralClusterState.clusterStarted = true;
     activePg16AdminUrl = `postgresql://postgres:postgres@127.0.0.1:${ephemeralPort}/postgres`;
 
     const verifyEphemeral = await inspectCandidateCluster(activePg16AdminUrl);
@@ -220,20 +264,160 @@ async function ensurePostgres16ServerAvailable() {
   );
 }
 
+// Independently inspect pg_ctl status and postmaster.pid to determine whether PostgreSQL is still running in dataDir.
+// pg_ctl status exit code 3 = "pg_ctl: no server running"; exit code 0 = server is running.
+function inspectEphemeralClusterRunningStatus(dataDir) {
+  if (!dataDir || !fs.existsSync(dataDir)) {
+    return {
+      running: false,
+      confirmedStopped: true,
+      exitCode: 4,
+      detail: 'data_directory does not exist'
+    };
+  }
+  if (!fs.existsSync(path.join(dataDir, 'PG_VERSION'))) {
+    return {
+      running: false,
+      confirmedStopped: true,
+      exitCode: 4,
+      detail: 'PG_VERSION absent (cluster was never initialized in data_directory)'
+    };
+  }
+
+  const statusRes = spawnSync(
+    'bash',
+    ['-c', `su - postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D '${dataDir}' status"`],
+    { encoding: 'utf8' }
+  );
+  const statusOutput = String(statusRes.stdout || statusRes.stderr || '').trim();
+  const pidFileExists = fs.existsSync(path.join(dataDir, 'postmaster.pid'));
+  const confirmedStopped = statusRes.status === 3 && !pidFileExists;
+
+  return {
+    running: statusRes.status === 0 || pidFileExists,
+    confirmedStopped,
+    exitCode: statusRes.status,
+    detail: statusOutput || `pg_ctl status exit=${statusRes.status}, postmaster.pid=${pidFileExists}`
+  };
+}
+
 function teardownEphemeralPostgres16Cluster() {
-  if (!ephemeralClusterState) return;
-  const { baseDir, dataDir } = ephemeralClusterState;
+  if (!ephemeralClusterState) {
+    return {
+      ephemeralUsed: false,
+      baseDir: null,
+      dataDir: null,
+      stopped: true,
+      dirRemoved: true,
+      directoryPreserved: false,
+      errors: []
+    };
+  }
+
+  const { baseDir, dataDir, clusterStarted } = ephemeralClusterState;
   ephemeralClusterState = null;
-  try {
-    spawnSync(
+  const errors = [];
+  let stopped = false;
+  let dirRemoved = false;
+  let directoryPreserved = false;
+
+  const hasInitializedCluster = Boolean(dataDir && fs.existsSync(path.join(dataDir, 'PG_VERSION')));
+  if (hasInitializedCluster) {
+    // 1. Attempt controlled pg_ctl stop on this run's exact dataDir
+    const stopRes = spawnSync(
       'bash',
-      [
-        '-c',
-        `su - postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D '${dataDir}' -m immediate stop" >/dev/null 2>&1 || true; rm -rf '${baseDir}'`
-      ],
-      { stdio: 'ignore' }
+      ['-c', `su - postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -w -D '${dataDir}' -m fast stop"`],
+      { encoding: 'utf8' }
     );
-  } catch (_) {}
+    if (stopRes.status !== 0 && clusterStarted) {
+      errors.push(
+        `pg_ctl stop failed (status=${stopRes.status}): ${String(stopRes.stderr || stopRes.stdout || '').trim()}`
+      );
+    }
+
+    // 2. Independently inspect cluster status (whether pg_ctl stop succeeded or failed) before any directory deletion
+    const statusCheck = inspectEphemeralClusterRunningStatus(dataDir);
+    if (!statusCheck.confirmedStopped) {
+      stopped = false;
+      directoryPreserved = true;
+      errors.push(
+        `Refusing to delete ephemeral cluster directory ${baseDir} because PostgreSQL shutdown could not be confirmed (${statusCheck.detail})`
+      );
+      return {
+        ephemeralUsed: true,
+        baseDir,
+        dataDir,
+        stopped,
+        dirRemoved,
+        directoryPreserved,
+        errors
+      };
+    }
+    stopped = true;
+  } else {
+    const statusCheck = inspectEphemeralClusterRunningStatus(dataDir);
+    if (!statusCheck.confirmedStopped) {
+      stopped = false;
+      directoryPreserved = true;
+      errors.push(
+        `Refusing to delete ephemeral cluster directory ${baseDir} because cluster status could not be confirmed stopped (${statusCheck.detail})`
+      );
+      return {
+        ephemeralUsed: true,
+        baseDir,
+        dataDir,
+        stopped,
+        dirRemoved,
+        directoryPreserved,
+        errors
+      };
+    }
+    stopped = true;
+  }
+
+  // 3. Delete ONLY the exact owned baseDir after confirming the server is conclusively stopped
+  const tmpRootReal = canonicalizeExistingPath(os.tmpdir());
+  const baseDirReal = canonicalizeExistingPath(baseDir);
+  const isOwnedTmpChild =
+    tmpRootReal !== null &&
+    baseDirReal !== null &&
+    path.dirname(baseDirReal) === tmpRootReal &&
+    path.basename(baseDirReal).startsWith(`exo_pg16_disposable_${process.pid}_`);
+
+  if (!isOwnedTmpChild) {
+    directoryPreserved = true;
+    errors.push(`Refusing to delete directory outside owned temporary prefix: ${baseDir}`);
+    return {
+      ephemeralUsed: true,
+      baseDir,
+      dataDir,
+      stopped,
+      dirRemoved,
+      directoryPreserved,
+      errors
+    };
+  }
+
+  try {
+    fs.rmSync(baseDirReal, { recursive: true, force: false });
+  } catch (rmErr) {
+    errors.push(`Failed removing stopped ephemeral cluster directory ${baseDirReal}: ${rmErr.message}`);
+  }
+
+  dirRemoved = !fs.existsSync(baseDir) && !fs.existsSync(dataDir);
+  if (!dirRemoved) {
+    errors.push(`Ephemeral cluster directory still exists after removal: ${baseDir}`);
+  }
+
+  return {
+    ephemeralUsed: true,
+    baseDir,
+    dataDir,
+    stopped,
+    dirRemoved,
+    directoryPreserved,
+    errors
+  };
 }
 
 // Strict version gate function (tested both on live PG16 and against non-PG16 inputs)
@@ -1466,24 +1650,43 @@ async function main() {
           inet_server_port() AS server_port,
           current_setting('cluster_name', true) AS cluster_name,
           current_setting('data_directory') AS data_dir,
+          (SELECT rolname FROM pg_roles WHERE oid = 10) AS bootstrap_superuser,
+          (SELECT oid::int FROM pg_roles WHERE rolname = 'postgres') AS postgres_role_oid,
+          (
+            SELECT count(*)::int
+            FROM pg_database
+            WHERE datistemplate = false
+              AND datname NOT IN ('postgres', 'supabase_admin')
+              AND datname NOT LIKE 'exo_pg16_%'
+          ) AS foreign_db_count,
           session_user,
           current_user
       `)
     ).rows[0];
 
+    const targetDataDirReal = canonicalizeExistingPath(targetClusterAudit.data_dir);
+    const expectedEphemeralDirReal =
+      ephemeralClusterState !== null ? canonicalizeExistingPath(ephemeralClusterState.dataDir) : null;
+    const hasVerifiedEphemeralDir =
+      targetDataDirReal !== null &&
+      expectedEphemeralDirReal !== null &&
+      targetDataDirReal === expectedEphemeralDirReal;
+
     const isVerifiedDisposableTarget =
       isLoopbackHost(targetClusterAudit.server_addr || '127.0.0.1') &&
-      (targetClusterAudit.cluster_name === 'exo_disposable_pg16' ||
-        String(targetClusterAudit.data_dir || '').includes('exo_pg16_disposable_') ||
-        process.env.PG16_DISPOSABLE_CLUSTER === 'true');
+      !isForbiddenRemoteHost(targetClusterAudit.server_addr || '') &&
+      (targetClusterAudit.cluster_name === 'exo_disposable_pg16' || hasVerifiedEphemeralDir) &&
+      targetClusterAudit.bootstrap_superuser === 'supabase_admin' &&
+      Number(targetClusterAudit.postgres_role_oid) > 10 &&
+      Number(targetClusterAudit.foreign_db_count) === 0;
 
     assert(
       isVerifiedDisposableTarget === true,
-      `B3 Disposable Target Verified: loopback=${targetClusterAudit.server_addr || '127.0.0.1'}:${targetClusterAudit.server_port}, cluster_name="${targetClusterAudit.cluster_name}", data_dir="${targetClusterAudit.data_dir}"`
+      `B3 Disposable Target Verified: loopback=${targetClusterAudit.server_addr || '127.0.0.1'}:${targetClusterAudit.server_port}, cluster_name="${targetClusterAudit.cluster_name}", bootstrap_superuser="${targetClusterAudit.bootstrap_superuser}", postgres_oid=${targetClusterAudit.postgres_role_oid}, foreign_db_count=${targetClusterAudit.foreign_db_count}, data_dir="${targetClusterAudit.data_dir}"`
     );
 
     if (!isVerifiedDisposableTarget) {
-      throw new Error('Aborting Section 8: target PostgreSQL 16 instance failed disposable isolation verification.');
+      throw new Error('Aborting Section 8: target PostgreSQL 16 instance failed server-side disposable isolation verification.');
     }
 
     // Clean up databases and cluster-global role from Sections 2-7 before starting Section 8
@@ -2270,39 +2473,231 @@ async function main() {
     await runFullHostedPostMigrationAudit(pathARunner, 'Path A (Fresh Install)', 'path_a');
 
     // ------------------------------------------------------------------------
-    // 8.4 Path B (Existing Upgrade): Pre-Deployed Phase 4.2.3 State Upgraded via Forward Migration 160000
+    // 8.4 Path B (Existing Upgrade): Documented Pre-Upgrade Phase 4.2.3 Snapshot
+    //                                Upgraded via Forward Migration 160000 Only
     // ------------------------------------------------------------------------
-    console.log('\n  [Section 8.4] Path B (Existing Upgrade): Pre-Deployed Phase 4.2.3 State Upgraded via Forward Migration 160000');
+    // Historical Limitation & Snapshot Rationale:
+    //   The original unedited `20261103150000_unforgeable_occ_and_role_hardening.sql` (commit e30fcc2,
+    //   blob 45336261940287c723a1433d14d8f454b9e7655f) omitted `GRANT CREATE ON SCHEMA "public" TO "exo_occ_rpc_definer"`
+    //   prior to `ALTER FUNCTION ... OWNER TO "exo_occ_rpc_definer"`. As proven in Section 8.1 above,
+    //   once `20261103140000` revokes PUBLIC CREATE on `public`, that unedited `150000` script cannot
+    //   complete under a non-superuser `postgres` role (it fails at line 316 with SQLSTATE 42501); in
+    //   Phase 4.2.3 (`e30fcc2`), it only succeeded in tests because `postgres` had `SUPERUSER`.
+    //   Therefore, rather than injecting an ad-hoc `GRANT CREATE` around the unedited `150000` file and
+    //   claiming a non-superuser historical replay, `provisionPhase423PreUpgradeSnapshot` constructs a
+    //   documented, independently reproducible pre-upgrade catalog snapshot representing an existing
+    //   database after Phase 4.2.3 (`133622`, `140000`, and `150000` recorded in `schema_migrations`,
+    //   with `sync_workspace_with_concurrency` owned by `exo_occ_rpc_definer` and still referencing
+    //   `auth.uid()`, and `exo_occ_rpc_definer` lacking `auth` schema USAGE in Hosted Supabase).
+    //   Then `pathBRunner` (non-superuser `postgres`) applies ONLY `20261103160000_hosted_supabase_auth_compat.sql`.
+    console.log('\n  [Section 8.4] Path B (Existing Upgrade): Documented Pre-Upgrade Phase 4.2.3 Snapshot Upgraded via Forward Migration 160000');
     pathBBootstrap = await provisionHostedDatabaseBootstrap('exo_pg16_path_b_upgrade');
 
-    // Construct the exact pre-upgrade Phase 4.2.3 state (where original unedited 150000 was already applied
-    // and recorded in supabase_migrations.schema_migrations prior to 160000), then connect via pathBRunner
-    // (non-superuser postgres) and apply ONLY forward migration 160000!
-    const originalUnedited150000Sql = phase422ForwardMigrationSql
-      .replace('GRANT CREATE ON SCHEMA "public" TO "exo_occ_rpc_definer";\n', '')
-      .replace('REVOKE CREATE ON SCHEMA "public" FROM "exo_occ_rpc_definer";\n', '');
-    await pathBBootstrap.query(`
+    const PHASE_4_2_3_PRE_UPGRADE_SNAPSHOT_SQL = `
       INSERT INTO supabase_migrations.schema_migrations (version, name) VALUES
         ('20261103133622', 'remote_schema'),
         ('20261103140000', 'fix_security_and_privileges'),
         ('20261103150000', 'unforgeable_occ_and_role_hardening')
       ON CONFLICT (version) DO NOTHING;
-    `);
-    // Simulate an existing database where original 150000 was already applied prior to Phase 4.2.4.4.1
+
+      REVOKE "exo_occ_rpc_definer" FROM "anon", "authenticated";
+      GRANT "exo_occ_rpc_definer" TO "postgres";
+
+      CREATE SCHEMA IF NOT EXISTS "exo_internal" AUTHORIZATION "postgres";
+      REVOKE ALL ON SCHEMA "exo_internal" FROM PUBLIC, "anon", "authenticated";
+      GRANT USAGE ON SCHEMA "exo_internal" TO "postgres", "service_role", "exo_occ_rpc_definer";
+
+      CREATE TABLE IF NOT EXISTS "exo_internal"."occ_active_write_context" (
+        "txid" xid8 NOT NULL,
+        "user_id" uuid NOT NULL,
+        "write_op" text NOT NULL,
+        CONSTRAINT "occ_active_write_context_pkey" PRIMARY KEY ("txid", "user_id"),
+        CONSTRAINT "occ_active_write_context_op_check" CHECK ("write_op" IN ('INSERT', 'UPDATE'))
+      );
+
+      ALTER TABLE "exo_internal"."occ_active_write_context" OWNER TO "postgres";
+      ALTER TABLE "exo_internal"."occ_active_write_context" ENABLE ROW LEVEL SECURITY;
+
+      REVOKE ALL ON TABLE "exo_internal"."occ_active_write_context" FROM PUBLIC, "anon", "authenticated";
+      GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "exo_internal"."occ_active_write_context" TO "postgres", "service_role", "exo_occ_rpc_definer";
+
+      DROP POLICY IF EXISTS "occ_rpc_definer_manage_write_context" ON "exo_internal"."occ_active_write_context";
+      CREATE POLICY "occ_rpc_definer_manage_write_context" ON "exo_internal"."occ_active_write_context"
+        FOR ALL
+        TO "postgres", "service_role", "exo_occ_rpc_definer"
+        USING (true)
+        WITH CHECK (true);
+
+      GRANT USAGE ON SCHEMA "public" TO "exo_occ_rpc_definer";
+      REVOKE ALL ON TABLE "public"."user_workspaces" FROM "exo_occ_rpc_definer";
+      GRANT SELECT, INSERT, UPDATE ON TABLE "public"."user_workspaces" TO "exo_occ_rpc_definer";
+
+      ALTER DEFAULT PRIVILEGES FOR ROLE "exo_occ_rpc_definer" REVOKE ALL ON TABLES FROM PUBLIC, "anon", "authenticated";
+      ALTER DEFAULT PRIVILEGES FOR ROLE "exo_occ_rpc_definer" REVOKE ALL ON SEQUENCES FROM PUBLIC, "anon", "authenticated";
+      ALTER DEFAULT PRIVILEGES FOR ROLE "exo_occ_rpc_definer" REVOKE ALL ON FUNCTIONS FROM PUBLIC, "anon", "authenticated";
+      ALTER DEFAULT PRIVILEGES FOR ROLE "exo_occ_rpc_definer" IN SCHEMA "public" REVOKE ALL ON TABLES FROM PUBLIC, "anon", "authenticated";
+      ALTER DEFAULT PRIVILEGES FOR ROLE "exo_occ_rpc_definer" IN SCHEMA "public" REVOKE ALL ON SEQUENCES FROM PUBLIC, "anon", "authenticated";
+      ALTER DEFAULT PRIVILEGES FOR ROLE "exo_occ_rpc_definer" IN SCHEMA "public" REVOKE ALL ON FUNCTIONS FROM PUBLIC, "anon", "authenticated";
+
+      DROP POLICY IF EXISTS "Users can view own workspace" ON "public"."user_workspaces";
+      CREATE POLICY "Users can view own workspace" ON "public"."user_workspaces"
+        FOR SELECT
+        TO "authenticated", "exo_occ_rpc_definer"
+        USING ((auth.uid() = user_id));
+
+      DROP POLICY IF EXISTS "Users can insert own workspace" ON "public"."user_workspaces";
+      CREATE POLICY "Users can insert own workspace" ON "public"."user_workspaces"
+        FOR INSERT
+        TO "authenticated", "exo_occ_rpc_definer"
+        WITH CHECK (
+          (auth.uid() = user_id)
+          AND (CURRENT_USER = 'exo_occ_rpc_definer'::name)
+        );
+
+      DROP POLICY IF EXISTS "Users can update own workspace" ON "public"."user_workspaces";
+      CREATE POLICY "Users can update own workspace" ON "public"."user_workspaces"
+        FOR UPDATE
+        TO "authenticated", "exo_occ_rpc_definer"
+        USING ((auth.uid() = user_id))
+        WITH CHECK (
+          (auth.uid() = user_id)
+          AND (CURRENT_USER = 'exo_occ_rpc_definer'::name)
+        );
+
+      GRANT EXECUTE ON FUNCTION public.handle_user_workspace_updated_at() TO "exo_occ_rpc_definer";
+
+CREATE OR REPLACE FUNCTION public.enforce_workspace_write_via_rpc()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, auth, exo_internal
+AS $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM exo_internal.occ_active_write_context c
+    WHERE c.txid = pg_catalog.pg_current_xact_id()
+      AND c.user_id = NEW.user_id
+      AND c.write_op = TG_OP
+  ) THEN
+    RETURN NEW;
+  END IF;
+
+  IF auth.uid() IS NOT NULL
+     OR pg_catalog.current_setting('request.jwt.claim.role', true) IN ('anon', 'authenticated')
+     OR current_user IN ('anon', 'authenticated')
+     OR session_user IN ('anon', 'authenticated') THEN
+    RAISE EXCEPTION 'OCC_BYPASS_FORBIDDEN: Direct INSERT or UPDATE on public.user_workspaces is prohibited; use sync_workspace_with_concurrency(p_payload, p_expected_revision)'
+      USING ERRCODE = '42501';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+      ALTER FUNCTION public.enforce_workspace_write_via_rpc() OWNER TO "postgres";
+      REVOKE ALL ON FUNCTION public.enforce_workspace_write_via_rpc() FROM PUBLIC, "anon", "authenticated";
+      GRANT EXECUTE ON FUNCTION public.enforce_workspace_write_via_rpc() TO "postgres", "service_role", "exo_occ_rpc_definer";
+
+      DROP TRIGGER IF EXISTS trg_enforce_workspace_write_via_rpc ON public.user_workspaces;
+      CREATE TRIGGER trg_enforce_workspace_write_via_rpc
+        BEFORE INSERT OR UPDATE ON public.user_workspaces
+        FOR EACH ROW
+        EXECUTE FUNCTION public.enforce_workspace_write_via_rpc();
+
+      CREATE OR REPLACE FUNCTION public.sync_workspace_with_concurrency(
+        p_payload jsonb,
+        p_expected_revision integer DEFAULT NULL
+      )
+      RETURNS jsonb
+      LANGUAGE plpgsql
+      SECURITY DEFINER
+      SET search_path = pg_catalog, public, auth, exo_internal
+      AS $$
+      DECLARE
+        v_uid uuid := auth.uid();
+      BEGIN
+        IF v_uid IS NULL THEN
+          RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '42501';
+        END IF;
+        RETURN jsonb_build_object('status', 'legacy_phase_4_2_3');
+      END;
+      $$;
+    `;
+
+    // Construct the Phase 4.2.3 pre-upgrade objects under postgres, then transfer RPC ownership via
+    // bootstrap superuser (reflecting Phase 4.2.3's superuser ownership transfer without granting CREATE on public)
     await pathBBootstrap.query('BEGIN');
     await pathBBootstrap.query('SET LOCAL ROLE postgres');
-    await pathBBootstrap.query('GRANT CREATE ON SCHEMA "public" TO "exo_occ_rpc_definer"');
-    await pathBBootstrap.query(originalUnedited150000Sql);
-    await pathBBootstrap.query('REVOKE CREATE ON SCHEMA "public" FROM "exo_occ_rpc_definer"');
+    await pathBBootstrap.query(PHASE_4_2_3_PRE_UPGRADE_SNAPSHOT_SQL);
+    await pathBBootstrap.query('RESET ROLE');
+    await pathBBootstrap.query(
+      'ALTER FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) OWNER TO "exo_occ_rpc_definer";'
+    );
+    await pathBBootstrap.query('SET LOCAL ROLE postgres');
+    await pathBBootstrap.query(`
+      REVOKE ALL ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) FROM PUBLIC, "anon";
+      GRANT EXECUTE ON FUNCTION public.sync_workspace_with_concurrency(jsonb, integer) TO "authenticated", "service_role", "postgres", "exo_occ_rpc_definer";
+    `);
     await pathBBootstrap.query('COMMIT');
+
+    // Verify pre-upgrade Phase 4.2.3 snapshot invariants before closing pathBBootstrap
+    const preUpgradePathBState = (
+      await pathBBootstrap.query(`
+        SELECT
+          p.proowner::regrole::text AS rpc_owner,
+          p.proconfig::text AS rpc_proconfig,
+          pg_get_functiondef(p.oid) AS rpc_def,
+          (
+            SELECT count(*)::int
+            FROM pg_proc hp
+            JOIN pg_namespace hn ON hn.oid = hp.pronamespace
+            WHERE hn.nspname = 'exo_internal' AND hp.proname = 'current_request_uid'
+          ) AS helper_count
+        FROM pg_proc p
+        JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'sync_workspace_with_concurrency'
+      `)
+    ).rows[0];
+
     await safeCloseClient(pathBBootstrap);
     pathBBootstrap = null;
+
+    assert(
+      preUpgradePathBState.rpc_owner === 'exo_occ_rpc_definer' &&
+        preUpgradePathBState.rpc_proconfig.includes('auth') &&
+        /auth\.uid\(\)/i.test(preUpgradePathBState.rpc_def) &&
+        preUpgradePathBState.helper_count === 0,
+      'Path B Pre-Upgrade Snapshot Verified: Phase 4.2.3 state has sync_workspace_with_concurrency owned by exo_occ_rpc_definer calling auth.uid() directly, and 0 exo_internal.current_request_uid() helper'
+    );
 
     // Connect as non-superuser postgres migration runner and apply ONLY forward migration 160000
     pathBRunner = new Client({
       connectionString: getDbUrl('exo_pg16_path_b_upgrade', RUNNER_POSTGRES_USER, RUNNER_POSTGRES_PASS)
     });
     await pathBRunner.connect();
+
+    // Prove that before 160000 is applied on Path B, calling the Phase 4.2.3 RPC as authenticated fails with 42501 (permission denied for schema auth)
+    let preUpgradeRpcErr = null;
+    try {
+      await pathBRunner.query('BEGIN');
+      await pathBRunner.query('SET LOCAL ROLE authenticated');
+      await pathBRunner.query(`SELECT pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true)`);
+      await pathBRunner.query(
+        `SELECT pg_catalog.set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-4444-8888-222222222222', true)`
+      );
+      await pathBRunner.query(`SELECT public.sync_workspace_with_concurrency('{}'::jsonb, NULL)`);
+      await pathBRunner.query('COMMIT');
+    } catch (err) {
+      preUpgradeRpcErr = err;
+      await pathBRunner.query('ROLLBACK');
+    }
+    assert(
+      preUpgradeRpcErr !== null &&
+        preUpgradeRpcErr.code === '42501' &&
+        String(preUpgradeRpcErr.message).includes('permission denied for schema auth'),
+      'Path B Pre-Upgrade Failure Reproduced: Phase 4.2.3 RPC fails with SQLSTATE 42501 (permission denied for schema auth) in Hosted Supabase before applying 160000'
+    );
 
     await pathBRunner.query(phase424ForwardMigrationSql);
     await pathBRunner.query(`
@@ -2374,7 +2769,7 @@ async function main() {
       'B2 & B7 Hosted Dual-Path 10-Surface Catalog Parity: Path A (Fresh Install) and Path B (Existing Upgrade) are 100% identical across all 10 catalog dimensions (columns, constraints, indexes, 7 RLS policies, 4 triggers, event trigger, 7 functions, table ACLs, default ACLs, storage & internal write-context)'
     );
   } finally {
-    // B2 & B4 Fix: Close all inner connections safely and perform verified catalog cleanup without swallowing errors
+    // B2 & B4 Fix: Close all inner connections safely and perform verified catalog + ephemeral cluster cleanup
     await safeCloseClient(scratchRunner);
     await safeCloseClient(scratchBootstrap);
     await safeCloseClient(pathARunner);
@@ -2420,10 +2815,10 @@ async function main() {
         }
       }
 
-      // Restore postgres to SUPERUSER with original password before dropping temporary roles
+      // Restore all postgres role attributes and original password before dropping temporary roles
       try {
         await bootstrapAdminConn.query(
-          `ALTER ROLE postgres WITH SUPERUSER CREATEDB CREATEROLE LOGIN PASSWORD 'postgres';`
+          `ALTER ROLE postgres WITH SUPERUSER INHERIT CREATEDB CREATEROLE LOGIN NOREPLICATION NOBYPASSRLS PASSWORD 'postgres';`
         );
       } catch (err) {
         cleanupErrors.push(`Failed restoring postgres role: ${err.message}`);
@@ -2456,7 +2851,7 @@ async function main() {
         }
       }
 
-      // B4 Catalog Verification: Query pg_database and pg_roles to prove cleanup succeeded
+      // B4 Catalog Verification: Query pg_database and all relevant pg_roles attributes to prove cleanup succeeded
       const remainingTestDbs = (
         await bootstrapAdminConn.query(`
           SELECT datname FROM pg_database WHERE datname LIKE 'exo_pg16_%' ORDER BY datname
@@ -2480,7 +2875,18 @@ async function main() {
 
       const postgresRestored = (
         await bootstrapAdminConn.query(`
-          SELECT rolsuper, rolcanlogin, oid::int AS role_oid FROM pg_roles WHERE rolname = 'postgres'
+          SELECT
+            rolname,
+            rolsuper,
+            rolinherit,
+            rolcreaterole,
+            rolcreatedb,
+            rolcanlogin,
+            rolreplication,
+            rolbypassrls,
+            oid::int AS role_oid
+          FROM pg_roles
+          WHERE rolname = 'postgres'
         `)
       ).rows[0];
 
@@ -2533,18 +2939,34 @@ async function main() {
       }
     }
 
+    const pr = cleanupVerifyResult && cleanupVerifyResult.postgresRestored;
+    const allPostgresAttrsRestored =
+      Boolean(pr) &&
+      pr.rolsuper === true &&
+      pr.rolinherit === true &&
+      pr.rolcreaterole === true &&
+      pr.rolcreatedb === true &&
+      pr.rolcanlogin === true &&
+      pr.rolreplication === false &&
+      pr.rolbypassrls === false;
+
+    const ephemeralTeardown = teardownEphemeralPostgres16Cluster();
+    if (ephemeralTeardown.errors.length > 0) {
+      cleanupErrors.push(...ephemeralTeardown.errors);
+    }
+
     assert(
       cleanupErrors.length === 0 &&
         cleanupVerifyResult !== null &&
         cleanupVerifyResult.remainingTestDbs.length === 0 &&
         cleanupVerifyResult.remainingTempRoles.length === 0 &&
-        cleanupVerifyResult.postgresRestored &&
-        cleanupVerifyResult.postgresRestored.rolsuper === true,
-      'B4 Catalog-Verified Cleanup Integrity: all 7 exo_pg16_* databases and all 6 temporary roles (exo_scratch_probe_definer, exo_occ_rpc_definer, supabase_auth_admin, anon, authenticated, service_role) removed from catalogs and postgres rolsuper=true restored',
-      cleanupErrors.join('; ') || JSON.stringify(cleanupVerifyResult)
+        allPostgresAttrsRestored === true &&
+        ephemeralTeardown.stopped === true &&
+        ephemeralTeardown.dirRemoved === true &&
+        ephemeralTeardown.directoryPreserved === false,
+      'B4 Catalog & Ephemeral Cluster Cleanup Integrity: all 7 exo_pg16_* databases and all 6 temporary roles removed from catalogs, all 7 postgres role attributes restored (rolsuper=true, rolinherit=true, rolcreaterole=true, rolcreatedb=true, rolcanlogin=true, rolreplication=false, rolbypassrls=false), and ephemeral cluster confirmed stopped before owned data_dir removal',
+      cleanupErrors.join('; ') || JSON.stringify({ cleanupVerifyResult, ephemeralTeardown })
     );
-
-    teardownEphemeralPostgres16Cluster();
   }
 
   console.log('\n======================================================================');
@@ -2561,7 +2983,14 @@ async function main() {
 }
 
 main().catch((err) => {
-  teardownEphemeralPostgres16Cluster();
+  const td = teardownEphemeralPostgres16Cluster();
+  if (td && (td.errors.length > 0 || !td.stopped || !td.dirRemoved)) {
+    console.error(
+      `Ephemeral cluster teardown failed (stopped=${td.stopped}, dirRemoved=${td.dirRemoved}, directoryPreserved=${td.directoryPreserved}, baseDir=${td.baseDir}):`,
+      td.errors
+    );
+  }
   console.error('Fatal error in test_phase4_2_1_pg16_concurrency.js:', err);
   process.exit(1);
 });
+
