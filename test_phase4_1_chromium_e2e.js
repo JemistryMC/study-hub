@@ -1941,6 +1941,327 @@ async function main() {
       JSON.stringify(resT)
     );
 
+    // =========================================================================
+    // TEST U (Phase 5.1.3 Correction C): Real Annotation Studio UI E2E (Toolbar + Pointer Canvas + Undo + Eraser + Page Clear + Reload)
+    // =========================================================================
+    console.log('\n--- TEST U (Phase 5.1.3 Correction C): Real Annotation Studio UI E2E (Pointer Drawing, Undo, Eraser, Page Clear & Reload) ---');
+    const uiScenarioPageErrors = [];
+    const uiScenarioConsoleErrors = [];
+    const onPageError = (err) => uiScenarioPageErrors.push(String(err && err.message ? err.message : err));
+    const onConsoleMsg = (msg) => {
+      if (msg.type() === 'error') {
+        const txt = msg.text();
+        if (!txt.includes('favicon') && !txt.includes('ERR_NAME_NOT_RESOLVED') && !txt.includes('net::')) {
+          uiScenarioConsoleErrors.push(txt);
+        }
+      }
+    };
+    page.on('pageerror', onPageError);
+    page.on('console', onConsoleMsg);
+
+    // Ensure offline-safe PDF.js document adapter is available if CDN was unreachable in headless CI
+    const installOfflinePdfJsFallback = async () => {
+      await page.evaluate(() => {
+        const makeDeterministicDoc = () => ({
+          promise: Promise.resolve({
+            numPages: 2,
+            getPage: async (pageNum) => ({
+              pageNumber: pageNum,
+              rotate: 0,
+              getViewport: ({ scale = 1, rotation = 0 } = {}) => ({
+                width: Math.round(600 * scale),
+                height: Math.round(800 * scale),
+                scale,
+                rotation
+              }),
+              render: () => ({ promise: Promise.resolve(), cancel: () => {} }),
+              getTextContent: async () => ({ items: [] })
+            })
+          })
+        });
+        Object.defineProperty(window, 'pdfjsLib', {
+          configurable: true,
+          writable: true,
+          value: {
+            GlobalWorkerOptions: { workerSrc: '' },
+            getDocument: () => makeDeterministicDoc()
+          }
+        });
+      });
+    };
+
+    await installOfflinePdfJsFallback();
+
+    // Seed authenticated user, subject 8801 -> group 8811 -> lecture 8821 + PDF blob in IndexedDB + unrelated page 2 / lecture 8822 annotations
+    await page.evaluate(async () => {
+      await initPdfDB();
+      const uidU = 'user-p513-real-ui-e2e';
+      supabaseClient = null;
+      await handleAuthSessionChange({ id: uidU, email: 'ui_e2e@exo.edu', name: 'UI E2E Student' }, false);
+      const opCtxU = createAccountOperationContext(uidU);
+
+      subjects = [
+        {
+          id: 8801,
+          name: 'Clinical Pharmacology Studio E2E',
+          color: '#2dd4bf',
+          icon: 'fa-capsules',
+          isDivided: true,
+          groups: [
+            {
+              id: 8811,
+              name: 'Autonomic Nervous System',
+              lectures: [
+                { id: 8821, title: 'Cholinergic Agonists PDF', path: 'local:cholinergic.pdf', audioPath: '', completed: false },
+                { id: 8822, title: 'Adrenergic Antagonists PDF', path: 'local:adrenergic.pdf', audioPath: '', completed: false }
+              ]
+            }
+          ]
+        }
+      ];
+      saveSubjects();
+      backToSubjects();
+      renderSubjectsList();
+
+      const dummyPdfBytes = new TextEncoder().encode('%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n%%EOF\n');
+      const pdfBlob = new Blob([dummyPdfBytes], { type: 'application/pdf' });
+      await saveMediaToDB('pdfs', 8821, pdfBlob);
+
+      // Seed an unrelated stroke on Page 2 of Lecture 8821 and an unrelated stroke on Lecture 8822
+      const initialAnnos8821 = {};
+      const p2Stroke = stampAnnotationItemCausalMetadata(
+        { id: 'stk_p2_unrelated_keep', tool: 'pen', color: '#10b981', size: 3, opacity: 1, points: [{ x: 0.25, y: 0.25 }, { x: 0.45, y: 0.45 }] },
+        'stroke',
+        8821,
+        '2',
+        uidU,
+        initialAnnos8821
+      );
+      initialAnnos8821['2'] = [p2Stroke];
+
+      const initialAnnos8822 = {};
+      const otherLecStroke = stampAnnotationItemCausalMetadata(
+        { id: 'stk_lec8822_unrelated_keep', tool: 'pen', color: '#f59e0b', size: 2, opacity: 1, points: [{ x: 0.15, y: 0.15 }, { x: 0.35, y: 0.35 }] },
+        'stroke',
+        8822,
+        '1',
+        uidU,
+        initialAnnos8822
+      );
+      initialAnnos8822['1'] = [otherLecStroke];
+
+      await restoreAllAnnotationsMapToDB({
+        '8821': initialAnnos8821,
+        '8822': initialAnnos8822
+      }, uidU, opCtxU);
+    });
+
+    // 1. Open Subject 8801 and Lecture 8821 through real DOM clicks
+    await page.click('.subject-card[data-subject-id="8801"]');
+    await page.waitForSelector('#subject-details-view', { state: 'visible' });
+    await page.click('#groupsContainer .lecture-item div[onclick*="openLectureDocument(8811, 8821)"]');
+    await page.waitForSelector('#pdfViewerModalOverlay.active', { state: 'visible' });
+    await page.waitForSelector('#pdfInkCanvas_1', { state: 'visible' });
+
+    // Wait until renderSinglePdfPage sizes #pdfInkCanvas_1
+    await page.waitForFunction(() => {
+      const c = document.getElementById('pdfInkCanvas_1');
+      return Boolean(c && c.width > 100 && c.height > 100 && c.getBoundingClientRect().width > 50);
+    });
+
+    // 2. Select Pen tool via real toolbar button click and draw two distinct strokes on #pdfInkCanvas_1 using pointer events
+    await page.click('#toolBtn_pen');
+    const canvasBox = await page.locator('#pdfInkCanvas_1').boundingBox();
+
+    // Draw Stroke 1 in top-left quadrant
+    const s1StartX = canvasBox.x + canvasBox.width * 0.18;
+    const s1StartY = canvasBox.y + canvasBox.height * 0.20;
+    const s1EndX = canvasBox.x + canvasBox.width * 0.36;
+    const s1EndY = canvasBox.y + canvasBox.height * 0.28;
+    await page.mouse.move(s1StartX, s1StartY);
+    await page.mouse.down();
+    await page.mouse.move((s1StartX + s1EndX) / 2, (s1StartY + s1EndY) / 2, { steps: 4 });
+    await page.mouse.move(s1EndX, s1EndY, { steps: 4 });
+    await page.mouse.up();
+
+    // Draw Stroke 2 in bottom-right quadrant
+    const s2StartX = canvasBox.x + canvasBox.width * 0.58;
+    const s2StartY = canvasBox.y + canvasBox.height * 0.62;
+    const s2EndX = canvasBox.x + canvasBox.width * 0.78;
+    const s2EndY = canvasBox.y + canvasBox.height * 0.70;
+    await page.mouse.move(s2StartX, s2StartY);
+    await page.mouse.down();
+    await page.mouse.move((s2StartX + s2EndX) / 2, (s2StartY + s2EndY) / 2, { steps: 4 });
+    await page.mouse.move(s2EndX, s2EndY, { steps: 4 });
+    await page.mouse.up();
+
+    const afterDrawState = await page.evaluate(async () => {
+      await flushPendingAnnotationsSave(false);
+      const p1List = Array.isArray(pageAnnotations['1']) ? pageAnnotations['1'] : [];
+      const opCtxU = createAccountOperationContext(currentCloudUser.id);
+      const idbMap = await getAllAnnotationsMapFromDB(currentCloudUser.id, opCtxU);
+      const persistedP1 = idbMap.verifiedMap?.['8821']?.['1'] || [];
+      return {
+        inMemoryCount: p1List.length,
+        persistedCount: persistedP1.length,
+        stroke1Id: p1List[0]?.id || null,
+        stroke2Id: p1List[1]?.id || null,
+        allStampedCausally: p1List.length === 2 && p1List.every(s => s._causal && s._causal.operationId && s._causal.actorId && s._causal.actorCounter >= 1),
+        preUndoSnapshot: JSON.parse(JSON.stringify(pageAnnotations))
+      };
+    });
+
+    assert(
+      afterDrawState.inMemoryCount === 2 &&
+      afterDrawState.persistedCount === 2 &&
+      afterDrawState.allStampedCausally === true,
+      'Test U.1 (T-5.1.3-C1): Real UI pointer pen drawing on #pdfInkCanvas_1 creates and persists 2 causally stamped ink strokes in IndexedDB',
+      JSON.stringify(afterDrawState)
+    );
+
+    // 3. Trigger real toolbar Undo button click to undo Stroke 2, then draw Stroke 3 and erase it with the real UI Eraser tool
+    await page.click('#pdfAnnotationToolbar button[onclick="undoLastStroke()"]');
+    const afterUndoState = await page.evaluate(async (undoneStrokeId) => {
+      await flushPendingAnnotationsSave(false);
+      const p1List = Array.isArray(pageAnnotations['1']) ? pageAnnotations['1'] : [];
+      const tombMap = pageAnnotations._deletedStrokes?.['1'] || pageAnnotations.__exo_page_versions__?.['1']?.deletedStrokes || {};
+      const tombEntry = undoneStrokeId ? tombMap[undoneStrokeId] : null;
+      return {
+        remainingCount: p1List.length,
+        remainingStrokeId: p1List[0]?.id || null,
+        hasUndoTombstone: Boolean(tombEntry && tombEntry.operationId && tombEntry.kind === 'delete_annotation_item')
+      };
+    }, afterDrawState.stroke2Id);
+
+    // Draw Stroke 3 in bottom-right quadrant and erase it using #toolBtn_eraser pointer drag
+    await page.click('#toolBtn_pen');
+    await page.mouse.move(s2StartX, s2StartY);
+    await page.mouse.down();
+    await page.mouse.move((s2StartX + s2EndX) / 2, (s2StartY + s2EndY) / 2, { steps: 4 });
+    await page.mouse.move(s2EndX, s2EndY, { steps: 4 });
+    await page.mouse.up();
+
+    const stroke3Id = await page.evaluate(() => {
+      const p1List = Array.isArray(pageAnnotations['1']) ? pageAnnotations['1'] : [];
+      return p1List[1]?.id || null;
+    });
+
+    await page.click('#toolBtn_eraser');
+    await page.mouse.move(s2StartX - 5, s2StartY - 5);
+    await page.mouse.down();
+    await page.mouse.move((s2StartX + s2EndX) / 2, (s2StartY + s2EndY) / 2, { steps: 6 });
+    await page.mouse.move(s2EndX + 5, s2EndY + 5, { steps: 6 });
+    await page.mouse.up();
+
+    const afterEraserState = await page.evaluate(async (erasedId) => {
+      await flushPendingAnnotationsSave(false);
+      const p1List = Array.isArray(pageAnnotations['1']) ? pageAnnotations['1'] : [];
+      const tombMap = pageAnnotations._deletedStrokes?.['1'] || pageAnnotations.__exo_page_versions__?.['1']?.deletedStrokes || {};
+      const tombEntry = erasedId ? tombMap[erasedId] : null;
+      return {
+        remainingCount: p1List.length,
+        remainingStrokeId: p1List[0]?.id || null,
+        hasErasedTombstone: Boolean(tombEntry && tombEntry.operationId && tombEntry.kind === 'delete_annotation_item')
+      };
+    }, stroke3Id);
+
+    assert(
+      afterUndoState.remainingCount === 1 &&
+      afterUndoState.remainingStrokeId === afterDrawState.stroke1Id &&
+      afterUndoState.hasUndoTombstone === true &&
+      Boolean(stroke3Id) &&
+      afterEraserState.remainingCount === 1 &&
+      afterEraserState.remainingStrokeId === afterDrawState.stroke1Id &&
+      afterEraserState.hasErasedTombstone === true,
+      'Test U.2 (T-5.1.3-C2): Real UI Undo button and Eraser pointer drag remove targeted strokes on #pdfInkCanvas_1 and record causal stroke deletion tombstones',
+      JSON.stringify({ afterUndoState, stroke3Id, afterEraserState })
+    );
+
+    // 4. Trigger real UI Page Clear via More Menu -> "مسح كتابات الصفحة الحالية" -> Confirm Modal (#confirmModalBtn)
+    await page.click('#pdfModalContainer button[onclick="togglePdfMoreMenu(event)"]');
+    await page.waitForSelector('#pdfMoreDropdownMenu.open', { state: 'visible' });
+    await page.click('#pdfMoreDropdownMenu button[onclick*="clearCurrentPageAnnotations"]');
+    await page.waitForSelector('#confirmModalOverlay.active', { state: 'visible' });
+    await page.click('#confirmModalBtn');
+
+    const afterClearState = await page.evaluate(async () => {
+      await flushPendingAnnotationsSave(false);
+      const p1List = Array.isArray(pageAnnotations['1']) ? pageAnnotations['1'] : [];
+      const p2List = Array.isArray(pageAnnotations['2']) ? pageAnnotations['2'] : [];
+      const clearBarrier = pageAnnotations._clearedAt?.['1'] || pageAnnotations.__exo_page_versions__?.['1']?.clearedAt || null;
+      return {
+        p1Count: p1List.length,
+        p2Count: p2List.length,
+        p2StrokeId: p2List[0]?.id || null,
+        hasClearBarrier: Boolean(clearBarrier && clearBarrier.operationId && clearBarrier.kind === 'clear_page')
+      };
+    });
+
+    assert(
+      afterClearState.p1Count === 0 &&
+      afterClearState.hasClearBarrier === true &&
+      afterClearState.p2Count === 1 &&
+      afterClearState.p2StrokeId === 'stk_p2_unrelated_keep',
+      'Test U.3 (T-5.1.3-C3): Real UI Page Clear menu + confirmation dialog clears Page 1 with a causal clear_page barrier while preserving Page 2 annotations',
+      JSON.stringify(afterClearState)
+    );
+
+    // 5. Real browser reload -> re-open Subject 8801 & Lecture 8821 via UI -> verify persistence, non-resurrection, and unrelated data survival
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await installOfflinePdfJsFallback();
+    await page.evaluate(async () => {
+      await initPdfDB();
+      currentCloudUser = { id: 'user-p513-real-ui-e2e', email: 'ui_e2e@exo.edu', name: 'UI E2E Student' };
+      bumpAccountSessionGeneration();
+      await refreshLocalMediaCache();
+      renderSubjectsList();
+    });
+
+    await page.click('.subject-card[data-subject-id="8801"]');
+    await page.waitForSelector('#subject-details-view', { state: 'visible' });
+    await page.click('#groupsContainer .lecture-item div[onclick*="openLectureDocument(8811, 8821)"]');
+    await page.waitForSelector('#pdfViewerModalOverlay.active', { state: 'visible' });
+    await page.waitForSelector('#pdfInkCanvas_1', { state: 'visible' });
+
+    const postReloadVerification = await page.evaluate(async (stalePreClearSnapshot) => {
+      const uidU = 'user-p513-real-ui-e2e';
+      const opCtxU = createAccountOperationContext(uidU);
+      const idbMap = await getAllAnnotationsMapFromDB(uidU, opCtxU);
+      const lec8821 = idbMap.verifiedMap?.['8821'] || {};
+      const lec8822 = idbMap.verifiedMap?.['8822'] || {};
+
+      // Merge current persisted state with the stale pre-clear/pre-undo snapshot to verify non-resurrection
+      const mergedAgainstStale = mergeLectureAnnotationsWithCausalVersions(8821, lec8821, stalePreClearSnapshot, uidU);
+      const clearBarrier = lec8821._clearedAt?.['1'] || lec8821.__exo_page_versions__?.['1']?.clearedAt || null;
+
+      return {
+        reloadedInMemoryP1Count: (pageAnnotations['1'] || []).length,
+        reloadedInMemoryP2Count: (pageAnnotations['2'] || []).length,
+        reloadedInMemoryP2Id: pageAnnotations['2']?.[0]?.id || null,
+        idbHasClearBarrier: Boolean(clearBarrier && clearBarrier.operationId),
+        idbOtherLecturePreserved: Array.isArray(lec8822['1']) && lec8822['1'].length === 1 && lec8822['1'][0].id === 'stk_lec8822_unrelated_keep',
+        mergedAgainstStaleP1Count: (mergedAgainstStale['1'] || []).length,
+        mergedAgainstStaleP2Count: (mergedAgainstStale['2'] || []).length
+      };
+    }, afterDrawState.preUndoSnapshot);
+
+    page.off('pageerror', onPageError);
+    page.off('console', onConsoleMsg);
+
+    assert(
+      postReloadVerification.reloadedInMemoryP1Count === 0 &&
+      postReloadVerification.reloadedInMemoryP2Count === 1 &&
+      postReloadVerification.reloadedInMemoryP2Id === 'stk_p2_unrelated_keep' &&
+      postReloadVerification.idbHasClearBarrier === true &&
+      postReloadVerification.idbOtherLecturePreserved === true &&
+      postReloadVerification.mergedAgainstStaleP1Count === 0 &&
+      postReloadVerification.mergedAgainstStaleP2Count === 1 &&
+      uiScenarioPageErrors.length === 0 &&
+      uiScenarioConsoleErrors.length === 0,
+      'Test U.4 (T-5.1.3-C4): Real browser reload and lecture reopen preserve cleared Page 1 barrier, block resurrection of undone/erased/cleared strokes on stale merge, preserve Page 2 and Lecture 8822 annotations, and produce zero page/console errors',
+      JSON.stringify({ postReloadVerification, uiScenarioPageErrors, uiScenarioConsoleErrors })
+    );
+
     await context.close();
   } finally {
     await browser.close();
@@ -1956,7 +2277,7 @@ async function main() {
   if (testsFailed > 0) {
     process.exit(1);
   } else {
-    console.log('ALL 19 MANDATORY CHROMIUM + INDEXEDDB E2E SCENARIOS (A - T) PASSED (100%).');
+    console.log('ALL 20 MANDATORY CHROMIUM + INDEXEDDB E2E SCENARIOS (A - U) PASSED (100%).');
     process.exit(0);
   }
 }

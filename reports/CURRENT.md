@@ -8,12 +8,18 @@
 ## 1. حالة المستودع
 
 - فرع العمل النشط: `main`.
-- آخر `main` تم التحقق منه كبداية لمهمة Phase 5.1.2 الحالية (Base HEAD):  
+- آخر `main` تم التحقق منه كبداية لمهمة Phase 5.1.3 الحالية (Base HEAD):  
+  `1c65d0ac70f8d6915d2bb92086834bac51ae2fce`
+- الـCommit الأب (بداية Phase 5.1.2):  
   `76f72e93d910adb755f72849acbeb52486b09636`
-- الـCommit الأب (آخر خط أساس معتمد لـ M1 قبل رفع نموذج M2/M3/M4 الأولي):  
+- خط الأساس المعتمد لـ M1 قبل رفع نموذج M2/M3/M4:  
   `2cba36cae18fbc2fa4aefcdeb02df58f5a990ac5`
-- الـCommit `76f72e93d910adb755f72849acbeb52486b09636` عدّل `index.html` فقط (`2acc4bf5a7e73ef01b3a096de4a0b8fc7cfa9421`) من نموذج `study-hub (6).zip` الأولي دون تحديث ملفات الاختبار، مما أدى إلى فشل CI في `test_phase3_cross_account_isolation.js` بسبب `ReferenceError: normalizeTombstonesObject is not defined`.
-- لا تعتبر التعديلات المحلية الحالية مرفوعة إلى GitHub حتى يراجعها المالك ويزامنها ويتحقق من الـCommit SHA الجديد على GitHub.
+- الـBlobs الأساسية عند بداية Phase 5.1.3 (`1c65d0ac70f8d6915d2bb92086834bac51ae2fce`):
+  - `index.html`: `989aa725d0a624ad9845b04045e46447bfe07ac0`
+  - `test_phase4_regressions.js`: `8577ebd617911b6f25a0c11e32f297cc67445962`
+  - `test_phase4_1_chromium_e2e.js`: `a61dd9176c210f0a3e7d9a5056d124516d0b9e10`
+  - `reports/CURRENT.md`: `2f854df9db5a93f9767a4e3e38880b66c6ef9322`
+- لا تعتبر التعديلات المحلية الحالية لـ Phase 5.1.3 مرفوعة إلى GitHub حتى يراجعها المالك ويزامنها ويتحقق من الـCommit SHA الجديد على GitHub.
 
 الفروع المرجعية:
 - `Deploying`: مرجع تاريخي لخط أساس سابق، وليس فرع العمل الحالي.
@@ -21,23 +27,30 @@
 
 ## 2. نتائج الاختبار المثبتة
 
-### 2.1 آخر تشغيل CI تاريخي موثق (قبل Phase 5.1.2)
-- GitHub Actions Run: `41857800822`
-- Source SHA: `c211d034eb074c43f74eee480b8186e58868dc80`
-- Static: **54/54** | Unit: **102/102** | PGlite: **41/41** | PostgreSQL 16: **96/96** | Chromium E2E: **42/42** (الإجمالي: **335/335**).
+### 2.1 آخر تشغيل CI موثق على GitHub (Phase 5.1.2 — Run #21)
+- GitHub Actions Run #21: `42077770432`
+- Run URL: `https://github.com/JemistryMC/study-hub/actions/runs/42077770432`
+- Source SHA: `1c65d0ac70f8d6915d2bb92086834bac51ae2fce`
+- النتيجة المثبتة في CI: **411/411 PASSED (0 failed)** موزعة كالتالي:
+  - Static (`run_verification_tests.js`): **54/54 PASSED**.
+  - Unit (`run_comprehensive_verification.js` **42/42** + `test_phase3_cross_account_isolation.js` **52/52** + `test_phase4_regressions.js` **70/70**): **164/164 PASSED**.
+  - Embedded PostgreSQL (`test_phase4_2_postgres_integration.js` — PGlite): **41/41 PASSED**.
+  - Real PostgreSQL 16 (`test_phase4_2_1_pg16_concurrency.js`): **96/96 PASSED**.
+  - Real Headless Chromium + IndexedDB E2E (`test_phase4_1_chromium_e2e.js` — Scenarios A–T): **56/56 PASSED**.
 
-### 2.2 نتائج الاختبارات المحلية لتعديلات Phase 5.1.2 الحالية (محليًا فقط قبل GitHub Sync)
-- Base SHA: `76f72e93d910adb755f72849acbeb52486b09636` (+ التعديلات المحلية في الملفات الخمسة المصرح بها).
+### 2.2 نتائج الاختبارات المحلية لتعديلات Phase 5.1.3 الحالية (محليًا فقط قبل GitHub Sync)
+- Base SHA: `1c65d0ac70f8d6915d2bb92086834bac51ae2fce` (+ التعديلات المحلية في الملفات الأربعة المصرح بها).
 - `npm run lint`: **PASSED** (فحص syntax لجميع ملفات الخادم والبناء والاختبارات).
+- `npm run build`: **PASSED**.
 - `npm run test:static` (`run_verification_tests.js`): **54/54 PASSED**.
-- `npm run test:unit`: **164/164 PASSED** موزعة كالتالي:
+- `npm run test:unit`: **174/174 PASSED** موزعة كالتالي:
   - `run_comprehensive_verification.js`: **42/42 PASSED**.
-  - `test_phase3_cross_account_isolation.js`: **52/52 PASSED** (شاملة `T-5.1.2-CI-01`).
-  - `test_phase4_regressions.js`: **70/70 PASSED** (شاملة `TEST 12` M3 و`TEST 13` M2 و`TEST 14` M4).
+  - `test_phase3_cross_account_isolation.js`: **52/52 PASSED**.
+  - `test_phase4_regressions.js`: **80/80 PASSED** (شاملة 70 فحصًا سابقًا + 10 فحوصات جديدة: `TEST 15` للفحوصات `T-5.1.3-A1..A4` و`TEST 16` للفحوصات `T-5.1.3-B1..B6`).
 - `npm run test:pglite` (`test_phase4_2_postgres_integration.js`): **41/41 PASSED**.
-- `npm run test:e2e` (`test_phase4_1_chromium_e2e.js`): **56/56 PASSED** (السيناريوهات A إلى T في متصفح Chromium حقيقي + IndexedDB).
+- `npm run test:e2e` (`test_phase4_1_chromium_e2e.js`): **60/60 PASSED** (السيناريوهات A إلى U في متصفح Chromium حقيقي + IndexedDB، شاملة 4 فحوصات جديدة في `TEST U`: `T-5.1.3-C1..C4`).
 - `npm run test:pg16` (`test_phase4_2_1_pg16_concurrency.js`): **NOT RUN LOCALLY** (يتطلب خادم PostgreSQL 16 محلي على المنفذ `5432` غير متاح داخل حاوية AI Studio؛ يُشغّل في GitHub Actions CI).
-- إجمالي الفحوصات المنفذة محليًا: **315/315 PASSED**.
+- إجمالي الفحوصات المنفذة محليًا: **329/329 PASSED (0 failed)**.
 
 ## 3. العمل المنجز والمرجع التاريخي
 
@@ -63,43 +76,69 @@
 Commit:
 `6020a78e585d415ca3d8dcdd37a024cda2614652`
 
-الحالة: **CHANGES REQUESTED — NOT APPROVED** (مفوض جزئيًا لتنفيذ التصحيح المحدود لـ M2 + M3 + M4 فقط ضمن Phase 5.1.2).
+الحالة: **CHANGES REQUESTED — NOT APPROVED** (مفوض جزئيًا لتنفيذ التصحيح المحدود لـ M2 + M3 + M4 ضمن Phase 5.1.2 وPhase 5.1.3).
+
+### Phase 5.1.2 — Corrective Integration & Completion of M2 + M3 + M4
+
+Commit:
+`1c65d0ac70f8d6915d2bb92086834bac51ae2fce`
+
+GitHub Actions Run #21:
+`42077770432` (`https://github.com/JemistryMC/study-hub/actions/runs/42077770432` — `411/411 PASSED`)
+
+الحالة: **CI VERIFIED — NOT APPROVED** (اجتاز فحوصات CI شاملة PostgreSQL 16 وChromium E2E، وطلب المالك تمريرة تصحيحية ختامية محدودة في Phase 5.1.3 قبل الاعتماد النهائي).
 
 ## 4. المرحلة النشطة
 
-# Phase 5.1.2 — Corrective Integration & Completion of M2 + M3 + M4
+# Phase 5.1.3 — Final Corrective Pass: Causal Save Safety, Deletion Semantics & Real Annotation UI E2E
 
 **Status: IMPLEMENTED — LOCAL TESTS ONLY (NOT CI VERIFIED, NOT APPROVED)**
 
-**الهدف:** استكمال وتصحيح تكامل M2 (Entity Tombstones & Local Deletion) وM3 (Causal Engine & Legacy Safety) وM4 (Annotation Creation, Deletion & Merge) فوق النموذج الأولي الموجود في `76f72e93d910adb755f72849acbeb52486b09636` دون المساس بخط الأساس المعتمد لـ M1.
+**الهدف:** تمريرة تصحيحية محدودة النطاق فوق Commit `1c65d0ac70f8d6915d2bb92086834bac51ae2fce` لمعالجة ثلاث نقاط محددة دون إعادة بناء المحرك السببي:
+1. منع ابتلاع أخطاء الختم السببي بصمت مع فصل حفظ البيانات المحلية عن صحة الدفع السحابي.
+2. ضبط دلالات مسح الجدول والحذف الهرمي غير المدمّر وتوحيد استدعاءات شواهد الحذف (Tombstones).
+3. إضافة اختبار E2E حقيقي لواجهة استوديو التعليقات التوضيحية (Annotation Studio UI) عبر أحداث المؤشر والأزرار الفعلية في Chromium.
 
-**الملفات الخمسة الوحيدة المعدلة ضمن النطاق المصرح به:**
+**الملفات الأربعة الوحيدة المعدلة ضمن النطاق المصرح به:**
 1. `index.html`
-2. `test_phase3_cross_account_isolation.js`
-3. `test_phase4_regressions.js`
-4. `test_phase4_1_chromium_e2e.js`
-5. `reports/CURRENT.md`
+2. `test_phase4_regressions.js`
+3. `test_phase4_1_chromium_e2e.js`
+4. `reports/CURRENT.md`
 
-**ملخص التصحيحات المنفذة في Phase 5.1.2:**
-1. **إصلاح فشل CI في `test_phase3_cross_account_isolation.js`:** استخراج سلسلة الاعتماديات الحقيقية الكاملة لدالة `getLocalTombstones()` من `index.html` إلى بيئة الاختبار المعزولة (`getCanonicalTombstoneBucketName`, `getEmptyTombstonesMap`, `normalizeTombstoneRecord`, `normalizeTombstonesObject`) وإضافة فحص الانحدار `T-5.1.2-CI-01`.
-2. **M3 — محرك السببية وسلامة البيانات القديمة (Causal Engine & Legacy Safety):**
-   - توحيد صيغ نطاقات الكيانات (`entity:<pluralBucket>:<id>`) عبر دالة `getCanonicalEntityCausalScope()` في `stampEntityMutation()` و`recordEntityTombstone()` و`autoStampTrackedWorkspaceMutations()`.
-   - فصل `deviceId` (لكل متصفح/ملف تعريف في `localStorage`) عن `actorId` (لكل علامة تبويب عبر `sessionStorage` + CSPRNG) لمنع التصادم السببي المزيف بين تبويبتين لنفس الحساب على نفس الجهاز.
-   - حماية التعديلات القديمة غير الموسومة (`legacy unstamped mutations`) عبر البصمات القانونية (`_legacyBaseDigest`) بحيث لا تسحق بيانات قديمة بعيدة تعديلًا محليًا غير موسوم، مع حفظ كلا النسختين في `pharmaConflictRecovery_<uid>` عند التعارض.
-   - الختم التلقائي الكامل (`autoStampTrackedWorkspaceMutations`) لجميع الفئات الثماني (`subjects`, `groups`, `lectures`, `wird_logs`, `events`, `backlog`, `weekly_reports`, `logs`) عند الحفظ المحلي وقبل الدفع السحابي.
-3. **M2 — شواهد الحذف (Tombstones) والحذف المحلي الآمن:**
-   - الحذف الآمن (Fail-closed) لجميع الفئات الثماني عبر مسارات الحذف الفردية والجماعية والهرمية (`saveLocalTombstones()` يعيد `false` عند فشل الكتابة ويوقف الحذف دون فقدان البيانات أو إنشاء يتامى).
-   - دعم الاسترجاع المحلي (`restoreDeletedEntity`) بتوليد عملية سببية جديدة (`supersedes: [tombstone.opId]`) تتغلب على شاهد الحذف السابق.
-   - التنظيف المحلي المعزول لكل حساب (`cleanupDeletedLectureLocalArtifacts`) لمخازن IndexedDB (`pdfs`, `audios` شاملاً `rec_<lecId>_*`, `annotations`، وذاكرة التخزين المؤقت) دون المساس بحسابات أخرى أو حذف ملفات Google Drive البعيدة.
-4. **M4 — إنشاء وحذف ودمج التعليقات التوضيحية (Annotations):**
-   - توحيد توقيع `stampAnnotationItemCausal(item, lecId, pageKey, itemKind, targetUid, extraSupersedes)` (6 معاملات) عبر جميع مواضع الرسم والـUndo/Redo واللصق وتغيير الحجم والملاحظات والدبابيس الصوتية.
-   - الختم السببي لحذف الضربات الفردية ومسح الصفحة وأوراق الملاحظات الإضافية واستبعاد صفحات الـPDF وإعادتها والدبابيس الصوتية.
-   - ترحيل الضربات القديمة غير الموسومة بمعرّفات حتمية تحافظ على الترتيب (`_canonicalGeomOrdinal`) وسجل `_legacyManifest` لمنع فقدان الضربات المكررة عمدًا أو سحق التعديلات القديمة المتباينة أثناء الدمج.
+**ملخص التصحيحات المنفذة في Phase 5.1.3:**
+
+1. **Correction A — معالجة فشل الختم السببي بشكل صريح وآمن (Causal Stamping Save & Sync Safety):**
+   - تحويل `autoStampTrackedWorkspaceMutations(domain, targetUid)` لتعيد عقد نتيجة مهيكلًا وصريحًا: `{ ok, domain, stampedCount, unchangedCount, failedCount, errors }`.
+   - فحص الهضم السببي (`ensureEntityHasCausalMetadata`) يختم فقط السجلات الجديدة أو المعدلة أو الموسومة بـ `_needsCausalStamp === true`، مع الحفاظ على `operationId` للسجلات غير المعدلة لمنع إعادة توليد معرفات عمليات غير ضرورية عند إعادة المحاولة.
+   - في `saveSubjects()` و`saveScheduleData()` و`saveLogs()`: إزالة كتل `catch (e) {}` الصامتة؛ يتم دائمًا حفظ تعديلات المستخدم محليًا في `localStorage` أولًا، وعند فشل الختم السببي تبقى حالة Workspace متسخة (`pharmaWorkspaceDirty = '1'` و`pharmaWorkspaceDirty_<uid> = '1'`) ويظهر تنبيه واضح للمستخدم عبر `notifyCausalStampingFailure()` دون كشف تفاصيل تقنية أو Stack Traces، مع عدم استدعاء الدفع السحابي التلقائي لحالة غير مكتملة الختم.
+   - في `pushWorkspaceToCloud()`: التحقق الإلزامي من نتيجة `autoStampTrackedWorkspaceMutations('all', syncUserId)` قبل أي قراءة/كتابة شبكية أو استدعاء Supabase RPC؛ عند فشل الختم السببي يتوقف الدفع فورًا (Fail-Closed) ويعيد `{ status: 'error', ok: false, error: 'CAUSAL_STAMP_FAILED', reason: 'CAUSAL_STAMP_FAILED', stampResult }` مع الإبقاء على علامات الاتساخ المحلية وعدم الإقرار بأي عملية غير مرسلة.
+   - الحفاظ الصارم على حظر أي تراجع إلى `Math.random()` لتوليد `deviceId` (المحفوظ لكل متصفح في `localStorage` تحت `exo_causal_device_id_v1` والمسجل لكل حساب في `pharmaDeviceRegistry_<uid>`) أو `liveTabActorId` (المولد لكل علامة تبويب في الذاكرة الحية عبر CSPRNG دون تخزينه في `sessionStorage`) أو `operationId`.
+   - إضافة اختبارات الانحدار `TEST 15` (`T-5.1.3-A1` إلى `T-5.1.3-A4`) في `test_phase4_regressions.js`.
+
+2. **Correction B — دقة دلالات مسح الجدول والحذف الهرمي غير المدمّر (Deletion Semantics & Tombstone Consistency):**
+   - **سياسة مسح الجدول والـBacklog:**
+     - `executeClearSchedule('study_only')` يحذف جلسات المذاكرة غير الثابتة فقط من `scheduleEvents` ويحافظ على التزامات الكلية الثابتة (`isFixed === true` أو `type === 'mandatory'`).
+     - `executeClearSchedule('all')` يحذف جميع أحداث `scheduleEvents`.
+     - كلا الوضعين لا يحذفان مهام `scheduleBacklog`؛ تظل مهام Backlog محفوظة بالكامل مع بياناتها السببية ما لم يحذفها المستخدم صراحةً عبر مسار حذف الـBacklog (`deleteBacklogTask`).
+   - **سياسة الحذف الهرمي غير المدمّر:**
+     - عند حذف مادة (`triggerDeleteSubject`) أو مجموعة (`triggerDeleteGroup`) أو محاضرة (`triggerDeleteLecture`) أو سجل ورد (`deleteContinuousSubjectWirdLog`)، يتم تسجيل شواهد الحذف (`recordTombstone()` / `recordTombstonesAtomicBatch()`) فقط للكيانات التي أُزيلت فعليًا من الشجرة الهرمية (`subjects`, `groups`, `lectures`, `wird_logs`).
+     - لا يتم حذف الكيانات المستقلة العليا (`scheduleEvents`, `scheduleBacklog`, `logs`, `weeklyReports`) تلقائيًا لمجرد ارتباطها بالمادة أو المحاضرة المحذوفة؛ بدلًا من ذلك تقوم دالة `detachDeletedHierarchyReferences()` بفك المراجع الملغاة (`subjectId`, `lectureId`, `lectureIds`) مع الحفاظ الكامل على عنوان السجل وتوقيته وملاحظاته وحالة إنجازه، وختم تعديل فك الارتباط سببيًا.
+   - **اتساق مسارات الحذف الفردية والجماعية:**
+     - التحقق من وجود الكيان وسياق الحساب النشط قبل الحذف، وتسجيل شواهد الحذف عبر `recordTombstone()` و`recordTombstonesAtomicBatch()` قبل الإزالة من الذاكرة (مع الإجهاض الآمن Fail-Closed إذا فشلت كتابة `saveLocalTombstones()`)، وتنفيذ التنظيف المحلي المعزول لكل حساب (`cleanupDeletedLectureLocalArtifacts`) لمخازن IndexedDB (`pdfs`, `audios`, `rec_*`, `annotations`) عند حذف محاضرة أو مجموعة أو مادة.
+   - إضافة اختبارات الانحدار `TEST 16` (`T-5.1.3-B1` إلى `T-5.1.3-B6`) في `test_phase4_regressions.js`.
+
+3. **Correction C — اختبار E2E حقيقي لواجهة استوديو التعليقات التوضيحية (Real Annotation Studio UI E2E):**
+   - إضافة السيناريو `TEST U` (`T-5.1.3-C1` إلى `T-5.1.3-C4`) في `test_phase4_1_chromium_e2e.js` الذي يختبر مسار الواجهة الحقيقي في Chromium:
+     - فتح المادة والمحاضرة عبر نقرات DOM فعلية وتشغيل `#pdfViewerModalOverlay` و`#pdfAnnotationToolbar`.
+     - اختيار أداة القلم (`#toolBtn_pen`) ورسم ضربتين فعليتين على `#pdfInkCanvas_1` باستخدام أحداث المؤشر (`page.mouse.move/down/up`) والتحقق من ختمهما سببيًا وحفظهما في IndexedDB.
+     - النقر على زر التراجع الفعلي (`button[onclick="undoLastStroke()"]`) ثم رسم ضربة ثالثة ومسحها بأداة الممحاة الفعلية (`#toolBtn_eraser`) عبر السحب بالمؤشر، والتحقق من تسجيل شواهد حذف الضربات (`_deletedStrokes`).
+     - فتح قائمة الخيارات الإضافية (`togglePdfMoreMenu`) والنقر على `مسح كتابات الصفحة الحالية` وتأكيد النافذة (`#confirmModalBtn`)، والتحقق من إنشاء حاجز مسح الصفحة (`_clearedAt` / `clear_page`) للصفحة 1 مع بقاء تعليقات الصفحة 2 والمحاضرة الأخرى (8822) سليمة.
+     - إعادة تحميل المتصفح (`page.reload()`) وإعادة فتح المحاضرة من الواجهة والتحقق من ثبات الحالة بعد التحديث، ومنع إحياء الضربات الممسوحة عند الدمج مع نسخة قديمة، وعدم حدوث أي أخطاء `pageerror` أو `console.error`.
 
 ### حدود الاعتماد الحالية
 - حالة المرحلة الحالية هي **`IMPLEMENTED — LOCAL TESTS ONLY`**.
-- لم يتم التحقق منها بعد عبر GitHub Actions CI على GitHub (`NOT CI VERIFIED`).
-- لم يتم اعتماد M2 أو M3 أو M4 بعد (`NOT APPROVED`)؛ الاعتماد النهائي قرار المالك بعد المراجعة المستقلة ونجاح CI.
+- لم يتم التحقق من تعديلات Phase 5.1.3 بعد عبر GitHub Actions CI على GitHub (`NOT CI VERIFIED`).
+- لم يتم اعتماد المرحلة بعد (`NOT APPROVED`)؛ الاعتماد النهائي قرار المالك بعد المراجعة المستقلة ونجاح CI.
 
 ## 5. سياسة المنتج والحسابات
 
@@ -128,11 +167,11 @@ Commit:
 - لا توجد موافقة للاتصال الحي أو تنفيذ migrations.
 - Google Drive media workflow منفصل عن Core Workspace sync. لا تفترض أن الملفات الخاصة متاحة لـFree أو أن روابط Drive عامة.
 
-## 6. خطوات العمل بعد Phase 5.1.2
+## 6. خطوات العمل بعد Phase 5.1.3
 
-1. مراجعة مستقلة للتعديلات المحلية في الملفات الخمسة.
+1. مراجعة مستقلة للتعديلات المحلية في الملفات الأربعة المصرح بها.
 2. قرار المالك بشأن مزامنة GitHub وتشغيل GitHub Actions CI.
-3. التحقق من نتائج CI الفعلية (بما في ذلك PostgreSQL 16 الحقيقي) على الـCommit الجديد بعد المزامنة.
+3. التحقق من نتائج CI الفعلية (بما في ذلك PostgreSQL 16 الحقيقي وChromium E2E) على الـCommit الجديد بعد المزامنة.
 4. قرار المالك بالاعتماد (`APPROVED`) أو طلب تعديلات إضافية (`CHANGES REQUESTED`).
 
 لا تنفذ المرحلة التالية تلقائيًا.
@@ -146,4 +185,3 @@ Commit:
 5. المالك وحده يقرر GitHub Sync.
 6. بعد ظهور Commit على GitHub نتحقق من SHA والملفات والـDiff.
 7. لا تعتبر المهمة APPROVED إلا بعد مراجعة مستقلة وقرار المالك.
-

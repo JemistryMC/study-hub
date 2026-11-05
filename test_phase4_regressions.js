@@ -308,6 +308,8 @@ ${extractFunctionSource(indexHtmlContent, 'computeEntityContentDigest')}
 ${extractFunctionSource(indexHtmlContent, 'stampEntityMutation')}
 ${extractFunctionSource(indexHtmlContent, 'restoreDeletedEntity')}
 ${extractFunctionSource(indexHtmlContent, 'ensureEntityHasCausalMetadata')}
+${extractFunctionSource(indexHtmlContent, 'notifyCausalStampingFailure')}
+${extractFunctionSource(indexHtmlContent, 'detachDeletedHierarchyReferences')}
 ${extractFunctionSource(indexHtmlContent, 'autoStampTrackedWorkspaceMutations')}
 ${extractFunctionSource(indexHtmlContent, 'normalizeSingleTombstoneEntry')}
 ${extractFunctionSource(indexHtmlContent, 'normalizeTombstonesObject')}
@@ -390,6 +392,7 @@ module.exports = {
     if (st.completedAcademyModules !== undefined) completedAcademyModules = st.completedAcademyModules;
     if (st.cloudMediaRegistry !== undefined) cloudMediaRegistry = st.cloudMediaRegistry;
     if (st.activeSubjectId !== undefined) activeSubjectId = st.activeSubjectId;
+    if (st.dirtyAnnotationsForCloud !== undefined) dirtyAnnotationsForCloud = Boolean(st.dirtyAnnotationsForCloud);
   },
   getRuntimeState: () => ({
     subjects,
@@ -437,6 +440,8 @@ module.exports = {
   stampEntityMutation,
   restoreDeletedEntity,
   ensureEntityHasCausalMetadata,
+  notifyCausalStampingFailure,
+  detachDeletedHierarchyReferences,
   autoStampTrackedWorkspaceMutations,
   normalizeSingleTombstoneEntry,
   normalizeTombstonesObject,
@@ -1769,6 +1774,572 @@ async function main() {
     mergedSharedLegacy['1'].length === 1 &&
     mergedSharedLegacy['1'][0].id !== deletedLegacyId,
     'T-5.1.2-M4-04: verifySharedLegacyStrokeAncestry rejects geometry-prefix-only and broad-ID-only ancestry, preserves both divergent legacy stroke arrays with recovery records, and honors causal deletions when persisted _legacyManifest provenance matches'
+  );
+
+  // =========================================================================
+  // TEST 15: PHASE 5.1.3 CORRECTION A — CAUSAL STAMPING FAILURE MUST NOT BE SILENT
+  // =========================================================================
+  console.log('\n[TEST 15] Phase 5.1.3 Correction A — Causal Save Safety & Fail-Closed Push...');
+
+  const corrAUid = 'user_p513_corr_a';
+  prod.localStorage.clear();
+  prod.toastHistory.length = 0;
+  prod.setSessionUser(corrAUid);
+  prod.setNavigatorOnline(true);
+  prod.setCryptoProviderForTests(undefined);
+  prod.resetLiveActorForTabSimulation('dev_corr_a');
+
+  // Seed one already-stamped unchanged subject and one subject that will be modified while CSPRNG is down
+  const unchangedSub = {
+    id: 9101,
+    name: 'Unchanged Anatomy',
+    groups: []
+  };
+  const mutableSub = {
+    id: 9102,
+    name: 'Initial Pharmacology',
+    groups: []
+  };
+  const initialEvent = {
+    id: 9201,
+    title: 'Initial Study Block',
+    subjectId: '9102',
+    day: 1,
+    startHour: 10,
+    duration: 2,
+    completed: false
+  };
+  const initialLog = {
+    id: 9301,
+    date: '2026-11-05',
+    text: 'Initial Study Log',
+    mood: 'bolt',
+    subjectId: '9102'
+  };
+
+  prod.setRuntimeState({
+    subjects: [unchangedSub, mutableSub],
+    scheduleEvents: [initialEvent],
+    scheduleBacklog: [],
+    weeklyReports: [],
+    logs: [initialLog],
+    dirtyAnnotationsForCloud: false
+  });
+
+  const baselineStampRes = prod.autoStampTrackedWorkspaceMutations('all', corrAUid);
+  const committedBaselineSet = new Set([
+    unchangedSub._causal.operationId,
+    mutableSub._causal.operationId,
+    initialEvent._causal.operationId,
+    initialLog._causal.operationId
+  ]);
+  prod.acknowledgeCommittedOperationsSnapshot(committedBaselineSet, 10, corrAUid);
+  prod.localStorage.setItem('pharmaWorkspaceRevision_' + corrAUid, '10');
+  prod.localStorage.removeItem('pharmaWorkspaceDirty');
+  prod.localStorage.removeItem('pharmaWorkspaceDirty_' + corrAUid);
+  const unchangedOpIdBeforeFailure = unchangedSub._causal.operationId;
+  const mutableOpIdBeforeFailure = mutableSub._causal.operationId;
+
+  // Test A1 — Local save survives causal stamping failure
+  prod.toastHistory.length = 0;
+  prod.setCryptoProviderForTests(null); // Both randomUUID and getRandomValues unavailable
+
+  mutableSub.name = 'Updated Pharmacology While CSPRNG Down';
+  const newSubjectWhileCsprngDown = { id: 9103, name: 'New Biochemistry While CSPRNG Down', groups: [] };
+  prod.getRuntimeState().subjects.push(newSubjectWhileCsprngDown);
+  const saveSubRes = prod.saveSubjects();
+
+  initialEvent.title = 'Updated Study Block While CSPRNG Down';
+  const saveSchedRes = prod.saveScheduleData();
+
+  initialLog.text = 'Updated Study Log While CSPRNG Down';
+  const saveLogsRes = prod.saveLogs();
+
+  const savedSubsInStorage = JSON.parse(prod.localStorage.getItem('pharmaSubjectsV4') || '[]');
+  const savedSchedInStorage = JSON.parse(prod.localStorage.getItem('pharmaScheduleV4') || '{}');
+  const savedLogsInStorage = JSON.parse(prod.localStorage.getItem('pharmaLogsV4') || '[]');
+
+  assert(
+    baselineStampRes.ok === true &&
+    saveSubRes && saveSubRes.ok === false && saveSubRes.failedCount >= 2 &&
+    saveSchedRes && saveSchedRes.ok === false && saveSchedRes.failedCount >= 1 &&
+    saveLogsRes && saveLogsRes.ok === false && saveLogsRes.failedCount >= 1 &&
+    savedSubsInStorage.some(s => s.id === 9102 && s.name === 'Updated Pharmacology While CSPRNG Down') &&
+    savedSubsInStorage.some(s => s.id === 9103 && s.name === 'New Biochemistry While CSPRNG Down') &&
+    Array.isArray(savedSchedInStorage.events) &&
+    savedSchedInStorage.events.some(e => e.id === 9201 && e.title === 'Updated Study Block While CSPRNG Down') &&
+    savedLogsInStorage.some(l => l.id === 9301 && l.text === 'Updated Study Log While CSPRNG Down') &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1' &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty_' + corrAUid) === '1' &&
+    prod.toastHistory.length >= 3 &&
+    prod.toastHistory.every(t => t.type === 'error' && !t.msg.includes('at ') && !t.msg.includes('Error:')),
+    'T-5.1.3-A1: Local saves (saveSubjects, saveScheduleData, saveLogs) persist user edits to localStorage, keep workspace dirty, and surface user-friendly error notifications when causal stamping fails'
+  );
+
+  // Test A2 — Cloud push fails closed before any RPC/network write
+  let corrARpcCalls = 0;
+  prod.setSupabaseClient({
+    rpc: async () => {
+      corrARpcCalls++;
+      return { data: { status: 'success', revision: 11 }, error: null };
+    }
+  });
+
+  const failedPushRes = await prod.pushWorkspaceToCloud(false, false);
+  assert(
+    failedPushRes &&
+    failedPushRes.status === 'error' &&
+    failedPushRes.ok === false &&
+    failedPushRes.error === 'CAUSAL_STAMP_FAILED' &&
+    failedPushRes.reason === 'CAUSAL_STAMP_FAILED' &&
+    corrARpcCalls === 0 &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1' &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty_' + corrAUid) === '1' &&
+    prod.localStorage.getItem('pharmaWorkspaceRevision_' + corrAUid) === '10' &&
+    mutableSub._causal.committedWorkspaceRevision === null &&
+    mutableSub._causal.dirty === true &&
+    !newSubjectWhileCsprngDown._causal,
+    'T-5.1.3-A2: pushWorkspaceToCloud fails closed with CAUSAL_STAMP_FAILED before any Supabase RPC call, leaves workspace dirty, and does not acknowledge uncommitted mutations'
+  );
+
+  // Test A3 — Recovery and retry once secure randomness is restored
+  prod.setCryptoProviderForTests(undefined);
+  const retryPushRes = await prod.pushWorkspaceToCloud(false, false);
+  assert(
+    retryPushRes &&
+    retryPushRes.status === 'success' &&
+    retryPushRes.revision === 11 &&
+    corrARpcCalls === 1 &&
+    unchangedSub._causal.operationId === unchangedOpIdBeforeFailure &&
+    mutableSub._causal.operationId !== mutableOpIdBeforeFailure &&
+    mutableSub._causal.committedWorkspaceRevision === 11 &&
+    mutableSub._causal.dirty === false &&
+    Boolean(newSubjectWhileCsprngDown._causal && newSubjectWhileCsprngDown._causal.operationId) &&
+    newSubjectWhileCsprngDown._causal.committedWorkspaceRevision === 11 &&
+    newSubjectWhileCsprngDown._causal.dirty === false &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === null &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty_' + corrAUid) === null,
+    'T-5.1.3-A3: Restoring CSPRNG allows retry push to stamp only previously unstamped/modified records, preserves operationIds on unchanged entities, and completes cloud sync cleanly'
+  );
+
+  // Test A4 — No insecure Math.random() fallback for actor IDs, device IDs, or causal operation IDs
+  const causalSourceBundle = [
+    extractFunctionSource(indexHtmlContent, 'generateCausalOperationId'),
+    extractFunctionSource(indexHtmlContent, 'getOrCreateDeviceId'),
+    extractFunctionSource(indexHtmlContent, 'getLiveActorId'),
+    extractFunctionSource(indexHtmlContent, 'createCausalOperation'),
+    extractFunctionSource(indexHtmlContent, 'stampEntityMutation'),
+    extractFunctionSource(indexHtmlContent, 'autoStampTrackedWorkspaceMutations')
+  ].join('\n');
+  const origMathRandom = Math.random;
+  let mathRandomCalled = false;
+  let csprngFailureCaught = false;
+  try {
+    Math.random = () => {
+      mathRandomCalled = true;
+      throw new Error('FORBIDDEN_MATH_RANDOM_CALLED');
+    };
+    prod.setCryptoProviderForTests(undefined);
+    const validOpId = prod.generateCausalOperationId('op');
+    prod.setCryptoProviderForTests({ randomUUID: null, getRandomValues: null });
+    try {
+      prod.generateCausalOperationId('op');
+    } catch (e) {
+      csprngFailureCaught = String(e.message || e).includes('CSPRNG_UNAVAILABLE');
+    }
+    assert(
+      !causalSourceBundle.includes('Math.random') &&
+      mathRandomCalled === false &&
+      validOpId.startsWith('op_') &&
+      csprngFailureCaught === true,
+      'T-5.1.3-A4: Causal ID, actor ID, and device ID generation never fall back to Math.random() and remain strictly fail-closed when CSPRNG is unavailable'
+    );
+  } finally {
+    Math.random = origMathRandom;
+    prod.setCryptoProviderForTests(undefined);
+  }
+
+  // =========================================================================
+  // TEST 16: PHASE 5.1.3 CORRECTION B — PRECISE & NON-DESTRUCTIVE DELETION SEMANTICS
+  // =========================================================================
+  console.log('\n[TEST 16] Phase 5.1.3 Correction B — Precise Deletion Semantics & Non-Destructive Detachment...');
+
+  const corrBUid = 'user_p513_corr_b';
+  prod.localStorage.clear();
+  prod.toastHistory.length = 0;
+  prod.setSessionUser(corrBUid);
+  prod.resetLiveActorForTabSimulation('dev_corr_b');
+
+  // Test B1 — executeClearSchedule('study_only') and executeClearSchedule('all') preserve scheduleBacklog
+  const fixedCollegeEv = {
+    id: 9401,
+    title: 'Clinical Pharmacy Lecture',
+    subjectId: '9501',
+    day: 0,
+    startHour: 9,
+    duration: 2,
+    type: 'mandatory',
+    isFixed: true,
+    absent: true,
+    absentAtMs: 1700000000000
+  };
+  const studyEv1 = {
+    id: 9402,
+    title: 'Review Chapter 1',
+    subjectId: '9501',
+    day: 1,
+    startHour: 14,
+    duration: 1.5,
+    type: 'important',
+    isFixed: false
+  };
+  const studyEv2 = {
+    id: 9403,
+    title: 'Solve Past Papers',
+    subjectId: '9502',
+    day: 2,
+    startHour: 16,
+    duration: 2,
+    type: 'important',
+    isFixed: false
+  };
+  const backlogGoal1 = {
+    id: 9451,
+    title: 'Finish Weekly Pharmacology Summary',
+    subjectId: '9501',
+    done: false
+  };
+  const backlogGoal2 = {
+    id: 9452,
+    title: 'Memorize Drug Interactions Table',
+    subjectId: '9502',
+    done: true
+  };
+
+  prod.setRuntimeState({
+    subjects: [],
+    scheduleEvents: [fixedCollegeEv, studyEv1, studyEv2],
+    scheduleBacklog: [backlogGoal1, backlogGoal2],
+    weeklyReports: [],
+    logs: []
+  });
+  prod.saveScheduleData();
+  const backlogOpId1BeforeClear = backlogGoal1._causal.operationId;
+  const backlogOpId2BeforeClear = backlogGoal2._causal.operationId;
+
+  prod.executeClearSchedule('study_only');
+  const stateAfterStudyOnly = prod.getRuntimeState();
+  const tombsAfterStudyOnly = prod.getLocalTombstones(corrBUid);
+
+  const studyOnlyOk = (
+    stateAfterStudyOnly.scheduleEvents.length === 1 &&
+    stateAfterStudyOnly.scheduleEvents[0].id === 9401 &&
+    stateAfterStudyOnly.scheduleEvents[0].absent === false &&
+    Boolean(tombsAfterStudyOnly.events['9402']) &&
+    Boolean(tombsAfterStudyOnly.events['9403']) &&
+    !tombsAfterStudyOnly.events['9401'] &&
+    stateAfterStudyOnly.scheduleBacklog.length === 2 &&
+    stateAfterStudyOnly.scheduleBacklog[0]._causal.operationId === backlogOpId1BeforeClear &&
+    stateAfterStudyOnly.scheduleBacklog[1]._causal.operationId === backlogOpId2BeforeClear &&
+    Object.keys(tombsAfterStudyOnly.backlog || {}).length === 0
+  );
+
+  prod.executeClearSchedule('all');
+  const stateAfterClearAll = prod.getRuntimeState();
+  const tombsAfterClearAll = prod.getLocalTombstones(corrBUid);
+
+  assert(
+    studyOnlyOk &&
+    stateAfterClearAll.scheduleEvents.length === 0 &&
+    Boolean(tombsAfterClearAll.events['9401']) &&
+    Boolean(tombsAfterClearAll.events['9402']) &&
+    Boolean(tombsAfterClearAll.events['9403']) &&
+    stateAfterClearAll.scheduleBacklog.length === 2 &&
+    stateAfterClearAll.scheduleBacklog[0].id === 9451 &&
+    stateAfterClearAll.scheduleBacklog[0].title === 'Finish Weekly Pharmacology Summary' &&
+    stateAfterClearAll.scheduleBacklog[0]._causal.operationId === backlogOpId1BeforeClear &&
+    stateAfterClearAll.scheduleBacklog[1].id === 9452 &&
+    stateAfterClearAll.scheduleBacklog[1].done === true &&
+    stateAfterClearAll.scheduleBacklog[1]._causal.operationId === backlogOpId2BeforeClear &&
+    Object.keys(tombsAfterClearAll.backlog || {}).length === 0,
+    'T-5.1.3-B1: executeClearSchedule("study_only") and executeClearSchedule("all") tombstone only removed scheduleEvents while preserving scheduleBacklog tasks and their causal metadata'
+  );
+
+  // Test B2 — Subject deletion tombstones nested hierarchy only and detaches references on independent records without deleting them
+  const scopedKeySub1Lec = prod.toScopedKey('9631', corrBUid);
+  const scopedKeySub2Lec = prod.toScopedKey('9641', corrBUid);
+  const foreignScopedKey = prod.toScopedKey('9631', 'other_user');
+  seedIdbRecord('pdfs', scopedKeySub1Lec, '9631', corrBUid, { data: 'pdf1' });
+  seedIdbRecord('audios', scopedKeySub1Lec, '9631', corrBUid, { data: 'aud1' });
+  seedIdbRecord('annotations', scopedKeySub1Lec, '9631', corrBUid, { pages: { '1': [] } });
+  seedIdbRecord('annotation_recovery_vault', prod.toScopedKey('9631_snap', corrBUid), '9631_snap', corrBUid, { lectureId: '9631', pages: { '1': [] } });
+  seedIdbRecord('pdfs', scopedKeySub2Lec, '9641', corrBUid, { data: 'pdf2' });
+  seedIdbRecord('pdfs', foreignScopedKey, '9631', 'other_user', { data: 'foreign_pdf' });
+  prod.setDbInstance(idb);
+
+  const subToDelete = {
+    id: 9601,
+    name: 'Medicinal Chemistry',
+    wirdLogs: [{ id: 9611, date: '2026-11-04', text: 'Wird Entry 1' }],
+    continuousLogs: [{ id: 9612, date: '2026-11-05', text: 'Continuous Entry 2' }],
+    groups: [
+      {
+        id: 9621,
+        name: 'Heterocycles',
+        lectures: [
+          { id: 9631, title: 'Lecture 1: Pyridines', completed: true }
+        ]
+      }
+    ]
+  };
+  const survivingSub = {
+    id: 9602,
+    name: 'Biopharmaceutics',
+    examLectureIds: ['9641', '9642'],
+    groups: [
+      {
+        id: 9622,
+        name: 'Pharmacokinetics',
+        lectures: [
+          { id: 9641, title: 'PK Compartments', completed: false }
+        ]
+      },
+      {
+        id: 9623,
+        name: 'Bioavailability',
+        lectures: [
+          { id: 9642, title: 'BA & BE Trials', completed: true }
+        ]
+      }
+    ]
+  };
+  const independentEventForDeletedSub = {
+    id: 9701,
+    title: 'Deep Study: Pyridines Notes',
+    subjectId: '9601',
+    lectureId: '9631',
+    lectureIds: ['9631'],
+    day: 3,
+    startHour: 18,
+    duration: 2,
+    notes: 'Keep my custom session notes',
+    completed: true
+  };
+  const independentEventForSurvivingSub = {
+    id: 9702,
+    title: 'PK & BA Combined Session',
+    subjectId: '9602',
+    lectureId: '9641',
+    lectureIds: ['9641', '9642'],
+    day: 4,
+    startHour: 11,
+    duration: 3,
+    notes: 'Important exam prep',
+    completed: false
+  };
+  const independentBacklogTask = {
+    id: 9711,
+    title: 'Solve Medicinal Chemistry Sheet 3',
+    subjectId: '9601',
+    done: false
+  };
+  const independentStudyLog = {
+    id: 9721,
+    date: '2026-11-05',
+    text: 'Completed 2 hours of Medicinal Chemistry',
+    mood: 'bolt',
+    subjectId: '9601'
+  };
+  const independentWeeklyReport = {
+    id: 'rep_2026_10_31',
+    weekStartIso: '2026-10-31',
+    rangeTitle: 'Oct 31 - Nov 06',
+    grade: 'A',
+    completedHours: 14
+  };
+
+  prod.localStorage.removeItem('pharmaTombstones_' + corrBUid);
+  prod.localStorage.removeItem('pharmaScheduleV4');
+  prod.setRuntimeState({
+    activeSubjectId: 9601,
+    subjects: [subToDelete, survivingSub],
+    scheduleEvents: [independentEventForDeletedSub, independentEventForSurvivingSub],
+    scheduleBacklog: [independentBacklogTask],
+    weeklyReports: [independentWeeklyReport],
+    logs: [independentStudyLog]
+  });
+  prod.saveSubjects();
+  prod.saveScheduleData();
+  prod.saveLogs();
+
+  const ev9701OpBefore = independentEventForDeletedSub._causal.operationId;
+  const bl9711OpBefore = independentBacklogTask._causal.operationId;
+  const lg9721OpBefore = independentStudyLog._causal.operationId;
+
+  await prod.triggerDeleteSubject(9601);
+  const stateAfterSubDel = prod.getRuntimeState();
+  const tombsAfterSubDel = prod.getLocalTombstones(corrBUid);
+
+  assert(
+    stateAfterSubDel.subjects.length === 1 &&
+    stateAfterSubDel.subjects[0].id === 9602 &&
+    Boolean(tombsAfterSubDel.subjects['9601']) &&
+    Boolean(tombsAfterSubDel.groups['9621']) &&
+    Boolean(tombsAfterSubDel.lectures['9631']) &&
+    Boolean(tombsAfterSubDel.wird_logs['9611']) &&
+    Boolean(tombsAfterSubDel.wird_logs['9612']) &&
+    Object.keys(tombsAfterSubDel.events || {}).length === 0 &&
+    Object.keys(tombsAfterSubDel.backlog || {}).length === 0 &&
+    Object.keys(tombsAfterSubDel.logs || {}).length === 0 &&
+    Object.keys(tombsAfterSubDel.weekly_reports || {}).length === 0 &&
+    stateAfterSubDel.scheduleEvents.length === 2 &&
+    independentEventForDeletedSub.title === 'Deep Study: Pyridines Notes' &&
+    independentEventForDeletedSub.notes === 'Keep my custom session notes' &&
+    independentEventForDeletedSub.completed === true &&
+    independentEventForDeletedSub.subjectId === '' &&
+    independentEventForDeletedSub.lectureId === '' &&
+    Array.isArray(independentEventForDeletedSub.lectureIds) && independentEventForDeletedSub.lectureIds.length === 0 &&
+    independentEventForDeletedSub._causal.operationId !== ev9701OpBefore &&
+    stateAfterSubDel.scheduleBacklog.length === 1 &&
+    independentBacklogTask.title === 'Solve Medicinal Chemistry Sheet 3' &&
+    independentBacklogTask.subjectId === '' &&
+    independentBacklogTask._causal.operationId !== bl9711OpBefore &&
+    stateAfterSubDel.logs.length === 1 &&
+    independentStudyLog.text === 'Completed 2 hours of Medicinal Chemistry' &&
+    independentStudyLog.subjectId === '' &&
+    independentStudyLog._causal.operationId !== lg9721OpBefore &&
+    stateAfterSubDel.weeklyReports.length === 1 &&
+    !idb.stores.pdfs.has(scopedKeySub1Lec) &&
+    !idb.stores.annotations.has(scopedKeySub1Lec) &&
+    idb.stores.pdfs.has(scopedKeySub2Lec) &&
+    idb.stores.pdfs.has(foreignScopedKey),
+    'T-5.1.3-B2: triggerDeleteSubject tombstones only the subject and its nested groups/lectures/wird_logs, preserves independent events/backlog/logs/weeklyReports while detaching stale subject/lecture references with causal stamps, and cleans only the deleted lecture local artifacts for the active account'
+  );
+
+  // Test B3 — Group deletion tombstones group & child lectures and detaches deleted lecture references from surviving events
+  prod.setRuntimeState({ activeSubjectId: 9602 });
+  const ev9702OpBeforeGroupDel = independentEventForSurvivingSub._causal.operationId;
+  const sub9602OpBeforeGroupDel = survivingSub._causal.operationId;
+
+  await prod.triggerDeleteGroup(9622);
+  const tombsAfterGroupDel = prod.getLocalTombstones(corrBUid);
+
+  assert(
+    survivingSub.groups.length === 1 &&
+    survivingSub.groups[0].id === 9623 &&
+    Boolean(tombsAfterGroupDel.groups['9622']) &&
+    Boolean(tombsAfterGroupDel.lectures['9641']) &&
+    !tombsAfterGroupDel.lectures['9642'] &&
+    survivingSub._causal.operationId !== sub9602OpBeforeGroupDel &&
+    survivingSub.examLectureIds.length === 1 &&
+    survivingSub.examLectureIds[0] === '9642' &&
+    independentEventForSurvivingSub.title === 'PK & BA Combined Session' &&
+    independentEventForSurvivingSub.subjectId === '9602' &&
+    independentEventForSurvivingSub.lectureId === '9642' &&
+    JSON.stringify(independentEventForSurvivingSub.lectureIds) === JSON.stringify(['9642']) &&
+    independentEventForSurvivingSub._causal.operationId !== ev9702OpBeforeGroupDel &&
+    !idb.stores.pdfs.has(scopedKeySub2Lec),
+    'T-5.1.3-B3: triggerDeleteGroup tombstones the group and its nested lectures, detaches deleted lecture IDs from surviving schedule events and examLectureIds with causal stamps, and cleans local lecture artifacts'
+  );
+
+  // Test B4 — Lecture deletion tombstones lecture and detaches lecture reference from surviving schedule events
+  const ev9702OpBeforeLecDel = independentEventForSurvivingSub._causal.operationId;
+  const grp9623OpBeforeLecDel = survivingSub.groups[0]._causal.operationId;
+  await prod.triggerDeleteLecture(9623, 9642);
+  const tombsAfterLecDel = prod.getLocalTombstones(corrBUid);
+
+  assert(
+    survivingSub.groups[0].lectures.length === 0 &&
+    Boolean(tombsAfterLecDel.lectures['9642']) &&
+    survivingSub.groups[0]._causal.operationId !== grp9623OpBeforeLecDel &&
+    independentEventForSurvivingSub.title === 'PK & BA Combined Session' &&
+    independentEventForSurvivingSub.subjectId === '9602' &&
+    independentEventForSurvivingSub.lectureId === '' &&
+    Array.isArray(independentEventForSurvivingSub.lectureIds) && independentEventForSurvivingSub.lectureIds.length === 0 &&
+    independentEventForSurvivingSub._causal.operationId !== ev9702OpBeforeLecDel,
+    'T-5.1.3-B4: triggerDeleteLecture tombstones the lecture, stamps parent group/subject, and detaches the deleted lecture reference on surviving schedule events without deleting those events'
+  );
+
+  // Test B5 — Explicit top-level deletion callsites record accurate tombstones
+  survivingSub.continuousLogs = [{ id: 9699, date: '2026-11-05', text: 'Wird to delete explicitly' }];
+  prod.saveSubjects();
+  prod.deleteContinuousSubjectWirdLog(9602, 9699);
+  prod.deleteSessionDirect(null, 9701);
+  prod.deleteEventFromPdfAdjuster(9702);
+  prod.deleteBacklogTask(9711);
+  prod.triggerDeleteLog(9721);
+  prod.deleteWeeklyEvaluationReport('2026-10-31');
+
+  const tombsAfterExplicitDeletes = prod.getLocalTombstones(corrBUid);
+  const stateAfterExplicitDeletes = prod.getRuntimeState();
+
+  assert(
+    Boolean(tombsAfterExplicitDeletes.wird_logs['9699']) &&
+    Boolean(tombsAfterExplicitDeletes.events['9701']) &&
+    Boolean(tombsAfterExplicitDeletes.events['9702']) &&
+    Boolean(tombsAfterExplicitDeletes.backlog['9711']) &&
+    Boolean(tombsAfterExplicitDeletes.logs['9721']) &&
+    Boolean(tombsAfterExplicitDeletes.weekly_reports['2026-10-31']) &&
+    stateAfterExplicitDeletes.scheduleEvents.length === 0 &&
+    stateAfterExplicitDeletes.scheduleBacklog.length === 0 &&
+    stateAfterExplicitDeletes.logs.length === 0 &&
+    stateAfterExplicitDeletes.weeklyReports.length === 0,
+    'T-5.1.3-B5: All explicit deletion routes (wird_logs, events, backlog, logs, weekly_reports) record causal tombstones in their exact buckets before removing the target entity'
+  );
+
+  // Test B6 — Fail-closed abort when tombstone persistence fails
+  const protectedSub = {
+    id: 9801,
+    name: 'Protected Subject',
+    continuousLogs: [{ id: 9802, date: '2026-11-05', text: 'Protected Wird' }],
+    groups: [{ id: 9803, name: 'Protected Group', lectures: [{ id: 9804, title: 'Protected Lecture' }] }]
+  };
+  const protectedEv = { id: 9805, title: 'Protected Event', day: 1, startHour: 10, duration: 1 };
+  const protectedTask = { id: 9806, title: 'Protected Backlog', done: false };
+  const protectedLog = { id: 9807, date: '2026-11-05', text: 'Protected Log' };
+  const protectedRep = { id: 'rep_9808', weekStartIso: '2026-11-07', rangeTitle: 'Nov 07 - Nov 13' };
+
+  prod.setRuntimeState({
+    activeSubjectId: 9801,
+    subjects: [protectedSub],
+    scheduleEvents: [protectedEv],
+    scheduleBacklog: [protectedTask],
+    logs: [protectedLog],
+    weeklyReports: [protectedRep]
+  });
+  prod.saveSubjects();
+  prod.saveScheduleData();
+  prod.saveLogs();
+
+  prod.setFailNextAccountSnapshotKey('pharmaTombstones_' + corrBUid);
+  await prod.triggerDeleteSubject(9801);
+  prod.setFailNextAccountSnapshotKey('pharmaTombstones_' + corrBUid);
+  await prod.triggerDeleteGroup(9803);
+  prod.setFailNextAccountSnapshotKey('pharmaTombstones_' + corrBUid);
+  await prod.triggerDeleteLecture(9803, 9804);
+  prod.setFailNextAccountSnapshotKey('pharmaTombstones_' + corrBUid);
+  prod.deleteContinuousSubjectWirdLog(9801, 9802);
+  prod.setFailNextAccountSnapshotKey('pharmaTombstones_' + corrBUid);
+  prod.executeClearSchedule('all');
+  prod.setFailNextAccountSnapshotKey('pharmaTombstones_' + corrBUid);
+  prod.deleteBacklogTask(9806);
+  prod.setFailNextAccountSnapshotKey('pharmaTombstones_' + corrBUid);
+  prod.triggerDeleteLog(9807);
+  prod.setFailNextAccountSnapshotKey('pharmaTombstones_' + corrBUid);
+  prod.deleteWeeklyEvaluationReport('2026-11-07');
+  prod.setFailNextAccountSnapshotKey(null);
+
+  const stateAfterAbortedDeletes = prod.getRuntimeState();
+  assert(
+    stateAfterAbortedDeletes.subjects.length === 1 &&
+    stateAfterAbortedDeletes.subjects[0].groups.length === 1 &&
+    stateAfterAbortedDeletes.subjects[0].groups[0].lectures.length === 1 &&
+    stateAfterAbortedDeletes.subjects[0].continuousLogs.length === 1 &&
+    stateAfterAbortedDeletes.scheduleEvents.length === 1 &&
+    stateAfterAbortedDeletes.scheduleBacklog.length === 1 &&
+    stateAfterAbortedDeletes.logs.length === 1 &&
+    stateAfterAbortedDeletes.weeklyReports.length === 1,
+    'T-5.1.3-B6: All deletion callsites abort fail-closed without removing in-memory or persisted records when tombstone persistence fails'
   );
 
   console.log('\n======================================================================');

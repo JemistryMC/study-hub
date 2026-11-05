@@ -11375,11 +11375,32 @@
 
         // ================= PAGE 1: المركز (المواد) =================
         function saveSubjects() {
+            let stampResult = { ok: true, domain: 'subjects', stampedCount: 0, unchangedCount: 0, failedCount: 0, errors: [] };
             if (typeof autoStampTrackedWorkspaceMutations === 'function') {
-                try { autoStampTrackedWorkspaceMutations('subjects'); } catch (e) {}
+                try {
+                    const res = autoStampTrackedWorkspaceMutations('subjects');
+                    if (res && typeof res === 'object') stampResult = res;
+                } catch (e) {
+                    stampResult = {
+                        ok: false,
+                        domain: 'subjects',
+                        stampedCount: 0,
+                        unchangedCount: 0,
+                        failedCount: 1,
+                        errors: [{ entityType: 'subjects', entityId: 'domain', code: 'CAUSAL_STAMP_ERROR', message: String(e && e.message ? e.message : e) }]
+                    };
+                }
             }
             localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
             markLocalWorkspaceModified();
+            if (!stampResult.ok || stampResult.failedCount > 0) {
+                if (typeof notifyCausalStampingFailure === 'function') {
+                    notifyCausalStampingFailure('subjects', stampResult);
+                } else if (typeof showToast === 'function') {
+                    showToast('تنبيه: تم حفظ تعديلاتك محلياً، لكن تعذر تحديث البصمة السببية للمزامنة السحابية ⚠️', 'error');
+                }
+            }
+            return stampResult;
         }
 
         let smartSubDraftState = {
@@ -11850,15 +11871,26 @@
         function triggerDeleteSubject(id, event) {
             if(event) event.stopPropagation();
             return openConfirmModal('سيتم مسح هذه المادة نهائياً بكل فصولها ومحاضراتها.', async () => {
+                if (currentCloudUser && typeof resolveAccountOperationContext === 'function') {
+                    const opCtx = resolveAccountOperationContext(currentCloudUser.id);
+                    if (!opCtx || !opCtx.ok || !opCtx.authorized) return;
+                }
                 const targetSub = subjects.find(s => String(s.id) === String(id));
                 if (!targetSub) return;
                 const batchItems = [{ entityType: 'subjects', id: targetSub.id, priorEntity: targetSub }];
+                const seenWirdIds = new Set();
                 const deletedLecIds = [];
                 (targetSub.wirdLogs || []).forEach(w => {
-                    if (w && w.id !== undefined) batchItems.push({ entityType: 'wird_logs', id: w.id, priorEntity: w });
+                    if (w && w.id !== undefined && !seenWirdIds.has(String(w.id))) {
+                        seenWirdIds.add(String(w.id));
+                        batchItems.push({ entityType: 'wird_logs', id: w.id, priorEntity: w });
+                    }
                 });
                 (targetSub.continuousLogs || []).forEach(w => {
-                    if (w && w.id !== undefined) batchItems.push({ entityType: 'wird_logs', id: w.id, priorEntity: w });
+                    if (w && w.id !== undefined && !seenWirdIds.has(String(w.id))) {
+                        seenWirdIds.add(String(w.id));
+                        batchItems.push({ entityType: 'wird_logs', id: w.id, priorEntity: w });
+                    }
                 });
                 (targetSub.groups || []).forEach(g => {
                     if (!g) return;
@@ -11879,6 +11911,9 @@
                 }
                 subjects = subjects.filter(s => String(s.id) !== String(id));
                 if (String(activeSubjectId) === String(id)) activeSubjectId = null;
+                if (typeof detachDeletedHierarchyReferences === 'function') {
+                    detachDeletedHierarchyReferences({ subjectIds: [targetSub.id], lectureIds: deletedLecIds });
+                }
                 saveSubjects();
                 renderSubjectsList();
                 if (deletedLecIds.length > 0 && typeof cleanupDeletedLectureLocalArtifacts === 'function') {
@@ -12451,11 +12486,16 @@
         }
 
         function deleteContinuousSubjectWirdLog(subId, logId) {
+            if (currentCloudUser && typeof resolveAccountOperationContext === 'function') {
+                const opCtx = resolveAccountOperationContext(currentCloudUser.id);
+                if (!opCtx || !opCtx.ok || !opCtx.authorized) return;
+            }
             const sub = subjects.find(s => String(s.id) === String(subId));
             if (!sub || (!Array.isArray(sub.continuousLogs) && !Array.isArray(sub.wirdLogs))) return;
             const targetWird = (sub.continuousLogs || []).find(item => String(item.id) === String(logId))
                 || (sub.wirdLogs || []).find(item => String(item.id) === String(logId))
                 || null;
+            if (!targetWird) return;
             if (typeof recordTombstone === 'function') {
                 const tombRes = recordTombstone('wird_logs', logId, null, targetWird);
                 if (!tombRes) {
@@ -12469,8 +12509,9 @@
             if (Array.isArray(sub.wirdLogs)) {
                 sub.wirdLogs = sub.wirdLogs.filter(item => String(item.id) !== String(logId));
             }
+            sub._needsCausalStamp = true;
             if (typeof stampEntityMutation === 'function') {
-                stampEntityMutation(sub, 'subjects', sub.id);
+                try { stampEntityMutation(sub, 'subjects', sub.id); } catch (e) {}
             }
             saveSubjects();
             renderGroups();
@@ -12522,7 +12563,12 @@
 
         function triggerDeleteGroup(groupId) {
             return openConfirmModal('سيتم حذف هذا القسم ومحتوياته بالكامل.', async () => {
-                const sub = subjects.find(s => s.id === activeSubjectId);
+                if (currentCloudUser && typeof resolveAccountOperationContext === 'function') {
+                    const opCtx = resolveAccountOperationContext(currentCloudUser.id);
+                    if (!opCtx || !opCtx.ok || !opCtx.authorized) return;
+                }
+                const sub = subjects.find(s => String(s.id) === String(activeSubjectId))
+                    || subjects.find(s => Array.isArray(s.groups) && s.groups.some(g => String(g.id) === String(groupId)));
                 if(!sub) return;
                 const targetGroup = (sub.groups || []).find(g => String(g.id) === String(groupId));
                 if (!targetGroup) return;
@@ -12542,8 +12588,16 @@
                     }
                 }
                 sub.groups = sub.groups.filter(g => String(g.id) !== String(groupId));
+                if (Array.isArray(sub.examLectureIds) && deletedLecIds.length > 0) {
+                    const delSet = new Set(deletedLecIds.map(String));
+                    sub.examLectureIds = sub.examLectureIds.filter(lid => !delSet.has(String(lid)));
+                }
+                sub._needsCausalStamp = true;
                 if (typeof stampEntityMutation === 'function') {
-                    stampEntityMutation(sub, 'subjects', sub.id);
+                    try { stampEntityMutation(sub, 'subjects', sub.id); } catch (e) {}
+                }
+                if (deletedLecIds.length > 0 && typeof detachDeletedHierarchyReferences === 'function') {
+                    detachDeletedHierarchyReferences({ subjectIds: [], lectureIds: deletedLecIds });
                 }
                 saveSubjects();
                 renderGroups();
@@ -12667,7 +12721,12 @@
 
         function triggerDeleteLecture(groupId, lecId) {
             return openConfirmModal('سيتم مسح هذه المحاضرة من القائمة.', async () => {
-                const sub = subjects.find(s => s.id === activeSubjectId);
+                if (currentCloudUser && typeof resolveAccountOperationContext === 'function') {
+                    const opCtx = resolveAccountOperationContext(currentCloudUser.id);
+                    if (!opCtx || !opCtx.ok || !opCtx.authorized) return;
+                }
+                const sub = subjects.find(s => String(s.id) === String(activeSubjectId))
+                    || subjects.find(s => Array.isArray(s.groups) && s.groups.some(g => String(g.id) === String(groupId)));
                 if(!sub) return;
                 const group = sub.groups.find(g => String(g.id) === String(groupId));
                 if(!group) return;
@@ -12681,9 +12740,17 @@
                     }
                 }
                 group.lectures = group.lectures.filter(l => String(l.id) !== String(lecId));
+                if (Array.isArray(sub.examLectureIds)) {
+                    sub.examLectureIds = sub.examLectureIds.filter(lid => String(lid) !== String(lecId));
+                }
+                group._needsCausalStamp = true;
+                sub._needsCausalStamp = true;
                 if (typeof stampEntityMutation === 'function') {
-                    stampEntityMutation(group, 'groups', group.id);
-                    stampEntityMutation(sub, 'subjects', sub.id);
+                    try { stampEntityMutation(group, 'groups', group.id); } catch (e) {}
+                    try { stampEntityMutation(sub, 'subjects', sub.id); } catch (e) {}
+                }
+                if (typeof detachDeletedHierarchyReferences === 'function') {
+                    detachDeletedHierarchyReferences({ subjectIds: [], lectureIds: [lecId] });
                 }
                 saveSubjects();
                 renderGroups();
@@ -13195,8 +13262,21 @@
         initScheduleData();
 
         function saveScheduleData(syncToCloud = true) {
+            let stampResult = { ok: true, domain: 'schedule', stampedCount: 0, unchangedCount: 0, failedCount: 0, errors: [] };
             if (typeof autoStampTrackedWorkspaceMutations === 'function') {
-                try { autoStampTrackedWorkspaceMutations('schedule'); } catch (e) {}
+                try {
+                    const res = autoStampTrackedWorkspaceMutations('schedule');
+                    if (res && typeof res === 'object') stampResult = res;
+                } catch (e) {
+                    stampResult = {
+                        ok: false,
+                        domain: 'schedule',
+                        stampedCount: 0,
+                        unchangedCount: 0,
+                        failedCount: 1,
+                        errors: [{ entityType: 'schedule', entityId: 'domain', code: 'CAUSAL_STAMP_ERROR', message: String(e && e.message ? e.message : e) }]
+                    };
+                }
             }
             localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
             localStorage.setItem('pharmaWeeklyReportsV1', JSON.stringify(weeklyReports));
@@ -13218,9 +13298,17 @@
             }
             localStorage.setItem('pharmaScheduleV4', JSON.stringify(schedulePayload));
             localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));
-            if (syncToCloud) {
+            if (syncToCloud || !stampResult.ok || stampResult.failedCount > 0) {
                 markLocalWorkspaceModified(false);
             }
+            if (!stampResult.ok || stampResult.failedCount > 0) {
+                if (typeof notifyCausalStampingFailure === 'function') {
+                    notifyCausalStampingFailure('schedule', stampResult);
+                } else if (typeof showToast === 'function') {
+                    showToast('تنبيه: تم حفظ الجدول محلياً، لكن تعذر تحديث البصمة السببية للمزامنة السحابية ⚠️', 'error');
+                }
+            }
+            return stampResult;
         }
 
         function togglePlannerSettingsDrawer(forceState = null) {
@@ -15726,9 +15814,14 @@
         function deleteSessionDirect(event, eventId) {
             if (event) event.stopPropagation();
             openConfirmModal('سيتم مسح هذه الجلسة من جدولك الأسبوعي.', () => {
+                if (currentCloudUser && typeof resolveAccountOperationContext === 'function') {
+                    const opCtx = resolveAccountOperationContext(currentCloudUser.id);
+                    if (!opCtx || !opCtx.ok || !opCtx.authorized) return;
+                }
                 const targetEv = scheduleEvents.find(e => String(e.id) === String(eventId));
+                if (!targetEv) return;
                 if (typeof recordTombstone === 'function') {
-                    const tombRes = recordTombstone('events', eventId, null, targetEv || null);
+                    const tombRes = recordTombstone('events', eventId, null, targetEv);
                     if (!tombRes) {
                         showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف الجلسة حفاظاً على سلامة البيانات ⚠️', 'error');
                         return;
@@ -15868,6 +15961,10 @@
 
         function executeClearSchedule(mode) {
             closeModal('clearScheduleModalOverlay');
+            if (currentCloudUser && typeof resolveAccountOperationContext === 'function') {
+                const opCtx = resolveAccountOperationContext(currentCloudUser.id);
+                if (!opCtx || !opCtx.ok || !opCtx.authorized) return;
+            }
             const eventsToDelete = (mode === 'study_only')
                 ? scheduleEvents.filter(e => !isCollegeCommitmentSession(e))
                 : scheduleEvents.slice();
@@ -15885,7 +15982,10 @@
                 scheduleEvents.forEach(e => {
                     e.absent = false;
                     e.absentAtMs = null;
-                    if (typeof stampEntityMutation === 'function') stampEntityMutation(e, 'events', e.id);
+                    e._needsCausalStamp = true;
+                    if (typeof stampEntityMutation === 'function') {
+                        try { stampEntityMutation(e, 'events', e.id); } catch (err) {}
+                    }
                 });
                 saveScheduleData();
                 renderSchedule();
@@ -16006,9 +16106,14 @@
         }
 
         function deleteBacklogTask(taskId) {
+            if (currentCloudUser && typeof resolveAccountOperationContext === 'function') {
+                const opCtx = resolveAccountOperationContext(currentCloudUser.id);
+                if (!opCtx || !opCtx.ok || !opCtx.authorized) return;
+            }
             const targetTask = scheduleBacklog.find(t => String(t.id) === String(taskId));
+            if (!targetTask) return;
             if (typeof recordTombstone === 'function') {
-                const tombRes = recordTombstone('backlog', taskId, null, targetTask || null);
+                const tombRes = recordTombstone('backlog', taskId, null, targetTask);
                 if (!tombRes) {
                     showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف الهدف حفاظاً على سلامة البيانات ⚠️', 'error');
                     return;
@@ -16049,11 +16154,32 @@
     <script id="exo-mod-tracker-analytics" data-module="exo-tracker-analytics.js">
         // ================= PAGE 3: السجل ومتابعة الإنتاجية =================
         function saveLogs() {
+            let stampResult = { ok: true, domain: 'logs', stampedCount: 0, unchangedCount: 0, failedCount: 0, errors: [] };
             if (typeof autoStampTrackedWorkspaceMutations === 'function') {
-                try { autoStampTrackedWorkspaceMutations('logs'); } catch (e) {}
+                try {
+                    const res = autoStampTrackedWorkspaceMutations('logs');
+                    if (res && typeof res === 'object') stampResult = res;
+                } catch (e) {
+                    stampResult = {
+                        ok: false,
+                        domain: 'logs',
+                        stampedCount: 0,
+                        unchangedCount: 0,
+                        failedCount: 1,
+                        errors: [{ entityType: 'logs', entityId: 'domain', code: 'CAUSAL_STAMP_ERROR', message: String(e && e.message ? e.message : e) }]
+                    };
+                }
             }
             localStorage.setItem('pharmaLogsV4', JSON.stringify(logs));
             markLocalWorkspaceModified();
+            if (!stampResult.ok || stampResult.failedCount > 0) {
+                if (typeof notifyCausalStampingFailure === 'function') {
+                    notifyCausalStampingFailure('logs', stampResult);
+                } else if (typeof showToast === 'function') {
+                    showToast('تنبيه: تم حفظ السجل محلياً، لكن تعذر تحديث البصمة السببية للمزامنة السحابية ⚠️', 'error');
+                }
+            }
+            return stampResult;
         }
 
         function playChimeSound() {
@@ -16916,9 +17042,14 @@
 
         function triggerDeleteLog(id) {
             openConfirmModal('مسح هذا الإنجاز من السجل؟', () => {
+                if (currentCloudUser && typeof resolveAccountOperationContext === 'function') {
+                    const opCtx = resolveAccountOperationContext(currentCloudUser.id);
+                    if (!opCtx || !opCtx.ok || !opCtx.authorized) return;
+                }
                 const targetLog = logs.find(l => String(l.id ?? l.timestamp) === String(id));
+                if (!targetLog) return;
                 if (typeof recordTombstone === 'function') {
-                    const tombRes = recordTombstone('logs', id, null, targetLog || null);
+                    const tombRes = recordTombstone('logs', id, null, targetLog);
                     if (!tombRes) {
                         showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف السجل حفاظاً على سلامة البيانات ⚠️', 'error');
                         return;
@@ -17955,9 +18086,14 @@
         }
 
         function deleteEventFromPdfAdjuster(eventId) {
+            if (currentCloudUser && typeof resolveAccountOperationContext === 'function') {
+                const opCtx = resolveAccountOperationContext(currentCloudUser.id);
+                if (!opCtx || !opCtx.ok || !opCtx.authorized) return;
+            }
             const targetEv = scheduleEvents.find(e => String(e.id) === String(eventId));
+            if (!targetEv) return;
             if (typeof recordTombstone === 'function') {
-                const tombRes = recordTombstone('events', eventId, null, targetEv || null);
+                const tombRes = recordTombstone('events', eventId, null, targetEv);
                 if (!tombRes) {
                     showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف المهمة حفاظاً على سلامة البيانات ⚠️', 'error');
                     return;
@@ -21883,7 +22019,8 @@
                 lec.deletedPages.push(pKeyStr);
             }
             recordExcludedPageMutation(pageAnnotations, lec.id, pKeyStr, true);
-            stampEntityMutation(lec, 'lectures', lec.id);
+            lec._needsCausalStamp = true;
+            try { stampEntityMutation(lec, 'lectures', lec.id); } catch (e) {}
             saveSubjects();
             saveAnnotationsToDB(lec.id, pageAnnotations);
 
@@ -21903,7 +22040,8 @@
             const pKeyStr = String(pageKey);
             lec.deletedPages = lec.deletedPages.filter(k => k !== pKeyStr);
             recordExcludedPageMutation(pageAnnotations, lec.id, pKeyStr, false);
-            stampEntityMutation(lec, 'lectures', lec.id);
+            lec._needsCausalStamp = true;
+            try { stampEntityMutation(lec, 'lectures', lec.id); } catch (e) {}
             saveSubjects();
             saveAnnotationsToDB(lec.id, pageAnnotations);
 
@@ -30281,18 +30419,18 @@ function togglePdfAudioPlayerBar(forceState) {
                     }
                 }
             } catch (e) {}
-            const devId = getOrCreateDeviceId();
-            const actId = getLiveActorId();
-            const prevEntry = (reg[devId] && typeof reg[devId] === 'object') ? reg[devId] : {};
-            reg[devId] = {
-                deviceId: devId,
-                lastActorId: actId,
-                lastSeenRevision: Number(localStorage.getItem('pharmaWorkspaceRevision_' + uid) || currentCloudWorkspaceRevision || 1),
-                diagnosticOnly: true,
-                neverPurgeTombstones: true,
-                observedCount: Number(prevEntry.observedCount || 0)
-            };
             try {
+                const devId = getOrCreateDeviceId();
+                const actId = getLiveActorId();
+                const prevEntry = (reg[devId] && typeof reg[devId] === 'object') ? reg[devId] : {};
+                reg[devId] = {
+                    deviceId: devId,
+                    lastActorId: actId,
+                    lastSeenRevision: Number(localStorage.getItem('pharmaWorkspaceRevision_' + uid) || currentCloudWorkspaceRevision || 1),
+                    diagnosticOnly: true,
+                    neverPurgeTombstones: true,
+                    observedCount: Number(prevEntry.observedCount || 0)
+                };
                 localStorage.setItem('pharmaDeviceRegistry_' + uid, JSON.stringify(reg));
             } catch (e) {}
             return reg;
@@ -30348,11 +30486,10 @@ function togglePdfAudioPlayerBar(forceState) {
             if (opLamport > liveLamportClock) {
                 liveLamportClock = opLamport;
             }
-            const myActor = getLiveActorId();
-            if (nextCtx[myActor]) {
+            if (liveTabActorId && nextCtx[liveTabActorId]) {
                 const prevMyCount = Number(liveActorScopeCounters.get(key) || 0);
-                if (nextCtx[myActor] > prevMyCount) {
-                    liveActorScopeCounters.set(key, nextCtx[myActor]);
+                if (nextCtx[liveTabActorId] > prevMyCount) {
+                    liveActorScopeCounters.set(key, nextCtx[liveTabActorId]);
                 }
             }
         }
@@ -30744,7 +30881,7 @@ function togglePdfAudioPlayerBar(forceState) {
             if (!entity || typeof entity !== 'object') return 'null';
             const clone = {};
             Object.keys(entity).sort().forEach(k => {
-                if (k === '_causal' || k === '_causalDigest' || k === '_updatedAt' || k === 'groups' || k === 'lectures' || k === 'wirdLogs' || k === 'continuousLogs') return;
+                if (k === '_causal' || k === '_causalDigest' || k === '_needsCausalStamp' || k === '_updatedAt' || k === 'groups' || k === 'lectures' || k === 'wirdLogs' || k === 'continuousLogs') return;
                 clone[k] = entity[k];
             });
             try {
@@ -30789,15 +30926,28 @@ function togglePdfAudioPlayerBar(forceState) {
                 }
             }
 
-            const nextCausal = createCausalOperation(scopeId, entity._causal || null, uid, {
-                entityType: normType,
-                entityId: normId,
-                kind: 'upsert',
-                observedLegacyDigests: Array.from(new Set(observedLegacyDigests)),
-                observedLegacyOpIds: Array.from(new Set(observedLegacyOpIds))
-            });
+            let nextCausal = null;
+            try {
+                nextCausal = createCausalOperation(scopeId, entity._causal || null, uid, {
+                    entityType: normType,
+                    entityId: normId,
+                    kind: 'upsert',
+                    observedLegacyDigests: Array.from(new Set(observedLegacyDigests)),
+                    observedLegacyOpIds: Array.from(new Set(observedLegacyOpIds))
+                });
+            } catch (stampErr) {
+                entity._needsCausalStamp = true;
+                if (entity._causal && typeof entity._causal === 'object') {
+                    entity._causal.dirty = true;
+                    entity._causal.committedWorkspaceRevision = null;
+                }
+                throw stampErr;
+            }
             entity._causal = nextCausal;
             entity._causalDigest = currentDigest;
+            if (entity._needsCausalStamp !== undefined) {
+                delete entity._needsCausalStamp;
+            }
             return entity;
         }
 
@@ -30833,54 +30983,202 @@ function togglePdfAudioPlayerBar(forceState) {
         }
 
         function ensureEntityHasCausalMetadata(entity, entityType, id, targetUid = null) {
-            if (!entity || typeof entity !== 'object') return;
+            if (!entity || typeof entity !== 'object') return { status: 'skipped' };
             const resolvedId = (id !== undefined && id !== null && String(id).trim() !== '')
                 ? id
                 : (entity.id ?? entity.weekStartIso ?? entity.timestamp ?? '');
-            if (resolvedId === '' || resolvedId === null || resolvedId === undefined) return;
-            const { normType, normId } = validateAndResolveEntityScope(entityType, resolvedId);
+            if (resolvedId === '' || resolvedId === null || resolvedId === undefined) return { status: 'skipped' };
+            const { normType, normId, scopeId } = validateAndResolveEntityScope(entityType, resolvedId);
             const digest = computeEntityContentDigest(entity);
-            if (!entity._causal || typeof entity._causal !== 'object') {
+            const needsStamp = Boolean(
+                !entity._causal ||
+                typeof entity._causal !== 'object' ||
+                entity._needsCausalStamp === true ||
+                (entity._causalDigest !== undefined && entity._causalDigest !== digest)
+            );
+            if (needsStamp) {
                 stampEntityMutation(entity, normType, normId, targetUid);
-            } else if (entity._causalDigest !== undefined && entity._causalDigest !== digest) {
-                stampEntityMutation(entity, normType, normId, targetUid);
-            } else {
-                observeCausalOperation(entity._causal, targetUid);
-                if (entity._causalDigest === undefined) {
-                    entity._causalDigest = digest;
-                }
+                return { status: 'stamped', scopeId, entityType: normType, entityId: normId };
             }
+            observeCausalOperation(entity._causal, targetUid);
+            if (entity._causalDigest === undefined) {
+                entity._causalDigest = digest;
+            }
+            return { status: 'unchanged', scopeId, entityType: normType, entityId: normId };
+        }
+
+        function notifyCausalStampingFailure(domain, stampResult) {
+            const errMsg = 'تنبيه: تم حفظ تعديلاتك محلياً على هذا الجهاز، لكن تعذر توليد البصمة السببية للمزامنة السحابية حالياً. ستتم إعادة المحاولة تلقائياً عند المزامنة القادمة ⚠️';
+            console.warn(`[CausalStamp] Stamping incomplete for domain "${domain}":`, stampResult && stampResult.errors ? stampResult.errors : stampResult);
+            if (typeof showToast === 'function') {
+                showToast(errMsg, 'error');
+            }
+            return errMsg;
+        }
+
+        function detachDeletedHierarchyReferences(opts = {}) {
+            const subIdSet = new Set((Array.isArray(opts.subjectIds) ? opts.subjectIds : []).map(x => String(x ?? '').trim()).filter(Boolean));
+            const lecIdSet = new Set((Array.isArray(opts.lectureIds) ? opts.lectureIds : []).map(x => String(x ?? '').trim()).filter(Boolean));
+            const result = {
+                detachedEventsCount: 0,
+                detachedBacklogCount: 0,
+                detachedLogsCount: 0,
+                scheduleSaved: false,
+                logsSaved: false
+            };
+            if (subIdSet.size === 0 && lecIdSet.size === 0) return result;
+
+            let scheduleChanged = false;
+            if (Array.isArray(scheduleEvents)) {
+                scheduleEvents.forEach(ev => {
+                    if (!ev || typeof ev !== 'object') return;
+                    let evChanged = false;
+                    const hadDeletedSub = (ev.subjectId !== undefined && ev.subjectId !== null && ev.subjectId !== '' && subIdSet.has(String(ev.subjectId)));
+                    if (hadDeletedSub) {
+                        ev.subjectId = '';
+                        evChanged = true;
+                    }
+                    if (ev.lectureId !== undefined && ev.lectureId !== null && ev.lectureId !== '' && (lecIdSet.has(String(ev.lectureId)) || hadDeletedSub)) {
+                        ev.lectureId = '';
+                        evChanged = true;
+                    }
+                    if (Array.isArray(ev.lectureIds) && ev.lectureIds.length > 0) {
+                        if (hadDeletedSub && lecIdSet.size === 0) {
+                            ev.lectureIds = [];
+                            evChanged = true;
+                        } else if (lecIdSet.size > 0) {
+                            const filtered = ev.lectureIds.filter(lid => !lecIdSet.has(String(lid)));
+                            if (filtered.length !== ev.lectureIds.length) {
+                                ev.lectureIds = filtered;
+                                if (!ev.lectureId && filtered.length > 0 && !hadDeletedSub) {
+                                    ev.lectureId = filtered[0];
+                                } else if (filtered.length === 0 && ev.lectureId && lecIdSet.has(String(ev.lectureId))) {
+                                    ev.lectureId = '';
+                                }
+                                evChanged = true;
+                            }
+                        }
+                    }
+                    if (evChanged) {
+                        ev._needsCausalStamp = true;
+                        try {
+                            if (typeof stampEntityMutation === 'function') {
+                                stampEntityMutation(ev, 'events', ev.id);
+                            }
+                        } catch (e) {}
+                        result.detachedEventsCount++;
+                        scheduleChanged = true;
+                    }
+                });
+            }
+
+            if (Array.isArray(scheduleBacklog) && subIdSet.size > 0) {
+                scheduleBacklog.forEach(task => {
+                    if (!task || typeof task !== 'object') return;
+                    if (task.subjectId !== undefined && task.subjectId !== null && task.subjectId !== '' && subIdSet.has(String(task.subjectId))) {
+                        task.subjectId = '';
+                        task._needsCausalStamp = true;
+                        try {
+                            if (typeof stampEntityMutation === 'function') {
+                                stampEntityMutation(task, 'backlog', task.id);
+                            }
+                        } catch (e) {}
+                        result.detachedBacklogCount++;
+                        scheduleChanged = true;
+                    }
+                });
+            }
+
+            let logsChanged = false;
+            if (Array.isArray(logs) && subIdSet.size > 0) {
+                logs.forEach(logItem => {
+                    if (!logItem || typeof logItem !== 'object') return;
+                    if (logItem.subjectId !== undefined && logItem.subjectId !== null && logItem.subjectId !== '' && subIdSet.has(String(logItem.subjectId))) {
+                        logItem.subjectId = '';
+                        logItem._needsCausalStamp = true;
+                        try {
+                            if (typeof stampEntityMutation === 'function') {
+                                stampEntityMutation(logItem, 'logs', logItem.id ?? logItem.timestamp);
+                            }
+                        } catch (e) {}
+                        result.detachedLogsCount++;
+                        logsChanged = true;
+                    }
+                });
+            }
+
+            if (scheduleChanged && typeof saveScheduleData === 'function') {
+                saveScheduleData();
+                result.scheduleSaved = true;
+            }
+            if (logsChanged && typeof saveLogs === 'function') {
+                saveLogs();
+                result.logsSaved = true;
+            }
+            return result;
         }
 
         function autoStampTrackedWorkspaceMutations(domain = 'all', targetUid = null) {
             const uid = targetUid ? String(targetUid) : (currentCloudUser ? String(currentCloudUser.id) : 'local');
+            const result = {
+                ok: true,
+                domain: String(domain || 'all'),
+                stampedCount: 0,
+                unchangedCount: 0,
+                failedCount: 0,
+                errors: []
+            };
+            const processEntity = (entity, entityType, id) => {
+                if (!entity || typeof entity !== 'object') return;
+                const resolvedId = (id !== undefined && id !== null && String(id).trim() !== '')
+                    ? id
+                    : (entity.id ?? entity.weekStartIso ?? entity.timestamp ?? '');
+                if (resolvedId === '' || resolvedId === null || resolvedId === undefined) return;
+                try {
+                    const stepRes = ensureEntityHasCausalMetadata(entity, entityType, resolvedId, uid);
+                    if (stepRes && stepRes.status === 'stamped') {
+                        result.stampedCount++;
+                    } else if (stepRes && stepRes.status === 'unchanged') {
+                        result.unchangedCount++;
+                    }
+                } catch (err) {
+                    result.ok = false;
+                    result.failedCount++;
+                    result.errors.push({
+                        entityType: String(entityType || ''),
+                        entityId: String(resolvedId),
+                        code: (err && err.message && err.message.includes('CSPRNG')) ? 'CSPRNG_UNAVAILABLE' : 'CAUSAL_STAMP_ERROR',
+                        message: String(err && err.message ? err.message : err)
+                    });
+                }
+            };
             if (domain === 'all' || domain === 'subjects') {
                 if (Array.isArray(subjects)) {
                     subjects.forEach(sub => {
                         if (!sub || typeof sub !== 'object') return;
-                        ensureEntityHasCausalMetadata(sub, 'subjects', sub.id, uid);
+                        processEntity(sub, 'subjects', sub.id);
                         if (Array.isArray(sub.wirdLogs)) {
                             sub.wirdLogs.forEach(w => {
                                 if (w && typeof w === 'object') {
-                                    ensureEntityHasCausalMetadata(w, 'wird_logs', w.id, uid);
+                                    processEntity(w, 'wird_logs', w.id);
                                 }
                             });
                         }
                         if (Array.isArray(sub.continuousLogs)) {
                             sub.continuousLogs.forEach(w => {
                                 if (w && typeof w === 'object') {
-                                    ensureEntityHasCausalMetadata(w, 'wird_logs', w.id, uid);
+                                    processEntity(w, 'wird_logs', w.id);
                                 }
                             });
                         }
                         if (Array.isArray(sub.groups)) {
                             sub.groups.forEach(g => {
                                 if (!g || typeof g !== 'object') return;
-                                ensureEntityHasCausalMetadata(g, 'groups', g.id, uid);
+                                processEntity(g, 'groups', g.id);
                                 if (Array.isArray(g.lectures)) {
                                     g.lectures.forEach(l => {
                                         if (l && typeof l === 'object') {
-                                            ensureEntityHasCausalMetadata(l, 'lectures', l.id, uid);
+                                            processEntity(l, 'lectures', l.id);
                                         }
                                     });
                                 }
@@ -30893,21 +31191,21 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (Array.isArray(scheduleEvents)) {
                     scheduleEvents.forEach(ev => {
                         if (ev && typeof ev === 'object') {
-                            ensureEntityHasCausalMetadata(ev, 'events', ev.id, uid);
+                            processEntity(ev, 'events', ev.id);
                         }
                     });
                 }
                 if (Array.isArray(scheduleBacklog)) {
                     scheduleBacklog.forEach(b => {
                         if (b && typeof b === 'object') {
-                            ensureEntityHasCausalMetadata(b, 'backlog', b.id, uid);
+                            processEntity(b, 'backlog', b.id);
                         }
                     });
                 }
                 if (Array.isArray(weeklyReports)) {
                     weeklyReports.forEach(r => {
                         if (r && typeof r === 'object') {
-                            ensureEntityHasCausalMetadata(r, 'weekly_reports', r.weekStartIso || r.id, uid);
+                            processEntity(r, 'weekly_reports', r.weekStartIso || r.id);
                         }
                     });
                 }
@@ -30916,11 +31214,12 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (Array.isArray(logs)) {
                     logs.forEach(l => {
                         if (l && typeof l === 'object') {
-                            ensureEntityHasCausalMetadata(l, 'logs', l.id || l.timestamp, uid);
+                            processEntity(l, 'logs', l.id || l.timestamp);
                         }
                     });
                 }
             }
+            return result;
         }
 
         // --- M2: Durable Causal Tombstone Management (Zero TTL / Zero Revision / Zero Budget Pruning) ---
@@ -32754,6 +33053,10 @@ function togglePdfAudioPlayerBar(forceState) {
             let hasDirty = false;
             const checkObj = (obj) => {
                 if (!obj || typeof obj !== 'object') return;
+                if (obj._needsCausalStamp === true || (!obj._causal && !obj.operationId)) {
+                    hasDirty = true;
+                    return;
+                }
                 const meta = (obj._causal && typeof obj._causal === 'object') ? obj._causal : (obj.operationId ? obj : null);
                 if (meta && !meta.legacyOpaque && (meta.dirty === true || meta.committedWorkspaceRevision === null)) {
                     hasDirty = true;
@@ -33297,13 +33600,41 @@ function togglePdfAudioPlayerBar(forceState) {
             let syncPromise = null;
             syncPromise = (async () => {
                 try {
+                    await Promise.resolve();
                     // Check if user changed during initialization
                     if (!opCtx.isCurrent()) {
                         return { status: 'aborted', reason: 'account_switched' };
                     }
 
                     if (typeof autoStampTrackedWorkspaceMutations === 'function') {
-                        autoStampTrackedWorkspaceMutations('all', syncUserId);
+                        let stampResult = null;
+                        try {
+                            stampResult = autoStampTrackedWorkspaceMutations('all', syncUserId);
+                        } catch (stampErr) {
+                            stampResult = {
+                                ok: false,
+                                domain: 'all',
+                                stampedCount: 0,
+                                unchangedCount: 0,
+                                failedCount: 1,
+                                errors: [{ entityType: 'all', entityId: 'domain', code: 'CAUSAL_STAMP_ERROR', message: String(stampErr && stampErr.message ? stampErr.message : stampErr) }]
+                            };
+                        }
+                        if (!stampResult || !stampResult.ok || stampResult.failedCount > 0) {
+                            try { localStorage.setItem('pharmaWorkspaceDirty', '1'); } catch (e) {}
+                            try { localStorage.setItem('pharmaWorkspaceDirty_' + syncUserId, '1'); } catch (e) {}
+                            updateCloudNavUI('offline');
+                            if (typeof notifyCausalStampingFailure === 'function') {
+                                notifyCausalStampingFailure('all', stampResult);
+                            }
+                            return {
+                                status: 'error',
+                                ok: false,
+                                error: 'CAUSAL_STAMP_FAILED',
+                                reason: 'CAUSAL_STAMP_FAILED',
+                                stampResult: stampResult
+                            };
+                        }
                     }
 
                     const mutationSeqAtStart = localWorkspaceMutationSeq;
@@ -35292,8 +35623,9 @@ function togglePdfAudioPlayerBar(forceState) {
             ev.missed = false;
             ev.completed = true;
             ev.completedMode = 'offline_confirmed';
+            ev._needsCausalStamp = true;
             if (typeof stampEntityMutation === 'function') {
-                stampEntityMutation(ev, 'events', ev.id);
+                try { stampEntityMutation(ev, 'events', ev.id); } catch (e) {}
             }
 
             // Remove the missed log entry if present and add completed entry
@@ -35306,8 +35638,9 @@ function togglePdfAudioPlayerBar(forceState) {
                 mood: 'bolt',
                 subjectId: ev.subjectId || ''
             };
+            newLogObj._needsCausalStamp = true;
             if (typeof stampEntityMutation === 'function') {
-                stampEntityMutation(newLogObj, 'logs', newLogObj.id);
+                try { stampEntityMutation(newLogObj, 'logs', newLogObj.id); } catch (e) {}
             }
             logs.unshift(newLogObj);
             saveLogs();
@@ -35722,12 +36055,18 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (ev.isFixed || ev.type === 'mandatory' || ev.completed) return;
                 if (isAutoRollover) {
                     ev.missed = true;
-                    if (typeof stampEntityMutation === 'function') stampEntityMutation(ev, 'events', ev.id);
+                    ev._needsCausalStamp = true;
+                    if (typeof stampEntityMutation === 'function') {
+                        try { stampEntityMutation(ev, 'events', ev.id); } catch (e) {}
+                    }
                 } else if (evaluatedDayIndices.has(Number(ev.day))) {
                     const dObj = orderedDays.find(d => Number(d.dayIdx) === Number(ev.day));
                     if (dObj && (dObj.isPastDay || (dObj.isToday && (nowDecH >= (Number(ev.startHour) + (Number(ev.duration) || 1)))))) {
                         ev.missed = true;
-                        if (typeof stampEntityMutation === 'function') stampEntityMutation(ev, 'events', ev.id);
+                        ev._needsCausalStamp = true;
+                        if (typeof stampEntityMutation === 'function') {
+                            try { stampEntityMutation(ev, 'events', ev.id); } catch (e) {}
+                        }
                     }
                 }
             });
@@ -35738,8 +36077,9 @@ function togglePdfAudioPlayerBar(forceState) {
                 report._causal = weeklyReports[existingIdx]._causal;
                 report._causalDigest = weeklyReports[existingIdx]._causalDigest;
             }
+            report._needsCausalStamp = true;
             if (typeof stampEntityMutation === 'function') {
-                stampEntityMutation(report, 'weekly_reports', report.weekStartIso || report.id);
+                try { stampEntityMutation(report, 'weekly_reports', report.weekStartIso || report.id); } catch (e) {}
             }
             if (existingIdx >= 0) {
                 weeklyReports[existingIdx] = report;
@@ -35756,8 +36096,9 @@ function togglePdfAudioPlayerBar(forceState) {
                 mood: 'weekly_report',
                 subjectId: ''
             };
+            summaryLogObj._needsCausalStamp = true;
             if (typeof stampEntityMutation === 'function') {
-                stampEntityMutation(summaryLogObj, 'logs', summaryLogObj.id);
+                try { stampEntityMutation(summaryLogObj, 'logs', summaryLogObj.id); } catch (e) {}
             }
             logs.unshift(summaryLogObj);
 
@@ -35773,7 +36114,10 @@ function togglePdfAudioPlayerBar(forceState) {
                 scheduleEvents.forEach(e => {
                     e.absent = false;
                     e.absentAtMs = null;
-                    if (typeof stampEntityMutation === 'function') stampEntityMutation(e, 'events', e.id);
+                    e._needsCausalStamp = true;
+                    if (typeof stampEntityMutation === 'function') {
+                        try { stampEntityMutation(e, 'events', e.id); } catch (err) {}
+                    }
                 });
                 plannerPrefs.currentWeekStartIso = newWeekIso;
             }
@@ -35787,14 +36131,19 @@ function togglePdfAudioPlayerBar(forceState) {
 
         function deleteWeeklyEvaluationReport(reportId, event) {
             if (event) event.stopPropagation();
+            if (currentCloudUser && typeof resolveAccountOperationContext === 'function') {
+                const opCtx = resolveAccountOperationContext(currentCloudUser.id);
+                if (!opCtx || !opCtx.ok || !opCtx.authorized) return;
+            }
             const targetRep = weeklyReports.find(r => String(r.id) === String(reportId) || String(r.weekStartIso) === String(reportId));
-            const primaryKey = targetRep ? (targetRep.weekStartIso || targetRep.id) : reportId;
+            if (!targetRep) return;
+            const primaryKey = targetRep.weekStartIso || targetRep.id || reportId;
             if (typeof recordTombstonesAtomicBatch === 'function') {
-                const batchItems = [{ entityType: 'weekly_reports', id: primaryKey, priorEntity: targetRep || null }];
-                if (targetRep && targetRep.id && String(targetRep.id) !== String(primaryKey)) {
+                const batchItems = [{ entityType: 'weekly_reports', id: primaryKey, priorEntity: targetRep }];
+                if (targetRep.id && String(targetRep.id) !== String(primaryKey)) {
                     batchItems.push({ entityType: 'weekly_reports', id: targetRep.id, priorEntity: targetRep });
                 }
-                if (targetRep && targetRep.weekStartIso && String(targetRep.weekStartIso) !== String(primaryKey)) {
+                if (targetRep.weekStartIso && String(targetRep.weekStartIso) !== String(primaryKey)) {
                     batchItems.push({ entityType: 'weekly_reports', id: targetRep.weekStartIso, priorEntity: targetRep });
                 }
                 const batchRes = recordTombstonesAtomicBatch(batchItems);
@@ -35803,7 +36152,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     return;
                 }
             } else if (typeof recordTombstone === 'function') {
-                const tRes = recordTombstone('weekly_reports', primaryKey, null, targetRep || null);
+                const tRes = recordTombstone('weekly_reports', primaryKey, null, targetRep);
                 if (!tRes) {
                     showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف التقرير حفاظاً على سلامة البيانات ⚠️', 'error');
                     return;
