@@ -48,7 +48,7 @@ No application source code (`index.html`, `server.js`, `sw.js`), test suites, pa
 7. **Verified Test Suite Filenames, Counts & Runtime Harnesses:**
    - Aligned all test plans with the actual repository suites (`54` static + `102` unit + `41` PGlite + `96` PG16 + `42` Chromium E2E = `335/335`) and actual dependencies (`express`, `@electric-sql/pglite`, `pg`, `playwright` — no `jsdom` or `fake-indexeddb`).
 8. **Product Policy (`Free` vs. `VIP`) & Read-Only Supabase Preflight (`dszjmgzzqpdrdjkycvht`):**
-   - Enforced the permanent `Free` vs. `VIP` contract (`GEMINI.md` Section 6), documented the four distinct media access tiers, recorded the Owner's decision that Annotated PDF Export is a Free capability and specified removal of only its two VIP UI locks while retaining VIP gates on designated premium tools, gated idle PDF annotation cloud sync on empirical measurements, and restricted Supabase preflight checks for `dszjmgzzqpdrdjkycvht` to read-only inspection without recommending blanket `supabase/schema.sql` execution.
+   - Enforced the permanent `Free` vs. `VIP` contract (`GEMINI.md` Section 6), documented the four distinct media access tiers, recorded the Owner's decisions that Annotated PDF Export and Extra Note Sheet (including multiple sheets) are Free capabilities, with legacy VIP locks to be removed only from those features while retaining VIP gates on separately designated premium tools, gated idle PDF annotation cloud sync on empirical measurements, and restricted Supabase preflight checks for `dszjmgzzqpdrdjkycvht` to read-only inspection without recommending blanket `supabase/schema.sql` execution.
 
 ---
 
@@ -87,7 +87,7 @@ To maintain strict traceability without altering `F-01`–`F-15`, additional sub
 | **`N-01`** | `F-02`, `F-04`, `F-14` | **Additional Un-Tombstoned Deletion & Page-Level Mutation Paths:**<br>1. `executeClearSchedule(mode)` (`index.html:15744–15758`) bulk-deletes `scheduleEvents` (`'completed'` or `'all'`) without recording `events` tombstones.<br>2. `deleteContinuousSubjectWirdLog(subId, logId)` (`index.html:12413–12420`) removes entries from `sub.wirdLogs` without recording a sub-entity tombstone (`wird_logs`).<br>3. `deleteOrHidePageFromLecture()` (`index.html:21643–21660`) and `restoreDeletedPage()` (`index.html:21662–21677`) mutate `annotations['__exo_excluded_pages__']` (`20560–20600`) without causal version metadata.<br>4. `clearExtraNotePage(pageNum)` (`index.html:25241–25253`) clears ink on extra note sheets (`extra_<id>`, lines `20512–20545`) without recording a page clear barrier.<br>5. `deleteAudioPin(event, pageNum, pinId)` (`index.html:25087–25095`) splices pins from `annotations['__exo_audio_pins__'][pageNum]` (`20670–20695`) without recording a pin tombstone. | `P2 Medium` | `WP-2` (`M2`) & `WP-4` (`M4`) |
 | **`N-02`** | `F-04`, `F-05` | **512-Sample Stride Blind Spot in `computeFastStringSignature(str)` (`index.html:29658–29668`):**<br>`computeFastStringSignature` samples at most 512 characters (`const step = Math.max(1, Math.floor(len / 512))`). For serialized annotation JSON exceeding `512` bytes (e.g., `50 KB`, where `step = 97`), an in-place modification of equal character length (such as changing a 7-char stroke color `#ef4444` to `#38bdf8` or editing a floating text note without changing string length) that falls between sampled indices produces the exact same signature (`currentSig === lastUploadedAnnotationsSignature` at `29769`), skipping cloud annotation upload when `dirtyAnnotationsForCloud` is false. | `P2 Medium` | `WP-5` (`M5`) |
 | **`N-03`** | `F-05` | **Open-Modal Cloud Sync Suppression vs. Local Flush Boundary (`index.html:20349–20355`, `29718–29723`):**<br>While `#pdfViewerModalOverlay` is open (`isPdfModalOpenNow === true` at `29718`), `pushWorkspaceToCloud()` suppresses `shouldSendAnnotations` (`29719–29723`) until `closePdfViewer()` (`25541`), `visibilitychange -> hidden` (`30284`), or manual force sync. Note: The source registers best-effort `pagehide` and `beforeunload` callbacks that attempt `flushPendingAnnotationsSave(false)` at `index.html:20349–20355`; these callbacks are not a hard durability guarantee. Normal writes must await successful IndexedDB transactions. Whether to add a long-interval idle cloud flush while PDF Studio remains open requires empirical payload and RPC latency measurement before implementation. | `P2 Medium (Measurement-Gated)` | `WP-5` (`M5` — Measurement-Gated) |
-| **`N-04`** | `GEMINI.md §6` (Free vs. VIP Policy) | **Annotated PDF Export Has an Inconsistent VIP UI Lock:**<br>`exportAnnotatedSlides()` (`25360–25539`) is Free and has no VIP guard, consistent with the Owner's decision. The toolbar button `#pdfToolbarExportPdfBtn` (`7533`) and mobile menu button `#pdfMenuExportPdfBtn` (`7580`) are nevertheless given VIP lock styling by `syncExtraNoteButtonsLockUI()` (`25124–25139`). The mismatch is a UI entitlement defect, not a reason to gate the export function. | `Owner Decision: FREE` | `WP-9` / UI-only correction: remove these two export buttons from the VIP lock list; add Free-user E2E coverage. Do not change `exportAnnotatedSlides()` or gate core annotation persistence. |
+| **`N-04`** | `GEMINI.md §6` (Free vs. VIP Policy) | **Legacy VIP Gating Conflicts With Owner-Approved Free PDF Export and Extra Note Sheets:**<br>`exportAnnotatedSlides()` (`25360–25539`) has no VIP guard, but its toolbar/mobile buttons receive legacy VIP lock styling in `syncExtraNoteButtonsLockUI()` (`25124–25139`). The additional Extra Note Sheet flow (including `toggleExtraNoteForPage` / `addExtraNotePageFromToolbar`) is also incorrectly treated as VIP-only by legacy UI/feature gates. The Owner has explicitly confirmed both Annotated PDF Export and Extra Note Sheet are Free, and users may create multiple Extra Note Sheets. | `Owner Decision: FREE` | `WP-9` / Separate UI-entitlement correction: remove VIP restrictions only from Annotated PDF Export and Extra Note Sheet creation/access; preserve multiple sheet records in local/cloud sync and backup/export. Add Free-user E2E coverage for export plus creation/use of at least two sheets. Keep unrelated premium tools VIP-gated. |
 
 ---
 
@@ -613,45 +613,54 @@ All new Phase 5.1 tests will be added directly to the existing test files (`test
 
 ### H.1 Permanent `Free` vs. `VIP` Entitlement Boundary (`GEMINI.md` Section 6)
 
-Phase 5.1 preserves the owner-approved product policy:
+Phase 5.1 preserves the Owner's explicit product decisions:
 
 - **Free baseline capabilities (never gated by `can_upload_media`):**
   - Core management of subjects, groups, lectures, study schedule, backlog, logs, and other core workspace entities.
   - Local persistence and core Supabase synchronization of workspace metadata and annotations for authenticated users when the backend is configured and the request succeeds.
-  - Handwritten ink on regular lecture pages, floating text notes, blank note pages through the separate Free `addBlankNotePageToLecture` path, and audio pins on locally available PDFs.
-  - Tier A backup/export and recovery of the user's workspace and stored annotation data. Backup protection must not be withheld because a stored item was created while the account had VIP.
-- **VIP-only features:** Google Drive media upload/management and explicitly designated premium academic tools. The additional extra-note-sheet/margin-summary workflow (for example, `toggleExtraNoteForPage`) remains VIP-gated. Do not confuse it with the separate Free blank-note-page flow.
-- **Data preservation on entitlement change:** Revoking `can_upload_media` must not delete existing notes, annotations, or workspace data. Whether an existing VIP-only sheet remains editable after revocation is a product decision; do not invent new access behavior in a storage/sync milestone.
+  - Handwritten ink on regular lecture pages, floating text notes, blank note pages through `addBlankNotePageToLecture`, and audio pins on locally available PDFs.
+  - **Annotated PDF Export** through `exportAnnotatedSlides()` for Free and VIP users.
+  - **Extra Note Sheet** through its existing creation/use flow for Free and VIP users. A user may create multiple Extra Note Sheets; do not impose a VIP gate or invent an entitlement-based count limit.
+  - Tier A backup/export and recovery of the user's workspace and stored annotation data, including every Extra Note Sheet and its annotations. Backup protection must not depend on the current or historical VIP entitlement of the account.
+- **VIP-only features:** Google Drive media upload/management and other premium academic tools explicitly designated by the Owner. Extra Note Sheet and Annotated PDF Export are expressly excluded from VIP gating.
+- **Data preservation on entitlement change:** Changes to `can_upload_media` must not delete, hide, or make inaccessible existing Extra Note Sheets, annotations, or workspace data. The Free/VIP entitlement must not change the user's ability to read, create, edit, sync, back up, or export Extra Note Sheets.
 - **Manual entitlement:** The owner manually changes `public.user_workspaces.can_upload_media` between FALSE and TRUE. Do not create a subscription table, payment flow, billing timer, expiration process, or automated WhatsApp activation.
 
 ### H.2 Four-Way Media Access & Permission Matrix (`GEMINI.md` Section 7)
 
 | Media State | How It Is Identified in `index.html` | Who Can Open / Play / Annotate It? | Phase 5.1 Rules & Constraints |
 | :--- | :--- | :--- | :--- |
-| **1. Local IndexedDB Media (`pdfs` / `audios` blob present locally)** | `localMediaStatusCache.pdfs.has(String(lec.id))` or `getMediaFromDB('pdfs', lec.id)` returns a `Blob`. | Any account on that local app installation that is authorized to access the active workspace may use core PDF Studio ink and audio pins while the local blob exists. The VIP extra-note-sheet workflow remains separately gated. | Deleting a lecture in M2 may clean account-scoped local IndexedDB records including primary/secondary audio and annotations. This does not delete a remote Google Drive file. |
+| **1. Local IndexedDB Media (`pdfs` / `audios` blob present locally)** | `localMediaStatusCache.pdfs.has(String(lec.id))` or `getMediaFromDB('pdfs', lec.id)` returns a `Blob`. | Any account authorized to access the active workspace may use core PDF Studio ink, audio pins, and Extra Note Sheets while the local blob exists. Free users may create and use multiple Extra Note Sheets. | Deleting a lecture in M2 may clean account-scoped local IndexedDB records including primary/secondary audio and annotations. This does not delete a remote Google Drive file. |
 | **2. Public / External Direct URL (`externalUrl`)** | `lec.pdfUrl` / `lec.driveUrl` points to an external URL or a file explicitly shared outside Exo. | Access follows the external service's own URL and sharing permissions. | Exo must not convert a private file into an `anyone` link as a default behavior. |
 | **3. Private Google Drive File (`cloudDriveFileId` / `driveId` in `Exo_Workspace`)** | Created with private-by-default permissions in the verified upload path. | Requires a valid Google OAuth token for a Google account that has permission to read that specific Drive file. Free entitlement does not grant Drive permission. | Never claim that Free users or another Google account can open a private file without the relevant Google Drive ACL. OAuth refresh and interactive 401 UX remain deferred to Phase 5.2. |
 | **4. Uploading / Managing Cloud Media in Google Drive** | `uploadMediaToCloudAccount` / bulk upload orchestration checks the server-authoritative VIP entitlement. | VIP only when `public.user_workspaces.can_upload_media = true`; the owner controls that value manually. | Do not make core Workspace or annotation persistence depend on this flag. Keep uploads private by default and remote deletion out of Phase 5.1. |
 
-### H.3 Owner Decision Recorded — Annotated PDF Export Is Free (`N-04`)
+### H.3 Owner Decisions Recorded — Annotated PDF Export and Extra Note Sheets Are Free (`N-04`)
 
 <badge color="success">Owner decision: FREE</badge>
 
-The Owner has decided that Annotated PDF Export remains available to Free and VIP users. The feature exports a portable/printable copy of work the user created; it is a convenience and portability capability, not a premium academic tool. The canonical annotation data remains stored through Exo's normal persistence paths, and the ability to export a copy should not be used as an entitlement gate over the user's own notes.
+The Owner has explicitly decided that **both Annotated PDF Export and Extra Note Sheet are free capabilities** for Free and VIP users. The user may create **multiple Extra Note Sheets**; the VIP entitlement flag must not restrict sheet creation, use, editing, local/cloud persistence, backup, restore, or export. No numeric cap is defined by this policy; do not invent a VIP-based count limit.
 
-**Evidence in the current source baseline:**
-1. `exportAnnotatedSlides()` (`index.html:25360–25539`) has no `canCurrentUserUploadMedia()` guard, and its source comment explicitly says it is Free for all accounts.
-2. The toolbar button `#pdfToolbarExportPdfBtn` and mobile menu button `#pdfMenuExportPdfBtn` bind to `exportAnnotatedSlides()`.
-3. `syncExtraNoteButtonsLockUI()` (`index.html:25124–25139`) nevertheless includes both export buttons in the VIP lock loop. That styling is inconsistent with the selected product policy.
+**Why these capabilities are Free:**
+- Annotated PDF Export gives users a portable/printable copy of work they created.
+- Extra Note Sheets let users continue writing their own notes alongside lecture materials. Charging for the ability to create additional note sheets would gate a core note-taking workflow rather than a distinct premium academic service.
+- Existing user-created notes remain the user's data and must remain accessible when VIP entitlement is granted or revoked.
+
+**Known source/UI inconsistencies to resolve in a separately approved implementation task:**
+1. `exportAnnotatedSlides()` (`index.html:25360–25539`) has no VIP guard, but `syncExtraNoteButtonsLockUI()` (`25124–25139`) applies a legacy VIP lock to `#pdfToolbarExportPdfBtn` and `#pdfMenuExportPdfBtn`.
+2. The Extra Note Sheet workflow (including `toggleExtraNoteForPage` and `addExtraNotePageFromToolbar`) has legacy VIP gating. Implementation must trace every UI lock, click handler, and function-level entitlement check before changing it; remove VIP restrictions only for Extra Note Sheet create/use/edit flows, not unrelated premium tools.
+3. Ensure the data model, page identifiers, arrays, and serialization preserve multiple distinct Extra Note Sheets without overwriting an earlier sheet when a second or third sheet is created.
+4. Ensure account-scoped local storage, IndexedDB, Supabase workspace payloads, cloud merge, and Tier A backup/restore preserve all Extra Note Sheets and their annotations.
 
 **Authorized product-policy resolution (documentation decision only):**
 - Keep `exportAnnotatedSlides()` available to Free and VIP. Do not add a VIP guard to the function.
-- In a separately approved source implementation task, remove only `pdfToolbarExportPdfBtn` and `pdfMenuExportPdfBtn` from the VIP lock list in `syncExtraNoteButtonsLockUI()`; retain their normal click handlers.
-- Keep the distinct VIP gate on the additional Extra Note Sheet / margin-summary workflow (for example `toggleExtraNoteForPage` / `addExtraNotePageFromToolbar`) and any other explicitly designated premium academic tools.
-- Do not alter annotation persistence, backup/restore, cloud sync, or stored note data as part of this UI correction.
-- Add a regression test proving a Free user sees no VIP lock/tooltip on either Annotated PDF Export button and can invoke the export. Also assert VIP-only Extra Note Sheet creation remains locked for Free users and available to VIP users.
+- In a separately approved source implementation task, remove its two export buttons from the VIP lock list; retain their normal click handlers.
+- Make Extra Note Sheet available to Free and VIP and allow multiple sheets. Remove VIP guards only from the Extra Note Sheet workflow, after inspecting all relevant create/use/edit UI and function checks.
+- Preserve the separate product decision for any genuinely distinct premium feature; do not infer that every margin-summary or premium academic tool becomes free unless it is part of Extra Note Sheet itself.
+- Do not alter unrelated premium gates, Google Drive VIP media upload, annotation ownership/security, or the core data isolation model.
+- Add Free-user regression tests proving export and creation/use of at least two Extra Note Sheets, plus VIP regression coverage confirming Google Drive upload restrictions and unrelated premium gates remain intact.
 
-This records the owner's product decision only. It does **not** approve Phase 5.1 implementation, authorize a source-code change in this commit, or resolve any other open milestone gate.
+This records the Owner's product decisions only. It does **not** approve Phase 5.1 implementation, authorize a source-code change in this documentation commit, or resolve any other open milestone gate.
 
 ### H.4 Measurement-Gated Decision Criteria for Open-Modal Idle Cloud Annotation Sync (`N-03`, `F-05`)
 
