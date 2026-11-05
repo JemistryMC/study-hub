@@ -1142,6 +1142,224 @@ async function main() {
            'Test P.2 (T-5.1-03): Brand-new cloud account login preserves pre-login academy_progress ["mod_1", "mod_2"] in memory, localStorage, and initial cloud push',
            JSON.stringify(resP.debugP2));
 
+    // =========================================================================
+    // TEST Q: M1 CORRECTIVE PASS (T-M1-C01 Direct A->B Switch, T-M1-C02 Snapshot Write Failure, T-M1-C03 Missing Remote Annotations)
+    // =========================================================================
+    console.log('\n--- TEST Q: M1 Corrective Pass (T-M1-C01, T-M1-C02, T-M1-C03 in Real Chromium + IndexedDB) ---');
+    const resQ = await page.evaluate(async () => {
+      await initPdfDB();
+
+      // 1. T-M1-C01: Direct Account A -> Account B switch without handleCloudSignOut()
+      const uidA = 'user-c01-e2e-a';
+      const uidB1 = 'user-c01-e2e-b1';
+      const uidB2 = 'user-c01-e2e-b2';
+      currentCloudUser = { id: uidA, email: 'a@exo.edu', name: 'User A' };
+      currentUserCanUploadMedia = true;
+      plannerPrefs = { weekStartDay: 1, dayStartHour: 8, dayEndHour: 22, autoCompletePct: 90, currentWeekStartIso: '2026-11-02' };
+      localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
+      currentPdfFitMode = 'width';
+      localStorage.setItem('pharmaPdfFitMode', 'width');
+      googleAccessToken = 'token-user-a-e2e';
+      googleTokenExpiry = Date.now() + 3600000;
+      gdriveSubfolderCache.clear();
+      gdriveSubfolderCache.set('sub1', 'folder_sub_a');
+      localStorage.setItem('exo_gdrive_token', 'token-user-a-e2e');
+      localStorage.setItem('exo_gdrive_token_exp', String(googleTokenExpiry));
+      localStorage.setItem('exo_gdrive_connected', '1');
+      localStorage.setItem('exo_gdrive_folder_id', 'folder_a_e2e');
+      localStorage.setItem('exo_gdrive_user_email', 'a@gmail.com');
+      localStorage.setItem('exo_gdrive_quota_info', '500MB / 15GB');
+      localStorage.setItem('exo_gdrive_bound_user_id', uidA);
+      localStorage.setItem(`pharmaGdriveSync_${uidA}`, JSON.stringify({ linked: true, folderId: 'folder_a_e2e', userEmail: 'a@gmail.com', quotaInfo: '500MB / 15GB' }));
+      localStorage.setItem(`pharmaAccountWorkspace_${uidA}`, JSON.stringify({ user_id: uidA, subjects: [{ id: 1, name: 'Sub A' }] }));
+
+      supabaseClient = {
+        from: () => ({
+          select: () => ({
+            eq: (_col, val) => ({
+              maybeSingle: async () => {
+                if (val === uidB1) {
+                  return { data: { user_id: uidB1, can_upload_media: false, revision: 1, subjects: [{ id: 2, name: 'Sub B1' }] }, error: null };
+                }
+                if (val === uidB2) {
+                  return {
+                    data: {
+                      user_id: uidB2,
+                      can_upload_media: true,
+                      revision: 2,
+                      subjects: [{ id: 3, name: 'Sub B2' }],
+                      schedule: {
+                        events: [],
+                        backlog: [],
+                        weeklyReports: [],
+                        plannerPrefs: { weekStartDay: 2, dayStartHour: 7, dayEndHour: 21, autoCompletePct: 85, currentWeekStartIso: '2026-11-03' },
+                        pdfFitMode: 'page'
+                      }
+                    },
+                    error: null
+                  };
+                }
+                return { data: null, error: null };
+              }
+            })
+          })
+        }),
+        rpc: async () => ({ data: { status: 'success', revision: 1 }, error: null }),
+        auth: { signOut: async () => {} }
+      };
+
+      // Case 1: Direct A -> B1 (no saved prefs/Drive)
+      await handleAuthSessionChange({ id: uidB1, email: 'b1@exo.edu', name: 'User B1' }, true);
+      const case1Passed = (
+        currentCloudUser && currentCloudUser.id === uidB1 &&
+        currentUserCanUploadMedia === false &&
+        plannerPrefs.weekStartDay === 6 && plannerPrefs.dayStartHour === 6 && plannerPrefs.dayEndHour === 23 && plannerPrefs.autoCompletePct === 75 &&
+        JSON.parse(localStorage.getItem('pharmaPlannerPrefsV1')).weekStartDay === 6 &&
+        currentPdfFitMode === 'height' && localStorage.getItem('pharmaPdfFitMode') === 'height' &&
+        googleAccessToken === null && googleTokenExpiry === 0 && gdriveSubfolderCache.size === 0 &&
+        localStorage.getItem('exo_gdrive_token') === null &&
+        localStorage.getItem('exo_gdrive_connected') === null &&
+        localStorage.getItem('exo_gdrive_folder_id') === null &&
+        localStorage.getItem('exo_gdrive_user_email') === null &&
+        localStorage.getItem('exo_gdrive_quota_info') === null &&
+        localStorage.getItem('exo_gdrive_bound_user_id') === null &&
+        isGoogleDriveTokenActive() === false &&
+        isGoogleDriveAccountLinked() === false &&
+        isGoogleDriveConnected() === false &&
+        localStorage.getItem(`pharmaGdriveSync_${uidA}`) !== null &&
+        localStorage.getItem(`pharmaAccountWorkspace_${uidA}`) !== null
+      );
+
+      // Case 2: Re-seed A's globals, seed B2's Drive metadata, direct switch to B2
+      plannerPrefs = { weekStartDay: 1, dayStartHour: 8, dayEndHour: 22, autoCompletePct: 90, currentWeekStartIso: '2026-11-02' };
+      currentPdfFitMode = 'width';
+      googleAccessToken = 'token-user-a-e2e-2';
+      googleTokenExpiry = Date.now() + 3600000;
+      localStorage.setItem('exo_gdrive_token', 'token-user-a-e2e-2');
+      localStorage.setItem('exo_gdrive_bound_user_id', uidA);
+      localStorage.setItem(`pharmaGdriveSync_${uidB2}`, JSON.stringify({
+        linked: true,
+        folderId: 'folder_b2_e2e',
+        userEmail: 'b2@gmail.com',
+        quotaInfo: '100MB / 15GB'
+      }));
+
+      await handleAuthSessionChange({ id: uidB2, email: 'b2@exo.edu', name: 'User B2' }, true);
+      const case2Passed = (
+        currentCloudUser && currentCloudUser.id === uidB2 &&
+        currentUserCanUploadMedia === true &&
+        plannerPrefs.weekStartDay === 2 && plannerPrefs.autoCompletePct === 85 &&
+        currentPdfFitMode === 'page' && localStorage.getItem('pharmaPdfFitMode') === 'page' &&
+        googleAccessToken === null && localStorage.getItem('exo_gdrive_token') === null &&
+        localStorage.getItem('exo_gdrive_connected') === '1' &&
+        localStorage.getItem('exo_gdrive_folder_id') === 'folder_b2_e2e' &&
+        localStorage.getItem('exo_gdrive_user_email') === 'b2@gmail.com' &&
+        localStorage.getItem('exo_gdrive_bound_user_id') === uidB2 &&
+        isGoogleDriveTokenActive() === false &&
+        isGoogleDriveAccountLinked() === true &&
+        isGoogleDriveConnected() === true
+      );
+
+      // 2. T-M1-C02 & T-M1-C03: Missing remote annotations + Snapshot write failure during conflict merge
+      const uidC = 'user-c02-c03-e2e';
+      await handleAuthSessionChange({ id: uidC, email: 'c@exo.edu', name: 'User C' }, false);
+      const opCtxC = createAccountOperationContext(uidC);
+      await restoreAllAnnotationsMapToDB({
+        lec_e2e_c03: {
+          '1': [{ id: 's_e2e_1', tool: 'pen', color: '#10b981', size: 2, points: [[10, 10], [20, 20]] }]
+        }
+      }, uidC, opCtxC);
+
+      subjects = [{ id: 10, name: 'Local C Sub', _updatedAt: 2000, groups: [], lectures: [] }];
+      const localPayloadC = {
+        user_id: uidC,
+        user_email: 'c@exo.edu',
+        subjects: [{ id: 10, name: 'Local C Sub', _updatedAt: 2000, groups: [], lectures: [] }],
+        schedule: { version: 3, events: [], backlog: [], weeklyReports: [] },
+        logs: [],
+        academy_progress: []
+      };
+      const remoteRowNoAnnos = {
+        user_id: uidC,
+        revision: 5,
+        subjects: [{ id: 20, name: 'Remote C Sub', _updatedAt: 3000, groups: [], lectures: [] }],
+        schedule: { events: [], backlog: [], weeklyReports: [] },
+        logs: [],
+        academy_progress: ['mod_c_1']
+        // Notice: NO annotations property on remoteRowNoAnnos!
+      };
+
+      // Simulate quota failure ONLY for pharmaAccountWorkspace_<uidC>
+      const origSetItem = Storage.prototype.setItem;
+      const targetSnapKey = getAccountBackupStorageKey(uidC);
+      let failTargetSnap = true;
+      Storage.prototype.setItem = function(k, v) {
+        if (failTargetSnap && String(k) === targetSnapKey) {
+          throw new DOMException('Simulated QuotaExceededError on account snapshot', 'QuotaExceededError');
+        }
+        return origSetItem.call(this, k, v);
+      };
+
+      let c02Res = null;
+      try {
+        c02Res = await mergeAndApplyCloudConflict(remoteRowNoAnnos, localPayloadC, opCtxC);
+      } finally {
+        failTargetSnap = false;
+        Storage.prototype.setItem = origSetItem;
+      }
+
+      const c02Passed = (
+        c02Res &&
+        c02Res.ok === false &&
+        c02Res.reason === 'account_snapshot_write_failed' &&
+        localStorage.getItem('pharmaWorkspaceDirty') === '1' &&
+        localStorage.getItem(`pharmaWorkspaceDirty_${uidC}`) === '1' &&
+        dirtyAnnotationsForCloud === true &&
+        Array.isArray(subjects) && subjects.length === 2
+      );
+
+      // Now run mergeAndApplyCloudConflict again without storage failure (verifies both C02 recovery and C03 annotation preservation)
+      const c03Res = await mergeAndApplyCloudConflict(remoteRowNoAnnos, localPayloadC, opCtxC);
+      const savedSnapC = JSON.parse(localStorage.getItem(targetSnapKey) || 'null');
+      const idbAnnosAfter = await getAllAnnotationsMapFromDB(uidC, opCtxC);
+      const c03Passed = (
+        c03Res &&
+        c03Res.ok === true &&
+        savedSnapC &&
+        savedSnapC.annotations &&
+        savedSnapC.annotations.lec_e2e_c03 &&
+        Array.isArray(savedSnapC.annotations.lec_e2e_c03['1']) &&
+        savedSnapC.annotations.lec_e2e_c03['1'].length === 1 &&
+        savedSnapC.annotations.lec_e2e_c03['1'][0].id === 's_e2e_1' &&
+        idbAnnosAfter.ok === true &&
+        idbAnnosAfter.verifiedMap &&
+        idbAnnosAfter.verifiedMap.lec_e2e_c03 &&
+        idbAnnosAfter.verifiedMap.lec_e2e_c03['1'][0].id === 's_e2e_1'
+      );
+
+      supabaseClient = null;
+      return {
+        case1Passed,
+        case2Passed,
+        c02Passed,
+        c03Passed,
+        debug: { c02Res, c03Res, hasSnapAnnos: Boolean(savedSnapC?.annotations?.lec_e2e_c03) }
+      };
+    });
+
+    assert(resQ.case1Passed === true,
+           'Test Q.1 (T-M1-C01 Case 1): Direct A->B switch without handleCloudSignOut() resets plannerPrefs, currentPdfFitMode, Drive tokens/globals, and VIP while preserving A vault/Drive sync keys',
+           JSON.stringify(resQ.debug));
+    assert(resQ.case2Passed === true,
+           'Test Q.2 (T-M1-C01 Case 2): Direct A->B switch without handleCloudSignOut() restores B saved plannerPrefs, pdfFitMode, and Drive metadata without leaking A live OAuth token',
+           JSON.stringify(resQ.debug));
+    assert(resQ.c02Passed === true,
+           'Test Q.3 (T-M1-C02): Snapshot write failure during conflict merge returns { ok: false, reason: "account_snapshot_write_failed" }, keeps dirty flags set, and cancels retry timer',
+           JSON.stringify(resQ.debug));
+    assert(resQ.c03Passed === true,
+           'Test Q.4 (T-M1-C03): Conflict merge with missing remoteRow.annotations preserves real IndexedDB annotations in both IndexedDB and pharmaAccountWorkspace_<uid>',
+           JSON.stringify(resQ.debug));
+
     await context.close();
   } finally {
     await browser.close();
@@ -1157,7 +1375,7 @@ async function main() {
   if (testsFailed > 0) {
     process.exit(1);
   } else {
-    console.log('ALL 14 MANDATORY CHROMIUM + INDEXEDDB E2E SCENARIOS (A - N) PASSED (100%).');
+    console.log('ALL 16 MANDATORY CHROMIUM + INDEXEDDB E2E SCENARIOS (A - Q) PASSED (100%).');
     process.exit(0);
   }
 }

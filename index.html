@@ -26223,9 +26223,18 @@ function togglePdfAudioPlayerBar(forceState) {
 
         async function handleAuthSessionChange(userObj, shouldInitialSync = false) {
             const prevUser = currentCloudUser;
-            const prevUid = prevUser && prevUser.id ? String(prevUser.id) : getCanonicalUserId();
+            const lastRecordedUid = localStorage.getItem('pharmaLastActiveCloudUid')
+                || localStorage.getItem('pharmaLastActiveUserIdV1')
+                || localStorage.getItem('exo_gdrive_bound_user_id')
+                || '';
+            const prevUid = (prevUser && prevUser.id)
+                ? String(prevUser.id)
+                : (lastRecordedUid ? String(lastRecordedUid) : getCanonicalUserId());
             const nextUid = userObj && userObj.id ? String(userObj.id) : 'local';
             const isAccountChanging = (prevUid !== nextUid) || (Boolean(prevUser) !== Boolean(userObj));
+            const isSwitchingDifferentCloudUser = Boolean(
+                userObj && userObj.id && prevUid && prevUid !== 'local' && prevUid !== nextUid
+            );
 
             // P1 Safety: Never drop pendingAnnoSaveMap on session change!
             // Flush pending annotations under the previous account context first; if flush fails, isolate them per-UID.
@@ -26251,9 +26260,121 @@ function togglePdfAudioPlayerBar(forceState) {
                 }
             }
 
+            if (isSwitchingDifferentCloudUser) {
+                if (!localStorage.getItem('pharmaLastActiveCloudUid')) {
+                    localStorage.setItem('pharmaLastActiveCloudUid', prevUid);
+                    localStorage.setItem('pharmaLastActiveUserIdV1', prevUid);
+                }
+                // Preserve previous account's Drive config in its account-scoped vault if not already stored
+                try {
+                    const boundGdrive = localStorage.getItem('exo_gdrive_bound_user_id');
+                    if ((!boundGdrive || String(boundGdrive) === prevUid) &&
+                        localStorage.getItem('exo_gdrive_connected') === '1' &&
+                        localStorage.getItem('exo_gdrive_user_email') &&
+                        !localStorage.getItem('pharmaGdriveSync_' + prevUid)) {
+                        localStorage.setItem('pharmaGdriveSync_' + prevUid, JSON.stringify({
+                            linked: true,
+                            userEmail: localStorage.getItem('exo_gdrive_user_email') || '',
+                            folderId: localStorage.getItem('exo_gdrive_folder_id') || '',
+                            quotaInfo: localStorage.getItem('exo_gdrive_quota_info') || ''
+                        }));
+                    }
+                } catch (e) {}
+                // Preserve previous account's workspace snapshot if not already stored
+                try {
+                    const prevAccountKey = getAccountBackupStorageKey(prevUid);
+                    if (!localStorage.getItem(prevAccountKey) &&
+                        ((Array.isArray(subjects) && subjects.length > 0) ||
+                         (Array.isArray(scheduleEvents) && scheduleEvents.length > 0) ||
+                         (Array.isArray(scheduleBacklog) && scheduleBacklog.length > 0) ||
+                         (Array.isArray(weeklyReports) && weeklyReports.length > 0) ||
+                         (Array.isArray(logs) && logs.length > 0) ||
+                         Object.keys(cloudMediaRegistry || {}).length > 0 ||
+                         currentPdfFitMode !== 'height')) {
+                        const boundGdrive = localStorage.getItem('exo_gdrive_bound_user_id');
+                        const isPrevGdrive = !boundGdrive || String(boundGdrive) === prevUid;
+                        localStorage.setItem(prevAccountKey, JSON.stringify({
+                            user_id: prevUid,
+                            user_email: String(prevUser?.email || '').toLowerCase(),
+                            subjects: subjects || [],
+                            schedule: {
+                                version: 3,
+                                events: scheduleEvents || [],
+                                backlog: scheduleBacklog || [],
+                                plannerPrefs: plannerPrefs,
+                                weeklyReports: weeklyReports || [],
+                                pdfFitMode: currentPdfFitMode || 'height',
+                                cloudMediaRegistry: cloudMediaRegistry || {},
+                                _tombstones: getLocalTombstones(prevUid),
+                                gdriveSync: {
+                                    linked: isPrevGdrive && Boolean(localStorage.getItem('exo_gdrive_connected') === '1'),
+                                    userEmail: isPrevGdrive ? (localStorage.getItem('exo_gdrive_user_email') || '') : '',
+                                    folderId: isPrevGdrive ? (localStorage.getItem('exo_gdrive_folder_id') || '') : '',
+                                    quotaInfo: isPrevGdrive ? (localStorage.getItem('exo_gdrive_quota_info') || '') : ''
+                                }
+                            },
+                            logs: logs || [],
+                            academy_progress: completedAcademyModules || [],
+                            annotations: {},
+                            revision: Number(localStorage.getItem('pharmaWorkspaceRevision_' + prevUid) || 1),
+                            dirty: Boolean(localStorage.getItem('pharmaWorkspaceDirty') === '1' || localStorage.getItem('pharmaWorkspaceDirty_' + prevUid) === '1'),
+                            updated_at: new Date().toISOString()
+                        }));
+                    }
+                } catch (e) {}
+            }
+
             // Bump session generation epoch whenever account identity changes
             if (isAccountChanging) {
+                if (cloudAutoSaveTimer) {
+                    clearTimeout(cloudAutoSaveTimer);
+                    cloudAutoSaveTimer = null;
+                }
                 bumpAccountSessionGeneration();
+                currentUserCanUploadMedia = false;
+                googleAccessToken = null;
+                googleTokenExpiry = 0;
+                pendingGoogleTokenPromise = null;
+                if (typeof gdriveSubfolderCache !== 'undefined' && gdriveSubfolderCache && typeof gdriveSubfolderCache.clear === 'function') {
+                    gdriveSubfolderCache.clear();
+                }
+                localStorage.removeItem('exo_gdrive_token');
+                localStorage.removeItem('exo_gdrive_token_exp');
+                localStorage.removeItem('exo_gdrive_connected');
+                localStorage.removeItem('exo_gdrive_folder_id');
+                localStorage.removeItem('exo_gdrive_user_email');
+                localStorage.removeItem('exo_gdrive_quota_info');
+                localStorage.removeItem('exo_gdrive_bound_user_id');
+
+                if (isSwitchingDifferentCloudUser) {
+                    plannerPrefs = {
+                        weekStartDay: 6,
+                        dayStartHour: 6,
+                        dayEndHour: 23,
+                        autoCompletePct: 75,
+                        currentWeekStartIso: getLocalIsoDate(getWeekStartDateForDate(new Date(), 6))
+                    };
+                    localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
+                    currentPdfFitMode = 'height';
+                    localStorage.setItem('pharmaPdfFitMode', 'height');
+                    subjects = [];
+                    scheduleEvents = [];
+                    scheduleBacklog = [];
+                    weeklyReports = [];
+                    logs = [];
+                    completedAcademyModules = [];
+                    cloudMediaRegistry = {};
+                    dirtyAnnotationsForCloud = false;
+                    lastUploadedAnnotationsSignature = '';
+                    localStorage.setItem('pharmaSubjectsV4', '[]');
+                    localStorage.setItem('pharmaWeeklyReportsV1', '[]');
+                    localStorage.setItem('pharmaScheduleV4', JSON.stringify({ version: 3, events: [], backlog: [], plannerPrefs: plannerPrefs, weeklyReports: [] }));
+                    localStorage.setItem('pharmaScheduleBacklogV1', '[]');
+                    localStorage.setItem('pharmaLogsV4', '[]');
+                    localStorage.setItem('pharmaAcademyProgressV1', '[]');
+                    localStorage.setItem('pharmaCloudMediaRegistryV1', '{}');
+                    localStorage.removeItem('pharmaWorkspaceDirty');
+                }
             }
 
             currentCloudUser = userObj || null;
@@ -26300,7 +26421,9 @@ function togglePdfAudioPlayerBar(forceState) {
                             localStorage.setItem('exo_gdrive_connected', '1');
                             localStorage.setItem('exo_gdrive_user_email', uVault.userEmail);
                             if (uVault.folderId) localStorage.setItem('exo_gdrive_folder_id', uVault.folderId);
+                            else localStorage.removeItem('exo_gdrive_folder_id');
                             if (uVault.quotaInfo) localStorage.setItem('exo_gdrive_quota_info', uVault.quotaInfo);
+                            else localStorage.removeItem('exo_gdrive_quota_info');
                             localStorage.setItem('exo_gdrive_bound_user_id', activeCtx.uid);
                         }
                     }
@@ -27457,6 +27580,10 @@ function togglePdfAudioPlayerBar(forceState) {
         let pendingGoogleTokenPromise = null;
 
         function isGoogleDriveTokenActive() {
+            if (currentCloudUser) {
+                const boundUser = localStorage.getItem('exo_gdrive_bound_user_id');
+                if (boundUser && String(boundUser) !== String(currentCloudUser.id)) return false;
+            }
             return Boolean(googleAccessToken && Date.now() < googleTokenExpiry);
         }
 
@@ -27572,7 +27699,7 @@ function togglePdfAudioPlayerBar(forceState) {
         function isGoogleDriveAccountLinked() {
             if (!currentCloudUser || !currentUserCanUploadMedia) return false;
             const boundUser = localStorage.getItem('exo_gdrive_bound_user_id');
-            if (boundUser && boundUser !== currentCloudUser.id) return false;
+            if (boundUser && String(boundUser) !== String(currentCloudUser.id)) return false;
             return localStorage.getItem('exo_gdrive_connected') === '1' && Boolean(localStorage.getItem('exo_gdrive_user_email'));
         }
 
@@ -27612,6 +27739,8 @@ function togglePdfAudioPlayerBar(forceState) {
 
         function isGoogleDriveConnected() {
             if (!currentCloudUser || !currentUserCanUploadMedia) return false;
+            const boundUser = localStorage.getItem('exo_gdrive_bound_user_id');
+            if (boundUser && String(boundUser) !== String(currentCloudUser.id)) return false;
             return localStorage.getItem('exo_gdrive_connected') === '1' && Boolean(localStorage.getItem('exo_gdrive_user_email'));
         }
 
@@ -27852,9 +27981,11 @@ function togglePdfAudioPlayerBar(forceState) {
             if (btnSwitch) btnSwitch.style.display = 'none'; // Completely removed as requested
             const infoEl = document.getElementById('gdriveAccountInfo');
             const isVip = Boolean(currentCloudUser && currentUserCanUploadMedia);
-            const isLinked = isGoogleDriveAccountLinked() || Boolean(localStorage.getItem('exo_gdrive_connected') === '1');
-            const email = localStorage.getItem('exo_gdrive_user_email');
-            const quota = localStorage.getItem('exo_gdrive_quota_info');
+            const boundUser = localStorage.getItem('exo_gdrive_bound_user_id');
+            const isBoundToCurrent = !boundUser || (currentCloudUser && String(boundUser) === String(currentCloudUser.id));
+            const isLinked = isGoogleDriveAccountLinked() || (isBoundToCurrent && Boolean(localStorage.getItem('exo_gdrive_connected') === '1'));
+            const email = isBoundToCurrent ? localStorage.getItem('exo_gdrive_user_email') : null;
+            const quota = isBoundToCurrent ? localStorage.getItem('exo_gdrive_quota_info') : null;
 
             if (!isVip) {
                 // Free account: Harmonious theme styling, NO redundant second upgrade button, NO clashing orange
@@ -29509,20 +29640,24 @@ function togglePdfAudioPlayerBar(forceState) {
                 events: Object.assign({}, remoteTombstones.events, localTombstones.events)
             };
 
-            // 2. Merge Annotations FIRST before mutating local state so we can abort cleanly if DB read/write fails
-            let mergedAnnotationsForSnapshot = null;
-            if (remoteRow.annotations && typeof remoteRow.annotations === 'object') {
-                const remoteAnnos = remoteRow.annotations;
-                const localAnnosRes = await getAllAnnotationsMapFromDB(uid, opCtx);
-                if (!opCtx.isCurrent()) {
-                    return { ok: false, reason: 'account_switched' };
+            // 2. Always obtain verified local annotations FIRST before mutating local state so we can abort cleanly if DB read/write fails
+            const localAnnosRes = await getAllAnnotationsMapFromDB(uid, opCtx);
+            if (!opCtx.isCurrent()) {
+                return { ok: false, reason: 'account_switched' };
+            }
+            if (!localAnnosRes || !localAnnosRes.ok || localAnnosRes.error) {
+                if (localAnnosRes?.error?.code === 'ACCOUNT_CONTEXT_EXPIRED') {
+                    return { ok: false, reason: 'account_switched', error: localAnnosRes.error };
                 }
-                if (!localAnnosRes || !localAnnosRes.ok || localAnnosRes.error) {
-                    console.error('Conflict merge aborted: failed to read local annotations safely:', localAnnosRes?.error);
-                    return { ok: false, reason: 'local_annotations_read_failed', error: localAnnosRes?.error };
-                }
+                console.error('Conflict merge aborted: failed to read local annotations safely:', localAnnosRes?.error);
+                return { ok: false, reason: 'local_annotations_read_failed', error: localAnnosRes?.error };
+            }
 
-                const localAnnos = localAnnosRes.verifiedMap || {};
+            const localAnnos = localAnnosRes.verifiedMap || {};
+            let mergedAnnotationsForSnapshot = localAnnos;
+
+            if (remoteRow.annotations && typeof remoteRow.annotations === 'object' && !Array.isArray(remoteRow.annotations)) {
+                const remoteAnnos = remoteRow.annotations;
                 const unifiedAnnos = Object.assign({}, localAnnos);
 
                 Object.keys(remoteAnnos).forEach(rawKey => {
@@ -29707,10 +29842,16 @@ function togglePdfAudioPlayerBar(forceState) {
             localStorage.setItem('pharmaWorkspaceDirty', '1');
             localStorage.setItem('pharmaWorkspaceDirty_' + uid, '1');
 
-            // 11. Immediately persist unified account-scoped snapshot (pharmaAccountWorkspace_<uid>) at 0ms before retry timer
+            // Re-render UI with merged in-memory state
+            renderSubjectsList();
+            renderSchedule();
+            updateTracker();
+
+            // 11. Required persistence condition: write unified account-scoped snapshot (pharmaAccountWorkspace_<uid>) before reporting success
             try {
                 const accountKey = getAccountBackupStorageKey(uid);
-                const existingVault = JSON.parse(localStorage.getItem(accountKey) || 'null');
+                const boundGdriveUid = localStorage.getItem('exo_gdrive_bound_user_id');
+                const isGdriveBoundToUid = !boundGdriveUid || String(boundGdriveUid) === String(uid);
                 const mergedAccountSnapshot = {
                     user_id: uid,
                     user_email: String(currentCloudUser?.email || localPayload?.user_email || remoteRow?.user_email || '').toLowerCase(),
@@ -29725,28 +29866,34 @@ function togglePdfAudioPlayerBar(forceState) {
                         cloudMediaRegistry: cloudMediaRegistry || {},
                         _tombstones: unifiedTombstones,
                         gdriveSync: {
-                            linked: Boolean(localStorage.getItem('exo_gdrive_connected') === '1'),
-                            userEmail: localStorage.getItem('exo_gdrive_user_email') || '',
-                            folderId: localStorage.getItem('exo_gdrive_folder_id') || '',
-                            quotaInfo: localStorage.getItem('exo_gdrive_quota_info') || ''
+                            linked: isGdriveBoundToUid && Boolean(localStorage.getItem('exo_gdrive_connected') === '1'),
+                            userEmail: isGdriveBoundToUid ? (localStorage.getItem('exo_gdrive_user_email') || '') : '',
+                            folderId: isGdriveBoundToUid ? (localStorage.getItem('exo_gdrive_folder_id') || '') : '',
+                            quotaInfo: isGdriveBoundToUid ? (localStorage.getItem('exo_gdrive_quota_info') || '') : ''
                         }
                     },
                     logs: logs || [],
                     academy_progress: completedAcademyModules || [],
-                    annotations: mergedAnnotationsForSnapshot || (existingVault && existingVault.annotations) || {},
+                    annotations: mergedAnnotationsForSnapshot || {},
                     revision: currentCloudWorkspaceRevision,
                     dirty: true,
                     updated_at: new Date().toISOString()
                 };
                 localStorage.setItem(accountKey, JSON.stringify(mergedAccountSnapshot));
             } catch (snapshotErr) {
-                console.warn('Immediate conflict-merge account snapshot write warning:', snapshotErr);
+                console.error('Conflict-merge account snapshot write failed:', snapshotErr);
+                try { localStorage.setItem('pharmaWorkspaceDirty', '1'); } catch (e) {}
+                try { localStorage.setItem('pharmaWorkspaceDirty_' + uid, '1'); } catch (e) {}
+                dirtyAnnotationsForCloud = true;
+                showToast('تنبيه: تعذر حفظ النسخة الاحتياطية لحسابك بعد دمج التعارض. التعديلات محفوظة مؤقتاً بالذاكرة ⚠️', 'error');
+                return {
+                    ok: false,
+                    reason: 'account_snapshot_write_failed',
+                    error: snapshotErr?.message || 'ACCOUNT_SNAPSHOT_WRITE_FAILED',
+                    revision: currentCloudWorkspaceRevision,
+                    isDirty: true
+                };
             }
-
-            // Re-render UI
-            renderSubjectsList();
-            renderSchedule();
-            updateTracker();
 
             showToast('🔄 تم دمج تعديلاتك مع أحدث بيانات السحابة بنجاح دون فقدان أي بيانات');
 
@@ -29931,7 +30078,15 @@ function togglePdfAudioPlayerBar(forceState) {
                                     return { status: 'aborted', reason: 'account_switched' };
                                 }
                                 if (freshRemote) {
-                                    await mergeAndApplyCloudConflict(freshRemote, payload, opCtx);
+                                    const mergeRes = await mergeAndApplyCloudConflict(freshRemote, payload, opCtx);
+                                    if (!mergeRes || !mergeRes.ok) {
+                                        return {
+                                            status: 'error',
+                                            reason: (mergeRes && mergeRes.reason) || 'conflict_merge_failed',
+                                            error: (mergeRes && mergeRes.reason) || 'conflict_merge_failed',
+                                            current_revision: rpcRes.current_revision
+                                        };
+                                    }
                                     return { status: 'conflict', current_revision: rpcRes.current_revision };
                                 }
                             } else if (rpcRes.status === 'success') {
@@ -30096,8 +30251,11 @@ function togglePdfAudioPlayerBar(forceState) {
             }
 
             currentUserCanUploadMedia = Boolean(cloudRow.can_upload_media);
-            // Snapshot any existing local media upload flags into cloudMediaRegistry before applying cloudRow
-            snapshotCurrentSubjectsMediaToRegistry(subjects, targetUid);
+            const lastActiveUidBeforeApply = localStorage.getItem('pharmaLastActiveCloudUid') || localStorage.getItem('pharmaLastActiveUserIdV1');
+            // Only snapshot pre-existing in-memory subjects into targetUid's registry if they belonged to the same account
+            if (!lastActiveUidBeforeApply || String(lastActiveUidBeforeApply) === targetUid) {
+                snapshotCurrentSubjectsMediaToRegistry(subjects, targetUid);
+            }
             if (cloudRow.schedule && cloudRow.schedule.cloudMediaRegistry && typeof cloudRow.schedule.cloudMediaRegistry === 'object') {
                 cloudMediaRegistry = Object.assign({}, cloudRow.schedule.cloudMediaRegistry, cloudMediaRegistry);
                 saveCloudMediaRegistry();
@@ -30107,45 +30265,94 @@ function togglePdfAudioPlayerBar(forceState) {
             healSubjectsFromCloudRegistry(targetUid);
             localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
 
+            const defaultPlannerPrefs = {
+                weekStartDay: 6,
+                dayStartHour: 6,
+                dayEndHour: 23,
+                autoCompletePct: 75,
+                currentWeekStartIso: (typeof getLocalIsoDate === 'function' && typeof getWeekStartDateForDate === 'function')
+                    ? getLocalIsoDate(getWeekStartDateForDate(new Date(), 6))
+                    : (typeof getWeekStartSaturdayIso === 'function' ? getWeekStartSaturdayIso(new Date()) : new Date().toISOString().slice(0, 10))
+            };
+
             if (cloudRow.schedule && typeof cloudRow.schedule === 'object') {
                 scheduleEvents = Array.isArray(cloudRow.schedule.events) ? cloudRow.schedule.events : [];
                 scheduleBacklog = Array.isArray(cloudRow.schedule.backlog) ? cloudRow.schedule.backlog : [];
                 if (cloudRow.schedule.plannerPrefs && typeof cloudRow.schedule.plannerPrefs === 'object') {
-                    plannerPrefs = Object.assign({
-                        weekStartDay: 6,
-                        dayStartHour: 6,
-                        dayEndHour: 23,
-                        autoCompletePct: 75,
-                        currentWeekStartIso: getLocalIsoDate(getWeekStartDateForDate(new Date(), 6))
-                    }, cloudRow.schedule.plannerPrefs);
+                    const mergedPrefs = Object.assign({}, defaultPlannerPrefs, cloudRow.schedule.plannerPrefs);
+                    if (!cloudRow.schedule.plannerPrefs.currentWeekStartIso) {
+                        mergedPrefs.currentWeekStartIso = (typeof getLocalIsoDate === 'function' && typeof getWeekStartDateForDate === 'function')
+                            ? getLocalIsoDate(getWeekStartDateForDate(new Date(), mergedPrefs.weekStartDay))
+                            : (typeof getWeekStartSaturdayIso === 'function' ? getWeekStartSaturdayIso(new Date()) : new Date().toISOString().slice(0, 10));
+                    }
+                    plannerPrefs = mergedPrefs;
+                } else {
+                    plannerPrefs = defaultPlannerPrefs;
                 }
                 localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
                 // Always overwrite weeklyReports from account payload (or empty array if none) so reports never leak between accounts
                 weeklyReports = Array.isArray(cloudRow.schedule.weeklyReports) ? cloudRow.schedule.weeklyReports : [];
                 localStorage.setItem('pharmaWeeklyReportsV1', JSON.stringify(weeklyReports));
 
-                if (cloudRow.schedule.pdfFitMode) {
-                    currentPdfFitMode = cloudRow.schedule.pdfFitMode;
-                    localStorage.setItem('pharmaPdfFitMode', currentPdfFitMode);
-                }
-                if (cloudRow.schedule.gdriveSync && typeof cloudRow.schedule.gdriveSync === 'object' && opCtx.isCurrent()) {
-                    const syncInfo = cloudRow.schedule.gdriveSync;
-                    if (syncInfo.linked && syncInfo.userEmail) {
+                currentPdfFitMode = cloudRow.schedule.pdfFitMode ? cloudRow.schedule.pdfFitMode : 'height';
+                localStorage.setItem('pharmaPdfFitMode', currentPdfFitMode);
+
+                if (opCtx.isCurrent()) {
+                    const syncInfo = (cloudRow.schedule.gdriveSync && typeof cloudRow.schedule.gdriveSync === 'object')
+                        ? cloudRow.schedule.gdriveSync
+                        : null;
+                    if (syncInfo && syncInfo.linked && syncInfo.userEmail) {
                         localStorage.setItem('exo_gdrive_connected', '1');
                         localStorage.setItem('exo_gdrive_user_email', syncInfo.userEmail);
                         if (syncInfo.folderId) localStorage.setItem('exo_gdrive_folder_id', syncInfo.folderId);
+                        else localStorage.removeItem('exo_gdrive_folder_id');
                         if (syncInfo.quotaInfo) localStorage.setItem('exo_gdrive_quota_info', syncInfo.quotaInfo);
+                        else localStorage.removeItem('exo_gdrive_quota_info');
                         localStorage.setItem('exo_gdrive_bound_user_id', targetUid);
                         localStorage.setItem('pharmaGdriveSync_' + targetUid, JSON.stringify(syncInfo));
                         if (typeof updateGoogleDriveUI === 'function') {
                             updateGoogleDriveUI();
                         }
+                    } else {
+                        try {
+                            const userVaultRaw = localStorage.getItem('pharmaGdriveSync_' + targetUid);
+                            const uVault = userVaultRaw ? JSON.parse(userVaultRaw) : null;
+                            if (uVault && uVault.linked && uVault.userEmail) {
+                                localStorage.setItem('exo_gdrive_connected', '1');
+                                localStorage.setItem('exo_gdrive_user_email', uVault.userEmail);
+                                if (uVault.folderId) localStorage.setItem('exo_gdrive_folder_id', uVault.folderId);
+                                else localStorage.removeItem('exo_gdrive_folder_id');
+                                if (uVault.quotaInfo) localStorage.setItem('exo_gdrive_quota_info', uVault.quotaInfo);
+                                else localStorage.removeItem('exo_gdrive_quota_info');
+                                localStorage.setItem('exo_gdrive_bound_user_id', targetUid);
+                            } else {
+                                const boundUser = localStorage.getItem('exo_gdrive_bound_user_id');
+                                if (boundUser && String(boundUser) !== targetUid) {
+                                    if (typeof googleAccessToken !== 'undefined') googleAccessToken = null;
+                                    if (typeof googleTokenExpiry !== 'undefined') googleTokenExpiry = 0;
+                                    localStorage.removeItem('exo_gdrive_token');
+                                    localStorage.removeItem('exo_gdrive_token_exp');
+                                    localStorage.removeItem('exo_gdrive_connected');
+                                    localStorage.removeItem('exo_gdrive_folder_id');
+                                    localStorage.removeItem('exo_gdrive_user_email');
+                                    localStorage.removeItem('exo_gdrive_quota_info');
+                                    localStorage.removeItem('exo_gdrive_bound_user_id');
+                                }
+                            }
+                            if (typeof updateGoogleDriveUI === 'function') {
+                                updateGoogleDriveUI();
+                            }
+                        } catch (e) {}
                     }
                 }
             } else {
                 scheduleEvents = [];
                 scheduleBacklog = [];
                 weeklyReports = [];
+                plannerPrefs = defaultPlannerPrefs;
+                currentPdfFitMode = 'height';
+                localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
+                localStorage.setItem('pharmaPdfFitMode', 'height');
                 localStorage.setItem('pharmaWeeklyReportsV1', '[]');
             }
 
@@ -30194,6 +30401,10 @@ function togglePdfAudioPlayerBar(forceState) {
                 localStorage.setItem('pharmaWorkspaceDirty', '1');
             } else {
                 localStorage.removeItem('pharmaWorkspaceDirty');
+            }
+            if (targetUid && targetUid !== 'local') {
+                localStorage.setItem('pharmaLastActiveUserIdV1', targetUid);
+                localStorage.setItem('pharmaLastActiveCloudUid', targetUid);
             }
 
             renderSubjectsList();
@@ -30274,13 +30485,107 @@ function togglePdfAudioPlayerBar(forceState) {
                 }
                 updateCloudNavUI('syncing');
 
-                const lastLoggedUserId = localStorage.getItem('pharmaLastActiveCloudUid') || localStorage.getItem('pharmaLastActiveUserIdV1');
+                const lastLoggedUserId = localStorage.getItem('pharmaLastActiveCloudUid')
+                    || localStorage.getItem('pharmaLastActiveUserIdV1')
+                    || localStorage.getItem('exo_gdrive_bound_user_id');
                 const isSwitchingDifferentUser = Boolean(lastLoggedUserId && String(lastLoggedUserId) !== opCtx.uid);
                 localStorage.setItem('pharmaLastActiveUserIdV1', opCtx.uid);
                 localStorage.setItem('pharmaLastActiveCloudUid', opCtx.uid);
 
                 if (isSwitchingDifferentUser) {
-                    // Wipe any leftover local state from the previous user before syncing the new user
+                    const prevUid = String(lastLoggedUserId);
+                    if (prevUid && prevUid !== 'local' && prevUid !== opCtx.uid) {
+                        // Preserve previous user's account-scoped Google Drive configuration if not already stored
+                        try {
+                            const boundGdrive = localStorage.getItem('exo_gdrive_bound_user_id');
+                            if ((!boundGdrive || String(boundGdrive) === prevUid) &&
+                                localStorage.getItem('exo_gdrive_connected') === '1' &&
+                                localStorage.getItem('exo_gdrive_user_email') &&
+                                !localStorage.getItem('pharmaGdriveSync_' + prevUid)) {
+                                localStorage.setItem('pharmaGdriveSync_' + prevUid, JSON.stringify({
+                                    linked: true,
+                                    userEmail: localStorage.getItem('exo_gdrive_user_email') || '',
+                                    folderId: localStorage.getItem('exo_gdrive_folder_id') || '',
+                                    quotaInfo: localStorage.getItem('exo_gdrive_quota_info') || ''
+                                }));
+                            }
+                        } catch (e) {}
+                        // Preserve previous user's account-scoped workspace snapshot if not already stored
+                        try {
+                            const prevAccountKey = getAccountBackupStorageKey(prevUid);
+                            if (!localStorage.getItem(prevAccountKey) &&
+                                ((Array.isArray(subjects) && subjects.length > 0) ||
+                                 (Array.isArray(scheduleEvents) && scheduleEvents.length > 0) ||
+                                 (Array.isArray(scheduleBacklog) && scheduleBacklog.length > 0) ||
+                                 (Array.isArray(weeklyReports) && weeklyReports.length > 0) ||
+                                 (Array.isArray(logs) && logs.length > 0) ||
+                                 Object.keys(cloudMediaRegistry || {}).length > 0 ||
+                                 currentPdfFitMode !== 'height')) {
+                                const boundGdrive = localStorage.getItem('exo_gdrive_bound_user_id');
+                                const isPrevGdrive = !boundGdrive || String(boundGdrive) === prevUid;
+                                localStorage.setItem(prevAccountKey, JSON.stringify({
+                                    user_id: prevUid,
+                                    subjects: subjects || [],
+                                    schedule: {
+                                        version: 3,
+                                        events: scheduleEvents || [],
+                                        backlog: scheduleBacklog || [],
+                                        plannerPrefs: plannerPrefs,
+                                        weeklyReports: weeklyReports || [],
+                                        pdfFitMode: currentPdfFitMode || 'height',
+                                        cloudMediaRegistry: cloudMediaRegistry || {},
+                                        _tombstones: getLocalTombstones(prevUid),
+                                        gdriveSync: {
+                                            linked: isPrevGdrive && Boolean(localStorage.getItem('exo_gdrive_connected') === '1'),
+                                            userEmail: isPrevGdrive ? (localStorage.getItem('exo_gdrive_user_email') || '') : '',
+                                            folderId: isPrevGdrive ? (localStorage.getItem('exo_gdrive_folder_id') || '') : '',
+                                            quotaInfo: isPrevGdrive ? (localStorage.getItem('exo_gdrive_quota_info') || '') : ''
+                                        }
+                                    },
+                                    logs: logs || [],
+                                    academy_progress: completedAcademyModules || [],
+                                    annotations: {},
+                                    revision: Number(localStorage.getItem('pharmaWorkspaceRevision_' + prevUid) || 1),
+                                    dirty: Boolean(localStorage.getItem('pharmaWorkspaceDirty') === '1' || localStorage.getItem('pharmaWorkspaceDirty_' + prevUid) === '1'),
+                                    updated_at: new Date().toISOString()
+                                }));
+                            }
+                        } catch (e) {}
+                    }
+
+                    // Wipe any leftover local state, settings, VIP entitlement, and Google Drive globals from the previous user
+                    currentUserCanUploadMedia = false;
+                    if (cloudAutoSaveTimer) {
+                        clearTimeout(cloudAutoSaveTimer);
+                        cloudAutoSaveTimer = null;
+                    }
+                    if (typeof googleAccessToken !== 'undefined') googleAccessToken = null;
+                    if (typeof googleTokenExpiry !== 'undefined') googleTokenExpiry = 0;
+                    if (typeof pendingGoogleTokenPromise !== 'undefined') pendingGoogleTokenPromise = null;
+                    if (typeof gdriveSubfolderCache !== 'undefined' && gdriveSubfolderCache && typeof gdriveSubfolderCache.clear === 'function') {
+                        gdriveSubfolderCache.clear();
+                    }
+                    localStorage.removeItem('exo_gdrive_token');
+                    localStorage.removeItem('exo_gdrive_token_exp');
+                    localStorage.removeItem('exo_gdrive_connected');
+                    localStorage.removeItem('exo_gdrive_folder_id');
+                    localStorage.removeItem('exo_gdrive_user_email');
+                    localStorage.removeItem('exo_gdrive_quota_info');
+                    localStorage.removeItem('exo_gdrive_bound_user_id');
+
+                    plannerPrefs = {
+                        weekStartDay: 6,
+                        dayStartHour: 6,
+                        dayEndHour: 23,
+                        autoCompletePct: 75,
+                        currentWeekStartIso: (typeof getLocalIsoDate === 'function' && typeof getWeekStartDateForDate === 'function')
+                            ? getLocalIsoDate(getWeekStartDateForDate(new Date(), 6))
+                            : (typeof getWeekStartSaturdayIso === 'function' ? getWeekStartSaturdayIso(new Date()) : new Date().toISOString().slice(0, 10))
+                    };
+                    localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
+                    currentPdfFitMode = 'height';
+                    localStorage.setItem('pharmaPdfFitMode', 'height');
+
                     subjects = [];
                     scheduleEvents = [];
                     scheduleBacklog = [];
@@ -30288,6 +30593,12 @@ function togglePdfAudioPlayerBar(forceState) {
                     logs = [];
                     completedAcademyModules = [];
                     cloudMediaRegistry = {};
+                    inMemoryAnnotationsCache = {};
+                    inMemoryAnnotationsCacheNormalized = {};
+                    inMemoryAnnotationsCacheLoaded = false;
+                    pendingAnnoSaveMap = {};
+                    dirtyAnnotationsForCloud = false;
+                    lastUploadedAnnotationsSignature = '';
                     localStorage.setItem('pharmaSubjectsV4', '[]');
                     localStorage.setItem('pharmaWeeklyReportsV1', '[]');
                     localStorage.setItem('pharmaScheduleV4', JSON.stringify({ version: 3, events: [], backlog: [], plannerPrefs: plannerPrefs, weeklyReports: [] }));
@@ -30299,6 +30610,23 @@ function togglePdfAudioPlayerBar(forceState) {
                     // Data Protection: Preserving local IndexedDB stores without destructive clearing
                     localMediaCache.pdfs.clear();
                     localMediaCache.audios.clear();
+                    sessionMediaBlobRamCache.pdfs.clear();
+                    sessionMediaBlobRamCache.audios.clear();
+
+                    // Restore incoming user's account-scoped Google Drive metadata if available
+                    try {
+                        const userVaultRaw = localStorage.getItem('pharmaGdriveSync_' + opCtx.uid);
+                        if (userVaultRaw) {
+                            const uVault = JSON.parse(userVaultRaw);
+                            if (uVault && uVault.linked && uVault.userEmail) {
+                                localStorage.setItem('exo_gdrive_connected', '1');
+                                localStorage.setItem('exo_gdrive_user_email', uVault.userEmail);
+                                if (uVault.folderId) localStorage.setItem('exo_gdrive_folder_id', uVault.folderId);
+                                if (uVault.quotaInfo) localStorage.setItem('exo_gdrive_quota_info', uVault.quotaInfo);
+                                localStorage.setItem('exo_gdrive_bound_user_id', opCtx.uid);
+                            }
+                        }
+                    } catch (e) {}
                 }
 
                 let data = null;
@@ -30350,7 +30678,7 @@ function togglePdfAudioPlayerBar(forceState) {
                         user_id: opCtx.uid,
                         can_upload_media: false,
                         subjects: subjects,
-                        schedule: { version: 3, events: scheduleEvents, backlog: scheduleBacklog, plannerPrefs: plannerPrefs, weeklyReports: weeklyReports },
+                        schedule: { version: 3, events: scheduleEvents, backlog: scheduleBacklog, plannerPrefs: plannerPrefs, weeklyReports: weeklyReports, pdfFitMode: currentPdfFitMode },
                         logs: logs,
                         academy_progress: preservedAcademyProgress,
                         annotations: {}

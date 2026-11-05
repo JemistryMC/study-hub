@@ -175,6 +175,10 @@ let dbInstance = null;
 let supabaseClient = null;
 let googleAccessToken = null;
 let googleTokenExpiry = 0;
+let pendingGoogleTokenPromise = null;
+const gdriveSubfolderCache = new Map();
+let isolatedPendingAnnotationsByUser = {};
+let realtimeChannel = null;
 let inMemoryAnnotationsCache = {};
 let inMemoryAnnotationsCacheNormalized = {};
 let inMemoryAnnotationsCacheLoaded = false;
@@ -208,6 +212,7 @@ let logs = [];
 let completedAcademyModules = [];
 let cloudMediaRegistry = {};
 
+function clearTimeout() {}
 function showToast() {}
 function renderSubjectsList() {}
 function renderGroups() {}
@@ -217,13 +222,11 @@ function updateTracker() {}
 function updateCloudMediaStatsUI() {}
 function updateAcademyXpUI() {}
 function updateCloudNavUI() {}
+function updateGoogleDriveUI() {}
+function setupRealtimeWorkspaceSubscription() {}
 async function refreshLocalMediaCache() {}
 async function reconcileCloudMediaWithStorageBucket() {}
 async function flushPendingAnnotationsSave() { return Object.keys(pendingAnnoSaveMap).length === 0; }
-async function handleAuthSessionChange(user) {
-  currentCloudUser = user || null;
-  bumpAccountSessionGeneration();
-}
 
 ${extractFunctionSource(indexHtmlContent, 'getLocalIsoDate')}
 ${extractFunctionSource(indexHtmlContent, 'getWeekStartDateForDate')}
@@ -255,6 +258,10 @@ ${extractFunctionSource(indexHtmlContent, 'normalizeAndRecoverLectureAnnotations
 ${extractFunctionSource(indexHtmlContent, 'computeFastStringSignature')}
 ${extractFunctionSource(indexHtmlContent, 'getAllAnnotationsMapFromDB')}
 ${extractFunctionSource(indexHtmlContent, 'restoreAllAnnotationsMapToDB')}
+${extractFunctionSource(indexHtmlContent, 'isGoogleDriveTokenActive')}
+${extractFunctionSource(indexHtmlContent, 'isGoogleDriveAccountLinked')}
+${extractFunctionSource(indexHtmlContent, 'isGoogleDriveConnected')}
+${extractFunctionSource(indexHtmlContent, 'handleAuthSessionChange')}
 ${extractFunctionSource(indexHtmlContent, 'handleCloudSignOut')}
 ${extractFunctionSource(indexHtmlContent, 'pushWorkspaceToCloud')}
 ${extractFunctionSource(indexHtmlContent, 'applyCloudWorkspacePayload')}
@@ -279,6 +286,23 @@ module.exports = {
     if (state.scheduleEvents !== undefined || state.scheduleBacklog !== undefined || state.weeklyReports !== undefined || state.plannerPrefs !== undefined) {
       saveScheduleData(false);
     }
+    if (state.currentPdfFitMode !== undefined) {
+      currentPdfFitMode = state.currentPdfFitMode;
+      localStorage.setItem('pharmaPdfFitMode', currentPdfFitMode);
+    }
+    if (state.currentUserCanUploadMedia !== undefined) {
+      currentUserCanUploadMedia = Boolean(state.currentUserCanUploadMedia);
+    }
+    if (state.googleAccessToken !== undefined) {
+      googleAccessToken = state.googleAccessToken;
+      if (state.googleAccessToken) localStorage.setItem('exo_gdrive_token', state.googleAccessToken);
+      else localStorage.removeItem('exo_gdrive_token');
+    }
+    if (state.googleTokenExpiry !== undefined) {
+      googleTokenExpiry = Number(state.googleTokenExpiry || 0);
+      if (googleTokenExpiry > 0) localStorage.setItem('exo_gdrive_token_exp', String(googleTokenExpiry));
+      else localStorage.removeItem('exo_gdrive_token_exp');
+    }
     if (state.logs !== undefined) { logs = state.logs; localStorage.setItem('pharmaLogsV4', JSON.stringify(logs)); }
     if (state.completedAcademyModules !== undefined) { completedAcademyModules = state.completedAcademyModules; localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(completedAcademyModules)); }
     if (state.cloudMediaRegistry !== undefined) { cloudMediaRegistry = state.cloudMediaRegistry; saveCloudMediaRegistry(); }
@@ -286,6 +310,10 @@ module.exports = {
   },
   getWorkspaceState: () => ({
     currentCloudUser,
+    currentUserCanUploadMedia,
+    currentPdfFitMode,
+    googleAccessToken,
+    googleTokenExpiry,
     subjects,
     scheduleEvents,
     scheduleBacklog,
@@ -296,6 +324,10 @@ module.exports = {
     cloudMediaRegistry
   }),
   initScheduleData,
+  isGoogleDriveTokenActive,
+  isGoogleDriveAccountLinked,
+  isGoogleDriveConnected,
+  handleAuthSessionChange,
   handleCloudSignOut,
   applyCloudWorkspacePayload,
   syncWorkspaceOnLogin,
@@ -547,6 +579,197 @@ async function main() {
     stateUserC.logs.length === 0 &&
     stateUserC.completedAcademyModules.length === 0,
     'T-5.1-01h: Subsequent login by User C sees zero leftover workspace data from User A'
+  );
+
+  // SCENARIO 9 (T-M1-C01): Direct Account A-to-B Switch Without Calling handleCloudSignOut()
+  console.log('\n--- SCENARIO 9 (T-M1-C01): Direct Account A-to-B Switch Without Sign-Out ---');
+  prod.localStorage.clear();
+
+  // Set up User A with distinctive plannerPrefs, currentPdfFitMode, Google Drive token/metadata, VIP entitlement, and workspace
+  const futureExpA = Date.now() + 3600 * 1000;
+  await prod.handleAuthSessionChange({ id: userA_Id, email: 'user_a@exo.edu', name: 'User A' }, false);
+  prod.localStorage.setItem('pharmaLastActiveCloudUid', userA_Id);
+  prod.localStorage.setItem('pharmaLastActiveUserIdV1', userA_Id);
+  prod.setWorkspaceState({
+    subjects: [{ id: 'sub_direct_a', name: 'Medicinal Chemistry A', groups: [] }],
+    scheduleEvents: [{ id: 'ev_direct_a', title: 'Lab A', day: 1, startHour: 10, duration: 2 }],
+    scheduleBacklog: [{ id: 'bl_direct_a', title: 'Task A' }],
+    weeklyReports: [{ id: 'rep_direct_a', weekStartIso: '2026-10-26', score: 91 }],
+    plannerPrefs: { weekStartDay: 1, dayStartHour: 8, dayEndHour: 20, autoCompletePct: 90, currentWeekStartIso: '2026-10-26' },
+    currentPdfFitMode: 'width',
+    currentUserCanUploadMedia: true,
+    googleAccessToken: 'ya29.secret_token_user_A',
+    googleTokenExpiry: futureExpA,
+    logs: [{ id: 'log_direct_a', text: 'Studied MedChem', timestamp: 1700001000 }],
+    completedAcademyModules: ['mod_direct_a1'],
+    cloudMediaRegistry: { 'lec_direct_a': { pdfUploaded: true, ownerUid: userA_Id } },
+    dirty: false
+  });
+  prod.localStorage.setItem('exo_gdrive_connected', '1');
+  prod.localStorage.setItem('exo_gdrive_user_email', 'user_a_drive@gmail.com');
+  prod.localStorage.setItem('exo_gdrive_folder_id', 'folder_A_drive_111');
+  prod.localStorage.setItem('exo_gdrive_quota_info', '8.4 / 15.0 GB');
+  prod.localStorage.setItem('exo_gdrive_bound_user_id', userA_Id);
+  prod.localStorage.setItem('pharmaGdriveSync_' + userA_Id, JSON.stringify({
+    linked: true,
+    userEmail: 'user_a_drive@gmail.com',
+    folderId: 'folder_A_drive_111',
+    quotaInfo: '8.4 / 15.0 GB'
+  }));
+  prod.localStorage.setItem(prod.getAccountBackupStorageKey(userA_Id), JSON.stringify({
+    user_id: userA_Id,
+    can_upload_media: true,
+    subjects: [{ id: 'sub_direct_a', name: 'Medicinal Chemistry A', groups: [] }],
+    schedule: {
+      version: 3,
+      events: [{ id: 'ev_direct_a', title: 'Lab A', day: 1, startHour: 10, duration: 2 }],
+      backlog: [{ id: 'bl_direct_a', title: 'Task A' }],
+      plannerPrefs: { weekStartDay: 1, dayStartHour: 8, dayEndHour: 20, autoCompletePct: 90, currentWeekStartIso: '2026-10-26' },
+      weeklyReports: [{ id: 'rep_direct_a', weekStartIso: '2026-10-26', score: 91 }],
+      pdfFitMode: 'width',
+      cloudMediaRegistry: { 'lec_direct_a': { pdfUploaded: true, ownerUid: userA_Id } },
+      gdriveSync: { linked: true, userEmail: 'user_a_drive@gmail.com', folderId: 'folder_A_drive_111', quotaInfo: '8.4 / 15.0 GB' }
+    },
+    logs: [{ id: 'log_direct_a', text: 'Studied MedChem', timestamp: 1700001000 }],
+    academy_progress: ['mod_direct_a1'],
+    annotations: { [sharedLectureId]: userA_Strokes }
+  }));
+
+  // Verify User A's Drive and VIP state are active prior to switch
+  assert(
+    prod.getWorkspaceState().currentUserCanUploadMedia === true &&
+    prod.isGoogleDriveTokenActive() === true &&
+    prod.isGoogleDriveAccountLinked() === true &&
+    prod.isGoogleDriveConnected() === true,
+    'T-M1-C01a: Pre-switch User A has active VIP entitlement, Google OAuth token, and linked Drive state'
+  );
+
+  // CASE 1: Switch directly to User B1 (no saved workspace or Drive configuration) WITHOUT calling handleCloudSignOut()
+  const userB1_EmptyId = 'b1111111-0000-4444-8888-111111111111';
+  await prod.handleAuthSessionChange({ id: userB1_EmptyId, email: 'user_b1_empty@exo.edu', name: 'User B1 Empty' }, true);
+  const stateB1 = prod.getWorkspaceState();
+  const storedPrefsB1 = JSON.parse(prod.localStorage.getItem('pharmaPlannerPrefsV1') || 'null');
+
+  assert(
+    stateB1.plannerPrefs.weekStartDay === 6 &&
+    stateB1.plannerPrefs.dayStartHour === 6 &&
+    stateB1.plannerPrefs.dayEndHour === 23 &&
+    stateB1.plannerPrefs.autoCompletePct === 75 &&
+    storedPrefsB1 && storedPrefsB1.weekStartDay === 6 &&
+    stateB1.currentPdfFitMode === 'height' &&
+    prod.localStorage.getItem('pharmaPdfFitMode') === 'height',
+    'T-M1-C01b (Case 1): Direct switch to unconfigured User B1 resets plannerPrefs and currentPdfFitMode ("height") to platform defaults'
+  );
+  assert(
+    stateB1.googleAccessToken === null &&
+    stateB1.googleTokenExpiry === 0 &&
+    prod.isGoogleDriveTokenActive() === false &&
+    prod.isGoogleDriveAccountLinked() === false &&
+    prod.isGoogleDriveConnected() === false &&
+    prod.localStorage.getItem('exo_gdrive_token') === null &&
+    prod.localStorage.getItem('exo_gdrive_token_exp') === null &&
+    prod.localStorage.getItem('exo_gdrive_connected') === null &&
+    prod.localStorage.getItem('exo_gdrive_folder_id') === null &&
+    prod.localStorage.getItem('exo_gdrive_user_email') === null &&
+    prod.localStorage.getItem('exo_gdrive_quota_info') === null &&
+    prod.localStorage.getItem('exo_gdrive_bound_user_id') === null,
+    'T-M1-C01c (Case 1): User A Google token, expiry, and all 7 exo_gdrive_* global keys are cleared before User B1 becomes active'
+  );
+  assert(
+    stateB1.currentUserCanUploadMedia === false &&
+    stateB1.subjects.length === 0 &&
+    stateB1.scheduleEvents.length === 0 &&
+    stateB1.scheduleBacklog.length === 0 &&
+    stateB1.weeklyReports.length === 0 &&
+    stateB1.logs.length === 0 &&
+    stateB1.completedAcademyModules.length === 0 &&
+    Object.keys(stateB1.cloudMediaRegistry).length === 0,
+    'T-M1-C01d (Case 1): User B1 does not inherit User A VIP entitlement, workspace data, or cloud media registry'
+  );
+
+  const vaultAAfterB1 = JSON.parse(prod.localStorage.getItem(prod.getAccountBackupStorageKey(userA_Id)) || 'null');
+  const gdriveVaultAAfterB1 = JSON.parse(prod.localStorage.getItem('pharmaGdriveSync_' + userA_Id) || 'null');
+  assert(
+    vaultAAfterB1 && vaultAAfterB1.subjects.length === 1 && vaultAAfterB1.subjects[0].id === 'sub_direct_a' &&
+    gdriveVaultAAfterB1 && gdriveVaultAAfterB1.linked === true && gdriveVaultAAfterB1.userEmail === 'user_a_drive@gmail.com',
+    'T-M1-C01e (Case 1): User A account-scoped workspace vault and pharmaGdriveSync_<uidA> remain 100% intact after direct switch'
+  );
+
+  // CASE 2: Switch directly from User A to User B2 (who has its own saved workspace and Drive configuration) WITHOUT calling handleCloudSignOut()
+  // First switch back to User A and re-establish active token/state
+  await prod.handleAuthSessionChange({ id: userA_Id, email: 'user_a@exo.edu', name: 'User A' }, true);
+  prod.setWorkspaceState({
+    googleAccessToken: 'ya29.secret_token_user_A_reissued',
+    googleTokenExpiry: futureExpA
+  });
+  assert(
+    prod.getWorkspaceState().currentUserCanUploadMedia === true &&
+    prod.getWorkspaceState().currentPdfFitMode === 'width' &&
+    prod.getWorkspaceState().plannerPrefs.weekStartDay === 1 &&
+    prod.isGoogleDriveAccountLinked() === true,
+    'T-M1-C01f (Case 2 Prep): Returning directly to User A restores User A settings, VIP entitlement, and Drive link'
+  );
+
+  // Seed User B2's saved workspace and Drive configuration (omitting quotaInfo on B2 to prove A's quotaInfo is never mixed in)
+  const userB2_ConfigId = 'b2222222-0000-4444-8888-222222222222';
+  prod.localStorage.setItem('pharmaGdriveSync_' + userB2_ConfigId, JSON.stringify({
+    linked: true,
+    userEmail: 'user_b2_drive@gmail.com',
+    folderId: 'folder_B2_drive_999'
+  }));
+  prod.localStorage.setItem(prod.getAccountBackupStorageKey(userB2_ConfigId), JSON.stringify({
+    user_id: userB2_ConfigId,
+    can_upload_media: true,
+    subjects: [{ id: 'sub_direct_b2', name: 'Pharmacokinetics B2', groups: [] }],
+    schedule: {
+      version: 3,
+      events: [{ id: 'ev_direct_b2', title: 'PK Seminar B2', day: 0, startHour: 11, duration: 2 }],
+      backlog: [{ id: 'bl_direct_b2', title: 'Backlog B2' }],
+      plannerPrefs: { weekStartDay: 0, dayStartHour: 5, dayEndHour: 21, autoCompletePct: 85, currentWeekStartIso: '2026-10-25' },
+      weeklyReports: [{ id: 'rep_direct_b2', weekStartIso: '2026-10-25', score: 96 }],
+      pdfFitMode: 'custom',
+      cloudMediaRegistry: { 'lec_direct_b2': { pdfUploaded: true, ownerUid: userB2_ConfigId } },
+      gdriveSync: {
+        linked: true,
+        userEmail: 'user_b2_drive@gmail.com',
+        folderId: 'folder_B2_drive_999'
+      }
+    },
+    logs: [{ id: 'log_direct_b2', text: 'B2 Log', timestamp: 1700002000 }],
+    academy_progress: ['mod_b2_1', 'mod_b2_2', 'mod_b2_3'],
+    annotations: {}
+  }));
+
+  // Direct switch from User A to User B2 without calling handleCloudSignOut()
+  await prod.handleAuthSessionChange({ id: userB2_ConfigId, email: 'user_b2@exo.edu', name: 'User B2 Configured' }, true);
+  const stateB2 = prod.getWorkspaceState();
+  assert(
+    stateB2.plannerPrefs.weekStartDay === 0 &&
+    stateB2.plannerPrefs.dayStartHour === 5 &&
+    stateB2.plannerPrefs.dayEndHour === 21 &&
+    stateB2.plannerPrefs.autoCompletePct === 85 &&
+    stateB2.currentPdfFitMode === 'custom' &&
+    prod.localStorage.getItem('pharmaPdfFitMode') === 'custom',
+    'T-M1-C01g (Case 2): Direct switch to configured User B2 restores B2 plannerPrefs and PDF fit mode ("custom")'
+  );
+  assert(
+    prod.localStorage.getItem('exo_gdrive_connected') === '1' &&
+    prod.localStorage.getItem('exo_gdrive_user_email') === 'user_b2_drive@gmail.com' &&
+    prod.localStorage.getItem('exo_gdrive_folder_id') === 'folder_B2_drive_999' &&
+    prod.localStorage.getItem('exo_gdrive_bound_user_id') === userB2_ConfigId &&
+    prod.localStorage.getItem('exo_gdrive_quota_info') === null &&
+    stateB2.googleAccessToken === null &&
+    prod.localStorage.getItem('exo_gdrive_token') === null &&
+    prod.isGoogleDriveAccountLinked() === true &&
+    prod.isGoogleDriveConnected() === true,
+    'T-M1-C01h (Case 2): User B2 Drive metadata is restored with zero User A metadata (quotaInfo/token) mixed in'
+  );
+  assert(
+    stateB2.currentUserCanUploadMedia === true &&
+    stateB2.subjects.length === 1 && stateB2.subjects[0].id === 'sub_direct_b2' &&
+    stateB2.cloudMediaRegistry['lec_direct_b2'] !== undefined &&
+    stateB2.cloudMediaRegistry['lec_direct_a'] === undefined,
+    'T-M1-C01i (Case 2): User B2 receives its own VIP entitlement, subjects, and cloud media registry with zero User A records'
   );
 
   console.log('\n======================================================================');

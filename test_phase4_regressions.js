@@ -69,15 +69,113 @@ function extractFunctionSource(code, funcName) {
   return code.substring(startIdx, endIdx);
 }
 
+class InMemoryIDBDatabase {
+  constructor() {
+    this.stores = {
+      annotations: new Map(),
+      annotation_recovery_vault: new Map(),
+      pdfs: new Map(),
+      audios: new Map()
+    };
+    this.failNextTransaction = false;
+    this.getAllCount = 0;
+    this.onGetAllHook = null;
+  }
+
+  transaction(storeName, mode = 'readonly') {
+    const db = this;
+    const storeMap = db.stores[storeName];
+    if (!storeMap) throw new Error(`Store ${storeName} does not exist`);
+
+    const stagedOps = [];
+    const tx = {
+      mode,
+      error: null,
+      oncomplete: null,
+      onerror: null,
+      onabort: null,
+      objectStore(name) {
+        const targetMap = db.stores[name];
+        return {
+          getAll() {
+            const req = { result: null, error: null, onsuccess: null, onerror: null };
+            setImmediate(() => {
+              db.getAllCount++;
+              if (typeof db.onGetAllHook === 'function') {
+                const hook = db.onGetAllHook;
+                db.onGetAllHook = null;
+                hook();
+              }
+              if (db.failNextTransaction) {
+                db.failNextTransaction = false;
+                req.error = new Error('Simulated IDB read failure');
+                tx.error = req.error;
+                if (req.onerror) req.onerror();
+                if (tx.onerror) tx.onerror();
+                return;
+              }
+              req.result = Array.from(targetMap.values());
+              if (req.onsuccess) req.onsuccess();
+              if (tx.oncomplete) tx.oncomplete();
+            });
+            return req;
+          },
+          get(key) {
+            const req = { result: null, error: null, onsuccess: null, onerror: null };
+            setImmediate(() => {
+              req.result = targetMap.get(String(key));
+              if (req.onsuccess) req.onsuccess();
+              if (tx.oncomplete) tx.oncomplete();
+            });
+            return req;
+          },
+          put(val) {
+            stagedOps.push({ type: 'put', key: String(val.id), val });
+          },
+          delete(key) {
+            stagedOps.push({ type: 'delete', key: String(key) });
+          }
+        };
+      }
+    };
+
+    if (mode === 'readwrite') {
+      setImmediate(() => {
+        if (db.failNextTransaction) {
+          db.failNextTransaction = false;
+          tx.error = new Error('Simulated IDB write transaction abort');
+          if (tx.onabort) tx.onabort();
+          return;
+        }
+        for (const op of stagedOps) {
+          if (op.type === 'put') storeMap.set(op.key, op.val);
+          else if (op.type === 'delete') storeMap.delete(op.key);
+        }
+        if (tx.oncomplete) tx.oncomplete();
+      });
+    }
+
+    return tx;
+  }
+}
+
 const prodHelpersCode = `
 const storageBacking = new Map();
+let failNextAccountSnapshotKey = null;
 const localStorage = {
   getItem: (k) => (storageBacking.has(String(k)) ? storageBacking.get(String(k)) : null),
-  setItem: (k, v) => { storageBacking.set(String(k), String(v)); },
+  setItem: (k, v) => {
+    if (failNextAccountSnapshotKey && String(k) === String(failNextAccountSnapshotKey)) {
+      failNextAccountSnapshotKey = null;
+      throw new Error('QuotaExceededError: Simulated failure writing ' + k);
+    }
+    storageBacking.set(String(k), String(v));
+  },
   removeItem: (k) => { storageBacking.delete(String(k)); },
   clear: () => { storageBacking.clear(); }
 };
 const scheduledTimers = [];
+const toastHistory = [];
 const setTimeout = (fn, delay) => {
   scheduledTimers.push({ fn, delay });
   return scheduledTimers.length;
@@ -88,8 +186,12 @@ const document = { getElementById: () => null };
 let currentCloudUser = null;
 let currentUserCanUploadMedia = false;
 let currentSessionGeneration = 1;
-let dbInstance = {};
+let dbInstance = null;
 let supabaseClient = null;
+let googleAccessToken = null;
+let googleTokenExpiry = 0;
+let pendingGoogleTokenPromise = null;
+const gdriveSubfolderCache = new Map();
 let inMemoryAnnotationsCache = {};
 let inMemoryAnnotationsCacheNormalized = {};
 let inMemoryAnnotationsCacheLoaded = false;
@@ -123,7 +225,9 @@ let logs = [];
 let completedAcademyModules = [];
 let cloudMediaRegistry = {};
 
-function showToast() {}
+function showToast(msg, type = 'info') {
+  toastHistory.push({ msg: String(msg || ''), type: String(type || 'info') });
+}
 function renderSubjectsList() {}
 function renderGroups() {}
 function renderSchedule() {}
@@ -131,10 +235,9 @@ function updateTracker() {}
 function updateCloudMediaStatsUI() {}
 function updateAcademyXpUI() {}
 function updateCloudNavUI() {}
+function updateGoogleDriveUI() {}
 async function refreshLocalMediaCache() {}
 async function reconcileCloudMediaWithStorageBucket() {}
-async function getAllAnnotationsMapFromDB() { return { ok: true, verifiedMap: {} }; }
-async function restoreAllAnnotationsMapToDB() { return { ok: true, restoredCount: 0 }; }
 
 ${extractFunctionSource(indexHtmlContent, 'getLocalIsoDate')}
 ${extractFunctionSource(indexHtmlContent, 'getWeekStartDateForDate')}
@@ -164,6 +267,8 @@ ${extractFunctionSource(indexHtmlContent, 'hasVerifiedLegacyProvenance')}
 ${extractFunctionSource(indexHtmlContent, 'normalizeAndRecoverLectureAnnotations')}
 ${extractFunctionSource(indexHtmlContent, 'computeStrokeUniqueSignature')}
 ${extractFunctionSource(indexHtmlContent, 'computeFastStringSignature')}
+${extractFunctionSource(indexHtmlContent, 'getAllAnnotationsMapFromDB')}
+${extractFunctionSource(indexHtmlContent, 'restoreAllAnnotationsMapToDB')}
 ${extractFunctionSource(indexHtmlContent, 'markLocalWorkspaceModified')}
 ${extractFunctionSource(indexHtmlContent, 'mergeAndApplyCloudConflict')}
 ${extractFunctionSource(indexHtmlContent, 'pushWorkspaceToCloud')}
@@ -172,6 +277,9 @@ ${extractFunctionSource(indexHtmlContent, 'syncWorkspaceOnLogin')}
 module.exports = {
   localStorage,
   scheduledTimers,
+  toastHistory,
+  setDbInstance: (db) => { dbInstance = db; },
+  setFailNextAccountSnapshotKey: (key) => { failNextAccountSnapshotKey = key ? String(key) : null; },
   setSupabaseClient: (client) => { supabaseClient = client; },
   setNavigatorOnline: (online) => { navigator.onLine = Boolean(online); },
   setSessionUser: (uid) => {
@@ -197,8 +305,11 @@ module.exports = {
     logs,
     completedAcademyModules,
     cloudMediaRegistry,
-    currentCloudWorkspaceRevision
+    currentCloudWorkspaceRevision,
+    dirtyAnnotationsForCloud
   }),
+  getAllAnnotationsMapFromDB,
+  restoreAllAnnotationsMapToDB,
   markLocalWorkspaceModified,
   mergeAndApplyCloudConflict,
   pushWorkspaceToCloud,
@@ -231,6 +342,9 @@ async function main() {
   console.log('======================================================================');
   console.log('EXO PHASE 4 & 4.1: ASYNCHRONOUS REGRESSION TEST SUITE');
   console.log('======================================================================\n');
+
+  const idb = new InMemoryIDBDatabase();
+  prod.setDbInstance(idb);
 
   // --------------------------------------------------------------------------
   // TEST 1: Key Scoping Invariants, Idempotency & Foreign Key Rejection
@@ -577,6 +691,187 @@ async function main() {
     capturedInitialCloudPayload.academy_progress.includes('mod_1') &&
     capturedInitialCloudPayload.academy_progress.includes('mod_2'),
     'T-5.1-03c: Initial cloud push payload for brand-new account includes academy_progress: ["mod_1", "mod_2"]'
+  );
+
+  // --------------------------------------------------------------------------
+  // TEST 9 (T-M1-C02): Account Snapshot Write Failure During Conflict Merge
+  // --------------------------------------------------------------------------
+  console.log('\n--- TEST 9 (T-M1-C02): Account Snapshot Write Failure During Conflict Merge ---');
+  prod.localStorage.clear();
+  prod.scheduledTimers.length = 0;
+  prod.toastHistory.length = 0;
+  const uidC02 = 'c02-user-1111-2222-3333-444455556666';
+  prod.setSessionUser(uidC02);
+  const ctxC02 = prod.createAccountOperationContext();
+  const accountSnapKeyC02 = prod.getAccountBackupStorageKey(uidC02);
+
+  // Inject localStorage.setItem() failure specifically for pharmaAccountWorkspace_<uid>
+  prod.setFailNextAccountSnapshotKey(accountSnapKeyC02);
+
+  const remoteRowC02 = {
+    user_id: uidC02,
+    revision: 12,
+    updated_at: '2026-11-05T11:00:00.000Z',
+    subjects: [{ id: 'sub_c02_rem', name: 'Remote Subject C02', groups: [] }],
+    schedule: {
+      version: 3,
+      events: [{ id: 'ev_c02_rem', title: 'Remote Event C02', day: 6, startHour: 9, duration: 1, _updatedAt: 100 }],
+      backlog: [{ id: 'bl_c02_rem', title: 'Remote Backlog C02' }],
+      weeklyReports: [],
+      plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 }
+    },
+    logs: [{ id: 'log_c02_rem', text: 'Remote Log C02', timestamp: 1000 }],
+    academy_progress: ['mod_c02_rem']
+  };
+  const localPayloadC02 = {
+    user_id: uidC02,
+    subjects: [{ id: 'sub_c02_loc', name: 'Local Subject C02', groups: [] }],
+    schedule: {
+      version: 3,
+      events: [{ id: 'ev_c02_loc', title: 'Local Event C02', day: 1, startHour: 14, duration: 2, _updatedAt: 200 }],
+      backlog: [{ id: 'bl_c02_loc', title: 'Local Backlog C02' }],
+      weeklyReports: [],
+      plannerPrefs: { weekStartDay: 1, dayStartHour: 7, dayEndHour: 22, autoCompletePct: 80 }
+    },
+    logs: [{ id: 'log_c02_loc', text: 'Local Log C02', timestamp: 2000 }],
+    academy_progress: ['mod_c02_loc']
+  };
+
+  const failMergeRes = await prod.mergeAndApplyCloudConflict(remoteRowC02, localPayloadC02, ctxC02);
+
+  assert(
+    failMergeRes && failMergeRes.ok === false && failMergeRes.reason === 'account_snapshot_write_failed',
+    'T-M1-C02a: mergeAndApplyCloudConflict returns { ok: false, reason: "account_snapshot_write_failed" } when pharmaAccountWorkspace_<uid> write fails'
+  );
+  const hadSuccessToastOnFail = prod.toastHistory.some(t => t.msg.includes('بنجاح'));
+  const hadErrorToastOnFail = prod.toastHistory.some(t => t.type === 'error');
+  assert(
+    !hadSuccessToastOnFail && hadErrorToastOnFail,
+    'T-M1-C02b: No success toast is shown when account snapshot write fails; error/warning notification is shown instead'
+  );
+  assert(
+    prod.scheduledTimers.length === 0,
+    'T-M1-C02c: Delayed 1,200ms cloud retry timer is NOT scheduled when account snapshot persistence fails'
+  );
+  assert(
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1' &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty_' + uidC02) === '1' &&
+    prod.localStorage.getItem(accountSnapKeyC02) === null &&
+    prod.getRuntimeState().subjects.length === 2,
+    'T-M1-C02d: Dirty flags remain set ("1") and best-effort in-memory/global merged state is preserved without falsely claiming account snapshot durability'
+  );
+
+  // Now perform a normal successful write and verify the merge follows the existing successful path
+  prod.toastHistory.length = 0;
+  prod.scheduledTimers.length = 0;
+  const okMergeRes = await prod.mergeAndApplyCloudConflict(remoteRowC02, localPayloadC02, ctxC02);
+  const writtenSnapC02 = JSON.parse(prod.localStorage.getItem(accountSnapKeyC02) || 'null');
+  assert(
+    okMergeRes && okMergeRes.ok === true && okMergeRes.revision === 12 &&
+    writtenSnapC02 && writtenSnapC02.subjects.length === 2 &&
+    prod.toastHistory.some(t => t.msg.includes('بنجاح')) &&
+    prod.scheduledTimers.some(t => t.delay === 1200),
+    'T-M1-C02e: Subsequent normal mergeAndApplyCloudConflict writes pharmaAccountWorkspace_<uid>, shows success toast, schedules 1200ms retry, and returns { ok: true }'
+  );
+
+  // --------------------------------------------------------------------------
+  // TEST 10 (T-M1-C03): Missing Remote Annotations & Mid-Read Account Switch Abort
+  // --------------------------------------------------------------------------
+  console.log('\n--- TEST 10 (T-M1-C03): Missing Remote Annotations & Mid-Read Account Switch Abort ---');
+  prod.localStorage.clear();
+  idb.stores.annotations.clear();
+  prod.setSessionUser(uidA);
+  const ctxC03 = prod.createAccountOperationContext();
+  const snapKeyC03 = prod.getAccountBackupStorageKey(uidA);
+
+  // Seed a STALE annotation map inside pharmaAccountWorkspace_<uidA> to prove mergeAndApplyCloudConflict does NOT fall back to stale vault annotations
+  prod.localStorage.setItem(snapKeyC03, JSON.stringify({
+    user_id: uidA,
+    subjects: [],
+    schedule: { version: 3, events: [], backlog: [] },
+    annotations: {
+      'stale_vault_lec': { 1: [{ id: 'stale_1', tool: 'pen', note: 'STALE OLD SNAPSHOT NOTE' }] }
+    }
+  }));
+
+  // Seed current verified local annotations for uidA in IndexedDB via production restoreAllAnnotationsMapToDB
+  const verifiedLocalStrokes = {
+    'lec_verified_local': {
+      1: [{ id: 'str_local_verified_1', tool: 'pen', color: '#2dd4bf', note: 'VERIFIED CURRENT IDB ANNOTATION' }]
+    }
+  };
+  await prod.restoreAllAnnotationsMapToDB(verifiedLocalStrokes, uidA, ctxC03);
+
+  // Also plant a foreign user (uidB) annotation record in IndexedDB to verify foreign keys are never accepted
+  idb.stores.annotations.set(`usr_${uidB}::foreign_lec_999`, {
+    id: `usr_${uidB}::foreign_lec_999`,
+    rawId: 'foreign_lec_999',
+    userId: uidB,
+    pages: { 1: [{ id: 'str_foreign', tool: 'pen', note: 'FOREIGN ACCOUNT NOTE' }] }
+  });
+
+  const getAllCountBefore = idb.getAllCount;
+  // Remote row has NO annotations property at all
+  const remoteRowNoAnnotations = {
+    user_id: uidA,
+    revision: 15,
+    subjects: [{ id: 'sub_c03_rem', name: 'Remote Subject Without Annotations', groups: [] }],
+    schedule: { version: 3, events: [], backlog: [], weeklyReports: [] },
+    logs: [],
+    academy_progress: []
+  };
+  const localPayloadNoAnnotations = {
+    user_id: uidA,
+    subjects: [{ id: 'sub_c03_loc', name: 'Local Subject', groups: [] }],
+    schedule: { version: 3, events: [], backlog: [], weeklyReports: [] },
+    logs: [],
+    academy_progress: []
+  };
+
+  const c03MergeRes = await prod.mergeAndApplyCloudConflict(remoteRowNoAnnotations, localPayloadNoAnnotations, ctxC03);
+  const snapAfterC03 = JSON.parse(prod.localStorage.getItem(snapKeyC03) || 'null');
+
+  assert(
+    c03MergeRes && c03MergeRes.ok === true && idb.getAllCount > getAllCountBefore,
+    'T-M1-C03a: When remoteRow.annotations is absent, mergeAndApplyCloudConflict reads local annotations through verified IndexedDB reader'
+  );
+  assert(
+    snapAfterC03 &&
+    snapAfterC03.annotations &&
+    snapAfterC03.annotations['lec_verified_local'] &&
+    snapAfterC03.annotations['lec_verified_local'][1][0].note === 'VERIFIED CURRENT IDB ANNOTATION',
+    'T-M1-C03b: Account-scoped snapshot pharmaAccountWorkspace_<uid> retains the verified local IndexedDB annotation map'
+  );
+  assert(
+    snapAfterC03 &&
+    snapAfterC03.annotations['stale_vault_lec'] === undefined &&
+    snapAfterC03.annotations['foreign_lec_999'] === undefined &&
+    Object.keys(snapAfterC03.annotations).length === 1,
+    'T-M1-C03c: Neither empty {}, nor stale old vault annotations, nor foreign account annotations replace or pollute the snapshot'
+  );
+
+  // Now simulate an account switch occurring DURING the IndexedDB annotation read in mergeAndApplyCloudConflict
+  prod.setSessionUser(uidA);
+  const ctxBeforeMidReadSwitch = prod.createAccountOperationContext();
+  idb.onGetAllHook = () => {
+    // Switch active session to uidB while IndexedDB getAll() is in-flight
+    prod.setSessionUser(uidB);
+  };
+  const midReadSwitchRes = await prod.mergeAndApplyCloudConflict(
+    {
+      user_id: uidA,
+      revision: 99,
+      subjects: [{ id: 'sub_should_abort', name: 'Should Not Apply', groups: [] }],
+      schedule: { version: 3, events: [], backlog: [] }
+    },
+    localPayloadNoAnnotations,
+    ctxBeforeMidReadSwitch
+  );
+  const snapAfterAbortedSwitch = JSON.parse(prod.localStorage.getItem(snapKeyC03) || 'null');
+  assert(
+    midReadSwitchRes && midReadSwitchRes.ok === false && midReadSwitchRes.reason === 'account_switched' &&
+    snapAfterAbortedSwitch.revision === 15,
+    'T-M1-C03d: Account switching during IndexedDB annotation read safely aborts mergeAndApplyCloudConflict without mutating snapshot'
   );
 
   console.log('\n======================================================================');
