@@ -8,15 +8,12 @@
 ## 1. حالة المستودع
 
 - فرع العمل النشط: `main`.
-- آخر `main` تم التحقق منه قبل تحديث تعليمات الحوكمة:  
-  `6020a78e585d415ca3d8dcdd37a024cda2614652`
-- هذا الـHEAD يحتوي على commits توثيقية فقط بعد آخر Source SHA اجتاز مجموعة الاختبارات الكاملة.
-- آخر Source SHA موثق باختبارات شاملة:  
-  `c211d034eb074c43f74eee480b8186e58868dc80`
-- مقارنة `c211d03` مع `6020a78` أظهرت Commitين توثيقيين وملفين مضافين فقط:
-  - `reports/phases/phase-5-storage-sync-audit/gemini-report.md`
-  - `reports/phases/phase-5-storage-sync-audit/phase-5-1-implementation-blueprint.md`
-- لا تعتبر أي SHA أعلاه هو HEAD بعد تحديث الحوكمة الحالي؛ تحقق من HEAD الفعلي بعد المزامنة.
+- آخر `main` تم التحقق منه كبداية لمهمة Phase 5.1.2 الحالية (Base HEAD):  
+  `76f72e93d910adb755f72849acbeb52486b09636`
+- الـCommit الأب (آخر خط أساس معتمد لـ M1 قبل رفع نموذج M2/M3/M4 الأولي):  
+  `2cba36cae18fbc2fa4aefcdeb02df58f5a990ac5`
+- الـCommit `76f72e93d910adb755f72849acbeb52486b09636` عدّل `index.html` فقط (`2acc4bf5a7e73ef01b3a096de4a0b8fc7cfa9421`) من نموذج `study-hub (6).zip` الأولي دون تحديث ملفات الاختبار، مما أدى إلى فشل CI في `test_phase3_cross_account_isolation.js` بسبب `ReferenceError: normalizeTombstonesObject is not defined`.
+- لا تعتبر التعديلات المحلية الحالية مرفوعة إلى GitHub حتى يراجعها المالك ويزامنها ويتحقق من الـCommit SHA الجديد على GitHub.
 
 الفروع المرجعية:
 - `Deploying`: مرجع تاريخي لخط أساس سابق، وليس فرع العمل الحالي.
@@ -24,17 +21,23 @@
 
 ## 2. نتائج الاختبار المثبتة
 
-آخر تشغيل كامل موثق:
+### 2.1 آخر تشغيل CI تاريخي موثق (قبل Phase 5.1.2)
 - GitHub Actions Run: `41857800822`
 - Source SHA: `c211d034eb074c43f74eee480b8186e58868dc80`
-- Static: **54/54**
-- Unit: **102/102**
-- PGlite: **41/41**
-- PostgreSQL 16: **96/96**
-- Chromium E2E: **42/42**
-- الإجمالي: **335/335**
+- Static: **54/54** | Unit: **102/102** | PGlite: **41/41** | PostgreSQL 16: **96/96** | Chromium E2E: **42/42** (الإجمالي: **335/335**).
 
-هذه النتائج تخص الكود الموجود عند `c211d03` فقط. لا تعني أن اختبارات المصدر أعيد تشغيلها على commits التوثيقية `1758bba` و`6020a78`، ولا تثبت أي تعديل برمجي لاحق. لا تعِد عرض هذه الأرقام كاختبار جديد.
+### 2.2 نتائج الاختبارات المحلية لتعديلات Phase 5.1.2 الحالية (محليًا فقط قبل GitHub Sync)
+- Base SHA: `76f72e93d910adb755f72849acbeb52486b09636` (+ التعديلات المحلية في الملفات الخمسة المصرح بها).
+- `npm run lint`: **PASSED** (فحص syntax لجميع ملفات الخادم والبناء والاختبارات).
+- `npm run test:static` (`run_verification_tests.js`): **54/54 PASSED**.
+- `npm run test:unit`: **164/164 PASSED** موزعة كالتالي:
+  - `run_comprehensive_verification.js`: **42/42 PASSED**.
+  - `test_phase3_cross_account_isolation.js`: **52/52 PASSED** (شاملة `T-5.1.2-CI-01`).
+  - `test_phase4_regressions.js`: **70/70 PASSED** (شاملة `TEST 12` M3 و`TEST 13` M2 و`TEST 14` M4).
+- `npm run test:pglite` (`test_phase4_2_postgres_integration.js`): **41/41 PASSED**.
+- `npm run test:e2e` (`test_phase4_1_chromium_e2e.js`): **56/56 PASSED** (السيناريوهات A إلى T في متصفح Chromium حقيقي + IndexedDB).
+- `npm run test:pg16` (`test_phase4_2_1_pg16_concurrency.js`): **NOT RUN LOCALLY** (يتطلب خادم PostgreSQL 16 محلي على المنفذ `5432` غير متاح داخل حاوية AI Studio؛ يُشغّل في GitHub Actions CI).
+- إجمالي الفحوصات المنفذة محليًا: **315/315 PASSED**.
 
 ## 3. العمل المنجز والمرجع التاريخي
 
@@ -52,7 +55,7 @@
 
 يحتوي التقرير على findings مرقمة F-01 إلى F-15. معاني هذه المعرفات مرتبطة بالتقرير الأصلي ولا يجوز إعادة استخدام أرقامها لمعانٍ مختلفة. عند إضافة findings جديدة استخدم معرفات منفصلة مثل N-01 وما بعدها، مع Traceability صريحة.
 
-### Phase 5.1.0 — Implementation Blueprint
+### Phase 5.1.0 / 5.1.1 — Implementation Blueprint
 
 المستند الحالي:
 `reports/phases/phase-5-storage-sync-audit/phase-5-1-implementation-blueprint.md`
@@ -60,45 +63,43 @@
 Commit:
 `6020a78e585d415ca3d8dcdd37a024cda2614652`
 
-الحالة: **CHANGES REQUESTED — NOT APPROVED**.
-
-المستند يتضمن أفكارًا مفيدة، لكنه يحتوي على أخطاء في تتبع findings، وافتراضات غير مثبتة عن Google Drive والاختبارات، ومخاطر في تصميم causal merge وtombstone compaction وbackup import recovery وغيرها. راجع ملاحظات Phase 5.1.1 في المهمة النشطة قبل أي اعتماد.
+الحالة: **CHANGES REQUESTED — NOT APPROVED** (مفوض جزئيًا لتنفيذ التصحيح المحدود لـ M2 + M3 + M4 فقط ضمن Phase 5.1.2).
 
 ## 4. المرحلة النشطة
 
-# Phase 5.1.1 — Blueprint Technical Validation & Correction
+# Phase 5.1.2 — Corrective Integration & Completion of M2 + M3 + M4
 
-**Status: CHANGES REQUESTED — DOCUMENTATION ONLY — NOT APPROVED**
+**Status: IMPLEMENTED — LOCAL TESTS ONLY (NOT CI VERIFIED, NOT APPROVED)**
 
-**الهدف:** تصحيح Blueprint Phase 5.1.0 اعتمادًا على تقرير Phase 5.0.2 والكود الفعلي والأدلة المتاحة، قبل السماح بأي تنفيذ.
+**الهدف:** استكمال وتصحيح تكامل M2 (Entity Tombstones & Local Deletion) وM3 (Causal Engine & Legacy Safety) وM4 (Annotation Creation, Deletion & Merge) فوق النموذج الأولي الموجود في `76f72e93d910adb755f72849acbeb52486b09636` دون المساس بخط الأساس المعتمد لـ M1.
 
-**الملف المستهدف الوحيد في هذه المرحلة:**
-`reports/phases/phase-5-storage-sync-audit/phase-5-1-implementation-blueprint.md`
+**الملفات الخمسة الوحيدة المعدلة ضمن النطاق المصرح به:**
+1. `index.html`
+2. `test_phase3_cross_account_isolation.js`
+3. `test_phase4_regressions.js`
+4. `test_phase4_1_chromium_e2e.js`
+5. `reports/CURRENT.md`
 
-المطلوب مراجعة وتصحيح:
-1. Traceability: الحفاظ على المعاني الأصلية لكل F-01 إلى F-15؛ أي finding جديد يأخذ N-01 وما بعده.
-2. Google Drive: إزالة أي ادعاء عن دوال أو صلاحيات أو endpoints لا توجد في المصدر الحالي، والتمييز بين resumable upload والملفات الخاصة والوصول المحلي.
-3. Conflict resolution: عدم وصف مقارنة revision/timestamp بأنها causal أو three-way merge دون causal metadata وآلية ancestor صحيحة واختبارات clock skew.
-4. Tombstones: عدم حذفها آليًا بمدة TTL أو عدد revisions دون acknowledgements/watermarks آمنة لكل الأجهزة.
-5. Backup import: تصميم recovery journal مستمر بعد crash، لا rollback محفوظ في RAM فقط؛ وفصل حدود المعاملات بين IndexedDB وlocalStorage.
-6. Integrity and memory: عدم وصف FNV بأنه SHA-256، وتوضيح أن `crypto.subtle.digest` one-shot، وعدم ادعاء JSON streaming لمجرد chunking.
-7. Legacy stroke identity: منع اصطدام IDs عند وجود strokes متطابقة عمدًا.
-8. Tests: استخدام scripts والأعداد الموجودة فعلًا، وعدم اختراع أسماء اختبارات أو نتائج.
-9. Free/VIP: عدم إغلاق وظائف الحفظ والمزامنة الأساسية خلف VIP، وعدم الادعاء بإمكانية تنزيل ملفات Drive الخاصة دون صلاحية حقيقية.
-10. Supabase: إبقاء الفحوصات المقترحة Read-only؛ لا توجد موافقة لتطبيق `schema.sql` كاملًا على قاعدة قائمة.
-11. Idle sync: عدم اعتماد polling/threshold قبل قياس payload size والوقت والضغط على RPC وIndexedDB.
+**ملخص التصحيحات المنفذة في Phase 5.1.2:**
+1. **إصلاح فشل CI في `test_phase3_cross_account_isolation.js`:** استخراج سلسلة الاعتماديات الحقيقية الكاملة لدالة `getLocalTombstones()` من `index.html` إلى بيئة الاختبار المعزولة (`getCanonicalTombstoneBucketName`, `getEmptyTombstonesMap`, `normalizeTombstoneRecord`, `normalizeTombstonesObject`) وإضافة فحص الانحدار `T-5.1.2-CI-01`.
+2. **M3 — محرك السببية وسلامة البيانات القديمة (Causal Engine & Legacy Safety):**
+   - توحيد صيغ نطاقات الكيانات (`entity:<pluralBucket>:<id>`) عبر دالة `getCanonicalEntityCausalScope()` في `stampEntityMutation()` و`recordEntityTombstone()` و`autoStampTrackedWorkspaceMutations()`.
+   - فصل `deviceId` (لكل متصفح/ملف تعريف في `localStorage`) عن `actorId` (لكل علامة تبويب عبر `sessionStorage` + CSPRNG) لمنع التصادم السببي المزيف بين تبويبتين لنفس الحساب على نفس الجهاز.
+   - حماية التعديلات القديمة غير الموسومة (`legacy unstamped mutations`) عبر البصمات القانونية (`_legacyBaseDigest`) بحيث لا تسحق بيانات قديمة بعيدة تعديلًا محليًا غير موسوم، مع حفظ كلا النسختين في `pharmaConflictRecovery_<uid>` عند التعارض.
+   - الختم التلقائي الكامل (`autoStampTrackedWorkspaceMutations`) لجميع الفئات الثماني (`subjects`, `groups`, `lectures`, `wird_logs`, `events`, `backlog`, `weekly_reports`, `logs`) عند الحفظ المحلي وقبل الدفع السحابي.
+3. **M2 — شواهد الحذف (Tombstones) والحذف المحلي الآمن:**
+   - الحذف الآمن (Fail-closed) لجميع الفئات الثماني عبر مسارات الحذف الفردية والجماعية والهرمية (`saveLocalTombstones()` يعيد `false` عند فشل الكتابة ويوقف الحذف دون فقدان البيانات أو إنشاء يتامى).
+   - دعم الاسترجاع المحلي (`restoreDeletedEntity`) بتوليد عملية سببية جديدة (`supersedes: [tombstone.opId]`) تتغلب على شاهد الحذف السابق.
+   - التنظيف المحلي المعزول لكل حساب (`cleanupDeletedLectureLocalArtifacts`) لمخازن IndexedDB (`pdfs`, `audios` شاملاً `rec_<lecId>_*`, `annotations`، وذاكرة التخزين المؤقت) دون المساس بحسابات أخرى أو حذف ملفات Google Drive البعيدة.
+4. **M4 — إنشاء وحذف ودمج التعليقات التوضيحية (Annotations):**
+   - توحيد توقيع `stampAnnotationItemCausal(item, lecId, pageKey, itemKind, targetUid, extraSupersedes)` (6 معاملات) عبر جميع مواضع الرسم والـUndo/Redo واللصق وتغيير الحجم والملاحظات والدبابيس الصوتية.
+   - الختم السببي لحذف الضربات الفردية ومسح الصفحة وأوراق الملاحظات الإضافية واستبعاد صفحات الـPDF وإعادتها والدبابيس الصوتية.
+   - ترحيل الضربات القديمة غير الموسومة بمعرّفات حتمية تحافظ على الترتيب (`_canonicalGeomOrdinal`) وسجل `_legacyManifest` لمنع فقدان الضربات المكررة عمدًا أو سحق التعديلات القديمة المتباينة أثناء الدمج.
 
-### حدود التنفيذ
-
-- لا تعدل `index.html` أو أي مصدر تطبيق.
-- لا تعدل SQL أو migrations أو schema أو rollbacks.
-- لا تعدل الاختبارات أو dependencies أو GitHub Actions.
-- لا تبدأ M1 أو أي Implementation Milestone.
-- لا تتصل بـSupabase Production أو Google Drive.
-- لا تطبق SQL أو migrations.
-- لا تنفذ Git Sync أو Push أو Force Push.
-
-**بوابة الانتقال:** لا يبدأ M1 إلا بعد تصحيح Blueprint، ومراجعته مستقلًا، وموافقة المالك الصريحة على التصميم.
+### حدود الاعتماد الحالية
+- حالة المرحلة الحالية هي **`IMPLEMENTED — LOCAL TESTS ONLY`**.
+- لم يتم التحقق منها بعد عبر GitHub Actions CI على GitHub (`NOT CI VERIFIED`).
+- لم يتم اعتماد M2 أو M3 أو M4 بعد (`NOT APPROVED`)؛ الاعتماد النهائي قرار المالك بعد المراجعة المستقلة ونجاح CI.
 
 ## 5. سياسة المنتج والحسابات
 
@@ -127,13 +128,12 @@ Commit:
 - لا توجد موافقة للاتصال الحي أو تنفيذ migrations.
 - Google Drive media workflow منفصل عن Core Workspace sync. لا تفترض أن الملفات الخاصة متاحة لـFree أو أن روابط Drive عامة.
 
-## 6. خطوات العمل بعد Phase 5.1.1
+## 6. خطوات العمل بعد Phase 5.1.2
 
-1. تصحيح Blueprint فقط.
-2. عرض Diff وشرح كل تعديل وأي نقاط ما زالت غير محسومة.
-3. مراجعة مستقلة للـBlueprint المصحح.
-4. قرار المالك بالموافقة أو طلب تعديلات إضافية.
-5. بعد الموافقة فقط، إعداد نطاق تنفيذ منفصل لكل milestone.
+1. مراجعة مستقلة للتعديلات المحلية في الملفات الخمسة.
+2. قرار المالك بشأن مزامنة GitHub وتشغيل GitHub Actions CI.
+3. التحقق من نتائج CI الفعلية (بما في ذلك PostgreSQL 16 الحقيقي) على الـCommit الجديد بعد المزامنة.
+4. قرار المالك بالاعتماد (`APPROVED`) أو طلب تعديلات إضافية (`CHANGES REQUESTED`).
 
 لا تنفذ المرحلة التالية تلقائيًا.
 

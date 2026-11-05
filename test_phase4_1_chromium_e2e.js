@@ -1481,6 +1481,466 @@ async function main() {
            'Test Q.5 (T-M1-C03): Conflict merge with missing remoteRow.annotations preserves real IndexedDB annotations in both IndexedDB and pharmaAccountWorkspace_<uid>',
            JSON.stringify(resQ.debug));
 
+    // =========================================================================
+    // TEST R (Phase 5.1.2 M3): Two-Tab Same-Context Actor/Device Isolation, Auto-Stamping & Operation-ID Ack
+    // =========================================================================
+    console.log('\n--- TEST R (Phase 5.1.2 M3): Two-Tab Same-Context Actor/Device Isolation, Auto-Stamping & Operation-ID Ack ---');
+    const page2 = await context.newPage();
+    await page2.goto(page.url(), { waitUntil: 'domcontentloaded' });
+    await page2.waitForFunction(() => typeof initPdfDB === 'function');
+
+    const tab1M3 = await page.evaluate(async () => {
+      const uid = 'user-m3-multitab-e2e';
+      supabaseClient = null;
+      await handleAuthSessionChange({ id: uid, email: 'm3@exo.edu', name: 'M3 User' }, false);
+      const devId = getOrCreateDeviceId();
+      const actorId = getLiveActorId();
+      subjects = [{
+        id: 'sub_m3_shared',
+        name: 'Tab 1 Pharmacology',
+        wirdLogs: [{ id: 'wird_m3_1', note: 'Tab 1 Wird' }],
+        groups: [{ id: 'grp_m3_1', name: 'Tab 1 Group', lectures: [{ id: 'lec_m3_1', title: 'Tab 1 Lecture' }] }]
+      }];
+      scheduleEvents = [{ id: 'ev_m3_1', title: 'Tab 1 Session', day: 0, startHour: 9, duration: 2 }];
+      scheduleBacklog = [{ id: 'bl_m3_1', title: 'Tab 1 Backlog' }];
+      weeklyReports = [{ id: 'rep_m3_1', weekStartIso: '2026-10-31', grade: 'A' }];
+      logs = [{ id: 'log_m3_1', text: 'Tab 1 Log', date: '2026-11-01' }];
+      saveSubjects();
+      saveScheduleData(false);
+      saveLogs();
+      return {
+        devId,
+        actorId,
+        subCausal: subjects[0]._causal,
+        wirdCausal: subjects[0].wirdLogs[0]._causal,
+        grpCausal: subjects[0].groups[0]._causal,
+        lecCausal: subjects[0].groups[0].lectures[0]._causal,
+        evCausal: scheduleEvents[0]._causal,
+        blCausal: scheduleBacklog[0]._causal,
+        repCausal: weeklyReports[0]._causal,
+        logCausal: logs[0]._causal,
+        subSnapshot: JSON.parse(JSON.stringify(subjects[0]))
+      };
+    });
+
+    const tab2M3 = await page2.evaluate(async (tab1SubSnap) => {
+      const uid = 'user-m3-multitab-e2e';
+      supabaseClient = null;
+      await handleAuthSessionChange({ id: uid, email: 'm3@exo.edu', name: 'M3 User' }, false);
+      const devId = getOrCreateDeviceId();
+      const actorId = getLiveActorId();
+      // Mutate the same subject ID concurrently in Tab 2 without observing Tab 1's in-memory counter
+      const tab2Sub = stampEntityMutation({ id: 'sub_m3_shared', name: 'Tab 2 Concurrent Pharmacology', groups: [] }, 'subjects', 'sub_m3_shared', uid);
+      const mergedSub = mergeEntityRecordsWithCausalEngine(tab1SubSnap, tab2Sub, 'subjects', 'sub_m3_shared', uid);
+      const recoveryRecords = getConflictRecoveryRecords(uid);
+      return {
+        devId,
+        actorId,
+        tab2Dot: tab2Sub._causal.dot,
+        mergedContext: mergedSub._causal.context,
+        hasRecovery: recoveryRecords.some(r => r.entityId === 'sub_m3_shared' && r.reason === 'concurrent_update_tie_break')
+      };
+    }, tab1M3.subSnapshot);
+
+    await page2.close();
+
+    assert(
+      tab1M3.devId === tab2M3.devId &&
+      tab1M3.actorId !== tab2M3.actorId &&
+      tab1M3.subCausal?.dot?.actorId === tab1M3.actorId &&
+      tab2M3.tab2Dot?.actorId === tab2M3.actorId &&
+      tab1M3.subCausal?.dot?.actorCounter === 1 &&
+      tab2M3.tab2Dot?.actorCounter === 1 &&
+      tab2M3.mergedContext?.[tab1M3.actorId] === 1 &&
+      tab2M3.mergedContext?.[tab2M3.actorId] === 1 &&
+      tab2M3.hasRecovery === true,
+      'Test R.1 (T-5.1.2-M3-E2E): Two real Chromium tabs in the same browser context share deviceId, generate distinct CSPRNG actorIds, and merge concurrent same-scope edits with conflict recovery',
+      JSON.stringify({ tab1M3, tab2M3 })
+    );
+    assert(
+      tab1M3.subCausal?.scopeId === 'entity:subjects:sub_m3_shared' &&
+      tab1M3.wirdCausal?.scopeId === 'entity:wird_logs:wird_m3_1' &&
+      tab1M3.grpCausal?.scopeId === 'entity:groups:grp_m3_1' &&
+      tab1M3.lecCausal?.scopeId === 'entity:lectures:lec_m3_1' &&
+      tab1M3.evCausal?.scopeId === 'entity:events:ev_m3_1' &&
+      tab1M3.blCausal?.scopeId === 'entity:backlog:bl_m3_1' &&
+      tab1M3.repCausal?.scopeId === 'entity:weekly_reports:2026-10-31' &&
+      tab1M3.logCausal?.scopeId === 'entity:logs:log_m3_1',
+      'Test R.2 (T-5.1.2-M3-E2E): saveSubjects(), saveScheduleData(), and saveLogs() auto-stamp canonical entity:<pluralType>:<id> scopes across all 8 entity types in Chromium'
+    );
+
+    // =========================================================================
+    // TEST S (Phase 5.1.2 M2): Real UI Deletions, Fail-Closed Tombstones, Reload Persistence & Account-Scoped IDB Cleanup
+    // =========================================================================
+    console.log('\n--- TEST S (Phase 5.1.2 M2): Real UI Deletions, Fail-Closed Tombstones, Reload & Account-Scoped IDB Cleanup ---');
+    const preReloadM2 = await page.evaluate(async () => {
+      await initPdfDB();
+      const uidA = 'user-m2-del-e2e-a';
+      const uidB = 'user-m2-del-e2e-b';
+      supabaseClient = null;
+
+      // Seed Account B with overlapping lecture ID lec_e2e_del_1 in real browser IndexedDB
+      await handleAuthSessionChange({ id: uidB, email: 'm2b@exo.edu', name: 'M2 User B' }, false);
+      const opCtxB = createAccountOperationContext(uidB);
+      await saveMediaToDB('pdfs', 'lec_e2e_del_1', new Blob(['pdf-user-b'], { type: 'application/pdf' }));
+      await saveMediaToDB('audios', 'rec_lec_e2e_del_1_clip1', new Blob(['aud-user-b'], { type: 'audio/webm' }));
+      await restoreAllAnnotationsMapToDB({
+        lec_e2e_del_1: { '1': [{ id: 'stk_b_1', tool: 'pen', points: [{ x: 0.2, y: 0.2 }, { x: 0.3, y: 0.3 }] }] }
+      }, uidB, opCtxB);
+
+      // Switch to Account A and seed full hierarchy + schedule + logs + IndexedDB lecture artifacts
+      await handleAuthSessionChange({ id: uidA, email: 'm2a@exo.edu', name: 'M2 User A' }, false);
+      localStorage.removeItem('pharmaTombstones_' + uidA);
+      const opCtxA = createAccountOperationContext(uidA);
+      for (const lId of ['lec_e2e_del_1', 'lec_e2e_del_3', 'lec_e2e_del_4']) {
+        await saveMediaToDB('pdfs', lId, new Blob(['pdf-user-a-' + lId], { type: 'application/pdf' }));
+        await saveMediaToDB('audios', lId, new Blob(['aud-user-a-' + lId], { type: 'audio/webm' }));
+        await saveMediaToDB('audios', `rec_${lId}_clip1`, new Blob(['rec-user-a-' + lId], { type: 'audio/webm' }));
+      }
+      await restoreAllAnnotationsMapToDB({
+        lec_e2e_del_1: { '1': [{ id: 'stk_a_1', tool: 'pen', points: [{ x: 0.1, y: 0.1 }, { x: 0.4, y: 0.4 }] }] },
+        lec_e2e_del_3: { '1': [{ id: 'stk_a_3', tool: 'pen', points: [{ x: 0.2, y: 0.2 }, { x: 0.5, y: 0.5 }] }] },
+        lec_e2e_del_4: { '1': [{ id: 'stk_a_4', tool: 'pen', points: [{ x: 0.3, y: 0.3 }, { x: 0.6, y: 0.6 }] }] }
+      }, uidA, opCtxA);
+
+      activeSubjectId = 'sub_e2e_del_1';
+      subjects = [
+        {
+          id: 'sub_e2e_del_1',
+          name: 'Clinical Pharmacy',
+          continuousLogs: [{ id: 'wird_e2e_del_1', note: 'Chapter 1' }],
+          groups: [
+            {
+              id: 'grp_e2e_del_1',
+              name: 'Pharmacokinetics',
+              lectures: [
+                { id: 'lec_e2e_del_1', title: 'Clearance' },
+                { id: 'lec_e2e_del_2', title: 'Volume of Distribution' }
+              ]
+            },
+            {
+              id: 'grp_e2e_del_2',
+              name: 'Pharmacodynamics',
+              lectures: [
+                { id: 'lec_e2e_del_3', title: 'Receptor Binding' }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'sub_e2e_del_2',
+          name: 'Toxicology',
+          wirdLogs: [{ id: 'wird_e2e_del_2', note: 'Antidotes' }],
+          groups: [
+            {
+              id: 'grp_e2e_del_3',
+              name: 'Heavy Metals',
+              lectures: [{ id: 'lec_e2e_del_4', title: 'Chelators' }]
+            }
+          ]
+        }
+      ];
+      scheduleEvents = [
+        { id: 'ev_e2e_del_1', title: 'PK Study', day: 0, startHour: 9, duration: 2, type: 'study', isFixed: false, completed: true },
+        { id: 'ev_e2e_clear_1', title: 'PD Study', day: 1, startHour: 11, duration: 2, type: 'study', isFixed: false, completed: true },
+        { id: 'ev_e2e_fixed_1', title: 'Mandatory Lab', day: 2, startHour: 8, duration: 2, type: 'mandatory', isFixed: true }
+      ];
+      scheduleBacklog = [{ id: 'bl_e2e_del_1', title: 'Solve PK Problems' }];
+      weeklyReports = [{ id: 'rep_e2e_del_1', weekStartIso: '2026-10-24', grade: 'A' }];
+      logs = [{ id: 'log_e2e_del_1', text: 'Completed PK problems', date: '2026-10-25' }];
+      saveSubjects();
+      saveScheduleData(false);
+      saveLogs();
+
+      const staleRemoteRow = {
+        user_id: uidA,
+        revision: 10,
+        subjects: JSON.parse(JSON.stringify(subjects)),
+        schedule: {
+          version: 3,
+          events: JSON.parse(JSON.stringify(scheduleEvents)),
+          backlog: JSON.parse(JSON.stringify(scheduleBacklog)),
+          weeklyReports: JSON.parse(JSON.stringify(weeklyReports))
+        },
+        logs: JSON.parse(JSON.stringify(logs)),
+        academy_progress: []
+      };
+
+      // Temporarily auto-confirm openConfirmModal for UI deletion flows
+      const origOpenConfirm = openConfirmModal;
+      openConfirmModal = (msg, onConfirm) => {
+        if (typeof onConfirm === 'function') return onConfirm();
+      };
+
+      // 1. Test fail-closed abort when tombstone persistence throws QuotaExceededError
+      const origSetItem = Storage.prototype.setItem;
+      const tombKeyA = 'pharmaTombstones_' + uidA;
+      let failTombWrite = true;
+      Storage.prototype.setItem = function(k, v) {
+        if (failTombWrite && String(k) === tombKeyA) {
+          throw new DOMException('Simulated QuotaExceededError on tombstone write', 'QuotaExceededError');
+        }
+        return origSetItem.call(this, k, v);
+      };
+      try {
+        await triggerDeleteLecture('grp_e2e_del_1', 'lec_e2e_del_1');
+        deleteBacklogTask('bl_e2e_del_1');
+      } finally {
+        failTombWrite = false;
+        Storage.prototype.setItem = origSetItem;
+      }
+
+      const failClosedPreserved = (
+        subjects[0].groups[0].lectures.length === 2 &&
+        scheduleBacklog.length === 1
+      );
+
+      // 2. Now execute real UI deletions with working storage
+      deleteContinuousSubjectWirdLog('sub_e2e_del_1', 'wird_e2e_del_1');
+      await triggerDeleteLecture('grp_e2e_del_1', 'lec_e2e_del_1');
+      await triggerDeleteGroup('grp_e2e_del_2');
+      await triggerDeleteSubject('sub_e2e_del_2');
+      deleteSessionDirect(null, 'ev_e2e_del_1');
+      executeClearSchedule('study_only');
+      deleteBacklogTask('bl_e2e_del_1');
+      triggerDeleteLog('log_e2e_del_1');
+      deleteWeeklyEvaluationReport('rep_e2e_del_1');
+
+      openConfirmModal = origOpenConfirm;
+
+      // Save staleRemoteRow in window/sessionStorage for post-reload anti-resurrection check
+      sessionStorage.setItem('test_s_stale_remote', JSON.stringify(staleRemoteRow));
+      return { failClosedPreserved };
+    });
+
+    // Reload browser page and verify deletions survive reload + stale remote sync cannot resurrect deleted items + IDB cleanup is account-isolated
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => typeof initPdfDB === 'function');
+
+    const postReloadM2 = await page.evaluate(async () => {
+      await initPdfDB();
+      const uidA = 'user-m2-del-e2e-a';
+      const uidB = 'user-m2-del-e2e-b';
+      await handleAuthSessionChange({ id: uidA, email: 'm2a@exo.edu', name: 'M2 User A' }, false);
+
+      const survivedReload = (
+        subjects.length === 1 &&
+        subjects[0].id === 'sub_e2e_del_1' &&
+        subjects[0].groups.length === 1 &&
+        subjects[0].groups[0].id === 'grp_e2e_del_1' &&
+        subjects[0].groups[0].lectures.length === 1 &&
+        subjects[0].groups[0].lectures[0].id === 'lec_e2e_del_2' &&
+        (subjects[0].continuousLogs || []).length === 0 &&
+        scheduleEvents.length === 1 &&
+        scheduleEvents[0].id === 'ev_e2e_fixed_1' &&
+        scheduleBacklog.length === 0 &&
+        weeklyReports.length === 0 &&
+        logs.length === 0
+      );
+
+      // Merge against pre-deletion stale remote row and verify zero resurrection
+      const staleRemoteRow = JSON.parse(sessionStorage.getItem('test_s_stale_remote'));
+      const opCtxA = createAccountOperationContext(uidA);
+      const localPayloadNow = {
+        user_id: uidA,
+        subjects: JSON.parse(JSON.stringify(subjects)),
+        schedule: {
+          version: 3,
+          events: JSON.parse(JSON.stringify(scheduleEvents)),
+          backlog: JSON.parse(JSON.stringify(scheduleBacklog)),
+          weeklyReports: JSON.parse(JSON.stringify(weeklyReports)),
+          _tombstones: getLocalTombstones(uidA)
+        },
+        logs: JSON.parse(JSON.stringify(logs)),
+        academy_progress: []
+      };
+      await mergeAndApplyCloudConflict(staleRemoteRow, localPayloadNow, opCtxA);
+
+      const noResurrectionAfterMerge = (
+        subjects.length === 1 &&
+        subjects[0].id === 'sub_e2e_del_1' &&
+        subjects[0].groups.length === 1 &&
+        subjects[0].groups[0].lectures.length === 1 &&
+        subjects[0].groups[0].lectures[0].id === 'lec_e2e_del_2' &&
+        (subjects[0].continuousLogs || []).length === 0 &&
+        scheduleEvents.length === 1 &&
+        scheduleEvents[0].id === 'ev_e2e_fixed_1' &&
+        scheduleBacklog.length === 0 &&
+        weeklyReports.length === 0 &&
+        logs.length === 0
+      );
+
+      // Inspect real IndexedDB stores for Account A (purged) vs Account B (preserved)
+      const checkStoreHasKey = (storeName, key) => new Promise((resolve) => {
+        const tx = dbInstance.transaction(storeName, 'readonly');
+        const req = tx.objectStore(storeName).get(key);
+        req.onsuccess = () => resolve(Boolean(req.result));
+        req.onerror = () => resolve(false);
+      });
+
+      const aPdf1 = await checkStoreHasKey('pdfs', toScopedKey('lec_e2e_del_1', uidA));
+      const aAud1 = await checkStoreHasKey('audios', toScopedKey('lec_e2e_del_1', uidA));
+      const aRec1 = await checkStoreHasKey('audios', toScopedKey('rec_lec_e2e_del_1_clip1', uidA));
+      const aAnno1 = await checkStoreHasKey('annotations', toScopedKey('lec_e2e_del_1', uidA));
+      const aPdf3 = await checkStoreHasKey('pdfs', toScopedKey('lec_e2e_del_3', uidA));
+      const aPdf4 = await checkStoreHasKey('pdfs', toScopedKey('lec_e2e_del_4', uidA));
+
+      const bPdf1 = await checkStoreHasKey('pdfs', toScopedKey('lec_e2e_del_1', uidB));
+      const bRec1 = await checkStoreHasKey('audios', toScopedKey('rec_lec_e2e_del_1_clip1', uidB));
+      const bAnno1 = await checkStoreHasKey('annotations', toScopedKey('lec_e2e_del_1', uidB));
+
+      const idbCleanupIsolated = (
+        !aPdf1 && !aAud1 && !aRec1 && !aAnno1 && !aPdf3 && !aPdf4 &&
+        bPdf1 && bRec1 && bAnno1
+      );
+
+      return {
+        survivedReload,
+        noResurrectionAfterMerge,
+        idbCleanupIsolated,
+        debug: {
+          subLen: subjects.length,
+          grpLen: subjects[0]?.groups?.length,
+          lecLen: subjects[0]?.groups?.[0]?.lectures?.length,
+          contLogsLen: (subjects[0]?.continuousLogs || []).length,
+          evLen: scheduleEvents.length,
+          blLen: scheduleBacklog.length,
+          repLen: weeklyReports.length,
+          logsLen: logs.length
+        }
+      };
+    });
+
+    assert(
+      preReloadM2.failClosedPreserved === true &&
+      postReloadM2.survivedReload === true &&
+      postReloadM2.noResurrectionAfterMerge === true,
+      'Test S.1 (T-5.1.2-M2-E2E): UI deletions abort fail-closed on tombstone write error, persist across real browser reload, and block resurrection from stale remote sync',
+      JSON.stringify({ preReloadM2, postReloadM2 })
+    );
+    assert(
+      postReloadM2.idbCleanupIsolated === true,
+      'Test S.2 (T-5.1.2-M2-E2E): Real browser IndexedDB cascade cleanup purges deleted lecture PDFs, audios, rec_* clips, and annotations for Account A while preserving Account B overlapping lecture IDs',
+      JSON.stringify(postReloadM2)
+    );
+
+    // =========================================================================
+    // TEST T (Phase 5.1.2 M4): Real Browser Annotation Studio Stamping, Undo/Redo, Page Clear & Legacy Stroke Merge
+    // =========================================================================
+    console.log('\n--- TEST T (Phase 5.1.2 M4): Real Browser Annotation Studio Stamping, Undo/Redo, Page Clear & Legacy Stroke Merge ---');
+    const resT = await page.evaluate(async () => {
+      await initPdfDB();
+      const uidM4 = 'user-m4-anno-e2e';
+      supabaseClient = null;
+      await handleAuthSessionChange({ id: uidM4, email: 'm4@exo.edu', name: 'M4 User' }, false);
+      const opCtxM4 = createAccountOperationContext(uidM4);
+      const lecId = 'lec_m4_e2e_900';
+
+      // 1. Seed unmigrated legacy strokes in IndexedDB and verify load/normalization populates _legacyManifest
+      await restoreAllAnnotationsMapToDB({
+        [lecId]: {
+          '1': [
+            { tool: 'pen', color: '#10b981', size: 2, points: [{ x: 0.1111, y: 0.2222 }, { x: 0.3333, y: 0.4444 }] },
+            { tool: 'pen', color: '#10b981', size: 2, points: [{ x: 0.1111, y: 0.2222 }, { x: 0.3333, y: 0.4444 }] }
+          ]
+        }
+      }, uidM4, opCtxM4);
+
+      const loadedFromIdb = await getAllAnnotationsMapFromDB(uidM4, opCtxM4);
+      const migratedPage = loadedFromIdb.verifiedMap?.[lecId];
+      const legacyMigratedOnLoad = Boolean(
+        migratedPage &&
+        Array.isArray(migratedPage['1']) &&
+        migratedPage['1'].length === 2 &&
+        migratedPage['1'][0].id !== migratedPage['1'][1].id &&
+        migratedPage._legacyManifest?.['1']?.__manifestOriginId__
+      );
+
+      // 2. Test 6-parameter stampAnnotationItemCausalMetadata, undo/redo supersession, audio pin deletion, extra note toggle & page clear
+      const liveAnnos = JSON.parse(JSON.stringify(migratedPage));
+      const newStroke = stampAnnotationItemCausalMetadata(
+        { id: 'stk_e2e_live_1', tool: 'pen', color: '#3b82f6', size: 3, points: [{ x: 0.5, y: 0.5 }, { x: 0.6, y: 0.6 }] },
+        'stroke',
+        lecId,
+        '1',
+        uidM4,
+        liveAnnos
+      );
+      const newNote = stampAnnotationItemCausalMetadata(
+        { id: 'note_e2e_live_1', tool: 'text', text: 'E2E Floating Note', x: 0.2, y: 0.2, size: 4 },
+        'note',
+        lecId,
+        '1',
+        uidM4,
+        liveAnnos
+      );
+      const newPin = stampAnnotationItemCausalMetadata(
+        { id: 'pin_e2e_live_1', time: 45, label: 'Important Audio Point' },
+        'pin',
+        lecId,
+        '1',
+        uidM4,
+        liveAnnos
+      );
+      liveAnnos['1'].push(newStroke, newNote);
+      liveAnnos._audioPins = { '1': [newPin] };
+      const remoteBeforeEdits = JSON.parse(JSON.stringify(liveAnnos));
+
+      // Undo newStroke then Redo newStroke
+      recordAnnotationStrokeDeletion(liveAnnos, lecId, '1', newStroke, uidM4);
+      liveAnnos['1'] = liveAnnos['1'].filter(s => s.id !== newStroke.id);
+      const redoneStroke = stampAnnotationItemCausalMetadata(newStroke, 'stroke', lecId, '1', uidM4, liveAnnos);
+      liveAnnos['1'].push(redoneStroke);
+
+      // Delete first migrated legacy stroke, delete newNote, delete newPin, enable extra note on page 1, exclude page 2
+      const deletedLegacyStrokeId = liveAnnos['1'][0].id;
+      recordAnnotationStrokeDeletion(liveAnnos, lecId, '1', liveAnnos['1'][0], uidM4);
+      liveAnnos['1'].shift();
+      recordAnnotationStrokeDeletion(liveAnnos, lecId, '1', newNote, uidM4);
+      liveAnnos['1'] = liveAnnos['1'].filter(s => s.id !== newNote.id);
+      recordAudioPinDeletion(liveAnnos, lecId, '1', newPin.id, uidM4);
+      liveAnnos._audioPins['1'] = [];
+      recordExtraNoteToggleMutation(liveAnnos, lecId, '1', true, uidM4);
+      recordExcludedPageMutation(liveAnnos, lecId, 2, true, uidM4);
+
+      const mergedLive = mergeLectureAnnotationsWithCausalVersions(lecId, liveAnnos, remoteBeforeEdits, uidM4);
+      const survivingIdsP1 = (mergedLive['1'] || []).map(s => s.id);
+      const causalMergePassed = (
+        survivingIdsP1.includes('stk_e2e_live_1') &&
+        !survivingIdsP1.includes('note_e2e_live_1') &&
+        !survivingIdsP1.includes(deletedLegacyStrokeId) &&
+        survivingIdsP1.length === 2 &&
+        (!mergedLive._audioPins['1'] || mergedLive._audioPins['1'].length === 0) &&
+        mergedLive._extraNotes['1'] === true &&
+        Array.isArray(mergedLive.__exo_excluded_pages__) &&
+        mergedLive.__exo_excluded_pages__.includes(2)
+      );
+
+      // 3. Test divergent unmigrated legacy stroke arrays without shared manifest provenance
+      const divLocal = { '1': [{ tool: 'pen', color: '#000', size: 2, points: [{ x: 0.1, y: 0.1 }, { x: 0.2, y: 0.2 }] }] };
+      const divRemote = {
+        '1': [
+          { tool: 'pen', color: '#000', size: 2, points: [{ x: 0.1, y: 0.1 }, { x: 0.2, y: 0.2 }] },
+          { tool: 'pen', color: '#000', size: 2, points: [{ x: 0.7, y: 0.7 }, { x: 0.8, y: 0.8 }] }
+        ]
+      };
+      const mergedDivergent = mergeLectureAnnotationsWithCausalVersions('lec_m4_div_e2e', divLocal, divRemote, uidM4);
+      const recoveryList = getConflictRecoveryRecords(uidM4);
+      const divergentPreserved = (
+        Array.isArray(mergedDivergent['1']) &&
+        mergedDivergent['1'].length === 3 &&
+        recoveryList.some(r => r.entityId === 'lec_m4_div_e2e:1' && r.reason === 'divergent_legacy_stroke_ancestry')
+      );
+
+      return { legacyMigratedOnLoad, causalMergePassed, divergentPreserved };
+    });
+
+    assert(
+      resT.legacyMigratedOnLoad === true && resT.causalMergePassed === true && resT.divergentPreserved === true,
+      'Test T.1 (T-5.1.2-M4-E2E): Real browser IndexedDB legacy stroke migration, 6-parameter annotation stamping, undo/redo supersession, causal deletions, and divergent legacy stroke preservation all succeed',
+      JSON.stringify(resT)
+    );
+
     await context.close();
   } finally {
     await browser.close();
@@ -1496,7 +1956,7 @@ async function main() {
   if (testsFailed > 0) {
     process.exit(1);
   } else {
-    console.log('ALL 16 MANDATORY CHROMIUM + INDEXEDDB E2E SCENARIOS (A - Q) PASSED (100%).');
+    console.log('ALL 19 MANDATORY CHROMIUM + INDEXEDDB E2E SCENARIOS (A - T) PASSED (100%).');
     process.exit(0);
   }
 }

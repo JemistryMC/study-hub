@@ -77,6 +77,9 @@ class InMemoryIDBDatabase {
       pdfs: new Map(),
       audios: new Map()
     };
+    this.objectStoreNames = {
+      contains: (name) => Boolean(this.stores[name])
+    };
     this.failNextTransaction = false;
     this.getAllCount = 0;
     this.onGetAllHook = null;
@@ -232,6 +235,15 @@ function renderSubjectsList() {}
 function renderGroups() {}
 function renderSchedule() {}
 function updateTracker() {}
+function updateWeeklyMetrics() {}
+function renderTasksView() {}
+function renderPdfInlineTaskAdjusterList() {}
+function refreshSchedulePdfPreview() {}
+function renderWeeklyEvaluationsHub() {}
+function closeModal() {}
+function openConfirmModal(msg, onConfirm) {
+  if (typeof onConfirm === 'function') return onConfirm();
+}
 function updateCloudMediaStatsUI() {}
 function updateAcademyXpUI() {}
 function updateCloudNavUI() {}
@@ -239,9 +251,35 @@ function updateGoogleDriveUI() {}
 async function refreshLocalMediaCache() {}
 async function reconcileCloudMediaWithStorageBucket() {}
 
+const CAUSAL_SCHEMA_VERSION = 1;
+const CAUSAL_TOMBSTONE_ENTITY_TYPES = [
+    'subjects', 'groups', 'lectures', 'wird_logs', 'events', 'backlog', 'logs', 'weekly_reports'
+];
+const CAUSAL_TOMBSTONE_ENTITY_TYPE_SET = new Set(CAUSAL_TOMBSTONE_ENTITY_TYPES);
+const FORBIDDEN_MUTATION_VERBS_AS_ID = new Set(['create', 'update', 'delete', 'upsert', 'restore']);
+let liveTabActorId = null;
+let liveLamportClock = 0;
+let testCryptoProviderOverride = undefined;
+const liveActorScopeCounters = new Map();
+const liveObservedScopeContexts = new Map();
+
 ${extractFunctionSource(indexHtmlContent, 'getLocalIsoDate')}
 ${extractFunctionSource(indexHtmlContent, 'getWeekStartDateForDate')}
+${extractFunctionSource(indexHtmlContent, 'isCollegeCommitmentSession')}
+${extractFunctionSource(indexHtmlContent, 'saveSubjects')}
 ${extractFunctionSource(indexHtmlContent, 'saveScheduleData')}
+${extractFunctionSource(indexHtmlContent, 'saveLogs')}
+${extractFunctionSource(indexHtmlContent, 'triggerDeleteSubject')}
+${extractFunctionSource(indexHtmlContent, 'deleteContinuousSubjectWirdLog')}
+${extractFunctionSource(indexHtmlContent, 'triggerDeleteGroup')}
+${extractFunctionSource(indexHtmlContent, 'triggerDeleteLecture')}
+${extractFunctionSource(indexHtmlContent, 'deleteSessionDirect')}
+${extractFunctionSource(indexHtmlContent, 'executeClearSchedule')}
+${extractFunctionSource(indexHtmlContent, 'deleteBacklogTask')}
+${extractFunctionSource(indexHtmlContent, 'triggerDeleteLog')}
+${extractFunctionSource(indexHtmlContent, 'deleteEventFromPdfAdjuster')}
+${extractFunctionSource(indexHtmlContent, 'deleteWeeklyEvaluationReport')}
+${extractFunctionSource(indexHtmlContent, 'markMissedSessionDoneOffline')}
 ${extractFunctionSource(indexHtmlContent, 'saveCloudMediaRegistry')}
 ${extractFunctionSource(indexHtmlContent, 'normMediaKeyStr')}
 ${extractFunctionSource(indexHtmlContent, 'recordUploadedMediaInRegistry')}
@@ -249,7 +287,63 @@ ${extractFunctionSource(indexHtmlContent, 'findMediaInCloudRegistry')}
 ${extractFunctionSource(indexHtmlContent, 'titleKeyMismatch')}
 ${extractFunctionSource(indexHtmlContent, 'snapshotCurrentSubjectsMediaToRegistry')}
 ${extractFunctionSource(indexHtmlContent, 'healSubjectsFromCloudRegistry')}
+${extractFunctionSource(indexHtmlContent, 'setCryptoProviderForTests')}
+${extractFunctionSource(indexHtmlContent, 'generateCausalOperationId')}
+${extractFunctionSource(indexHtmlContent, 'validateAndResolveEntityScope')}
+${extractFunctionSource(indexHtmlContent, 'getOrCreateDeviceId')}
+${extractFunctionSource(indexHtmlContent, 'getLiveActorId')}
+${extractFunctionSource(indexHtmlContent, 'resetLiveActorForTabSimulation')}
+${extractFunctionSource(indexHtmlContent, 'getLocalDeviceRegistry')}
+${extractFunctionSource(indexHtmlContent, 'mergeCausalContexts')}
+${extractFunctionSource(indexHtmlContent, 'getScopeContextMapKey')}
+${extractFunctionSource(indexHtmlContent, 'observeCausalOperation')}
+${extractFunctionSource(indexHtmlContent, 'createCausalOperation')}
+${extractFunctionSource(indexHtmlContent, 'normalizeCausalEnvelope')}
+${extractFunctionSource(indexHtmlContent, 'hasProvenLegacyAncestry')}
+${extractFunctionSource(indexHtmlContent, 'compareCausalOperations')}
+${extractFunctionSource(indexHtmlContent, 'getConflictRecoveryRecords')}
+${extractFunctionSource(indexHtmlContent, 'mergeConflictRecoveryLists')}
+${extractFunctionSource(indexHtmlContent, 'recordConflictRecoveryCandidate')}
+${extractFunctionSource(indexHtmlContent, 'computeEntityContentDigest')}
+${extractFunctionSource(indexHtmlContent, 'stampEntityMutation')}
+${extractFunctionSource(indexHtmlContent, 'restoreDeletedEntity')}
+${extractFunctionSource(indexHtmlContent, 'ensureEntityHasCausalMetadata')}
+${extractFunctionSource(indexHtmlContent, 'autoStampTrackedWorkspaceMutations')}
+${extractFunctionSource(indexHtmlContent, 'normalizeSingleTombstoneEntry')}
+${extractFunctionSource(indexHtmlContent, 'normalizeTombstonesObject')}
 ${extractFunctionSource(indexHtmlContent, 'getLocalTombstones')}
+${extractFunctionSource(indexHtmlContent, 'hasAnyTombstoneEntries')}
+${extractFunctionSource(indexHtmlContent, 'findPriorEntityInMemoryForTombstone')}
+${extractFunctionSource(indexHtmlContent, 'recordTombstone')}
+${extractFunctionSource(indexHtmlContent, 'recordTombstonesAtomicBatch')}
+${extractFunctionSource(indexHtmlContent, 'mergeTombstoneMapsWithCausalEngine')}
+${extractFunctionSource(indexHtmlContent, 'isEntitySupersededByTombstone')}
+${extractFunctionSource(indexHtmlContent, 'mergeEntityRecordsWithCausalEngine')}
+${extractFunctionSource(indexHtmlContent, 'mergeFlatEntityCollectionWithCausalEngine')}
+${extractFunctionSource(indexHtmlContent, 'mergeSubjectsHierarchyWithCausalEngine')}
+${extractFunctionSource(indexHtmlContent, 'cleanupDeletedLectureLocalArtifacts')}
+${extractFunctionSource(indexHtmlContent, 'drainPendingLocalArtifactCleanup')}
+${extractFunctionSource(indexHtmlContent, 'computeCanonical4DecimalStrokeGeometry')}
+${extractFunctionSource(indexHtmlContent, 'computeDeterministicLegacyStrokeId')}
+${extractFunctionSource(indexHtmlContent, 'migrateLegacyPageStrokesWithManifest')}
+${extractFunctionSource(indexHtmlContent, 'verifySharedLegacyStrokeAncestry')}
+${extractFunctionSource(indexHtmlContent, 'ensurePageVersionsContainer')}
+${extractFunctionSource(indexHtmlContent, 'validateAnnotationMutationTarget')}
+${extractFunctionSource(indexHtmlContent, 'stampAnnotationItemCausalMetadata')}
+${extractFunctionSource(indexHtmlContent, 'recordAnnotationStrokeDeletion')}
+${extractFunctionSource(indexHtmlContent, 'recordAnnotationPageClear')}
+${extractFunctionSource(indexHtmlContent, 'syncExcludedPagesArrayWithMeta')}
+${extractFunctionSource(indexHtmlContent, 'recordExcludedPageMutation')}
+${extractFunctionSource(indexHtmlContent, 'recordExtraNoteToggleMutation')}
+${extractFunctionSource(indexHtmlContent, 'recordAudioPinDeletion')}
+${extractFunctionSource(indexHtmlContent, 'isStrokeSupersededByPageClear')}
+${extractFunctionSource(indexHtmlContent, 'mergeLectureAnnotationsWithCausalVersions')}
+${extractFunctionSource(indexHtmlContent, 'collectOperationIdsFromCausalObject')}
+${extractFunctionSource(indexHtmlContent, 'captureOutgoingOperationsSnapshot')}
+${extractFunctionSource(indexHtmlContent, 'markCausalObjectCommittedIfInSet')}
+${extractFunctionSource(indexHtmlContent, 'hasAnyUncommittedOperationsInMemory')}
+${extractFunctionSource(indexHtmlContent, 'acknowledgeCommittedOperationsSnapshot')}
+${extractFunctionSource(indexHtmlContent, 'syncExcludedPagesToLectureRecords')}
 ${extractFunctionSource(indexHtmlContent, 'sanitizeForScopedKey')}
 ${extractFunctionSource(indexHtmlContent, 'getCanonicalUserId')}
 ${extractFunctionSource(indexHtmlContent, 'bumpAccountSessionGeneration')}
@@ -295,6 +389,7 @@ module.exports = {
     if (st.logs !== undefined) logs = st.logs;
     if (st.completedAcademyModules !== undefined) completedAcademyModules = st.completedAcademyModules;
     if (st.cloudMediaRegistry !== undefined) cloudMediaRegistry = st.cloudMediaRegistry;
+    if (st.activeSubjectId !== undefined) activeSubjectId = st.activeSubjectId;
   },
   getRuntimeState: () => ({
     subjects,
@@ -305,9 +400,75 @@ module.exports = {
     logs,
     completedAcademyModules,
     cloudMediaRegistry,
+    activeSubjectId,
     currentCloudWorkspaceRevision,
     dirtyAnnotationsForCloud
   }),
+  saveSubjects,
+  saveScheduleData,
+  saveLogs,
+  triggerDeleteSubject,
+  deleteContinuousSubjectWirdLog,
+  triggerDeleteGroup,
+  triggerDeleteLecture,
+  deleteSessionDirect,
+  executeClearSchedule,
+  deleteBacklogTask,
+  triggerDeleteLog,
+  deleteEventFromPdfAdjuster,
+  deleteWeeklyEvaluationReport,
+  markMissedSessionDoneOffline,
+  CAUSAL_TOMBSTONE_ENTITY_TYPES,
+  setCryptoProviderForTests,
+  generateCausalOperationId,
+  validateAndResolveEntityScope,
+  getOrCreateDeviceId,
+  getLocalDeviceRegistry,
+  getLiveActorId,
+  resetLiveActorForTabSimulation,
+  mergeCausalContexts,
+  observeCausalOperation,
+  createCausalOperation,
+  normalizeCausalEnvelope,
+  compareCausalOperations,
+  getConflictRecoveryRecords,
+  recordConflictRecoveryCandidate,
+  computeEntityContentDigest,
+  stampEntityMutation,
+  restoreDeletedEntity,
+  ensureEntityHasCausalMetadata,
+  autoStampTrackedWorkspaceMutations,
+  normalizeSingleTombstoneEntry,
+  normalizeTombstonesObject,
+  getLocalTombstones,
+  hasAnyTombstoneEntries,
+  recordTombstone,
+  recordTombstonesAtomicBatch,
+  mergeTombstoneMapsWithCausalEngine,
+  isEntitySupersededByTombstone,
+  mergeEntityRecordsWithCausalEngine,
+  mergeFlatEntityCollectionWithCausalEngine,
+  mergeSubjectsHierarchyWithCausalEngine,
+  cleanupDeletedLectureLocalArtifacts,
+  drainPendingLocalArtifactCleanup,
+  computeCanonical4DecimalStrokeGeometry,
+  computeDeterministicLegacyStrokeId,
+  migrateLegacyPageStrokesWithManifest,
+  verifySharedLegacyStrokeAncestry,
+  stampAnnotationItemCausalMetadata,
+  recordAnnotationStrokeDeletion,
+  recordAnnotationPageClear,
+  isStrokeSupersededByPageClear,
+  recordAudioPinDeletion,
+  recordExtraNoteToggleMutation,
+  syncExcludedPagesArrayWithMeta,
+  recordExcludedPageMutation,
+  normalizeAndRecoverLectureAnnotations,
+  mergeLectureAnnotationsWithCausalVersions,
+  captureOutgoingOperationsSnapshot,
+  hasAnyUncommittedOperationsInMemory,
+  acknowledgeCommittedOperationsSnapshot,
+  syncExcludedPagesToLectureRecords,
   getAllAnnotationsMapFromDB,
   restoreAllAnnotationsMapToDB,
   markLocalWorkspaceModified,
@@ -987,6 +1148,627 @@ async function main() {
     refreshedOutDrive.folderId === 'fresh_out_folder_99' &&
     prod.getRuntimeState().subjects.length === 0,
     'T-M1-C04c: syncWorkspaceOnLogin() direct switch refreshes outgoing snapshot, Drive vault, and verified IndexedDB annotations before resetting globals for incoming user'
+  );
+
+  // ==========================================================================
+  // TEST 12 (Phase 5.1.2 M3): Causal Engine, Scope Validation, CSPRNG Fail-Closed & Operation-ID Cloud Ack
+  // ==========================================================================
+  console.log('\n--- TEST 12 (Phase 5.1.2 M3): Causal Engine, Scope Validation, CSPRNG Fail-Closed & Cloud Ack ---');
+  const m3Uid = 'm3-causal-user-1111-2222-333333333333';
+  prod.setSessionUser(m3Uid);
+
+  // T-5.1.2-M3-01: Canonical entity scope validation across all 8 plural types & singular/verb/empty rejection
+  const canonicalScopePairs = [
+    ['subjects', 'sub_101'],
+    ['groups', 'grp_101'],
+    ['lectures', 'lec_101'],
+    ['wird_logs', 'wird_101'],
+    ['events', 'ev_101'],
+    ['backlog', 'bl_101'],
+    ['logs', 'log_101'],
+    ['weekly_reports', '2026-10-31']
+  ];
+  const allScopesMatch = canonicalScopePairs.every(([plural, idVal]) => {
+    const r1 = prod.validateAndResolveEntityScope(plural, idVal);
+    const e1 = prod.stampEntityMutation({ id: idVal }, plural, idVal, m3Uid);
+    const t1 = prod.recordTombstone(plural, idVal, m3Uid, e1);
+    return (
+      r1.scopeId === `entity:${plural}:${idVal}` &&
+      e1._causal.scopeId === r1.scopeId &&
+      t1.scopeId === r1.scopeId
+    );
+  });
+  let singularRejected = false;
+  let verbRejected = false;
+  let emptyIdRejected = false;
+  try {
+    prod.stampEntityMutation({ id: 'sub_bad_type' }, 'subject', 'sub_bad_type', m3Uid);
+  } catch (err) {
+    singularRejected = err instanceof TypeError && String(err.message).includes('INVALID_ENTITY_TYPE_SCOPE');
+  }
+  try {
+    prod.stampEntityMutation({ id: 'sub_bad' }, 'subjects', 'create', m3Uid);
+  } catch (err) {
+    verbRejected = err instanceof TypeError && String(err.message).includes('INVALID_ENTITY_ID_SCOPE');
+  }
+  try {
+    prod.stampEntityMutation({ id: '' }, 'subjects', '', m3Uid);
+  } catch (err) {
+    emptyIdRejected = err instanceof TypeError && String(err.message).includes('INVALID_ENTITY_ID_SCOPE');
+  }
+  assert(
+    allScopesMatch && singularRejected && verbRejected && emptyIdRejected,
+    'T-5.1.2-M3-01: Create, update, and delete share identical canonical entity:<pluralType>:<id> scopes across all 8 entity types and reject non-plural types or missing/verb IDs with TypeError'
+  );
+
+  // T-5.1.2-M3-02: CSPRNG operationId generation and fail-closed error when crypto is unavailable
+  const opId1 = prod.generateCausalOperationId('op');
+  const opId2 = prod.generateCausalOperationId('op');
+  let csprngFailClosed = false;
+  prod.setCryptoProviderForTests(null);
+  try {
+    prod.generateCausalOperationId('op');
+  } catch (cryptoErr) {
+    csprngFailClosed = String(cryptoErr.message).includes('CSPRNG_UNAVAILABLE');
+  } finally {
+    prod.setCryptoProviderForTests(undefined);
+  }
+  assert(
+    opId1.startsWith('op_') && opId2.startsWith('op_') && opId1 !== opId2 && csprngFailClosed,
+    'T-5.1.2-M3-02: generateCausalOperationId uses CSPRNG and fails closed with CSPRNG_UNAVAILABLE when Web Crypto is missing'
+  );
+
+  // T-5.1.2-M3-03: Per-tab actorId & per-scope counters do not collide across simulated tabs on the same device
+  const devIdTab1 = prod.getOrCreateDeviceId();
+  const actorTab1 = prod.getLiveActorId();
+  const tab1Entity = prod.stampEntityMutation({ id: 'sub_multitab', name: 'Tab 1 Edit' }, 'subjects', 'sub_multitab', m3Uid);
+  const tab2Sim = prod.resetLiveActorForTabSimulation();
+  const actorTab2 = tab2Sim.actorId;
+  const devIdTab2 = tab2Sim.deviceId;
+  const tab2Entity = prod.stampEntityMutation({ id: 'sub_multitab', name: 'Tab 2 Edit' }, 'subjects', 'sub_multitab', m3Uid);
+  assert(
+    devIdTab1 === devIdTab2 &&
+    actorTab1 !== actorTab2 &&
+    tab1Entity._causal.dot.actorId === actorTab1 &&
+    tab2Entity._causal.dot.actorId === actorTab2 &&
+    tab1Entity._causal.dot.actorCounter === 1 &&
+    tab2Entity._causal.dot.actorCounter === 1,
+    'T-5.1.2-M3-03: Two tabs on the same device share deviceId but receive distinct CSPRNG actorIds and non-colliding per-scope counters'
+  );
+
+  // T-5.1.2-M3-04: saveSubjects(), saveScheduleData(), and saveLogs() automatically stamp causal metadata
+  prod.localStorage.removeItem('pharmaTombstones_' + m3Uid);
+  prod.setRuntimeState({
+    subjects: [{
+      id: 'sub_auto_1',
+      name: 'Auto-Stamped Subject',
+      wirdLogs: [{ id: 'wird_auto_1', title: 'Juz 1' }],
+      groups: [{
+        id: 'grp_auto_1',
+        name: 'Group 1',
+        lectures: [{ id: 'lec_auto_1', title: 'Lecture 1' }]
+      }]
+    }],
+    scheduleEvents: [{ id: 'ev_auto_1', title: 'Study Session 1', day: 0, startHour: 9, duration: 2 }],
+    scheduleBacklog: [{ id: 'bl_auto_1', title: 'Backlog Goal 1' }],
+    weeklyReports: [{ id: 'rep_auto_1', weekStartIso: '2026-10-31', grade: 'A+' }],
+    logs: [{ id: 'log_auto_1', text: 'Completed Chapter 1', date: '2026-11-01' }]
+  });
+  prod.saveSubjects();
+  prod.saveScheduleData(false);
+  prod.saveLogs();
+  const stAfterSaves = prod.getRuntimeState();
+  assert(
+    stAfterSaves.subjects[0]._causal?.scopeId === 'entity:subjects:sub_auto_1' &&
+    stAfterSaves.subjects[0].wirdLogs[0]._causal?.scopeId === 'entity:wird_logs:wird_auto_1' &&
+    stAfterSaves.subjects[0].groups[0]._causal?.scopeId === 'entity:groups:grp_auto_1' &&
+    stAfterSaves.subjects[0].groups[0].lectures[0]._causal?.scopeId === 'entity:lectures:lec_auto_1' &&
+    stAfterSaves.scheduleEvents[0]._causal?.scopeId === 'entity:events:ev_auto_1' &&
+    stAfterSaves.scheduleBacklog[0]._causal?.scopeId === 'entity:backlog:bl_auto_1' &&
+    stAfterSaves.weeklyReports[0]._causal?.scopeId === 'entity:weekly_reports:2026-10-31' &&
+    stAfterSaves.logs[0]._causal?.scopeId === 'entity:logs:log_auto_1',
+    'T-5.1.2-M3-04: saveSubjects(), saveScheduleData(), and saveLogs() automatically stamp canonical _causal metadata across all 8 entity types'
+  );
+
+  // T-5.1.2-M3-05: Causal happens-before vs concurrent conflict recovery vs legacy unknown ancestry
+  const baseSub = prod.stampEntityMutation({ id: 'sub_cmp', name: 'V1' }, 'subjects', 'sub_cmp', m3Uid);
+  const v2Sub = JSON.parse(JSON.stringify(baseSub));
+  v2Sub.name = 'V2 Sequential';
+  prod.stampEntityMutation(v2Sub, 'subjects', 'sub_cmp', m3Uid);
+  const seqMerged = prod.mergeEntityRecordsWithCausalEngine(baseSub, v2Sub, 'subjects', 'sub_cmp', m3Uid);
+
+  // Concurrent updates on two independent actors without observing each other
+  const concA = { id: 'sub_conc', name: 'Concurrent A', _causal: { schemaVersion: 1, operationId: 'op_ca', scopeId: 'entity:subjects:sub_conc', actorId: 'act_A', deviceId: 'dev_A', actorCounter: 1, lamport: 5, dot: { actorId: 'act_A', actorCounter: 1 }, context: { act_A: 1 }, legacyOpaque: false } };
+  const concB = { id: 'sub_conc', name: 'Concurrent B', _causal: { schemaVersion: 1, operationId: 'op_cb', scopeId: 'entity:subjects:sub_conc', actorId: 'act_B', deviceId: 'dev_B', actorCounter: 1, lamport: 9, dot: { actorId: 'act_B', actorCounter: 1 }, context: { act_B: 1 }, legacyOpaque: false } };
+  const recBeforeConc = prod.getConflictRecoveryRecords(m3Uid).length;
+  const concMerged = prod.mergeEntityRecordsWithCausalEngine(concA, concB, 'subjects', 'sub_conc', m3Uid);
+  const recAfterConc = prod.getConflictRecoveryRecords(m3Uid);
+
+  // Legacy unknown ancestry between two unmigrated legacy records with different content
+  const legA = { id: 'sub_leg_u', name: 'Legacy Device A' };
+  const legB = { id: 'sub_leg_u', name: 'Legacy Device B' };
+  const legMerged = prod.mergeEntityRecordsWithCausalEngine(legA, legB, 'subjects', 'sub_leg_u', m3Uid);
+  const recAfterLeg = prod.getConflictRecoveryRecords(m3Uid);
+  assert(
+    seqMerged.name === 'V2 Sequential' &&
+    concMerged.name === 'Concurrent B' &&
+    concMerged._causal.context.act_A === 1 &&
+    concMerged._causal.context.act_B === 1 &&
+    recAfterConc.length > recBeforeConc &&
+    legMerged &&
+    recAfterLeg.some(r => r.entityId === 'sub_leg_u' && r.reason === 'unresolved_legacy_ancestry' && r.losingValue?.name === 'Legacy Device A'),
+    'T-5.1.2-M3-05: Causal merge respects strict happens-before, resolves concurrent edits deterministically while merging contexts and recording recovery, and preserves legacy unknown-ancestry candidates in conflict recovery'
+  );
+
+  // T-5.1.2-M3-06: Operation-ID snapshot acknowledgement preserves newer in-flight operations
+  const ackItem1 = prod.stampEntityMutation({ id: 'ev_ack_1', title: 'Sent Event' }, 'events', 'ev_ack_1', m3Uid);
+  const sentSnapshot = prod.captureOutgoingOperationsSnapshot({
+    subjects: [],
+    schedule: { events: [ackItem1], backlog: [], weeklyReports: [], _tombstones: {} },
+    logs: [],
+    annotations: {}
+  });
+  const ackItem2InFlight = prod.stampEntityMutation({ id: 'ev_ack_2', title: 'Newer In-Flight Event' }, 'events', 'ev_ack_2', m3Uid);
+  prod.setRuntimeState({
+    subjects: [],
+    scheduleEvents: [ackItem1, ackItem2InFlight],
+    scheduleBacklog: [],
+    weeklyReports: [],
+    logs: []
+  });
+  prod.acknowledgeCommittedOperationsSnapshot(sentSnapshot, 42, m3Uid);
+  const hasUncommittedAfterAck = prod.hasAnyUncommittedOperationsInMemory(m3Uid);
+  assert(
+    ackItem1._causal.committedWorkspaceRevision === 42 &&
+    ackItem1._causal.dirty === false &&
+    ackItem2InFlight._causal.committedWorkspaceRevision === null &&
+    ackItem2InFlight._causal.dirty === true &&
+    hasUncommittedAfterAck === true,
+    'T-5.1.2-M3-06: acknowledgeCommittedOperationsSnapshot marks only sent operationIds as committed and keeps newer in-flight mutations dirty'
+  );
+
+  // ==========================================================================
+  // TEST 13 (Phase 5.1.2 M2): All UI Deletion Routes, Fail-Closed Tombstone Persistence,
+  // Stale-Device Anti-Resurrection, Causal Restore & Account-Scoped IDB Cascade Cleanup
+  // ==========================================================================
+  console.log('\n--- TEST 13 (Phase 5.1.2 M2): UI Deletion Routes, Fail-Closed Tombstones & Account-Scoped IDB Cleanup ---');
+  const m2UidA = 'm2-user-aaaa-1111-2222-333333333333';
+  const m2UidB = 'm2-user-bbbb-9999-8888-777777777777';
+  prod.setSessionUser(m2UidA);
+  prod.localStorage.removeItem('pharmaTombstones_' + m2UidA);
+
+  // Seed subjects, groups, lectures, wirdLogs, scheduleEvents, scheduleBacklog, weeklyReports, logs
+  prod.setRuntimeState({
+    activeSubjectId: 'sub_del_1',
+    subjects: [
+      {
+        id: 'sub_del_1',
+        name: 'Pharmacology I',
+        continuousLogs: [{ id: 'wird_del_1', note: 'Pages 1-10' }],
+        groups: [
+          {
+            id: 'grp_del_1',
+            name: 'Autonomic',
+            lectures: [
+              { id: 'lec_del_1', title: 'Cholinergic Agonists' },
+              { id: 'lec_del_2', title: 'Adrenergic Blockers' }
+            ]
+          },
+          {
+            id: 'grp_del_2',
+            name: 'Cardiovascular',
+            lectures: [
+              { id: 'lec_del_3', title: 'Antiarrhythmics' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'sub_del_2',
+        name: 'Medicinal Chemistry',
+        wirdLogs: [{ id: 'wird_del_2', note: 'SAR Review' }],
+        groups: [
+          {
+            id: 'grp_del_3',
+            name: 'Beta-Lactams',
+            lectures: [{ id: 'lec_del_4', title: 'Penicillins & Cephalosporins' }]
+          }
+        ]
+      }
+    ],
+    scheduleEvents: [
+      { id: 'ev_del_1', title: 'Study Cholinergics', day: 0, startHour: 10, duration: 2, type: 'study', isFixed: false },
+      { id: 'ev_del_pdf', title: 'PDF Adjuster Session', day: 1, startHour: 12, duration: 1, type: 'study', isFixed: false },
+      { id: 'ev_clear_study', title: 'Study Session To Clear', day: 2, startHour: 14, duration: 2, type: 'study', isFixed: false },
+      { id: 'ev_college_fixed', title: 'College Lecture Fixed', day: 3, startHour: 8, duration: 2, type: 'mandatory', isFixed: true }
+    ],
+    scheduleBacklog: [
+      { id: 'bl_del_1', title: 'Finish Autonomic Bank' }
+    ],
+    weeklyReports: [
+      { id: 'rep_del_1', weekStartIso: '2026-10-24', rangeTitle: 'Week 1', grade: 'A' }
+    ],
+    logs: [
+      { id: 'log_del_1', text: 'Studied 2h Pharmacology', date: '2026-10-25' }
+    ]
+  });
+  prod.saveSubjects();
+  prod.saveScheduleData(false);
+  prod.saveLogs();
+
+  // Seed IndexedDB artifacts for Account A (lec_del_1, lec_del_3, lec_del_4) and Account B (overlapping lec_del_1!)
+  const seedIdbRecord = (storeName, scopedId, rawId, ownerUid, extra = {}) => {
+    idb.stores[storeName].set(scopedId, Object.assign({
+      id: scopedId,
+      rawId,
+      userId: ownerUid,
+      updatedAt: Date.now()
+    }, extra));
+  };
+  ['lec_del_1', 'lec_del_3', 'lec_del_4'].forEach(lId => {
+    seedIdbRecord('pdfs', prod.toScopedKey(lId, m2UidA), lId, m2UidA, { data: 'pdf_A_' + lId });
+    seedIdbRecord('audios', prod.toScopedKey(lId, m2UidA), lId, m2UidA, { data: 'aud_A_' + lId });
+    seedIdbRecord('audios', prod.toScopedKey('rec_' + lId + '_clip1', m2UidA), 'rec_' + lId + '_clip1', m2UidA, { data: 'rec_A_' + lId });
+    seedIdbRecord('annotations', prod.toScopedKey(lId, m2UidA), lId, m2UidA, { pages: { '1': [{ id: 's1', tool: 'pen', points: [{ x: 0.1, y: 0.1 }] }] } });
+    seedIdbRecord('annotation_recovery_vault', prod.toScopedKey(lId + '_snap', m2UidA), lId + '_snap', m2UidA, { pages: { '1': [] } });
+  });
+  // Seed Account B's overlapping lecture artifacts
+  seedIdbRecord('pdfs', prod.toScopedKey('lec_del_1', m2UidB), 'lec_del_1', m2UidB, { data: 'pdf_B_lec_del_1' });
+  seedIdbRecord('audios', prod.toScopedKey('rec_lec_del_1_clip1', m2UidB), 'rec_lec_del_1_clip1', m2UidB, { data: 'rec_B_lec_del_1' });
+  seedIdbRecord('annotations', prod.toScopedKey('lec_del_1', m2UidB), 'lec_del_1', m2UidB, { pages: { '1': [{ id: 'sb1', tool: 'pen', points: [{ x: 0.5, y: 0.5 }] }] } });
+
+  // Snapshot stale remote state BEFORE deletions so we can test anti-resurrection
+  const staleRemoteSnapshotBeforeDeletes = JSON.parse(JSON.stringify({
+    subjects: prod.getRuntimeState().subjects,
+    scheduleEvents: prod.getRuntimeState().scheduleEvents,
+    scheduleBacklog: prod.getRuntimeState().scheduleBacklog,
+    weeklyReports: prod.getRuntimeState().weeklyReports,
+    logs: prod.getRuntimeState().logs
+  }));
+
+  // T-5.1.2-M2-02: First test fail-closed abort when tombstone write fails!
+  const tombKeyA = 'pharmaTombstones_' + m2UidA;
+  prod.setFailNextAccountSnapshotKey(tombKeyA);
+  await prod.triggerDeleteLecture('grp_del_1', 'lec_del_1');
+  prod.setFailNextAccountSnapshotKey(tombKeyA);
+  await prod.triggerDeleteGroup('grp_del_2');
+  prod.setFailNextAccountSnapshotKey(tombKeyA);
+  await prod.triggerDeleteSubject('sub_del_2');
+  prod.setFailNextAccountSnapshotKey(tombKeyA);
+  prod.deleteSessionDirect(null, 'ev_del_1');
+  prod.setFailNextAccountSnapshotKey(tombKeyA);
+  prod.deleteBacklogTask('bl_del_1');
+  prod.setFailNextAccountSnapshotKey(tombKeyA);
+  prod.triggerDeleteLog('log_del_1');
+  prod.setFailNextAccountSnapshotKey(tombKeyA);
+  prod.deleteWeeklyEvaluationReport('rep_del_1');
+
+  const stAfterFailedDeletes = prod.getRuntimeState();
+  assert(
+    stAfterFailedDeletes.subjects.length === 2 &&
+    stAfterFailedDeletes.subjects[0].groups.length === 2 &&
+    stAfterFailedDeletes.subjects[0].groups[0].lectures.length === 2 &&
+    stAfterFailedDeletes.scheduleEvents.length === 4 &&
+    stAfterFailedDeletes.scheduleBacklog.length === 1 &&
+    stAfterFailedDeletes.weeklyReports.length === 1 &&
+    stAfterFailedDeletes.logs.length === 1 &&
+    idb.stores.pdfs.has(prod.toScopedKey('lec_del_1', m2UidA)),
+    'T-5.1.2-M2-02: Fail-closed deletion safety: when tombstone persistence fails, UI deletion routes abort without removing live entities or local IndexedDB artifacts'
+  );
+
+  // T-5.1.2-M2-01: Execute real UI deletion routes when tombstone persistence succeeds
+  prod.deleteContinuousSubjectWirdLog('sub_del_1', 'wird_del_1');
+  await prod.triggerDeleteLecture('grp_del_1', 'lec_del_1');
+  await prod.triggerDeleteGroup('grp_del_2');
+  await prod.triggerDeleteSubject('sub_del_2');
+  prod.deleteSessionDirect(null, 'ev_del_1');
+  prod.deleteEventFromPdfAdjuster('ev_del_pdf');
+  prod.executeClearSchedule('study_only');
+  prod.deleteBacklogTask('bl_del_1');
+  prod.triggerDeleteLog('log_del_1');
+  prod.deleteWeeklyEvaluationReport('rep_del_1');
+
+  const tombsAfterDeletes = prod.getLocalTombstones(m2UidA);
+  const stAfterDeletes = prod.getRuntimeState();
+  assert(
+    tombsAfterDeletes.wird_logs['wird_del_1']?.scopeId === 'entity:wird_logs:wird_del_1' &&
+    tombsAfterDeletes.lectures['lec_del_1']?.scopeId === 'entity:lectures:lec_del_1' &&
+    tombsAfterDeletes.groups['grp_del_2']?.scopeId === 'entity:groups:grp_del_2' &&
+    tombsAfterDeletes.lectures['lec_del_3']?.scopeId === 'entity:lectures:lec_del_3' &&
+    tombsAfterDeletes.subjects['sub_del_2']?.scopeId === 'entity:subjects:sub_del_2' &&
+    tombsAfterDeletes.groups['grp_del_3']?.scopeId === 'entity:groups:grp_del_3' &&
+    tombsAfterDeletes.lectures['lec_del_4']?.scopeId === 'entity:lectures:lec_del_4' &&
+    tombsAfterDeletes.wird_logs['wird_del_2']?.scopeId === 'entity:wird_logs:wird_del_2' &&
+    tombsAfterDeletes.events['ev_del_1']?.scopeId === 'entity:events:ev_del_1' &&
+    tombsAfterDeletes.events['ev_del_pdf']?.scopeId === 'entity:events:ev_del_pdf' &&
+    tombsAfterDeletes.events['ev_clear_study']?.scopeId === 'entity:events:ev_clear_study' &&
+    tombsAfterDeletes.events['ev_college_fixed'] === undefined &&
+    stAfterDeletes.scheduleEvents.length === 1 &&
+    stAfterDeletes.scheduleEvents[0].id === 'ev_college_fixed' &&
+    tombsAfterDeletes.backlog['bl_del_1']?.scopeId === 'entity:backlog:bl_del_1' &&
+    tombsAfterDeletes.logs['log_del_1']?.scopeId === 'entity:logs:log_del_1' &&
+    tombsAfterDeletes.weekly_reports['2026-10-24']?.scopeId === 'entity:weekly_reports:2026-10-24',
+    'T-5.1.2-M2-01: All UI deletion routes record durable causal tombstones across subjects, groups, lectures, wird_logs, events, backlog, logs, and weekly_reports'
+  );
+
+  // T-5.1.2-M2-04: Verify Account A deleted lecture artifacts are purged while Account B overlapping artifacts remain untouched
+  assert(
+    !idb.stores.pdfs.has(prod.toScopedKey('lec_del_1', m2UidA)) &&
+    !idb.stores.audios.has(prod.toScopedKey('lec_del_1', m2UidA)) &&
+    !idb.stores.audios.has(prod.toScopedKey('rec_lec_del_1_clip1', m2UidA)) &&
+    !idb.stores.annotations.has(prod.toScopedKey('lec_del_1', m2UidA)) &&
+    !idb.stores.annotation_recovery_vault.has(prod.toScopedKey('lec_del_1_snap', m2UidA)) &&
+    !idb.stores.pdfs.has(prod.toScopedKey('lec_del_3', m2UidA)) &&
+    !idb.stores.pdfs.has(prod.toScopedKey('lec_del_4', m2UidA)) &&
+    idb.stores.pdfs.has(prod.toScopedKey('lec_del_1', m2UidB)) &&
+    idb.stores.audios.has(prod.toScopedKey('rec_lec_del_1_clip1', m2UidB)) &&
+    idb.stores.annotations.has(prod.toScopedKey('lec_del_1', m2UidB)) &&
+    JSON.parse(prod.localStorage.getItem('pharmaPendingArtifactCleanup_' + m2UidA) || '[]').length === 0,
+    'T-5.1.2-M2-04: Local IndexedDB cascade cleanup removes pdfs, audios, rec_*, annotations, and recovery vault entries for Account A while preserving Account B records'
+  );
+
+  // T-5.1.2-M2-03: Stale-device anti-resurrection + explicit causal restore after delete
+  const mergedHierarchyVsStale = prod.mergeSubjectsHierarchyWithCausalEngine(
+    stAfterDeletes.subjects,
+    staleRemoteSnapshotBeforeDeletes.subjects,
+    tombsAfterDeletes,
+    m2UidA
+  );
+  const mergedEventsVsStale = prod.mergeFlatEntityCollectionWithCausalEngine(
+    stAfterDeletes.scheduleEvents,
+    staleRemoteSnapshotBeforeDeletes.scheduleEvents,
+    'events',
+    tombsAfterDeletes,
+    m2UidA,
+    (e) => String(e.id)
+  );
+  const mergedBacklogVsStale = prod.mergeFlatEntityCollectionWithCausalEngine(
+    stAfterDeletes.scheduleBacklog,
+    staleRemoteSnapshotBeforeDeletes.scheduleBacklog,
+    'backlog',
+    tombsAfterDeletes,
+    m2UidA,
+    (b) => String(b.id)
+  );
+  const mergedLogsVsStale = prod.mergeFlatEntityCollectionWithCausalEngine(
+    stAfterDeletes.logs,
+    staleRemoteSnapshotBeforeDeletes.logs,
+    'logs',
+    tombsAfterDeletes,
+    m2UidA,
+    (l) => String(l.id ?? l.timestamp)
+  );
+  const mergedReportsVsStale = prod.mergeFlatEntityCollectionWithCausalEngine(
+    stAfterDeletes.weeklyReports,
+    staleRemoteSnapshotBeforeDeletes.weeklyReports,
+    'weekly_reports',
+    tombsAfterDeletes,
+    m2UidA,
+    (r) => String(r.weekStartIso || r.id)
+  );
+
+  // Now explicitly restore bl_del_1 causally and verify it supersedes the tombstone
+  const restoredBacklogItem = prod.restoreDeletedEntity(
+    { id: 'bl_del_1', title: 'Restored Autonomic Bank' },
+    'backlog',
+    'bl_del_1',
+    tombsAfterDeletes.backlog['bl_del_1'],
+    m2UidA
+  );
+  const mergedBacklogAfterRestore = prod.mergeFlatEntityCollectionWithCausalEngine(
+    [restoredBacklogItem],
+    [],
+    'backlog',
+    tombsAfterDeletes,
+    m2UidA,
+    (b) => String(b.id)
+  );
+  assert(
+    mergedHierarchyVsStale.subjects.length === 1 &&
+    mergedHierarchyVsStale.subjects[0].id === 'sub_del_1' &&
+    mergedHierarchyVsStale.subjects[0].groups.length === 1 &&
+    mergedHierarchyVsStale.subjects[0].groups[0].id === 'grp_del_1' &&
+    mergedHierarchyVsStale.subjects[0].groups[0].lectures.length === 1 &&
+    mergedHierarchyVsStale.subjects[0].groups[0].lectures[0].id === 'lec_del_2' &&
+    (mergedHierarchyVsStale.subjects[0].continuousLogs || []).length === 0 &&
+    mergedEventsVsStale.length === 1 &&
+    mergedEventsVsStale[0].id === 'ev_college_fixed' &&
+    mergedBacklogVsStale.length === 0 &&
+    mergedLogsVsStale.length === 0 &&
+    mergedReportsVsStale.length === 0 &&
+    mergedBacklogAfterRestore.length === 1 &&
+    mergedBacklogAfterRestore[0].title === 'Restored Autonomic Bank',
+    'T-5.1.2-M2-03: Stale remote payloads cannot resurrect tombstoned entities across any of the 8 types, while restoreDeletedEntity causally supersedes its tombstone'
+  );
+
+  // ==========================================================================
+  // TEST 14 (Phase 5.1.2 M4): Annotation Creation, Deletion, Legacy Stroke Migration &
+  // Strict Shared Ancestry Verification
+  // ==========================================================================
+  console.log('\n--- TEST 14 (Phase 5.1.2 M4): Annotation Stamping, Deletions, Legacy Migration & Ancestry Verification ---');
+  const m4Uid = 'm4-anno-user-1111-2222-333333333333';
+  prod.setSessionUser(m4Uid);
+  const m4LecId = 'lec_m4_501';
+
+  // T-5.1.2-M4-01: 6-parameter stampAnnotationItemCausalMetadata validation & causal progression
+  const m4Annos = {};
+  const m4Stroke1 = prod.stampAnnotationItemCausalMetadata(
+    { id: 'strk_m4_1', tool: 'pen', color: '#10b981', size: 3, points: [{ x: 0.1, y: 0.2 }, { x: 0.3, y: 0.4 }] },
+    'stroke',
+    m4LecId,
+    '1',
+    m4Uid,
+    m4Annos
+  );
+  const m4Note1 = prod.stampAnnotationItemCausalMetadata(
+    { id: 'txt_m4_1', tool: 'text', text: 'Initial Note', x: 0.2, y: 0.3, size: 4, fontKey: 'marhey' },
+    'note',
+    m4LecId,
+    '1',
+    m4Uid,
+    m4Annos
+  );
+  const note1CounterBefore = m4Note1._causal.dot.actorCounter;
+  m4Note1.size = 6;
+  prod.stampAnnotationItemCausalMetadata(m4Note1, 'note', m4LecId, '1', m4Uid, m4Annos);
+  const m4Pin1 = prod.stampAnnotationItemCausalMetadata(
+    { id: 'pin_m4_1', time: 125, label: 'Key Mechanism' },
+    'pin',
+    m4LecId,
+    '1',
+    m4Uid,
+    m4Annos
+  );
+  let threeArgCallRejected = false;
+  try {
+    // Old broken 3-argument call passed (item, lecId, pageNum) leaving pageKey undefined!
+    prod.stampAnnotationItemCausalMetadata({ id: 'bad_3arg', tool: 'pen' }, m4LecId, '1');
+  } catch (err) {
+    threeArgCallRejected = err instanceof TypeError && String(err.message).includes('INVALID_ANNOTATION_PAGE_KEY');
+  }
+  assert(
+    m4Stroke1._causal.scopeId === `anno:${m4LecId}:p:1:stroke:strk_m4_1` &&
+    m4Note1._causal.scopeId === `anno:${m4LecId}:p:1:note:txt_m4_1` &&
+    m4Note1._causal.dot.actorCounter === note1CounterBefore + 1 &&
+    m4Pin1._causal.scopeId === `anno:${m4LecId}:p:1:pin:pin_m4_1` &&
+    threeArgCallRejected,
+    'T-5.1.2-M4-01: stampAnnotationItemCausalMetadata stamps canonical scopeIds for strokes, notes, and pins, increments causal counters on edits, and rejects missing pageKey'
+  );
+
+  // T-5.1.2-M4-02: Undo/Redo, Eraser, Page Clear, Extra Note Toggle, Audio Pin Delete & Page Exclusion causal merge
+  m4Annos['1'] = [m4Stroke1, m4Note1];
+  m4Annos._audioPins = { '1': [m4Pin1] };
+  const remoteSnapshotBeforeUndo = JSON.parse(JSON.stringify(m4Annos));
+
+  // Simulate undo of m4Stroke1 followed by redo of m4Stroke1: redone stroke must supersede undo tombstone!
+  prod.recordAnnotationStrokeDeletion(m4Annos, m4LecId, '1', m4Stroke1, m4Uid);
+  m4Annos['1'] = [m4Note1];
+  const redoneStroke1 = prod.stampAnnotationItemCausalMetadata(m4Stroke1, 'stroke', m4LecId, '1', m4Uid, m4Annos);
+  m4Annos['1'].push(redoneStroke1);
+
+  // Delete m4Note1, delete m4Pin1, toggle extra note on page 1, exclude page 2, and clear page 3
+  prod.recordAnnotationStrokeDeletion(m4Annos, m4LecId, '1', m4Note1, m4Uid);
+  m4Annos['1'] = m4Annos['1'].filter(s => s.id !== 'txt_m4_1');
+  prod.recordAudioPinDeletion(m4Annos, m4LecId, '1', m4Pin1.id, m4Uid);
+  m4Annos._audioPins['1'] = [];
+  prod.recordExtraNoteToggleMutation(m4Annos, m4LecId, '1', true, m4Uid);
+  prod.recordExcludedPageMutation(m4Annos, m4LecId, 2, true, m4Uid);
+
+  const preClearStrokeP3 = prod.stampAnnotationItemCausalMetadata(
+    { id: 'strk_p3_old', tool: 'pen', points: [{ x: 0.1, y: 0.1 }, { x: 0.2, y: 0.2 }] },
+    'stroke',
+    m4LecId,
+    '3',
+    m4Uid,
+    m4Annos
+  );
+  m4Annos['3'] = [preClearStrokeP3];
+  remoteSnapshotBeforeUndo['3'] = [JSON.parse(JSON.stringify(preClearStrokeP3))];
+  prod.recordAnnotationPageClear(m4Annos, m4LecId, '3', m4Annos['3'], m4Uid);
+  m4Annos['3'] = [];
+  const postClearStrokeP3 = prod.stampAnnotationItemCausalMetadata(
+    { id: 'strk_p3_new', tool: 'pen', points: [{ x: 0.4, y: 0.4 }, { x: 0.5, y: 0.5 }] },
+    'stroke',
+    m4LecId,
+    '3',
+    m4Uid,
+    m4Annos
+  );
+  m4Annos['3'].push(postClearStrokeP3);
+
+  const mergedM4 = prod.mergeLectureAnnotationsWithCausalVersions(m4LecId, m4Annos, remoteSnapshotBeforeUndo, m4Uid);
+  assert(
+    Array.isArray(mergedM4['1']) &&
+    mergedM4['1'].length === 1 &&
+    mergedM4['1'][0].id === 'strk_m4_1' &&
+    (!mergedM4._audioPins['1'] || mergedM4._audioPins['1'].length === 0) &&
+    mergedM4._extraNotes['1'] === true &&
+    Array.isArray(mergedM4.__exo_excluded_pages__) &&
+    mergedM4.__exo_excluded_pages__.includes(2) &&
+    Array.isArray(mergedM4['3']) &&
+    mergedM4['3'].length === 1 &&
+    mergedM4['3'][0].id === 'strk_p3_new',
+    'T-5.1.2-M4-02: Redone stroke supersedes undo tombstone, deleted note and audio pin stay deleted against stale remote, page clear removes pre-clear strokes while preserving post-clear strokes, and extraNote/excludedPage metadata merge causally'
+  );
+
+  // T-5.1.2-M4-03: normalizeAndRecoverLectureAnnotations migrates legacy strokes without IDs and populates _legacyManifest
+  const rawLegacyPages = {
+    '1': [
+      { tool: 'pen', color: '#ef4444', size: 2, points: [{ x: 0.123456, y: 0.654321 }, { x: 0.222222, y: 0.333333 }] },
+      { tool: 'pen', color: '#ef4444', size: 2, points: [{ x: 0.123456, y: 0.654321 }, { x: 0.222222, y: 0.333333 }] }
+    ]
+  };
+  const recoveredLegacy = prod.normalizeAndRecoverLectureAnnotations('lec_legacy_700', rawLegacyPages, m4Uid, false);
+  assert(
+    Array.isArray(recoveredLegacy['1']) &&
+    recoveredLegacy['1'].length === 2 &&
+    String(recoveredLegacy['1'][0].id).startsWith('legacy_stroke_') &&
+    String(recoveredLegacy['1'][1].id).startsWith('legacy_stroke_') &&
+    recoveredLegacy['1'][0].id !== recoveredLegacy['1'][1].id &&
+    recoveredLegacy['1'][0]._causal?.legacyOpaque === true &&
+    recoveredLegacy._legacyManifest &&
+    recoveredLegacy._legacyManifest['1'] &&
+    typeof recoveredLegacy._legacyManifest['1'].__manifestOriginId__ === 'string' &&
+    recoveredLegacy._legacyManifest['1'].__manifestOriginId__.startsWith('lman_'),
+    'T-5.1.2-M4-03: normalizeAndRecoverLectureAnnotations migrates legacy strokes with deterministic ordinal-aware IDs and populates _legacyManifest with provenance ID'
+  );
+
+  // T-5.1.2-M4-04: verifySharedLegacyStrokeAncestry rejects geometry-prefix-only and broad-ID-only ancestry, preserving both divergent candidates
+  const unmigratedLocalIdenticalPrefix = {
+    '1': [
+      { tool: 'pen', color: '#000', size: 2, points: [{ x: 0.1, y: 0.1 }, { x: 0.2, y: 0.2 }] }
+    ]
+  };
+  const unmigratedRemoteIdenticalPrefix = {
+    '1': [
+      { tool: 'pen', color: '#000', size: 2, points: [{ x: 0.1, y: 0.1 }, { x: 0.2, y: 0.2 }] },
+      { tool: 'pen', color: '#000', size: 2, points: [{ x: 0.3, y: 0.3 }, { x: 0.4, y: 0.4 }] }
+    ]
+  };
+  const prefixOnlyCheck = prod.verifySharedLegacyStrokeAncestry(
+    unmigratedLocalIdenticalPrefix['1'],
+    unmigratedRemoteIdenticalPrefix['1'],
+    null,
+    null
+  );
+  const broadIdOnlyCheck = prod.verifySharedLegacyStrokeAncestry(
+    [{ id: 'custom_id_1', tool: 'pen', points: [{ x: 0.1, y: 0.1 }] }],
+    [{ id: 'custom_id_2', tool: 'pen', points: [{ x: 0.9, y: 0.9 }] }],
+    null,
+    null
+  );
+  const mergedDivergentLegacy = prod.mergeLectureAnnotationsWithCausalVersions(
+    'lec_div_legacy_800',
+    unmigratedLocalIdenticalPrefix,
+    unmigratedRemoteIdenticalPrefix,
+    m4Uid
+  );
+  const recoveryRecordsM4 = prod.getConflictRecoveryRecords(m4Uid);
+
+  // Conversely, when both sides share the SAME persisted _legacyManifest from recoveredLegacy, ancestry is proven and causal deletion works without duplicating surviving strokes
+  const sharedLocalCopy = JSON.parse(JSON.stringify(recoveredLegacy));
+  const sharedRemoteCopy = JSON.parse(JSON.stringify(recoveredLegacy));
+  const deletedLegacyId = sharedLocalCopy['1'][0].id;
+  prod.recordAnnotationStrokeDeletion(sharedLocalCopy, 'lec_legacy_700', '1', sharedLocalCopy['1'][0], m4Uid);
+  sharedLocalCopy['1'].shift();
+  const mergedSharedLegacy = prod.mergeLectureAnnotationsWithCausalVersions(
+    'lec_legacy_700',
+    sharedLocalCopy,
+    sharedRemoteCopy,
+    m4Uid
+  );
+  assert(
+    prefixOnlyCheck.sharedAncestor === false &&
+    prefixOnlyCheck.divergent === true &&
+    broadIdOnlyCheck.sharedAncestor === false &&
+    broadIdOnlyCheck.divergent === true &&
+    Array.isArray(mergedDivergentLegacy['1']) &&
+    mergedDivergentLegacy['1'].length === 3 &&
+    recoveryRecordsM4.some(r => r.entityId === 'lec_div_legacy_800:1' && r.reason === 'divergent_legacy_stroke_ancestry') &&
+    Array.isArray(mergedSharedLegacy['1']) &&
+    mergedSharedLegacy['1'].length === 1 &&
+    mergedSharedLegacy['1'][0].id !== deletedLegacyId,
+    'T-5.1.2-M4-04: verifySharedLegacyStrokeAncestry rejects geometry-prefix-only and broad-ID-only ancestry, preserves both divergent legacy stroke arrays with recovery records, and honors causal deletions when persisted _legacyManifest provenance matches'
   );
 
   console.log('\n======================================================================');

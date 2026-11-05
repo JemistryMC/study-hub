@@ -243,6 +243,18 @@ async function flushPendingAnnotationsSave(triggerCloudImmediately = false, opCt
   return true;
 }
 
+const CAUSAL_SCHEMA_VERSION = 1;
+const CAUSAL_TOMBSTONE_ENTITY_TYPES = [
+    'subjects', 'groups', 'lectures', 'wird_logs', 'events', 'backlog', 'logs', 'weekly_reports'
+];
+const CAUSAL_TOMBSTONE_ENTITY_TYPE_SET = new Set(CAUSAL_TOMBSTONE_ENTITY_TYPES);
+const FORBIDDEN_MUTATION_VERBS_AS_ID = new Set(['create', 'update', 'delete', 'upsert', 'restore']);
+let liveTabActorId = null;
+let liveLamportClock = 0;
+let testCryptoProviderOverride = undefined;
+const liveActorScopeCounters = new Map();
+const liveObservedScopeContexts = new Map();
+
 ${extractFunctionSource(indexHtmlContent, 'getLocalIsoDate')}
 ${extractFunctionSource(indexHtmlContent, 'getWeekStartDateForDate')}
 ${extractFunctionSource(indexHtmlContent, 'initScheduleData')}
@@ -254,7 +266,63 @@ ${extractFunctionSource(indexHtmlContent, 'findMediaInCloudRegistry')}
 ${extractFunctionSource(indexHtmlContent, 'titleKeyMismatch')}
 ${extractFunctionSource(indexHtmlContent, 'snapshotCurrentSubjectsMediaToRegistry')}
 ${extractFunctionSource(indexHtmlContent, 'healSubjectsFromCloudRegistry')}
+${extractFunctionSource(indexHtmlContent, 'setCryptoProviderForTests')}
+${extractFunctionSource(indexHtmlContent, 'generateCausalOperationId')}
+${extractFunctionSource(indexHtmlContent, 'validateAndResolveEntityScope')}
+${extractFunctionSource(indexHtmlContent, 'getOrCreateDeviceId')}
+${extractFunctionSource(indexHtmlContent, 'getLiveActorId')}
+${extractFunctionSource(indexHtmlContent, 'resetLiveActorForTabSimulation')}
+${extractFunctionSource(indexHtmlContent, 'getLocalDeviceRegistry')}
+${extractFunctionSource(indexHtmlContent, 'mergeCausalContexts')}
+${extractFunctionSource(indexHtmlContent, 'getScopeContextMapKey')}
+${extractFunctionSource(indexHtmlContent, 'observeCausalOperation')}
+${extractFunctionSource(indexHtmlContent, 'createCausalOperation')}
+${extractFunctionSource(indexHtmlContent, 'normalizeCausalEnvelope')}
+${extractFunctionSource(indexHtmlContent, 'hasProvenLegacyAncestry')}
+${extractFunctionSource(indexHtmlContent, 'compareCausalOperations')}
+${extractFunctionSource(indexHtmlContent, 'getConflictRecoveryRecords')}
+${extractFunctionSource(indexHtmlContent, 'mergeConflictRecoveryLists')}
+${extractFunctionSource(indexHtmlContent, 'recordConflictRecoveryCandidate')}
+${extractFunctionSource(indexHtmlContent, 'computeEntityContentDigest')}
+${extractFunctionSource(indexHtmlContent, 'stampEntityMutation')}
+${extractFunctionSource(indexHtmlContent, 'restoreDeletedEntity')}
+${extractFunctionSource(indexHtmlContent, 'ensureEntityHasCausalMetadata')}
+${extractFunctionSource(indexHtmlContent, 'autoStampTrackedWorkspaceMutations')}
+${extractFunctionSource(indexHtmlContent, 'normalizeSingleTombstoneEntry')}
+${extractFunctionSource(indexHtmlContent, 'normalizeTombstonesObject')}
 ${extractFunctionSource(indexHtmlContent, 'getLocalTombstones')}
+${extractFunctionSource(indexHtmlContent, 'hasAnyTombstoneEntries')}
+${extractFunctionSource(indexHtmlContent, 'findPriorEntityInMemoryForTombstone')}
+${extractFunctionSource(indexHtmlContent, 'recordTombstone')}
+${extractFunctionSource(indexHtmlContent, 'recordTombstonesAtomicBatch')}
+${extractFunctionSource(indexHtmlContent, 'mergeTombstoneMapsWithCausalEngine')}
+${extractFunctionSource(indexHtmlContent, 'isEntitySupersededByTombstone')}
+${extractFunctionSource(indexHtmlContent, 'mergeEntityRecordsWithCausalEngine')}
+${extractFunctionSource(indexHtmlContent, 'mergeFlatEntityCollectionWithCausalEngine')}
+${extractFunctionSource(indexHtmlContent, 'mergeSubjectsHierarchyWithCausalEngine')}
+${extractFunctionSource(indexHtmlContent, 'cleanupDeletedLectureLocalArtifacts')}
+${extractFunctionSource(indexHtmlContent, 'drainPendingLocalArtifactCleanup')}
+${extractFunctionSource(indexHtmlContent, 'computeCanonical4DecimalStrokeGeometry')}
+${extractFunctionSource(indexHtmlContent, 'computeDeterministicLegacyStrokeId')}
+${extractFunctionSource(indexHtmlContent, 'migrateLegacyPageStrokesWithManifest')}
+${extractFunctionSource(indexHtmlContent, 'verifySharedLegacyStrokeAncestry')}
+${extractFunctionSource(indexHtmlContent, 'ensurePageVersionsContainer')}
+${extractFunctionSource(indexHtmlContent, 'validateAnnotationMutationTarget')}
+${extractFunctionSource(indexHtmlContent, 'stampAnnotationItemCausalMetadata')}
+${extractFunctionSource(indexHtmlContent, 'recordAnnotationStrokeDeletion')}
+${extractFunctionSource(indexHtmlContent, 'recordAnnotationPageClear')}
+${extractFunctionSource(indexHtmlContent, 'syncExcludedPagesArrayWithMeta')}
+${extractFunctionSource(indexHtmlContent, 'recordExcludedPageMutation')}
+${extractFunctionSource(indexHtmlContent, 'recordExtraNoteToggleMutation')}
+${extractFunctionSource(indexHtmlContent, 'recordAudioPinDeletion')}
+${extractFunctionSource(indexHtmlContent, 'isStrokeSupersededByPageClear')}
+${extractFunctionSource(indexHtmlContent, 'mergeLectureAnnotationsWithCausalVersions')}
+${extractFunctionSource(indexHtmlContent, 'collectOperationIdsFromCausalObject')}
+${extractFunctionSource(indexHtmlContent, 'captureOutgoingOperationsSnapshot')}
+${extractFunctionSource(indexHtmlContent, 'markCausalObjectCommittedIfInSet')}
+${extractFunctionSource(indexHtmlContent, 'hasAnyUncommittedOperationsInMemory')}
+${extractFunctionSource(indexHtmlContent, 'acknowledgeCommittedOperationsSnapshot')}
+${extractFunctionSource(indexHtmlContent, 'syncExcludedPagesToLectureRecords')}
 ${extractFunctionSource(indexHtmlContent, 'sanitizeForScopedKey')}
 ${extractFunctionSource(indexHtmlContent, 'getCanonicalUserId')}
 ${extractFunctionSource(indexHtmlContent, 'bumpAccountSessionGeneration')}
@@ -342,6 +410,18 @@ module.exports = {
     completedAcademyModules,
     cloudMediaRegistry
   }),
+  CAUSAL_TOMBSTONE_ENTITY_TYPES,
+  normalizeSingleTombstoneEntry,
+  normalizeTombstonesObject,
+  getLocalTombstones,
+  recordTombstone,
+  recordTombstonesAtomicBatch,
+  validateAndResolveEntityScope,
+  CAUSAL_TOMBSTONE_ENTITY_TYPES,
+  stampEntityMutation,
+  restoreDeletedEntity,
+  cleanupDeletedLectureLocalArtifacts,
+  drainPendingLocalArtifactCleanup,
   initScheduleData,
   isGoogleDriveTokenActive,
   isGoogleDriveAccountLinked,
@@ -972,6 +1052,49 @@ async function main() {
     snapAAfterRetry.annotations[sharedLectureId] !== undefined &&
     snapAAfterRetry.dirty === true,
     'T-M1-C01r (Test D.3): Retrying the switch after failure clears succeeds, refreshes pharmaAccountWorkspace_A with both subjects and verified annotations, and isolates User B1'
+  );
+
+  // ==========================================================================
+  // SCENARIO 8 (Phase 5.1.2 Step 4): Regression Verification for Real
+  // normalizeTombstonesObject() & getLocalTombstones() Dependency Chain
+  // ==========================================================================
+  console.log('\n--- SCENARIO 8: Real normalizeTombstonesObject() & getLocalTombstones() Normalization ---');
+  const normTestUid = 'user-tombstone-norm-verify';
+  prod.localStorage.setItem('pharmaTombstones_' + normTestUid, JSON.stringify({
+    subjects: ['sub_legacy_arr_1', 'sub_legacy_arr_2'],
+    lectures: {
+      lec_bool_1: true,
+      lec_num_2: 1700000123,
+      lec_false_ignored: false
+    },
+    events: 'not_an_object_or_array',
+    logs: null
+  }));
+  const normalizedStones = prod.getLocalTombstones(normTestUid);
+  const directNormalized = prod.normalizeTombstonesObject({
+    subjects: ['sub_legacy_arr_1', 'sub_legacy_arr_2'],
+    lectures: { lec_bool_1: true, lec_num_2: 1700000123, lec_false_ignored: false },
+    events: 'not_an_object_or_array',
+    logs: null
+  }, normTestUid);
+  const idempotentReNormalized = prod.normalizeTombstonesObject(normalizedStones, normTestUid);
+  assert(
+    normalizedStones &&
+    prod.CAUSAL_TOMBSTONE_ENTITY_TYPES.every(t => normalizedStones[t] && typeof normalizedStones[t] === 'object' && !Array.isArray(normalizedStones[t])) &&
+    normalizedStones.subjects['sub_legacy_arr_1'] &&
+    normalizedStones.subjects['sub_legacy_arr_1'].scopeId === 'entity:subjects:sub_legacy_arr_1' &&
+    normalizedStones.subjects['sub_legacy_arr_1'].kind === 'delete' &&
+    normalizedStones.subjects['sub_legacy_arr_2'] &&
+    normalizedStones.lectures['lec_bool_1'] &&
+    normalizedStones.lectures['lec_bool_1'].scopeId === 'entity:lectures:lec_bool_1' &&
+    normalizedStones.lectures['lec_num_2'] &&
+    normalizedStones.lectures['lec_num_2'].legacyOpaque === true &&
+    normalizedStones.lectures['lec_false_ignored'] === undefined &&
+    Object.keys(normalizedStones.events).length === 0 &&
+    directNormalized.subjects['sub_legacy_arr_1'].scopeId === normalizedStones.subjects['sub_legacy_arr_1'].scopeId &&
+    directNormalized.lectures['lec_num_2'].legacyOpaque === true &&
+    JSON.stringify(normalizedStones) === JSON.stringify(idempotentReNormalized),
+    'T-5.1.2-CI-01: getLocalTombstones() and normalizeTombstonesObject() exercise real source normalization across legacy arrays, boolean/timestamp maps, and malformed buckets'
   );
 
   console.log('\n======================================================================');

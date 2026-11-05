@@ -11374,7 +11374,13 @@
         }
 
         // ================= PAGE 1: المركز (المواد) =================
-        function saveSubjects() { localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects)); markLocalWorkspaceModified(); }
+        function saveSubjects() {
+            if (typeof autoStampTrackedWorkspaceMutations === 'function') {
+                try { autoStampTrackedWorkspaceMutations('subjects'); } catch (e) {}
+            }
+            localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+            markLocalWorkspaceModified();
+        }
 
         let smartSubDraftState = {
             color: '#2dd4bf',
@@ -11843,8 +11849,42 @@
 
         function triggerDeleteSubject(id, event) {
             if(event) event.stopPropagation();
-            openConfirmModal('سيتم مسح هذه المادة نهائياً بكل فصولها ومحاضراتها.', () => {
-                subjects = subjects.filter(s => s.id !== id); saveSubjects(); renderSubjectsList(); showToast('تم حذف المادة', 'error');
+            return openConfirmModal('سيتم مسح هذه المادة نهائياً بكل فصولها ومحاضراتها.', async () => {
+                const targetSub = subjects.find(s => String(s.id) === String(id));
+                if (!targetSub) return;
+                const batchItems = [{ entityType: 'subjects', id: targetSub.id, priorEntity: targetSub }];
+                const deletedLecIds = [];
+                (targetSub.wirdLogs || []).forEach(w => {
+                    if (w && w.id !== undefined) batchItems.push({ entityType: 'wird_logs', id: w.id, priorEntity: w });
+                });
+                (targetSub.continuousLogs || []).forEach(w => {
+                    if (w && w.id !== undefined) batchItems.push({ entityType: 'wird_logs', id: w.id, priorEntity: w });
+                });
+                (targetSub.groups || []).forEach(g => {
+                    if (!g) return;
+                    if (g.id !== undefined) batchItems.push({ entityType: 'groups', id: g.id, priorEntity: g });
+                    (g.lectures || []).forEach(l => {
+                        if (l && l.id !== undefined) {
+                            batchItems.push({ entityType: 'lectures', id: l.id, priorEntity: l });
+                            deletedLecIds.push(l.id);
+                        }
+                    });
+                });
+                if (typeof recordTombstonesAtomicBatch === 'function') {
+                    const batchRes = recordTombstonesAtomicBatch(batchItems);
+                    if (!batchRes || !batchRes.ok) {
+                        showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف المادة حفاظاً على سلامة البيانات ⚠️', 'error');
+                        return;
+                    }
+                }
+                subjects = subjects.filter(s => String(s.id) !== String(id));
+                if (String(activeSubjectId) === String(id)) activeSubjectId = null;
+                saveSubjects();
+                renderSubjectsList();
+                if (deletedLecIds.length > 0 && typeof cleanupDeletedLectureLocalArtifacts === 'function') {
+                    await cleanupDeletedLectureLocalArtifacts(deletedLecIds);
+                }
+                showToast('تم حذف المادة', 'error');
             });
         }
 
@@ -12412,8 +12452,26 @@
 
         function deleteContinuousSubjectWirdLog(subId, logId) {
             const sub = subjects.find(s => String(s.id) === String(subId));
-            if (!sub || !Array.isArray(sub.continuousLogs)) return;
-            sub.continuousLogs = sub.continuousLogs.filter(item => String(item.id) !== String(logId));
+            if (!sub || (!Array.isArray(sub.continuousLogs) && !Array.isArray(sub.wirdLogs))) return;
+            const targetWird = (sub.continuousLogs || []).find(item => String(item.id) === String(logId))
+                || (sub.wirdLogs || []).find(item => String(item.id) === String(logId))
+                || null;
+            if (typeof recordTombstone === 'function') {
+                const tombRes = recordTombstone('wird_logs', logId, null, targetWird);
+                if (!tombRes) {
+                    showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف السجل حفاظاً على سلامة البيانات ⚠️', 'error');
+                    return;
+                }
+            }
+            if (Array.isArray(sub.continuousLogs)) {
+                sub.continuousLogs = sub.continuousLogs.filter(item => String(item.id) !== String(logId));
+            }
+            if (Array.isArray(sub.wirdLogs)) {
+                sub.wirdLogs = sub.wirdLogs.filter(item => String(item.id) !== String(logId));
+            }
+            if (typeof stampEntityMutation === 'function') {
+                stampEntityMutation(sub, 'subjects', sub.id);
+            }
             saveSubjects();
             renderGroups();
             showToast('تم حذف السجل');
@@ -12463,11 +12521,36 @@
         }
 
         function triggerDeleteGroup(groupId) {
-            openConfirmModal('سيتم حذف هذا القسم ومحتوياته بالكامل.', () => {
+            return openConfirmModal('سيتم حذف هذا القسم ومحتوياته بالكامل.', async () => {
                 const sub = subjects.find(s => s.id === activeSubjectId);
                 if(!sub) return;
-                sub.groups = sub.groups.filter(g => g.id !== groupId);
-                saveSubjects(); renderGroups(); showToast('تم حذف القسم', 'error');
+                const targetGroup = (sub.groups || []).find(g => String(g.id) === String(groupId));
+                if (!targetGroup) return;
+                const batchItems = [{ entityType: 'groups', id: targetGroup.id, priorEntity: targetGroup }];
+                const deletedLecIds = [];
+                (targetGroup.lectures || []).forEach(l => {
+                    if (l && l.id !== undefined) {
+                        batchItems.push({ entityType: 'lectures', id: l.id, priorEntity: l });
+                        deletedLecIds.push(l.id);
+                    }
+                });
+                if (typeof recordTombstonesAtomicBatch === 'function') {
+                    const batchRes = recordTombstonesAtomicBatch(batchItems);
+                    if (!batchRes || !batchRes.ok) {
+                        showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف القسم حفاظاً على سلامة البيانات ⚠️', 'error');
+                        return;
+                    }
+                }
+                sub.groups = sub.groups.filter(g => String(g.id) !== String(groupId));
+                if (typeof stampEntityMutation === 'function') {
+                    stampEntityMutation(sub, 'subjects', sub.id);
+                }
+                saveSubjects();
+                renderGroups();
+                if (deletedLecIds.length > 0 && typeof cleanupDeletedLectureLocalArtifacts === 'function') {
+                    await cleanupDeletedLectureLocalArtifacts(deletedLecIds);
+                }
+                showToast('تم حذف القسم', 'error');
             });
         }
 
@@ -12583,13 +12666,31 @@
         }
 
         function triggerDeleteLecture(groupId, lecId) {
-            openConfirmModal('سيتم مسح هذه المحاضرة من القائمة.', () => {
+            return openConfirmModal('سيتم مسح هذه المحاضرة من القائمة.', async () => {
                 const sub = subjects.find(s => s.id === activeSubjectId);
                 if(!sub) return;
-                const group = sub.groups.find(g => g.id === groupId);
+                const group = sub.groups.find(g => String(g.id) === String(groupId));
                 if(!group) return;
-                group.lectures = group.lectures.filter(l => l.id !== lecId);
-                saveSubjects(); renderGroups(); showToast('تم حذف المحاضرة', 'error');
+                const targetLec = (group.lectures || []).find(l => String(l.id) === String(lecId));
+                if (!targetLec) return;
+                if (typeof recordTombstone === 'function') {
+                    const tombRes = recordTombstone('lectures', lecId, null, targetLec);
+                    if (!tombRes) {
+                        showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف المحاضرة حفاظاً على سلامة البيانات ⚠️', 'error');
+                        return;
+                    }
+                }
+                group.lectures = group.lectures.filter(l => String(l.id) !== String(lecId));
+                if (typeof stampEntityMutation === 'function') {
+                    stampEntityMutation(group, 'groups', group.id);
+                    stampEntityMutation(sub, 'subjects', sub.id);
+                }
+                saveSubjects();
+                renderGroups();
+                if (typeof cleanupDeletedLectureLocalArtifacts === 'function') {
+                    await cleanupDeletedLectureLocalArtifacts([lecId]);
+                }
+                showToast('تم حذف المحاضرة', 'error');
             });
         }
 
@@ -13094,15 +13195,28 @@
         initScheduleData();
 
         function saveScheduleData(syncToCloud = true) {
+            if (typeof autoStampTrackedWorkspaceMutations === 'function') {
+                try { autoStampTrackedWorkspaceMutations('schedule'); } catch (e) {}
+            }
             localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
             localStorage.setItem('pharmaWeeklyReportsV1', JSON.stringify(weeklyReports));
-            localStorage.setItem('pharmaScheduleV4', JSON.stringify({
+            const schedulePayload = {
                 version: 3,
                 events: scheduleEvents,
                 backlog: scheduleBacklog,
                 plannerPrefs: plannerPrefs,
                 weeklyReports: weeklyReports
-            }));
+            };
+            if (typeof getLocalTombstones === 'function') {
+                schedulePayload._tombstones = getLocalTombstones();
+            }
+            if (typeof getConflictRecoveryRecords === 'function') {
+                schedulePayload._conflictRecovery = getConflictRecoveryRecords();
+            }
+            if (typeof getLocalDeviceRegistry === 'function') {
+                schedulePayload._deviceRegistry = getLocalDeviceRegistry();
+            }
+            localStorage.setItem('pharmaScheduleV4', JSON.stringify(schedulePayload));
             localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));
             if (syncToCloud) {
                 markLocalWorkspaceModified(false);
@@ -15612,7 +15726,15 @@
         function deleteSessionDirect(event, eventId) {
             if (event) event.stopPropagation();
             openConfirmModal('سيتم مسح هذه الجلسة من جدولك الأسبوعي.', () => {
-                scheduleEvents = scheduleEvents.filter(e => e.id !== eventId);
+                const targetEv = scheduleEvents.find(e => String(e.id) === String(eventId));
+                if (typeof recordTombstone === 'function') {
+                    const tombRes = recordTombstone('events', eventId, null, targetEv || null);
+                    if (!tombRes) {
+                        showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف الجلسة حفاظاً على سلامة البيانات ⚠️', 'error');
+                        return;
+                    }
+                }
+                scheduleEvents = scheduleEvents.filter(e => String(e.id) !== String(eventId));
                 saveScheduleData();
                 renderSchedule();
                 showToast('تم حذف الجلسة', 'error');
@@ -15746,9 +15868,25 @@
 
         function executeClearSchedule(mode) {
             closeModal('clearScheduleModalOverlay');
+            const eventsToDelete = (mode === 'study_only')
+                ? scheduleEvents.filter(e => !isCollegeCommitmentSession(e))
+                : scheduleEvents.slice();
+            if (eventsToDelete.length > 0 && typeof recordTombstonesAtomicBatch === 'function') {
+                const batchRes = recordTombstonesAtomicBatch(
+                    eventsToDelete.map(e => ({ entityType: 'events', id: e.id, priorEntity: e }))
+                );
+                if (!batchRes || !batchRes.ok) {
+                    showToast('تعذر حفظ سجل الحذف محلياً. لم يتم تفريغ الجدول حفاظاً على سلامة البيانات ⚠️', 'error');
+                    return;
+                }
+            }
             if (mode === 'study_only') {
                 scheduleEvents = scheduleEvents.filter(e => isCollegeCommitmentSession(e));
-                scheduleEvents.forEach(e => { e.absent = false; e.absentAtMs = null; });
+                scheduleEvents.forEach(e => {
+                    e.absent = false;
+                    e.absentAtMs = null;
+                    if (typeof stampEntityMutation === 'function') stampEntityMutation(e, 'events', e.id);
+                });
                 saveScheduleData();
                 renderSchedule();
                 showToast(`تم تفريغ مهام المذاكرة الأسبوعية وإعادة تفعيل جدول الكلية الثابت للأسبوع الجديد ⭐`);
@@ -15868,7 +16006,15 @@
         }
 
         function deleteBacklogTask(taskId) {
-            scheduleBacklog = scheduleBacklog.filter(t => t.id !== taskId);
+            const targetTask = scheduleBacklog.find(t => String(t.id) === String(taskId));
+            if (typeof recordTombstone === 'function') {
+                const tombRes = recordTombstone('backlog', taskId, null, targetTask || null);
+                if (!tombRes) {
+                    showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف الهدف حفاظاً على سلامة البيانات ⚠️', 'error');
+                    return;
+                }
+            }
+            scheduleBacklog = scheduleBacklog.filter(t => String(t.id) !== String(taskId));
             saveScheduleData();
             updateWeeklyMetrics();
             renderTasksView();
@@ -15902,7 +16048,13 @@
     <!-- Module 3: exo-tracker-analytics.js -->
     <script id="exo-mod-tracker-analytics" data-module="exo-tracker-analytics.js">
         // ================= PAGE 3: السجل ومتابعة الإنتاجية =================
-        function saveLogs() { localStorage.setItem('pharmaLogsV4', JSON.stringify(logs)); markLocalWorkspaceModified(); }
+        function saveLogs() {
+            if (typeof autoStampTrackedWorkspaceMutations === 'function') {
+                try { autoStampTrackedWorkspaceMutations('logs'); } catch (e) {}
+            }
+            localStorage.setItem('pharmaLogsV4', JSON.stringify(logs));
+            markLocalWorkspaceModified();
+        }
 
         function playChimeSound() {
             try {
@@ -16764,7 +16916,15 @@
 
         function triggerDeleteLog(id) {
             openConfirmModal('مسح هذا الإنجاز من السجل؟', () => {
-                logs = logs.filter(l => l.id !== id);
+                const targetLog = logs.find(l => String(l.id ?? l.timestamp) === String(id));
+                if (typeof recordTombstone === 'function') {
+                    const tombRes = recordTombstone('logs', id, null, targetLog || null);
+                    if (!tombRes) {
+                        showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف السجل حفاظاً على سلامة البيانات ⚠️', 'error');
+                        return;
+                    }
+                }
+                logs = logs.filter(l => String(l.id ?? l.timestamp) !== String(id));
                 saveLogs(); 
                 updateTracker();
                 showToast('تم حذف السجل', 'error');
@@ -17795,6 +17955,14 @@
         }
 
         function deleteEventFromPdfAdjuster(eventId) {
+            const targetEv = scheduleEvents.find(e => String(e.id) === String(eventId));
+            if (typeof recordTombstone === 'function') {
+                const tombRes = recordTombstone('events', eventId, null, targetEv || null);
+                if (!tombRes) {
+                    showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف المهمة حفاظاً على سلامة البيانات ⚠️', 'error');
+                    return;
+                }
+            }
             scheduleEvents = scheduleEvents.filter(e => String(e.id) !== String(eventId));
             saveScheduleData();
             renderSchedule();
@@ -20393,18 +20561,20 @@
             flushPendingAnnotationsSave(false);
         });
 
-        function normalizeAndRecoverLectureAnnotations(lecId, rawPages, rawUserId = null) {
+        function normalizeAndRecoverLectureAnnotations(lecId, rawPages, rawUserId = null, queuePendingSave = true) {
             const pages = (rawPages && typeof rawPages === 'object') ? rawPages : {};
             if (String(lecId).startsWith('_cloudMedia_')) return pages;
-            const cleanLecId = extractRawIdFromScopedKey(lecId, rawUserId || getCanonicalUserId());
+            const resolvedUid = rawUserId || getCanonicalUserId();
+            const cleanLecId = extractRawIdFromScopedKey(lecId, resolvedUid);
             const prefixSlide = `${cleanLecId}_p_`;
             const prefixNote = `note_${cleanLecId}_p_`;
             let migrated = false;
 
             const reservedMetaKeys = new Set([
                 '_extraNotes', '_extraNotesMeta', '_audioPins', '_deletedPins',
-                '_excludedPages', '_excludedPagesMeta', '_deletedStrokes',
-                '_clearedAt', '__exo_page_versions__', '_legacyStrokeManifest'
+                '_excludedPages', '_excludedPagesMeta', '__exo_excluded_pages__', '__exo_excluded_pages_meta__',
+                '_deletedStrokes', '_clearedAt', '__exo_page_versions__', '__exo_causal_ops__',
+                '_legacyManifest', '_legacyStrokeManifest'
             ]);
 
             Object.keys(pages).forEach(k => {
@@ -20463,6 +20633,7 @@
             Object.keys(pages).forEach(pKey => {
                 if (reservedMetaKeys.has(pKey) || !Array.isArray(pages[pKey])) return;
                 const strokeList = pages[pKey];
+                let hadUnmigratedStroke = false;
                 for (let sIdx = 0; sIdx < strokeList.length; sIdx++) {
                     const st = strokeList[sIdx];
                     if (st && Array.isArray(st.points) && st.points.length > 45 && !st._compactedV3) {
@@ -20470,21 +20641,28 @@
                         st._compactedV3 = true;
                         migrated = true;
                     }
+                    if (st && typeof st === 'object' && (!st.id || !st._causal || typeof st._causal !== 'object')) {
+                        hadUnmigratedStroke = true;
+                    }
                 }
                 if (typeof migrateLegacyPageStrokesWithManifest === 'function') {
-                    if (migrateLegacyPageStrokesWithManifest(pages, cleanLecId, pKey)) {
+                    if (!pages._legacyManifest || typeof pages._legacyManifest !== 'object') {
+                        pages._legacyManifest = {};
+                    }
+                    migrateLegacyPageStrokesWithManifest(cleanLecId, pKey, strokeList, pages._legacyManifest, resolvedUid);
+                    if (hadUnmigratedStroke) {
                         migrated = true;
                     }
                 }
             });
 
             if (typeof syncExcludedPagesArrayWithMeta === 'function') {
-                syncExcludedPagesArrayWithMeta(pages);
+                syncExcludedPagesArrayWithMeta(pages, cleanLecId, resolvedUid);
             }
 
-            if (migrated) {
+            if (migrated && queuePendingSave) {
                 try {
-                    const scopedKey = toScopedKey(cleanLecId, rawUserId);
+                    const scopedKey = toScopedKey(cleanLecId, resolvedUid);
                     pendingAnnoSaveMap[scopedKey] = pages;
                 } catch (e) {}
             }
@@ -23872,7 +24050,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     points: silkPoints,
                     _compactedV3: true,
                     _bbox: computeStrokeBBox(silkPoints)
-                }, activeLecIdForStroke, pageNum);
+                }, 'stroke', activeLecIdForStroke, pageNum, null, pageAnnotations);
                 pageAnnotations[pageNum].push(strokeObj);
                 recordAnnotationUndoAction(pageNum);
 
@@ -24018,8 +24196,9 @@ function togglePdfAudioPlayerBar(forceState) {
                     y: normY,
                     color: currentAnnoColor,
                     size: currentAnnoSize,
-                    fontKey: liveSelFont
-                }, activeLecIdForText, pageNum);
+                    fontKey: liveSelFont,
+                    _causal: (existingItem && existingItem._causal) ? existingItem._causal : undefined
+                }, 'note', activeLecIdForText, pageNum, null, pageAnnotations);
                 if (existingItem) {
                     pageAnnotations[pageNum][editIndex] = textObj;
                     selectedTextState = { pageNum, index: editIndex };
@@ -24037,11 +24216,11 @@ function togglePdfAudioPlayerBar(forceState) {
                 // If user cleared the text while editing an existing text note, remove it
                 const removedTextItem = pageAnnotations[pageNum][editIndex];
                 if (removedTextItem && removedTextItem.id) {
-                    recordAnnotationStrokeDeletion(pageAnnotations, activeLecIdForText, pageNum, removedTextItem.id);
+                    recordAnnotationStrokeDeletion(pageAnnotations, activeLecIdForText, pageNum, removedTextItem);
                     if (mergedContinuousPdfMode && mergedPageToLectureMap[pageNum]) {
                         const mInfo = mergedPageToLectureMap[pageNum];
                         const sKey = mInfo.saveKey !== undefined ? mInfo.saveKey : mInfo.localPageNum;
-                        recordAnnotationStrokeDeletion(mInfo.lecAnnos, mInfo.lecId, sKey, removedTextItem.id);
+                        recordAnnotationStrokeDeletion(mInfo.lecAnnos, mInfo.lecId, sKey, removedTextItem);
                     }
                 }
                 pageAnnotations[pageNum].splice(editIndex, 1);
@@ -24208,7 +24387,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     const act = btn.dataset.act;
                     if (act === 'smaller') {
                         item.size = Math.max(1, (parseFloat(item.size) || 3) - 1.2);
-                        stampAnnotationItemCausalMetadata(item, activeLecIdForLayer, pageNum);
+                        stampAnnotationItemCausalMetadata(item, 'note', activeLecIdForLayer, pageNum, null, pageAnnotations);
                         currentAnnoSize = item.size;
                         const sSlider = document.getElementById('annoStrokeSize');
                         if (sSlider) sSlider.value = Math.round(item.size);
@@ -24216,7 +24395,7 @@ function togglePdfAudioPlayerBar(forceState) {
                         if (currentViewingLec) saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
                     } else if (act === 'bigger') {
                         item.size = Math.min(24, (parseFloat(item.size) || 3) + 1.2);
-                        stampAnnotationItemCausalMetadata(item, activeLecIdForLayer, pageNum);
+                        stampAnnotationItemCausalMetadata(item, 'note', activeLecIdForLayer, pageNum, null, pageAnnotations);
                         currentAnnoSize = item.size;
                         const sSlider = document.getElementById('annoStrokeSize');
                         if (sSlider) sSlider.value = Math.round(item.size);
@@ -24227,7 +24406,7 @@ function togglePdfAudioPlayerBar(forceState) {
                         const curIdx = order.indexOf(fontKey === 'plex' ? 'academic' : fontKey);
                         const nextFont = order[(curIdx + 1) % order.length];
                         item.fontKey = nextFont;
-                        stampAnnotationItemCausalMetadata(item, activeLecIdForLayer, pageNum);
+                        stampAnnotationItemCausalMetadata(item, 'note', activeLecIdForLayer, pageNum, null, pageAnnotations);
                         currentAnnoFontKey = nextFont;
                         const fSel = document.getElementById('annoFontFamilySelect');
                         if (fSel) fSel.value = nextFont;
@@ -24238,11 +24417,11 @@ function togglePdfAudioPlayerBar(forceState) {
                     } else if (act === 'delete') {
                         const delItem = pageAnnotations[pageNum][idx];
                         if (delItem && delItem.id) {
-                            recordAnnotationStrokeDeletion(pageAnnotations, activeLecIdForLayer, pageNum, delItem.id);
+                            recordAnnotationStrokeDeletion(pageAnnotations, activeLecIdForLayer, pageNum, delItem);
                             if (mergedContinuousPdfMode && mergedPageToLectureMap[pageNum]) {
                                 const mInfo = mergedPageToLectureMap[pageNum];
                                 const sKey = mInfo.saveKey !== undefined ? mInfo.saveKey : mInfo.localPageNum;
-                                recordAnnotationStrokeDeletion(mInfo.lecAnnos, mInfo.lecId, sKey, delItem.id);
+                                recordAnnotationStrokeDeletion(mInfo.lecAnnos, mInfo.lecId, sKey, delItem);
                             }
                         }
                         pageAnnotations[pageNum].splice(idx, 1);
@@ -24276,7 +24455,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     const onUp = () => {
                         resizeHandle.removeEventListener('pointermove', onMove);
                         resizeHandle.removeEventListener('pointerup', onUp);
-                        stampAnnotationItemCausalMetadata(item, activeLecIdForLayer, pageNum);
+                        stampAnnotationItemCausalMetadata(item, 'note', activeLecIdForLayer, pageNum, null, pageAnnotations);
                         if (currentViewingLec) saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
                     };
                     resizeHandle.addEventListener('pointermove', onMove);
@@ -24296,11 +24475,11 @@ function togglePdfAudioPlayerBar(forceState) {
                     if (currentAnnoTool === 'eraser') {
                         const erasedItem = pageAnnotations[pageNum][idx];
                         if (erasedItem && erasedItem.id) {
-                            recordAnnotationStrokeDeletion(pageAnnotations, activeLecIdForLayer, pageNum, erasedItem.id);
+                            recordAnnotationStrokeDeletion(pageAnnotations, activeLecIdForLayer, pageNum, erasedItem);
                             if (mergedContinuousPdfMode && mergedPageToLectureMap[pageNum]) {
                                 const mInfo = mergedPageToLectureMap[pageNum];
                                 const sKey = mInfo.saveKey !== undefined ? mInfo.saveKey : mInfo.localPageNum;
-                                recordAnnotationStrokeDeletion(mInfo.lecAnnos, mInfo.lecId, sKey, erasedItem.id);
+                                recordAnnotationStrokeDeletion(mInfo.lecAnnos, mInfo.lecId, sKey, erasedItem);
                             }
                         }
                         pageAnnotations[pageNum].splice(idx, 1);
@@ -24353,7 +24532,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     if (!dragging) return;
                     dragging = false;
                     if (moved) {
-                        stampAnnotationItemCausalMetadata(item, activeLecIdForLayer, pageNum);
+                        stampAnnotationItemCausalMetadata(item, 'note', activeLecIdForLayer, pageNum, null, pageAnnotations);
                         if (currentViewingLec) {
                             saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations);
                         }
@@ -24746,11 +24925,11 @@ function togglePdfAudioPlayerBar(forceState) {
 
             const recordErasedStrokeTombstone = (stroke) => {
                 if (!stroke || !stroke.id) return;
-                recordAnnotationStrokeDeletion(pageAnnotations, activeLecIdForErase, pageNum, stroke.id);
+                recordAnnotationStrokeDeletion(pageAnnotations, activeLecIdForErase, pageNum, stroke);
                 if (mergedContinuousPdfMode && mergedPageToLectureMap[pageNum]) {
                     const mInfo = mergedPageToLectureMap[pageNum];
                     const sKey = mInfo.saveKey !== undefined ? mInfo.saveKey : mInfo.localPageNum;
-                    recordAnnotationStrokeDeletion(mInfo.lecAnnos, mInfo.lecId, sKey, stroke.id);
+                    recordAnnotationStrokeDeletion(mInfo.lecAnnos, mInfo.lecId, sKey, stroke);
                 }
             };
 
@@ -24837,11 +25016,11 @@ function togglePdfAudioPlayerBar(forceState) {
                 annotationRedoStack.push({ targetKey, stroke: poppedStroke, lecId: activeLecIdForUndo });
                 if (annotationRedoStack.length > 60) annotationRedoStack.shift();
                 if (poppedStroke.id) {
-                    recordAnnotationStrokeDeletion(pageAnnotations, activeLecIdForUndo, targetKey, poppedStroke.id);
+                    recordAnnotationStrokeDeletion(pageAnnotations, activeLecIdForUndo, targetKey, poppedStroke);
                     if (mergedContinuousPdfMode && mergedPageToLectureMap[targetKey]) {
                         const mInfo = mergedPageToLectureMap[targetKey];
                         const sKey = mInfo.saveKey !== undefined ? mInfo.saveKey : mInfo.localPageNum;
-                        recordAnnotationStrokeDeletion(mInfo.lecAnnos, mInfo.lecId, sKey, poppedStroke.id);
+                        recordAnnotationStrokeDeletion(mInfo.lecAnnos, mInfo.lecId, sKey, poppedStroke);
                     }
                 }
             }
@@ -24861,7 +25040,8 @@ function togglePdfAudioPlayerBar(forceState) {
             const targetKey = entry.targetKey;
             const lecId = entry.lecId || (currentViewingLec ? currentViewingLec.lec.id : 'unknown');
             if (!pageAnnotations[targetKey]) pageAnnotations[targetKey] = [];
-            const restoredStroke = stampAnnotationItemCausalMetadata(entry.stroke, lecId, targetKey);
+            const itemKind = (entry.stroke && entry.stroke.tool === 'text') ? 'note' : 'stroke';
+            const restoredStroke = stampAnnotationItemCausalMetadata(entry.stroke, itemKind, lecId, targetKey, null, pageAnnotations);
             pageAnnotations[targetKey].push(restoredStroke);
             recordAnnotationUndoAction(targetKey);
             redrawPageAnnotations(targetKey);
@@ -25226,7 +25406,7 @@ function togglePdfAudioPlayerBar(forceState) {
                         id: 'pin_' + generateCausalOperationId(),
                         time: curSec,
                         label: noteTitle
-                    }, activeLecIdForPin, targetPage);
+                    }, 'pin', activeLecIdForPin, targetPage, null, pageAnnotations);
                     pageAnnotations._audioPins[targetPage].push(pinObj);
                     renderAudioPinsForPage(targetPage);
                     saveAnnotationsToDB(currentViewingLec.lec.id, pageAnnotations, targetPage);
@@ -26617,15 +26797,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 }
 
                 const outgoingTombstones = getLocalTombstones(prevUid);
-                const hasOutgoingTombstones = Boolean(
-                    outgoingTombstones &&
-                    ((Array.isArray(outgoingTombstones.subjects) && outgoingTombstones.subjects.length > 0) ||
-                     (Array.isArray(outgoingTombstones.groups) && outgoingTombstones.groups.length > 0) ||
-                     (Array.isArray(outgoingTombstones.lectures) && outgoingTombstones.lectures.length > 0) ||
-                     (Array.isArray(outgoingTombstones.events) && outgoingTombstones.events.length > 0) ||
-                     (Array.isArray(outgoingTombstones.backlog) && outgoingTombstones.backlog.length > 0) ||
-                     (Array.isArray(outgoingTombstones.logs) && outgoingTombstones.logs.length > 0))
-                );
+                const hasOutgoingTombstones = hasAnyTombstoneEntries(outgoingTombstones);
                 const hasNonDefaultPlannerPrefs = Boolean(
                     plannerPrefs && typeof plannerPrefs === 'object' && (
                         Number(plannerPrefs.weekStartDay ?? 6) !== 6 ||
@@ -26687,6 +26859,8 @@ function togglePdfAudioPlayerBar(forceState) {
                             pdfFitMode: currentPdfFitMode || 'height',
                             cloudMediaRegistry: cloudMediaRegistry || {},
                             _tombstones: outgoingTombstones,
+                            _conflictRecovery: getConflictRecoveryRecords(prevUid),
+                            _deviceRegistry: getLocalDeviceRegistry(prevUid),
                             gdriveSync: outgoingDriveSync
                         },
                         logs: Array.isArray(logs) ? logs : [],
@@ -29892,7 +30066,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     const pagesSource = (rawVal.pages && typeof rawVal.pages === 'object' && !Array.isArray(rawVal.pages))
                         ? rawVal.pages
                         : rawVal;
-                    const normPages = normalizeAndRecoverLectureAnnotations(rawId, pagesSource);
+                    const normPages = normalizeAndRecoverLectureAnnotations(rawId, pagesSource, canonicalUid, false);
 
                     stagedRecords.push({
                         scopedKey,
@@ -30043,15 +30217,15 @@ function togglePdfAudioPlayerBar(forceState) {
         function validateAndResolveEntityScope(entityType, id, allowInternalAnnotationTypes = false) {
             const normType = String(entityType ?? '').trim();
             if (!normType || normType.includes(':')) {
-                throw new Error(`INVALID_ENTITY_TYPE_SCOPE: "${normType}" must be a canonical plural entity type without colons`);
+                throw new TypeError(`INVALID_ENTITY_TYPE_SCOPE: "${normType}" must be a canonical plural entity type without colons`);
             }
             const isAllowedAnnotationInternal = allowInternalAnnotationTypes && (normType === 'audio_pin' || normType === 'annotation_stroke');
             if (!CAUSAL_TOMBSTONE_ENTITY_TYPE_SET.has(normType) && !isAllowedAnnotationInternal) {
-                throw new Error(`INVALID_ENTITY_TYPE_SCOPE: "${normType}" is not in CAUSAL_TOMBSTONE_ENTITY_TYPES`);
+                throw new TypeError(`INVALID_ENTITY_TYPE_SCOPE: "${normType}" is not in CAUSAL_TOMBSTONE_ENTITY_TYPES`);
             }
             const normId = String(id ?? '').trim();
             if (!normId || normId === 'undefined' || normId === 'null' || normId.includes(':') || FORBIDDEN_MUTATION_VERBS_AS_ID.has(normId.toLowerCase())) {
-                throw new Error(`INVALID_ENTITY_ID_SCOPE: "${normId}" is not a valid canonical entity ID for type "${normType}"`);
+                throw new TypeError(`INVALID_ENTITY_ID_SCOPE: "${normId}" is not a valid canonical entity ID for type "${normType}"`);
             }
             return {
                 normType,
@@ -30627,17 +30801,19 @@ function togglePdfAudioPlayerBar(forceState) {
             return entity;
         }
 
-        function restoreDeletedEntity(entity, entityType, id, targetUid = null) {
+        function restoreDeletedEntity(entity, entityType, id, targetUidOrTombstone = null, maybeTargetUid = null) {
             if (!entity || typeof entity !== 'object') {
                 throw new Error('INVALID_ENTITY_OBJECT: entity must be a non-null object');
             }
-            const uid = targetUid ? String(targetUid) : (currentCloudUser ? String(currentCloudUser.id) : 'local');
+            const explicitTombstone = (targetUidOrTombstone && typeof targetUidOrTombstone === 'object') ? targetUidOrTombstone : null;
+            const resolvedTargetUid = explicitTombstone ? maybeTargetUid : targetUidOrTombstone;
+            const uid = resolvedTargetUid ? String(resolvedTargetUid) : (currentCloudUser ? String(currentCloudUser.id) : 'local');
             const resolvedId = (id !== undefined && id !== null && String(id).trim() !== '')
                 ? id
                 : (entity.id ?? entity.weekStartIso ?? entity.timestamp);
             const { normType, normId, scopeId } = validateAndResolveEntityScope(entityType, resolvedId);
             const stones = getLocalTombstones(uid);
-            const existingTombstone = (stones[normType] && stones[normType][normId]) ? stones[normType][normId] : null;
+            const existingTombstone = explicitTombstone || ((stones[normType] && stones[normType][normId]) ? stones[normType][normId] : null);
             if (existingTombstone && typeof existingTombstone === 'object') {
                 observeCausalOperation(existingTombstone, uid);
             }
@@ -30793,7 +30969,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     });
                 } else if (typeof bucket === 'object') {
                     Object.keys(bucket).forEach(idKey => {
-                        if (bucket[idKey] !== undefined && bucket[idKey] !== null) {
+                        if (bucket[idKey] !== undefined && bucket[idKey] !== null && bucket[idKey] !== false) {
                             result[t][String(idKey)] = normalizeSingleTombstoneEntry(t, String(idKey), bucket[idKey], targetUid);
                         }
                     });
@@ -31630,21 +31806,28 @@ function togglePdfAudioPlayerBar(forceState) {
             }
             const pageManifest = (manifestRoot && manifestRoot[pKey]) ? manifestRoot[pKey] : {};
             const geomCounter = new Map();
+            let anyLegacyStrokeSeen = false;
 
             strokesArray.forEach(s => {
                 if (!s || typeof s !== 'object') return;
                 const geom = computeCanonical4DecimalStrokeGeometry(s);
                 const ordIdx = geomCounter.get(geom) || 0;
                 geomCounter.set(geom, ordIdx + 1);
+                const existingOrdKey = (!sideQualifier && typeof s._canonicalGeomOrdinal === 'string' && s._canonicalGeomOrdinal.startsWith(geom + '#ord_') && s.id && pageManifest[s._canonicalGeomOrdinal] === String(s.id))
+                    ? s._canonicalGeomOrdinal
+                    : null;
                 const sigWithOrdinal = sideQualifier
                     ? `${geom}#ord_${ordIdx}#side_${sideQualifier}`
-                    : `${geom}#ord_${ordIdx}`;
+                    : (existingOrdKey || `${geom}#ord_${ordIdx}`);
                 s._canonicalGeomOrdinal = sigWithOrdinal;
 
                 const hasModernCausal = Boolean(s._causal && typeof s._causal === 'object' && !s._causal.legacyOpaque && s.id && !String(s.id).startsWith('legacy_stroke_'));
                 if (!hasModernCausal) {
+                    anyLegacyStrokeSeen = true;
                     if (!s.id || String(s.id).startsWith('legacy_stroke_') || !s._causal || sideQualifier) {
-                        const assignedId = pageManifest[sigWithOrdinal] || computeDeterministicLegacyStrokeId(lecId, pKey, sigWithOrdinal);
+                        const assignedId = (!sideQualifier && pageManifest[sigWithOrdinal])
+                            ? pageManifest[sigWithOrdinal]
+                            : computeDeterministicLegacyStrokeId(lecId, pKey, sigWithOrdinal);
                         pageManifest[sigWithOrdinal] = assignedId;
                         if (!s.id || sideQualifier) {
                             s.id = assignedId;
@@ -31658,6 +31841,10 @@ function togglePdfAudioPlayerBar(forceState) {
                     observeCausalOperation(s._causal, uid);
                 }
             });
+            if (anyLegacyStrokeSeen && !pageManifest.__manifestOriginId__) {
+                pageManifest.__manifestOriginId__ = generateCausalOperationId('lman');
+                pageManifest.__migratedByDeviceId__ = getOrCreateDeviceId(uid);
+            }
             return strokesArray;
         }
 
@@ -31675,34 +31862,102 @@ function togglePdfAudioPlayerBar(forceState) {
             }
             const lGeoms = lLegacy.map(s => computeCanonical4DecimalStrokeGeometry(s));
             const rGeoms = rLegacy.map(s => computeCanonical4DecimalStrokeGeometry(s));
-            const minLen = Math.min(lGeoms.length, rGeoms.length);
 
-            // Check if one legacy sequence is an exact ordered prefix of the other (append-only or identical ancestor)
-            let isOrderedPrefix = true;
-            for (let i = 0; i < minLen; i++) {
-                if (lGeoms[i] !== rGeoms[i]) {
-                    isOrderedPrefix = false;
-                    break;
+            // Strict manifest provenance verification (Section 7.3):
+            // Never infer shared ancestry from geometry prefix alone or from broad ID presence alone.
+            // Require both sides to provide a persisted page manifest with matching __manifestOriginId__
+            // and consistent sigWithOrdinal -> assignedId mappings for all legacy strokes.
+            const lManValid = Boolean(lPageManifest && typeof lPageManifest === 'object' && !Array.isArray(lPageManifest));
+            const rManValid = Boolean(rPageManifest && typeof rPageManifest === 'object' && !Array.isArray(rPageManifest));
+            const lOriginId = lManValid && typeof lPageManifest.__manifestOriginId__ === 'string'
+                ? lPageManifest.__manifestOriginId__.trim()
+                : '';
+            const rOriginId = rManValid && typeof rPageManifest.__manifestOriginId__ === 'string'
+                ? rPageManifest.__manifestOriginId__.trim()
+                : '';
+
+            if (!lOriginId || !rOriginId || lOriginId !== rOriginId) {
+                return {
+                    sharedAncestor: false,
+                    divergent: true,
+                    reason: 'missing_or_mismatched_manifest_provenance',
+                    localGeoms: lGeoms,
+                    remoteGeoms: rGeoms
+                };
+            }
+
+            // Verify all shared manifest keys map to the exact same assigned stroke ID
+            const lManKeys = Object.keys(lPageManifest).filter(k => !k.startsWith('__'));
+            const rManKeys = Object.keys(rPageManifest).filter(k => !k.startsWith('__'));
+            if (lManKeys.length === 0 || rManKeys.length === 0) {
+                return {
+                    sharedAncestor: false,
+                    divergent: true,
+                    reason: 'empty_manifest_entries',
+                    localGeoms: lGeoms,
+                    remoteGeoms: rGeoms
+                };
+            }
+            for (let i = 0; i < lManKeys.length; i++) {
+                const k = lManKeys[i];
+                if (rPageManifest[k] !== undefined && String(lPageManifest[k]) !== String(rPageManifest[k])) {
+                    return {
+                        sharedAncestor: false,
+                        divergent: true,
+                        reason: 'conflicting_manifest_entry_id',
+                        localGeoms: lGeoms,
+                        remoteGeoms: rGeoms
+                    };
                 }
             }
-            if (isOrderedPrefix) {
-                return { sharedAncestor: true, divergent: false };
-            }
 
-            // If both sides already carry an explicit persisted _legacyManifest for this page with matching IDs for all shared keys,
-            // verify whether any same-geometry ordinal maps to different IDs or if order diverged without pre-existing manifest IDs.
-            const hasExplicitMatchingIds = lLegacy.every(s => s.id && !String(s.id).startsWith('legacy_stroke_')) &&
-                rLegacy.every(s => s.id && !String(s.id).startsWith('legacy_stroke_'));
-            if (hasExplicitMatchingIds) {
-                return { sharedAncestor: true, divergent: false };
-            }
-
-            return {
-                sharedAncestor: false,
-                divergent: true,
-                localGeoms: lGeoms,
-                remoteGeoms: rGeoms
+            // Verify every legacy stroke on both sides is backed by its persisted manifest entry
+            const verifySideAgainstManifest = (legacyList, geomsList, manObj) => {
+                const counts = new Map();
+                const usedManifestKeys = new Set();
+                const manEntries = Object.keys(manObj).filter(k => !k.startsWith('__'));
+                for (let i = 0; i < legacyList.length; i++) {
+                    const s = legacyList[i];
+                    const g = geomsList[i];
+                    const ord = counts.get(g) || 0;
+                    counts.set(g, ord + 1);
+                    if (s.id) {
+                        const sIdStr = String(s.id);
+                        if (typeof s._canonicalGeomOrdinal === 'string' &&
+                            s._canonicalGeomOrdinal.startsWith(g + '#ord_') &&
+                            String(manObj[s._canonicalGeomOrdinal]) === sIdStr &&
+                            !usedManifestKeys.has(s._canonicalGeomOrdinal)) {
+                            usedManifestKeys.add(s._canonicalGeomOrdinal);
+                            continue;
+                        }
+                        const matchedKey = manEntries.find(k => k.startsWith(g + '#ord_') && String(manObj[k]) === sIdStr && !usedManifestKeys.has(k));
+                        if (!matchedKey) {
+                            return false;
+                        }
+                        usedManifestKeys.add(matchedKey);
+                    } else {
+                        const sigOrd = `${g}#ord_${ord}`;
+                        if (!manObj[sigOrd] || usedManifestKeys.has(sigOrd)) {
+                            return false;
+                        }
+                        usedManifestKeys.add(sigOrd);
+                    }
+                }
+                return true;
             };
+
+            if (!verifySideAgainstManifest(lLegacy, lGeoms, lPageManifest) ||
+                !verifySideAgainstManifest(rLegacy, rGeoms, rPageManifest)) {
+                return {
+                    sharedAncestor: false,
+                    divergent: true,
+                    reason: 'stroke_not_in_verified_manifest',
+                    localGeoms: lGeoms,
+                    remoteGeoms: rGeoms
+                };
+            }
+
+            return { sharedAncestor: true, divergent: false, manifestOriginId: lOriginId };
         }
 
         function ensurePageVersionsContainer(annotationsMap, pageKey) {
@@ -31752,10 +32007,13 @@ function togglePdfAudioPlayerBar(forceState) {
                 throw new TypeError('INVALID_ANNOTATION_LECTURE_ID: lecId is required for stampAnnotationItemCausalMetadata');
             }
             const normPage = String(pageKey ?? '').trim();
-            if (!normPage) {
+            if (!normPage || normPage === 'undefined' || normPage === 'null') {
                 throw new TypeError('INVALID_ANNOTATION_PAGE_KEY: pageKey is required for stampAnnotationItemCausalMetadata');
             }
-            const normKind = String(itemKind || (item.tool === 'text' ? 'note' : 'stroke'));
+            const normKind = String(itemKind ?? '').trim();
+            if (normKind !== 'stroke' && normKind !== 'note' && normKind !== 'pin') {
+                throw new TypeError(`INVALID_ANNOTATION_ITEM_KIND: "${normKind}" must be one of stroke | note | pin`);
+            }
             if (!item.id) {
                 const prefix = normKind === 'note' ? 'txt' : (normKind === 'pin' ? 'pin' : 'stk');
                 item.id = generateCausalOperationId(prefix);
@@ -31768,7 +32026,13 @@ function togglePdfAudioPlayerBar(forceState) {
             if (pageClearOp && typeof pageClearOp === 'object') {
                 observeCausalOperation(pageClearOp, uid);
             }
-            const baseForItem = item._causal || pageClearOp || null;
+            const existingDelTomb = (annosRef && annosRef._deletedStrokes && annosRef._deletedStrokes[normPage] && annosRef._deletedStrokes[normPage][item.id])
+                ? annosRef._deletedStrokes[normPage][item.id]
+                : null;
+            if (existingDelTomb && typeof existingDelTomb === 'object') {
+                observeCausalOperation(existingDelTomb, uid);
+            }
+            const baseForItem = existingDelTomb || item._causal || pageClearOp || null;
             const nextCausal = createCausalOperation(scopeId, baseForItem, uid, {
                 lectureId: normLec,
                 pageKey: normPage,
@@ -31778,7 +32042,13 @@ function togglePdfAudioPlayerBar(forceState) {
             });
             item._causal = nextCausal;
             if (annosRef && typeof annosRef === 'object' && !Array.isArray(annosRef)) {
-                ensurePageVersionsContainer(annosRef, normPage);
+                const pageVer = ensurePageVersionsContainer(annosRef, normPage);
+                if (annosRef._deletedStrokes && annosRef._deletedStrokes[normPage] && annosRef._deletedStrokes[normPage][item.id]) {
+                    delete annosRef._deletedStrokes[normPage][item.id];
+                }
+                if (pageVer && pageVer.deletedStrokes && pageVer.deletedStrokes[item.id]) {
+                    delete pageVer.deletedStrokes[item.id];
+                }
                 annosRef.__exo_causal_ops__.push(nextCausal);
             }
             return item;
@@ -31795,6 +32065,9 @@ function togglePdfAudioPlayerBar(forceState) {
             }
             let strokeObj = (strokeObjOrId && typeof strokeObjOrId === 'object') ? strokeObjOrId : null;
             let strokeId = strokeObj ? String(strokeObj.id || '') : String(strokeObjOrId || '');
+            if (!strokeObj && strokeId && Array.isArray(annotationsMap[pKey])) {
+                strokeObj = annotationsMap[pKey].find(s => s && String(s.id) === strokeId) || null;
+            }
             if (strokeObj && !strokeId) {
                 const geom = computeCanonical4DecimalStrokeGeometry(strokeObj);
                 const sigOrd = strokeObj._canonicalGeomOrdinal || `${geom}#ord_0`;
@@ -31975,9 +32248,12 @@ function togglePdfAudioPlayerBar(forceState) {
         function recordAudioPinDeletion(annotationsMap, lecId, pageKey, pinObjOrId, targetUid = null) {
             const { normLec, pKey } = validateAnnotationMutationTarget(annotationsMap, lecId, pageKey);
             const uid = targetUid ? String(targetUid) : (currentCloudUser ? String(currentCloudUser.id) : 'local');
-            const pinObj = (pinObjOrId && typeof pinObjOrId === 'object') ? pinObjOrId : null;
+            let pinObj = (pinObjOrId && typeof pinObjOrId === 'object') ? pinObjOrId : null;
             const pinId = pinObj ? String(pinObj.id || '') : String(pinObjOrId || '');
             if (!pinId) return null;
+            if (!pinObj && annotationsMap._audioPins && Array.isArray(annotationsMap._audioPins[pKey])) {
+                pinObj = annotationsMap._audioPins[pKey].find(p => p && String(p.id) === pinId) || null;
+            }
             if (!annotationsMap._deletedPins || typeof annotationsMap._deletedPins !== 'object') {
                 annotationsMap._deletedPins = {};
             }
@@ -32044,8 +32320,15 @@ function togglePdfAudioPlayerBar(forceState) {
         function mergeLectureAnnotationsWithCausalVersions(lecId, localRawAnnos, remoteRawAnnos, targetUid = null) {
             const uid = targetUid ? String(targetUid) : (currentCloudUser ? String(currentCloudUser.id) : 'local');
             const normLec = String(lecId || 'unknown');
-            const lPages = normalizeAndRecoverLectureAnnotations(normLec, localRawAnnos || {});
-            const rPages = normalizeAndRecoverLectureAnnotations(normLec, remoteRawAnnos || {});
+            // Capture pre-existing persisted legacy manifests BEFORE normalizeAndRecoverLectureAnnotations runs
+            const preExistingLMan = (localRawAnnos && localRawAnnos._legacyManifest && typeof localRawAnnos._legacyManifest === 'object')
+                ? JSON.parse(JSON.stringify(localRawAnnos._legacyManifest))
+                : {};
+            const preExistingRMan = (remoteRawAnnos && remoteRawAnnos._legacyManifest && typeof remoteRawAnnos._legacyManifest === 'object')
+                ? JSON.parse(JSON.stringify(remoteRawAnnos._legacyManifest))
+                : {};
+            const lPages = normalizeAndRecoverLectureAnnotations(normLec, localRawAnnos || {}, uid, false);
+            const rPages = normalizeAndRecoverLectureAnnotations(normLec, remoteRawAnnos || {}, uid, false);
 
             const merged = {
                 _extraNotes: {},
@@ -32061,7 +32344,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 __exo_causal_ops__: []
             };
 
-            // 1. Merge _legacyManifest across both sides so common-ancestor legacy strokes get identical deterministic IDs
+            // 1. Merge _legacyManifest across both sides
             const lMan = (lPages._legacyManifest && typeof lPages._legacyManifest === 'object') ? lPages._legacyManifest : {};
             const rMan = (rPages._legacyManifest && typeof rPages._legacyManifest === 'object') ? rPages._legacyManifest : {};
             const manPageKeys = new Set([...Object.keys(lMan), ...Object.keys(rMan)]);
@@ -32304,10 +32587,16 @@ function togglePdfAudioPlayerBar(forceState) {
                         return;
                     }
                 }
+                const lStrokesBeforeNorm = (localRawAnnos && Array.isArray(localRawAnnos[pKey]))
+                    ? JSON.parse(JSON.stringify(localRawAnnos[pKey]))
+                    : (Array.isArray(lPages[pKey]) ? JSON.parse(JSON.stringify(lPages[pKey])) : []);
+                const rStrokesBeforeNorm = (remoteRawAnnos && Array.isArray(remoteRawAnnos[pKey]))
+                    ? JSON.parse(JSON.stringify(remoteRawAnnos[pKey]))
+                    : (Array.isArray(rPages[pKey]) ? JSON.parse(JSON.stringify(rPages[pKey])) : []);
                 const lStrokesRaw = Array.isArray(lPages[pKey]) ? JSON.parse(JSON.stringify(lPages[pKey])) : [];
                 const rStrokesRaw = Array.isArray(rPages[pKey]) ? JSON.parse(JSON.stringify(rPages[pKey])) : [];
 
-                const ancestryCheck = verifySharedLegacyStrokeAncestry(lStrokesRaw, rStrokesRaw, lMan[pKey], rMan[pKey]);
+                const ancestryCheck = verifySharedLegacyStrokeAncestry(lStrokesBeforeNorm, rStrokesBeforeNorm, preExistingLMan[pKey], preExistingRMan[pKey]);
                 if (ancestryCheck.divergent) {
                     // Divergent legacy stroke arrays without a shared immutable ordered ancestor:
                     // Do not silently deduplicate/overwrite by ordinal; qualify divergent legacy IDs so both candidates survive
@@ -32618,17 +32907,81 @@ function togglePdfAudioPlayerBar(forceState) {
 
             console.log('Resolving concurrency conflict between Remote Rev ' + remoteRow.revision + ' and Local Changes for user ' + uid + '...');
 
+            const _mergeTombstones = (a, b, targetUid) => {
+                if (typeof mergeTombstoneMapsWithCausalEngine === 'function') {
+                    return mergeTombstoneMapsWithCausalEngine(a, b, targetUid);
+                }
+                const out = {};
+                ['subjects', 'groups', 'lectures', 'events', 'backlog', 'logs', 'weekly_reports', 'wird_logs'].forEach(bucket => {
+                    out[bucket] = Object.assign({}, (a && a[bucket]) || {}, (b && b[bucket]) || {});
+                });
+                return out;
+            };
+            const _mergeSubjects = (localList, remoteList, tombs, targetUid) => {
+                if (typeof mergeSubjectsHierarchyWithCausalEngine === 'function') {
+                    return mergeSubjectsHierarchyWithCausalEngine(localList, remoteList, tombs, targetUid);
+                }
+                const byId = new Map();
+                const mergeGroups = (gA = [], gB = []) => {
+                    const gMap = new Map();
+                    const mergeLecs = (lA = [], lB = []) => {
+                        const lMap = new Map();
+                        [...lA, ...lB].forEach(l => {
+                            if (l && l.id && !(tombs?.lectures && tombs.lectures[String(l.id)])) {
+                                lMap.set(String(l.id), Object.assign({}, lMap.get(String(l.id)) || {}, l));
+                            }
+                        });
+                        return Array.from(lMap.values());
+                    };
+                    [...gA, ...gB].forEach(g => {
+                        if (g && g.id && !(tombs?.groups && tombs.groups[String(g.id)])) {
+                            const prev = gMap.get(String(g.id));
+                            gMap.set(String(g.id), Object.assign({}, prev || {}, g, {
+                                lectures: mergeLecs(prev?.lectures, g.lectures)
+                            }));
+                        }
+                    });
+                    return Array.from(gMap.values());
+                };
+                [...(remoteList || []), ...(localList || [])].forEach(s => {
+                    if (s && s.id && !(tombs?.subjects && tombs.subjects[String(s.id)])) {
+                        const prev = byId.get(String(s.id));
+                        byId.set(String(s.id), Object.assign({}, prev || {}, s, {
+                            groups: mergeGroups(prev?.groups, s.groups)
+                        }));
+                    }
+                });
+                return { subjects: Array.from(byId.values()), deletedLectureIds: [] };
+            };
+            const _mergeFlat = (localList, remoteList, bucket, tombs, targetUid, keyFn) => {
+                if (typeof mergeFlatEntityCollectionWithCausalEngine === 'function') {
+                    return mergeFlatEntityCollectionWithCausalEngine(localList, remoteList, bucket, tombs, targetUid, keyFn);
+                }
+                const map = new Map();
+                [...(remoteList || []), ...(localList || [])].forEach(item => {
+                    if (!item) return;
+                    const k = keyFn(item);
+                    if (k && !(tombs?.[bucket] && tombs[bucket][k])) {
+                        map.set(k, Object.assign({}, map.get(k) || {}, item));
+                    }
+                });
+                return Array.from(map.values());
+            };
+
             const localTombstones = getLocalTombstones(uid);
             const payloadTombstones = (localPayload && localPayload.schedule && localPayload.schedule._tombstones) || {};
-            const mergedLocalTombstones = mergeTombstoneMapsWithCausalEngine(localTombstones, payloadTombstones, uid);
+            const mergedLocalTombstones = _mergeTombstones(localTombstones, payloadTombstones, uid);
             const remoteTombstones = (remoteRow.schedule && remoteRow.schedule._tombstones) || {};
 
             // 1. Merge Tombstones across all 8 entity types using Causal Engine (Zero TTL/revision/budget pruning)
-            const unifiedTombstones = mergeTombstoneMapsWithCausalEngine(mergedLocalTombstones, remoteTombstones, uid);
+            const unifiedTombstones = _mergeTombstones(mergedLocalTombstones, remoteTombstones, uid);
 
             // Merge incoming remote conflict-recovery records if present
             if (remoteRow.schedule && Array.isArray(remoteRow.schedule._conflictRecovery)) {
-                const mergedRec = mergeConflictRecoveryLists(getConflictRecoveryRecords(uid), remoteRow.schedule._conflictRecovery);
+                const existingRec = typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(uid) : [];
+                const mergedRec = typeof mergeConflictRecoveryLists === 'function'
+                    ? mergeConflictRecoveryLists(existingRec, remoteRow.schedule._conflictRecovery)
+                    : [...existingRec, ...remoteRow.schedule._conflictRecovery];
                 try {
                     localStorage.setItem('pharmaConflictRecovery_' + uid, JSON.stringify(mergedRec));
                 } catch (e) {}
@@ -32670,10 +33023,31 @@ function togglePdfAudioPlayerBar(forceState) {
                         return;
                     }
 
-                    if (!unifiedAnnos[lecId]) {
-                        unifiedAnnos[lecId] = mergeLectureAnnotationsWithCausalVersions(lecId, {}, remoteAnnos[rawKey] || {}, uid);
+                    if (typeof mergeLectureAnnotationsWithCausalVersions === 'function') {
+                        if (!unifiedAnnos[lecId]) {
+                            unifiedAnnos[lecId] = mergeLectureAnnotationsWithCausalVersions(lecId, {}, remoteAnnos[rawKey] || {}, uid);
+                        } else {
+                            unifiedAnnos[lecId] = mergeLectureAnnotationsWithCausalVersions(lecId, unifiedAnnos[lecId] || {}, remoteAnnos[rawKey] || {}, uid);
+                        }
                     } else {
-                        unifiedAnnos[lecId] = mergeLectureAnnotationsWithCausalVersions(lecId, unifiedAnnos[lecId] || {}, remoteAnnos[rawKey] || {}, uid);
+                        const localPages = unifiedAnnos[lecId] || {};
+                        const remotePages = remoteAnnos[rawKey] || {};
+                        const mergedPages = Object.assign({}, remotePages, localPages);
+                        Object.keys(remotePages).forEach(pKey => {
+                            if (Array.isArray(remotePages[pKey]) && Array.isArray(localPages[pKey])) {
+                                const seen = new Set();
+                                const combined = [];
+                                [...remotePages[pKey], ...localPages[pKey]].forEach(st => {
+                                    const sig = typeof computeStrokeUniqueSignature === 'function' ? computeStrokeUniqueSignature(st) : JSON.stringify(st);
+                                    if (!seen.has(sig)) {
+                                        seen.add(sig);
+                                        combined.push(st);
+                                    }
+                                });
+                                mergedPages[pKey] = combined;
+                            }
+                        });
+                        unifiedAnnos[lecId] = normalizeAndRecoverLectureAnnotations(lecId, mergedPages, uid, false);
                     }
                 });
 
@@ -32704,20 +33078,22 @@ function togglePdfAudioPlayerBar(forceState) {
             // 3. Merge Subjects, Groups, Lectures & Continuous Wird Logs using Causal Engine
             const remoteSubs = Array.isArray(remoteRow.subjects) ? remoteRow.subjects : [];
             const localSubs = Array.isArray(localPayload.subjects) ? localPayload.subjects : [];
-            const subMergeResult = mergeSubjectsHierarchyWithCausalEngine(localSubs, remoteSubs, unifiedTombstones, uid);
+            const subMergeResult = _mergeSubjects(localSubs, remoteSubs, unifiedTombstones, uid);
             subjects = subMergeResult.subjects;
 
             // Sync excluded pages metadata from merged annotations into lecture.deletedPages
-            Object.keys(mergedAnnotationsForSnapshot || {}).forEach(lecId => {
-                syncExcludedPagesToLectureRecords(lecId, mergedAnnotationsForSnapshot[lecId], uid);
-            });
+            if (typeof syncExcludedPagesToLectureRecords === 'function') {
+                Object.keys(mergedAnnotationsForSnapshot || {}).forEach(lecId => {
+                    syncExcludedPagesToLectureRecords(lecId, mergedAnnotationsForSnapshot[lecId], uid);
+                });
+            }
 
             if (typeof snapshotCurrentSubjectsMediaToRegistry === 'function') snapshotCurrentSubjectsMediaToRegistry(subjects, uid);
             if (typeof healSubjectsFromCloudRegistry === 'function') healSubjectsFromCloudRegistry(uid);
             localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
 
             // Clean up local IndexedDB artifacts for any lectures deleted locally or via remote tombstones
-            if (subMergeResult.deletedLectureIds && subMergeResult.deletedLectureIds.length > 0) {
+            if (subMergeResult.deletedLectureIds && subMergeResult.deletedLectureIds.length > 0 && typeof cleanupDeletedLectureLocalArtifacts === 'function') {
                 await cleanupDeletedLectureLocalArtifacts(subMergeResult.deletedLectureIds, uid, opCtx);
                 if (!opCtx.isCurrent()) {
                     return { ok: false, reason: 'account_switched' };
@@ -32727,16 +33103,16 @@ function togglePdfAudioPlayerBar(forceState) {
             // 4. Merge Schedule Events & Backlog using Causal Engine + Tombstones
             const remoteEvents = Array.isArray(remoteRow.schedule?.events) ? remoteRow.schedule.events : [];
             const localEvents = Array.isArray(localPayload.schedule?.events) ? localPayload.schedule.events : [];
-            scheduleEvents = mergeFlatEntityCollectionWithCausalEngine(localEvents, remoteEvents, 'events', unifiedTombstones, uid, (e) => String(e.id));
+            scheduleEvents = _mergeFlat(localEvents, remoteEvents, 'events', unifiedTombstones, uid, (e) => String(e.id));
 
             const remoteBacklog = Array.isArray(remoteRow.schedule?.backlog) ? remoteRow.schedule.backlog : [];
             const localBacklog = Array.isArray(localPayload.schedule?.backlog) ? localPayload.schedule.backlog : [];
-            scheduleBacklog = mergeFlatEntityCollectionWithCausalEngine(localBacklog, remoteBacklog, 'backlog', unifiedTombstones, uid, (b) => String(b.id));
+            scheduleBacklog = _mergeFlat(localBacklog, remoteBacklog, 'backlog', unifiedTombstones, uid, (b) => String(b.id));
 
             // 5. Merge Weekly Reports & Goals using Causal Engine + Tombstones
             const remoteReports = Array.isArray(remoteRow.schedule?.weeklyReports) ? remoteRow.schedule.weeklyReports : [];
             const localReports = Array.isArray(localPayload.schedule?.weeklyReports) ? localPayload.schedule.weeklyReports : [];
-            weeklyReports = mergeFlatEntityCollectionWithCausalEngine(localReports, remoteReports, 'weekly_reports', unifiedTombstones, uid, (r) => String(r.weekStartIso || r.id));
+            weeklyReports = _mergeFlat(localReports, remoteReports, 'weekly_reports', unifiedTombstones, uid, (r) => String(r.weekStartIso || r.id));
             localStorage.setItem('pharmaWeeklyReportsV1', JSON.stringify(weeklyReports));
 
             // 6. Merge Planner Preferences & Persist Full Schedule State Immediately (F-13: 0ms persistence)
@@ -32749,15 +33125,15 @@ function togglePdfAudioPlayerBar(forceState) {
                 plannerPrefs: plannerPrefs,
                 weeklyReports: weeklyReports,
                 _tombstones: unifiedTombstones,
-                _conflictRecovery: getConflictRecoveryRecords(uid),
-                _deviceRegistry: getLocalDeviceRegistry(uid)
+                _conflictRecovery: typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(uid) : [],
+                _deviceRegistry: typeof getLocalDeviceRegistry === 'function' ? getLocalDeviceRegistry(uid) : {}
             }));
             localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));
 
             // 7. Merge Logs using Causal Engine + Tombstones
             const remoteLogs = Array.isArray(remoteRow.logs) ? remoteRow.logs : [];
             const localLogs = Array.isArray(localPayload.logs) ? localPayload.logs : [];
-            logs = mergeFlatEntityCollectionWithCausalEngine(localLogs, remoteLogs, 'logs', unifiedTombstones, uid, (l) => String(l.id ?? l.timestamp));
+            logs = _mergeFlat(localLogs, remoteLogs, 'logs', unifiedTombstones, uid, (l) => String(l.id ?? l.timestamp));
             localStorage.setItem('pharmaLogsV4', JSON.stringify(logs));
 
             // 8. Merge Academy Progress
@@ -32816,8 +33192,8 @@ function togglePdfAudioPlayerBar(forceState) {
                         pdfFitMode: currentPdfFitMode || 'height',
                         cloudMediaRegistry: cloudMediaRegistry || {},
                         _tombstones: unifiedTombstones,
-                        _conflictRecovery: getConflictRecoveryRecords(uid),
-                        _deviceRegistry: getLocalDeviceRegistry(uid),
+                        _conflictRecovery: typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(uid) : [],
+                        _deviceRegistry: typeof getLocalDeviceRegistry === 'function' ? getLocalDeviceRegistry(uid) : {},
                         gdriveSync: {
                             linked: isGdriveBoundToUid && Boolean(localStorage.getItem('exo_gdrive_connected') === '1'),
                             userEmail: isGdriveBoundToUid ? (localStorage.getItem('exo_gdrive_user_email') || '') : '',
@@ -32926,7 +33302,9 @@ function togglePdfAudioPlayerBar(forceState) {
                         return { status: 'aborted', reason: 'account_switched' };
                     }
 
-                    autoStampTrackedWorkspaceMutations('all', syncUserId);
+                    if (typeof autoStampTrackedWorkspaceMutations === 'function') {
+                        autoStampTrackedWorkspaceMutations('all', syncUserId);
+                    }
 
                     const mutationSeqAtStart = localWorkspaceMutationSeq;
                     const annoSeqAtStart = localAnnotationsMutationSeq;
@@ -32954,8 +33332,8 @@ function togglePdfAudioPlayerBar(forceState) {
                             pdfFitMode: currentPdfFitMode || 'height',
                             cloudMediaRegistry: cloudMediaRegistry || {},
                             _tombstones: getLocalTombstones(syncUserId),
-                            _conflictRecovery: getConflictRecoveryRecords(syncUserId),
-                            _deviceRegistry: getLocalDeviceRegistry(syncUserId),
+                            _conflictRecovery: typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(syncUserId) : [],
+                            _deviceRegistry: typeof getLocalDeviceRegistry === 'function' ? getLocalDeviceRegistry(syncUserId) : {},
                             gdriveSync: {
                                 linked: Boolean(localStorage.getItem('exo_gdrive_connected') === '1'),
                                 userEmail: localStorage.getItem('exo_gdrive_user_email') || '',
@@ -32995,7 +33373,9 @@ function togglePdfAudioPlayerBar(forceState) {
                     }
 
                     // Snapshot exact operation IDs included in this outgoing push
-                    const outgoingOpIdsSnapshot = captureOutgoingOperationsSnapshot(payload);
+                    const outgoingOpIdsSnapshot = typeof captureOutgoingOperationsSnapshot === 'function'
+                        ? captureOutgoingOperationsSnapshot(payload)
+                        : null;
 
                     // Per-account local vault backup (preserving any previously backed-up annotations if not included in this lightweight push)
                     try {
@@ -33071,7 +33451,9 @@ function togglePdfAudioPlayerBar(forceState) {
                         localStorage.setItem(userRevKey, String(currentCloudWorkspaceRevision));
 
                         // Acknowledge ONLY the exact operation IDs that were sent in this push
-                        acknowledgeCommittedOperationsSnapshot(outgoingOpIdsSnapshot, currentCloudWorkspaceRevision, syncUserId);
+                        if (typeof acknowledgeCommittedOperationsSnapshot === 'function') {
+                            acknowledgeCommittedOperationsSnapshot(outgoingOpIdsSnapshot, currentCloudWorkspaceRevision, syncUserId);
+                        }
 
                         const noNewAnnotationMutations = (localAnnotationsMutationSeq === annoSeqAtStart);
                         if (annotationsActuallyIncluded && noNewAnnotationMutations) {
@@ -33083,7 +33465,9 @@ function togglePdfAudioPlayerBar(forceState) {
 
                         // Only clear pharmaWorkspaceDirty if no newer local modifications occurred while sync was in-flight
                         const noNewWorkspaceMutations = (localWorkspaceMutationSeq === mutationSeqAtStart);
-                        const hasRemainingUncommittedOps = hasAnyUncommittedOperationsInMemory(syncUserId);
+                        const hasRemainingUncommittedOps = typeof hasAnyUncommittedOperationsInMemory === 'function'
+                            ? hasAnyUncommittedOperationsInMemory(syncUserId)
+                            : false;
                         const isCleanNow = Boolean(noNewWorkspaceMutations && !dirtyAnnotationsForCloud && !hasRemainingUncommittedOps);
                         if (isCleanNow) {
                             localStorage.removeItem('pharmaWorkspaceDirty');
@@ -33102,8 +33486,8 @@ function togglePdfAudioPlayerBar(forceState) {
                                     existingVault.schedule.backlog = scheduleBacklog || [];
                                     existingVault.schedule.weeklyReports = weeklyReports || [];
                                     existingVault.schedule._tombstones = getLocalTombstones(syncUserId);
-                                    existingVault.schedule._conflictRecovery = getConflictRecoveryRecords(syncUserId);
-                                    existingVault.schedule._deviceRegistry = getLocalDeviceRegistry(syncUserId);
+                                    existingVault.schedule._conflictRecovery = typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(syncUserId) : [];
+                                    existingVault.schedule._deviceRegistry = typeof getLocalDeviceRegistry === 'function' ? getLocalDeviceRegistry(syncUserId) : {};
                                 }
                                 existingVault.logs = logs || [];
                                 existingVault.revision = currentCloudWorkspaceRevision;
@@ -33201,15 +33585,46 @@ function togglePdfAudioPlayerBar(forceState) {
 
             const targetUid = opCtx.uid;
 
+            const _mergeTombstones = (a, b, uidArg) => {
+                if (typeof mergeTombstoneMapsWithCausalEngine === 'function') {
+                    return mergeTombstoneMapsWithCausalEngine(a, b, uidArg);
+                }
+                const out = {};
+                ['subjects', 'groups', 'lectures', 'events', 'backlog', 'logs', 'weekly_reports', 'wird_logs'].forEach(bucket => {
+                    out[bucket] = Object.assign({}, (a && a[bucket]) || {}, (b && b[bucket]) || {});
+                });
+                return out;
+            };
+            const _mergeSubjects = (localList, remoteList, tombs, uidArg) => {
+                if (typeof mergeSubjectsHierarchyWithCausalEngine === 'function') {
+                    return mergeSubjectsHierarchyWithCausalEngine(localList, remoteList, tombs, uidArg);
+                }
+                const filtered = (remoteList || []).filter(s => s && s.id && !(tombs?.subjects && tombs.subjects[String(s.id)]));
+                return { subjects: JSON.parse(JSON.stringify(filtered)), deletedLectureIds: [] };
+            };
+            const _mergeFlat = (localList, remoteList, bucket, tombs, uidArg, keyFn) => {
+                if (typeof mergeFlatEntityCollectionWithCausalEngine === 'function') {
+                    return mergeFlatEntityCollectionWithCausalEngine(localList, remoteList, bucket, tombs, uidArg, keyFn);
+                }
+                return (remoteList || []).filter(item => {
+                    if (!item) return false;
+                    const k = keyFn(item);
+                    return Boolean(k && !(tombs?.[bucket] && tombs[bucket][k]));
+                });
+            };
+
             // Merge incoming tombstones with local tombstones for this account
             const incomingTombstones = (cloudRow.schedule && cloudRow.schedule._tombstones) || {};
-            const unifiedTombstones = mergeTombstoneMapsWithCausalEngine(getLocalTombstones(targetUid), incomingTombstones, targetUid);
+            const unifiedTombstones = _mergeTombstones(getLocalTombstones(targetUid), incomingTombstones, targetUid);
             try {
                 localStorage.setItem('pharmaTombstones_' + targetUid, JSON.stringify(unifiedTombstones));
             } catch (e) {}
 
             if (cloudRow.schedule && Array.isArray(cloudRow.schedule._conflictRecovery)) {
-                const mergedRec = mergeConflictRecoveryLists(getConflictRecoveryRecords(targetUid), cloudRow.schedule._conflictRecovery);
+                const existingRec = typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(targetUid) : [];
+                const mergedRec = typeof mergeConflictRecoveryLists === 'function'
+                    ? mergeConflictRecoveryLists(existingRec, cloudRow.schedule._conflictRecovery)
+                    : [...existingRec, ...cloudRow.schedule._conflictRecovery];
                 try {
                     localStorage.setItem('pharmaConflictRecovery_' + targetUid, JSON.stringify(mergedRec));
                 } catch (e) {}
@@ -33266,9 +33681,9 @@ function togglePdfAudioPlayerBar(forceState) {
                 saveCloudMediaRegistry();
             }
             const rawCloudSubjects = Array.isArray(cloudRow.subjects) ? cloudRow.subjects : [];
-            const subFilterResult = mergeSubjectsHierarchyWithCausalEngine([], rawCloudSubjects, unifiedTombstones, targetUid);
+            const subFilterResult = _mergeSubjects([], rawCloudSubjects, unifiedTombstones, targetUid);
             subjects = subFilterResult.subjects;
-            if (cloudRow.annotations && typeof cloudRow.annotations === 'object') {
+            if (cloudRow.annotations && typeof cloudRow.annotations === 'object' && typeof syncExcludedPagesToLectureRecords === 'function') {
                 Object.keys(cloudRow.annotations).forEach(lecId => {
                     if (!unifiedTombstones.lectures || !unifiedTombstones.lectures[lecId]) {
                         syncExcludedPagesToLectureRecords(lecId, cloudRow.annotations[lecId], targetUid);
@@ -33280,12 +33695,12 @@ function togglePdfAudioPlayerBar(forceState) {
             localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
 
             // Drain any pending or tombstoned lecture local artifacts safely
-            if (subFilterResult.deletedLectureIds && subFilterResult.deletedLectureIds.length > 0) {
+            if (subFilterResult.deletedLectureIds && subFilterResult.deletedLectureIds.length > 0 && typeof cleanupDeletedLectureLocalArtifacts === 'function') {
                 await cleanupDeletedLectureLocalArtifacts(subFilterResult.deletedLectureIds, targetUid, opCtx);
                 if (!opCtx.isCurrent()) {
                     return { ok: false, status: 'aborted', reason: 'account_switched' };
                 }
-            } else {
+            } else if (typeof drainPendingLocalArtifactCleanup === 'function') {
                 await drainPendingLocalArtifactCleanup(targetUid, opCtx);
                 if (!opCtx.isCurrent()) {
                     return { ok: false, status: 'aborted', reason: 'account_switched' };
@@ -33304,9 +33719,9 @@ function togglePdfAudioPlayerBar(forceState) {
 
             if (cloudRow.schedule && typeof cloudRow.schedule === 'object') {
                 const rawEvents = Array.isArray(cloudRow.schedule.events) ? cloudRow.schedule.events : [];
-                scheduleEvents = mergeFlatEntityCollectionWithCausalEngine([], rawEvents, 'events', unifiedTombstones, targetUid, (e) => String(e.id));
+                scheduleEvents = _mergeFlat([], rawEvents, 'events', unifiedTombstones, targetUid, (e) => String(e.id));
                 const rawBacklog = Array.isArray(cloudRow.schedule.backlog) ? cloudRow.schedule.backlog : [];
-                scheduleBacklog = mergeFlatEntityCollectionWithCausalEngine([], rawBacklog, 'backlog', unifiedTombstones, targetUid, (b) => String(b.id));
+                scheduleBacklog = _mergeFlat([], rawBacklog, 'backlog', unifiedTombstones, targetUid, (b) => String(b.id));
                 if (cloudRow.schedule.plannerPrefs && typeof cloudRow.schedule.plannerPrefs === 'object') {
                     const mergedPrefs = Object.assign({}, defaultPlannerPrefs, cloudRow.schedule.plannerPrefs);
                     if (!cloudRow.schedule.plannerPrefs.currentWeekStartIso) {
@@ -33321,7 +33736,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
                 // Always overwrite weeklyReports from account payload (or empty array if none) so reports never leak between accounts
                 const rawReports = Array.isArray(cloudRow.schedule.weeklyReports) ? cloudRow.schedule.weeklyReports : [];
-                weeklyReports = mergeFlatEntityCollectionWithCausalEngine([], rawReports, 'weekly_reports', unifiedTombstones, targetUid, (r) => String(r.weekStartIso || r.id));
+                weeklyReports = _mergeFlat([], rawReports, 'weekly_reports', unifiedTombstones, targetUid, (r) => String(r.weekStartIso || r.id));
                 localStorage.setItem('pharmaWeeklyReportsV1', JSON.stringify(weeklyReports));
 
                 currentPdfFitMode = cloudRow.schedule.pdfFitMode ? cloudRow.schedule.pdfFitMode : 'height';
@@ -33393,13 +33808,13 @@ function togglePdfAudioPlayerBar(forceState) {
                 plannerPrefs: plannerPrefs,
                 weeklyReports: weeklyReports,
                 _tombstones: unifiedTombstones,
-                _conflictRecovery: getConflictRecoveryRecords(targetUid),
-                _deviceRegistry: getLocalDeviceRegistry(targetUid)
+                _conflictRecovery: typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(targetUid) : [],
+                _deviceRegistry: typeof getLocalDeviceRegistry === 'function' ? getLocalDeviceRegistry(targetUid) : {}
             }));
             localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));
 
             const rawLogs = Array.isArray(cloudRow.logs) ? cloudRow.logs : [];
-            logs = mergeFlatEntityCollectionWithCausalEngine([], rawLogs, 'logs', unifiedTombstones, targetUid, (l) => String(l.id ?? l.timestamp));
+            logs = _mergeFlat([], rawLogs, 'logs', unifiedTombstones, targetUid, (l) => String(l.id ?? l.timestamp));
             localStorage.setItem('pharmaLogsV4', JSON.stringify(logs));
 
             if (Array.isArray(cloudRow.academy_progress)) {
@@ -35347,6 +35762,12 @@ function togglePdfAudioPlayerBar(forceState) {
             logs.unshift(summaryLogObj);
 
             if (isAutoRollover) {
+                const studyEventsToRoll = scheduleEvents.filter(e => !isCollegeCommitmentSession(e));
+                if (studyEventsToRoll.length > 0 && typeof recordTombstonesAtomicBatch === 'function') {
+                    recordTombstonesAtomicBatch(
+                        studyEventsToRoll.map(e => ({ entityType: 'events', id: e.id, priorEntity: e }))
+                    );
+                }
                 scheduleEvents = scheduleEvents.filter(e => isCollegeCommitmentSession(e));
                 // Reset temporary weekly absence flags for the brand new week so college schedule is active again
                 scheduleEvents.forEach(e => {
@@ -35367,9 +35788,12 @@ function togglePdfAudioPlayerBar(forceState) {
         function deleteWeeklyEvaluationReport(reportId, event) {
             if (event) event.stopPropagation();
             const targetRep = weeklyReports.find(r => String(r.id) === String(reportId) || String(r.weekStartIso) === String(reportId));
-            const primaryKey = targetRep ? (targetRep.id || targetRep.weekStartIso) : reportId;
+            const primaryKey = targetRep ? (targetRep.weekStartIso || targetRep.id) : reportId;
             if (typeof recordTombstonesAtomicBatch === 'function') {
                 const batchItems = [{ entityType: 'weekly_reports', id: primaryKey, priorEntity: targetRep || null }];
+                if (targetRep && targetRep.id && String(targetRep.id) !== String(primaryKey)) {
+                    batchItems.push({ entityType: 'weekly_reports', id: targetRep.id, priorEntity: targetRep });
+                }
                 if (targetRep && targetRep.weekStartIso && String(targetRep.weekStartIso) !== String(primaryKey)) {
                     batchItems.push({ entityType: 'weekly_reports', id: targetRep.weekStartIso, priorEntity: targetRep });
                 }
