@@ -2418,6 +2418,91 @@ async function main() {
       const retryPushRes = await pushWorkspaceToCloud(false, false, opCtxV);
       const v4DirtyCleared = localStorage.getItem('pharmaWorkspaceDirty') === null && localStorage.getItem('pharmaWorkspaceDirty_' + uidV) === null;
 
+      // V.5: Unverified guest provenance fail-closed block and quarantine preservation
+      const uidV5 = 'usr_guest_v5_target';
+      const guestSubV5 = { id: 9107, name: 'Unverified Guest Chemistry V5', _updatedAt: 4500, groups: [] };
+      subjects = [guestSubV5];
+      localStorage.setItem('pharmaSubjectsV4', JSON.stringify([guestSubV5]));
+      localStorage.setItem('pharmaWorkspaceDirty', '1');
+      localStorage.removeItem('pharmaLastActiveCloudUid');
+      localStorage.removeItem('pharmaLastActiveUserIdV1');
+      localStorage.removeItem('exo_gdrive_bound_user_id');
+      localStorage.removeItem('pharmaGuestProvenanceClaim');
+      localStorage.removeItem('pharmaUnverifiedGuestWorkspace_quarantine');
+
+      let v5RpcCalls = 0;
+      const remoteRowV5 = {
+        user_id: uidV5,
+        user_email: uidV5 + '@exo.edu',
+        revision: 2,
+        subjects: [{ id: 9108, name: 'Remote User Row V5', _updatedAt: 1000, groups: [] }],
+        schedule: { version: 3, events: [], backlog: [], plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 }, weeklyReports: [] },
+        logs: [],
+        academy_progress: [],
+        annotations: {},
+        updated_at: '2026-11-05T12:25:00.000Z'
+      };
+
+      supabaseClient = {
+        from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: remoteRowV5, error: null }) }) }) }),
+        rpc: async () => {
+          v5RpcCalls++;
+          return { data: { status: 'success', revision: 3 }, error: null };
+        }
+      };
+
+      currentCloudUser = { id: uidV5, email: uidV5 + '@exo.edu' };
+      bumpAccountSessionGeneration();
+      const opCtxV5 = createAccountOperationContext(uidV5);
+      const loginSyncResV5 = await syncWorkspaceOnLogin(opCtxV5);
+      const quarantinedV5 = JSON.parse(localStorage.getItem('pharmaUnverifiedGuestWorkspace_quarantine') || 'null');
+      const v5Quarantined = Boolean(quarantinedV5 && quarantinedV5.subjects && quarantinedV5.subjects.some(s => s.id === 9107));
+      const v5DirtyPreserved = localStorage.getItem('pharmaWorkspaceDirty') === '1';
+
+      // V.6: Causal auto-stamping failure fail-closed block during pull reconciliation
+      const uidV6 = 'usr_stamp_fail_v6';
+      const localSubV6 = { id: 9109, name: 'Local Dirty Unstamped Sub V6', _updatedAt: 5000, groups: [] };
+      subjects = [localSubV6];
+      localStorage.setItem('pharmaSubjectsV4', JSON.stringify([localSubV6]));
+      localStorage.setItem('pharmaWorkspaceDirty', '1');
+      localStorage.setItem('pharmaWorkspaceDirty_' + uidV6, '1');
+      localStorage.setItem('pharmaLastActiveCloudUid', uidV6);
+
+      let v6RpcCalls = 0;
+      const remoteRowV6 = {
+        user_id: uidV6,
+        user_email: uidV6 + '@exo.edu',
+        revision: 1,
+        subjects: [{ id: 9110, name: 'Remote Sub V6', _updatedAt: 1000, groups: [] }],
+        schedule: { version: 3, events: [], backlog: [], plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 }, weeklyReports: [] },
+        logs: [],
+        academy_progress: [],
+        annotations: {},
+        updated_at: '2026-11-05T12:30:00.000Z'
+      };
+
+      supabaseClient = {
+        from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: remoteRowV6, error: null }) }) }) }),
+        rpc: async () => {
+          v6RpcCalls++;
+          return { data: { status: 'success', revision: 2 }, error: null };
+        }
+      };
+
+      currentCloudUser = { id: uidV6, email: uidV6 + '@exo.edu' };
+      bumpAccountSessionGeneration();
+      const opCtxV6 = createAccountOperationContext(uidV6);
+
+      // Disable CSPRNG
+      setCryptoProviderForTests(null);
+      let pullResV6 = null;
+      try {
+        pullResV6 = await pullWorkspaceFromCloud(false, opCtxV6);
+      } finally {
+        setCryptoProviderForTests(undefined);
+      }
+      const v6DirtyPreserved = localStorage.getItem('pharmaWorkspaceDirty') === '1';
+
       // Restore client
       supabaseClient = origClient;
 
@@ -2439,7 +2524,14 @@ async function main() {
         v3DirtyPreserved,
         retryPushRes,
         retryRpcConfirmed,
-        v4DirtyCleared
+        v4DirtyCleared,
+        loginSyncResV5,
+        v5Quarantined,
+        v5RpcCalls,
+        v5DirtyPreserved,
+        pullResV6,
+        v6RpcCalls,
+        v6DirtyPreserved
       };
     });
 
@@ -2486,6 +2578,29 @@ async function main() {
       resV.retryRpcConfirmed === true &&
       resV.v4DirtyCleared === true,
       'Test V.4 (T-5.1-08-D): Subsequent retry push persists reconciled state to cloud and clears dirty flags only after server confirms success',
+      JSON.stringify(resV)
+    );
+
+    assert(
+      resV.loginSyncResV5 &&
+      resV.loginSyncResV5.ok === false &&
+      resV.loginSyncResV5.status === 'blocked' &&
+      resV.loginSyncResV5.reason === 'unverified_guest_provenance' &&
+      resV.v5Quarantined === true &&
+      resV.v5RpcCalls === 0 &&
+      resV.v5DirtyPreserved === true,
+      'Test V.5 (T-5.1-09-A): Real Chromium page with unverified guest dirty data blocks login reconciliation fail-closed, preserves guest workspace in isolated quarantine vault, and executes zero cloud pushes',
+      JSON.stringify(resV)
+    );
+
+    assert(
+      resV.pullResV6 &&
+      resV.pullResV6.ok === false &&
+      resV.pullResV6.status === 'error' &&
+      resV.pullResV6.reason === 'causal_auto_stamp_failed' &&
+      resV.v6RpcCalls === 0 &&
+      resV.v6DirtyPreserved === true,
+      'Test V.6 (T-5.1-09-E): Real Chromium page with causal auto-stamping failure aborts pull reconciliation fail-closed, keeps workspace dirty, and executes zero cloud pushes',
       JSON.stringify(resV)
     );
 

@@ -199,6 +199,9 @@ let inMemoryAnnotationsCache = {};
 let inMemoryAnnotationsCacheNormalized = {};
 let inMemoryAnnotationsCacheLoaded = false;
 let pendingAnnoSaveMap = {};
+let autoSaveTimer = null;
+let mergedContinuousPdfMode = false;
+function syncMergedAnnotationsToLectureRecords() {}
 let dirtyAnnotationsForCloud = false;
 let activeCloudSyncByAccount = new Map();
 let activeCloudSyncPromise = null;
@@ -369,6 +372,9 @@ ${extractFunctionSource(indexHtmlContent, 'markLocalWorkspaceModified')}
 ${extractFunctionSource(indexHtmlContent, 'mergeAndApplyCloudConflict')}
 ${extractFunctionSource(indexHtmlContent, 'pushWorkspaceToCloud')}
 ${extractFunctionSource(indexHtmlContent, 'applyCloudWorkspacePayload')}
+${extractFunctionSource(indexHtmlContent, 'flushPendingAnnotationsSave')}
+${extractFunctionSource(indexHtmlContent, 'preserveUnverifiedGuestWorkspace')}
+${extractFunctionSource(indexHtmlContent, 'verifyLocalWorkspaceProvenance')}
 ${extractFunctionSource(indexHtmlContent, 'reconcileDirtyWorkspaceWithRemote')}
 ${extractFunctionSource(indexHtmlContent, 'pullWorkspaceFromCloud')}
 ${extractFunctionSource(indexHtmlContent, 'syncWorkspaceOnLogin')}
@@ -395,6 +401,7 @@ module.exports = {
     if (st.cloudMediaRegistry !== undefined) cloudMediaRegistry = st.cloudMediaRegistry;
     if (st.activeSubjectId !== undefined) activeSubjectId = st.activeSubjectId;
     if (st.dirtyAnnotationsForCloud !== undefined) dirtyAnnotationsForCloud = Boolean(st.dirtyAnnotationsForCloud);
+    if (st.pendingAnnoSaveMap !== undefined) pendingAnnoSaveMap = st.pendingAnnoSaveMap;
   },
   getRuntimeState: () => ({
     subjects,
@@ -407,7 +414,8 @@ module.exports = {
     cloudMediaRegistry,
     activeSubjectId,
     currentCloudWorkspaceRevision,
-    dirtyAnnotationsForCloud
+    dirtyAnnotationsForCloud,
+    pendingAnnoSaveMap
   }),
   saveSubjects,
   saveScheduleData,
@@ -482,6 +490,9 @@ module.exports = {
   mergeAndApplyCloudConflict,
   pushWorkspaceToCloud,
   applyCloudWorkspacePayload,
+  flushPendingAnnotationsSave,
+  preserveUnverifiedGuestWorkspace,
+  verifyLocalWorkspaceProvenance,
   reconcileDirtyWorkspaceWithRemote,
   pullWorkspaceFromCloud,
   syncWorkspaceOnLogin,
@@ -2958,6 +2969,500 @@ async function main() {
     brandNewInitialPushPayload?.academy_progress?.includes('mod_neurology_201'),
     'T-5.1-08-F: Brand-new cloud account login preserves pre-login completedAcademyModules in memory, localStorage, and initial cloud push without regression'
   );
+
+  // =========================================================================
+  // TEST 19: Phase 5.1 Milestone M5-A.1 — Provenance, Async Account-Switch Safety & Fail-Closed Reconciliation Corrections (T-5.1-09)
+  // =========================================================================
+  console.log('\n[TEST 19] Phase 5.1 Milestone M5-A.1 — Provenance, Async Account-Switch Safety & Fail-Closed Reconciliation Corrections (T-5.1-09)...');
+
+  // --- Test A: Missing guest provenance fails closed, quarantines guest data, blocks merge/push (T-5.1-09-A) ---
+  const uidM5A1_A = 'user_m5a1_provenance_a';
+  prod.localStorage.clear();
+  prod.toastHistory.length = 0;
+
+  // Unauthenticated guest user made local modifications (no last active UID)
+  const guestSubA = { id: 1001, name: 'Anonymous Guest Chemistry', _updatedAt: 1000, groups: [] };
+  prod.setRuntimeState({
+    activeSubjectId: 1001,
+    subjects: [guestSubA],
+    scheduleEvents: [{ id: 2001, title: 'Guest Study Session', _updatedAt: 1000, subjectId: 1001 }],
+    scheduleBacklog: [],
+    logs: [],
+    weeklyReports: []
+  });
+  prod.saveSubjects();
+  prod.localStorage.setItem('pharmaWorkspaceDirty', '1');
+  // Explicitly ensure no last-active UID or claim
+  prod.localStorage.removeItem('pharmaLastActiveCloudUid');
+  prod.localStorage.removeItem('pharmaLastActiveUserIdV1');
+  prod.localStorage.removeItem('pharmaGuestProvenanceClaim');
+
+  let rpcCallsT19A = 0;
+  const remoteRowT19A = {
+    user_id: uidM5A1_A,
+    user_email: uidM5A1_A + '@test.edu',
+    revision: 2,
+    subjects: [{ id: 1002, name: 'Remote Existing Biology', _updatedAt: 500, groups: [] }],
+    schedule: { version: 3, events: [], backlog: [], plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 }, weeklyReports: [] },
+    logs: [],
+    academy_progress: [],
+    annotations: {},
+    updated_at: '2026-11-05T13:00:00.000Z'
+  };
+  prod.setSupabaseClient(makeSupabaseMock(remoteRowT19A, async () => {
+    rpcCallsT19A++;
+    return { data: { status: 'success', revision: 3 }, error: null };
+  }));
+
+  prod.setSessionUser(uidM5A1_A);
+  const syncResT19A = await prod.syncWorkspaceOnLogin();
+  const quarantinedGuestA = JSON.parse(prod.localStorage.getItem('pharmaUnverifiedGuestWorkspace_quarantine') || 'null');
+
+  assert(
+    syncResT19A &&
+    syncResT19A.ok === false &&
+    syncResT19A.status === 'blocked' &&
+    syncResT19A.reason === 'unverified_guest_provenance' &&
+    syncResT19A.quarantined === true &&
+    quarantinedGuestA !== null &&
+    quarantinedGuestA.subjects?.some(s => s.id === 1001 && s.name === 'Anonymous Guest Chemistry') &&
+    quarantinedGuestA.scheduleEvents?.some(e => e.id === 2001) &&
+    rpcCallsT19A === 0 &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1',
+    'T-5.1-09-A: Missing guest provenance (no last-active UID or absent claim) blocks reconciliation fail-closed, preserves unverified guest workspace in separate recoverable quarantine vault, and keeps local dirty state without cloud overwrite or false ack'
+  );
+
+  // --- Test B: Invalid or mismatched guest provenance blocks reconciliation fail-closed (T-5.1-09-B) ---
+  const uidM5A1_B = 'user_m5a1_provenance_b';
+  prod.localStorage.clear();
+  prod.toastHistory.length = 0;
+
+  const guestSubB = { id: 1003, name: 'Guest Physics For Another User', _updatedAt: 1500, groups: [] };
+  prod.setRuntimeState({
+    activeSubjectId: 1003,
+    subjects: [guestSubB],
+    scheduleEvents: [],
+    scheduleBacklog: [],
+    logs: [],
+    weeklyReports: []
+  });
+  prod.saveSubjects();
+  prod.localStorage.setItem('pharmaWorkspaceDirty', '1');
+  // Stored claim points to a DIFFERENT user
+  prod.localStorage.setItem('pharmaGuestProvenanceClaim', 'user_different_999');
+
+  let rpcCallsT19B = 0;
+  const remoteRowT19B = {
+    user_id: uidM5A1_B,
+    user_email: uidM5A1_B + '@test.edu',
+    revision: 1,
+    subjects: [{ id: 1004, name: 'Remote Subject B', _updatedAt: 500, groups: [] }],
+    schedule: { version: 3, events: [], backlog: [], plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 }, weeklyReports: [] },
+    logs: [],
+    academy_progress: [],
+    annotations: {},
+    updated_at: '2026-11-05T13:05:00.000Z'
+  };
+  prod.setSupabaseClient(makeSupabaseMock(remoteRowT19B, async () => {
+    rpcCallsT19B++;
+    return { data: { status: 'success', revision: 2 }, error: null };
+  }));
+
+  prod.setSessionUser(uidM5A1_B);
+  const syncResT19B = await prod.syncWorkspaceOnLogin();
+  const quarantinedGuestB = JSON.parse(prod.localStorage.getItem('pharmaUnverifiedGuestWorkspace_quarantine') || 'null');
+
+  assert(
+    syncResT19B &&
+    syncResT19B.ok === false &&
+    syncResT19B.status === 'blocked' &&
+    syncResT19B.reason === 'unverified_guest_provenance' &&
+    syncResT19B.provenanceStatus === 'mismatched_guest_claim' &&
+    syncResT19B.quarantined === true &&
+    quarantinedGuestB !== null &&
+    quarantinedGuestB.subjects?.some(s => s.id === 1003) &&
+    rpcCallsT19B === 0,
+    'T-5.1-09-B: Invalid/mismatched guest provenance (guest data claimed by user_different while user_b logs in) blocks reconciliation, preserves unverified guest data in quarantine vault, and does not merge into user_b'
+  );
+
+  // --- Test C: Verified guest provenance via auditable claim reconciles cleanly (T-5.1-09-C) ---
+  const uidM5A1_C = 'user_m5a1_provenance_c';
+  prod.localStorage.clear();
+  prod.toastHistory.length = 0;
+
+  const guestSubC = { id: 1005, name: 'Verified Claimed Guest Subject', _updatedAt: 2000, groups: [] };
+  prod.setRuntimeState({
+    activeSubjectId: 1005,
+    subjects: [guestSubC],
+    scheduleEvents: [],
+    scheduleBacklog: [],
+    logs: [],
+    weeklyReports: []
+  });
+  prod.saveSubjects();
+  prod.localStorage.setItem('pharmaWorkspaceDirty', '1');
+  // Set positive auditable claim matching the logging-in user
+  prod.localStorage.setItem('pharmaGuestProvenanceClaim', uidM5A1_C);
+
+  let rpcCallsT19C = 0;
+  const remoteRowT19C = {
+    user_id: uidM5A1_C,
+    user_email: uidM5A1_C + '@test.edu',
+    revision: 2,
+    subjects: [{ id: 1006, name: 'Remote Cloud Subject C', _updatedAt: 1000, groups: [] }],
+    schedule: { version: 3, events: [], backlog: [], plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 }, weeklyReports: [] },
+    logs: [],
+    academy_progress: [],
+    annotations: {},
+    updated_at: '2026-11-05T13:10:00.000Z'
+  };
+  prod.setSupabaseClient(makeSupabaseMock(remoteRowT19C, async () => {
+    rpcCallsT19C++;
+    return { data: { status: 'success', revision: 3 }, error: null };
+  }));
+
+  prod.setSessionUser(uidM5A1_C);
+  const syncResT19C = await prod.syncWorkspaceOnLogin();
+  const stateT19C = prod.getRuntimeState();
+
+  assert(
+    syncResT19C &&
+    syncResT19C.ok === true &&
+    syncResT19C.reconciled === true &&
+    syncResT19C.status === 'reconciled_and_synced' &&
+    stateT19C.subjects.some(s => s.id === 1005 && s.name === 'Verified Claimed Guest Subject') &&
+    stateT19C.subjects.some(s => s.id === 1006 && s.name === 'Remote Cloud Subject C') &&
+    rpcCallsT19C === 1 &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === null,
+    'T-5.1-09-C: Verified guest provenance via auditable claim (pharmaGuestProvenanceClaim === authenticated UID) successfully reconciles guest workspace with remote row and advances cloud revision'
+  );
+
+  // --- Test D: Fail-closed annotation flush failure in reconcileDirtyWorkspaceWithRemote (T-5.1-09-D) ---
+  const uidM5A1_D = 'user_m5a1_flush_fail';
+  prod.localStorage.clear();
+  prod.toastHistory.length = 0;
+  prod.setSessionUser(uidM5A1_D);
+  prod.resetLiveActorForTabSimulation('dev_m5a1_d');
+
+  const localSubD = { id: 1007, name: 'Subject Before Flush Failure', _updatedAt: 2000, groups: [] };
+  prod.setRuntimeState({
+    activeSubjectId: 1007,
+    subjects: [localSubD],
+    scheduleEvents: [],
+    scheduleBacklog: [],
+    logs: [],
+    weeklyReports: [],
+    pendingAnnoSaveMap: {
+      '1007': {
+        '1': [{ id: 'stk_fail', tool: 'pen', points: [10, 10, 20, 20] }]
+      }
+    }
+  });
+  prod.saveSubjects();
+  prod.localStorage.setItem('pharmaWorkspaceDirty', '1');
+  prod.localStorage.setItem('pharmaWorkspaceDirty_' + uidM5A1_D, '1');
+  prod.localStorage.setItem('pharmaLastActiveCloudUid', uidM5A1_D);
+
+  // Inject failure into IndexedDB transaction
+  idb.failNextTransaction = true;
+
+  let rpcCallsT19D = 0;
+  const remoteRowT19D = {
+    user_id: uidM5A1_D,
+    user_email: uidM5A1_D + '@test.edu',
+    revision: 1,
+    subjects: [{ id: 1008, name: 'Remote Subject D', _updatedAt: 1000, groups: [] }],
+    schedule: { version: 3, events: [], backlog: [], plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 }, weeklyReports: [] },
+    logs: [],
+    academy_progress: [],
+    annotations: {},
+    updated_at: '2026-11-05T13:15:00.000Z'
+  };
+  prod.setSupabaseClient(makeSupabaseMock(remoteRowT19D, async () => {
+    rpcCallsT19D++;
+    return { data: { status: 'success', revision: 2 }, error: null };
+  }));
+
+  const opCtxD = prod.createAccountOperationContext(uidM5A1_D);
+  const reconResD = await prod.reconcileDirtyWorkspaceWithRemote(remoteRowT19D, opCtxD, false);
+
+  assert(
+    reconResD &&
+    reconResD.ok === false &&
+    reconResD.status === 'error' &&
+    reconResD.reason === 'pending_annotations_flush_failed' &&
+    rpcCallsT19D === 0 &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1',
+    'T-5.1-09-D: Fail-closed annotation flush failure in reconcileDirtyWorkspaceWithRemote aborts immediately without applying remote row or performing causal merge, keeping workspace dirty'
+  );
+
+  // --- Test E: Fail-closed causal auto-stamping failure (T-5.1-09-E) ---
+  const uidM5A1_E = 'user_m5a1_stamp_fail';
+  prod.localStorage.clear();
+  prod.toastHistory.length = 0;
+  prod.setSessionUser(uidM5A1_E);
+  prod.resetLiveActorForTabSimulation('dev_m5a1_e');
+
+  const localSubE = { id: 1009, name: 'Subject Before Stamping Failure', _updatedAt: 2500, groups: [] };
+  prod.setRuntimeState({
+    activeSubjectId: 1009,
+    subjects: [localSubE],
+    scheduleEvents: [],
+    scheduleBacklog: [],
+    logs: [],
+    weeklyReports: [],
+    pendingAnnoSaveMap: {}
+  });
+  prod.localStorage.setItem('pharmaSubjectsV4', JSON.stringify([localSubE]));
+  prod.localStorage.setItem('pharmaWorkspaceDirty', '1');
+  prod.localStorage.setItem('pharmaWorkspaceDirty_' + uidM5A1_E, '1');
+  prod.localStorage.setItem('pharmaLastActiveCloudUid', uidM5A1_E);
+
+  // Inject failure into causal operation ID generation
+  prod.setCryptoProviderForTests(null);
+
+  let rpcCallsT19E = 0;
+  const remoteRowT19E = {
+    user_id: uidM5A1_E,
+    user_email: uidM5A1_E + '@test.edu',
+    revision: 1,
+    subjects: [{ id: 1010, name: 'Remote Subject E', _updatedAt: 1000, groups: [] }],
+    schedule: { version: 3, events: [], backlog: [], plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 }, weeklyReports: [] },
+    logs: [],
+    academy_progress: [],
+    annotations: {},
+    updated_at: '2026-11-05T13:20:00.000Z'
+  };
+  prod.setSupabaseClient(makeSupabaseMock(remoteRowT19E, async () => {
+    rpcCallsT19E++;
+    return { data: { status: 'success', revision: 2 }, error: null };
+  }));
+
+  const opCtxE = prod.createAccountOperationContext(uidM5A1_E);
+  let reconResE;
+  try {
+    reconResE = await prod.reconcileDirtyWorkspaceWithRemote(remoteRowT19E, opCtxE, false);
+  } finally {
+    // Restore crypto provider safely in all cases
+    prod.setCryptoProviderForTests(undefined);
+  }
+
+  assert(
+    reconResE &&
+    reconResE.ok === false &&
+    reconResE.status === 'error' &&
+    reconResE.reason === 'causal_auto_stamp_failed' &&
+    reconResE.error === 'CAUSAL_AUTO_STAMP_FAILED' &&
+    rpcCallsT19E === 0 &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1',
+    'T-5.1-09-E: Fail-closed causal auto-stamping failure (stamping returns ok: false or failedCount > 0) aborts reconciliation immediately, preserves local data without merge or cloud push, and allows safe retry'
+  );
+
+  // --- Test F: Deterministic true in-flight account switch race test (T-5.1-09-F) ---
+  const uidRaceX = 'user_m5a1_race_x';
+  const uidRaceY = 'user_m5a1_race_y';
+  prod.localStorage.clear();
+  prod.toastHistory.length = 0;
+  prod.setSessionUser(uidRaceX);
+  prod.resetLiveActorForTabSimulation('dev_user_x');
+
+  const subRaceX = { id: 7701, name: 'Exclusive Workspace of User X', _updatedAt: 5000, groups: [] };
+  prod.setRuntimeState({
+    activeSubjectId: 7701,
+    subjects: [subRaceX],
+    scheduleEvents: [],
+    scheduleBacklog: [],
+    logs: [],
+    weeklyReports: []
+  });
+  prod.saveSubjects();
+  prod.localStorage.setItem('pharmaWorkspaceDirty', '1');
+  prod.localStorage.setItem('pharmaWorkspaceDirty_' + uidRaceX, '1');
+  prod.localStorage.setItem('pharmaLastActiveCloudUid', uidRaceX);
+
+  const remoteRowX = {
+    user_id: uidRaceX,
+    user_email: uidRaceX + '@test.edu',
+    revision: 2,
+    subjects: [{ id: 7702, name: 'Remote Subject of User X', _updatedAt: 4000, groups: [] }],
+    schedule: { version: 3, events: [], backlog: [], plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 }, weeklyReports: [] },
+    logs: [],
+    academy_progress: [],
+    annotations: {},
+    updated_at: '2026-11-05T13:30:00.000Z'
+  };
+
+  // Controllable deferred Promise to pause User X's cloud push during reconciliation
+  let deferredPushResolveX;
+  const deferredPushPromiseX = new Promise((resolve) => {
+    deferredPushResolveX = resolve;
+  });
+
+  let rpcCallsUserXAfterSwitch = 0;
+  prod.setSupabaseClient({
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({ data: remoteRowX, error: null })
+        })
+      })
+    }),
+    rpc: async (fn, params) => {
+      // Pause in-flight operation
+      await deferredPushPromiseX;
+      // If called by User X after switch, record it
+      if (params?.p_payload?.user_id === uidRaceX) {
+        rpcCallsUserXAfterSwitch++;
+      }
+      return { data: { status: 'success', revision: 3 }, error: null };
+    }
+  });
+
+  const opCtxX = prod.createAccountOperationContext(uidRaceX);
+
+  // 1. Start User X reconciliation in-flight
+  const reconPromiseX = prod.reconcileDirtyWorkspaceWithRemote(remoteRowX, opCtxX, false);
+
+  // 2. Wait a tick so reconciliation enters the awaited push
+  await new Promise(r => setTimeout(r, 20));
+
+  // 3. Switch active session to User Y while User X is waiting on deferred Promise!
+  prod.setSessionUser(uidRaceY);
+  prod.resetLiveActorForTabSimulation('dev_user_y');
+  const subRaceY = { id: 8801, name: 'Fresh Clean Workspace of User Y', _updatedAt: 6000, groups: [] };
+  prod.setRuntimeState({
+    activeSubjectId: 8801,
+    subjects: [subRaceY],
+    scheduleEvents: [],
+    scheduleBacklog: [],
+    logs: [],
+    weeklyReports: []
+  });
+  prod.saveSubjects();
+
+  // 4. Release User X's deferred operation
+  deferredPushResolveX();
+
+  // 5. Await User X reconciliation outcome
+  const reconResultX = await reconPromiseX;
+  const stateAfterRaceY = prod.getRuntimeState();
+  const vaultRaceX = JSON.parse(prod.localStorage.getItem(prod.getAccountBackupStorageKey(uidRaceX)) || '{}');
+
+  assert(
+    reconResultX &&
+    reconResultX.ok === false &&
+    reconResultX.status === 'aborted' &&
+    reconResultX.reason === 'account_switched' &&
+    stateAfterRaceY.subjects.some(s => s.id === 8801 && s.name === 'Fresh Clean Workspace of User Y') &&
+    !stateAfterRaceY.subjects.some(s => s.id === 7701) &&
+    !stateAfterRaceY.subjects.some(s => s.id === 7702),
+    'T-5.1-09-F: Deterministic asynchronous race test — Account switch during active in-flight reconciliation causes stale reconciliation to abort with account_switched, merges zero User X data into User Y, and preserves User Y workspace'
+  );
+
+  // --- Test G: Safe retry after failed flush or stamping succeeds cleanly (T-5.1-09-G) ---
+  const uidM5A1_G = 'user_m5a1_retry_success';
+  prod.localStorage.clear();
+  prod.toastHistory.length = 0;
+  prod.setSessionUser(uidM5A1_G);
+  prod.resetLiveActorForTabSimulation('dev_m5a1_g');
+
+  const localSubG = { id: 1011, name: 'Subject For Clean Retry', _updatedAt: 3000, groups: [] };
+  prod.setRuntimeState({
+    activeSubjectId: 1011,
+    subjects: [localSubG],
+    scheduleEvents: [],
+    scheduleBacklog: [],
+    logs: [],
+    weeklyReports: []
+  });
+  prod.saveSubjects();
+  prod.localStorage.setItem('pharmaWorkspaceDirty', '1');
+  prod.localStorage.setItem('pharmaWorkspaceDirty_' + uidM5A1_G, '1');
+  prod.localStorage.setItem('pharmaLastActiveCloudUid', uidM5A1_G);
+
+  let rpcCallsT19G = 0;
+  const remoteRowT19G = {
+    user_id: uidM5A1_G,
+    user_email: uidM5A1_G + '@test.edu',
+    revision: 2,
+    subjects: [{ id: 1012, name: 'Remote Subject G', _updatedAt: 2000, groups: [] }],
+    schedule: { version: 3, events: [], backlog: [], plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 }, weeklyReports: [] },
+    logs: [],
+    academy_progress: [],
+    annotations: {},
+    updated_at: '2026-11-05T13:40:00.000Z'
+  };
+  prod.setSupabaseClient(makeSupabaseMock(remoteRowT19G, async () => {
+    rpcCallsT19G++;
+    return { data: { status: 'success', revision: 3 }, error: null };
+  }));
+
+  const opCtxG = prod.createAccountOperationContext(uidM5A1_G);
+  const retryReconRes = await prod.reconcileDirtyWorkspaceWithRemote(remoteRowT19G, opCtxG, false);
+  const stateT19G = prod.getRuntimeState();
+
+  assert(
+    retryReconRes &&
+    retryReconRes.ok === true &&
+    retryReconRes.status === 'reconciled_and_synced' &&
+    stateT19G.subjects.some(s => s.id === 1011) &&
+    stateT19G.subjects.some(s => s.id === 1012) &&
+    rpcCallsT19G === 1 &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === null,
+    'T-5.1-09-G: Safe retry after resolved failure condition succeeds cleanly on subsequent execution, pushing reconciled payload and clearing dirty flags upon confirmed server response'
+  );
+
+  // --- Test H: Manual pull with missing guest provenance fails closed (T-5.1-09-H) ---
+  const uidM5A1_H = 'user_m5a1_pull_failclosed';
+  prod.localStorage.clear();
+  prod.toastHistory.length = 0;
+
+  const localSubH = { id: 1013, name: 'Unclaimed Offline Subject Prior to Pull', _updatedAt: 3500, groups: [] };
+  prod.setRuntimeState({
+    activeSubjectId: 1013,
+    subjects: [localSubH],
+    scheduleEvents: [],
+    scheduleBacklog: [],
+    logs: [],
+    weeklyReports: []
+  });
+  prod.saveSubjects();
+  prod.localStorage.setItem('pharmaWorkspaceDirty', '1');
+  prod.localStorage.removeItem('pharmaLastActiveCloudUid');
+  prod.localStorage.removeItem('pharmaLastActiveUserIdV1');
+  prod.localStorage.removeItem('pharmaGuestProvenanceClaim');
+
+  prod.setSessionUser(uidM5A1_H);
+  const remoteRowT19H = {
+    user_id: uidM5A1_H,
+    user_email: uidM5A1_H + '@test.edu',
+    revision: 3,
+    subjects: [{ id: 1014, name: 'Cloud Subject H', _updatedAt: 1000, groups: [] }],
+    schedule: { version: 3, events: [], backlog: [], plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 }, weeklyReports: [] },
+    logs: [],
+    academy_progress: [],
+    annotations: {},
+    updated_at: '2026-11-05T13:50:00.000Z'
+  };
+  prod.setSupabaseClient(makeSupabaseMock(remoteRowT19H, async () => {
+    return { data: { status: 'success', revision: 4 }, error: null };
+  }));
+
+  const pullResH = await prod.pullWorkspaceFromCloud(true);
+  const quarantinedGuestH = JSON.parse(prod.localStorage.getItem('pharmaUnverifiedGuestWorkspace_quarantine') || 'null');
+
+  assert(
+    pullResH &&
+    pullResH.ok === false &&
+    pullResH.status === 'blocked' &&
+    pullResH.reason === 'unverified_guest_provenance' &&
+    pullResH.quarantined === true &&
+    quarantinedGuestH !== null &&
+    quarantinedGuestH.subjects?.some(s => s.id === 1013) &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1',
+    'T-5.1-09-H: Manual pull with unverified guest provenance returns explicit blocked status, preserves guest quarantine snapshot, and prevents silent discard of offline work'
+  );
+
 
   console.log('\n======================================================================');
   console.log(`TOTAL PHASE 4/4.1 REGRESSION CHECKS: ${testsPassed + testsFailed} | PASSED: ${testsPassed} | FAILED: ${testsFailed}`);

@@ -34238,8 +34238,104 @@ function togglePdfAudioPlayerBar(forceState) {
             return { ok: true, status: 'applied', userId: targetUid };
         }
 
-        // --- M5-A: Dirty-Aware Login & Manual Pull Reconciliation Engine (F-03, F-15) ---
-        async function reconcileDirtyWorkspaceWithRemote(remoteRow, opCtx, manualNotify = false) {
+        // --- M5-A / M5-A.1: Provenance Verification & Unverified Guest Preservation Helpers ---
+        function preserveUnverifiedGuestWorkspace(reason = 'unverified_guest_provenance') {
+            try {
+                const guestSnapshot = {
+                    preservedAt: new Date().toISOString(),
+                    reason: String(reason),
+                    subjects: Array.isArray(subjects) ? JSON.parse(JSON.stringify(subjects)) : [],
+                    scheduleEvents: Array.isArray(scheduleEvents) ? JSON.parse(JSON.stringify(scheduleEvents)) : [],
+                    scheduleBacklog: Array.isArray(scheduleBacklog) ? JSON.parse(JSON.stringify(scheduleBacklog)) : [],
+                    plannerPrefs: plannerPrefs ? JSON.parse(JSON.stringify(plannerPrefs)) : {},
+                    weeklyReports: Array.isArray(weeklyReports) ? JSON.parse(JSON.stringify(weeklyReports)) : [],
+                    logs: Array.isArray(logs) ? JSON.parse(JSON.stringify(logs)) : [],
+                    academy_progress: Array.isArray(completedAcademyModules) ? completedAcademyModules.slice() : [],
+                    dirty: true
+                };
+                localStorage.setItem('pharmaUnverifiedGuestWorkspace_quarantine', JSON.stringify(guestSnapshot));
+                return true;
+            } catch (e) {
+                console.error('Failed to preserve unverified guest workspace:', e);
+                return false;
+            }
+        }
+
+        function verifyLocalWorkspaceProvenance(targetUid, opCtx, priorActiveUid = null) {
+            if (!targetUid || !opCtx || !opCtx.ok) {
+                return { ok: false, status: 'invalid_context', isSameAccount: false, isVerifiedGuest: false };
+            }
+            const lastActiveUid = (priorActiveUid !== null && priorActiveUid !== undefined)
+                ? (priorActiveUid || null)
+                : (localStorage.getItem('pharmaLastActiveCloudUid')
+                    || localStorage.getItem('pharmaLastActiveUserIdV1')
+                    || localStorage.getItem('exo_gdrive_bound_user_id')
+                    || null);
+
+            // 1. Same-account verification:
+            // Existing same-account dirty data may enter reconciliation ONLY when its UID strictly matches the authenticated UID.
+            if (lastActiveUid && lastActiveUid !== 'local') {
+                if (String(lastActiveUid) === String(targetUid)) {
+                    return {
+                        ok: true,
+                        status: 'verified_same_account',
+                        isSameAccount: true,
+                        isVerifiedGuest: false,
+                        ownerUid: String(targetUid)
+                    };
+                } else {
+                    return {
+                        ok: false,
+                        status: 'mismatched_account',
+                        isSameAccount: false,
+                        isVerifiedGuest: false,
+                        ownerUid: String(lastActiveUid),
+                        targetUid: String(targetUid)
+                    };
+                }
+            }
+
+            // 2. Guest / pre-login verification:
+            // An absent key or the value 'local' is NEVER proof of ownership.
+            // Check for an explicit, auditable provenance claim:
+            const guestProvenanceClaim = localStorage.getItem('pharmaGuestProvenanceClaim')
+                || localStorage.getItem('pharmaVerifiedPreLoginOwner')
+                || null;
+
+            if (guestProvenanceClaim) {
+                if (String(guestProvenanceClaim) === String(targetUid)) {
+                    return {
+                        ok: true,
+                        status: 'verified_guest_claim',
+                        isSameAccount: false,
+                        isVerifiedGuest: true,
+                        ownerUid: String(targetUid)
+                    };
+                } else {
+                    return {
+                        ok: false,
+                        status: 'mismatched_guest_claim',
+                        isSameAccount: false,
+                        isVerifiedGuest: false,
+                        claimUid: String(guestProvenanceClaim),
+                        targetUid: String(targetUid)
+                    };
+                }
+            }
+
+            // 3. Missing provenance:
+            // No auditable provenance mechanism claimed this guest data for targetUid.
+            return {
+                ok: false,
+                status: 'missing_provenance',
+                isSameAccount: false,
+                isVerifiedGuest: false,
+                reason: 'no_auditable_guest_provenance'
+            };
+        }
+
+        // --- M5-A / M5-A.1: Dirty-Aware Login & Manual Pull Reconciliation Engine (F-03, F-15) ---
+        async function reconcileDirtyWorkspaceWithRemote(remoteRow, opCtx, manualNotify = false, verifiedProvenance = null) {
             if (!remoteRow) return { ok: false, status: 'aborted', reason: 'missing_remote_row' };
             if (!opCtx || !opCtx.ok || !opCtx.isCurrent()) {
                 return { ok: false, status: 'aborted', reason: 'account_switched' };
@@ -34248,40 +34344,98 @@ function togglePdfAudioPlayerBar(forceState) {
                 return { ok: false, status: 'aborted', reason: 'remote_row_user_mismatch' };
             }
 
-            // 1. Flush active in-memory PDF annotations to IndexedDB (fail-closed)
-            if (typeof flushPendingAnnotationsSave === 'function') {
-                let flushOk = false;
-                try {
-                    flushOk = await flushPendingAnnotationsSave(false, opCtx);
-                } catch (flushErr) {
-                    flushOk = false;
+            // 0. Positive provenance check (Correction A)
+            const provCheck = verifiedProvenance || verifyLocalWorkspaceProvenance(opCtx.uid, opCtx);
+            if (!provCheck.ok) {
+                if (provCheck.status === 'missing_provenance' || provCheck.status === 'mismatched_guest_claim') {
+                    preserveUnverifiedGuestWorkspace(provCheck.status);
                 }
-                if (!opCtx.isCurrent()) {
-                    return { ok: false, status: 'aborted', reason: 'account_switched' };
-                }
-                if (!flushOk) {
-                    console.error('Reconciliation aborted: failed to flush pending annotations (fail-closed)');
-                    try { localStorage.setItem('pharmaWorkspaceDirty', '1'); } catch (e) {}
-                    try { localStorage.setItem('pharmaWorkspaceDirty_' + opCtx.uid, '1'); } catch (e) {}
-                    dirtyAnnotationsForCloud = true;
-                    updateCloudNavUI('error');
-                    return {
-                        ok: false,
-                        status: 'error',
-                        reason: 'pending_annotations_flush_failed',
-                        error: 'PENDING_ANNOTATIONS_FLUSH_FAILED',
-                        isDirty: true
-                    };
-                }
+                return {
+                    ok: false,
+                    status: 'blocked',
+                    reason: 'unverified_guest_provenance',
+                    provenanceStatus: provCheck.status,
+                    quarantined: Boolean(provCheck.status === 'missing_provenance' || provCheck.status === 'mismatched_guest_claim'),
+                    isDirty: true
+                };
             }
 
-            // 2. Reconcile dirty causal metadata using existing causal infrastructure
-            if (typeof autoStampTrackedWorkspaceMutations === 'function') {
-                try {
-                    autoStampTrackedWorkspaceMutations('all', opCtx.uid);
-                } catch (stampErr) {
-                    console.warn('Reconciliation causal auto-stamp warning:', stampErr);
-                }
+            // 1. Flush active in-memory PDF annotations to IndexedDB (fail-closed, Correction C)
+            if (typeof flushPendingAnnotationsSave !== 'function') {
+                console.error('Reconciliation aborted: flushPendingAnnotationsSave is unavailable (fail-closed)');
+                try { localStorage.setItem('pharmaWorkspaceDirty', '1'); } catch (e) {}
+                try { localStorage.setItem('pharmaWorkspaceDirty_' + opCtx.uid, '1'); } catch (e) {}
+                dirtyAnnotationsForCloud = true;
+                updateCloudNavUI('error');
+                return {
+                    ok: false,
+                    status: 'error',
+                    reason: 'pending_annotations_flush_unavailable',
+                    error: 'PENDING_ANNOTATIONS_FLUSH_UNAVAILABLE',
+                    isDirty: true
+                };
+            }
+            let flushOk = false;
+            try {
+                const flushRes = await flushPendingAnnotationsSave(false, opCtx);
+                flushOk = Boolean(flushRes === true || (flushRes && flushRes.ok === true && flushRes.status !== 'error'));
+            } catch (flushErr) {
+                flushOk = false;
+            }
+            if (!opCtx.isCurrent()) {
+                return { ok: false, status: 'aborted', reason: 'account_switched' };
+            }
+            if (!flushOk) {
+                console.error('Reconciliation aborted: failed to flush pending annotations (fail-closed)');
+                try { localStorage.setItem('pharmaWorkspaceDirty', '1'); } catch (e) {}
+                try { localStorage.setItem('pharmaWorkspaceDirty_' + opCtx.uid, '1'); } catch (e) {}
+                dirtyAnnotationsForCloud = true;
+                updateCloudNavUI('error');
+                return {
+                    ok: false,
+                    status: 'error',
+                    reason: 'pending_annotations_flush_failed',
+                    error: 'PENDING_ANNOTATIONS_FLUSH_FAILED',
+                    isDirty: true
+                };
+            }
+
+            // 2. Reconcile dirty causal metadata using existing causal infrastructure (fail-closed, Correction C)
+            if (typeof autoStampTrackedWorkspaceMutations !== 'function') {
+                console.error('Reconciliation aborted: autoStampTrackedWorkspaceMutations is unavailable (fail-closed)');
+                try { localStorage.setItem('pharmaWorkspaceDirty', '1'); } catch (e) {}
+                try { localStorage.setItem('pharmaWorkspaceDirty_' + opCtx.uid, '1'); } catch (e) {}
+                updateCloudNavUI('error');
+                return {
+                    ok: false,
+                    status: 'error',
+                    reason: 'causal_auto_stamp_unavailable',
+                    error: 'CAUSAL_AUTO_STAMP_UNAVAILABLE',
+                    isDirty: true
+                };
+            }
+            let stampRes = null;
+            try {
+                stampRes = autoStampTrackedWorkspaceMutations('all', opCtx.uid);
+            } catch (stampErr) {
+                stampRes = { ok: false, failedCount: 1, errors: [{ message: stampErr?.message || String(stampErr) }] };
+            }
+            if (!opCtx.isCurrent()) {
+                return { ok: false, status: 'aborted', reason: 'account_switched' };
+            }
+            if (!stampRes || stampRes.ok !== true || (stampRes.failedCount && stampRes.failedCount > 0)) {
+                console.error('Reconciliation aborted: causal auto-stamp failed (fail-closed)', stampRes?.errors);
+                try { localStorage.setItem('pharmaWorkspaceDirty', '1'); } catch (e) {}
+                try { localStorage.setItem('pharmaWorkspaceDirty_' + opCtx.uid, '1'); } catch (e) {}
+                updateCloudNavUI('error');
+                return {
+                    ok: false,
+                    status: 'error',
+                    reason: 'causal_auto_stamp_failed',
+                    error: 'CAUSAL_AUTO_STAMP_FAILED',
+                    details: stampRes?.errors || [],
+                    isDirty: true
+                };
             }
 
             // 3. Build current local payload for causal conflict merge
@@ -34308,7 +34462,7 @@ function togglePdfAudioPlayerBar(forceState) {
 
             // 4. Invoke verified M3/M4 three-way causal merger
             const mergeRes = await mergeAndApplyCloudConflict(remoteRow, localPayload, opCtx);
-            if (!opCtx.isCurrent()) {
+            if (!opCtx.isCurrent() || (mergeRes && (mergeRes.reason === 'account_switched' || mergeRes.reason === 'account_context_invalid'))) {
                 return { ok: false, status: 'aborted', reason: 'account_switched' };
             }
             if (!mergeRes || !mergeRes.ok) {
@@ -34329,6 +34483,8 @@ function togglePdfAudioPlayerBar(forceState) {
                     return { ok: false, status: 'aborted', reason: 'account_switched' };
                 }
                 const isPushSuccess = Boolean(pushRes && pushRes.status === 'success');
+                localStorage.setItem('pharmaLastActiveUserIdV1', opCtx.uid);
+                localStorage.setItem('pharmaLastActiveCloudUid', opCtx.uid);
                 return {
                     ok: true,
                     status: isPushSuccess ? 'reconciled_and_synced' : 'reconciled_locally',
@@ -34338,6 +34494,8 @@ function togglePdfAudioPlayerBar(forceState) {
                 };
             }
 
+            localStorage.setItem('pharmaLastActiveUserIdV1', opCtx.uid);
+            localStorage.setItem('pharmaLastActiveCloudUid', opCtx.uid);
             return { ok: true, status: 'reconciled_locally', reconciled: true, revision: currentCloudWorkspaceRevision };
         }
 
@@ -34389,15 +34547,29 @@ function togglePdfAudioPlayerBar(forceState) {
                     : false;
                 const isLocalDirty = Boolean(hasDirtyWorkspace || hasDirtyAnnotations || hasUncommittedOps);
 
-                const lastActiveUid = localStorage.getItem('pharmaLastActiveCloudUid') || localStorage.getItem('pharmaLastActiveUserIdV1');
-                const isSameOwnerOrVerifiedPreLogin = Boolean(
-                    (lastActiveUid && String(lastActiveUid) === opCtx.uid) ||
-                    (!lastActiveUid || lastActiveUid === 'local')
-                );
+                const provenance = (typeof verifyLocalWorkspaceProvenance === 'function')
+                    ? verifyLocalWorkspaceProvenance(opCtx.uid, opCtx)
+                    : { ok: true, status: 'fallback_ok' };
 
-                if (isLocalDirty && isSameOwnerOrVerifiedPreLogin) {
-                    if (typeof reconcileDirtyWorkspaceWithRemote === 'function') {
-                        return await reconcileDirtyWorkspaceWithRemote(data, opCtx, isManual);
+                if (isLocalDirty) {
+                    if (provenance.ok) {
+                        if (typeof reconcileDirtyWorkspaceWithRemote === 'function') {
+                            return await reconcileDirtyWorkspaceWithRemote(data, opCtx, isManual, provenance);
+                        }
+                    } else if (provenance.status === 'missing_provenance' || provenance.status === 'mismatched_guest_claim') {
+                        if (typeof preserveUnverifiedGuestWorkspace === 'function') {
+                            preserveUnverifiedGuestWorkspace(provenance.status);
+                        }
+                        console.warn('pullWorkspaceFromCloud blocked: unverified guest provenance (fail-closed)');
+                        updateCloudNavUI('error');
+                        return {
+                            ok: false,
+                            status: 'blocked',
+                            reason: 'unverified_guest_provenance',
+                            provenanceStatus: provenance.status,
+                            quarantined: true,
+                            isDirty: true
+                        };
                     }
                 }
 
@@ -34772,9 +34944,6 @@ function togglePdfAudioPlayerBar(forceState) {
                     } catch (e) {}
                 }
 
-                localStorage.setItem('pharmaLastActiveUserIdV1', opCtx.uid);
-                localStorage.setItem('pharmaLastActiveCloudUid', opCtx.uid);
-
                 let data = null;
                 let loadedFromLocalAccountSnapshot = false;
                 if (supabaseClient && navigator.onLine) {
@@ -34803,9 +34972,10 @@ function togglePdfAudioPlayerBar(forceState) {
 
                 if (data) {
                     // Check local dirty & provenance state (F-03)
+                    const isSameAccountReturning = Boolean(lastLoggedUserId && String(lastLoggedUserId) === opCtx.uid);
                     const hasDirtyWorkspace = Boolean(
                         localStorage.getItem('pharmaWorkspaceDirty') === '1' ||
-                        localStorage.getItem('pharmaWorkspaceDirty_' + opCtx.uid) === '1'
+                        (isSameAccountReturning && localStorage.getItem('pharmaWorkspaceDirty_' + opCtx.uid) === '1')
                     );
                     const hasDirtyAnnotations = Boolean(
                         dirtyAnnotationsForCloud ||
@@ -34816,16 +34986,29 @@ function togglePdfAudioPlayerBar(forceState) {
                         : false;
                     const isLocalDirty = Boolean(hasDirtyWorkspace || hasDirtyAnnotations || hasUncommittedOps);
 
-                    const isSameOwnerOrVerifiedPreLogin = Boolean(
-                        !isSwitchingDifferentUser && (
-                            (lastLoggedUserId && String(lastLoggedUserId) === opCtx.uid) ||
-                            (!lastLoggedUserId || lastLoggedUserId === 'local')
-                        )
-                    );
+                    const provenance = (typeof verifyLocalWorkspaceProvenance === 'function')
+                        ? verifyLocalWorkspaceProvenance(opCtx.uid, opCtx, lastLoggedUserId)
+                        : { ok: true, status: 'fallback_ok' };
 
-                    if (isLocalDirty && isSameOwnerOrVerifiedPreLogin) {
-                        if (typeof reconcileDirtyWorkspaceWithRemote === 'function') {
-                            return await reconcileDirtyWorkspaceWithRemote(data, opCtx, false);
+                    if (isLocalDirty) {
+                        if (provenance.ok && !isSwitchingDifferentUser) {
+                            if (typeof reconcileDirtyWorkspaceWithRemote === 'function') {
+                                return await reconcileDirtyWorkspaceWithRemote(data, opCtx, false, provenance);
+                            }
+                        } else if (!isSwitchingDifferentUser && (provenance.status === 'missing_provenance' || provenance.status === 'mismatched_guest_claim')) {
+                            if (typeof preserveUnverifiedGuestWorkspace === 'function') {
+                                preserveUnverifiedGuestWorkspace(provenance.status);
+                            }
+                            console.warn('syncWorkspaceOnLogin blocked: unverified guest provenance (fail-closed)');
+                            updateCloudNavUI('error');
+                            return {
+                                ok: false,
+                                status: 'blocked',
+                                reason: 'unverified_guest_provenance',
+                                provenanceStatus: provenance.status,
+                                quarantined: true,
+                                isDirty: true
+                            };
                         }
                     }
 
@@ -34833,6 +35016,8 @@ function togglePdfAudioPlayerBar(forceState) {
                     if (!opCtx.isCurrent()) {
                         return { status: 'aborted', reason: 'account_switched' };
                     }
+                    localStorage.setItem('pharmaLastActiveUserIdV1', opCtx.uid);
+                    localStorage.setItem('pharmaLastActiveCloudUid', opCtx.uid);
                     const needsCloudPush = Boolean(
                         (!data.user_email && currentCloudUser?.email) ||
                         (loadedFromLocalAccountSnapshot && (data.dirty || localStorage.getItem('pharmaWorkspaceDirty_' + opCtx.uid) === '1'))
@@ -34859,6 +35044,8 @@ function togglePdfAudioPlayerBar(forceState) {
                     if (!opCtx.isCurrent()) {
                         return { status: 'aborted', reason: 'account_switched' };
                     }
+                    localStorage.setItem('pharmaLastActiveUserIdV1', opCtx.uid);
+                    localStorage.setItem('pharmaLastActiveCloudUid', opCtx.uid);
                     await pushWorkspaceToCloud(false, false, opCtx);
                     return applyRes;
                 }
