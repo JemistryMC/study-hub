@@ -19,32 +19,32 @@
 
 ## 0. Executive Summary & Phase 5.1.1 Corrections Overview
 
-This document is the corrected, implementation-ready engineering blueprint for **Phase 5.1 (Data-Safety, Local Durability, Deterministic Conflict Resolution & Crash-Recoverable Backup/Restore)** of the Exo Academic Platform.
+This document is a corrected **design proposal for independent review** for Phase 5.1 (Data Safety, Local Durability, Conflict Resolution, and Backup/Restore). It is **not implementation authorization** and remains NOT APPROVED until the owner accepts the design.
 
 No application source code (`index.html`, `server.js`, `sw.js`), test suites, package manifests, or database migrations have been modified in this task. **Pinned source baseline:** `index.html` at Source SHA `c211d034eb074c43f74eee480b8186e58868dc80`, blob `b0b4cd11f9568809490740190ecda9012db1debc` (3,286,646 bytes). The prior audit records 32,324 logical lines, while the Gemini workspace report records 30,715. This discrepancy is unresolved. Numeric line references below are inherited evidence pointers, not a claim that every line was independently re-numbered in the Gemini workspace. Before implementation, regenerate line numbers from the exact pinned blob with a reproducible script and prefer function/symbol names alongside line references.
 
 ### Summary of Technical Corrections Applied in Phase 5.1.1
 
 1. **Exact Preservation of Original Phase 5.0.2 Findings (`F-01` through `F-15`) & Separation of New Findings (`N-01` through `N-04`):**
-   - Every finding `F-01` through `F-15` retains its exact Phase 5.0.2 title, definition, verification status, severity, and line references from `reports/phases/phase-5-storage-sync-audit/gemini-report.md` (`lines 389–406`).
+   - Every finding `F-01` through `F-15` retains its audit ID, title, definition, verification status, severity, and original meaning from `reports/phases/phase-5-storage-sync-audit/gemini-report.md`. Source line pointers are carried forward as reported and are **not** claimed as re-numbered; the source line-count discrepancy documented above must be resolved before implementation.
    - Newly identified edge cases uncovered during Phase 5.1 design are cataloged separately under `N-01` through `N-04` and cross-linked to their parent `F-*` findings without overwriting or renumbering any original audit finding.
 2. **Correction of Stale/Unsupported Source Claims:**
    - Removed all references to nonexistent Google Drive functions or folder names (`uploadBlobToGoogleDrive`, `Exo_Academic_Cloud_Storage`, active multipart uploads, or automatic `role: 'reader', type: 'anyone'` sharing). Verified the actual implementation in `index.html`: `uploadBlobToGoogleDriveViaXHR()` (`27972–28094`), `uploadMediaToCloudAccount()` (`28181–28346`), root folder `'Exo_Workspace'` (`27808, 27830`), hierarchical `'Exo_Workspace/<Subject>/<Group>'` (`28251–28260`), and private-by-default uploads (`28295–28297`).
-   - Recorded that `index.html:20349–20355` **already** attaches `pagehide` and `beforeunload` listeners calling `flushPendingAnnotationsSave(false)` to flush pending annotations to local IndexedDB (`annotations` + `annotation_recovery_vault`).
+   - Recorded that `index.html:20349–20355` **already** attaches `pagehide` and `beforeunload` listeners calling `flushPendingAnnotationsSave(false)` as a best-effort last-chance attempt to flush pending annotations to local IndexedDB (`annotations` + `annotation_recovery_vault`); it is not a hard durability guarantee.
 3. **Clock-Skew-Resilient Conflict Protocol (Zero Wall-Clock Authority):**
    - Eliminated wall-clock `Date.now()` (`_updatedAt`) and raw `_baseWorkspaceRev` comparison as conflict winners.
-   - Replaced with a **Per-Field Causal Lamport Clock + Base-Workspace-Revision Ancestor Protocol** (`_fMeta[field] = { baseRev, committedRev, lc, dev, dirty }`).
-   - Distinguishes **causal updates** (only one side modified field `F` after the device's `lastSyncedWorkspaceRev`) from **true concurrent updates** (both sides independently modified the exact same field `F` since `lastSyncedWorkspaceRev`). True concurrent same-field conflicts resolve deterministically via `(lc, dev)` tuple comparison without consulting `Date.now()`.
+   - Replaced with a **per-scope dotted-version + causal-context proposal** using a distinct `actorId` per live tab/document, a scope-local actor counter, a unique `operationId`, and causal context for the exact entity/field/annotation scope.
+   - Causal order is proved by one operation's context containing the other's dot. Only truly concurrent operations use the deterministic `(lamport, deviceId, actorId, operationId)` tie-break. `user_workspaces.revision` remains the row-level OCC token only; it is not causal ancestry.
 4. **Indefinite Tombstone Retention & Device-Watermark Compaction Design:**
    - Removed the unsafe `90-day / 50-revision` automatic tombstone purge rule, which could allow an offline device reconnecting after >90 days to resurrect deleted entities.
-   - Phase 5.1 retains tombstones **indefinitely** by default. Compaction is architecturally specified around an explicit per-account `_deviceRegistry` watermark (`lastSeenWorkspaceRev`, `lastAckTombstoneLamport`) and owner-controlled device retirement.
+   - Phase 5.1 retains tombstones **indefinitely**. `_deviceRegistry` is diagnostic only; no compaction predicate or deletion protocol is approved. Scalar Lamport acknowledgements and row revisions do not prove that every tombstone was observed. Any later compaction requires a separately reviewed protocol.
 5. **Crash-Recoverable Backup Import Journal & Honest Digest/Memory Design:**
    - Replaced claims of "two-phase atomic `localStorage` + IndexedDB transactions" with a **Durable IndexedDB + `localStorage` Crash-Recoverable Import Journal** (`usr_<sanitizedUid>::__import_journal_v1__` in `annotation_recovery_vault` + `pharmaImportTxState_<uid>`).
    - Required explicit user choice between **Replace Mode** and **Merge Mode**, and gated **Merge Mode** on the verified Milestone M4/M5 conflict merger rather than the defective current `mergeAndApplyCloudConflict()`.
    - Corrected SHA-256 verification to use Web Crypto's one-shot `crypto.subtle.digest('SHA-256', encodedCanonicalData)` over canonical `v4` `data` (with zero duplicate root aliases and zero FNV-1a fallback substitution for `v4` integrity verification).
    - Replaced unverified `JSON.parse()` streaming claims with an accurate memory analysis and empirical Chromium E2E measurement plan.
-6. **Collision-Free Deterministic Legacy Stroke Identity:**
-   - Upgraded legacy stroke ID synthesis (`st_leg_<hash>_o<occurrenceIdx>`) to include a 4-decimal geometry signature plus a **within-page occurrence ordinal (`_o0`, `_o1`, ...)** during `normalizeAndRecoverLectureAnnotations()`, preventing two intentionally identical strokes on the same page from colliding on the same ID.
+6. **Legacy Stroke Identity With an Explicit Shared-Ancestor Requirement:**
+   - Geometry plus an occurrence ordinal is only a deterministic migration aid when replicas share the same immutable ordered legacy page snapshot. A persisted identity manifest is created once from that ancestor. If the arrays diverged or no common ancestor can be proven, preserve both candidates and require recovery; do not claim collision-free identity for indistinguishable legacy objects.
 7. **Verified Test Suite Filenames, Counts & Runtime Harnesses:**
    - Aligned all test plans with the actual repository suites (`54` static + `102` unit + `41` PGlite + `96` PG16 + `42` Chromium E2E = `335/335`) and actual dependencies (`express`, `@electric-sql/pglite`, `pg`, `playwright` — no `jsdom` or `fake-indexeddb`).
 8. **Product Policy (`Free` vs. `VIP`) & Read-Only Supabase Preflight (`dszjmgzzqpdrdjkycvht`):**
@@ -54,13 +54,13 @@ No application source code (`index.html`, `server.js`, `sw.js`), test suites, pa
 
 ## SECTION A — Complete Finding Traceability Matrix & Corrections
 
-### A.1 Original Phase 5.0.2 Audit Findings (`F-01` through `F-15`) — Preserved Verbatim in Identity & Meaning
+### A.1 Original Phase 5.0.2 Audit Findings (`F-01` through `F-15`) — IDs and Audit Meaning Retained
 
-Every finding below maps 1-to-1 to the approved Phase 5.0.2 audit report (`reports/phases/phase-5-storage-sync-audit/gemini-report.md:389–406`):
+Every finding below maps to the corresponding row in the Phase 5.0.2 audit report (`reports/phases/phase-5-storage-sync-audit/gemini-report.md:389–406`). Original audit source pointers are preserved as reported; numeric line references must be re-anchored to the pinned source blob before implementation.
 
-| Finding ID | Exact Phase 5.0.2 Audit Title & Summary (`gemini-report.md`) | Phase 5.0.2 Status & Severity | Verified Source References (`index.html` / `supabase/*`) | PhaseDisposition | Phase 5.1 Work Package & Milestone | Target Regression Test File(s) |
+| Finding ID | Exact Phase 5.0.2 Audit Title & Summary (`gemini-report.md`) | Phase 5.0.2 Status & Severity | Audit Source Pointers (re-anchor before implementation) | PhaseDisposition | Phase 5.1 Work Package & Milestone | Target Regression Test File(s) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **`F-01`** | **Live Supabase database schema state is unverified** (repository migrations `20261103133622`–`20261103160000` have not been applied to live project `dszjmgzzqpdrdjkycvht`; RPC failures in the current sync path throw without a direct-upsert fallback and retain dirty local state). The actual repository RPC is `public.sync_workspace_with_concurrency(jsonb, integer)`; `sync_workspace_with_concurrency` is not defined by the checked-in migrations. | `Unknown / Owner-Side Verification Required` (`Unverified Deployment Gate`) | `index.html:26745`, `29799–29831`, `29890–29908`, `30094`, `30175`; `supabase/migrations/20261103133622` to `20261103160000` | **Phase 5.1** (`WP-8` Read-Only Preflight + Client Actionable Diagnostics) | `WP-8` / Milestone `M6` | `test_phase4_2_postgres_integration.js`, `test_phase4_2_1_pg16_concurrency.js`, `test_phase4_regressions.js` |
+| **`F-01`** | **Live Supabase database schema state is unverified** (repository migrations `20261103133622`–`20261103160000` have not been applied to live project `dszjmgzzqpdrdjkycvht`; RPC failures in the current sync path throw without a direct-upsert fallback and retain dirty local state). The actual repository RPC is `public.sync_workspace_with_concurrency(jsonb, integer)`; earlier draft RPC naming/arity was incorrect. | `Unknown / Owner-Side Verification Required` (`Unverified Deployment Gate`) | `index.html:26745`, `29799–29831`, `29890–29908`, `30094`, `30175`; `supabase/migrations/20261103133622` to `20261103160000` | **Phase 5.1** (`WP-8` Read-Only Preflight + Client Actionable Diagnostics) | `WP-8` / Milestone `M6` | `test_phase4_2_postgres_integration.js`, `test_phase4_2_1_pg16_concurrency.js`, `test_phase4_regressions.js` |
 | **`F-02`** | **Zero UI call sites for `recordTombstone()` and `deleteMediaFromDB()`** (deleting subjects, groups, lectures, schedule events, or backlog tasks never records tombstones—causing cloud resurrection on conflict merge—and never deletes local IndexedDB `pdfs`, `audios`, `rec_*`, or `annotations`—causing permanent storage bloat). | `Confirmed` (Local & Tombstones) / `Unverified` (Remote Drive Policy) (`P1 High`) | `index.html:11844`, `12465`, `12585`, `15602`, `15609`, `15867`, `17794`, `19913`, `29404`, `29407` | **Phase 5.1** (Local IDB cascade + Tombstones); Remote Drive deletion explicitly out-of-scope / owner-gated | `WP-2` / Milestone `M2` | `test_phase4_regressions.js`, `test_phase4_1_chromium_e2e.js` |
 | **`F-03`** | **`syncWorkspaceOnLogin()` and `pullWorkspaceFromCloud()` unconditionally overwrite local dirty state** (`pharmaWorkspaceDirty === '1'` or `dirtyAnnotationsForCloud === true`) via `applyCloudWorkspacePayload()`, which also clears `pharmaWorkspaceDirty` at line `30065`. | `Confirmed` (`P1 High`) | `index.html:29934–30081`, `30065`, `30083–30121`, `30167–30201` | **Phase 5.1** | `WP-6` / Milestone `M5` | `test_phase4_regressions.js`, `test_phase4_1_chromium_e2e.js` |
 | **`F-04`** | **Additive-only annotation stroke union (`mergeAndApplyCloudConflict()`) resurrects erased, undone, or cleared ink strokes and deleted floating text notes** because no shared ancestor or per-stroke/per-page deletion tombstone exists. | `Confirmed` (`P1 High`) | `index.html:23951`, `24044`, `24137`, `24185`, `24611`, `24661`, `24700`, `29416–29520` | **Phase 5.1** | `WP-4` / Milestone `M4` | `test_phase4_regressions.js`, `test_phase4_1_chromium_e2e.js` |
@@ -82,11 +82,11 @@ Every finding below maps 1-to-1 to the approved Phase 5.0.2 audit report (`repor
 
 To maintain strict traceability without altering `F-01`–`F-15`, additional sub-defects discovered while designing the Phase 5.1 fixes are assigned `N-*` identifiers and linked to their parent `F-*` findings:
 
-| New ID | Linked Parent Finding | Technical Description & Exact Verified Line Numbers | Severity | Phase 5.1 Work Package & Milestone |
+| New ID | Linked Parent Finding | Technical Description & Source Pointers (re-anchor before implementation) | Severity | Phase 5.1 Work Package & Milestone |
 | :--- | :--- | :--- | :--- | :--- |
 | **`N-01`** | `F-02`, `F-04`, `F-14` | **Additional Un-Tombstoned Deletion & Page-Level Mutation Paths:**<br>1. `executeClearSchedule(mode)` (`index.html:15744–15758`) bulk-deletes `scheduleEvents` (`'completed'` or `'all'`) without recording `events` tombstones.<br>2. `deleteContinuousSubjectWirdLog(subId, logId)` (`index.html:12413–12420`) removes entries from `sub.wirdLogs` without recording a sub-entity tombstone (`wird_logs`).<br>3. `deleteOrHidePageFromLecture()` (`index.html:21643–21660`) and `restoreDeletedPage()` (`index.html:21662–21677`) mutate `annotations['__exo_excluded_pages__']` (`20560–20600`) without causal version metadata.<br>4. `clearExtraNotePage(pageNum)` (`index.html:25241–25253`) clears ink on extra note sheets (`extra_<id>`, lines `20512–20545`) without recording a page clear barrier.<br>5. `deleteAudioPin(event, pageNum, pinId)` (`index.html:25087–25095`) splices pins from `annotations['__exo_audio_pins__'][pageNum]` (`20670–20695`) without recording a pin tombstone. | `P2 Medium` | `WP-2` (`M2`) & `WP-4` (`M4`) |
 | **`N-02`** | `F-04`, `F-05` | **512-Sample Stride Blind Spot in `computeFastStringSignature(str)` (`index.html:29658–29668`):**<br>`computeFastStringSignature` samples at most 512 characters (`const step = Math.max(1, Math.floor(len / 512))`). For serialized annotation JSON exceeding `512` bytes (e.g., `50 KB`, where `step = 97`), an in-place modification of equal character length (such as changing a 7-char stroke color `#ef4444` to `#38bdf8` or editing a floating text note without changing string length) that falls between sampled indices produces the exact same signature (`currentSig === lastUploadedAnnotationsSignature` at `29769`), skipping cloud annotation upload when `dirtyAnnotationsForCloud` is false. | `P2 Medium` | `WP-5` (`M5`) |
-| **`N-03`** | `F-05` | **Open-Modal Cloud Sync Suppression vs. Local Flush Boundary (`index.html:20349–20355`, `29718–29723`):**<br>While `#pdfViewerModalOverlay` is open (`isPdfModalOpenNow === true` at `29718`), `pushWorkspaceToCloud()` suppresses `shouldSendAnnotations` (`29719–29723`) until `closePdfViewer()` (`25541`), `visibilitychange -> hidden` (`30284`), or manual force sync. Note: Local IndexedDB durability on tab close **is** already protected by `pagehide` and `beforeunload` listeners calling `flushPendingAnnotationsSave(false)` at `index.html:20349–20355`. Whether to add a long-interval idle cloud flush while PDF Studio remains open requires empirical payload and RPC latency measurement before implementation. | `P2 Medium (Measurement-Gated)` | `WP-5` (`M5` — Measurement-Gated) |
+| **`N-03`** | `F-05` | **Open-Modal Cloud Sync Suppression vs. Local Flush Boundary (`index.html:20349–20355`, `29718–29723`):**<br>While `#pdfViewerModalOverlay` is open (`isPdfModalOpenNow === true` at `29718`), `pushWorkspaceToCloud()` suppresses `shouldSendAnnotations` (`29719–29723`) until `closePdfViewer()` (`25541`), `visibilitychange -> hidden` (`30284`), or manual force sync. Note: The source registers best-effort `pagehide` and `beforeunload` callbacks that attempt `flushPendingAnnotationsSave(false)` at `index.html:20349–20355`; these callbacks are not a hard durability guarantee. Normal writes must await successful IndexedDB transactions. Whether to add a long-interval idle cloud flush while PDF Studio remains open requires empirical payload and RPC latency measurement before implementation. | `P2 Medium (Measurement-Gated)` | `WP-5` (`M5` — Measurement-Gated) |
 | **`N-04`** | `GEMINI.md §6` (Free vs. VIP Policy) | **Contradiction Between `exportAnnotatedSlides()` Code Comment/Execution and UI Lock Styling (`index.html:25124–25139` vs. `25360–25361`):**<br>`exportAnnotatedSlides()` (`25360–25361`) contains the comment `// Free and open for all accounts on all devices` and contains no VIP guard in its function body (`25360–25539`), so clicking `#pdfToolbarExportPdfBtn` (`7533`) or `#pdfMenuExportPdfBtn` (`7580`) executes the PDF export for Free users. However, `syncExtraNoteButtonsLockUI()` (`25124–25139`) applies `.vip-locked-extra-note` styling and a lock icon to both export buttons when `!canCurrentUserUploadMedia()`. Per `GEMINI.md` Section 6, this contradiction must not be resolved by guesswork and is escalated to the Owner in Section H.3. | `Policy Decision Required` | Escalated to Owner (Section H.3); Untouched until Owner decides |
 
 ---
@@ -396,65 +396,85 @@ then a pure geometry hash `fnv1a64(computeStrokeUniqueSignature(s))` assigns **b
 
 **Identity limitation:** two fully identical legacy objects with no original IDs contain no intrinsic field that can distinguish their identities after independent reorderings. No hash or ordinal can recover information that was never stored. The implementation must expose this limitation rather than claim absolute zero collision across arbitrary divergent histories.
 
-### E.3 Per-Page Stroke Tombstones (`_deletedStrokes`), Page Clear Barriers (`_clearedAt`), and Audio Pin Tombstones (`_deletedPins`)
+### E.3 Per-Page Stroke, Page-Clear, Excluded-Page, and Audio-Pin Causal Operations
 
-Within each lecture's annotation object `annotations[lecId]` (stored in IndexedDB `WorkspaceMediaStore.annotations` under `usr_<uid>::<lecId>`):
+Within each lecture's account-scoped annotation object `annotations[lecId]` (IndexedDB `WorkspaceMediaStore.annotations`, key scoped to `usr_<uid>::<lecId>`), every mutable annotation object and deletion must carry a version in the same causal model defined in Section B.
+
+A representative version envelope:
+
+```javascript
+const version = {
+  scopeId: "annotation:<lectureId>:page:<pageKey>",
+  dot: {
+    actorId: "tab_<random-id>",
+    actorCounter: 12,
+    deviceId: "dev_<installation-id>",
+    operationId: "<random-operation-id>",
+    lamport: 30
+  },
+  context: { "tab_actor_A": 11, "tab_actor_B": 4 },
+  committedWorkspaceRevision: null,
+  dirty: true
+};
+```
+
+The example is illustrative. Generate a distinct operation ID for every mutation and capture causal context from the exact merge scope (lecture + page + target object); never reuse the same version instance for unrelated objects.
 
 ```javascript
 annotations[lecId] = {
-  "1": [ /* active stroke objects with unique .id, .createdLc, .createdDev */ ],
-  "extra_1730001": [ /* active stroke objects on extra note sheet */ ],
-  "__exo_extra_pages__": [ ... ],
-  "__exo_excluded_pages__": [ ... ],
+  "1": [
+    { id: "st_<unique-id>", createdVersion: version, latestVersion: version, /* geometry and style */ }
+  ],
+  "extra_1730001": [ /* versioned extra-note strokes */ ],
+  "__exo_extra_pages__": [ /* existing page descriptors */ ],
+  "__exo_excluded_pages__": [ /* derived compatibility view */ ],
   "__exo_excluded_pages_meta__": {
-    // Per-page causal metadata for page exclusion/restoration (N-01)
-    "3": { excluded: true, br: 14, cr: 14, lc: 88, dv: "dev_A", d: false }
+    "3": { excluded: true, version: { /* unique causal operation version */ } }
   },
-  "__exo_audio_pins__": { "1": [ ... ] },
+  "__exo_audio_pins__": { "1": [ /* active pins with per-pin version metadata */ ] },
   "_deletedStrokes": {
-    // Keyed by pageKey ("1", "2", "extra_1730001", etc.) -> Map of strokeId -> tombstone
     "1": {
-      "st_leg_9f8a7b6c5d4e3f2a_o0": { br: 14, cr: 15, lc: 91, dv: "dev_A", d: false }
+      "stroke_id": {
+        operationId: "<delete-operation-id>",
+        version: { /* causal delete operation version */ }
+      }
     }
   },
   "_clearedAt": {
-    // Keyed by pageKey -> page-wide clear barrier
-    "1": { br: 14, cr: 15, lc: 95, dv: "dev_A", d: false }
+    "1": { version: { /* causal page-clear operation version */ } }
   },
   "_deletedPins": {
-    // Keyed by pageKey -> Map of pinId -> tombstone (N-01)
     "1": {
-      "pin_17308200_abc": { br: 14, cr: 15, lc: 96, dv: "dev_A", d: false }
+      "pin_id": {
+        operationId: "<delete-operation-id>",
+        version: { /* causal pin-delete operation version */ }
+      }
     }
   }
 };
 ```
 
-#### Exact Wiring of All Annotation Deletion & Undo Handlers in `index.html`:
-1. **Eraser (`eraseAtPoint` at `index.html:24611–24659`):**
-   - Before splicing or filtering any hit stroke `st` from `annotations[p]`, record `recordStrokeTombstone(annotations, p, st.id)`.
-2. **Undo (`undoLastStroke` at `index.html:24661–24698`):**
-   - When `annotations[p].pop()` removes `poppedStroke`, record `recordStrokeTombstone(annotations, p, poppedStroke.id)` so a stroke that was already synced to another tab/cloud before being undone cannot be resurrected by an additive merge.
-   - If the user subsequently Redoes the stroke (`redoLastStroke`), remove `stroke.id` from `_deletedStrokes[p]` and bump `stroke.createdLc = nextLamportTick()`.
-3. **Clear Page (`clearCurrentPageAnnotations` at `index.html:24700–24748`) & Clear Extra Note Sheet (`clearExtraNotePage` at `index.html:25241–25253`):**
-   - Record `recordStrokeTombstone(annotations, p, st.id)` for every stroke currently on page `p`, AND stamp `annotations._clearedAt[p] = { br: currentBaseRev, cr: 0, lc: nextLamportTick(), dv: myDeviceId, d: true }`.
-4. **Floating Text Note Deletion (`index.html:23951, 24044, 24137, 24185`):**
-   - Every floating text note deletion handler calls `recordStrokeTombstone(annotations, p, noteStroke.id)` before splicing the text note from `annotations[p]`.
-5. **Audio Pin Deletion (`deleteAudioPin` at `index.html:25087–25095`):**
-   - Calls `recordAudioPinTombstone(annotations, pageNum, pinId)` before splicing `annotations['__exo_audio_pins__'][pageNum]`.
-6. **Lecture Page Exclusion / Restoration (`deleteOrHidePageFromLecture` at `21643` / `restoreDeletedPage` at `21662`):**
-   - Stamps `annotations['__exo_excluded_pages_meta__'][pageNum] = { excluded: true|false, br: currentBaseRev, cr: 0, lc: nextLamportTick(), dv: myDeviceId, d: true }` and rebuilds `__exo_excluded_pages__` deterministically by merging per-page `__exo_excluded_pages_meta__` via `resolveFieldConflict`.
+#### Exact Wiring of Annotation Mutation and Deletion Paths
 
-#### Exact Annotation Page Merge Algorithm (`mergeLectureAnnotationsWithTombstones(localAnn, remoteAnn, localBaseRev)`):
-1. Normalize both `localAnn` and `remoteAnn` via `normalizeAndRecoverLectureAnnotations()` so every legacy stroke has its deterministic `st_leg_<hash>_o<occ>` ID.
-2. Union `_deletedStrokes[p]`, `_clearedAt[p]`, and `_deletedPins[p]` by stable `operationId`; merge their causal contexts. Do not discard an operation merely because its Lamport counter is lower or equal.
-3. For each page `p` (`"1"`, `"2"`, `"extra_*"`), inspect the combined stroke set `localAnn[p] ∪ remoteAnn[p]`:
-   - Deduplicate by `st.id` (if a floating text note with the same `st.id` was edited in place, resolve its `text`, `x`, `y`, `color` via `(st.updatedLc || st.createdLc, st.updatedDev || st.createdDev)`).
-   - **Filter Rule 1 (Explicit Stroke Tombstone):** Compare the stroke's latest operation version with the tombstone's causal context. If the delete causally follows the stroke's latest version, the stroke is deleted. If a later explicit restore causally follows the tombstone, the restored stroke is retained. If delete and edit are concurrent, apply the reviewed remove-wins rule but retain the losing stroke snapshot and operation metadata for recovery.
-   - **Filter Rule 2 (Page Clear Barrier):** Treat a page clear as a versioned operation with its own dot/context. A stroke causally created after the clear survives; a stroke observed by the clear is removed; a concurrent stroke-vs-clear conflict follows the same deterministic remove-wins rule and preserves the losing stroke in recovery. Never decide this using only `createdLc`, `committedRev`, or a single Lamport comparison.
-   - Apply equivalent causal comparison to floating text edits/deletes, extra-page clears, excluded-page hide/restore, and audio-pin edit/delete operations.
+1. **Eraser (`eraseAtPoint`):** before removing a hit stroke, create a unique delete operation with a context derived from the latest version of that stroke/page scope and record it in `_deletedStrokes[pageKey][strokeId]`.
+2. **Undo (`undoLastStroke`):** if undo removes a previously shared stroke, record a causal delete operation just like eraser. If the user redoes/restores it, create a new stroke version whose context includes the tombstone dot; do not merely remove the tombstone or bump a scalar Lamport field.
+3. **Clear page / clear extra-note page:** create a page-clear operation with its own dot/context and store it in `_clearedAt[pageKey]`. Keep prior stroke versions recoverable until the merge result is durably saved.
+4. **Floating text note deletion/edit:** use versioned operations for edits and deletion; resolve edits by causal context and concurrent tie-break, not by `updatedLc` or `createdLc` alone.
+5. **Audio-pin deletion/edit:** store a versioned operation per pin; delete operations reference the exact pin ID and causal context.
+6. **Lecture page hide/restore:** store `{ excluded, version }` under `__exo_excluded_pages_meta__[pageKey]`; rebuild the legacy `__exo_excluded_pages__` view from the merged versioned records. A restore must causally observe the prior exclusion operation.
+7. These helpers must receive an operation/version produced at the mutation boundary (for example `recordStrokeTombstone(annotations, pageKey, strokeId, deleteVersion)`); do not have deletion helpers fabricate a causal context after the original object has already been removed.
 
----
+#### Exact Annotation Page Merge Algorithm (`mergeLectureAnnotationsWithCausalVersions(localAnn, remoteAnn, mergeContext)`)
+
+1. Normalize both annotation snapshots and apply the persisted legacy identity manifest only where a common ordered ancestor has been verified (Section E.2).
+2. Union active objects and tombstone operations by stable `operationId`; duplicate delivery of the same operation is idempotent. Merge causal contexts within the same scope.
+3. For each page, compare the latest active stroke version with its corresponding delete operation:
+   - a delete causally following the stroke version removes it;
+   - a restore causally following a delete keeps the restored version;
+   - a concurrent edit/delete applies the documented remove-wins policy and preserves the losing version in the recoverable conflict log.
+4. Treat a page-clear operation as a causal barrier in that page scope. Strokes observed by the clear are removed; causally later new strokes survive; concurrent stroke-vs-clear resolves remove-wins with the losing snapshot retained.
+5. Apply equivalent comparisons to floating text, excluded-page state, extra-note pages, and audio pins. Do not use `lc`, `br`, `cr`, `createdLc`, or `updatedLc` alone to select a winner.
+6. The merge function must be deterministic, idempotent under duplicate delivery, and independent of wall-clock time and global workspace revision ordering.
 
 ## SECTION F — End-to-End State Machines & Milestone Execution Order
 
@@ -489,7 +509,7 @@ Phase 5.1 replaces this with a **Dirty-Aware Login & Pull State Machine**:
   │             2. Reconcile dirty field metadata (`reconcileDirtyFieldMeta()`).
   │             3. Invoke `await mergeAndApplyCloudConflict(data, 0, opCtx)` (using Milestone M3/M4 causal field & stroke-tombstone merger).
   │             4. Persist merged state immediately to BOTH `pharmaAccountWorkspace_<uid>` AND global keys (`pharmaSubjectsV4`, `pharmaScheduleV4`, `pharmaScheduleBacklogV1`, etc.) (fixing `F-13`).
-  │             5. Keep `pharmaWorkspaceDirty = '1'` until the subsequent `pushWorkspaceToCloud(true, 0, opCtx)` succeeds at Supabase and confirms `status === 'ok'`.
+  │             5. Keep `pharmaWorkspaceDirty = '1'` until the subsequent `pushWorkspaceToCloud(true, 0, opCtx)` succeeds at Supabase and confirms `status === 'success'` (the return value in the checked-in RPC migration).
   │
   └───► Branch B: Remote Row DOES NOT EXIST (`!data`, Brand-New Cloud Account — `F-15` Fix)
           │
@@ -547,10 +567,10 @@ Notice that the milestones are strictly ordered so **foundational persistence (`
 | Milestone | Work Packages | Findings Resolved | Dependencies | Gate Requirement Before Next Milestone |
 | :--- | :--- | :--- | :--- | :--- |
 | **`M1`** | **`WP-1`:** Immediate conflict-merge `localStorage` persistence (`F-13`), sign-out global `localStorage` sanitization (`F-12`), and brand-new account login `academy_progress` preservation (`F-15`). | `F-12`, `F-13`, `F-15` | None | All existing `335/335` tests + new `M1` unit & E2E tests pass (`0` regressions). |
-| **`M2`** | **`WP-2`:** Complete deletion tombstones (`subjects`, `groups`, `lectures`, `wird_logs`, `events`, `backlog`), local IndexedDB cascade cleanup (`pdfs`, `audios`, `rec_*`, `annotations`, `annotation_recovery_vault`), indefinite tombstone retention default, and `_deviceRegistry` watermark structure (`F-02`, `N-01`, partial `F-07` local cleanup). | `F-02`, `N-01` (entity level), local `F-07` cleanup | `M1` | All `M1` tests + new `M2` cascade delete & >90-day offline anti-resurrection tests pass. |
-| **`M3`** | **`WP-3`:** Clock-skew-resilient Per-Field Causal Lamport Clock + Base-Revision Ancestor conflict engine (`_meta`, `_fMeta`, `reconcileDirtyFieldMeta`, `resolveFieldConflict`, `_conflictAuditLog`) replacing unstamped `_updatedAt` and hardcoded precedence (`F-14`). | `F-14` | `M1`, `M2` | All `M1–M2` tests + `M3` clock-skew (`±1 hour`), causal vs. concurrent field merge, and OCC retry idempotency tests pass. |
-| **`M4`** | **`WP-4`:** Collision-free deterministic legacy stroke IDs (`st_leg_<hash>_o<occ>`), per-page `_deletedStrokes`, `_clearedAt` barriers, `_deletedPins`, and `__exo_excluded_pages_meta__` (`F-04`, `N-01` annotation level). | `F-04`, `N-01` (annotation level) | `M2`, `M3` | All `M1–M3` tests + `M4` duplicate-identical-stroke, eraser/undo/clear-page, floating text note, and audio pin anti-resurrection tests pass. |
-| **`M5`** | **`WP-5` & `WP-6`:** Dirty-state login & pull reconciliation (`F-03`) wired to the verified `M3/M4` merger; decoupling full `annotations` from `localStorage['pharmaAccountWorkspace_<uid>']` (`F-05`); and full-string `step=1` content hash (`N-02`). | `F-03`, `F-05`, `N-02` | `M3`, `M4` | All `M1–M4` tests + `M5` dirty-login reconciliation, `localStorage` quota isolation, and 1-char equal-length annotation edit signature detection tests pass. |
+| **`M2`** | **`WP-2`:** Complete deletion tombstones (`subjects`, `groups`, `lectures`, `wird_logs`, `events`, `backlog`), local IndexedDB cascade cleanup (`pdfs`, `audios`, `rec_*`, `annotations`, `annotation_recovery_vault`), indefinite tombstone retention, and a diagnostic-only `_deviceRegistry` that does not authorize compaction (`F-02`, `N-01`, partial `F-07` local cleanup). | `F-02`, `N-01` (entity level), local `F-07` cleanup | `M1` | All `M1` tests + new `M2` cascade delete & >90-day offline anti-resurrection tests pass. |
+| **`M3`** | **`WP-3`:** Per-scope dotted-version / causal-context engine with actor IDs per live tab, scope-local counters, unique operation IDs, explicit causal comparison, deterministic concurrent tie-breaks, and exact outgoing-operation snapshot acknowledgements. Workspace revision remains the OCC token only (`F-14`). | `F-14` | `M1`, `M2` | All `M1–M2` tests + `M3` clock-skew (`±1 hour`), causal vs. concurrent field merge, and OCC retry idempotency tests pass. |
+| **`M4`** | **`WP-4`:** Legacy stroke identity manifest only for a verified common ordered ancestor; fail-safe recovery when no common base exists; causal stroke/page/pin tombstones and versioned excluded-page state (`F-04`, `N-01` annotation level). | `F-04`, `N-01` (annotation level) | `M2`, `M3` | All `M1–M3` tests + `M4` duplicate-identical-stroke, eraser/undo/clear-page, floating text note, and audio pin anti-resurrection tests pass. |
+| **`M5`** | **`WP-5` & `WP-6`:** Dirty-state login & pull reconciliation (`F-03`) wired to the verified `M3/M4` merger; decoupling full `annotations` from `localStorage['pharmaAccountWorkspace_<uid>']` (`F-05`); and complete mutation/version-counter coverage for annotation dirty state (`N-02`). A full-string non-cryptographic hash may remain only as a secondary hint. | `F-03`, `F-05`, `N-02` | `M3`, `M4` | All `M1–M4` tests + `M5` dirty-login reconciliation, `localStorage` quota isolation, and 1-char equal-length annotation edit signature detection tests pass. |
 | **`M6`** | **`WP-7` & `WP-8`:** Tier A `v4` complete JSON backup export (with one-shot Web Crypto `SHA-256` and zero duplicate root aliases), Crash-Recoverable Import Recovery Journal (`__import_journal_v1__`), explicit `Replace` vs. `Merge` modal (with `Merge` powered by `M3/M4/M5`), and actionable client diagnostics for `F-01` (`F-09`, `F-01`). | `F-09`, `F-01` (client diagnostics) | `M3`, `M4`, `M5` | Full 5-tier verification suite passes (`npm test` — `335` baseline + all new Phase 5.1 tests). |
 
 ---
