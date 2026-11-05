@@ -39,14 +39,25 @@ function extractFunctionSource(code, funcName) {
     if (startIdx !== -1) break;
   }
   if (startIdx === -1) throw new Error(`Function ${funcName} not found in index.html`);
+  let parenDepth = 0;
+  let passedParams = false;
   let depth = 0;
   let inFunc = false;
   let endIdx = startIdx;
   for (let i = startIdx; i < code.length; i++) {
-    if (code[i] === '{') {
+    const ch = code[i];
+    if (!passedParams) {
+      if (ch === '(') parenDepth++;
+      else if (ch === ')') {
+        parenDepth--;
+        if (parenDepth === 0) passedParams = true;
+      }
+      continue;
+    }
+    if (ch === '{') {
       depth++;
       inFunc = true;
-    } else if (code[i] === '}') {
+    } else if (ch === '}') {
       depth--;
       if (inFunc && depth === 0) {
         endIdx = i + 1;
@@ -141,13 +152,91 @@ class InMemoryIDBDatabase {
 }
 
 const prodHelpersCode = `
+const storageBacking = new Map();
+let failNextAccountSnapshotWrite = false;
+const localStorage = {
+  getItem: (k) => (storageBacking.has(String(k)) ? storageBacking.get(String(k)) : null),
+  setItem: (k, v) => {
+    if (failNextAccountSnapshotWrite && String(k).startsWith('pharmaAccountWorkspace_')) {
+      failNextAccountSnapshotWrite = false;
+      throw new Error('QuotaExceededError: Simulated account snapshot write failure');
+    }
+    storageBacking.set(String(k), String(v));
+  },
+  removeItem: (k) => { storageBacking.delete(String(k)); },
+  clear: () => { storageBacking.clear(); }
+};
+const navigator = { onLine: false };
+const document = { getElementById: () => null };
 let currentCloudUser = null;
+let currentUserCanUploadMedia = false;
 let currentSessionGeneration = 1;
 let dbInstance = null;
+let supabaseClient = null;
+let googleAccessToken = null;
+let googleTokenExpiry = 0;
 let inMemoryAnnotationsCache = {};
 let inMemoryAnnotationsCacheNormalized = {};
+let inMemoryAnnotationsCacheLoaded = false;
+let pendingAnnoSaveMap = {};
+let dirtyAnnotationsForCloud = false;
+let activeCloudSyncByAccount = new Map();
+let activeCloudSyncPromise = null;
+let isCloudSyncing = false;
+let isBulkMediaUploading = false;
+let cloudAutoSaveTimer = null;
+let localWorkspaceMutationSeq = 0;
+let localAnnotationsMutationSeq = 0;
+let currentCloudWorkspaceRevision = 1;
+let currentPdfFitMode = 'height';
+let activeSubjectId = null;
+let currentViewingLec = null;
+let pageAnnotations = {};
+let renderedPagesSet = new Set();
+let hasReconciledBucketThisSession = true;
+let isLoginSyncInProgress = false;
+let lastLoginSyncUserId = null;
+let lastUploadedAnnotationsSignature = '';
+let localMediaCache = { pdfs: new Set(), audios: new Set() };
+let sessionMediaBlobRamCache = { pdfs: new Map(), audios: new Map() };
 let subjects = [];
+let scheduleEvents = [];
+let scheduleBacklog = [];
+let weeklyReports = [];
+let plannerPrefs = { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75, currentWeekStartIso: '2026-10-31' };
+let logs = [];
+let completedAcademyModules = [];
+let cloudMediaRegistry = {};
 
+function showToast() {}
+function renderSubjectsList() {}
+function renderGroups() {}
+function backToSubjects() { activeSubjectId = null; }
+function renderSchedule() {}
+function updateTracker() {}
+function updateCloudMediaStatsUI() {}
+function updateAcademyXpUI() {}
+function updateCloudNavUI() {}
+async function refreshLocalMediaCache() {}
+async function reconcileCloudMediaWithStorageBucket() {}
+async function flushPendingAnnotationsSave() { return Object.keys(pendingAnnoSaveMap).length === 0; }
+async function handleAuthSessionChange(user) {
+  currentCloudUser = user || null;
+  bumpAccountSessionGeneration();
+}
+
+${extractFunctionSource(indexHtmlContent, 'getLocalIsoDate')}
+${extractFunctionSource(indexHtmlContent, 'getWeekStartDateForDate')}
+${extractFunctionSource(indexHtmlContent, 'initScheduleData')}
+${extractFunctionSource(indexHtmlContent, 'saveScheduleData')}
+${extractFunctionSource(indexHtmlContent, 'saveCloudMediaRegistry')}
+${extractFunctionSource(indexHtmlContent, 'normMediaKeyStr')}
+${extractFunctionSource(indexHtmlContent, 'recordUploadedMediaInRegistry')}
+${extractFunctionSource(indexHtmlContent, 'findMediaInCloudRegistry')}
+${extractFunctionSource(indexHtmlContent, 'titleKeyMismatch')}
+${extractFunctionSource(indexHtmlContent, 'snapshotCurrentSubjectsMediaToRegistry')}
+${extractFunctionSource(indexHtmlContent, 'healSubjectsFromCloudRegistry')}
+${extractFunctionSource(indexHtmlContent, 'getLocalTombstones')}
 ${extractFunctionSource(indexHtmlContent, 'sanitizeForScopedKey')}
 ${extractFunctionSource(indexHtmlContent, 'getCanonicalUserId')}
 ${extractFunctionSource(indexHtmlContent, 'bumpAccountSessionGeneration')}
@@ -163,10 +252,17 @@ ${extractFunctionSource(indexHtmlContent, 'resolveAuthorizedScopedKey')}
 ${extractFunctionSource(indexHtmlContent, 'hasStrictDualRecordOwnership')}
 ${extractFunctionSource(indexHtmlContent, 'hasVerifiedLegacyProvenance')}
 ${extractFunctionSource(indexHtmlContent, 'normalizeAndRecoverLectureAnnotations')}
+${extractFunctionSource(indexHtmlContent, 'computeFastStringSignature')}
 ${extractFunctionSource(indexHtmlContent, 'getAllAnnotationsMapFromDB')}
 ${extractFunctionSource(indexHtmlContent, 'restoreAllAnnotationsMapToDB')}
+${extractFunctionSource(indexHtmlContent, 'handleCloudSignOut')}
+${extractFunctionSource(indexHtmlContent, 'pushWorkspaceToCloud')}
+${extractFunctionSource(indexHtmlContent, 'applyCloudWorkspacePayload')}
+${extractFunctionSource(indexHtmlContent, 'syncWorkspaceOnLogin')}
 
 module.exports = {
+  localStorage,
+  setFailNextAccountSnapshotWrite: (v) => { failNextAccountSnapshotWrite = Boolean(v); },
   setSessionUser: (uid) => {
     currentCloudUser = uid ? { id: uid, email: uid + '@test.edu' } : null;
     bumpAccountSessionGeneration();
@@ -174,6 +270,35 @@ module.exports = {
   setDbInstance: (db) => { dbInstance = db; },
   getInMemoryCache: () => inMemoryAnnotationsCache,
   clearInMemoryCache: () => { inMemoryAnnotationsCache = {}; inMemoryAnnotationsCacheNormalized = {}; },
+  setWorkspaceState: (state) => {
+    if (state.subjects !== undefined) { subjects = state.subjects; localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects)); }
+    if (state.scheduleEvents !== undefined) scheduleEvents = state.scheduleEvents;
+    if (state.scheduleBacklog !== undefined) scheduleBacklog = state.scheduleBacklog;
+    if (state.weeklyReports !== undefined) weeklyReports = state.weeklyReports;
+    if (state.plannerPrefs !== undefined) plannerPrefs = state.plannerPrefs;
+    if (state.scheduleEvents !== undefined || state.scheduleBacklog !== undefined || state.weeklyReports !== undefined || state.plannerPrefs !== undefined) {
+      saveScheduleData(false);
+    }
+    if (state.logs !== undefined) { logs = state.logs; localStorage.setItem('pharmaLogsV4', JSON.stringify(logs)); }
+    if (state.completedAcademyModules !== undefined) { completedAcademyModules = state.completedAcademyModules; localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(completedAcademyModules)); }
+    if (state.cloudMediaRegistry !== undefined) { cloudMediaRegistry = state.cloudMediaRegistry; saveCloudMediaRegistry(); }
+    if (state.dirty) localStorage.setItem('pharmaWorkspaceDirty', '1');
+  },
+  getWorkspaceState: () => ({
+    currentCloudUser,
+    subjects,
+    scheduleEvents,
+    scheduleBacklog,
+    weeklyReports,
+    plannerPrefs,
+    logs,
+    completedAcademyModules,
+    cloudMediaRegistry
+  }),
+  initScheduleData,
+  handleCloudSignOut,
+  applyCloudWorkspacePayload,
+  syncWorkspaceOnLogin,
   sanitizeForScopedKey,
   getCanonicalUserId,
   bumpAccountSessionGeneration,
@@ -327,6 +452,102 @@ async function main() {
   const failedRead = await prod.getAllAnnotationsMapFromDB(userB_Id);
   assert(failedRead.ok === false && failedRead.error && failedRead.error.code === 'IDB_READ_ERROR',
          'getAllAnnotationsMapFromDB returns { ok: false, error } on IndexedDB failure instead of empty {}');
+
+  // SCENARIO 8 (T-5.1-01): Sign-Out Global Workspace Sanitization, Account Recovery & User B Isolation
+  console.log('\n--- SCENARIO 8 (T-5.1-01): Sign-Out Global Workspace Sanitization & Account Recovery ---');
+  prod.localStorage.clear();
+  prod.setSessionUser(userA_Id);
+  prod.localStorage.setItem('pharmaLastActiveCloudUid', userA_Id);
+  prod.localStorage.setItem('pharmaLastActiveUserIdV1', userA_Id);
+  prod.setWorkspaceState({
+    subjects: [{ id: 'sub_a_m1', name: 'Clinical Pharmacology A', groups: [{ id: 'g_a1', name: 'Unit 1', lectures: [{ id: 'lec_a1', name: 'Lecture 1' }] }] }],
+    scheduleEvents: [{ id: 'ev_a1', title: 'Study Block A', day: 6, startHour: 9, duration: 2 }],
+    scheduleBacklog: [{ id: 'bl_a1', title: 'Backlog Task A' }],
+    weeklyReports: [{ id: 'rep_a1', weekStartIso: '2026-10-31', score: 92 }],
+    plannerPrefs: { weekStartDay: 1, dayStartHour: 7, dayEndHour: 22, autoCompletePct: 80, currentWeekStartIso: '2026-10-26' },
+    logs: [{ id: 'log_a1', text: 'Completed Lecture 1', timestamp: 1700000001 }],
+    completedAcademyModules: ['mod_a1', 'mod_a2'],
+    cloudMediaRegistry: { 'lec_a1': { pdfUploaded: true, ownerUid: userA_Id } },
+    dirty: true
+  });
+
+  // First test failure path: if localStorage account snapshot write fails during sign-out, do NOT discard dirty data!
+  prod.setFailNextAccountSnapshotWrite(true);
+  const abortedSignOut = await prod.handleCloudSignOut(true);
+  assert(abortedSignOut.success === false && abortedSignOut.isDirty === true,
+         'T-5.1-01a: handleCloudSignOut aborts and preserves dirty state when account snapshot write fails');
+  assert(prod.localStorage.getItem('pharmaSubjectsV4') !== null && prod.getWorkspaceState().subjects.length === 1,
+         'T-5.1-01b: Aborted sign-out does not wipe global localStorage or in-memory workspace state');
+
+  // Now perform normal sign-out for User A
+  const okSignOut = await prod.handleCloudSignOut(true);
+  assert(okSignOut.success === true && okSignOut.backupSuccess === true,
+         'T-5.1-01c: handleCloudSignOut succeeds after persisting account-scoped snapshot pharmaAccountWorkspace_<uid>');
+
+  const clearedGlobalKeys = [
+    'pharmaSubjectsV4',
+    'pharmaScheduleV4',
+    'pharmaScheduleBacklogV1',
+    'pharmaWeeklyReportsV1',
+    'pharmaPlannerPrefsV1',
+    'pharmaLogsV4',
+    'pharmaAcademyProgressV1',
+    'pharmaCloudMediaRegistryV1',
+    'pharmaWorkspaceDirty',
+    'pharmaLastActiveCloudUid'
+  ];
+  const allUnscopedCleared = clearedGlobalKeys.every(k => prod.localStorage.getItem(k) === null);
+  assert(allUnscopedCleared,
+         'T-5.1-01d: All 10 designated unscoped global workspace keys are cleared (null) on sign-out');
+
+  // Simulate page reload boot while logged out: initScheduleData() must NOT re-populate pharmaPlannerPrefsV1
+  prod.initScheduleData();
+  assert(prod.localStorage.getItem('pharmaPlannerPrefsV1') === null && prod.localStorage.getItem('pharmaSubjectsV4') === null,
+         'T-5.1-01e: Logged-out boot (initScheduleData) leaves unscoped global localStorage keys null');
+
+  const postLogoutState = prod.getWorkspaceState();
+  assert(
+    postLogoutState.subjects.length === 0 &&
+    postLogoutState.scheduleEvents.length === 0 &&
+    postLogoutState.scheduleBacklog.length === 0 &&
+    postLogoutState.weeklyReports.length === 0 &&
+    postLogoutState.logs.length === 0 &&
+    postLogoutState.completedAcademyModules.length === 0 &&
+    Object.keys(postLogoutState.cloudMediaRegistry).length === 0,
+    'T-5.1-01f: All in-memory workspace arrays and registries are empty while logged out'
+  );
+
+  // Re-authenticate User A and verify full recovery from pharmaAccountWorkspace_<uidA>
+  prod.setSessionUser(userA_Id);
+  await prod.syncWorkspaceOnLogin();
+  const recoveredStateA = prod.getWorkspaceState();
+  assert(
+    recoveredStateA.subjects.length === 1 &&
+    recoveredStateA.subjects[0].id === 'sub_a_m1' &&
+    recoveredStateA.scheduleEvents.length === 1 &&
+    recoveredStateA.scheduleBacklog.length === 1 &&
+    recoveredStateA.weeklyReports.length === 1 &&
+    recoveredStateA.plannerPrefs.weekStartDay === 1 &&
+    recoveredStateA.logs.length === 1 &&
+    recoveredStateA.completedAcademyModules.length === 2,
+    'T-5.1-01g: Re-authenticating User A restores all workspace categories from pharmaAccountWorkspace_<uidA>'
+  );
+
+  // Sign out User A again, then authenticate brand-new User C and verify zero User A data leaks
+  await prod.handleCloudSignOut(true);
+  const userC_Id = 'c3c3c3c3-0000-4444-8888-ffffffffffff';
+  prod.setSessionUser(userC_Id);
+  await prod.syncWorkspaceOnLogin();
+  const stateUserC = prod.getWorkspaceState();
+  assert(
+    stateUserC.subjects.length === 0 &&
+    stateUserC.scheduleEvents.length === 0 &&
+    stateUserC.scheduleBacklog.length === 0 &&
+    stateUserC.weeklyReports.length === 0 &&
+    stateUserC.logs.length === 0 &&
+    stateUserC.completedAcademyModules.length === 0,
+    'T-5.1-01h: Subsequent login by User C sees zero leftover workspace data from User A'
+  );
 
   console.log('\n======================================================================');
   console.log(`TOTAL PHASE 4.1 ISOLATION TESTS: ${testsPassed + testsFailed} | PASSED: ${testsPassed} | FAILED: ${testsFailed}`);

@@ -40,14 +40,25 @@ function extractFunctionSource(code, funcName) {
     if (startIdx !== -1) break;
   }
   if (startIdx === -1) throw new Error(`Function ${funcName} not found in index.html`);
+  let parenDepth = 0;
+  let passedParams = false;
   let depth = 0;
   let inFunc = false;
   let endIdx = startIdx;
   for (let i = startIdx; i < code.length; i++) {
-    if (code[i] === '{') {
+    const ch = code[i];
+    if (!passedParams) {
+      if (ch === '(') parenDepth++;
+      else if (ch === ')') {
+        parenDepth--;
+        if (parenDepth === 0) passedParams = true;
+      }
+      continue;
+    }
+    if (ch === '{') {
       depth++;
       inFunc = true;
-    } else if (code[i] === '}') {
+    } else if (ch === '}') {
       depth--;
       if (inFunc && depth === 0) {
         endIdx = i + 1;
@@ -59,8 +70,83 @@ function extractFunctionSource(code, funcName) {
 }
 
 const prodHelpersCode = `
+const storageBacking = new Map();
+const localStorage = {
+  getItem: (k) => (storageBacking.has(String(k)) ? storageBacking.get(String(k)) : null),
+  setItem: (k, v) => { storageBacking.set(String(k), String(v)); },
+  removeItem: (k) => { storageBacking.delete(String(k)); },
+  clear: () => { storageBacking.clear(); }
+};
+const scheduledTimers = [];
+const setTimeout = (fn, delay) => {
+  scheduledTimers.push({ fn, delay });
+  return scheduledTimers.length;
+};
+const clearTimeout = () => {};
+const navigator = { onLine: true };
+const document = { getElementById: () => null };
 let currentCloudUser = null;
+let currentUserCanUploadMedia = false;
 let currentSessionGeneration = 1;
+let dbInstance = {};
+let supabaseClient = null;
+let inMemoryAnnotationsCache = {};
+let inMemoryAnnotationsCacheNormalized = {};
+let inMemoryAnnotationsCacheLoaded = false;
+let pendingAnnoSaveMap = {};
+let dirtyAnnotationsForCloud = false;
+let activeCloudSyncByAccount = new Map();
+let activeCloudSyncPromise = null;
+let isCloudSyncing = false;
+let isBulkMediaUploading = false;
+let cloudAutoSaveTimer = null;
+let localWorkspaceMutationSeq = 0;
+let localAnnotationsMutationSeq = 0;
+let currentCloudWorkspaceRevision = 1;
+let currentPdfFitMode = 'height';
+let activeSubjectId = null;
+let currentViewingLec = null;
+let pageAnnotations = {};
+let renderedPagesSet = new Set();
+let hasReconciledBucketThisSession = true;
+let isLoginSyncInProgress = false;
+let lastLoginSyncUserId = null;
+let lastUploadedAnnotationsSignature = '';
+let localMediaCache = { pdfs: new Set(), audios: new Set() };
+let sessionMediaBlobRamCache = { pdfs: new Map(), audios: new Map() };
+let subjects = [];
+let scheduleEvents = [];
+let scheduleBacklog = [];
+let weeklyReports = [];
+let plannerPrefs = { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75, currentWeekStartIso: '2026-10-31' };
+let logs = [];
+let completedAcademyModules = [];
+let cloudMediaRegistry = {};
+
+function showToast() {}
+function renderSubjectsList() {}
+function renderGroups() {}
+function renderSchedule() {}
+function updateTracker() {}
+function updateCloudMediaStatsUI() {}
+function updateAcademyXpUI() {}
+function updateCloudNavUI() {}
+async function refreshLocalMediaCache() {}
+async function reconcileCloudMediaWithStorageBucket() {}
+async function getAllAnnotationsMapFromDB() { return { ok: true, verifiedMap: {} }; }
+async function restoreAllAnnotationsMapToDB() { return { ok: true, restoredCount: 0 }; }
+
+${extractFunctionSource(indexHtmlContent, 'getLocalIsoDate')}
+${extractFunctionSource(indexHtmlContent, 'getWeekStartDateForDate')}
+${extractFunctionSource(indexHtmlContent, 'saveScheduleData')}
+${extractFunctionSource(indexHtmlContent, 'saveCloudMediaRegistry')}
+${extractFunctionSource(indexHtmlContent, 'normMediaKeyStr')}
+${extractFunctionSource(indexHtmlContent, 'recordUploadedMediaInRegistry')}
+${extractFunctionSource(indexHtmlContent, 'findMediaInCloudRegistry')}
+${extractFunctionSource(indexHtmlContent, 'titleKeyMismatch')}
+${extractFunctionSource(indexHtmlContent, 'snapshotCurrentSubjectsMediaToRegistry')}
+${extractFunctionSource(indexHtmlContent, 'healSubjectsFromCloudRegistry')}
+${extractFunctionSource(indexHtmlContent, 'getLocalTombstones')}
 ${extractFunctionSource(indexHtmlContent, 'sanitizeForScopedKey')}
 ${extractFunctionSource(indexHtmlContent, 'getCanonicalUserId')}
 ${extractFunctionSource(indexHtmlContent, 'bumpAccountSessionGeneration')}
@@ -75,12 +161,49 @@ ${extractFunctionSource(indexHtmlContent, 'toScopedKey')}
 ${extractFunctionSource(indexHtmlContent, 'resolveAuthorizedScopedKey')}
 ${extractFunctionSource(indexHtmlContent, 'hasStrictDualRecordOwnership')}
 ${extractFunctionSource(indexHtmlContent, 'hasVerifiedLegacyProvenance')}
+${extractFunctionSource(indexHtmlContent, 'normalizeAndRecoverLectureAnnotations')}
 ${extractFunctionSource(indexHtmlContent, 'computeStrokeUniqueSignature')}
+${extractFunctionSource(indexHtmlContent, 'computeFastStringSignature')}
+${extractFunctionSource(indexHtmlContent, 'markLocalWorkspaceModified')}
+${extractFunctionSource(indexHtmlContent, 'mergeAndApplyCloudConflict')}
+${extractFunctionSource(indexHtmlContent, 'pushWorkspaceToCloud')}
+${extractFunctionSource(indexHtmlContent, 'applyCloudWorkspacePayload')}
+${extractFunctionSource(indexHtmlContent, 'syncWorkspaceOnLogin')}
 module.exports = {
+  localStorage,
+  scheduledTimers,
+  setSupabaseClient: (client) => { supabaseClient = client; },
+  setNavigatorOnline: (online) => { navigator.onLine = Boolean(online); },
   setSessionUser: (uid) => {
     currentCloudUser = uid ? { id: uid, email: uid + '@test.edu' } : null;
     bumpAccountSessionGeneration();
   },
+  setRuntimeState: (st) => {
+    if (st.subjects !== undefined) subjects = st.subjects;
+    if (st.scheduleEvents !== undefined) scheduleEvents = st.scheduleEvents;
+    if (st.scheduleBacklog !== undefined) scheduleBacklog = st.scheduleBacklog;
+    if (st.weeklyReports !== undefined) weeklyReports = st.weeklyReports;
+    if (st.plannerPrefs !== undefined) plannerPrefs = st.plannerPrefs;
+    if (st.logs !== undefined) logs = st.logs;
+    if (st.completedAcademyModules !== undefined) completedAcademyModules = st.completedAcademyModules;
+    if (st.cloudMediaRegistry !== undefined) cloudMediaRegistry = st.cloudMediaRegistry;
+  },
+  getRuntimeState: () => ({
+    subjects,
+    scheduleEvents,
+    scheduleBacklog,
+    weeklyReports,
+    plannerPrefs,
+    logs,
+    completedAcademyModules,
+    cloudMediaRegistry,
+    currentCloudWorkspaceRevision
+  }),
+  markLocalWorkspaceModified,
+  mergeAndApplyCloudConflict,
+  pushWorkspaceToCloud,
+  applyCloudWorkspacePayload,
+  syncWorkspaceOnLogin,
   sanitizeForScopedKey,
   getCanonicalUserId,
   bumpAccountSessionGeneration,
@@ -290,6 +413,171 @@ async function main() {
          'computeStrokeUniqueSignature produces distinct signatures for strokes with identical tool, color, and length but different coordinates');
   assert(prod.getAccountBackupStorageKey(uidA) === `pharmaAccountWorkspace_${uidA}`,
          'getAccountBackupStorageKey always uses canonical UID format pharmaAccountWorkspace_<uid>');
+
+  // --------------------------------------------------------------------------
+  // TEST 7 (T-5.1-02): Conflict-Merge Immediate Local Persistence (0ms) & In-Flight Dirty Flag Protection
+  // --------------------------------------------------------------------------
+  console.log('\n--- TEST 7 (T-5.1-02): Conflict-Merge Immediate Local Persistence (0ms) ---');
+  prod.localStorage.clear();
+  prod.scheduledTimers.length = 0;
+  prod.setSessionUser(uidA);
+  const ctxMergeA = prod.createAccountOperationContext();
+
+  const remoteRowConflict = {
+    user_id: uidA,
+    revision: 9,
+    updated_at: '2026-11-05T10:00:00.000Z',
+    subjects: [{ id: 'sub_rem', name: 'Remote Subject', groups: [] }],
+    schedule: {
+      version: 3,
+      events: [{ id: 'ev_rem', title: 'Remote Event', day: 6, startHour: 10, duration: 1, _updatedAt: 100 }],
+      backlog: [{ id: 'bl_rem', title: 'Remote Backlog' }],
+      weeklyReports: [{ id: 'rep_rem', weekStartIso: '2026-10-24', score: 85 }],
+      plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 },
+      cloudMediaRegistry: { 'lec_rem': { pdfUploaded: true, ownerUid: uidA } },
+      _tombstones: { subjects: {}, lectures: {}, events: {} }
+    },
+    logs: [{ id: 'log_rem', text: 'Remote Log', timestamp: 1000 }],
+    academy_progress: ['mod_rem']
+  };
+
+  const localPayloadConflict = {
+    user_id: uidA,
+    subjects: [{ id: 'sub_loc', name: 'Local Subject', groups: [] }],
+    schedule: {
+      version: 3,
+      events: [{ id: 'ev_loc', title: 'Local Event', day: 0, startHour: 14, duration: 2, _updatedAt: 200 }],
+      backlog: [{ id: 'bl_loc', title: 'Local Backlog' }],
+      weeklyReports: [{ id: 'rep_loc', weekStartIso: '2026-10-31', score: 95 }],
+      plannerPrefs: { weekStartDay: 1, dayStartHour: 8, dayEndHour: 22, autoCompletePct: 80 },
+      cloudMediaRegistry: { 'lec_loc': { pdfUploaded: true, ownerUid: uidA } }
+    },
+    logs: [{ id: 'log_loc', text: 'Local Log', timestamp: 2000 }],
+    academy_progress: ['mod_loc']
+  };
+
+  // Execute mergeAndApplyCloudConflict and inspect state at 0ms BEFORE any 1200ms timer fires
+  const mergeRes0ms = await prod.mergeAndApplyCloudConflict(remoteRowConflict, localPayloadConflict, ctxMergeA);
+  assert(mergeRes0ms && mergeRes0ms.ok === true && mergeRes0ms.revision === 9,
+         'T-5.1-02a: mergeAndApplyCloudConflict succeeds and updates revision to 9');
+
+  const storedSchedule0ms = JSON.parse(prod.localStorage.getItem('pharmaScheduleV4') || 'null');
+  const storedBacklog0ms = JSON.parse(prod.localStorage.getItem('pharmaScheduleBacklogV1') || 'null');
+  const storedReports0ms = JSON.parse(prod.localStorage.getItem('pharmaWeeklyReportsV1') || 'null');
+  const storedPrefs0ms = JSON.parse(prod.localStorage.getItem('pharmaPlannerPrefsV1') || 'null');
+  const storedSubjects0ms = JSON.parse(prod.localStorage.getItem('pharmaSubjectsV4') || 'null');
+  const storedLogs0ms = JSON.parse(prod.localStorage.getItem('pharmaLogsV4') || 'null');
+  const storedAcad0ms = JSON.parse(prod.localStorage.getItem('pharmaAcademyProgressV1') || 'null');
+  const storedMediaReg0ms = JSON.parse(prod.localStorage.getItem('pharmaCloudMediaRegistryV1') || 'null');
+  const storedAccountSnap0ms = JSON.parse(prod.localStorage.getItem(prod.getAccountBackupStorageKey(uidA)) || 'null');
+
+  assert(
+    storedSchedule0ms && Array.isArray(storedSchedule0ms.events) && storedSchedule0ms.events.length === 2 &&
+    Array.isArray(storedBacklog0ms) && storedBacklog0ms.length === 2,
+    'T-5.1-02b: pharmaScheduleV4 and pharmaScheduleBacklogV1 are persisted immediately (0ms) with both remote and local items'
+  );
+  assert(
+    Array.isArray(storedSubjects0ms) && storedSubjects0ms.length === 2 &&
+    Array.isArray(storedReports0ms) && storedReports0ms.length === 2 &&
+    storedPrefs0ms && storedPrefs0ms.weekStartDay === 1 &&
+    Array.isArray(storedLogs0ms) && storedLogs0ms.length === 2 &&
+    Array.isArray(storedAcad0ms) && storedAcad0ms.length === 2 &&
+    storedMediaReg0ms && storedMediaReg0ms.lec_rem && storedMediaReg0ms.lec_loc,
+    'T-5.1-02c: All remaining global workspace keys (subjects, reports, prefs, logs, academy, mediaRegistry) are persisted at 0ms'
+  );
+  assert(
+    storedAccountSnap0ms &&
+    storedAccountSnap0ms.subjects.length === 2 &&
+    storedAccountSnap0ms.schedule.events.length === 2 &&
+    storedAccountSnap0ms.schedule.backlog.length === 2 &&
+    storedAccountSnap0ms.dirty === true &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1',
+    'T-5.1-02d: Account-scoped snapshot pharmaAccountWorkspace_<uid> and pharmaWorkspaceDirty="1" are persisted at 0ms before retry timer'
+  );
+
+  // Verify in-flight mutation sequence protection during pushWorkspaceToCloud:
+  // If a new local modification occurs while RPC is in-flight, pharmaWorkspaceDirty must remain '1'
+  prod.setSupabaseClient({
+    rpc: async () => {
+      // Simulate user editing workspace while cloud push is in-flight
+      prod.markLocalWorkspaceModified(false);
+      return { data: { status: 'success', revision: 10 }, error: null };
+    }
+  });
+  const inFlightPushRes = await prod.pushWorkspaceToCloud(false, false, ctxMergeA);
+  assert(inFlightPushRes.status === 'success' && prod.localStorage.getItem('pharmaWorkspaceDirty') === '1',
+         'T-5.1-02e: pushWorkspaceToCloud preserves pharmaWorkspaceDirty="1" when a new local mutation occurs while push is in-flight');
+
+  // Now perform a clean push with no concurrent mutations and verify pharmaWorkspaceDirty is cleared
+  prod.setSupabaseClient({
+    rpc: async () => ({ data: { status: 'success', revision: 11 }, error: null })
+  });
+  const cleanPushRes = await prod.pushWorkspaceToCloud(false, false, ctxMergeA);
+  assert(cleanPushRes.status === 'success' && prod.localStorage.getItem('pharmaWorkspaceDirty') === null,
+         'T-5.1-02f: pushWorkspaceToCloud clears pharmaWorkspaceDirty only after cloud acknowledgement with no newer mutations');
+
+  // --------------------------------------------------------------------------
+  // TEST 8 (T-5.1-03): Preserve Academy Progress for Brand-New Cloud Account
+  // --------------------------------------------------------------------------
+  console.log('\n--- TEST 8 (T-5.1-03): Preserve Academy Progress for Brand-New Cloud Account ---');
+  prod.localStorage.clear();
+  const uidNewStudent = 'new-student-5103-aaaa-bbbb-ccccddddeeee';
+  prod.localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(['mod_1', 'mod_2']));
+  prod.setRuntimeState({
+    subjects: [],
+    scheduleEvents: [],
+    scheduleBacklog: [],
+    weeklyReports: [],
+    logs: [],
+    completedAcademyModules: ['mod_1', 'mod_2'],
+    cloudMediaRegistry: {}
+  });
+
+  let capturedInitialCloudPayload = null;
+  prod.setSupabaseClient({
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({ data: null, error: null }) // Brand-new cloud account: no row exists
+        })
+      })
+    }),
+    rpc: async (fnName, args) => {
+      if (fnName === 'sync_workspace_with_concurrency') {
+        capturedInitialCloudPayload = args.p_payload;
+      }
+      return { data: { status: 'success', revision: 1 }, error: null };
+    }
+  });
+
+  prod.setSessionUser(uidNewStudent);
+  const newLoginRes = await prod.syncWorkspaceOnLogin();
+  const afterNewLoginState = prod.getRuntimeState();
+  const storedAcadAfterLogin = JSON.parse(prod.localStorage.getItem('pharmaAcademyProgressV1') || '[]');
+
+  assert(
+    newLoginRes && newLoginRes.ok === true &&
+    Array.isArray(afterNewLoginState.completedAcademyModules) &&
+    afterNewLoginState.completedAcademyModules.length === 2 &&
+    afterNewLoginState.completedAcademyModules.includes('mod_1') &&
+    afterNewLoginState.completedAcademyModules.includes('mod_2'),
+    'T-5.1-03a: Brand-new cloud account login preserves in-memory completedAcademyModules ["mod_1", "mod_2"]'
+  );
+  assert(
+    Array.isArray(storedAcadAfterLogin) &&
+    storedAcadAfterLogin.length === 2 &&
+    storedAcadAfterLogin.includes('mod_1') &&
+    storedAcadAfterLogin.includes('mod_2'),
+    'T-5.1-03b: localStorage["pharmaAcademyProgressV1"] retains ["mod_1", "mod_2"] after brand-new account login'
+  );
+  assert(
+    capturedInitialCloudPayload &&
+    Array.isArray(capturedInitialCloudPayload.academy_progress) &&
+    capturedInitialCloudPayload.academy_progress.length === 2 &&
+    capturedInitialCloudPayload.academy_progress.includes('mod_1') &&
+    capturedInitialCloudPayload.academy_progress.includes('mod_2'),
+    'T-5.1-03c: Initial cloud push payload for brand-new account includes academy_progress: ["mod_1", "mod_2"]'
+  );
 
   console.log('\n======================================================================');
   console.log(`TOTAL PHASE 4/4.1 REGRESSION CHECKS: ${testsPassed + testsFailed} | PASSED: ${testsPassed} | FAILED: ${testsFailed}`);

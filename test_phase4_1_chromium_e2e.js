@@ -885,6 +885,263 @@ async function main() {
     assert(resN.firstPointX0 === 10 && resN.secondPointX0 === 100,
            'Test N.2: Both distinct stroke geometries ((10,10) and (100,100)) are intact in IndexedDB after conflict merge');
 
+    // ========================================================================
+    // TEST O (T-5.1-01): Sign-Out Global Workspace Sanitization, Reload & Recovery
+    // ========================================================================
+    console.log('\n--- TEST O (T-5.1-01): Sign-Out Global Workspace Sanitization, Reload & Recovery ---');
+    await page.evaluate(async () => {
+      const uidA = 'user-m1-e2e-a';
+      supabaseClient = null;
+      await handleAuthSessionChange({ id: uidA, email: 'm1_a@exo.edu', name: 'M1 User A' }, false);
+      localStorage.setItem('pharmaLastActiveCloudUid', uidA);
+      localStorage.setItem('pharmaLastActiveUserIdV1', uidA);
+
+      subjects = [{ id: 'sub_e2e_a1', name: 'Medicinal Chemistry E2E', groups: [] }];
+      localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+      const curWeekStart1 = getLocalIsoDate(getWeekStartDateForDate(new Date(), 1));
+      scheduleEvents = [{ id: 'ev_e2e_a1', title: 'E2E Study Session', day: 6, startHour: 10, duration: 2, isFixed: true }];
+      scheduleBacklog = [{ id: 'bl_e2e_a1', title: 'E2E Backlog Item' }];
+      weeklyReports = [{ id: 'rep_e2e_a1', weekStartIso: '2026-10-31', score: 90 }];
+      plannerPrefs = { weekStartDay: 1, dayStartHour: 7, dayEndHour: 22, autoCompletePct: 80, currentWeekStartIso: curWeekStart1 };
+      saveScheduleData(false);
+      logs = [{ id: 'log_e2e_a1', text: 'E2E Log Entry', timestamp: 1700000100 }];
+      localStorage.setItem('pharmaLogsV4', JSON.stringify(logs));
+      completedAcademyModules = ['mod_e2e_1', 'mod_e2e_2'];
+      localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(completedAcademyModules));
+      cloudMediaRegistry = { 'lec_e2e_1': { pdfUploaded: true, ownerUid: uidA } };
+      saveCloudMediaRegistry();
+      localStorage.setItem('pharmaWorkspaceDirty', '1');
+
+      await handleCloudSignOut(true);
+    });
+
+    // Perform real browser page reload while logged out
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => typeof initPdfDB === 'function');
+
+    const resO_AfterReload = await page.evaluate(async () => {
+      await initPdfDB();
+      const keysToCheck = [
+        'pharmaSubjectsV4',
+        'pharmaScheduleV4',
+        'pharmaScheduleBacklogV1',
+        'pharmaWeeklyReportsV1',
+        'pharmaPlannerPrefsV1',
+        'pharmaLogsV4',
+        'pharmaAcademyProgressV1',
+        'pharmaCloudMediaRegistryV1',
+        'pharmaWorkspaceDirty',
+        'pharmaLastActiveCloudUid'
+      ];
+      const nullStatus = {};
+      keysToCheck.forEach(k => { nullStatus[k] = (localStorage.getItem(k) === null); });
+      const allCleared = keysToCheck.every(k => nullStatus[k] === true);
+
+      const bootMemoryEmpty = (
+        Array.isArray(subjects) && subjects.length === 0 &&
+        Array.isArray(scheduleEvents) && scheduleEvents.length === 0 &&
+        Array.isArray(scheduleBacklog) && scheduleBacklog.length === 0 &&
+        Array.isArray(weeklyReports) && weeklyReports.length === 0 &&
+        Array.isArray(logs) && logs.length === 0 &&
+        Array.isArray(completedAcademyModules) && completedAcademyModules.length === 0 &&
+        Object.keys(cloudMediaRegistry || {}).length === 0
+      );
+
+      // Re-authenticate User A offline and verify full recovery from pharmaAccountWorkspace_<uid>
+      const uidA = 'user-m1-e2e-a';
+      supabaseClient = null;
+      await handleAuthSessionChange({ id: uidA, email: 'm1_a@exo.edu', name: 'M1 User A' }, false);
+      const syncARes = await syncWorkspaceOnLogin();
+
+      const recoveredA = (
+        subjects.length === 1 && subjects[0].id === 'sub_e2e_a1' &&
+        scheduleEvents.length === 1 && scheduleEvents[0].id === 'ev_e2e_a1' &&
+        scheduleBacklog.length === 1 && scheduleBacklog[0].id === 'bl_e2e_a1' &&
+        weeklyReports.length === 1 &&
+        logs.length === 1 &&
+        completedAcademyModules.length === 2
+      );
+      const debugA = {
+        syncARes,
+        hasBackupKey: localStorage.getItem(`pharmaAccountWorkspace_${uidA}`) !== null,
+        subjectsLen: subjects.length,
+        eventsLen: scheduleEvents.length,
+        backlogLen: scheduleBacklog.length,
+        reportsLen: weeklyReports.length,
+        logsLen: logs.length,
+        acadLen: completedAcademyModules.length
+      };
+
+      // Sign out User A again, then log in as User B and verify zero leakage
+      await handleCloudSignOut(true);
+      const uidB = 'user-m1-e2e-b';
+      await handleAuthSessionChange({ id: uidB, email: 'm1_b@exo.edu', name: 'M1 User B' }, false);
+      const syncBRes = await syncWorkspaceOnLogin();
+
+      const isolatedB = (
+        subjects.length === 0 &&
+        scheduleEvents.length === 0 &&
+        scheduleBacklog.length === 0 &&
+        weeklyReports.length === 0 &&
+        logs.length === 0 &&
+        completedAcademyModules.length === 0
+      );
+
+      return { allCleared, nullStatus, bootMemoryEmpty, recoveredA, isolatedB, debugA, syncBRes };
+    });
+
+    assert(resO_AfterReload.allCleared === true && resO_AfterReload.bootMemoryEmpty === true,
+           'Test O.1 (T-5.1-01): After sign-out and real browser page reload, all 10 unscoped localStorage keys are null and in-memory workspace is empty',
+           JSON.stringify(resO_AfterReload));
+    assert(resO_AfterReload.recoveredA === true && resO_AfterReload.isolatedB === true,
+           'Test O.2 (T-5.1-01): Re-authenticating User A recovers full workspace from pharmaAccountWorkspace_<uid> and User B sees zero User A data',
+           JSON.stringify(resO_AfterReload));
+
+    // ========================================================================
+    // TEST P (T-5.1-02 & T-5.1-03): Immediate Conflict-Merge Reload (<50ms) & Brand-New Account Academy Progress
+    // ========================================================================
+    console.log('\n--- TEST P (T-5.1-02 & T-5.1-03): Conflict-Merge Immediate Reload & Brand-New Account Academy Progress ---');
+    await page.evaluate(async () => {
+      const uidConflict = 'user-m1-conflict-e2e';
+      supabaseClient = null;
+      await handleAuthSessionChange({ id: uidConflict, email: 'conflict@exo.edu', name: 'Conflict User' }, false);
+      const ctx = createAccountOperationContext();
+      const curWeekStart1 = getLocalIsoDate(getWeekStartDateForDate(new Date(), 1));
+
+      const remoteRow = {
+        user_id: uidConflict,
+        revision: 7,
+        subjects: [{ id: 'sub_c_rem', name: 'Remote Pharmacology', groups: [] }],
+        schedule: {
+          version: 3,
+          events: [{ id: 'ev_c_rem', title: 'Remote Lecture Slot', day: 6, startHour: 9, duration: 1, isFixed: true, _updatedAt: 100 }],
+          backlog: [{ id: 'bl_c_rem', title: 'Remote Backlog Task' }],
+          weeklyReports: [{ id: 'rep_c_rem', weekStartIso: '2026-10-24', score: 88 }],
+          plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75, currentWeekStartIso: curWeekStart1 },
+          cloudMediaRegistry: { 'lec_c_rem': { pdfUploaded: true, ownerUid: uidConflict } },
+          _tombstones: { subjects: {}, lectures: {}, events: {} }
+        },
+        logs: [{ id: 'log_c_rem', text: 'Remote Study Log', timestamp: 1100 }],
+        academy_progress: ['mod_c_rem']
+      };
+
+      const localPayload = {
+        user_id: uidConflict,
+        subjects: [{ id: 'sub_c_loc', name: 'Local Biopharmaceutics', groups: [] }],
+        schedule: {
+          version: 3,
+          events: [{ id: 'ev_c_loc', title: 'Local Lab Slot', day: 1, startHour: 13, duration: 2, isFixed: true, _updatedAt: 200 }],
+          backlog: [{ id: 'bl_c_loc', title: 'Local Backlog Task' }],
+          weeklyReports: [{ id: 'rep_c_loc', weekStartIso: '2026-10-31', score: 94 }],
+          plannerPrefs: { weekStartDay: 1, dayStartHour: 8, dayEndHour: 22, autoCompletePct: 85, currentWeekStartIso: curWeekStart1 },
+          cloudMediaRegistry: { 'lec_c_loc': { pdfUploaded: true, ownerUid: uidConflict } }
+        },
+        logs: [{ id: 'log_c_loc', text: 'Local Study Log', timestamp: 2200 }],
+        academy_progress: ['mod_c_loc']
+      };
+
+      await mergeAndApplyCloudConflict(remoteRow, localPayload, ctx);
+    });
+
+    // Immediately reload page (<50ms, well before the 1,200ms retry timer)
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => typeof initPdfDB === 'function');
+
+    const resP = await page.evaluate(async () => {
+      await initPdfDB();
+      const uidConflict = 'user-m1-conflict-e2e';
+      const storedSched = JSON.parse(localStorage.getItem('pharmaScheduleV4') || 'null');
+      const storedBacklog = JSON.parse(localStorage.getItem('pharmaScheduleBacklogV1') || 'null');
+      const storedSnap = JSON.parse(localStorage.getItem(`pharmaAccountWorkspace_${uidConflict}`) || 'null');
+
+      const survivedImmediateReload = (
+        Array.isArray(subjects) && subjects.length === 2 &&
+        Array.isArray(scheduleEvents) && scheduleEvents.length === 2 &&
+        Array.isArray(scheduleBacklog) && scheduleBacklog.length === 2 &&
+        Array.isArray(weeklyReports) && weeklyReports.length === 2 &&
+        plannerPrefs && plannerPrefs.weekStartDay === 1 &&
+        Array.isArray(logs) && logs.length === 2 &&
+        Array.isArray(completedAcademyModules) && completedAcademyModules.length === 2 &&
+        cloudMediaRegistry && cloudMediaRegistry.lec_c_rem && cloudMediaRegistry.lec_c_loc &&
+        storedSched && storedSched.events.length === 2 &&
+        Array.isArray(storedBacklog) && storedBacklog.length === 2 &&
+        storedSnap && storedSnap.subjects.length === 2 && storedSnap.schedule.events.length === 2 &&
+        localStorage.getItem('pharmaWorkspaceDirty') === '1'
+      );
+      const debugP1 = {
+        subjectsLen: subjects?.length,
+        eventsLen: scheduleEvents?.length,
+        backlogLen: scheduleBacklog?.length,
+        reportsLen: weeklyReports?.length,
+        weekStartDay: plannerPrefs?.weekStartDay,
+        logsLen: logs?.length,
+        acadLen: completedAcademyModules?.length,
+        hasMediaReg: Boolean(cloudMediaRegistry?.lec_c_rem && cloudMediaRegistry?.lec_c_loc),
+        hasStoredSched: Boolean(storedSched && storedSched.events?.length === 2),
+        hasStoredBacklog: Boolean(Array.isArray(storedBacklog) && storedBacklog.length === 2),
+        hasStoredSnap: Boolean(storedSnap && storedSnap.subjects?.length === 2),
+        dirtyFlag: localStorage.getItem('pharmaWorkspaceDirty')
+      };
+
+      // Now test T-5.1-03 in Chromium: Brand-new cloud account preserves pre-login academy_progress ['mod_1', 'mod_2']
+      const uidConflictUser = { id: uidConflict, email: 'conflict@exo.edu', name: 'Conflict User' };
+      await handleAuthSessionChange(uidConflictUser, false);
+      await handleCloudSignOut(true);
+      completedAcademyModules = ['mod_1', 'mod_2'];
+      localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(['mod_1', 'mod_2']));
+
+      let pushedPayload = null;
+      supabaseClient = {
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({ data: null, error: null })
+            })
+          })
+        }),
+        rpc: async (fnName, args) => {
+          if (fnName === 'sync_workspace_with_concurrency') {
+            pushedPayload = args.p_payload;
+          }
+          return { data: { status: 'success', revision: 1 }, error: null };
+        },
+        auth: { signOut: async () => {} }
+      };
+
+      const uidBrandNew = 'user-m1-brandnew-e2e';
+      currentCloudUser = { id: uidBrandNew, email: 'brandnew@exo.edu', name: 'Brand New' };
+      bumpAccountSessionGeneration();
+      const brandNewSyncRes = await syncWorkspaceOnLogin();
+
+      const storedAcad = JSON.parse(localStorage.getItem('pharmaAcademyProgressV1') || '[]');
+      const brandNewAcademyPreserved = (
+        Array.isArray(completedAcademyModules) &&
+        completedAcademyModules.length === 2 &&
+        completedAcademyModules.includes('mod_1') &&
+        completedAcademyModules.includes('mod_2') &&
+        storedAcad.length === 2 &&
+        pushedPayload &&
+        Array.isArray(pushedPayload.academy_progress) &&
+        pushedPayload.academy_progress.length === 2
+      );
+      const debugP2 = {
+        brandNewSyncRes,
+        completedAcademyModules,
+        storedAcad,
+        pushedPayloadAcad: pushedPayload?.academy_progress
+      };
+
+      supabaseClient = null;
+      return { survivedImmediateReload, brandNewAcademyPreserved, debugP1, debugP2 };
+    });
+
+    assert(resP.survivedImmediateReload === true,
+           'Test P.1 (T-5.1-02): Immediate page reload (<50ms after mergeAndApplyCloudConflict, before 1200ms timer) preserves all merged categories, pharmaAccountWorkspace_<uid>, and pharmaWorkspaceDirty="1"',
+           JSON.stringify(resP.debugP1));
+    assert(resP.brandNewAcademyPreserved === true,
+           'Test P.2 (T-5.1-03): Brand-new cloud account login preserves pre-login academy_progress ["mod_1", "mod_2"] in memory, localStorage, and initial cloud push',
+           JSON.stringify(resP.debugP2));
+
     await context.close();
   } finally {
     await browser.close();
