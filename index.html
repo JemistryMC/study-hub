@@ -34281,7 +34281,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     }
                 }
 
-                // Check in-memory uncommitted annotations belonging to guest (Correction A.7-8)
+                // Check in-memory uncommitted annotations belonging to guest
                 let inMemoryGuestAnnos = {};
                 if (inMemoryAnnotationsCache && typeof inMemoryAnnotationsCache === 'object') {
                     Object.keys(inMemoryAnnotationsCache).forEach(k => {
@@ -34295,7 +34295,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     });
                 }
 
-                // Check pending annotations map (Correction A.7)
+                // Check pending annotations map
                 if (pendingAnnoSaveMap && typeof pendingAnnoSaveMap === 'object') {
                     Object.keys(pendingAnnoSaveMap).forEach(k => {
                         const uid = extractUserIdFromScopedKey(k);
@@ -34308,113 +34308,125 @@ function togglePdfAudioPlayerBar(forceState) {
                     });
                 }
 
-                // Check whether any guest annotations potentially exist
-                const hasPendingOrMemoryAnnos = Object.keys(inMemoryGuestAnnos).length > 0;
-
-                // 2. Read committed guest annotations and uncommitted guest vault entries from IndexedDB
-                let guestAnnotations = {};
-                if (hasPendingOrMemoryAnnos || (dbInstance && dbInstance.objectStoreNames && dbInstance.objectStoreNames.contains('annotations'))) {
-                    // IndexedDB is required if we have annotations or need to verify whether annotations exist (Correction A.4)
-                    if (!dbInstance || !dbInstance.objectStoreNames || !dbInstance.objectStoreNames.contains('annotations') || !dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
-                        return {
-                            ok: false,
-                            quarantined: false,
-                            reason: 'quarantine_persistence_failed',
-                            error: new Error('IDB_UNAVAILABLE_FOR_GUEST_ANNOTATIONS')
-                        };
+                // 2. IndexedDB database availability verification (Section 2)
+                // Initialize or open the existing IndexedDB database through the application's real initialization path when necessary.
+                let db = dbInstance;
+                if (!db || !db.objectStoreNames) {
+                    if (typeof initPdfDB === 'function') {
+                        try {
+                            db = await initPdfDB();
+                        } catch (idbInitErr) {
+                            db = null;
+                        }
                     }
-
-                    // 2a. Read existing committed annotations for guest from 'annotations'
-                    try {
-                        const idbAnnos = await new Promise((resolve, reject) => {
-                            try {
-                                const tx = dbInstance.transaction('annotations', 'readonly');
-                                const store = tx.objectStore('annotations');
-                                const req = store.getAll();
-                                req.onsuccess = () => {
-                                    const map = {};
-                                    (req.result || []).forEach(item => {
-                                        if (!item || !item.pages || String(item.id).startsWith('_cloudMedia_')) return;
-                                        const keyStr = String(item.id);
-                                        const uid = item.userId ? String(item.userId) : extractUserIdFromScopedKey(keyStr);
-                                        if (uid === 'local' || uid === null || keyStr.startsWith('usr_local::')) {
-                                            const rawId = item.rawId || extractRawIdFromScopedKey(keyStr, 'local');
-                                            map[rawId] = item.pages;
-                                        }
-                                    });
-                                    resolve(map);
-                                };
-                                req.onerror = () => reject(req.error || new Error('IDB_READ_ERROR'));
-                                tx.onerror = () => reject(tx.error || new Error('IDB_TX_ERROR'));
-                            } catch (e) {
-                                reject(e);
-                            }
-                        });
-                        guestAnnotations = Object.assign({}, idbAnnos);
-                    } catch (readErr) {
-                        return {
-                            ok: false,
-                            quarantined: false,
-                            reason: 'quarantine_persistence_failed',
-                            error: readErr
-                        };
+                    if (!db && typeof indexedDB !== 'undefined') {
+                        try {
+                            db = await new Promise((res) => {
+                                const req = indexedDB.open('WorkspaceMediaStore', 4);
+                                req.onsuccess = () => res(req.result || null);
+                                req.onerror = () => res(null);
+                                req.onblocked = () => res(null);
+                            });
+                            if (db) dbInstance = db;
+                        } catch (e) {
+                            db = null;
+                        }
                     }
-
-                    // 2b. Read existing uncommitted guest entries in 'annotation_recovery_vault' (Correction A.6)
-                    try {
-                        const vaultEntries = await new Promise((resolve, reject) => {
-                            try {
-                                const tx = dbInstance.transaction('annotation_recovery_vault', 'readonly');
-                                const store = tx.objectStore('annotation_recovery_vault');
-                                const req = store.getAll();
-                                req.onsuccess = () => {
-                                    const vMap = {};
-                                    (req.result || []).forEach(vItem => {
-                                        if (!vItem || typeof vItem !== 'object') return;
-                                        // Ignore prior guest quarantine entries or other users' entries
-                                        if (vItem.type === 'guest_quarantine_annotations') return;
-                                        const keyStr = String(vItem.id || '');
-                                        const uid = vItem.userId ? String(vItem.userId) : extractUserIdFromScopedKey(keyStr);
-                                        if ((uid === 'local' || uid === null || keyStr.startsWith('usr_local::')) && vItem.pages) {
-                                            const rawId = vItem.rawId || extractRawIdFromScopedKey(keyStr, 'local');
-                                            vMap[rawId] = vItem.pages;
-                                        }
-                                    });
-                                    resolve(vMap);
-                                };
-                                req.onerror = () => reject(req.error || new Error('VAULT_READ_ERROR'));
-                                tx.onerror = () => reject(tx.error || new Error('VAULT_TX_ERROR'));
-                            } catch (e) {
-                                reject(e);
-                            }
-                        });
-                        Object.assign(guestAnnotations, vaultEntries);
-                    } catch (vReadErr) {
-                        return {
-                            ok: false,
-                            quarantined: false,
-                            reason: 'quarantine_persistence_failed',
-                            error: vReadErr
-                        };
-                    }
-
-                    // Merge in-memory guest annotations
-                    Object.assign(guestAnnotations, inMemoryGuestAnnos);
                 }
+
+                // Require successful access to both 'annotations' and 'annotation_recovery_vault'.
+                // Never infer an empty annotation workspace from an unavailable database.
+                if (!db || !db.objectStoreNames || !db.objectStoreNames.contains('annotations') || !db.objectStoreNames.contains('annotation_recovery_vault')) {
+                    return {
+                        ok: false,
+                        quarantined: false,
+                        reason: 'quarantine_persistence_failed',
+                        error: new Error('IDB_UNAVAILABLE_FOR_GUEST_ANNOTATIONS')
+                    };
+                }
+
+                // Read committed guest annotations from 'annotations'
+                let guestAnnotations = {};
+                try {
+                    const idbAnnos = await new Promise((resolve, reject) => {
+                        try {
+                            const tx = db.transaction('annotations', 'readonly');
+                            const store = tx.objectStore('annotations');
+                            const req = store.getAll();
+                            req.onsuccess = () => {
+                                const map = {};
+                                (req.result || []).forEach(item => {
+                                    if (!item || !item.pages || String(item.id).startsWith('_cloudMedia_')) return;
+                                    const keyStr = String(item.id);
+                                    const uid = item.userId ? String(item.userId) : extractUserIdFromScopedKey(keyStr);
+                                    if (uid === 'local' || uid === null || keyStr.startsWith('usr_local::')) {
+                                        const rawId = item.rawId || extractRawIdFromScopedKey(keyStr, 'local');
+                                        map[rawId] = item.pages;
+                                    }
+                                });
+                                resolve(map);
+                            };
+                            req.onerror = () => reject(req.error || new Error('IDB_READ_ERROR'));
+                            tx.onerror = () => reject(tx.error || new Error('IDB_TX_ERROR'));
+                        } catch (e) {
+                            reject(e);
+                        }
+                    });
+                    guestAnnotations = Object.assign({}, idbAnnos);
+                } catch (readErr) {
+                    return {
+                        ok: false,
+                        quarantined: false,
+                        reason: 'quarantine_persistence_failed',
+                        error: readErr
+                    };
+                }
+
+                // Read existing uncommitted guest entries in 'annotation_recovery_vault'
+                try {
+                    const vaultEntries = await new Promise((resolve, reject) => {
+                        try {
+                            const tx = db.transaction('annotation_recovery_vault', 'readonly');
+                            const store = tx.objectStore('annotation_recovery_vault');
+                            const req = store.getAll();
+                            req.onsuccess = () => {
+                                const vMap = {};
+                                (req.result || []).forEach(vItem => {
+                                    if (!vItem || typeof vItem !== 'object') return;
+                                    if (vItem.type === 'guest_quarantine_annotations') return;
+                                    const keyStr = String(vItem.id || '');
+                                    const uid = vItem.userId ? String(vItem.userId) : extractUserIdFromScopedKey(keyStr);
+                                    if ((uid === 'local' || uid === null || keyStr.startsWith('usr_local::')) && vItem.pages) {
+                                        const rawId = vItem.rawId || extractRawIdFromScopedKey(keyStr, 'local');
+                                        vMap[rawId] = vItem.pages;
+                                    }
+                                });
+                                resolve(vMap);
+                            };
+                            req.onerror = () => reject(req.error || new Error('VAULT_READ_ERROR'));
+                            tx.onerror = () => reject(tx.error || new Error('VAULT_TX_ERROR'));
+                        } catch (e) {
+                            reject(e);
+                        }
+                    });
+                    Object.assign(guestAnnotations, vaultEntries);
+                } catch (vReadErr) {
+                    return {
+                        ok: false,
+                        quarantined: false,
+                        reason: 'quarantine_persistence_failed',
+                        error: vReadErr
+                    };
+                }
+
+                // Merge in-memory guest annotations
+                Object.assign(guestAnnotations, inMemoryGuestAnnos);
 
                 const expectedAnnotationsCount = Object.keys(guestAnnotations).length;
                 let annotationsVaultKey = null;
 
-                // 3. Persist guest annotations safely to IndexedDB annotation_recovery_vault if any exist (Correction A.9-11)
+                // 3. Persist guest annotations safely to IndexedDB annotation_recovery_vault if any exist
                 if (expectedAnnotationsCount > 0) {
-                    if (!dbInstance || !dbInstance.objectStoreNames || !dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
-                        return {
-                            ok: false,
-                            quarantined: false,
-                            reason: 'quarantine_persistence_failed',
-                            error: new Error('IDB_VAULT_UNAVAILABLE')
-                        };
-                    }
                     annotationsVaultKey = 'guest_quarantine_annotations_' + quarantineId;
                     const vaultRecord = {
                         id: annotationsVaultKey,
@@ -34428,7 +34440,7 @@ function togglePdfAudioPlayerBar(forceState) {
 
                     const vaultWriteOk = await new Promise((resolve) => {
                         try {
-                            const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+                            const tx = db.transaction('annotation_recovery_vault', 'readwrite');
                             const store = tx.objectStore('annotation_recovery_vault');
                             store.put(vaultRecord);
                             tx.oncomplete = () => resolve(true);
@@ -34455,10 +34467,10 @@ function togglePdfAudioPlayerBar(forceState) {
                         };
                     }
 
-                    // Read-back verification (Correction A.11)
+                    // Read-back verification
                     const verifyVaultOk = await new Promise((resolve) => {
                         try {
-                            const tx = dbInstance.transaction('annotation_recovery_vault', 'readonly');
+                            const tx = db.transaction('annotation_recovery_vault', 'readonly');
                             const store = tx.objectStore('annotation_recovery_vault');
                             const req = store.get(annotationsVaultKey);
                             req.onsuccess = () => {
@@ -34506,13 +34518,15 @@ function togglePdfAudioPlayerBar(forceState) {
                     dirty: true
                 };
 
-                // Versioned manifest of quarantines
+                // Versioned manifest of quarantines (stop truncating, preserve all valid entries)
                 let manifest = [];
                 try {
                     const rawManifest = localStorage.getItem('pharmaGuestQuarantine_manifest');
                     if (rawManifest) {
                         const parsed = JSON.parse(rawManifest);
-                        if (Array.isArray(parsed)) manifest = parsed;
+                        if (Array.isArray(parsed)) {
+                            manifest = parsed.filter(m => m && typeof m === 'object' && typeof m.quarantineId === 'string' && m.quarantineId.length > 0);
+                        }
                     }
                 } catch (e) {}
 
@@ -34521,6 +34535,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     preservedAt: guestSnapshot.preservedAt,
                     reason: guestSnapshot.reason,
                     annotationsVaultKey,
+                    annotationsCount: expectedAnnotationsCount,
                     counts: {
                         subjects: guestSnapshot.subjects.length,
                         scheduleEvents: guestSnapshot.scheduleEvents.length,
@@ -34531,11 +34546,36 @@ function togglePdfAudioPlayerBar(forceState) {
                     }
                 };
                 manifest.unshift(manifestEntry);
-                if (manifest.length > 50) manifest = manifest.slice(0, 50);
+                // Do NOT truncate manifest! Preserve all existing valid entries.
 
-                localStorage.setItem('pharmaGuestQuarantine_' + quarantineId, JSON.stringify(guestSnapshot));
-                localStorage.setItem('pharmaGuestQuarantine_manifest', JSON.stringify(manifest));
-                localStorage.setItem('pharmaUnverifiedGuestWorkspace_quarantine', JSON.stringify(guestSnapshot));
+                // Snapshot and manifest persistence verification
+                try {
+                    localStorage.setItem('pharmaGuestQuarantine_' + quarantineId, JSON.stringify(guestSnapshot));
+                    localStorage.setItem('pharmaGuestQuarantine_manifest', JSON.stringify(manifest));
+                    localStorage.setItem('pharmaUnverifiedGuestWorkspace_quarantine', JSON.stringify(guestSnapshot));
+
+                    // Verify persistence by reading back
+                    const readbackSnapshot = localStorage.getItem('pharmaGuestQuarantine_' + quarantineId);
+                    const readbackManifest = localStorage.getItem('pharmaGuestQuarantine_manifest');
+                    const readbackLatest = localStorage.getItem('pharmaUnverifiedGuestWorkspace_quarantine');
+
+                    if (!readbackSnapshot || !readbackManifest || !readbackLatest) {
+                        throw new Error('LOCALSTORAGE_PERSISTENCE_READBACK_FAILED');
+                    }
+                    const parsedManifest = JSON.parse(readbackManifest);
+                    if (!Array.isArray(parsedManifest) || !parsedManifest.some(m => m && m.quarantineId === quarantineId)) {
+                        throw new Error('MANIFEST_READBACK_VERIFICATION_FAILED');
+                    }
+                } catch (persistErr) {
+                    console.error('Failed to persist guest quarantine snapshot or manifest to localStorage:', persistErr);
+                    // Keep previously persisted quarantine snapshots recoverable (do not clear or delete them)
+                    return {
+                        ok: false,
+                        quarantined: false,
+                        reason: 'quarantine_persistence_failed',
+                        error: persistErr
+                    };
+                }
 
                 return {
                     ok: true,
@@ -34558,41 +34598,122 @@ function togglePdfAudioPlayerBar(forceState) {
 
         async function restoreUnverifiedGuestWorkspace(targetQuarantineId = null) {
             try {
-                // 1. Read and validate quarantine manifest entry (Correction C.1)
+                // 1. Read and validate quarantine manifest entry
                 let manifest = [];
                 try {
                     const rawManifest = localStorage.getItem('pharmaGuestQuarantine_manifest');
                     if (rawManifest) {
                         const parsed = JSON.parse(rawManifest);
-                        if (Array.isArray(parsed)) manifest = parsed;
+                        if (Array.isArray(parsed)) {
+                            manifest = parsed.filter(m => m && typeof m === 'object' && typeof m.quarantineId === 'string');
+                        }
                     }
-                } catch (e) {}
+                } catch (e) {
+                    return { ok: false, restored: false, reason: 'invalid_quarantine_manifest', error: e };
+                }
 
                 let snapshot = null;
                 let qId = targetQuarantineId;
                 if (qId) {
                     const raw = localStorage.getItem('pharmaGuestQuarantine_' + qId);
-                    if (raw) snapshot = JSON.parse(raw);
+                    if (raw) {
+                        try {
+                            snapshot = JSON.parse(raw);
+                        } catch (e) {
+                            return { ok: false, restored: false, reason: 'corrupted_quarantine_snapshot', error: e };
+                        }
+                    }
                 }
                 if (!snapshot) {
                     const rawLatest = localStorage.getItem('pharmaUnverifiedGuestWorkspace_quarantine');
                     if (rawLatest) {
-                        snapshot = JSON.parse(rawLatest);
-                        if (!qId && snapshot.quarantineId) qId = snapshot.quarantineId;
+                        try {
+                            snapshot = JSON.parse(rawLatest);
+                            if (!qId && snapshot && snapshot.quarantineId) qId = snapshot.quarantineId;
+                        } catch (e) {
+                            return { ok: false, restored: false, reason: 'corrupted_quarantine_snapshot', error: e };
+                        }
                     }
                 }
-                if (!snapshot) {
+                if (!snapshot || typeof snapshot !== 'object') {
                     return { ok: false, restored: false, reason: 'quarantine_snapshot_not_found' };
                 }
+                if (!qId && snapshot.quarantineId) {
+                    qId = snapshot.quarantineId;
+                }
 
-                const expectedAnnotationsCount = Number(snapshot.annotationsCount || 0);
+                // 2. Validate manifest and manifest entry consistency (Section 1)
+                if (!Array.isArray(manifest) || manifest.length === 0) {
+                    return { ok: false, restored: false, reason: 'missing_quarantine_manifest' };
+                }
+                const manifestEntry = manifest.find(m => m && m.quarantineId === qId);
+                if (!manifestEntry) {
+                    return { ok: false, restored: false, reason: 'missing_manifest_entry' };
+                }
 
-                // 2. Validate manifest entry and vault record existence whenever annotationsCount > 0 (Correction C.2-3)
-                const vaultKey = snapshot.annotationsVaultKey || (qId ? ('guest_quarantine_annotations_' + qId) : null);
+                // Verify quarantine ID consistency
+                if (manifestEntry.quarantineId !== snapshot.quarantineId) {
+                    return {
+                        ok: false,
+                        restored: false,
+                        reason: 'manifest_verification_mismatch',
+                        error: new Error('QUARANTINE_ID_MISMATCH')
+                    };
+                }
+
+                // Verify annotation count consistency
+                const snapshotAnnoCount = Number(snapshot.annotationsCount || 0);
+                const manifestAnnoCount = Number(
+                    (manifestEntry.counts && manifestEntry.counts.annotations !== undefined)
+                        ? manifestEntry.counts.annotations
+                        : (manifestEntry.annotationsCount !== undefined ? manifestEntry.annotationsCount : 0)
+                );
+                if (snapshotAnnoCount !== manifestAnnoCount) {
+                    return {
+                        ok: false,
+                        restored: false,
+                        reason: 'manifest_verification_mismatch',
+                        error: new Error(`ANNOTATION_COUNT_MISMATCH: snapshot has ${snapshotAnnoCount}, manifest has ${manifestAnnoCount}`)
+                    };
+                }
+
+                // Verify vault key consistency
+                const snapshotVaultKey = snapshot.annotationsVaultKey || null;
+                const manifestVaultKey = manifestEntry.annotationsVaultKey || null;
+                if (snapshotVaultKey !== manifestVaultKey) {
+                    return {
+                        ok: false,
+                        restored: false,
+                        reason: 'manifest_verification_mismatch',
+                        error: new Error(`VAULT_KEY_MISMATCH: snapshot has ${snapshotVaultKey}, manifest has ${manifestVaultKey}`)
+                    };
+                }
+                if (snapshotAnnoCount > 0 && !snapshotVaultKey) {
+                    return {
+                        ok: false,
+                        restored: false,
+                        reason: 'manifest_verification_mismatch',
+                        error: new Error('MISSING_VAULT_KEY_FOR_NONZERO_ANNOTATIONS')
+                    };
+                }
+
+                const expectedAnnotationsCount = snapshotAnnoCount;
+                const vaultKey = snapshotVaultKey;
                 let vaultEntry = null;
 
+                // 3. Validate vault record existence whenever annotationsCount > 0
                 if (expectedAnnotationsCount > 0) {
-                    if (!dbInstance || !dbInstance.objectStoreNames || !dbInstance.objectStoreNames.contains('annotation_recovery_vault') || !dbInstance.objectStoreNames.contains('annotations')) {
+                    let db = dbInstance;
+                    if (!db || !db.objectStoreNames) {
+                        if (typeof initPdfDB === 'function') {
+                            try {
+                                db = await initPdfDB();
+                            } catch (e) {
+                                db = null;
+                            }
+                        }
+                    }
+                    if (!db || !db.objectStoreNames || !db.objectStoreNames.contains('annotation_recovery_vault') || !db.objectStoreNames.contains('annotations')) {
                         return {
                             ok: false,
                             restored: false,
@@ -34600,18 +34721,10 @@ function togglePdfAudioPlayerBar(forceState) {
                             error: new Error('IDB_UNAVAILABLE')
                         };
                     }
-                    if (!vaultKey) {
-                        return {
-                            ok: false,
-                            restored: false,
-                            reason: 'missing_annotation_vault_key',
-                            error: new Error('MISSING_VAULT_KEY')
-                        };
-                    }
 
                     vaultEntry = await new Promise((res) => {
                         try {
-                            const tx = dbInstance.transaction('annotation_recovery_vault', 'readonly');
+                            const tx = db.transaction('annotation_recovery_vault', 'readonly');
                             const store = tx.objectStore('annotation_recovery_vault');
                             const req = store.get(vaultKey);
                             req.onsuccess = () => res(req.result || null);
@@ -34642,7 +34755,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     }
                 }
 
-                // 3. Restore in-memory collections
+                // 4. Restore in-memory collections
                 if (Array.isArray(snapshot.subjects)) subjects = JSON.parse(JSON.stringify(snapshot.subjects));
                 if (Array.isArray(snapshot.scheduleEvents)) scheduleEvents = JSON.parse(JSON.stringify(snapshot.scheduleEvents));
                 if (Array.isArray(snapshot.scheduleBacklog)) scheduleBacklog = JSON.parse(JSON.stringify(snapshot.scheduleBacklog));
@@ -34652,7 +34765,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (Array.isArray(snapshot.academy_progress)) completedAcademyModules = snapshot.academy_progress.slice();
                 if (snapshot.cloudMediaRegistry && typeof snapshot.cloudMediaRegistry === 'object') cloudMediaRegistry = JSON.parse(JSON.stringify(snapshot.cloudMediaRegistry));
 
-                // 4. Restore localStorage canonical entities
+                // 5. Restore localStorage canonical entities
                 localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
                 localStorage.setItem('pharmaScheduleV4', JSON.stringify({
                     version: 3,
@@ -34668,7 +34781,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(completedAcademyModules));
                 localStorage.setItem('pharmaCloudMediaRegistryV1', JSON.stringify(cloudMediaRegistry));
 
-                // 5. Restore causal tombstones to real canonical storage: pharmaTombstones_local (Correction B)
+                // 6. Restore causal tombstones to real canonical storage: pharmaTombstones_local
                 if (snapshot._tombstones) {
                     const normalizedGuestTombstones = (typeof normalizeTombstonesObject === 'function')
                         ? normalizeTombstonesObject(snapshot._tombstones, 'local')
@@ -34676,12 +34789,12 @@ function togglePdfAudioPlayerBar(forceState) {
                     localStorage.setItem('pharmaTombstones_local', JSON.stringify(normalizedGuestTombstones));
                 }
 
-                // 6. Restore conflict recovery to real canonical storage: pharmaConflictRecovery_local (Correction B)
+                // 7. Restore conflict recovery to real canonical storage: pharmaConflictRecovery_local
                 if (snapshot._conflictRecovery && Array.isArray(snapshot._conflictRecovery)) {
                     localStorage.setItem('pharmaConflictRecovery_local', JSON.stringify(snapshot._conflictRecovery));
                 }
 
-                // 7. Restore device registry to real canonical storage: pharmaDeviceRegistry_local (Correction B)
+                // 8. Restore device registry to real canonical storage: pharmaDeviceRegistry_local
                 if (snapshot._deviceRegistry && typeof snapshot._deviceRegistry === 'object' && !Array.isArray(snapshot._deviceRegistry)) {
                     let existingGuestReg = {};
                     try {
@@ -34695,16 +34808,20 @@ function togglePdfAudioPlayerBar(forceState) {
                     localStorage.setItem('pharmaDeviceRegistry_local', JSON.stringify(mergedGuestReg));
                 }
 
-                // 8. Restore IndexedDB annotations from vault if annotations exist (Correction C.4-7)
+                // 9. Restore IndexedDB annotations from vault if annotations exist
                 let restoredAnnotationsCount = 0;
                 if (expectedAnnotationsCount > 0 && vaultEntry) {
+                    let db = dbInstance;
+                    if (!db && typeof initPdfDB === 'function') {
+                        try { db = await initPdfDB(); } catch (e) {}
+                    }
                     const annos = vaultEntry.annotations;
                     const rawIds = Object.keys(annos);
                     restoredAnnotationsCount = rawIds.length;
 
                     const annoWriteOk = await new Promise((res) => {
                         try {
-                            const tx = dbInstance.transaction('annotations', 'readwrite');
+                            const tx = db.transaction('annotations', 'readwrite');
                             const store = tx.objectStore('annotations');
                             rawIds.forEach(rawId => {
                                 const scopedId = toScopedKey(rawId, 'local');
@@ -34734,10 +34851,10 @@ function togglePdfAudioPlayerBar(forceState) {
                         };
                     }
 
-                    // Read-back verification of restored annotations in IndexedDB (Correction C.7)
+                    // Read-back verification of restored annotations in IndexedDB
                     const verifyAnnosReadback = await new Promise((res) => {
                         try {
-                            const tx = dbInstance.transaction('annotations', 'readonly');
+                            const tx = db.transaction('annotations', 'readonly');
                             const store = tx.objectStore('annotations');
                             let verifiedMatches = 0;
                             rawIds.forEach(rawId => {
@@ -34766,7 +34883,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     }
                 }
 
-                // 9. Mark workspace dirty
+                // 10. Mark workspace dirty
                 localStorage.setItem('pharmaWorkspaceDirty', '1');
                 dirtyAnnotationsForCloud = (restoredAnnotationsCount > 0);
 

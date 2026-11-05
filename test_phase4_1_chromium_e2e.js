@@ -2651,7 +2651,7 @@ async function main() {
         { id: 'rep_w_1', weekStartIso: '2026-11-01', score: 95 }
       ];
       logs = [
-        { id: 'log_w_1', text: 'Guest Study Log W', timestamp: Date.now() }
+        { id: 'log_w_1', text: 'Guest Study Log W', timestamp: 1730000000000 }
       ];
       completedAcademyModules = ['mod_w1', 'mod_w2'];
       cloudMediaRegistry = { 'lec_w_1': { pdfUploaded: true, ownerUid: 'local' } };
@@ -2740,22 +2740,41 @@ async function main() {
     await page.waitForTimeout(500);
 
     // 3. Confirm that original quarantine remains accessible after Reload #1
+    // And verify that after removing active LocalStorage keys, in-memory values, and live IDB annotations,
+    // restoreUnverifiedGuestWorkspace reconstructs all categories from quarantine with exact match.
     const resW2 = await page.evaluate(async (qId) => {
       const snap = JSON.parse(localStorage.getItem('pharmaGuestQuarantine_' + qId) || 'null');
       const manifest = JSON.parse(localStorage.getItem('pharmaGuestQuarantine_manifest') || '[]');
 
-      // Wipe active workspace memory and local storage to simulate fresh state
-      subjects = [];
-      scheduleEvents = [];
-      scheduleBacklog = [];
-      logs = [];
-      completedAcademyModules = [];
-      localStorage.removeItem('pharmaWorkspaceDirty');
+      // 1. Remove active workspace LocalStorage keys
+      localStorage.removeItem('pharmaSubjectsV4');
+      localStorage.removeItem('pharmaScheduleV4');
+      localStorage.removeItem('pharmaScheduleBacklogV1');
+      localStorage.removeItem('pharmaWeeklyReportsV1');
+      localStorage.removeItem('pharmaPlannerPrefsV1');
+      localStorage.removeItem('pharmaLogsV4');
+      localStorage.removeItem('pharmaAcademyProgressV1');
+      localStorage.removeItem('pharmaCloudMediaRegistryV1');
+
+      // 2. Remove live guest tombstone, conflict-recovery, and device-registry keys
       localStorage.removeItem('pharmaTombstones_local');
       localStorage.removeItem('pharmaConflictRecovery_local');
       localStorage.removeItem('pharmaDeviceRegistry_local');
+      localStorage.removeItem('pharmaWorkspaceDirty');
 
-      // Also delete the live annotations from IndexedDB
+      // 3. Clear corresponding in-memory values
+      subjects = [];
+      scheduleEvents = [];
+      scheduleBacklog = [];
+      plannerPrefs = {};
+      weeklyReports = [];
+      logs = [];
+      completedAcademyModules = [];
+      cloudMediaRegistry = {};
+      inMemoryAnnotationsCache = {};
+      pendingAnnoSaveMap = {};
+
+      // 4. Delete the original live annotation records from IndexedDB
       if (!dbInstance) await initPdfDB();
       await new Promise((resolve) => {
         const tx = dbInstance.transaction('annotations', 'readwrite');
@@ -2788,21 +2807,34 @@ async function main() {
         };
       });
 
+      const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+      const expectedSubjects = [{ id: 9901, name: 'Guest Pharmacotherapy W', _updatedAt: 1000, groups: [] }];
+      const expectedEvents = [{ id: 9902, title: 'Guest Clinical Session W', day: 1, startHour: 8, duration: 2, subjectId: 9901 }];
+      const expectedBacklog = [{ id: 9903, title: 'Guest Task W' }];
+      const expectedPlannerPrefs = { weekStartDay: 6, dayStartHour: 7, dayEndHour: 22, autoCompletePct: 80, currentWeekStartIso: '2026-11-01' };
+      const expectedReports = [{ id: 'rep_w_1', weekStartIso: '2026-11-01', score: 95 }];
+      const expectedLogs = [{ id: 'log_w_1', text: 'Guest Study Log W', timestamp: 1730000000000 }];
+      const expectedAcademy = ['mod_w1', 'mod_w2'];
+      const expectedMediaReg = { 'lec_w_1': { pdfUploaded: true, ownerUid: 'local' } };
+
       return {
         snapAccessible: Boolean(snap && snap.quarantineId === qId),
         manifestHasEntry: manifest.some(m => m.quarantineId === qId),
         restoreRes,
-        restoredSubjectsCount: subjects.length,
-        hasSubject9901: subjects.some(s => s.id === 9901),
-        hasEvent9902: scheduleEvents.some(e => e.id === 9902),
-        hasBacklog9903: scheduleBacklog.some(b => b.id === 9903),
-        hasLog1: logs.some(l => l.id === 'log_w_1'),
-        hasAcademyMod: completedAcademyModules.includes('mod_w1'),
-        hasStones: Boolean(restoredStones?.subjects?.['sub_del_w']),
-        hasRecovery: Boolean(restoredRecovery?.some(r => r.recoveryId === 'rec_w_1')),
-        hasDevReg: Boolean(restoredDevReg?.['dev_w_test']),
-        hasAnno1: Boolean(idbAnnos.anno1?.pages?.['1']),
-        hasAnno2: Boolean(idbAnnos.anno2?.pages?.['1']),
+        matchSubjects: eq(subjects, expectedSubjects),
+        matchEvents: eq(scheduleEvents, expectedEvents),
+        matchBacklog: eq(scheduleBacklog, expectedBacklog),
+        matchPlannerPrefs: eq(plannerPrefs, expectedPlannerPrefs),
+        matchReports: eq(weeklyReports, expectedReports),
+        matchLogs: eq(logs, expectedLogs),
+        matchAcademy: eq(completedAcademyModules, expectedAcademy),
+        matchMediaReg: eq(cloudMediaRegistry, expectedMediaReg),
+        matchStones: restoredStones?.subjects?.['sub_del_w']?.id === 'sub_del_w' && restoredStones?.subjects?.['sub_del_w']?.operationId === 'op_del_w1',
+        matchRecovery: restoredRecovery?.some(r => r.recoveryId === 'rec_w_1' && r.scopeId === 'scope_w1'),
+        matchDevReg: restoredDevReg?.['dev_w_test']?.deviceId === 'dev_w_test' && restoredDevReg?.['dev_w_test']?.lastActorId === 'act_w1',
+        matchAnno1: idbAnnos.anno1?.pages?.['1']?.[0]?.id === 'strk_w1' && idbAnnos.anno1?.pages?.['1']?.[0]?.color === '#00ff00',
+        matchAnno2: idbAnnos.anno2?.pages?.['1']?.[0]?.id === 'strk_w2' && idbAnnos.anno2?.pages?.['1']?.[0]?.tool === 'highlighter',
         isDirty: localStorage.getItem('pharmaWorkspaceDirty') === '1'
       };
     }, targetQId);
@@ -2812,29 +2844,39 @@ async function main() {
       resW2.manifestHasEntry === true &&
       resW2.restoreRes?.ok === true &&
       resW2.restoreRes?.restored === true &&
-      resW2.hasSubject9901 === true &&
-      resW2.hasEvent9902 === true &&
-      resW2.hasBacklog9903 === true &&
-      resW2.hasLog1 === true &&
-      resW2.hasAcademyMod === true &&
-      resW2.hasStones === true &&
-      resW2.hasRecovery === true &&
-      resW2.hasDevReg === true &&
-      resW2.hasAnno1 === true &&
-      resW2.hasAnno2 === true &&
+      resW2.matchSubjects === true &&
+      resW2.matchEvents === true &&
+      resW2.matchBacklog === true &&
+      resW2.matchPlannerPrefs === true &&
+      resW2.matchReports === true &&
+      resW2.matchLogs === true &&
+      resW2.matchAcademy === true &&
+      resW2.matchMediaReg === true &&
+      resW2.matchStones === true &&
+      resW2.matchRecovery === true &&
+      resW2.matchDevReg === true &&
+      resW2.matchAnno1 === true &&
+      resW2.matchAnno2 === true &&
       resW2.isDirty === true,
-      'Test W.2 (M5-A.2.1): After Reload #1, quarantine remains accessible, restoreUnverifiedGuestWorkspace restores all 8 categories, tombstones, conflict recovery, device registry, and IndexedDB annotations with read-back verification'
+      'Test W.2 (M5-A.2.1): After Reload #1, quarantine remains accessible, restoreUnverifiedGuestWorkspace restores all 8 categories, tombstones, conflict recovery, device registry, and IndexedDB annotations with exact content verification',
+      JSON.stringify(resW2)
     );
 
     // 4. Perform Real Browser Reload #2
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(500);
 
-    // 5. Verify restored data survives Reload #2
+    // 5. Verify restored data survives Reload #2 with exact category matching
     const resW3 = await page.evaluate(async (qId) => {
       if (!dbInstance) await initPdfDB();
       const subs = JSON.parse(localStorage.getItem('pharmaSubjectsV4') || '[]');
       const sched = JSON.parse(localStorage.getItem('pharmaScheduleV4') || '{}');
+      const backlog = JSON.parse(localStorage.getItem('pharmaScheduleBacklogV1') || '[]');
+      const prefs = JSON.parse(localStorage.getItem('pharmaPlannerPrefsV1') || '{}');
+      const reports = JSON.parse(localStorage.getItem('pharmaWeeklyReportsV1') || '[]');
+      const logsStorage = JSON.parse(localStorage.getItem('pharmaLogsV4') || '[]');
+      const academy = JSON.parse(localStorage.getItem('pharmaAcademyProgressV1') || '[]');
+      const mediaReg = JSON.parse(localStorage.getItem('pharmaCloudMediaRegistryV1') || '{}');
       const stones = getLocalTombstones('local');
       const recs = getConflictRecoveryRecords('local');
       const devReg = getLocalDeviceRegistry('local');
@@ -2854,52 +2896,94 @@ async function main() {
         };
       });
 
+      const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+      const expectedSubjects = [{ id: 9901, name: 'Guest Pharmacotherapy W', _updatedAt: 1000, groups: [] }];
+      const expectedPlannerPrefs = { weekStartDay: 6, dayStartHour: 7, dayEndHour: 22, autoCompletePct: 80, currentWeekStartIso: '2026-11-01' };
+      const expectedAcademy = ['mod_w1', 'mod_w2'];
+      const expectedMediaReg = { 'lec_w_1': { pdfUploaded: true, ownerUid: 'local' } };
+
       return {
-        hasSub: subs.some(s => s.id === 9901),
-        hasEvt: sched.events?.some(e => e.id === 9902),
-        hasStones: Boolean(stones?.subjects?.['sub_del_w']),
-        hasRecs: Boolean(recs?.some(r => r.recoveryId === 'rec_w_1')),
-        hasDevReg: Boolean(devReg?.['dev_w_test']),
-        hasAnno1: Boolean(idbAnnos.anno1?.pages?.['1']),
-        hasAnno2: Boolean(idbAnnos.anno2?.pages?.['1']),
+        matchSubs: eq(subs, expectedSubjects),
+        matchEvents: sched.events?.[0]?.id === 9902 && sched.events?.[0]?.title === 'Guest Clinical Session W' && sched.events?.[0]?.subjectId === 9901,
+        matchBacklog: backlog?.[0]?.id === 9903 && backlog?.[0]?.title === 'Guest Task W',
+        matchPrefs: eq(prefs, expectedPlannerPrefs),
+        matchReports: reports?.[0]?.id === 'rep_w_1' && reports?.[0]?.weekStartIso === '2026-11-01' && reports?.[0]?.score === 95,
+        matchLogs: logsStorage?.some(l => l.id === 'log_w_1' && l.text === 'Guest Study Log W' && l.timestamp === 1730000000000),
+        matchAcademy: eq(academy, expectedAcademy),
+        matchMediaReg: eq(mediaReg, expectedMediaReg),
+        matchStones: stones?.subjects?.['sub_del_w']?.id === 'sub_del_w' && stones?.subjects?.['sub_del_w']?.operationId === 'op_del_w1',
+        matchRecs: recs?.some(r => r.recoveryId === 'rec_w_1' && r.scopeId === 'scope_w1'),
+        matchDevReg: devReg?.['dev_w_test']?.deviceId === 'dev_w_test' && devReg?.['dev_w_test']?.lastActorId === 'act_w1',
+        matchAnno1: idbAnnos.anno1?.pages?.['1']?.[0]?.id === 'strk_w1' && idbAnnos.anno1?.pages?.['1']?.[0]?.color === '#00ff00',
+        matchAnno2: idbAnnos.anno2?.pages?.['1']?.[0]?.id === 'strk_w2' && idbAnnos.anno2?.pages?.['1']?.[0]?.tool === 'highlighter',
         isDirty: localStorage.getItem('pharmaWorkspaceDirty') === '1'
       };
     }, targetQId);
 
     assert(
-      resW3.hasSub === true &&
-      resW3.hasEvt === true &&
-      resW3.hasStones === true &&
-      resW3.hasRecs === true &&
-      resW3.hasDevReg === true &&
-      resW3.hasAnno1 === true &&
-      resW3.hasAnno2 === true &&
+      resW3.matchSubs === true &&
+      resW3.matchEvents === true &&
+      resW3.matchBacklog === true &&
+      resW3.matchPrefs === true &&
+      resW3.matchReports === true &&
+      resW3.matchLogs === true &&
+      resW3.matchAcademy === true &&
+      resW3.matchMediaReg === true &&
+      resW3.matchStones === true &&
+      resW3.matchRecs === true &&
+      resW3.matchDevReg === true &&
+      resW3.matchAnno1 === true &&
+      resW3.matchAnno2 === true &&
       resW3.isDirty === true,
-      'Test W.3 (M5-A.2.1): After Reload #2, all restored workspace data, canonical tombstones, conflict recovery, device registry, and IndexedDB annotations remain intact and consistent'
+      'Test W.3 (M5-A.2.1): After Reload #2, all restored workspace data, canonical tombstones, conflict recovery, device registry, and IndexedDB annotations remain intact and consistent with exact content match',
+      JSON.stringify(resW3)
     );
 
     // 6. Failure injection tests in real Chromium
     const resW4 = await page.evaluate(async () => {
-      // Missing vault record
-      const badQId = 'q_bad_' + Date.now();
-      localStorage.setItem('pharmaGuestQuarantine_' + badQId, JSON.stringify({
-        quarantineId: badQId,
-        annotationsVaultKey: 'nonexistent_vault_' + badQId,
+      // 6a: Missing manifest entry
+      const badQId1 = 'q_bad_nomanifest_' + Date.now();
+      localStorage.setItem('pharmaGuestQuarantine_' + badQId1, JSON.stringify({
+        quarantineId: badQId1,
+        annotationsVaultKey: 'vault_' + badQId1,
         annotationsCount: 1
       }));
-      const missingVaultRes = await restoreUnverifiedGuestWorkspace(badQId);
+      const missingManifestRes = await restoreUnverifiedGuestWorkspace(badQId1);
+
+      // 6b: Missing vault record
+      const badQId2 = 'q_bad_novault_' + Date.now();
+      localStorage.setItem('pharmaGuestQuarantine_' + badQId2, JSON.stringify({
+        quarantineId: badQId2,
+        annotationsVaultKey: 'nonexistent_vault_' + badQId2,
+        annotationsCount: 1
+      }));
+      const existingManifest = JSON.parse(localStorage.getItem('pharmaGuestQuarantine_manifest') || '[]');
+      existingManifest.unshift({
+        quarantineId: badQId2,
+        annotationsVaultKey: 'nonexistent_vault_' + badQId2,
+        annotationsCount: 1,
+        counts: { annotations: 1 }
+      });
+      localStorage.setItem('pharmaGuestQuarantine_manifest', JSON.stringify(existingManifest));
+      const missingVaultRes = await restoreUnverifiedGuestWorkspace(badQId2);
 
       return {
+        missingManifestRes,
         missingVaultRes
       };
     });
 
     assert(
+      resW4.missingManifestRes &&
+      resW4.missingManifestRes.ok === false &&
+      resW4.missingManifestRes.reason === 'missing_manifest_entry' &&
       resW4.missingVaultRes &&
       resW4.missingVaultRes.ok === false &&
       resW4.missingVaultRes.restored === false &&
       resW4.missingVaultRes.reason === 'missing_annotation_vault_record',
-      'Test W.4 (M5-A.2.1): In real Chromium, restoreUnverifiedGuestWorkspace aborts with missing_annotation_vault_record when expected vault record is absent'
+      'Test W.4 (M5-A.2.1): In real Chromium, restoreUnverifiedGuestWorkspace rejects missing manifest entry and aborts with missing_annotation_vault_record when vault record is absent',
+      JSON.stringify(resW4)
     );
 
     await context.close();

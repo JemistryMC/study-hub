@@ -9,17 +9,19 @@
 
 - فرع العمل النشط: `main`.
 - خط الأساس المثبت لبداية المهمة الحالية (Required Starting Baseline HEAD):  
-  `041a6476e0d77b6812ea3a519576dfd326cc44a8` (Commit البداية لـ M5-A.2.1 بعد نجاح تشغيل CI Run #27).
-- Commit السابق لـ M5-A.1 المعتمد عبر CI:  
-  `e16943d176a851561275d75e28a5f73ce9ec4fc9` (GitHub Actions Run #25: 448/448 PASSED).
-- الملفات المعدلة ضمن النطاق المصرح به لمهمة M5-A.2.1:
+  `fea9c96b35193355253458de1128d61349cf28e7` (Commit البداية لـ M5-A.2.1 Final Acceptance Patch بعد نجاح CI Run #28: 459/459).
+- تشغيلات CI السابقة المعتمدة:
+  - M5-A.1: GitHub Actions Run #25 (Run ID: `42105196599`, Source SHA: `e16943d176a851561275d75e28a5f73ce9ec4fc9`) — **448/448 PASSED**.
+  - M5-A.2: GitHub Actions Run #27 (Source SHA: `041a6476e0d77b6812ea3a519576dfd326cc44a8`) — **450/450 PASSED**.
+  - M5-A.2.1 (Baseline): GitHub Actions Run #28 (Source SHA: `fea9c96b35193355253458de1128d61349cf28e7`) — **459/459 PASSED, CI SUCCESS**.
+- الملفات المعدلة ضمن النطاق المصرح به لمهمة M5-A.2.1 Final Acceptance Patch:
   - `index.html`
   - `test_phase4_regressions.js`
   - `test_phase4_1_chromium_e2e.js`
   - `reports/CURRENT.md`
-- لم يُعدّل ملف `test_phase3_cross_account_isolation.js` لعدم وجود عيوب فيه واجتيازه التام 52/52 في Run #27 ومحليًا.
+- لم يُعدّل ملف `test_phase3_cross_account_isolation.js` لعدم وجود عيوب فيه واجتيازه التام 52/52 في كافة التشغيلات.
 - لم يُعد إنشاء الملف المحذوف سابقًا `_temp_test_debug.js`.
-- لا تعتبر التعديلات المحلية الحالية لـ Milestone M5-A.2.1 مرفوعة إلى GitHub حتى يراجعها المالك ويزامنها ويتحقق من الـCommit SHA الجديد على GitHub.
+- لا تعتبر التعديلات المحلية الحالية لـ Milestone M5-A.2.1 Final Acceptance Patch مرفوعة إلى GitHub حتى يراجعها المالك ويزامنها ويتحقق من الـCommit SHA الجديد على GitHub.
 
 الفروع المرجعية:
 - `Deploying`: مرجع تاريخي لخط أساس سابق، وليس فرع العمل الحالي.
@@ -27,32 +29,38 @@
 
 ## 2. نتائج الاختبار المثبتة
 
-### 2.1 تشغيل CI المثبت لـ M5-A.2 (Run #27)
-- GitHub Actions Run #27
-- Source SHA: `041a6476e0d77b6812ea3a519576dfd326cc44a8`
-- النتيجة المثبتة في CI: **450/450 PASSED (0 failed)** بنسبة نجاح 100%.
+### 2.1 تشغيل CI المثبت لـ M5-A.2.1 Baseline (Run #28)
+- GitHub Actions Run #28
+- Source SHA: `fea9c96b35193355253458de1128d61349cf28e7`
+- النتيجة المثبتة في CI: **459/459 PASSED (0 failed)** بنسبة نجاح 100%.
 - الحالة: **CI VERIFIED — NOT APPROVED**.
 
-### 2.2 تشغيل CI المثبت لـ M5-A.1 (Run #25)
+### 2.2 تشغيل CI المثبت لـ M5-A.2 (Run #27)
+- GitHub Actions Run #27
+- Source SHA: `041a6476e0d77b6812ea3a519576dfd326cc44a8`
+- النتيجة المثبتة في CI: **450/450 PASSED (0 failed)**.
+- الحالة: **CI VERIFIED — NOT APPROVED**.
+
+### 2.3 تشغيل CI المثبت لـ M5-A.1 (Run #25)
 - GitHub Actions Run #25: `42105196599`
 - Run URL: `https://github.com/JemistryMC/study-hub/actions/runs/42105196599`
 - Source SHA: `e16943d176a851561275d75e28a5f73ce9ec4fc9`
 - النتيجة المثبتة في CI: **448/448 PASSED (0 failed)**.
 - الحالة: **CI VERIFIED — NOT APPROVED**.
 
-### 2.3 نتائج الاختبارات المحلية لتعديلات Milestone M5-A.2.1 الحالية
-- Base SHA: `041a6476e0d77b6812ea3a519576dfd326cc44a8`.
+### 2.4 نتائج الاختبارات المحلية لتعديلات M5-A.2.1 Final Acceptance Patch الحالية
+- Base SHA: `fea9c96b35193355253458de1128d61349cf28e7`.
 - `npm run lint`: **PASSED** (Syntax check لجميع ملفات الخادم والبناء والاختبارات دون أخطاء).
 - `npm run build`: **PASSED**.
 - `npm run test:static` (`run_verification_tests.js`): **54/54 PASSED**.
-- `npm run test:unit`: **197/197 PASSED** موزعة كالتالي:
+- `npm run test:unit`: **201/201 PASSED** موزعة كالتالي:
   - `run_comprehensive_verification.js`: **42/42 PASSED**.
   - `test_phase3_cross_account_isolation.js`: **52/52 PASSED**.
-  - `test_phase4_regressions.js`: **103/103 PASSED** (شاملة الفحوصات الجديدة لـ M5-A.2.1: `T-5.1-09-C1`, `T-5.1-09-J1` إلى `J4`).
+  - `test_phase4_regressions.js`: **107/107 PASSED** (شاملة الفحوصات الثمانية لـ Test J: `T-5.1-09-J1` إلى `J8`).
 - `npm run test:pglite` (`test_phase4_2_postgres_integration.js`): **41/41 PASSED**.
-- `npm run test:e2e` (`test_phase4_1_chromium_e2e.js`): **71/71 PASSED** (شاملة السيناريوهات الكاملة A–V والسيناريو الجديد W المعتمد على عمليتي reload حقيقيتين واختبارات حقن الفشل: `Test W.1` إلى `Test W.4`).
-- `npm run test:pg16` (`test_phase4_2_1_pg16_concurrency.js`): **NOT RUN LOCALLY** (يتطلب خادم PostgreSQL 16 مخصص على المنفذ `5432`؛ يُشغّل في GitHub Actions CI متوقعًا 96 فحصًا إضافيًا بإجمالي 459).
-- إجمالي الفحوصات المنفذة محليًا: **363/363 PASSED (0 failed)**.
+- `npm run test:e2e` (`test_phase4_1_chromium_e2e.js`): **71/71 PASSED** (شاملة السيناريوهات الكاملة A–V والسيناريو W المعزز مع مسح المخزن الفعال والتحقق التام من الفئات الـ12 بعد Reload #1 وReload #2).
+- `npm run test:pg16` (`test_phase4_2_1_pg16_concurrency.js`): **NOT RUN LOCALLY** (يتطلب خادم PostgreSQL 16 مخصص على المنفذ `5432`؛ يُشغّل في GitHub Actions CI متوقعًا 96 فحصًا إضافيًا بإجمالي 463).
+- إجمالي الفحوصات المنفذة محليًا: **367/367 PASSED (0 failed)**.
 
 ## 3. العمل المنجز والمرجع التاريخي
 
@@ -75,34 +83,45 @@ Commit: `041a6476e0d77b6812ea3a519576dfd326cc44a8`
 GitHub Actions Run #27: `450/450 PASSED`  
 الحالة: **CI VERIFIED — NOT APPROVED**.
 
+### Milestone M5-A.2.1 — Baseline CI Verification
+Commit: `fea9c96b35193355253458de1128d61349cf28e7`  
+GitHub Actions Run #28: `459/459 PASSED, CI SUCCESS`  
+الحالة: **CI VERIFIED — NOT APPROVED**.
+
 ## 4. المرحلة النشطة
 
-# Milestone M5-A.2.1 — Final Durable Guest Recovery Completion
+# Milestone M5-A.2.1 — Final Acceptance Patch
 
 **Status: IMPLEMENTED — LOCAL TESTS ONLY (IN PROGRESS — NOT APPROVED)**
 
-- مسار العمل الحالي: **M5-A.2.1 (إكمال متانة وصدقية عزل واستعادة مساحة عمل الضيف، التحقق الإيجابي من IndexedDB، واستعادة شواهد القبور وسجلات التعافي وسجل الأجهزة إلى مخازنها القياسية)**.
+- مسار العمل الحالي: **M5-A.2.1 Final Acceptance Patch (سلامة البيان الموثق Manifest Integrity، التحقق الإيجابي الإلزامي من IndexedDB، واختبار Chromium المعزز عبر عمليتي Reload مع مسح المخزن الفعال والتحقق التام من الفئات الـ12)**.
 - مسار العمل القادم: **Milestone M5 Workstream B (F-05 Annotation Decoupling & N-02 Version-Counter Redesign)**.
 - **حدود الاعتماد:** لا يُعتبر Milestone M5 مكتملاً حتى يكتمل كلا مساري العمل (M5-A ومسار M5-B) ويجتازا المراجعة المستقلة وCI.
 
-### التصحيحات المنفذة في M5-A.2.1:
+### التصحيحات المنفذة في Final Acceptance Patch:
 
-1. **تصحيح العزل الإيجابي في IndexedDB (Correction A):**
-   - في `preserveUnverifiedGuestWorkspace`: إلزامية وجود `dbInstance` والمخازن `annotations` و`annotation_recovery_vault` عند الحاجة لحفظ الحواشي أو التحقق من وجودها.
-   - قراءة الحواشي الملتزمة وحواشي الخزنة غير الملتزمة الخاصة بـ `local` والحواشي غير الملتزمة في الذاكرة مع العزل الصارم ضد بيانات أي حساب مصادق آخر.
-   - كتابة سجل العزل في `annotation_recovery_vault` وانتظار اكتمال المعاملة `tx.oncomplete` وقراءة السجل فورًا للتأكد من تطابق العدد والمحتوى؛ وفي حال فشل المعاملة أو تعذر القراءة الإيجابية يتم الإجهاض برمز `quarantine_persistence_failed` دون ادعاء نجاح كاذب ودون إتلاف البيانات المتسخة المحلية.
+1. **سلامة وتماسك البيان الموثق Manifest Integrity:**
+   - إيقاف الاقتطاع الصامت للبيان الموثق إلى 50 مدخلة في `preserveUnverifiedGuestWorkspace` والحفاظ على كافة المدخلات الصالحة القائمة دون بتر.
+   - التحقق الصارم من مدخلة البيان الموثق المطابقة لـ `quarantineId` في `restoreUnverifiedGuestWorkspace`، والتحقق التام من مطابقة معرّف العزل، وعدد الحواشي المتوقع، ومفتاح الخزنة `annotationsVaultKey`.
+   - رفض المدخلات المفقودة أو غير المتطابقة أو الفاسدة fail-closed برمز `missing_manifest_entry` أو `manifest_verification_mismatch`.
+   - التحقق الإيجابي من نجاح حفظ اللقطة والبيان الموثق في LocalStorage عبر القراءة المباشرة قبل إعلان النجاح.
+   - إضافة اختبار حقن الفشل لفشل حفظ البيان الموثق في LocalStorage (`T-5.1-09-J5`) مع التأكد من بقاء لقطات العزل السابقة قابلة للاستعادة دون إتلافها.
 
-2. **استعادة البيانات إلى مخازنها القياسية الحقيقية (Correction B):**
-   - في `restoreUnverifiedGuestWorkspace`: استعادة شواهد القبور السببية `_tombstones` إلى المفتاح القياسي `pharmaTombstones_local` مع التطبيع الكامل، دون اختراع دوال وهمية.
-   - استعادة سجلات التعافي من النزاع `_conflictRecovery` إلى `pharmaConflictRecovery_local`.
-   - استعادة سجل الأجهزة `_deviceRegistry` إلى `pharmaDeviceRegistry_local` مع دمج السجلات القائمة وعدم نسبها للمستخدم المصادق.
+2. **التحقق الإيجابي الإلزامي من جاهزية IndexedDB:**
+   - فتح وتهيئة قاعدة IndexedDB عبر المسار الحقيقي للتطبيق `initPdfDB()` عند عدم توفر `dbInstance`.
+   - إلزامية توفر المخزنين `annotations` و`annotation_recovery_vault` وفحص السجلات الملتزمة وسجلات التعافي قبل البت في أن الضيف يملك 0 حواشٍ.
+   - إذا تعذر فتح أو قراءة قاعدة البيانات، يتم الإجهاض الصارم fail-closed برمز `quarantine_persistence_failed`، ولا يُستنتج أبدًا خلو الحواشي من قاعدة بيانات غير متاحة.
+   - إضافة فحوصات:
+     - قاعدة البيانات غير متاحة مع وجود حواشٍ معلقة (`T-5.1-09-J1`).
+     - قاعدة البيانات غير متاحة مع عدم وجود حواشٍ معلقة (`T-5.1-09-J2`).
+     - التحقق الناجح من خلو المخازن الحقيقي (`T-5.1-09-J3`).
+     - الحفاظ على الحواشي الملتزمة والتحقق الإيجابي منها في الخزنة (`T-5.1-09-J4`).
 
-3. **التحقق من استعادة الحواشي قبل إعلان النجاح (Correction C):**
-   - التحقق من البيان الموثق (manifest entry) ووجود سجل الخزنة ومطابقة عدد الحواشي المتوقع.
-   - كتابة الحواشي إلى مخزن `annotations` مع انتظار اكتمال المعاملة `tx.oncomplete` وقراءة الحواشي المستعادة للتأكد من هويتها وتطابقها؛ وإذا تعذر أي فحص يتم الإجهاض الصريح مع الاحتفاظ بسجل العزل كاملاً للاستعادة لاحقاً دون ادعاء نجاح كاذب.
-
-4. **اختبارات Chromium E2E الحقيقية عبر عمليتي Reload (Correction D):**
-   - إضافة السيناريو `Test W` في `test_phase4_1_chromium_e2e.js`: إنشاء مساحة عمل غنية بالبيانات مع شواهد قبور وسجلات تعافي وسجل أجهزة وحواشي في IndexedDB، وتفعيل العزل، ثم إعادة تحميل الصفحة مرتين والتأكد من بقاء واستعادة كافة الفئات والحواشي وسجلات Causal Engine بنجاح 100%.
+3. **تعزيز سيناريو Chromium E2E (Scenario W) عبر عمليتي Reload:**
+   - مسح مفاتيح LocalStorage النشطة للفئات الثماني (المواد، الجدول، المهام، التفضيلات، التقارير، السجلات، الأكاديمية، سجل الوسائط) ومسح مفاتيح Causal Engine الفعالة (شواهد القبور، سجل التعافي، سجل الأجهزة، علامة dirty) وتفريغ الذاكرة وحذف الحواشي الحية من IndexedDB قبل بدء الاستعادة، مع الإبقاء الحصري على لقطة العزل والبيان وسجل الخزنة.
+   - بعد الاستعادة (Reload #1)، مطابقة كافة الفئات الـ12 بدقة ضد المحتوى الأصلي المتوقع.
+   - بعد إعادة التحميل الثانية (Reload #2)، مطابقة الفئات الـ12 مجددًا ضد المحتوى الأصلي، بما يثبت أن الاستعادة اعتمدت كليًا على لقطة العزل وسجل الخزنة وليس على بيانات متبقية في LocalStorage.
+   - إضافة فحوصات حقن الفشل في Chromium الحقيقي (`Test W.4`) لرفض البيان المفقود وغياب سجل الخزنة fail-closed.
 
 ### الملفات الأربعة الوحيدة المعدلة ضمن النطاق المصرح به:
 1. `index.html`
@@ -127,11 +146,11 @@ GitHub Actions Run #27: `450/450 PASSED`
 - العمود: `can_upload_media`
 - المالك يغيّر القيمة يدويًا بين FALSE وTRUE لمنح أو إلغاء استحقاق رفع الوسائط ومزامنة Google Drive.
 
-## 6. خطوات العمل بعد M5-A.2.1
+## 6. خطوات العمل بعد M5-A.2.1 Final Acceptance Patch
 
-1. مراجعة مستقلة لتعديلات M5-A.2.1 في الملفات الأربعة المصرح بها.
-2. قرار المالك بشأن مزامنة GitHub وتشغيل GitHub Actions CI (Run #28 متوقع).
-3. بعد اعتماد M5-A، الانتقال إلى **Milestone M5 Workstream B (F-05 & N-02)**.
+1. مراجعة مستقلة لتعديلات Final Acceptance Patch في الملفات الأربعة المصرح بها.
+2. قرار المالك بشأن مزامنة GitHub وتشغيل GitHub Actions CI (متوقع نجاح 463 فحصًا).
+3. بعد اعتماد M5-A وتجميدها، الانتقال مباشرة إلى **Milestone M5 Workstream B (F-05 & N-02)**.
 4. لا تنفذ M5-B تلقائيًا.
 
 ## 7. دورة المراجعة والمزامنة
@@ -143,4 +162,3 @@ GitHub Actions Run #27: `450/450 PASSED`
 5. المالك وحده يقرر GitHub Sync.
 6. بعد ظهور Commit على GitHub نتحقق من SHA والملفات والـDiff.
 7. لا تعتبر المهمة APPROVED إلا بعد مراجعة مستقلة وقرار المالك.
-

@@ -253,6 +253,7 @@ function updateCloudNavUI() {}
 function updateGoogleDriveUI() {}
 async function refreshLocalMediaCache() {}
 async function reconcileCloudMediaWithStorageBucket() {}
+async function initPdfDB() { return dbInstance; }
 
 const CAUSAL_SCHEMA_VERSION = 1;
 const CAUSAL_TOMBSTONE_ENTITY_TYPES = [
@@ -403,6 +404,7 @@ module.exports = {
     if (st.activeSubjectId !== undefined) activeSubjectId = st.activeSubjectId;
     if (st.dirtyAnnotationsForCloud !== undefined) dirtyAnnotationsForCloud = Boolean(st.dirtyAnnotationsForCloud);
     if (st.pendingAnnoSaveMap !== undefined) pendingAnnoSaveMap = st.pendingAnnoSaveMap;
+    if (st.inMemoryAnnotationsCache !== undefined) inMemoryAnnotationsCache = st.inMemoryAnnotationsCache;
   },
   getRuntimeState: () => ({
     subjects,
@@ -416,7 +418,8 @@ module.exports = {
     activeSubjectId,
     currentCloudWorkspaceRevision,
     dirtyAnnotationsForCloud,
-    pendingAnnoSaveMap
+    pendingAnnoSaveMap,
+    inMemoryAnnotationsCache
   }),
   saveSubjects,
   saveScheduleData,
@@ -3589,9 +3592,9 @@ async function main() {
     'T-5.1-09-I: Quarantine persistence failure (quota or IDB write error) aborts fail-closed, does not apply remote row or advance revision, and preserves original local dirty data in place'
   );
 
-  // --- Test J: M5-A.2.1 Failure Injection Tests (T-5.1-09-J1 to J4) ---
+  // --- Test J: M5-A.2.1 Failure Injection & Acceptance Tests (T-5.1-09-J1 to J8) ---
 
-  // J.1: Missing IndexedDB database / stores during quarantine when annotations must be preserved
+  // J.1: Database unavailable with pending annotations
   prod.setDbInstance(null);
   prod.setRuntimeState({
     pendingAnnoSaveMap: { 'usr_local::lec_fail_1': { '1': [{ id: 'strk_fail_1', tool: 'pen' }] } }
@@ -3602,14 +3605,110 @@ async function main() {
     qPreserveFailDb.ok === false &&
     qPreserveFailDb.quarantined === false &&
     qPreserveFailDb.reason === 'quarantine_persistence_failed',
-    'T-5.1-09-J1: preserveUnverifiedGuestWorkspace aborts with quarantine_persistence_failed when IndexedDB is unavailable and guest annotations must be preserved'
+    'T-5.1-09-J1: preserveUnverifiedGuestWorkspace aborts with quarantine_persistence_failed when IndexedDB is unavailable and guest has pending annotations'
   );
 
-  // Restore dbInstance
-  prod.setDbInstance(idb);
-  prod.setRuntimeState({ pendingAnnoSaveMap: {} });
+  // J.2: Database unavailable with no pending annotations (must fail-closed, never infer empty workspace)
+  prod.setRuntimeState({ pendingAnnoSaveMap: {}, inMemoryAnnotationsCache: {} });
+  const qPreserveFailDbNoPending = await prod.preserveUnverifiedGuestWorkspace('guest_fail_db_no_pending_test');
+  assert(
+    qPreserveFailDbNoPending &&
+    qPreserveFailDbNoPending.ok === false &&
+    qPreserveFailDbNoPending.quarantined === false &&
+    qPreserveFailDbNoPending.reason === 'quarantine_persistence_failed',
+    'T-5.1-09-J2: preserveUnverifiedGuestWorkspace aborts with quarantine_persistence_failed when IndexedDB is unavailable even with zero pending annotations'
+  );
 
-  // J.2: Missing annotation vault record during restoration when annotations were expected
+  // J.3: Successfully verified genuinely empty annotation stores
+  prod.setDbInstance(idb);
+  idb.stores.annotations.clear();
+  idb.stores.annotation_recovery_vault.clear();
+  prod.setRuntimeState({ pendingAnnoSaveMap: {}, inMemoryAnnotationsCache: {} });
+  const qPreserveEmptyStores = await prod.preserveUnverifiedGuestWorkspace('guest_empty_stores_test');
+  const snapEmptyStores = JSON.parse(prod.localStorage.getItem('pharmaGuestQuarantine_' + qPreserveEmptyStores?.quarantineId) || 'null');
+  assert(
+    qPreserveEmptyStores &&
+    qPreserveEmptyStores.ok === true &&
+    qPreserveEmptyStores.quarantined === true &&
+    qPreserveEmptyStores.counts &&
+    qPreserveEmptyStores.counts.annotations === 0 &&
+    snapEmptyStores &&
+    snapEmptyStores.annotationsCount === 0 &&
+    snapEmptyStores.annotationsVaultKey === null,
+    'T-5.1-09-J3: preserveUnverifiedGuestWorkspace succeeds and records annotationsCount: 0 and annotationsVaultKey: null when annotation stores are verified genuinely empty',
+    JSON.stringify(qPreserveEmptyStores)
+  );
+
+  // J.4: Committed annotation records preserved successfully
+  idb.stores.annotations.set('usr_local::lec_j4', {
+    id: 'usr_local::lec_j4',
+    rawId: 'lec_j4',
+    userId: 'local',
+    pages: { '1': [{ id: 'strk_j4', tool: 'highlighter' }] }
+  });
+  const qPreserveWithAnnos = await prod.preserveUnverifiedGuestWorkspace('guest_with_annos_test');
+  const snapWithAnnos = JSON.parse(prod.localStorage.getItem('pharmaGuestQuarantine_' + qPreserveWithAnnos?.quarantineId) || 'null');
+  assert(
+    qPreserveWithAnnos &&
+    qPreserveWithAnnos.ok === true &&
+    qPreserveWithAnnos.quarantined === true &&
+    qPreserveWithAnnos.counts &&
+    qPreserveWithAnnos.counts.annotations === 1 &&
+    snapWithAnnos &&
+    snapWithAnnos.annotationsCount === 1 &&
+    snapWithAnnos.annotationsVaultKey &&
+    idb.stores.annotation_recovery_vault.has(snapWithAnnos.annotationsVaultKey),
+    'T-5.1-09-J4: preserveUnverifiedGuestWorkspace persists committed guest annotation records to annotation_recovery_vault and verifies read-back',
+    JSON.stringify(qPreserveWithAnnos)
+  );
+
+  // J.5: Manifest LocalStorage persistence failure preserves existing snapshots recoverable
+  const existingQId = qPreserveWithAnnos.quarantineId;
+  prod.setFailNextAccountSnapshotKey('pharmaGuestQuarantine_manifest');
+  const qPreserveManifestFail = await prod.preserveUnverifiedGuestWorkspace('guest_manifest_fail_test');
+  const existingSnapRecoverable = JSON.parse(prod.localStorage.getItem('pharmaGuestQuarantine_' + existingQId) || 'null');
+  assert(
+    qPreserveManifestFail &&
+    qPreserveManifestFail.ok === false &&
+    qPreserveManifestFail.quarantined === false &&
+    qPreserveManifestFail.reason === 'quarantine_persistence_failed' &&
+    existingSnapRecoverable &&
+    existingSnapRecoverable.quarantineId === existingQId,
+    'T-5.1-09-J5: Manifest LocalStorage persistence failure aborts fail-closed and keeps previously persisted quarantine snapshots intact and recoverable'
+  );
+
+  // J.6: restoreUnverifiedGuestWorkspace rejects missing, mismatched, or corrupted manifest entries
+  const snapMismatchId = 'guest_mismatch_q_' + Date.now();
+  prod.localStorage.setItem('pharmaGuestQuarantine_' + snapMismatchId, JSON.stringify({
+    quarantineId: snapMismatchId,
+    preservedAt: new Date().toISOString(),
+    reason: 'mismatch_test',
+    annotationsCount: 1,
+    annotationsVaultKey: 'vault_mismatch_key'
+  }));
+  // 1) Missing manifest entry
+  const resMissingManifestEntry = await prod.restoreUnverifiedGuestWorkspace(snapMismatchId);
+  // 2) Mismatched manifest entry
+  prod.localStorage.setItem('pharmaGuestQuarantine_manifest', JSON.stringify([
+    {
+      quarantineId: snapMismatchId,
+      annotationsCount: 99,
+      annotationsVaultKey: 'vault_mismatch_key',
+      counts: { annotations: 99 }
+    }
+  ]));
+  const resMismatchedManifestEntry = await prod.restoreUnverifiedGuestWorkspace(snapMismatchId);
+  assert(
+    resMissingManifestEntry &&
+    resMissingManifestEntry.ok === false &&
+    resMissingManifestEntry.reason === 'missing_manifest_entry' &&
+    resMismatchedManifestEntry &&
+    resMismatchedManifestEntry.ok === false &&
+    resMismatchedManifestEntry.reason === 'manifest_verification_mismatch',
+    'T-5.1-09-J6: restoreUnverifiedGuestWorkspace rejects missing, mismatched, or corrupted manifest entries'
+  );
+
+  // J.7: Missing annotation vault record during restoration when annotations were expected
   const fakeQuarantineId = 'guest_fake_q_' + Date.now();
   const fakeSnapshotWithAnnos = {
     quarantineId: fakeQuarantineId,
@@ -3620,17 +3719,24 @@ async function main() {
     annotationsCount: 2
   };
   prod.localStorage.setItem('pharmaGuestQuarantine_' + fakeQuarantineId, JSON.stringify(fakeSnapshotWithAnnos));
+  prod.localStorage.setItem('pharmaGuestQuarantine_manifest', JSON.stringify([
+    {
+      quarantineId: fakeQuarantineId,
+      annotationsVaultKey: 'nonexistent_vault_key_' + fakeQuarantineId,
+      annotationsCount: 2,
+      counts: { annotations: 2 }
+    }
+  ]));
   const restoreMissingVaultRes = await prod.restoreUnverifiedGuestWorkspace(fakeQuarantineId);
   assert(
     restoreMissingVaultRes &&
     restoreMissingVaultRes.ok === false &&
     restoreMissingVaultRes.restored === false &&
     restoreMissingVaultRes.reason === 'missing_annotation_vault_record',
-    'T-5.1-09-J2: restoreUnverifiedGuestWorkspace aborts with missing_annotation_vault_record when expected vault entry is absent'
+    'T-5.1-09-J7: restoreUnverifiedGuestWorkspace aborts with missing_annotation_vault_record when expected vault entry is absent'
   );
 
-  // J.3: IndexedDB write failure during restoration
-  // Create a real quarantine with 1 annotation in vault
+  // J.8: IndexedDB write failure during restoration & retry
   const qRealId = 'guest_real_q_' + Date.now();
   const qVaultKey = 'guest_quarantine_annotations_' + qRealId;
   await new Promise((resolve) => {
@@ -3640,7 +3746,7 @@ async function main() {
       quarantineId: qRealId,
       type: 'guest_quarantine_annotations',
       userId: 'local',
-      annotations: { 'lec_j3': { '1': [{ id: 'strk_j3' }] } },
+      annotations: { 'lec_j8': { '1': [{ id: 'strk_j8' }] } },
       annotationsCount: 1
     });
     tx.oncomplete = () => resolve(true);
@@ -3654,26 +3760,28 @@ async function main() {
     annotationsCount: 1
   };
   prod.localStorage.setItem('pharmaGuestQuarantine_' + qRealId, JSON.stringify(qRealSnapshot));
+  prod.localStorage.setItem('pharmaGuestQuarantine_manifest', JSON.stringify([
+    {
+      quarantineId: qRealId,
+      annotationsVaultKey: qVaultKey,
+      annotationsCount: 1,
+      counts: { annotations: 1 }
+    }
+  ]));
 
-  // Trigger write failure on next transaction
   idb.failNextTransaction = true;
   const restoreWriteFailRes = await prod.restoreUnverifiedGuestWorkspace(qRealId);
+  const restoreRetrySuccess = await prod.restoreUnverifiedGuestWorkspace(qRealId);
   assert(
     restoreWriteFailRes &&
     restoreWriteFailRes.ok === false &&
     restoreWriteFailRes.restored === false &&
-    restoreWriteFailRes.reason === 'annotation_restoration_failed',
-    'T-5.1-09-J3: restoreUnverifiedGuestWorkspace aborts with annotation_restoration_failed when IndexedDB write transaction fails'
-  );
-
-  // J.4: Successful retry after failure restores completely
-  const restoreRetrySuccess = await prod.restoreUnverifiedGuestWorkspace(qRealId);
-  assert(
+    restoreWriteFailRes.reason === 'annotation_restoration_failed' &&
     restoreRetrySuccess &&
     restoreRetrySuccess.ok === true &&
     restoreRetrySuccess.restored === true &&
     restoreRetrySuccess.counts.annotations === 1,
-    'T-5.1-09-J4: restoreUnverifiedGuestWorkspace retry succeeds after write failure clears, leaving original quarantine intact and recoverable'
+    'T-5.1-09-J8: restoreUnverifiedGuestWorkspace aborts on IDB write transaction failure, and subsequent retry succeeds leaving original quarantine intact'
   );
 
 
