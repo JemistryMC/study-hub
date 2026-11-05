@@ -77,6 +77,9 @@ class InMemoryIDBDatabase {
       pdfs: new Map(),
       audios: new Map()
     };
+    this.objectStoreNames = {
+      contains: (name) => Boolean(this.stores[name])
+    };
     this.failNextTransaction = false;
   }
 
@@ -347,6 +350,9 @@ ${extractFunctionSource(indexHtmlContent, 'isGoogleDriveConnected')}
 ${extractFunctionSource(indexHtmlContent, 'handleAuthSessionChange')}
 ${extractFunctionSource(indexHtmlContent, 'handleCloudSignOut')}
 ${extractFunctionSource(indexHtmlContent, 'pushWorkspaceToCloud')}
+${extractFunctionSource(indexHtmlContent, 'preserveUnverifiedGuestWorkspace')}
+${extractFunctionSource(indexHtmlContent, 'restoreUnverifiedGuestWorkspace')}
+${extractFunctionSource(indexHtmlContent, 'verifyLocalWorkspaceProvenance')}
 ${extractFunctionSource(indexHtmlContent, 'applyCloudWorkspacePayload')}
 ${extractFunctionSource(indexHtmlContent, 'syncWorkspaceOnLogin')}
 
@@ -428,6 +434,9 @@ module.exports = {
   isGoogleDriveConnected,
   handleAuthSessionChange,
   handleCloudSignOut,
+  preserveUnverifiedGuestWorkspace,
+  restoreUnverifiedGuestWorkspace,
+  verifyLocalWorkspaceProvenance,
   applyCloudWorkspacePayload,
   syncWorkspaceOnLogin,
   sanitizeForScopedKey,

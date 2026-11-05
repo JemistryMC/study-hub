@@ -34243,8 +34243,17 @@ function togglePdfAudioPlayerBar(forceState) {
             try {
                 const quarantineId = 'guest_quarantine_' + Date.now() + '_' + ((typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID().slice(0, 8) : Math.random().toString(36).substring(2, 9));
                 
-                // 1. Flush pending in-memory annotations for guest safely
-                if (typeof flushPendingAnnotationsSave === 'function') {
+                // 1. Flush pending in-memory annotations for guest safely (fail-closed)
+                const pendingKeys = (pendingAnnoSaveMap && typeof pendingAnnoSaveMap === 'object') ? Object.keys(pendingAnnoSaveMap) : [];
+                if (pendingKeys.length > 0) {
+                    if (typeof flushPendingAnnotationsSave !== 'function') {
+                        return {
+                            ok: false,
+                            quarantined: false,
+                            reason: 'quarantine_persistence_failed',
+                            error: new Error('FLUSH_PENDING_ANNOTATIONS_UNAVAILABLE')
+                        };
+                    }
                     const localCtx = Object.freeze({
                         ok: true,
                         error: null,
@@ -34255,10 +34264,20 @@ function togglePdfAudioPlayerBar(forceState) {
                         authorized: true,
                         isCurrent() { return true; }
                     });
+                    let flushOk = false;
                     try {
-                        await flushPendingAnnotationsSave(false, localCtx);
+                        const flushRes = await flushPendingAnnotationsSave(false, localCtx);
+                        flushOk = Boolean(flushRes === true || (flushRes && flushRes.ok === true && flushRes.status !== 'error'));
                     } catch (fErr) {
-                        console.warn('Non-fatal flush warning before guest quarantine:', fErr);
+                        flushOk = false;
+                    }
+                    if (!flushOk) {
+                        return {
+                            ok: false,
+                            quarantined: false,
+                            reason: 'quarantine_persistence_failed',
+                            error: new Error('PENDING_ANNOTATIONS_FLUSH_FAILED')
+                        };
                     }
                 }
 
@@ -34484,7 +34503,7 @@ function togglePdfAudioPlayerBar(forceState) {
                         const rawIds = Object.keys(annos);
                         restoredAnnotationsCount = rawIds.length;
                         if (rawIds.length > 0) {
-                            await new Promise((res) => {
+                            const annoWriteOk = await new Promise((res) => {
                                 try {
                                     const tx = dbInstance.transaction('annotations', 'readwrite');
                                     const store = tx.objectStore('annotations');
@@ -34506,6 +34525,14 @@ function togglePdfAudioPlayerBar(forceState) {
                                     res(false);
                                 }
                             });
+                            if (!annoWriteOk) {
+                                return {
+                                    ok: false,
+                                    restored: false,
+                                    reason: 'annotation_restoration_failed',
+                                    error: new Error('IDB_ANNOTATION_RESTORE_TX_FAILED')
+                                };
+                            }
                         }
                     }
                 }
