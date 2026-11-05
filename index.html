@@ -34238,10 +34238,111 @@ function togglePdfAudioPlayerBar(forceState) {
             return { ok: true, status: 'applied', userId: targetUid };
         }
 
-        // --- M5-A / M5-A.1: Provenance Verification & Unverified Guest Preservation Helpers ---
-        function preserveUnverifiedGuestWorkspace(reason = 'unverified_guest_provenance') {
+        // --- M5-A / M5-A.1 / M5-A.2: Genuine Guest Provenance Verification & Durable Quarantine Vault Helpers ---
+        async function preserveUnverifiedGuestWorkspace(reason = 'unverified_guest_provenance', opCtx = null) {
             try {
+                const quarantineId = 'guest_quarantine_' + Date.now() + '_' + ((typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID().slice(0, 8) : Math.random().toString(36).substring(2, 9));
+                
+                // 1. Flush pending in-memory annotations for guest safely
+                if (typeof flushPendingAnnotationsSave === 'function') {
+                    const localCtx = Object.freeze({
+                        ok: true,
+                        error: null,
+                        uid: 'local',
+                        sanitizedUid: 'local',
+                        generation: currentSessionGeneration,
+                        sessionEpoch: currentSessionGeneration,
+                        authorized: true,
+                        isCurrent() { return true; }
+                    });
+                    try {
+                        await flushPendingAnnotationsSave(false, localCtx);
+                    } catch (fErr) {
+                        console.warn('Non-fatal flush warning before guest quarantine:', fErr);
+                    }
+                }
+
+                // 2. Read all guest annotations (from IndexedDB & in-memory cache)
+                let guestAnnotations = {};
+                if (dbInstance && dbInstance.objectStoreNames.contains('annotations')) {
+                    const idbAnnos = await new Promise((resolve, reject) => {
+                        try {
+                            const tx = dbInstance.transaction('annotations', 'readonly');
+                            const store = tx.objectStore('annotations');
+                            const req = store.getAll();
+                            req.onsuccess = () => {
+                                const map = {};
+                                (req.result || []).forEach(item => {
+                                    if (!item || !item.pages || String(item.id).startsWith('_cloudMedia_')) return;
+                                    const keyStr = String(item.id);
+                                    const uid = item.userId ? String(item.userId) : extractUserIdFromScopedKey(keyStr);
+                                    if (uid === 'local' || uid === null || keyStr.startsWith('usr_local::')) {
+                                        const rawId = item.rawId || extractRawIdFromScopedKey(keyStr, 'local');
+                                        map[rawId] = item.pages;
+                                    }
+                                });
+                                resolve(map);
+                            };
+                            req.onerror = () => reject(req.error || new Error('IDB_READ_ERROR'));
+                        } catch (e) {
+                            reject(e);
+                        }
+                    });
+                    guestAnnotations = Object.assign({}, idbAnnos);
+                }
+                if (inMemoryAnnotationsCache && typeof inMemoryAnnotationsCache === 'object') {
+                    Object.keys(inMemoryAnnotationsCache).forEach(k => {
+                        const uid = extractUserIdFromScopedKey(k);
+                        if (uid === 'local' || uid === null || k.startsWith('usr_local::')) {
+                            const rawId = extractRawIdFromScopedKey(k, 'local');
+                            if (rawId && inMemoryAnnotationsCache[k]) {
+                                guestAnnotations[rawId] = inMemoryAnnotationsCache[k];
+                            }
+                        }
+                    });
+                }
+
+                // 3. Persist guest annotations safely to IndexedDB annotation_recovery_vault
+                const annotationsVaultKey = 'guest_quarantine_annotations_' + quarantineId;
+                if (dbInstance && dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
+                    const vaultWriteOk = await new Promise((resolve) => {
+                        try {
+                            const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+                            const store = tx.objectStore('annotation_recovery_vault');
+                            store.put({
+                                id: annotationsVaultKey,
+                                quarantineId: quarantineId,
+                                type: 'guest_quarantine_annotations',
+                                userId: 'local',
+                                annotations: guestAnnotations,
+                                createdAt: new Date().toISOString()
+                            });
+                            tx.oncomplete = () => resolve(true);
+                            tx.onerror = (err) => {
+                                console.error('Failed to write guest annotations to recovery vault:', tx.error || err);
+                                resolve(false);
+                            };
+                            tx.onabort = (err) => {
+                                console.error('Guest annotation recovery vault transaction aborted:', tx.error || err);
+                                resolve(false);
+                            };
+                        } catch (e) {
+                            console.error('Exception writing guest annotations to recovery vault:', e);
+                            resolve(false);
+                        }
+                    });
+                    if (!vaultWriteOk) {
+                        return {
+                            ok: false,
+                            quarantined: false,
+                            reason: 'quarantine_persistence_failed',
+                            error: new Error('IDB_VAULT_WRITE_FAILED')
+                        };
+                    }
+                }
+
                 const guestSnapshot = {
+                    quarantineId,
                     preservedAt: new Date().toISOString(),
                     reason: String(reason),
                     subjects: Array.isArray(subjects) ? JSON.parse(JSON.stringify(subjects)) : [],
@@ -34251,13 +34352,184 @@ function togglePdfAudioPlayerBar(forceState) {
                     weeklyReports: Array.isArray(weeklyReports) ? JSON.parse(JSON.stringify(weeklyReports)) : [],
                     logs: Array.isArray(logs) ? JSON.parse(JSON.stringify(logs)) : [],
                     academy_progress: Array.isArray(completedAcademyModules) ? completedAcademyModules.slice() : [],
+                    cloudMediaRegistry: (cloudMediaRegistry && typeof cloudMediaRegistry === 'object') ? JSON.parse(JSON.stringify(cloudMediaRegistry)) : {},
+                    _tombstones: (typeof getLocalTombstones === 'function') ? getLocalTombstones('local') : {},
+                    _conflictRecovery: (typeof getConflictRecoveryRecords === 'function') ? getConflictRecoveryRecords('local') : [],
+                    _deviceRegistry: (typeof getLocalDeviceRegistry === 'function') ? getLocalDeviceRegistry('local') : {},
+                    annotationsVaultKey,
+                    annotationsCount: Object.keys(guestAnnotations).length,
                     dirty: true
                 };
+
+                // Versioned manifest of quarantines
+                let manifest = [];
+                try {
+                    const rawManifest = localStorage.getItem('pharmaGuestQuarantine_manifest');
+                    if (rawManifest) {
+                        const parsed = JSON.parse(rawManifest);
+                        if (Array.isArray(parsed)) manifest = parsed;
+                    }
+                } catch (e) {}
+
+                const manifestEntry = {
+                    quarantineId,
+                    preservedAt: guestSnapshot.preservedAt,
+                    reason: guestSnapshot.reason,
+                    counts: {
+                        subjects: guestSnapshot.subjects.length,
+                        scheduleEvents: guestSnapshot.scheduleEvents.length,
+                        scheduleBacklog: guestSnapshot.scheduleBacklog.length,
+                        weeklyReports: guestSnapshot.weeklyReports.length,
+                        logs: guestSnapshot.logs.length,
+                        annotations: guestSnapshot.annotationsCount
+                    }
+                };
+                manifest.unshift(manifestEntry);
+                if (manifest.length > 50) manifest = manifest.slice(0, 50);
+
+                localStorage.setItem('pharmaGuestQuarantine_' + quarantineId, JSON.stringify(guestSnapshot));
+                localStorage.setItem('pharmaGuestQuarantine_manifest', JSON.stringify(manifest));
                 localStorage.setItem('pharmaUnverifiedGuestWorkspace_quarantine', JSON.stringify(guestSnapshot));
-                return true;
+
+                return {
+                    ok: true,
+                    quarantined: true,
+                    quarantineId,
+                    preservedAt: guestSnapshot.preservedAt,
+                    reason: guestSnapshot.reason,
+                    counts: manifestEntry.counts
+                };
             } catch (e) {
                 console.error('Failed to preserve unverified guest workspace:', e);
-                return false;
+                return {
+                    ok: false,
+                    quarantined: false,
+                    reason: 'quarantine_persistence_failed',
+                    error: e
+                };
+            }
+        }
+
+        async function restoreUnverifiedGuestWorkspace(targetQuarantineId = null) {
+            try {
+                let snapshot = null;
+                let qId = targetQuarantineId;
+                if (qId) {
+                    const raw = localStorage.getItem('pharmaGuestQuarantine_' + qId);
+                    if (raw) snapshot = JSON.parse(raw);
+                }
+                if (!snapshot) {
+                    const rawLatest = localStorage.getItem('pharmaUnverifiedGuestWorkspace_quarantine');
+                    if (rawLatest) {
+                        snapshot = JSON.parse(rawLatest);
+                        if (!qId && snapshot.quarantineId) qId = snapshot.quarantineId;
+                    }
+                }
+                if (!snapshot) {
+                    return { ok: false, restored: false, reason: 'quarantine_snapshot_not_found' };
+                }
+
+                // Restore in-memory collections
+                if (Array.isArray(snapshot.subjects)) subjects = JSON.parse(JSON.stringify(snapshot.subjects));
+                if (Array.isArray(snapshot.scheduleEvents)) scheduleEvents = JSON.parse(JSON.stringify(snapshot.scheduleEvents));
+                if (Array.isArray(snapshot.scheduleBacklog)) scheduleBacklog = JSON.parse(JSON.stringify(snapshot.scheduleBacklog));
+                if (snapshot.plannerPrefs && typeof snapshot.plannerPrefs === 'object') plannerPrefs = JSON.parse(JSON.stringify(snapshot.plannerPrefs));
+                if (Array.isArray(snapshot.weeklyReports)) weeklyReports = JSON.parse(JSON.stringify(snapshot.weeklyReports));
+                if (Array.isArray(snapshot.logs)) logs = JSON.parse(JSON.stringify(snapshot.logs));
+                if (Array.isArray(snapshot.academy_progress)) completedAcademyModules = snapshot.academy_progress.slice();
+                if (snapshot.cloudMediaRegistry && typeof snapshot.cloudMediaRegistry === 'object') cloudMediaRegistry = JSON.parse(JSON.stringify(snapshot.cloudMediaRegistry));
+
+                // Restore localStorage
+                localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+                localStorage.setItem('pharmaScheduleV4', JSON.stringify({
+                    version: 3,
+                    events: scheduleEvents,
+                    backlog: scheduleBacklog,
+                    plannerPrefs: plannerPrefs,
+                    weeklyReports: weeklyReports
+                }));
+                localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));
+                localStorage.setItem('pharmaWeeklyReportsV1', JSON.stringify(weeklyReports));
+                localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
+                localStorage.setItem('pharmaLogsV4', JSON.stringify(logs));
+                localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(completedAcademyModules));
+                localStorage.setItem('pharmaCloudMediaRegistryV1', JSON.stringify(cloudMediaRegistry));
+
+                // Restore causal tombstones
+                if (snapshot._tombstones && typeof saveLocalTombstones === 'function') {
+                    saveLocalTombstones('local', snapshot._tombstones);
+                }
+                if (snapshot._conflictRecovery && typeof saveConflictRecoveryRecords === 'function') {
+                    saveConflictRecoveryRecords('local', snapshot._conflictRecovery);
+                }
+
+                // Restore IndexedDB annotations from vault if present
+                let restoredAnnotationsCount = 0;
+                const vaultKey = snapshot.annotationsVaultKey || (qId ? ('guest_quarantine_annotations_' + qId) : null);
+                if (vaultKey && dbInstance && dbInstance.objectStoreNames.contains('annotation_recovery_vault') && dbInstance.objectStoreNames.contains('annotations')) {
+                    const vaultEntry = await new Promise((res) => {
+                        try {
+                            const tx = dbInstance.transaction('annotation_recovery_vault', 'readonly');
+                            const store = tx.objectStore('annotation_recovery_vault');
+                            const req = store.get(vaultKey);
+                            req.onsuccess = () => res(req.result || null);
+                            req.onerror = () => res(null);
+                        } catch (e) {
+                            res(null);
+                        }
+                    });
+
+                    if (vaultEntry && vaultEntry.annotations && typeof vaultEntry.annotations === 'object') {
+                        const annos = vaultEntry.annotations;
+                        const rawIds = Object.keys(annos);
+                        restoredAnnotationsCount = rawIds.length;
+                        if (rawIds.length > 0) {
+                            await new Promise((res) => {
+                                try {
+                                    const tx = dbInstance.transaction('annotations', 'readwrite');
+                                    const store = tx.objectStore('annotations');
+                                    rawIds.forEach(rawId => {
+                                        const scopedId = toScopedKey(rawId, 'local');
+                                        store.put({
+                                            id: scopedId,
+                                            rawId: String(rawId),
+                                            userId: 'local',
+                                            pages: annos[rawId],
+                                            updatedAt: Date.now()
+                                        });
+                                        inMemoryAnnotationsCache[scopedId] = annos[rawId];
+                                    });
+                                    tx.oncomplete = () => res(true);
+                                    tx.onerror = () => res(false);
+                                    tx.onabort = () => res(false);
+                                } catch (e) {
+                                    res(false);
+                                }
+                            });
+                        }
+                    }
+                }
+
+                // Mark workspace dirty
+                localStorage.setItem('pharmaWorkspaceDirty', '1');
+                dirtyAnnotationsForCloud = (restoredAnnotationsCount > 0);
+
+                return {
+                    ok: true,
+                    restored: true,
+                    quarantineId: qId,
+                    counts: {
+                        subjects: subjects.length,
+                        scheduleEvents: scheduleEvents.length,
+                        scheduleBacklog: scheduleBacklog.length,
+                        weeklyReports: weeklyReports.length,
+                        logs: logs.length,
+                        annotations: restoredAnnotationsCount
+                    }
+                };
+            } catch (err) {
+                console.error('Failed to restore unverified guest workspace:', err);
+                return { ok: false, restored: false, error: err };
             }
         }
 
@@ -34295,42 +34567,15 @@ function togglePdfAudioPlayerBar(forceState) {
                 }
             }
 
-            // 2. Guest / pre-login verification:
-            // An absent key or the value 'local' is NEVER proof of ownership.
-            // Check for an explicit, auditable provenance claim:
-            const guestProvenanceClaim = localStorage.getItem('pharmaGuestProvenanceClaim')
-                || localStorage.getItem('pharmaVerifiedPreLoginOwner')
-                || null;
-
-            if (guestProvenanceClaim) {
-                if (String(guestProvenanceClaim) === String(targetUid)) {
-                    return {
-                        ok: true,
-                        status: 'verified_guest_claim',
-                        isSameAccount: false,
-                        isVerifiedGuest: true,
-                        ownerUid: String(targetUid)
-                    };
-                } else {
-                    return {
-                        ok: false,
-                        status: 'mismatched_guest_claim',
-                        isSameAccount: false,
-                        isVerifiedGuest: false,
-                        claimUid: String(guestProvenanceClaim),
-                        targetUid: String(targetUid)
-                    };
-                }
-            }
-
-            // 3. Missing provenance:
-            // No auditable provenance mechanism claimed this guest data for targetUid.
+            // 2. Guest / pre-login provenance:
+            // Without an in-app interactive consent/handshake flow, raw LocalStorage claims are rejected fail-closed (anti-forgery).
+            // Guest data must be safely quarantined and requires explicit interactive claiming in future UX.
             return {
                 ok: false,
-                status: 'missing_provenance',
+                status: 'unverified_guest',
                 isSameAccount: false,
                 isVerifiedGuest: false,
-                reason: 'no_auditable_guest_provenance'
+                reason: 'guest_provenance_requires_consent_flow'
             };
         }
 
@@ -34344,18 +34589,44 @@ function togglePdfAudioPlayerBar(forceState) {
                 return { ok: false, status: 'aborted', reason: 'remote_row_user_mismatch' };
             }
 
-            // 0. Positive provenance check (Correction A)
+            // 0. Positive provenance check (Correction A & B fail-closed)
+            if (typeof verifyLocalWorkspaceProvenance !== 'function') {
+                console.error('Reconciliation aborted: verifyLocalWorkspaceProvenance is unavailable (fail-closed)');
+                try { localStorage.setItem('pharmaWorkspaceDirty', '1'); } catch (e) {}
+                updateCloudNavUI('error');
+                return {
+                    ok: false,
+                    status: 'error',
+                    reason: 'provenance_verifier_unavailable',
+                    isDirty: true
+                };
+            }
             const provCheck = verifiedProvenance || verifyLocalWorkspaceProvenance(opCtx.uid, opCtx);
             if (!provCheck.ok) {
-                if (provCheck.status === 'missing_provenance' || provCheck.status === 'mismatched_guest_claim') {
-                    preserveUnverifiedGuestWorkspace(provCheck.status);
+                let qRes = null;
+                if (typeof preserveUnverifiedGuestWorkspace === 'function') {
+                    qRes = await preserveUnverifiedGuestWorkspace(provCheck.status, opCtx);
+                }
+                const isQuarantined = Boolean(qRes && qRes.ok === true && qRes.quarantined === true);
+                if (qRes && qRes.ok === false) {
+                    console.error('Reconciliation aborted: quarantine persistence failed (fail-closed)');
+                    try { localStorage.setItem('pharmaWorkspaceDirty', '1'); } catch (e) {}
+                    updateCloudNavUI('error');
+                    return {
+                        ok: false,
+                        status: 'error',
+                        reason: 'quarantine_persistence_failed',
+                        error: qRes.error,
+                        isDirty: true
+                    };
                 }
                 return {
                     ok: false,
                     status: 'blocked',
                     reason: 'unverified_guest_provenance',
                     provenanceStatus: provCheck.status,
-                    quarantined: Boolean(provCheck.status === 'missing_provenance' || provCheck.status === 'mismatched_guest_claim'),
+                    quarantined: isQuarantined,
+                    quarantineId: qRes?.quarantineId || null,
                     isDirty: true
                 };
             }
@@ -34547,18 +34818,37 @@ function togglePdfAudioPlayerBar(forceState) {
                     : false;
                 const isLocalDirty = Boolean(hasDirtyWorkspace || hasDirtyAnnotations || hasUncommittedOps);
 
-                const provenance = (typeof verifyLocalWorkspaceProvenance === 'function')
-                    ? verifyLocalWorkspaceProvenance(opCtx.uid, opCtx)
-                    : { ok: true, status: 'fallback_ok' };
-
                 if (isLocalDirty) {
+                    if (typeof verifyLocalWorkspaceProvenance !== 'function') {
+                        console.error('pullWorkspaceFromCloud aborted: verifyLocalWorkspaceProvenance is unavailable (fail-closed)');
+                        updateCloudNavUI('error');
+                        return {
+                            ok: false,
+                            status: 'error',
+                            reason: 'provenance_verifier_unavailable',
+                            isDirty: isLocalDirty
+                        };
+                    }
+                    const provenance = verifyLocalWorkspaceProvenance(opCtx.uid, opCtx);
                     if (provenance.ok) {
                         if (typeof reconcileDirtyWorkspaceWithRemote === 'function') {
                             return await reconcileDirtyWorkspaceWithRemote(data, opCtx, isManual, provenance);
                         }
-                    } else if (provenance.status === 'missing_provenance' || provenance.status === 'mismatched_guest_claim') {
+                    } else {
+                        let qRes = null;
                         if (typeof preserveUnverifiedGuestWorkspace === 'function') {
-                            preserveUnverifiedGuestWorkspace(provenance.status);
+                            qRes = await preserveUnverifiedGuestWorkspace(provenance.status, opCtx);
+                        }
+                        if (qRes && qRes.ok === false) {
+                            console.error('pullWorkspaceFromCloud blocked: quarantine persistence failed (fail-closed)');
+                            updateCloudNavUI('error');
+                            return {
+                                ok: false,
+                                status: 'error',
+                                reason: 'quarantine_persistence_failed',
+                                error: qRes.error,
+                                isDirty: true
+                            };
                         }
                         console.warn('pullWorkspaceFromCloud blocked: unverified guest provenance (fail-closed)');
                         updateCloudNavUI('error');
@@ -34567,7 +34857,8 @@ function togglePdfAudioPlayerBar(forceState) {
                             status: 'blocked',
                             reason: 'unverified_guest_provenance',
                             provenanceStatus: provenance.status,
-                            quarantined: true,
+                            quarantined: Boolean(qRes && qRes.ok === true && qRes.quarantined === true),
+                            quarantineId: qRes?.quarantineId || null,
                             isDirty: true
                         };
                     }
@@ -34986,18 +35277,38 @@ function togglePdfAudioPlayerBar(forceState) {
                         : false;
                     const isLocalDirty = Boolean(hasDirtyWorkspace || hasDirtyAnnotations || hasUncommittedOps);
 
-                    const provenance = (typeof verifyLocalWorkspaceProvenance === 'function')
-                        ? verifyLocalWorkspaceProvenance(opCtx.uid, opCtx, lastLoggedUserId)
-                        : { ok: true, status: 'fallback_ok' };
-
                     if (isLocalDirty) {
+                        if (typeof verifyLocalWorkspaceProvenance !== 'function') {
+                            console.error('syncWorkspaceOnLogin aborted: verifyLocalWorkspaceProvenance is unavailable (fail-closed)');
+                            updateCloudNavUI('error');
+                            return {
+                                ok: false,
+                                status: 'error',
+                                reason: 'provenance_verifier_unavailable',
+                                isDirty: isLocalDirty
+                            };
+                        }
+                        const provenance = verifyLocalWorkspaceProvenance(opCtx.uid, opCtx, lastLoggedUserId);
+
                         if (provenance.ok && !isSwitchingDifferentUser) {
                             if (typeof reconcileDirtyWorkspaceWithRemote === 'function') {
                                 return await reconcileDirtyWorkspaceWithRemote(data, opCtx, false, provenance);
                             }
-                        } else if (!isSwitchingDifferentUser && (provenance.status === 'missing_provenance' || provenance.status === 'mismatched_guest_claim')) {
+                        } else if (!isSwitchingDifferentUser) {
+                            let qRes = null;
                             if (typeof preserveUnverifiedGuestWorkspace === 'function') {
-                                preserveUnverifiedGuestWorkspace(provenance.status);
+                                qRes = await preserveUnverifiedGuestWorkspace(provenance.status, opCtx);
+                            }
+                            if (qRes && qRes.ok === false) {
+                                console.error('syncWorkspaceOnLogin blocked: quarantine persistence failed (fail-closed)');
+                                updateCloudNavUI('error');
+                                return {
+                                    ok: false,
+                                    status: 'error',
+                                    reason: 'quarantine_persistence_failed',
+                                    error: qRes.error,
+                                    isDirty: true
+                                };
                             }
                             console.warn('syncWorkspaceOnLogin blocked: unverified guest provenance (fail-closed)');
                             updateCloudNavUI('error');
@@ -35006,7 +35317,8 @@ function togglePdfAudioPlayerBar(forceState) {
                                 status: 'blocked',
                                 reason: 'unverified_guest_provenance',
                                 provenanceStatus: provenance.status,
-                                quarantined: true,
+                                quarantined: Boolean(qRes && qRes.ok === true && qRes.quarantined === true),
+                                quarantineId: qRes?.quarantineId || null,
                                 isDirty: true
                             };
                         }

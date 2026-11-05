@@ -374,6 +374,7 @@ ${extractFunctionSource(indexHtmlContent, 'pushWorkspaceToCloud')}
 ${extractFunctionSource(indexHtmlContent, 'applyCloudWorkspacePayload')}
 ${extractFunctionSource(indexHtmlContent, 'flushPendingAnnotationsSave')}
 ${extractFunctionSource(indexHtmlContent, 'preserveUnverifiedGuestWorkspace')}
+${extractFunctionSource(indexHtmlContent, 'restoreUnverifiedGuestWorkspace')}
 ${extractFunctionSource(indexHtmlContent, 'verifyLocalWorkspaceProvenance')}
 ${extractFunctionSource(indexHtmlContent, 'reconcileDirtyWorkspaceWithRemote')}
 ${extractFunctionSource(indexHtmlContent, 'pullWorkspaceFromCloud')}
@@ -492,6 +493,7 @@ module.exports = {
   applyCloudWorkspacePayload,
   flushPendingAnnotationsSave,
   preserveUnverifiedGuestWorkspace,
+  restoreUnverifiedGuestWorkspace,
   verifyLocalWorkspaceProvenance,
   reconcileDirtyWorkspaceWithRemote,
   pullWorkspaceFromCloud,
@@ -3032,12 +3034,12 @@ async function main() {
     'T-5.1-09-A: Missing guest provenance (no last-active UID or absent claim) blocks reconciliation fail-closed, preserves unverified guest workspace in separate recoverable quarantine vault, and keeps local dirty state without cloud overwrite or false ack'
   );
 
-  // --- Test B: Invalid or mismatched guest provenance blocks reconciliation fail-closed (T-5.1-09-B) ---
+  // --- Test B: Raw LocalStorage claim rejected fail-closed (anti-forgery) (T-5.1-09-B) ---
   const uidM5A1_B = 'user_m5a1_provenance_b';
   prod.localStorage.clear();
   prod.toastHistory.length = 0;
 
-  const guestSubB = { id: 1003, name: 'Guest Physics For Another User', _updatedAt: 1500, groups: [] };
+  const guestSubB = { id: 1003, name: 'Guest Physics Attempting Spoofed Claim', _updatedAt: 1500, groups: [] };
   prod.setRuntimeState({
     activeSubjectId: 1003,
     subjects: [guestSubB],
@@ -3048,8 +3050,9 @@ async function main() {
   });
   prod.saveSubjects();
   prod.localStorage.setItem('pharmaWorkspaceDirty', '1');
-  // Stored claim points to a DIFFERENT user
-  prod.localStorage.setItem('pharmaGuestProvenanceClaim', 'user_different_999');
+  // Attempt to spoof provenance via raw LocalStorage claim matching the target UID
+  prod.localStorage.setItem('pharmaGuestProvenanceClaim', uidM5A1_B);
+  prod.localStorage.setItem('pharmaVerifiedPreLoginOwner', uidM5A1_B);
 
   let rpcCallsT19B = 0;
   const remoteRowT19B = {
@@ -3077,64 +3080,54 @@ async function main() {
     syncResT19B.ok === false &&
     syncResT19B.status === 'blocked' &&
     syncResT19B.reason === 'unverified_guest_provenance' &&
-    syncResT19B.provenanceStatus === 'mismatched_guest_claim' &&
+    syncResT19B.provenanceStatus === 'unverified_guest' &&
     syncResT19B.quarantined === true &&
     quarantinedGuestB !== null &&
     quarantinedGuestB.subjects?.some(s => s.id === 1003) &&
-    rpcCallsT19B === 0,
-    'T-5.1-09-B: Invalid/mismatched guest provenance (guest data claimed by user_different while user_b logs in) blocks reconciliation, preserves unverified guest data in quarantine vault, and does not merge into user_b'
+    rpcCallsT19B === 0 &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1',
+    'T-5.1-09-B: Anti-forgery check — Raw LocalStorage claims are rejected fail-closed without an in-app consent handshake, blocking reconciliation and safely preserving guest data in quarantine vault'
   );
 
-  // --- Test C: Verified guest provenance via auditable claim reconciles cleanly (T-5.1-09-C) ---
+  // --- Test C: Durable quarantine restoration restores complete workspace and marks dirty (T-5.1-09-C) ---
   const uidM5A1_C = 'user_m5a1_provenance_c';
   prod.localStorage.clear();
   prod.toastHistory.length = 0;
 
-  const guestSubC = { id: 1005, name: 'Verified Claimed Guest Subject', _updatedAt: 2000, groups: [] };
+  const guestSubC = { id: 1005, name: 'Quarantined Guest Chemistry Subject', _updatedAt: 2000, groups: [] };
   prod.setRuntimeState({
     activeSubjectId: 1005,
     subjects: [guestSubC],
-    scheduleEvents: [],
+    scheduleEvents: [{ id: 2005, title: 'Guest Scheduled Lab', _updatedAt: 2000, subjectId: 1005 }],
     scheduleBacklog: [],
     logs: [],
     weeklyReports: []
   });
   prod.saveSubjects();
   prod.localStorage.setItem('pharmaWorkspaceDirty', '1');
-  // Set positive auditable claim matching the logging-in user
-  prod.localStorage.setItem('pharmaGuestProvenanceClaim', uidM5A1_C);
+  prod.localStorage.removeItem('pharmaLastActiveCloudUid');
+  prod.localStorage.removeItem('pharmaLastActiveUserIdV1');
 
-  let rpcCallsT19C = 0;
-  const remoteRowT19C = {
-    user_id: uidM5A1_C,
-    user_email: uidM5A1_C + '@test.edu',
-    revision: 2,
-    subjects: [{ id: 1006, name: 'Remote Cloud Subject C', _updatedAt: 1000, groups: [] }],
-    schedule: { version: 3, events: [], backlog: [], plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 }, weeklyReports: [] },
-    logs: [],
-    academy_progress: [],
-    annotations: {},
-    updated_at: '2026-11-05T13:10:00.000Z'
-  };
-  prod.setSupabaseClient(makeSupabaseMock(remoteRowT19C, async () => {
-    rpcCallsT19C++;
-    return { data: { status: 'success', revision: 3 }, error: null };
-  }));
+  // Trigger quarantine explicitly
+  const qPreserveRes = await prod.preserveUnverifiedGuestWorkspace('unverified_guest_provenance');
 
-  prod.setSessionUser(uidM5A1_C);
-  const syncResT19C = await prod.syncWorkspaceOnLogin();
-  const stateT19C = prod.getRuntimeState();
+  // Clear in-memory subjects to prove restoration actually repopulates them
+  prod.setRuntimeState({ subjects: [], scheduleEvents: [] });
+  prod.localStorage.removeItem('pharmaWorkspaceDirty');
+
+  // Execute durable restoration
+  const restoreResC = await prod.restoreUnverifiedGuestWorkspace(qPreserveRes.quarantineId);
+  const stateAfterRestore = prod.getRuntimeState();
 
   assert(
-    syncResT19C &&
-    syncResT19C.ok === true &&
-    syncResT19C.reconciled === true &&
-    syncResT19C.status === 'reconciled_and_synced' &&
-    stateT19C.subjects.some(s => s.id === 1005 && s.name === 'Verified Claimed Guest Subject') &&
-    stateT19C.subjects.some(s => s.id === 1006 && s.name === 'Remote Cloud Subject C') &&
-    rpcCallsT19C === 1 &&
-    prod.localStorage.getItem('pharmaWorkspaceDirty') === null,
-    'T-5.1-09-C: Verified guest provenance via auditable claim (pharmaGuestProvenanceClaim === authenticated UID) successfully reconciles guest workspace with remote row and advances cloud revision'
+    restoreResC &&
+    restoreResC.ok === true &&
+    restoreResC.restored === true &&
+    restoreResC.quarantineId === qPreserveRes.quarantineId &&
+    stateAfterRestore.subjects.some(s => s.id === 1005 && s.name === 'Quarantined Guest Chemistry Subject') &&
+    stateAfterRestore.scheduleEvents.some(e => e.id === 2005) &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1',
+    'T-5.1-09-C: Durable quarantine restoration via restoreUnverifiedGuestWorkspace safely recovers in-memory arrays, localStorage keys, and marks workspace dirty'
   );
 
   // --- Test D: Fail-closed annotation flush failure in reconcileDirtyWorkspaceWithRemote (T-5.1-09-D) ---
@@ -3298,6 +3291,7 @@ async function main() {
     deferredPushResolveX = resolve;
   });
 
+  let switchOccurred = false;
   let rpcCallsUserXAfterSwitch = 0;
   prod.setSupabaseClient({
     from: () => ({
@@ -3308,12 +3302,12 @@ async function main() {
       })
     }),
     rpc: async (fn, params) => {
-      // Pause in-flight operation
-      await deferredPushPromiseX;
       // If called by User X after switch, record it
-      if (params?.p_payload?.user_id === uidRaceX) {
+      if (switchOccurred && params?.p_payload?.user_id === uidRaceX) {
         rpcCallsUserXAfterSwitch++;
       }
+      // Pause in-flight operation
+      await deferredPushPromiseX;
       return { data: { status: 'success', revision: 3 }, error: null };
     }
   });
@@ -3327,6 +3321,7 @@ async function main() {
   await new Promise(r => setTimeout(r, 20));
 
   // 3. Switch active session to User Y while User X is waiting on deferred Promise!
+  switchOccurred = true;
   prod.setSessionUser(uidRaceY);
   prod.resetLiveActorForTabSimulation('dev_user_y');
   const subRaceY = { id: 8801, name: 'Fresh Clean Workspace of User Y', _updatedAt: 6000, groups: [] };
@@ -3346,17 +3341,16 @@ async function main() {
   // 5. Await User X reconciliation outcome
   const reconResultX = await reconPromiseX;
   const stateAfterRaceY = prod.getRuntimeState();
-  const vaultRaceX = JSON.parse(prod.localStorage.getItem(prod.getAccountBackupStorageKey(uidRaceX)) || '{}');
-
   assert(
     reconResultX &&
     reconResultX.ok === false &&
     reconResultX.status === 'aborted' &&
     reconResultX.reason === 'account_switched' &&
+    rpcCallsUserXAfterSwitch === 0 &&
     stateAfterRaceY.subjects.some(s => s.id === 8801 && s.name === 'Fresh Clean Workspace of User Y') &&
     !stateAfterRaceY.subjects.some(s => s.id === 7701) &&
     !stateAfterRaceY.subjects.some(s => s.id === 7702),
-    'T-5.1-09-F: Deterministic asynchronous race test — Account switch during active in-flight reconciliation causes stale reconciliation to abort with account_switched, merges zero User X data into User Y, and preserves User Y workspace'
+    'T-5.1-09-F: Deterministic asynchronous race test — Account switch during active in-flight reconciliation causes stale reconciliation to abort with account_switched, executes zero in-flight RPC writes after switch, merges zero User X data into User Y, and preserves User Y workspace'
   );
 
   // --- Test G: Safe retry after failed flush or stamping succeeds cleanly (T-5.1-09-G) ---
@@ -3461,6 +3455,73 @@ async function main() {
     quarantinedGuestH.subjects?.some(s => s.id === 1013) &&
     prod.localStorage.getItem('pharmaWorkspaceDirty') === '1',
     'T-5.1-09-H: Manual pull with unverified guest provenance returns explicit blocked status, preserves guest quarantine snapshot, and prevents silent discard of offline work'
+  );
+
+  // --- Test I: Quarantine persistence failure aborts fail-closed, does not apply remote row, and preserves dirty local workspace (T-5.1-09-I) ---
+  const uidM5A1_I = 'user_m5a1_quarantine_fail';
+  prod.localStorage.clear();
+  prod.toastHistory.length = 0;
+
+  const guestSubI = { id: 1015, name: 'Offline Guest Work Prior To Quota Exceeded', _updatedAt: 4000, groups: [] };
+  prod.setRuntimeState({
+    activeSubjectId: 1015,
+    subjects: [guestSubI],
+    scheduleEvents: [],
+    scheduleBacklog: [],
+    logs: [],
+    weeklyReports: []
+  });
+  prod.saveSubjects();
+  prod.localStorage.setItem('pharmaWorkspaceDirty', '1');
+  prod.localStorage.removeItem('pharmaLastActiveCloudUid');
+  prod.localStorage.removeItem('pharmaLastActiveUserIdV1');
+  prod.localStorage.removeItem('pharmaGuestProvenanceClaim');
+
+  let rpcCallsT19I = 0;
+  const remoteRowT19I = {
+    user_id: uidM5A1_I,
+    user_email: uidM5A1_I + '@test.edu',
+    revision: 2,
+    subjects: [{ id: 1016, name: 'Remote Row I', _updatedAt: 500, groups: [] }],
+    schedule: { version: 3, events: [], backlog: [], plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 }, weeklyReports: [] },
+    logs: [],
+    academy_progress: [],
+    annotations: {},
+    updated_at: '2026-11-05T14:00:00.000Z'
+  };
+  prod.setSupabaseClient(makeSupabaseMock(remoteRowT19I, async () => {
+    rpcCallsT19I++;
+    return { data: { status: 'success', revision: 3 }, error: null };
+  }));
+
+  // Intercept localStorage.setItem in prod to throw when writing quarantine
+  const origSetItem = prod.localStorage.setItem;
+  prod.localStorage.setItem = (key, val) => {
+    if (String(key).startsWith('pharmaGuestQuarantine_')) {
+      throw new Error('QuotaExceededError: Simulated localStorage full');
+    }
+    return origSetItem.call(prod.localStorage, key, val);
+  };
+
+  prod.setSessionUser(uidM5A1_I);
+  let syncResT19I = null;
+  try {
+    syncResT19I = await prod.syncWorkspaceOnLogin();
+  } finally {
+    prod.localStorage.setItem = origSetItem;
+  }
+  const stateAfterFailI = prod.getRuntimeState();
+
+  assert(
+    syncResT19I &&
+    syncResT19I.ok === false &&
+    syncResT19I.status === 'error' &&
+    syncResT19I.reason === 'quarantine_persistence_failed' &&
+    stateAfterFailI.subjects.some(s => s.id === 1015 && s.name === 'Offline Guest Work Prior To Quota Exceeded') &&
+    !stateAfterFailI.subjects.some(s => s.id === 1016) &&
+    rpcCallsT19I === 0 &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1',
+    'T-5.1-09-I: Quarantine persistence failure (quota or IDB write error) aborts fail-closed, does not apply remote row or advance revision, and preserves original local dirty data in place'
   );
 
 

@@ -2503,6 +2503,11 @@ async function main() {
       }
       const v6DirtyPreserved = localStorage.getItem('pharmaWorkspaceDirty') === '1';
 
+      // V.7: Durable quarantine restoration in real Chromium
+      const restoreResV7 = await restoreUnverifiedGuestWorkspace(quarantinedV5.quarantineId);
+      const v7Subjects = subjects;
+      const v7Dirty = localStorage.getItem('pharmaWorkspaceDirty') === '1';
+
       // Restore client
       supabaseClient = origClient;
 
@@ -2531,7 +2536,10 @@ async function main() {
         v5DirtyPreserved,
         pullResV6,
         v6RpcCalls,
-        v6DirtyPreserved
+        v6DirtyPreserved,
+        restoreResV7,
+        v7Subjects,
+        v7Dirty
       };
     });
 
@@ -2601,6 +2609,16 @@ async function main() {
       resV.v6RpcCalls === 0 &&
       resV.v6DirtyPreserved === true,
       'Test V.6 (T-5.1-09-E): Real Chromium page with causal auto-stamping failure aborts pull reconciliation fail-closed, keeps workspace dirty, and executes zero cloud pushes',
+      JSON.stringify(resV)
+    );
+
+    assert(
+      resV.restoreResV7 &&
+      resV.restoreResV7.ok === true &&
+      resV.restoreResV7.restored === true &&
+      resV.v7Subjects?.some(s => s.id === 9107) &&
+      resV.v7Dirty === true,
+      'Test V.7 (T-5.1-09-C): Real Chromium page restores unverified guest workspace from quarantine vault, repopulating memory state and preserving dirty flag',
       JSON.stringify(resV)
     );
 
