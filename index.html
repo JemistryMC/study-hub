@@ -11902,12 +11902,12 @@
                         }
                     });
                 });
-                if (typeof recordTombstonesAtomicBatch === 'function') {
-                    const batchRes = recordTombstonesAtomicBatch(batchItems);
-                    if (!batchRes || !batchRes.ok) {
-                        showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف المادة حفاظاً على سلامة البيانات ⚠️', 'error');
-                        return;
-                    }
+                const batchRes = (typeof recordTombstonesAtomicBatch === 'function')
+                    ? recordTombstonesAtomicBatch(batchItems)
+                    : null;
+                if (!batchRes || !batchRes.ok) {
+                    showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف المادة حفاظاً على سلامة البيانات ⚠️', 'error');
+                    return;
                 }
                 subjects = subjects.filter(s => String(s.id) !== String(id));
                 if (String(activeSubjectId) === String(id)) activeSubjectId = null;
@@ -12496,12 +12496,12 @@
                 || (sub.wirdLogs || []).find(item => String(item.id) === String(logId))
                 || null;
             if (!targetWird) return;
-            if (typeof recordTombstone === 'function') {
-                const tombRes = recordTombstone('wird_logs', logId, null, targetWird);
-                if (!tombRes) {
-                    showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف السجل حفاظاً على سلامة البيانات ⚠️', 'error');
-                    return;
-                }
+            const tombRes = (typeof recordTombstone === 'function')
+                ? recordTombstone('wird_logs', logId, null, targetWird)
+                : null;
+            if (!tombRes) {
+                showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف السجل حفاظاً على سلامة البيانات ⚠️', 'error');
+                return;
             }
             if (Array.isArray(sub.continuousLogs)) {
                 sub.continuousLogs = sub.continuousLogs.filter(item => String(item.id) !== String(logId));
@@ -12580,12 +12580,12 @@
                         deletedLecIds.push(l.id);
                     }
                 });
-                if (typeof recordTombstonesAtomicBatch === 'function') {
-                    const batchRes = recordTombstonesAtomicBatch(batchItems);
-                    if (!batchRes || !batchRes.ok) {
-                        showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف القسم حفاظاً على سلامة البيانات ⚠️', 'error');
-                        return;
-                    }
+                const batchRes = (typeof recordTombstonesAtomicBatch === 'function')
+                    ? recordTombstonesAtomicBatch(batchItems)
+                    : null;
+                if (!batchRes || !batchRes.ok) {
+                    showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف القسم حفاظاً على سلامة البيانات ⚠️', 'error');
+                    return;
                 }
                 sub.groups = sub.groups.filter(g => String(g.id) !== String(groupId));
                 if (Array.isArray(sub.examLectureIds) && deletedLecIds.length > 0) {
@@ -12732,12 +12732,12 @@
                 if(!group) return;
                 const targetLec = (group.lectures || []).find(l => String(l.id) === String(lecId));
                 if (!targetLec) return;
-                if (typeof recordTombstone === 'function') {
-                    const tombRes = recordTombstone('lectures', lecId, null, targetLec);
-                    if (!tombRes) {
-                        showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف المحاضرة حفاظاً على سلامة البيانات ⚠️', 'error');
-                        return;
-                    }
+                const tombRes = (typeof recordTombstone === 'function')
+                    ? recordTombstone('lectures', lecId, null, targetLec)
+                    : null;
+                if (!tombRes) {
+                    showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف المحاضرة حفاظاً على سلامة البيانات ⚠️', 'error');
+                    return;
                 }
                 group.lectures = group.lectures.filter(l => String(l.id) !== String(lecId));
                 if (Array.isArray(sub.examLectureIds)) {
@@ -15820,12 +15820,12 @@
                 }
                 const targetEv = scheduleEvents.find(e => String(e.id) === String(eventId));
                 if (!targetEv) return;
-                if (typeof recordTombstone === 'function') {
-                    const tombRes = recordTombstone('events', eventId, null, targetEv);
-                    if (!tombRes) {
-                        showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف الجلسة حفاظاً على سلامة البيانات ⚠️', 'error');
-                        return;
-                    }
+                const tombRes = (typeof recordTombstone === 'function')
+                    ? recordTombstone('events', eventId, null, targetEv)
+                    : null;
+                if (!tombRes) {
+                    showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف الجلسة حفاظاً على سلامة البيانات ⚠️', 'error');
+                    return;
                 }
                 scheduleEvents = scheduleEvents.filter(e => String(e.id) !== String(eventId));
                 saveScheduleData();
@@ -15968,10 +15968,12 @@
             const eventsToDelete = (mode === 'study_only')
                 ? scheduleEvents.filter(e => !isCollegeCommitmentSession(e))
                 : scheduleEvents.slice();
-            if (eventsToDelete.length > 0 && typeof recordTombstonesAtomicBatch === 'function') {
-                const batchRes = recordTombstonesAtomicBatch(
-                    eventsToDelete.map(e => ({ entityType: 'events', id: e.id, priorEntity: e }))
-                );
+            if (eventsToDelete.length > 0) {
+                const batchRes = (typeof recordTombstonesAtomicBatch === 'function')
+                    ? recordTombstonesAtomicBatch(
+                        eventsToDelete.map(e => ({ entityType: 'events', id: e.id, priorEntity: e }))
+                    )
+                    : null;
                 if (!batchRes || !batchRes.ok) {
                     showToast('تعذر حفظ سجل الحذف محلياً. لم يتم تفريغ الجدول حفاظاً على سلامة البيانات ⚠️', 'error');
                     return;
@@ -16112,12 +16114,12 @@
             }
             const targetTask = scheduleBacklog.find(t => String(t.id) === String(taskId));
             if (!targetTask) return;
-            if (typeof recordTombstone === 'function') {
-                const tombRes = recordTombstone('backlog', taskId, null, targetTask);
-                if (!tombRes) {
-                    showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف الهدف حفاظاً على سلامة البيانات ⚠️', 'error');
-                    return;
-                }
+            const tombRes = (typeof recordTombstone === 'function')
+                ? recordTombstone('backlog', taskId, null, targetTask)
+                : null;
+            if (!tombRes) {
+                showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف الهدف حفاظاً على سلامة البيانات ⚠️', 'error');
+                return;
             }
             scheduleBacklog = scheduleBacklog.filter(t => String(t.id) !== String(taskId));
             saveScheduleData();
@@ -17048,12 +17050,12 @@
                 }
                 const targetLog = logs.find(l => String(l.id ?? l.timestamp) === String(id));
                 if (!targetLog) return;
-                if (typeof recordTombstone === 'function') {
-                    const tombRes = recordTombstone('logs', id, null, targetLog);
-                    if (!tombRes) {
-                        showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف السجل حفاظاً على سلامة البيانات ⚠️', 'error');
-                        return;
-                    }
+                const tombRes = (typeof recordTombstone === 'function')
+                    ? recordTombstone('logs', id, null, targetLog)
+                    : null;
+                if (!tombRes) {
+                    showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف السجل حفاظاً على سلامة البيانات ⚠️', 'error');
+                    return;
                 }
                 logs = logs.filter(l => String(l.id ?? l.timestamp) !== String(id));
                 saveLogs(); 
@@ -18092,12 +18094,12 @@
             }
             const targetEv = scheduleEvents.find(e => String(e.id) === String(eventId));
             if (!targetEv) return;
-            if (typeof recordTombstone === 'function') {
-                const tombRes = recordTombstone('events', eventId, null, targetEv);
-                if (!tombRes) {
-                    showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف المهمة حفاظاً على سلامة البيانات ⚠️', 'error');
-                    return;
-                }
+            const tombRes = (typeof recordTombstone === 'function')
+                ? recordTombstone('events', eventId, null, targetEv)
+                : null;
+            if (!tombRes) {
+                showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف المهمة حفاظاً على سلامة البيانات ⚠️', 'error');
+                return;
             }
             scheduleEvents = scheduleEvents.filter(e => String(e.id) !== String(eventId));
             saveScheduleData();
@@ -31022,6 +31024,8 @@ function togglePdfAudioPlayerBar(forceState) {
             const result = {
                 detachedEventsCount: 0,
                 detachedBacklogCount: 0,
+                detachedWeeklyReportsCount: 0,
+                detachedArchivedGoalsCount: 0,
                 detachedLogsCount: 0,
                 scheduleSaved: false,
                 logsSaved: false
@@ -31084,6 +31088,37 @@ function togglePdfAudioPlayerBar(forceState) {
                             }
                         } catch (e) {}
                         result.detachedBacklogCount++;
+                        scheduleChanged = true;
+                    }
+                });
+            }
+
+            if (Array.isArray(weeklyReports) && subIdSet.size > 0) {
+                weeklyReports.forEach(rep => {
+                    if (!rep || typeof rep !== 'object') return;
+                    let repChanged = false;
+                    if (rep.subjectId !== undefined && rep.subjectId !== null && rep.subjectId !== '' && subIdSet.has(String(rep.subjectId))) {
+                        rep.subjectId = '';
+                        repChanged = true;
+                    }
+                    if (Array.isArray(rep.archivedGoals)) {
+                        rep.archivedGoals.forEach(goal => {
+                            if (!goal || typeof goal !== 'object') return;
+                            if (goal.subjectId !== undefined && goal.subjectId !== null && goal.subjectId !== '' && subIdSet.has(String(goal.subjectId))) {
+                                goal.subjectId = '';
+                                repChanged = true;
+                                result.detachedArchivedGoalsCount++;
+                            }
+                        });
+                    }
+                    if (repChanged) {
+                        rep._needsCausalStamp = true;
+                        try {
+                            if (typeof stampEntityMutation === 'function') {
+                                stampEntityMutation(rep, 'weekly_reports', rep.weekStartIso || rep.id);
+                            }
+                        } catch (e) {}
+                        result.detachedWeeklyReportsCount++;
                         scheduleChanged = true;
                     }
                 });
@@ -35610,10 +35645,12 @@ function togglePdfAudioPlayerBar(forceState) {
             if (!ev) return;
 
             const matchedMissedLogs = logs.filter(l => (l.mood === 'missed' && l.text && l.text.includes(ev.title)));
-            if (matchedMissedLogs.length > 0 && typeof recordTombstonesAtomicBatch === 'function') {
-                const batchRes = recordTombstonesAtomicBatch(
-                    matchedMissedLogs.map(l => ({ entityType: 'logs', id: l.id || l.timestamp, priorEntity: l }))
-                );
+            if (matchedMissedLogs.length > 0) {
+                const batchRes = (typeof recordTombstonesAtomicBatch === 'function')
+                    ? recordTombstonesAtomicBatch(
+                        matchedMissedLogs.map(l => ({ entityType: 'logs', id: l.id || l.timestamp, priorEntity: l }))
+                    )
+                    : null;
                 if (!batchRes || !batchRes.ok) {
                     showToast('تعذر حفظ سجل الحذف محلياً. لم يتم تعديل السجل حفاظاً على سلامة البيانات ⚠️', 'error');
                     return;
@@ -36041,10 +36078,12 @@ function togglePdfAudioPlayerBar(forceState) {
             const nowDecH = new Date().getHours() + (new Date().getMinutes() / 60);
             if (isAutoRollover) {
                 const removedRolloverEvents = scheduleEvents.filter(e => !isCollegeCommitmentSession(e));
-                if (removedRolloverEvents.length > 0 && typeof recordTombstonesAtomicBatch === 'function') {
-                    const batchRes = recordTombstonesAtomicBatch(
-                        removedRolloverEvents.map(e => ({ entityType: 'events', id: e.id, priorEntity: e }))
-                    );
+                if (removedRolloverEvents.length > 0) {
+                    const batchRes = (typeof recordTombstonesAtomicBatch === 'function')
+                        ? recordTombstonesAtomicBatch(
+                            removedRolloverEvents.map(e => ({ entityType: 'events', id: e.id, priorEntity: e }))
+                        )
+                        : null;
                     if (!batchRes || !batchRes.ok) {
                         showToast('تعذر حفظ سجل الحذف التلقائي للأسبوع. لم يتم مسح الجدول حفاظاً على بياناتك ⚠️', 'error');
                         return;
@@ -36157,6 +36196,9 @@ function togglePdfAudioPlayerBar(forceState) {
                     showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف التقرير حفاظاً على سلامة البيانات ⚠️', 'error');
                     return;
                 }
+            } else {
+                showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف التقرير حفاظاً على سلامة البيانات ⚠️', 'error');
+                return;
             }
             weeklyReports = weeklyReports.filter(r => String(r.id) !== String(reportId) && String(r.weekStartIso) !== String(reportId));
             saveScheduleData();

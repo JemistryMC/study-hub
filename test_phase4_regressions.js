@@ -2320,6 +2320,10 @@ async function main() {
   prod.setFailNextAccountSnapshotKey('pharmaTombstones_' + corrBUid);
   prod.deleteContinuousSubjectWirdLog(9801, 9802);
   prod.setFailNextAccountSnapshotKey('pharmaTombstones_' + corrBUid);
+  prod.deleteSessionDirect(null, 9805);
+  prod.setFailNextAccountSnapshotKey('pharmaTombstones_' + corrBUid);
+  prod.deleteEventFromPdfAdjuster(9805);
+  prod.setFailNextAccountSnapshotKey('pharmaTombstones_' + corrBUid);
   prod.executeClearSchedule('all');
   prod.setFailNextAccountSnapshotKey('pharmaTombstones_' + corrBUid);
   prod.deleteBacklogTask(9806);
@@ -2340,6 +2344,277 @@ async function main() {
     stateAfterAbortedDeletes.logs.length === 1 &&
     stateAfterAbortedDeletes.weeklyReports.length === 1,
     'T-5.1.3-B6: All deletion callsites abort fail-closed without removing in-memory or persisted records when tombstone persistence fails'
+  );
+
+  // =========================================================================
+  // TEST 17: PHASE 5.1.3.1 — WEEKLY REPORT ARCHIVED GOAL REFERENCES & FAIL-CLOSED SESSION DELETION COVERAGE
+  // =========================================================================
+  console.log('\n[TEST 17] Phase 5.1.3.1 — Weekly Report Archived Goal Detachment & Fail-Closed Session Deletion Coverage...');
+
+  const p5131Uid = 'user_p5131_integrity';
+  prod.localStorage.clear();
+  prod.toastHistory.length = 0;
+  prod.setSessionUser(p5131Uid);
+  prod.resetLiveActorForTabSimulation('dev_p5131');
+
+  // Test 5.1.3.1-A1 — Weekly report archivedGoals[].subjectId detachment on subject deletion
+  const subDelP5131 = {
+    id: 9901,
+    name: 'Clinical Toxicology',
+    groups: [
+      { id: 9911, name: 'Toxidromes', lectures: [{ id: 9921, title: 'Cholinergic Crisis' }] }
+    ]
+  };
+  const subKeepP5131 = {
+    id: 9902,
+    name: 'Pharmacognosy',
+    groups: [
+      { id: 9912, name: 'Alkaloids', lectures: [{ id: 9922, title: 'Tropane Alkaloids' }] }
+    ]
+  };
+  const reportWithDeletedAndSurvivingGoals = {
+    id: 'rep_p5131_w1',
+    weekStartIso: '2026-10-17',
+    rangeTitle: 'Oct 17 - Oct 23',
+    grade: 'A+',
+    adherencePct: 92,
+    plannedHours: 12,
+    completedHours: 11,
+    goalsTotalCount: 2,
+    goalsCompletedCount: 2,
+    coachAdvice: 'Consistent progress across toxicology and pharmacognosy.',
+    archivedGoals: [
+      {
+        id: 'ag_del_sub_1',
+        title: 'Summarize Cholinergic Antidotes',
+        text: 'Atropine + Pralidoxime dosing notes',
+        date: '2026-10-19',
+        notes: 'High-yield clinical pearls preserved',
+        done: true,
+        subjectId: '9901',
+        duration: 2.5,
+        weekStartIso: '2026-10-17'
+      },
+      {
+        id: 'ag_keep_sub_2',
+        title: 'Review Alkaloid Extraction',
+        text: 'Stas-Otto process steps',
+        date: '2026-10-20',
+        notes: 'Lab exam preparation',
+        done: true,
+        subjectId: '9902',
+        duration: 1.5,
+        weekStartIso: '2026-10-17'
+      }
+    ]
+  };
+  const unrelatedReportKeep = {
+    id: 'rep_p5131_w2',
+    weekStartIso: '2026-10-24',
+    rangeTitle: 'Oct 24 - Oct 30',
+    grade: 'A',
+    adherencePct: 85,
+    plannedHours: 10,
+    completedHours: 8.5,
+    goalsTotalCount: 1,
+    goalsCompletedCount: 1,
+    coachAdvice: 'Keep up steady weekly goal completion.',
+    archivedGoals: [
+      {
+        id: 'ag_unrelated_keep_1',
+        title: 'Complete Alkaloid Practice Quiz',
+        done: true,
+        subjectId: '9902',
+        duration: 2,
+        weekStartIso: '2026-10-24'
+      }
+    ]
+  };
+
+  prod.setRuntimeState({
+    activeSubjectId: 9901,
+    subjects: [subDelP5131, subKeepP5131],
+    scheduleEvents: [],
+    scheduleBacklog: [],
+    weeklyReports: [reportWithDeletedAndSurvivingGoals, unrelatedReportKeep],
+    logs: []
+  });
+  prod.saveSubjects();
+  prod.saveScheduleData();
+
+  const rep1OpIdBefore = reportWithDeletedAndSurvivingGoals._causal.operationId;
+  const rep1CounterBefore = reportWithDeletedAndSurvivingGoals._causal.actorCounter;
+  const rep2OpIdBefore = unrelatedReportKeep._causal.operationId;
+
+  await prod.triggerDeleteSubject(9901);
+
+  const stateAfterP5131SubDel = prod.getRuntimeState();
+  const tombsAfterP5131SubDel = prod.getLocalTombstones(p5131Uid);
+  const persistedWeeklyReportsRaw = JSON.parse(prod.localStorage.getItem('pharmaWeeklyReportsV1') || '[]');
+  const persistedSchedV4Raw = JSON.parse(prod.localStorage.getItem('pharmaScheduleV4') || '{}');
+  const persistedRep1 = persistedWeeklyReportsRaw.find(r => r.id === 'rep_p5131_w1');
+  const persistedRep2 = persistedWeeklyReportsRaw.find(r => r.id === 'rep_p5131_w2');
+
+  assert(
+    stateAfterP5131SubDel.weeklyReports.length === 2 &&
+    Object.keys(tombsAfterP5131SubDel.weekly_reports || {}).length === 0 &&
+    reportWithDeletedAndSurvivingGoals.archivedGoals.length === 2 &&
+    reportWithDeletedAndSurvivingGoals.archivedGoals[0].id === 'ag_del_sub_1' &&
+    reportWithDeletedAndSurvivingGoals.archivedGoals[0].title === 'Summarize Cholinergic Antidotes' &&
+    reportWithDeletedAndSurvivingGoals.archivedGoals[0].text === 'Atropine + Pralidoxime dosing notes' &&
+    reportWithDeletedAndSurvivingGoals.archivedGoals[0].date === '2026-10-19' &&
+    reportWithDeletedAndSurvivingGoals.archivedGoals[0].notes === 'High-yield clinical pearls preserved' &&
+    reportWithDeletedAndSurvivingGoals.archivedGoals[0].done === true &&
+    reportWithDeletedAndSurvivingGoals.archivedGoals[0].duration === 2.5 &&
+    reportWithDeletedAndSurvivingGoals.archivedGoals[0].weekStartIso === '2026-10-17' &&
+    reportWithDeletedAndSurvivingGoals.archivedGoals[0].subjectId === '' &&
+    reportWithDeletedAndSurvivingGoals.archivedGoals[1].id === 'ag_keep_sub_2' &&
+    reportWithDeletedAndSurvivingGoals.archivedGoals[1].subjectId === '9902' &&
+    reportWithDeletedAndSurvivingGoals._causal.operationId !== rep1OpIdBefore &&
+    reportWithDeletedAndSurvivingGoals._causal.actorCounter === rep1CounterBefore + 1 &&
+    unrelatedReportKeep.archivedGoals.length === 1 &&
+    unrelatedReportKeep.archivedGoals[0].subjectId === '9902' &&
+    unrelatedReportKeep._causal.operationId === rep2OpIdBefore &&
+    Boolean(persistedRep1 && persistedRep1.archivedGoals[0].subjectId === '' && persistedRep1.archivedGoals[1].subjectId === '9902') &&
+    Boolean(persistedRep2 && persistedRep2._causal?.operationId === rep2OpIdBefore) &&
+    Array.isArray(persistedSchedV4Raw.weeklyReports) &&
+    persistedSchedV4Raw.weeklyReports[0].archivedGoals[0].subjectId === '',
+    'T-5.1.3.1-A1: Subject deletion preserves all weeklyReports and archivedGoals content, detaches only deleted subjectId references in archivedGoals with causal stamping and persistence, and leaves unrelated reports untouched'
+  );
+
+  // Test 5.1.3.1-B1 — Explicit fail-closed tombstone failure & retry coverage for deleteSessionDirect
+  const evDirectTarget = {
+    id: 'ev_p5131_direct_1',
+    title: 'Direct Delete Target Session',
+    subjectId: '9902',
+    lectureId: '9922',
+    day: 2,
+    startHour: 13,
+    duration: 2,
+    notes: 'Preserve session notes on tombstone write failure',
+    completed: true
+  };
+  const evPdfAdjTarget = {
+    id: 'ev_p5131_pdf_adj_1',
+    title: 'PDF Adjuster Delete Target Session',
+    subjectId: '9902',
+    lectureId: '9922',
+    day: 4,
+    startHour: 15,
+    duration: 1.5,
+    notes: 'Preserve PDF adjuster session notes on tombstone write failure',
+    hideFromPdf: false,
+    completed: false
+  };
+  const companionBacklog = {
+    id: 'bl_p5131_companion',
+    title: 'Companion Weekly Goal',
+    subjectId: '9902',
+    done: false
+  };
+  const companionLog = {
+    id: 'log_p5131_companion',
+    date: '2026-11-05',
+    text: 'Companion Study Log Entry',
+    mood: 'bolt',
+    subjectId: '9902'
+  };
+
+  prod.setRuntimeState({
+    activeSubjectId: 9902,
+    subjects: [subKeepP5131],
+    scheduleEvents: [evDirectTarget, evPdfAdjTarget],
+    scheduleBacklog: [companionBacklog],
+    weeklyReports: [unrelatedReportKeep],
+    logs: [companionLog]
+  });
+  prod.saveScheduleData();
+  prod.saveLogs();
+
+  prod.toastHistory.length = 0;
+  prod.setFailNextAccountSnapshotKey('pharmaTombstones_' + p5131Uid);
+  prod.deleteSessionDirect(null, 'ev_p5131_direct_1');
+
+  const stateAfterFailedDirectDel = prod.getRuntimeState();
+  const tombsAfterFailedDirectDel = prod.getLocalTombstones(p5131Uid);
+  const schedStorageAfterFailedDirectDel = JSON.parse(prod.localStorage.getItem('pharmaScheduleV4') || '{}');
+  const directToastFailedOnly = (
+    prod.toastHistory.length === 1 &&
+    prod.toastHistory[0].type === 'error' &&
+    prod.toastHistory[0].msg.includes('تعذر حفظ سجل الحذف محلياً') &&
+    !prod.toastHistory.some(t => t.msg === 'تم حذف الجلسة')
+  );
+  const directTargetPreservedOnFailure = (
+    stateAfterFailedDirectDel.scheduleEvents.length === 2 &&
+    stateAfterFailedDirectDel.scheduleEvents[0].id === 'ev_p5131_direct_1' &&
+    stateAfterFailedDirectDel.scheduleEvents[0].title === 'Direct Delete Target Session' &&
+    stateAfterFailedDirectDel.scheduleEvents[0].notes === 'Preserve session notes on tombstone write failure' &&
+    !tombsAfterFailedDirectDel.events?.['ev_p5131_direct_1'] &&
+    Array.isArray(schedStorageAfterFailedDirectDel.events) &&
+    schedStorageAfterFailedDirectDel.events.some(e => e.id === 'ev_p5131_direct_1') &&
+    stateAfterFailedDirectDel.scheduleBacklog.length === 1 &&
+    stateAfterFailedDirectDel.logs.length === 1 &&
+    stateAfterFailedDirectDel.weeklyReports.length === 1
+  );
+
+  // Retry deleteSessionDirect after tombstone storage is restored
+  prod.deleteSessionDirect(null, 'ev_p5131_direct_1');
+  const stateAfterRetryDirectDel = prod.getRuntimeState();
+  const tombsAfterRetryDirectDel = prod.getLocalTombstones(p5131Uid);
+
+  assert(
+    directToastFailedOnly &&
+    directTargetPreservedOnFailure &&
+    stateAfterRetryDirectDel.scheduleEvents.length === 1 &&
+    stateAfterRetryDirectDel.scheduleEvents[0].id === 'ev_p5131_pdf_adj_1' &&
+    Boolean(tombsAfterRetryDirectDel.events?.['ev_p5131_direct_1']?.operationId) &&
+    stateAfterRetryDirectDel.scheduleBacklog.length === 1 &&
+    stateAfterRetryDirectDel.logs.length === 1 &&
+    stateAfterRetryDirectDel.weeklyReports.length === 1,
+    'T-5.1.3.1-B1: deleteSessionDirect aborts fail-closed when recordTombstone persistence fails (preserving target session, associated data, and emitting no false success toast) and succeeds cleanly on subsequent retry'
+  );
+
+  // Test 5.1.3.1-B2 — Explicit fail-closed tombstone failure & retry coverage for deleteEventFromPdfAdjuster
+  prod.toastHistory.length = 0;
+  prod.setFailNextAccountSnapshotKey('pharmaTombstones_' + p5131Uid);
+  prod.deleteEventFromPdfAdjuster('ev_p5131_pdf_adj_1');
+
+  const stateAfterFailedPdfAdjDel = prod.getRuntimeState();
+  const tombsAfterFailedPdfAdjDel = prod.getLocalTombstones(p5131Uid);
+  const schedStorageAfterFailedPdfAdjDel = JSON.parse(prod.localStorage.getItem('pharmaScheduleV4') || '{}');
+  const pdfAdjToastFailedOnly = (
+    prod.toastHistory.length === 1 &&
+    prod.toastHistory[0].type === 'error' &&
+    prod.toastHistory[0].msg.includes('تعذر حفظ سجل الحذف محلياً') &&
+    !prod.toastHistory.some(t => t.msg === '🗑️ تم حذف المهمة وتحديث معاينة الـ PDF')
+  );
+  const pdfAdjTargetPreservedOnFailure = (
+    stateAfterFailedPdfAdjDel.scheduleEvents.length === 1 &&
+    stateAfterFailedPdfAdjDel.scheduleEvents[0].id === 'ev_p5131_pdf_adj_1' &&
+    stateAfterFailedPdfAdjDel.scheduleEvents[0].title === 'PDF Adjuster Delete Target Session' &&
+    stateAfterFailedPdfAdjDel.scheduleEvents[0].notes === 'Preserve PDF adjuster session notes on tombstone write failure' &&
+    !tombsAfterFailedPdfAdjDel.events?.['ev_p5131_pdf_adj_1'] &&
+    Array.isArray(schedStorageAfterFailedPdfAdjDel.events) &&
+    schedStorageAfterFailedPdfAdjDel.events.some(e => e.id === 'ev_p5131_pdf_adj_1') &&
+    stateAfterFailedPdfAdjDel.scheduleBacklog.length === 1 &&
+    stateAfterFailedPdfAdjDel.logs.length === 1 &&
+    stateAfterFailedPdfAdjDel.weeklyReports.length === 1
+  );
+
+  // Retry deleteEventFromPdfAdjuster after tombstone storage is restored
+  prod.deleteEventFromPdfAdjuster('ev_p5131_pdf_adj_1');
+  const stateAfterRetryPdfAdjDel = prod.getRuntimeState();
+  const tombsAfterRetryPdfAdjDel = prod.getLocalTombstones(p5131Uid);
+
+  assert(
+    pdfAdjToastFailedOnly &&
+    pdfAdjTargetPreservedOnFailure &&
+    stateAfterRetryPdfAdjDel.scheduleEvents.length === 0 &&
+    Boolean(tombsAfterRetryPdfAdjDel.events?.['ev_p5131_pdf_adj_1']?.operationId) &&
+    stateAfterRetryPdfAdjDel.scheduleBacklog.length === 1 &&
+    stateAfterRetryPdfAdjDel.logs.length === 1 &&
+    stateAfterRetryPdfAdjDel.weeklyReports.length === 1,
+    'T-5.1.3.1-B2: deleteEventFromPdfAdjuster aborts fail-closed when recordTombstone persistence fails (preserving target session, associated data, and emitting no false success toast) and succeeds cleanly on subsequent retry'
   );
 
   console.log('\n======================================================================');
