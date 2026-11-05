@@ -26236,11 +26236,29 @@ function togglePdfAudioPlayerBar(forceState) {
                 userObj && userObj.id && prevUid && prevUid !== 'local' && prevUid !== nextUid
             );
 
+            const prevGenAtStart = currentSessionGeneration;
+            const activeUidAtStart = getCanonicalUserId();
+            const prevCtx = (activeUidAtStart === prevUid)
+                ? createAccountOperationContext(prevUid, prevGenAtStart)
+                : Object.freeze({
+                    ok: true,
+                    error: null,
+                    uid: prevUid,
+                    sanitizedUid: sanitizeUserIdForPrefix(prevUid),
+                    generation: prevGenAtStart,
+                    sessionEpoch: prevGenAtStart,
+                    authorized: true,
+                    isCurrent() {
+                        return (this.generation === currentSessionGeneration) && (getCanonicalUserId() === activeUidAtStart);
+                    }
+                });
+
             // P1 Safety: Never drop pendingAnnoSaveMap on session change!
             // Flush pending annotations under the previous account context first; if flush fails, isolate them per-UID.
             const pendingKeys = Object.keys(pendingAnnoSaveMap);
-            if (pendingKeys.length > 0) {
-                const prevCtx = createAccountOperationContext(prevUid, currentSessionGeneration);
+            const hadPendingAnnotations = pendingKeys.length > 0;
+            let pendingFlushFailed = false;
+            if (hadPendingAnnotations) {
                 let flushedOk = false;
                 try {
                     flushedOk = await flushPendingAnnotationsSave(false, prevCtx);
@@ -26248,6 +26266,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     flushedOk = false;
                 }
                 if (!flushedOk) {
+                    pendingFlushFailed = true;
                     if (!isolatedPendingAnnotationsByUser[prevUid]) {
                         isolatedPendingAnnotationsByUser[prevUid] = {};
                     }
@@ -26261,67 +26280,247 @@ function togglePdfAudioPlayerBar(forceState) {
             }
 
             if (isSwitchingDifferentCloudUser) {
-                if (!localStorage.getItem('pharmaLastActiveCloudUid')) {
-                    localStorage.setItem('pharmaLastActiveCloudUid', prevUid);
-                    localStorage.setItem('pharmaLastActiveUserIdV1', prevUid);
+                if (!prevCtx.isCurrent()) {
+                    return { ok: false, success: false, status: 'aborted', reason: 'account_switched' };
                 }
-                // Preserve previous account's Drive config in its account-scoped vault if not already stored
+                if (!localStorage.getItem('pharmaLastActiveCloudUid')) {
+                    try {
+                        localStorage.setItem('pharmaLastActiveCloudUid', prevUid);
+                        localStorage.setItem('pharmaLastActiveUserIdV1', prevUid);
+                    } catch (e) {}
+                }
+
+                if (pendingFlushFailed) {
+                    try {
+                        localStorage.setItem('pharmaWorkspaceDirty', '1');
+                        localStorage.setItem('pharmaWorkspaceDirty_' + prevUid, '1');
+                    } catch (e) {}
+                    dirtyAnnotationsForCloud = true;
+                    googleAccessToken = null;
+                    googleTokenExpiry = 0;
+                    pendingGoogleTokenPromise = null;
+                    localStorage.removeItem('exo_gdrive_token');
+                    localStorage.removeItem('exo_gdrive_token_exp');
+                    updateCloudNavUI('error');
+                    showToast('تعذر حفظ تعليقات الحساب السابق قبل تبديل الحساب. لم يتم مسح بياناتك المحلية.', 'error');
+                    return {
+                        ok: false,
+                        success: false,
+                        status: 'error',
+                        reason: 'outgoing_annotation_flush_failed',
+                        isDirty: true
+                    };
+                }
+
+                if (!dbInstance && typeof initPdfDB === 'function') {
+                    try {
+                        await initPdfDB();
+                    } catch (dbInitErr) {}
+                    if (!prevCtx.isCurrent()) {
+                        return { ok: false, success: false, status: 'aborted', reason: 'account_switched' };
+                    }
+                }
+
+                const outgoingAnnosRes = await getAllAnnotationsMapFromDB(prevUid, prevCtx);
+                if (!prevCtx.isCurrent()) {
+                    return { ok: false, success: false, status: 'aborted', reason: 'account_switched' };
+                }
+                if (!outgoingAnnosRes || !outgoingAnnosRes.ok) {
+                    try {
+                        localStorage.setItem('pharmaWorkspaceDirty', '1');
+                        localStorage.setItem('pharmaWorkspaceDirty_' + prevUid, '1');
+                    } catch (e) {}
+                    dirtyAnnotationsForCloud = true;
+                    googleAccessToken = null;
+                    googleTokenExpiry = 0;
+                    pendingGoogleTokenPromise = null;
+                    localStorage.removeItem('exo_gdrive_token');
+                    localStorage.removeItem('exo_gdrive_token_exp');
+                    updateCloudNavUI('error');
+                    showToast('تعذر قراءة تعليقات الحساب السابق بأمان قبل تبديل الحساب. لم يتم مسح بياناتك المحلية.', 'error');
+                    return {
+                        ok: false,
+                        success: false,
+                        status: 'error',
+                        reason: (outgoingAnnosRes && outgoingAnnosRes.error && outgoingAnnosRes.error.code === 'ACCOUNT_CONTEXT_MISMATCH')
+                            ? 'account_switched'
+                            : 'outgoing_annotations_read_failed',
+                        error: outgoingAnnosRes ? outgoingAnnosRes.error : null,
+                        isDirty: true
+                    };
+                }
+
+                const verifiedOutgoingAnnotations = (outgoingAnnosRes.verifiedMap && typeof outgoingAnnosRes.verifiedMap === 'object')
+                    ? outgoingAnnosRes.verifiedMap
+                    : {};
+
+                const prevAccountKey = getAccountBackupStorageKey(prevUid);
+                let existingSnap = null;
                 try {
-                    const boundGdrive = localStorage.getItem('exo_gdrive_bound_user_id');
-                    if ((!boundGdrive || String(boundGdrive) === prevUid) &&
-                        localStorage.getItem('exo_gdrive_connected') === '1' &&
-                        localStorage.getItem('exo_gdrive_user_email') &&
-                        !localStorage.getItem('pharmaGdriveSync_' + prevUid)) {
-                        localStorage.setItem('pharmaGdriveSync_' + prevUid, JSON.stringify({
-                            linked: true,
-                            userEmail: localStorage.getItem('exo_gdrive_user_email') || '',
-                            folderId: localStorage.getItem('exo_gdrive_folder_id') || '',
-                            quotaInfo: localStorage.getItem('exo_gdrive_quota_info') || ''
-                        }));
+                    const existingRaw = localStorage.getItem(prevAccountKey);
+                    if (existingRaw) {
+                        const parsedExisting = JSON.parse(existingRaw);
+                        if (parsedExisting && typeof parsedExisting === 'object' && (!parsedExisting.user_id || String(parsedExisting.user_id) === prevUid)) {
+                            existingSnap = parsedExisting;
+                        }
                     }
                 } catch (e) {}
-                // Preserve previous account's workspace snapshot if not already stored
+
+                let existingGdriveVault = null;
                 try {
-                    const prevAccountKey = getAccountBackupStorageKey(prevUid);
-                    if (!localStorage.getItem(prevAccountKey) &&
-                        ((Array.isArray(subjects) && subjects.length > 0) ||
-                         (Array.isArray(scheduleEvents) && scheduleEvents.length > 0) ||
-                         (Array.isArray(scheduleBacklog) && scheduleBacklog.length > 0) ||
-                         (Array.isArray(weeklyReports) && weeklyReports.length > 0) ||
-                         (Array.isArray(logs) && logs.length > 0) ||
-                         Object.keys(cloudMediaRegistry || {}).length > 0 ||
-                         currentPdfFitMode !== 'height')) {
-                        const boundGdrive = localStorage.getItem('exo_gdrive_bound_user_id');
-                        const isPrevGdrive = !boundGdrive || String(boundGdrive) === prevUid;
-                        localStorage.setItem(prevAccountKey, JSON.stringify({
-                            user_id: prevUid,
-                            user_email: String(prevUser?.email || '').toLowerCase(),
-                            subjects: subjects || [],
-                            schedule: {
-                                version: 3,
-                                events: scheduleEvents || [],
-                                backlog: scheduleBacklog || [],
-                                plannerPrefs: plannerPrefs,
-                                weeklyReports: weeklyReports || [],
-                                pdfFitMode: currentPdfFitMode || 'height',
-                                cloudMediaRegistry: cloudMediaRegistry || {},
-                                _tombstones: getLocalTombstones(prevUid),
-                                gdriveSync: {
-                                    linked: isPrevGdrive && Boolean(localStorage.getItem('exo_gdrive_connected') === '1'),
-                                    userEmail: isPrevGdrive ? (localStorage.getItem('exo_gdrive_user_email') || '') : '',
-                                    folderId: isPrevGdrive ? (localStorage.getItem('exo_gdrive_folder_id') || '') : '',
-                                    quotaInfo: isPrevGdrive ? (localStorage.getItem('exo_gdrive_quota_info') || '') : ''
-                                }
-                            },
-                            logs: logs || [],
-                            academy_progress: completedAcademyModules || [],
-                            annotations: {},
-                            revision: Number(localStorage.getItem('pharmaWorkspaceRevision_' + prevUid) || 1),
-                            dirty: Boolean(localStorage.getItem('pharmaWorkspaceDirty') === '1' || localStorage.getItem('pharmaWorkspaceDirty_' + prevUid) === '1'),
-                            updated_at: new Date().toISOString()
-                        }));
+                    const rawVault = localStorage.getItem('pharmaGdriveSync_' + prevUid);
+                    if (rawVault) {
+                        const parsedVault = JSON.parse(rawVault);
+                        if (parsedVault && typeof parsedVault === 'object') {
+                            existingGdriveVault = parsedVault;
+                        }
                     }
                 } catch (e) {}
+
+                const boundGdrive = localStorage.getItem('exo_gdrive_bound_user_id');
+                const isPrevGdrive = !boundGdrive || String(boundGdrive) === prevUid;
+                const liveGdriveConnected = isPrevGdrive &&
+                    localStorage.getItem('exo_gdrive_connected') === '1' &&
+                    Boolean(localStorage.getItem('exo_gdrive_user_email'));
+
+                let outgoingDriveSync = {
+                    linked: false,
+                    userEmail: '',
+                    folderId: '',
+                    quotaInfo: ''
+                };
+                if (liveGdriveConnected) {
+                    outgoingDriveSync = {
+                        linked: true,
+                        userEmail: localStorage.getItem('exo_gdrive_user_email') || '',
+                        folderId: localStorage.getItem('exo_gdrive_folder_id') || '',
+                        quotaInfo: localStorage.getItem('exo_gdrive_quota_info') || ''
+                    };
+                    try {
+                        localStorage.setItem('pharmaGdriveSync_' + prevUid, JSON.stringify(outgoingDriveSync));
+                    } catch (e) {}
+                } else if (existingGdriveVault && existingGdriveVault.linked && existingGdriveVault.userEmail) {
+                    outgoingDriveSync = {
+                        linked: true,
+                        userEmail: String(existingGdriveVault.userEmail || ''),
+                        folderId: String(existingGdriveVault.folderId || ''),
+                        quotaInfo: String(existingGdriveVault.quotaInfo || '')
+                    };
+                } else if (existingSnap && existingSnap.schedule && existingSnap.schedule.gdriveSync && existingSnap.schedule.gdriveSync.linked && existingSnap.schedule.gdriveSync.userEmail) {
+                    outgoingDriveSync = {
+                        linked: true,
+                        userEmail: String(existingSnap.schedule.gdriveSync.userEmail || ''),
+                        folderId: String(existingSnap.schedule.gdriveSync.folderId || ''),
+                        quotaInfo: String(existingSnap.schedule.gdriveSync.quotaInfo || '')
+                    };
+                }
+
+                const outgoingTombstones = getLocalTombstones(prevUid);
+                const hasOutgoingTombstones = Boolean(
+                    outgoingTombstones &&
+                    ((Array.isArray(outgoingTombstones.subjects) && outgoingTombstones.subjects.length > 0) ||
+                     (Array.isArray(outgoingTombstones.groups) && outgoingTombstones.groups.length > 0) ||
+                     (Array.isArray(outgoingTombstones.lectures) && outgoingTombstones.lectures.length > 0) ||
+                     (Array.isArray(outgoingTombstones.events) && outgoingTombstones.events.length > 0) ||
+                     (Array.isArray(outgoingTombstones.backlog) && outgoingTombstones.backlog.length > 0) ||
+                     (Array.isArray(outgoingTombstones.logs) && outgoingTombstones.logs.length > 0))
+                );
+                const hasNonDefaultPlannerPrefs = Boolean(
+                    plannerPrefs && typeof plannerPrefs === 'object' && (
+                        Number(plannerPrefs.weekStartDay ?? 6) !== 6 ||
+                        Number(plannerPrefs.dayStartHour ?? 6) !== 6 ||
+                        Number(plannerPrefs.dayEndHour ?? 23) !== 23 ||
+                        Number(plannerPrefs.autoCompletePct ?? 75) !== 75
+                    )
+                );
+                const isOutgoingWorkspaceDirty = Boolean(
+                    localStorage.getItem('pharmaWorkspaceDirty') === '1' ||
+                    localStorage.getItem('pharmaWorkspaceDirty_' + prevUid) === '1' ||
+                    dirtyAnnotationsForCloud ||
+                    hadPendingAnnotations
+                );
+                const hasOutgoingMeaningfulState = Boolean(
+                    existingSnap !== null ||
+                    (Array.isArray(subjects) && subjects.length > 0) ||
+                    (Array.isArray(scheduleEvents) && scheduleEvents.length > 0) ||
+                    (Array.isArray(scheduleBacklog) && scheduleBacklog.length > 0) ||
+                    (Array.isArray(weeklyReports) && weeklyReports.length > 0) ||
+                    (Array.isArray(logs) && logs.length > 0) ||
+                    (Array.isArray(completedAcademyModules) && completedAcademyModules.length > 0) ||
+                    Object.keys(cloudMediaRegistry || {}).length > 0 ||
+                    currentPdfFitMode !== 'height' ||
+                    hasNonDefaultPlannerPrefs ||
+                    isOutgoingWorkspaceDirty ||
+                    Object.keys(verifiedOutgoingAnnotations).length > 0 ||
+                    hasOutgoingTombstones ||
+                    outgoingDriveSync.linked
+                );
+
+                if (hasOutgoingMeaningfulState) {
+                    const outgoingRevision = Number(
+                        localStorage.getItem('pharmaWorkspaceRevision_' + prevUid) ||
+                        existingSnap?.revision ||
+                        1
+                    );
+                    const outgoingCanUploadMedia = Boolean(
+                        currentUserCanUploadMedia ||
+                        (existingSnap && existingSnap.can_upload_media === true)
+                    );
+                    const outgoingEmail = String(
+                        prevUser?.email ||
+                        existingSnap?.user_email ||
+                        ''
+                    ).toLowerCase();
+
+                    const outgoingSnapshotPayload = Object.assign({}, existingSnap || {}, {
+                        user_id: prevUid,
+                        user_email: outgoingEmail,
+                        can_upload_media: outgoingCanUploadMedia,
+                        subjects: Array.isArray(subjects) ? subjects : [],
+                        schedule: {
+                            version: 3,
+                            events: Array.isArray(scheduleEvents) ? scheduleEvents : [],
+                            backlog: Array.isArray(scheduleBacklog) ? scheduleBacklog : [],
+                            plannerPrefs: plannerPrefs,
+                            weeklyReports: Array.isArray(weeklyReports) ? weeklyReports : [],
+                            pdfFitMode: currentPdfFitMode || 'height',
+                            cloudMediaRegistry: cloudMediaRegistry || {},
+                            _tombstones: outgoingTombstones,
+                            gdriveSync: outgoingDriveSync
+                        },
+                        logs: Array.isArray(logs) ? logs : [],
+                        academy_progress: Array.isArray(completedAcademyModules) ? completedAcademyModules : [],
+                        annotations: verifiedOutgoingAnnotations,
+                        revision: outgoingRevision,
+                        dirty: Boolean(isOutgoingWorkspaceDirty || (existingSnap && existingSnap.dirty === true)),
+                        updated_at: new Date().toISOString()
+                    });
+
+                    try {
+                        localStorage.setItem(prevAccountKey, JSON.stringify(outgoingSnapshotPayload));
+                    } catch (snapErr) {
+                        try {
+                            localStorage.setItem('pharmaWorkspaceDirty', '1');
+                            localStorage.setItem('pharmaWorkspaceDirty_' + prevUid, '1');
+                        } catch (e) {}
+                        dirtyAnnotationsForCloud = true;
+                        googleAccessToken = null;
+                        googleTokenExpiry = 0;
+                        pendingGoogleTokenPromise = null;
+                        localStorage.removeItem('exo_gdrive_token');
+                        localStorage.removeItem('exo_gdrive_token_exp');
+                        updateCloudNavUI('error');
+                        showToast('تعذر حفظ نسخة الحساب السابق محلياً قبل تبديل الحساب (قد تكون المساحة ممتلئة). لم يتم مسح بياناتك.', 'error');
+                        return {
+                            ok: false,
+                            success: false,
+                            status: 'error',
+                            reason: 'outgoing_account_snapshot_write_failed',
+                            error: snapErr,
+                            isDirty: true
+                        };
+                    }
+                }
             }
 
             // Bump session generation epoch whenever account identity changes
@@ -26379,6 +26578,10 @@ function togglePdfAudioPlayerBar(forceState) {
 
             currentCloudUser = userObj || null;
             const activeCtx = createAccountOperationContext(nextUid, currentSessionGeneration);
+            if (currentCloudUser && activeCtx.uid && activeCtx.uid !== 'local') {
+                localStorage.setItem('pharmaLastActiveUserIdV1', activeCtx.uid);
+                localStorage.setItem('pharmaLastActiveCloudUid', activeCtx.uid);
+            }
 
             // Reset in-memory caches for the new session
             inMemoryAnnotationsCache = {};
@@ -26403,7 +26606,7 @@ function togglePdfAudioPlayerBar(forceState) {
 
             if (dbInstance) {
                 await refreshLocalMediaCache(activeCtx);
-                if (!activeCtx.isCurrent()) return;
+                if (!activeCtx.isCurrent()) return { ok: false, success: false, status: 'aborted', reason: 'account_switched' };
             }
             const outView = document.getElementById('cloudLoggedOutView');
             const inView = document.getElementById('cloudLoggedInView');
@@ -26444,8 +26647,9 @@ function togglePdfAudioPlayerBar(forceState) {
                 }
 
                 if (shouldInitialSync) {
-                    await syncWorkspaceOnLogin(activeCtx);
+                    return await syncWorkspaceOnLogin(activeCtx);
                 }
+                return { ok: true, success: true, status: 'authenticated', userId: activeCtx.uid };
             } else {
                 if (outView) outView.style.display = 'block';
                 if (inView) inView.style.display = 'none';
@@ -26454,6 +26658,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     realtimeChannel = null;
                 }
                 updateCloudNavUI('logged_out');
+                return { ok: true, success: true, status: 'logged_out' };
             }
         }
 
@@ -30489,68 +30694,270 @@ function togglePdfAudioPlayerBar(forceState) {
                     || localStorage.getItem('pharmaLastActiveUserIdV1')
                     || localStorage.getItem('exo_gdrive_bound_user_id');
                 const isSwitchingDifferentUser = Boolean(lastLoggedUserId && String(lastLoggedUserId) !== opCtx.uid);
-                localStorage.setItem('pharmaLastActiveUserIdV1', opCtx.uid);
-                localStorage.setItem('pharmaLastActiveCloudUid', opCtx.uid);
 
                 if (isSwitchingDifferentUser) {
                     const prevUid = String(lastLoggedUserId);
                     if (prevUid && prevUid !== 'local' && prevUid !== opCtx.uid) {
-                        // Preserve previous user's account-scoped Google Drive configuration if not already stored
+                        const prevGenAtStart = currentSessionGeneration;
+                        const activeUidAtStart = getCanonicalUserId();
+                        const prevCtx = (activeUidAtStart === prevUid)
+                            ? createAccountOperationContext(prevUid, prevGenAtStart)
+                            : Object.freeze({
+                                ok: true,
+                                error: null,
+                                uid: prevUid,
+                                sanitizedUid: sanitizeUserIdForPrefix(prevUid),
+                                generation: prevGenAtStart,
+                                sessionEpoch: prevGenAtStart,
+                                authorized: true,
+                                isCurrent() {
+                                    return (this.generation === currentSessionGeneration) && (getCanonicalUserId() === activeUidAtStart);
+                                }
+                            });
+
+                        const prevAccountKey = getAccountBackupStorageKey(prevUid);
+                        let existingSnap = null;
                         try {
-                            const boundGdrive = localStorage.getItem('exo_gdrive_bound_user_id');
-                            if ((!boundGdrive || String(boundGdrive) === prevUid) &&
-                                localStorage.getItem('exo_gdrive_connected') === '1' &&
-                                localStorage.getItem('exo_gdrive_user_email') &&
-                                !localStorage.getItem('pharmaGdriveSync_' + prevUid)) {
-                                localStorage.setItem('pharmaGdriveSync_' + prevUid, JSON.stringify({
-                                    linked: true,
-                                    userEmail: localStorage.getItem('exo_gdrive_user_email') || '',
-                                    folderId: localStorage.getItem('exo_gdrive_folder_id') || '',
-                                    quotaInfo: localStorage.getItem('exo_gdrive_quota_info') || ''
-                                }));
+                            const existingRaw = localStorage.getItem(prevAccountKey);
+                            if (existingRaw) {
+                                const parsedExisting = JSON.parse(existingRaw);
+                                if (parsedExisting && typeof parsedExisting === 'object' && (!parsedExisting.user_id || String(parsedExisting.user_id) === prevUid)) {
+                                    existingSnap = parsedExisting;
+                                }
                             }
                         } catch (e) {}
-                        // Preserve previous user's account-scoped workspace snapshot if not already stored
+
+                        const pendingKeys = Object.keys(pendingAnnoSaveMap);
+                        const hadPendingAnnotations = pendingKeys.length > 0;
+                        if (hadPendingAnnotations && typeof flushPendingAnnotationsSave === 'function') {
+                            let flushedOk = false;
+                            try {
+                                flushedOk = await flushPendingAnnotationsSave(false, prevCtx);
+                            } catch (flushErr) {
+                                flushedOk = false;
+                            }
+                            if (!prevCtx.isCurrent() || !opCtx.isCurrent()) {
+                                return { ok: false, success: false, status: 'aborted', reason: 'account_switched' };
+                            }
+                            if (!flushedOk) {
+                                try {
+                                    localStorage.setItem('pharmaWorkspaceDirty', '1');
+                                    localStorage.setItem('pharmaWorkspaceDirty_' + prevUid, '1');
+                                } catch (e) {}
+                                dirtyAnnotationsForCloud = true;
+                                if (typeof googleAccessToken !== 'undefined') googleAccessToken = null;
+                                if (typeof googleTokenExpiry !== 'undefined') googleTokenExpiry = 0;
+                                if (typeof pendingGoogleTokenPromise !== 'undefined') pendingGoogleTokenPromise = null;
+                                localStorage.removeItem('exo_gdrive_token');
+                                localStorage.removeItem('exo_gdrive_token_exp');
+                                if (currentCloudUser && String(currentCloudUser.id) !== prevUid) {
+                                    currentCloudUser = { id: prevUid, email: String(existingSnap?.user_email || '') };
+                                    bumpAccountSessionGeneration();
+                                }
+                                updateCloudNavUI('error');
+                                showToast('تعذر حفظ تعليقات الحساب السابق قبل تبديل الحساب. لم يتم مسح بياناتك المحلية.', 'error');
+                                return {
+                                    ok: false,
+                                    success: false,
+                                    status: 'error',
+                                    reason: 'outgoing_annotation_flush_failed',
+                                    isDirty: true
+                                };
+                            }
+                        }
+
+                        const outgoingAnnosRes = await getAllAnnotationsMapFromDB(prevUid, prevCtx);
+                        if (!prevCtx.isCurrent() || !opCtx.isCurrent()) {
+                            return { ok: false, success: false, status: 'aborted', reason: 'account_switched' };
+                        }
+                        if (!outgoingAnnosRes || !outgoingAnnosRes.ok) {
+                            try {
+                                localStorage.setItem('pharmaWorkspaceDirty', '1');
+                                localStorage.setItem('pharmaWorkspaceDirty_' + prevUid, '1');
+                            } catch (e) {}
+                            dirtyAnnotationsForCloud = true;
+                            if (typeof googleAccessToken !== 'undefined') googleAccessToken = null;
+                            if (typeof googleTokenExpiry !== 'undefined') googleTokenExpiry = 0;
+                            if (typeof pendingGoogleTokenPromise !== 'undefined') pendingGoogleTokenPromise = null;
+                            localStorage.removeItem('exo_gdrive_token');
+                            localStorage.removeItem('exo_gdrive_token_exp');
+                            if (currentCloudUser && String(currentCloudUser.id) !== prevUid) {
+                                currentCloudUser = { id: prevUid, email: String(existingSnap?.user_email || '') };
+                                bumpAccountSessionGeneration();
+                            }
+                            updateCloudNavUI('error');
+                            showToast('تعذر قراءة تعليقات الحساب السابق بأمان قبل تبديل الحساب. لم يتم مسح بياناتك المحلية.', 'error');
+                            return {
+                                ok: false,
+                                success: false,
+                                status: 'error',
+                                reason: (outgoingAnnosRes && outgoingAnnosRes.error && outgoingAnnosRes.error.code === 'ACCOUNT_CONTEXT_MISMATCH')
+                                    ? 'account_switched'
+                                    : 'outgoing_annotations_read_failed',
+                                error: outgoingAnnosRes ? outgoingAnnosRes.error : null,
+                                isDirty: true
+                            };
+                        }
+
+                        const verifiedOutgoingAnnotations = (outgoingAnnosRes.verifiedMap && typeof outgoingAnnosRes.verifiedMap === 'object')
+                            ? outgoingAnnosRes.verifiedMap
+                            : {};
+
+                        let existingGdriveVault = null;
                         try {
-                            const prevAccountKey = getAccountBackupStorageKey(prevUid);
-                            if (!localStorage.getItem(prevAccountKey) &&
-                                ((Array.isArray(subjects) && subjects.length > 0) ||
-                                 (Array.isArray(scheduleEvents) && scheduleEvents.length > 0) ||
-                                 (Array.isArray(scheduleBacklog) && scheduleBacklog.length > 0) ||
-                                 (Array.isArray(weeklyReports) && weeklyReports.length > 0) ||
-                                 (Array.isArray(logs) && logs.length > 0) ||
-                                 Object.keys(cloudMediaRegistry || {}).length > 0 ||
-                                 currentPdfFitMode !== 'height')) {
-                                const boundGdrive = localStorage.getItem('exo_gdrive_bound_user_id');
-                                const isPrevGdrive = !boundGdrive || String(boundGdrive) === prevUid;
-                                localStorage.setItem(prevAccountKey, JSON.stringify({
-                                    user_id: prevUid,
-                                    subjects: subjects || [],
-                                    schedule: {
-                                        version: 3,
-                                        events: scheduleEvents || [],
-                                        backlog: scheduleBacklog || [],
-                                        plannerPrefs: plannerPrefs,
-                                        weeklyReports: weeklyReports || [],
-                                        pdfFitMode: currentPdfFitMode || 'height',
-                                        cloudMediaRegistry: cloudMediaRegistry || {},
-                                        _tombstones: getLocalTombstones(prevUid),
-                                        gdriveSync: {
-                                            linked: isPrevGdrive && Boolean(localStorage.getItem('exo_gdrive_connected') === '1'),
-                                            userEmail: isPrevGdrive ? (localStorage.getItem('exo_gdrive_user_email') || '') : '',
-                                            folderId: isPrevGdrive ? (localStorage.getItem('exo_gdrive_folder_id') || '') : '',
-                                            quotaInfo: isPrevGdrive ? (localStorage.getItem('exo_gdrive_quota_info') || '') : ''
-                                        }
-                                    },
-                                    logs: logs || [],
-                                    academy_progress: completedAcademyModules || [],
-                                    annotations: {},
-                                    revision: Number(localStorage.getItem('pharmaWorkspaceRevision_' + prevUid) || 1),
-                                    dirty: Boolean(localStorage.getItem('pharmaWorkspaceDirty') === '1' || localStorage.getItem('pharmaWorkspaceDirty_' + prevUid) === '1'),
-                                    updated_at: new Date().toISOString()
-                                }));
+                            const rawVault = localStorage.getItem('pharmaGdriveSync_' + prevUid);
+                            if (rawVault) {
+                                const parsedVault = JSON.parse(rawVault);
+                                if (parsedVault && typeof parsedVault === 'object') {
+                                    existingGdriveVault = parsedVault;
+                                }
                             }
                         } catch (e) {}
+
+                        const boundGdrive = localStorage.getItem('exo_gdrive_bound_user_id');
+                        const isPrevGdrive = !boundGdrive || String(boundGdrive) === prevUid;
+                        const liveGdriveConnected = isPrevGdrive &&
+                            localStorage.getItem('exo_gdrive_connected') === '1' &&
+                            Boolean(localStorage.getItem('exo_gdrive_user_email'));
+
+                        let outgoingDriveSync = {
+                            linked: false,
+                            userEmail: '',
+                            folderId: '',
+                            quotaInfo: ''
+                        };
+                        if (liveGdriveConnected) {
+                            outgoingDriveSync = {
+                                linked: true,
+                                userEmail: localStorage.getItem('exo_gdrive_user_email') || '',
+                                folderId: localStorage.getItem('exo_gdrive_folder_id') || '',
+                                quotaInfo: localStorage.getItem('exo_gdrive_quota_info') || ''
+                            };
+                            try {
+                                localStorage.setItem('pharmaGdriveSync_' + prevUid, JSON.stringify(outgoingDriveSync));
+                            } catch (e) {}
+                        } else if (existingGdriveVault && existingGdriveVault.linked && existingGdriveVault.userEmail) {
+                            outgoingDriveSync = {
+                                linked: true,
+                                userEmail: String(existingGdriveVault.userEmail || ''),
+                                folderId: String(existingGdriveVault.folderId || ''),
+                                quotaInfo: String(existingGdriveVault.quotaInfo || '')
+                            };
+                        } else if (existingSnap && existingSnap.schedule && existingSnap.schedule.gdriveSync && existingSnap.schedule.gdriveSync.linked && existingSnap.schedule.gdriveSync.userEmail) {
+                            outgoingDriveSync = {
+                                linked: true,
+                                userEmail: String(existingSnap.schedule.gdriveSync.userEmail || ''),
+                                folderId: String(existingSnap.schedule.gdriveSync.folderId || ''),
+                                quotaInfo: String(existingSnap.schedule.gdriveSync.quotaInfo || '')
+                            };
+                        }
+
+                        const outgoingTombstones = getLocalTombstones(prevUid);
+                        const hasOutgoingTombstones = Boolean(
+                            outgoingTombstones &&
+                            ((Array.isArray(outgoingTombstones.subjects) && outgoingTombstones.subjects.length > 0) ||
+                             (Array.isArray(outgoingTombstones.groups) && outgoingTombstones.groups.length > 0) ||
+                             (Array.isArray(outgoingTombstones.lectures) && outgoingTombstones.lectures.length > 0) ||
+                             (Array.isArray(outgoingTombstones.events) && outgoingTombstones.events.length > 0) ||
+                             (Array.isArray(outgoingTombstones.backlog) && outgoingTombstones.backlog.length > 0) ||
+                             (Array.isArray(outgoingTombstones.logs) && outgoingTombstones.logs.length > 0))
+                        );
+                        const hasNonDefaultPlannerPrefs = Boolean(
+                            plannerPrefs && typeof plannerPrefs === 'object' && (
+                                Number(plannerPrefs.weekStartDay ?? 6) !== 6 ||
+                                Number(plannerPrefs.dayStartHour ?? 6) !== 6 ||
+                                Number(plannerPrefs.dayEndHour ?? 23) !== 23 ||
+                                Number(plannerPrefs.autoCompletePct ?? 75) !== 75
+                            )
+                        );
+                        const isOutgoingWorkspaceDirty = Boolean(
+                            localStorage.getItem('pharmaWorkspaceDirty') === '1' ||
+                            localStorage.getItem('pharmaWorkspaceDirty_' + prevUid) === '1' ||
+                            dirtyAnnotationsForCloud ||
+                            hadPendingAnnotations
+                        );
+                        const hasOutgoingMeaningfulState = Boolean(
+                            existingSnap !== null ||
+                            (Array.isArray(subjects) && subjects.length > 0) ||
+                            (Array.isArray(scheduleEvents) && scheduleEvents.length > 0) ||
+                            (Array.isArray(scheduleBacklog) && scheduleBacklog.length > 0) ||
+                            (Array.isArray(weeklyReports) && weeklyReports.length > 0) ||
+                            (Array.isArray(logs) && logs.length > 0) ||
+                            (Array.isArray(completedAcademyModules) && completedAcademyModules.length > 0) ||
+                            Object.keys(cloudMediaRegistry || {}).length > 0 ||
+                            currentPdfFitMode !== 'height' ||
+                            hasNonDefaultPlannerPrefs ||
+                            isOutgoingWorkspaceDirty ||
+                            Object.keys(verifiedOutgoingAnnotations).length > 0 ||
+                            hasOutgoingTombstones ||
+                            outgoingDriveSync.linked
+                        );
+
+                        if (hasOutgoingMeaningfulState) {
+                            const outgoingRevision = Number(
+                                localStorage.getItem('pharmaWorkspaceRevision_' + prevUid) ||
+                                existingSnap?.revision ||
+                                1
+                            );
+                            const outgoingCanUploadMedia = Boolean(
+                                currentUserCanUploadMedia ||
+                                (existingSnap && existingSnap.can_upload_media === true)
+                            );
+                            const outgoingEmail = String(existingSnap?.user_email || '').toLowerCase();
+
+                            const outgoingSnapshotPayload = Object.assign({}, existingSnap || {}, {
+                                user_id: prevUid,
+                                user_email: outgoingEmail,
+                                can_upload_media: outgoingCanUploadMedia,
+                                subjects: Array.isArray(subjects) ? subjects : [],
+                                schedule: {
+                                    version: 3,
+                                    events: Array.isArray(scheduleEvents) ? scheduleEvents : [],
+                                    backlog: Array.isArray(scheduleBacklog) ? scheduleBacklog : [],
+                                    plannerPrefs: plannerPrefs,
+                                    weeklyReports: Array.isArray(weeklyReports) ? weeklyReports : [],
+                                    pdfFitMode: currentPdfFitMode || 'height',
+                                    cloudMediaRegistry: cloudMediaRegistry || {},
+                                    _tombstones: outgoingTombstones,
+                                    gdriveSync: outgoingDriveSync
+                                },
+                                logs: Array.isArray(logs) ? logs : [],
+                                academy_progress: Array.isArray(completedAcademyModules) ? completedAcademyModules : [],
+                                annotations: verifiedOutgoingAnnotations,
+                                revision: outgoingRevision,
+                                dirty: Boolean(isOutgoingWorkspaceDirty || (existingSnap && existingSnap.dirty === true)),
+                                updated_at: new Date().toISOString()
+                            });
+
+                            try {
+                                localStorage.setItem(prevAccountKey, JSON.stringify(outgoingSnapshotPayload));
+                            } catch (snapErr) {
+                                try {
+                                    localStorage.setItem('pharmaWorkspaceDirty', '1');
+                                    localStorage.setItem('pharmaWorkspaceDirty_' + prevUid, '1');
+                                } catch (e) {}
+                                dirtyAnnotationsForCloud = true;
+                                if (typeof googleAccessToken !== 'undefined') googleAccessToken = null;
+                                if (typeof googleTokenExpiry !== 'undefined') googleTokenExpiry = 0;
+                                if (typeof pendingGoogleTokenPromise !== 'undefined') pendingGoogleTokenPromise = null;
+                                localStorage.removeItem('exo_gdrive_token');
+                                localStorage.removeItem('exo_gdrive_token_exp');
+                                if (currentCloudUser && String(currentCloudUser.id) !== prevUid) {
+                                    currentCloudUser = { id: prevUid, email: outgoingEmail };
+                                    bumpAccountSessionGeneration();
+                                }
+                                updateCloudNavUI('error');
+                                showToast('تعذر حفظ نسخة الحساب السابق محلياً قبل تبديل الحساب (قد تكون المساحة ممتلئة). لم يتم مسح بياناتك.', 'error');
+                                return {
+                                    ok: false,
+                                    success: false,
+                                    status: 'error',
+                                    reason: 'outgoing_account_snapshot_write_failed',
+                                    error: snapErr,
+                                    isDirty: true
+                                };
+                            }
+                        }
                     }
 
                     // Wipe any leftover local state, settings, VIP entitlement, and Google Drive globals from the previous user
@@ -30628,6 +31035,9 @@ function togglePdfAudioPlayerBar(forceState) {
                         }
                     } catch (e) {}
                 }
+
+                localStorage.setItem('pharmaLastActiveUserIdV1', opCtx.uid);
+                localStorage.setItem('pharmaLastActiveCloudUid', opCtx.uid);
 
                 let data = null;
                 let loadedFromLocalAccountSnapshot = false;

@@ -874,6 +874,121 @@ async function main() {
     'T-M1-C03d: Account switching during IndexedDB annotation read safely aborts mergeAndApplyCloudConflict without mutating snapshot'
   );
 
+  // --------------------------------------------------------------------------
+  // TEST 11 (T-M1-C04): syncWorkspaceOnLogin() Direct Switch Outgoing Snapshot Freshness, Annotations & Failure Safety
+  // --------------------------------------------------------------------------
+  console.log('\n--- TEST 11 (T-M1-C04): syncWorkspaceOnLogin() Direct Switch Outgoing Snapshot Freshness & Failure Safety ---');
+  prod.localStorage.clear();
+  idb.stores.annotations.clear();
+  prod.setNavigatorOnline(false);
+
+  const uidOut = 'out-sync-aaaa-1111-2222-333344445555';
+  const uidIn = 'in-sync-bbbb-6666-7777-888899990000';
+  const outSnapKey = prod.getAccountBackupStorageKey(uidOut);
+
+  // Establish uidOut as active user with a stale existing snapshot and older Drive vault
+  prod.setSessionUser(uidOut);
+  prod.localStorage.setItem('pharmaLastActiveCloudUid', uidOut);
+  prod.localStorage.setItem('pharmaLastActiveUserIdV1', uidOut);
+  prod.localStorage.setItem('pharmaGdriveSync_' + uidOut, JSON.stringify({
+    linked: true,
+    userEmail: 'old_out@gmail.com',
+    folderId: 'old_out_folder',
+    quotaInfo: '0.5 / 15.0 GB'
+  }));
+  prod.localStorage.setItem(outSnapKey, JSON.stringify({
+    user_id: uidOut,
+    user_email: 'out@test.edu',
+    revision: 2,
+    dirty: false,
+    subjects: [{ id: 'sub_stale_out', name: 'Stale Out Subject', groups: [] }],
+    schedule: { version: 3, events: [], backlog: [] },
+    logs: [],
+    academy_progress: [],
+    annotations: { 'stale_out_lec': { 1: [{ id: 'st_old', tool: 'pen', note: 'Stale Note' }] } }
+  }));
+
+  // Seed verified IndexedDB annotations for uidOut
+  await prod.restoreAllAnnotationsMapToDB({
+    'lec_out_verified': { 1: [{ id: 'st_out_v1', tool: 'pen', note: 'Verified Outgoing IDB Note' }] }
+  }, uidOut);
+
+  // Give uidOut newer live workspace state and newer bound Drive metadata
+  prod.setRuntimeState({
+    subjects: [{ id: 'sub_fresh_out', name: 'Fresh Outgoing Subject', groups: [] }],
+    scheduleEvents: [{ id: 'ev_fresh_out', title: 'Fresh Outgoing Event', day: 2, startHour: 10, duration: 2 }],
+    scheduleBacklog: [{ id: 'bl_fresh_out', title: 'Fresh Outgoing Backlog' }],
+    weeklyReports: [{ id: 'rep_fresh_out', weekStartIso: '2026-10-31', score: 97 }],
+    plannerPrefs: { weekStartDay: 1, dayStartHour: 7, dayEndHour: 22, autoCompletePct: 88, currentWeekStartIso: '2026-10-26' },
+    logs: [{ id: 'log_fresh_out', text: 'Fresh Outgoing Log', timestamp: 1700009000 }],
+    completedAcademyModules: ['mod_out_1', 'mod_out_2'],
+    cloudMediaRegistry: { 'lec_out_verified': { pdfUploaded: true, ownerUid: uidOut } }
+  });
+  prod.localStorage.setItem('pharmaWorkspaceDirty', '1');
+  prod.localStorage.setItem('pharmaWorkspaceRevision_' + uidOut, '9');
+  prod.localStorage.setItem('exo_gdrive_connected', '1');
+  prod.localStorage.setItem('exo_gdrive_user_email', 'fresh_out@gmail.com');
+  prod.localStorage.setItem('exo_gdrive_folder_id', 'fresh_out_folder_99');
+  prod.localStorage.setItem('exo_gdrive_quota_info', '4.2 / 15.0 GB');
+  prod.localStorage.setItem('exo_gdrive_bound_user_id', uidOut);
+
+  // 11a: Simulate IndexedDB annotation read failure during direct syncWorkspaceOnLogin() switch to uidIn
+  prod.setSessionUser(uidIn);
+  idb.failNextTransaction = true;
+  const syncReadFailRes = await prod.syncWorkspaceOnLogin();
+  const snapAfterSyncReadFail = JSON.parse(prod.localStorage.getItem(outSnapKey) || 'null');
+  assert(
+    syncReadFailRes &&
+    syncReadFailRes.ok === false &&
+    syncReadFailRes.reason === 'outgoing_annotations_read_failed' &&
+    prod.getCanonicalUserId() === uidOut &&
+    prod.getRuntimeState().subjects.length === 1 &&
+    prod.getRuntimeState().subjects[0].id === 'sub_fresh_out' &&
+    prod.localStorage.getItem('pharmaLastActiveCloudUid') === uidOut &&
+    snapAfterSyncReadFail.subjects[0].id === 'sub_stale_out',
+    'T-M1-C04a: syncWorkspaceOnLogin() direct switch aborts on IDB annotation read failure, reverts session to outgoing user, and preserves dirty live state'
+  );
+
+  // 11b: Simulate outgoing snapshot write failure during direct syncWorkspaceOnLogin() switch to uidIn
+  prod.setSessionUser(uidIn);
+  prod.setFailNextAccountSnapshotKey(outSnapKey);
+  const syncWriteFailRes = await prod.syncWorkspaceOnLogin();
+  assert(
+    syncWriteFailRes &&
+    syncWriteFailRes.ok === false &&
+    syncWriteFailRes.reason === 'outgoing_account_snapshot_write_failed' &&
+    prod.getCanonicalUserId() === uidOut &&
+    prod.getRuntimeState().subjects.length === 1 &&
+    prod.getRuntimeState().subjects[0].id === 'sub_fresh_out' &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty_' + uidOut) === '1',
+    'T-M1-C04b: syncWorkspaceOnLogin() direct switch aborts on outgoing snapshot write failure without wiping outgoing user data'
+  );
+
+  // 11c: Now retry direct syncWorkspaceOnLogin() switch to uidIn without failures
+  prod.setSessionUser(uidIn);
+  await prod.syncWorkspaceOnLogin();
+  const refreshedOutSnap = JSON.parse(prod.localStorage.getItem(outSnapKey) || 'null');
+  const refreshedOutDrive = JSON.parse(prod.localStorage.getItem('pharmaGdriveSync_' + uidOut) || 'null');
+  assert(
+    refreshedOutSnap &&
+    refreshedOutSnap.subjects.length === 1 &&
+    refreshedOutSnap.subjects[0].id === 'sub_fresh_out' &&
+    refreshedOutSnap.schedule.events.length === 1 &&
+    refreshedOutSnap.schedule.plannerPrefs.weekStartDay === 1 &&
+    refreshedOutSnap.academy_progress.length === 2 &&
+    refreshedOutSnap.revision === 9 &&
+    refreshedOutSnap.dirty === true &&
+    refreshedOutSnap.annotations &&
+    refreshedOutSnap.annotations['lec_out_verified'] &&
+    refreshedOutSnap.annotations['lec_out_verified'][1][0].note === 'Verified Outgoing IDB Note' &&
+    refreshedOutSnap.annotations['stale_out_lec'] === undefined &&
+    refreshedOutDrive &&
+    refreshedOutDrive.userEmail === 'fresh_out@gmail.com' &&
+    refreshedOutDrive.folderId === 'fresh_out_folder_99' &&
+    prod.getRuntimeState().subjects.length === 0,
+    'T-M1-C04c: syncWorkspaceOnLogin() direct switch refreshes outgoing snapshot, Drive vault, and verified IndexedDB annotations before resetting globals for incoming user'
+  );
+
   console.log('\n======================================================================');
   console.log(`TOTAL PHASE 4/4.1 REGRESSION CHECKS: ${testsPassed + testsFailed} | PASSED: ${testsPassed} | FAILED: ${testsFailed}`);
   console.log('======================================================================\n');

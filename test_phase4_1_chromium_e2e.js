@@ -1143,22 +1143,56 @@ async function main() {
            JSON.stringify(resP.debugP2));
 
     // =========================================================================
-    // TEST Q: M1 CORRECTIVE PASS (T-M1-C01 Direct A->B Switch, T-M1-C02 Snapshot Write Failure, T-M1-C03 Missing Remote Annotations)
+    // TEST Q: M1 CORRECTIVE PASS (T-M1-C01 Direct A->B Switch Tests A/B/C/D, T-M1-C02 Snapshot Write Failure, T-M1-C03 Missing Remote Annotations)
     // =========================================================================
-    console.log('\n--- TEST Q: M1 Corrective Pass (T-M1-C01, T-M1-C02, T-M1-C03 in Real Chromium + IndexedDB) ---');
+    console.log('\n--- TEST Q: M1 Corrective Pass (T-M1-C01 Tests A/B/C/D, T-M1-C02, T-M1-C03 in Real Chromium + IndexedDB) ---');
     const resQ = await page.evaluate(async () => {
       await initPdfDB();
 
-      // 1. T-M1-C01: Direct Account A -> Account B switch without handleCloudSignOut()
+      // 1. T-M1-C01 (Tests A & C): Direct Account A -> Account B1 switch with STALE existing snapshot & older Drive vault
       const uidA = 'user-c01-e2e-a';
+      const uidA2 = 'user-c01-e2e-a2-nosnap';
       const uidB1 = 'user-c01-e2e-b1';
       const uidB2 = 'user-c01-e2e-b2';
-      currentCloudUser = { id: uidA, email: 'a@exo.edu', name: 'User A' };
+
+      await handleAuthSessionChange({ id: uidA, email: 'a@exo.edu', name: 'User A' }, false);
+      const opCtxA = createAccountOperationContext(uidA);
+      await restoreAllAnnotationsMapToDB({
+        lec_a_e2e_verified: {
+          '1': [{ id: 's_a_e2e_1', tool: 'pen', color: '#ef4444', size: 2, points: [[5, 5], [15, 15]] }]
+        }
+      }, uidA, opCtxA);
+
+      // Seed STALE existing snapshot and older Drive vault for uidA
+      localStorage.setItem(`pharmaGdriveSync_${uidA}`, JSON.stringify({
+        linked: true,
+        folderId: 'stale_folder_a_000',
+        userEmail: 'stale_a@gmail.com',
+        quotaInfo: '100MB / 15GB'
+      }));
+      localStorage.setItem(`pharmaAccountWorkspace_${uidA}`, JSON.stringify({
+        user_id: uidA,
+        user_email: 'a@exo.edu',
+        revision: 2,
+        dirty: false,
+        subjects: [{ id: 1, name: 'Stale Sub A' }],
+        schedule: { version: 3, events: [], backlog: [] },
+        annotations: {
+          stale_old_lec: { '1': [{ id: 's_stale', tool: 'pen', points: [[1, 1]] }] }
+        }
+      }));
+
+      // Give User A newer live workspace data, dirty state, and newer bound Drive metadata
       currentUserCanUploadMedia = true;
+      subjects = [{ id: 99, name: 'Fresh Live Sub A', groups: [] }];
+      scheduleEvents = [{ id: 'ev_a_fresh', title: 'Fresh Event A', day: 1, startHour: 9, duration: 2 }];
+      completedAcademyModules = ['mod_a_fresh_1', 'mod_a_fresh_2'];
       plannerPrefs = { weekStartDay: 1, dayStartHour: 8, dayEndHour: 22, autoCompletePct: 90, currentWeekStartIso: '2026-11-02' };
       localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
       currentPdfFitMode = 'width';
       localStorage.setItem('pharmaPdfFitMode', 'width');
+      localStorage.setItem('pharmaWorkspaceDirty', '1');
+      localStorage.setItem(`pharmaWorkspaceRevision_${uidA}`, '6');
       googleAccessToken = 'token-user-a-e2e';
       googleTokenExpiry = Date.now() + 3600000;
       gdriveSubfolderCache.clear();
@@ -1166,12 +1200,10 @@ async function main() {
       localStorage.setItem('exo_gdrive_token', 'token-user-a-e2e');
       localStorage.setItem('exo_gdrive_token_exp', String(googleTokenExpiry));
       localStorage.setItem('exo_gdrive_connected', '1');
-      localStorage.setItem('exo_gdrive_folder_id', 'folder_a_e2e');
-      localStorage.setItem('exo_gdrive_user_email', 'a@gmail.com');
-      localStorage.setItem('exo_gdrive_quota_info', '500MB / 15GB');
+      localStorage.setItem('exo_gdrive_folder_id', 'fresh_folder_a_e2e');
+      localStorage.setItem('exo_gdrive_user_email', 'fresh_a@gmail.com');
+      localStorage.setItem('exo_gdrive_quota_info', '950MB / 15GB');
       localStorage.setItem('exo_gdrive_bound_user_id', uidA);
-      localStorage.setItem(`pharmaGdriveSync_${uidA}`, JSON.stringify({ linked: true, folderId: 'folder_a_e2e', userEmail: 'a@gmail.com', quotaInfo: '500MB / 15GB' }));
-      localStorage.setItem(`pharmaAccountWorkspace_${uidA}`, JSON.stringify({ user_id: uidA, subjects: [{ id: 1, name: 'Sub A' }] }));
 
       supabaseClient = {
         from: () => ({
@@ -1208,8 +1240,10 @@ async function main() {
         auth: { signOut: async () => {} }
       };
 
-      // Case 1: Direct A -> B1 (no saved prefs/Drive)
+      // Case 1 (Test A & Test C): Direct A -> B1 (no saved prefs/Drive on B1)
       await handleAuthSessionChange({ id: uidB1, email: 'b1@exo.edu', name: 'User B1' }, true);
+      const refreshedSnapA = JSON.parse(localStorage.getItem(`pharmaAccountWorkspace_${uidA}`) || 'null');
+      const refreshedDriveA = JSON.parse(localStorage.getItem(`pharmaGdriveSync_${uidA}`) || 'null');
       const case1Passed = (
         currentCloudUser && currentCloudUser.id === uidB1 &&
         currentUserCanUploadMedia === false &&
@@ -1226,17 +1260,42 @@ async function main() {
         isGoogleDriveTokenActive() === false &&
         isGoogleDriveAccountLinked() === false &&
         isGoogleDriveConnected() === false &&
-        localStorage.getItem(`pharmaGdriveSync_${uidA}`) !== null &&
-        localStorage.getItem(`pharmaAccountWorkspace_${uidA}`) !== null
+        refreshedDriveA &&
+        refreshedDriveA.userEmail === 'fresh_a@gmail.com' &&
+        refreshedDriveA.folderId === 'fresh_folder_a_e2e' &&
+        refreshedDriveA.quotaInfo === '950MB / 15GB' &&
+        refreshedSnapA &&
+        Array.isArray(refreshedSnapA.subjects) &&
+        refreshedSnapA.subjects.length === 1 &&
+        refreshedSnapA.subjects[0].id === 99 &&
+        refreshedSnapA.schedule &&
+        refreshedSnapA.schedule.plannerPrefs.weekStartDay === 1 &&
+        refreshedSnapA.schedule.pdfFitMode === 'width' &&
+        refreshedSnapA.schedule.gdriveSync.userEmail === 'fresh_a@gmail.com' &&
+        Array.isArray(refreshedSnapA.academy_progress) &&
+        refreshedSnapA.academy_progress.length === 2 &&
+        refreshedSnapA.revision === 6 &&
+        refreshedSnapA.dirty === true &&
+        refreshedSnapA.annotations &&
+        refreshedSnapA.annotations.lec_a_e2e_verified &&
+        refreshedSnapA.annotations.lec_a_e2e_verified['1'][0].id === 's_a_e2e_1' &&
+        refreshedSnapA.annotations.stale_old_lec === undefined
       );
 
-      // Case 2: Re-seed A's globals, seed B2's Drive metadata, direct switch to B2
-      plannerPrefs = { weekStartDay: 1, dayStartHour: 8, dayEndHour: 22, autoCompletePct: 90, currentWeekStartIso: '2026-11-02' };
-      currentPdfFitMode = 'width';
-      googleAccessToken = 'token-user-a-e2e-2';
+      // Case 2 (Test B & Test C): Start uidA2 with NO existing snapshot, give only non-default plannerPrefs + academyModules, switch to B2
+      localStorage.removeItem(`pharmaAccountWorkspace_${uidA2}`);
+      await handleAuthSessionChange({ id: uidA2, email: 'a2@exo.edu', name: 'User A2' }, false);
+      subjects = [];
+      scheduleEvents = [];
+      scheduleBacklog = [];
+      weeklyReports = [];
+      logs = [];
+      currentPdfFitMode = 'height';
+      plannerPrefs = { weekStartDay: 3, dayStartHour: 5, dayEndHour: 20, autoCompletePct: 88, currentWeekStartIso: '2026-11-04' };
+      completedAcademyModules = ['mod_a2_only_1'];
+      googleAccessToken = 'token-user-a2-e2e';
       googleTokenExpiry = Date.now() + 3600000;
-      localStorage.setItem('exo_gdrive_token', 'token-user-a-e2e-2');
-      localStorage.setItem('exo_gdrive_bound_user_id', uidA);
+      localStorage.setItem('exo_gdrive_token', 'token-user-a2-e2e');
       localStorage.setItem(`pharmaGdriveSync_${uidB2}`, JSON.stringify({
         linked: true,
         folderId: 'folder_b2_e2e',
@@ -1245,7 +1304,16 @@ async function main() {
       }));
 
       await handleAuthSessionChange({ id: uidB2, email: 'b2@exo.edu', name: 'User B2' }, true);
+      const createdSnapA2 = JSON.parse(localStorage.getItem(`pharmaAccountWorkspace_${uidA2}`) || 'null');
       const case2Passed = (
+        createdSnapA2 &&
+        createdSnapA2.user_id === uidA2 &&
+        createdSnapA2.schedule &&
+        createdSnapA2.schedule.plannerPrefs.weekStartDay === 3 &&
+        createdSnapA2.schedule.plannerPrefs.autoCompletePct === 88 &&
+        Array.isArray(createdSnapA2.academy_progress) &&
+        createdSnapA2.academy_progress.length === 1 &&
+        createdSnapA2.academy_progress[0] === 'mod_a2_only_1' &&
         currentCloudUser && currentCloudUser.id === uidB2 &&
         currentUserCanUploadMedia === true &&
         plannerPrefs.weekStartDay === 2 && plannerPrefs.autoCompletePct === 85 &&
@@ -1258,6 +1326,55 @@ async function main() {
         isGoogleDriveTokenActive() === false &&
         isGoogleDriveAccountLinked() === true &&
         isGoogleDriveConnected() === true
+      );
+
+      // Case 3 (Test D): Failure paths on direct switch (1: IDB annotation read failure, 2: Account snapshot write failure)
+      await handleAuthSessionChange({ id: uidA, email: 'a@exo.edu', name: 'User A' }, false);
+      subjects = [{ id: 99, name: 'Fresh Live Sub A', groups: [] }, { id: 100, name: 'Unsaved Sub D', groups: [] }];
+      localStorage.setItem('pharmaWorkspaceDirty', '1');
+
+      // D.1: Simulate IDB annotation read failure by temporarily setting dbInstance = null and overriding initPdfDB
+      const savedDbForD = dbInstance;
+      const origInitPdfDB = initPdfDB;
+      dbInstance = null;
+      initPdfDB = async () => {};
+      let d1Res = null;
+      try {
+        d1Res = await handleAuthSessionChange({ id: uidB1, email: 'b1@exo.edu', name: 'User B1' }, true);
+      } finally {
+        dbInstance = savedDbForD;
+        initPdfDB = origInitPdfDB;
+      }
+
+      // D.2: Simulate QuotaExceededError when writing pharmaAccountWorkspace_<uidA> during direct switch
+      const origSetItemForD = Storage.prototype.setItem;
+      const targetSnapKeyA = getAccountBackupStorageKey(uidA);
+      let failSnapA = true;
+      Storage.prototype.setItem = function(k, v) {
+        if (failSnapA && String(k) === targetSnapKeyA) {
+          throw new DOMException('Simulated QuotaExceededError on outgoing snapshot', 'QuotaExceededError');
+        }
+        return origSetItemForD.call(this, k, v);
+      };
+      let d2Res = null;
+      try {
+        d2Res = await handleAuthSessionChange({ id: uidB1, email: 'b1@exo.edu', name: 'User B1' }, true);
+      } finally {
+        failSnapA = false;
+        Storage.prototype.setItem = origSetItemForD;
+      }
+
+      // D.3: Retry switch after failure clears
+      const d3Res = await handleAuthSessionChange({ id: uidB1, email: 'b1@exo.edu', name: 'User B1' }, true);
+      const snapAAfterD3 = JSON.parse(localStorage.getItem(targetSnapKeyA) || 'null');
+      const testDPassed = (
+        d1Res && d1Res.ok === false && d1Res.reason === 'outgoing_annotations_read_failed' && d1Res.isDirty === true &&
+        d2Res && d2Res.ok === false && d2Res.reason === 'outgoing_account_snapshot_write_failed' && d2Res.isDirty === true &&
+        d3Res && d3Res.ok !== false &&
+        currentCloudUser && currentCloudUser.id === uidB1 &&
+        snapAAfterD3 &&
+        Array.isArray(snapAAfterD3.subjects) && snapAAfterD3.subjects.length === 2 &&
+        snapAAfterD3.annotations && snapAAfterD3.annotations.lec_a_e2e_verified !== undefined
       );
 
       // 2. T-M1-C02 & T-M1-C03: Missing remote annotations + Snapshot write failure during conflict merge
@@ -1341,23 +1458,27 @@ async function main() {
       return {
         case1Passed,
         case2Passed,
+        testDPassed,
         c02Passed,
         c03Passed,
-        debug: { c02Res, c03Res, hasSnapAnnos: Boolean(savedSnapC?.annotations?.lec_e2e_c03) }
+        debug: { d1Res, d2Res, c02Res, c03Res, hasSnapAnnos: Boolean(savedSnapC?.annotations?.lec_e2e_c03) }
       };
     });
 
     assert(resQ.case1Passed === true,
-           'Test Q.1 (T-M1-C01 Case 1): Direct A->B switch without handleCloudSignOut() resets plannerPrefs, currentPdfFitMode, Drive tokens/globals, and VIP while preserving A vault/Drive sync keys',
+           'Test Q.1 (T-M1-C01 Tests A & C): Direct A->B switch refreshes stale pharmaAccountWorkspace_A and pharmaGdriveSync_A with latest data + verified IDB annotations while isolating B1',
            JSON.stringify(resQ.debug));
     assert(resQ.case2Passed === true,
-           'Test Q.2 (T-M1-C01 Case 2): Direct A->B switch without handleCloudSignOut() restores B saved plannerPrefs, pdfFitMode, and Drive metadata without leaking A live OAuth token',
+           'Test Q.2 (T-M1-C01 Tests B & C): Direct switch with no prior snapshot captures non-default plannerPrefs + academyModules and restores B2 Drive metadata without token leakage',
+           JSON.stringify(resQ.debug));
+    assert(resQ.testDPassed === true,
+           'Test Q.3 (T-M1-C01 Test D): IDB annotation read failure and outgoing snapshot write failure safely abort direct switch without losing dirty data, and subsequent retry succeeds',
            JSON.stringify(resQ.debug));
     assert(resQ.c02Passed === true,
-           'Test Q.3 (T-M1-C02): Snapshot write failure during conflict merge returns { ok: false, reason: "account_snapshot_write_failed" }, keeps dirty flags set, and cancels retry timer',
+           'Test Q.4 (T-M1-C02): Snapshot write failure during conflict merge returns { ok: false, reason: "account_snapshot_write_failed" }, keeps dirty flags set, and cancels retry timer',
            JSON.stringify(resQ.debug));
     assert(resQ.c03Passed === true,
-           'Test Q.4 (T-M1-C03): Conflict merge with missing remoteRow.annotations preserves real IndexedDB annotations in both IndexedDB and pharmaAccountWorkspace_<uid>',
+           'Test Q.5 (T-M1-C03): Conflict merge with missing remoteRow.annotations preserves real IndexedDB annotations in both IndexedDB and pharmaAccountWorkspace_<uid>',
            JSON.stringify(resQ.debug));
 
     await context.close();

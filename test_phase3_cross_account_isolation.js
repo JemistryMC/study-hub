@@ -226,7 +226,22 @@ function updateGoogleDriveUI() {}
 function setupRealtimeWorkspaceSubscription() {}
 async function refreshLocalMediaCache() {}
 async function reconcileCloudMediaWithStorageBucket() {}
-async function flushPendingAnnotationsSave() { return Object.keys(pendingAnnoSaveMap).length === 0; }
+async function flushPendingAnnotationsSave(triggerCloudImmediately = false, opCtx = null) {
+  const keys = Object.keys(pendingAnnoSaveMap);
+  if (keys.length === 0) return true;
+  if (!dbInstance) return false;
+  const ctx = resolveAccountOperationContext(opCtx);
+  if (!ctx || !ctx.ok || !ctx.authorized) return false;
+  const toRestore = {};
+  for (const k of keys) {
+    const rawId = extractRawIdFromScopedKey(k);
+    toRestore[rawId] = pendingAnnoSaveMap[k];
+  }
+  const res = await restoreAllAnnotationsMapToDB(toRestore, ctx.uid, ctx);
+  if (!res || !res.ok) return false;
+  pendingAnnoSaveMap = {};
+  return true;
+}
 
 ${extractFunctionSource(indexHtmlContent, 'getLocalIsoDate')}
 ${extractFunctionSource(indexHtmlContent, 'getWeekStartDateForDate')}
@@ -306,6 +321,8 @@ module.exports = {
     if (state.logs !== undefined) { logs = state.logs; localStorage.setItem('pharmaLogsV4', JSON.stringify(logs)); }
     if (state.completedAcademyModules !== undefined) { completedAcademyModules = state.completedAcademyModules; localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(completedAcademyModules)); }
     if (state.cloudMediaRegistry !== undefined) { cloudMediaRegistry = state.cloudMediaRegistry; saveCloudMediaRegistry(); }
+    if (state.pendingAnnoSaveMap !== undefined) { pendingAnnoSaveMap = state.pendingAnnoSaveMap; }
+    if (state.dirtyAnnotationsForCloud !== undefined) { dirtyAnnotationsForCloud = Boolean(state.dirtyAnnotationsForCloud); }
     if (state.dirty) localStorage.setItem('pharmaWorkspaceDirty', '1');
   },
   getWorkspaceState: () => ({
@@ -314,6 +331,8 @@ module.exports = {
     currentPdfFitMode,
     googleAccessToken,
     googleTokenExpiry,
+    dirtyAnnotationsForCloud,
+    pendingAnnoSaveMap,
     subjects,
     scheduleEvents,
     scheduleBacklog,
@@ -582,69 +601,93 @@ async function main() {
   );
 
   // SCENARIO 9 (T-M1-C01): Direct Account A-to-B Switch Without Calling handleCloudSignOut()
-  console.log('\n--- SCENARIO 9 (T-M1-C01): Direct Account A-to-B Switch Without Sign-Out ---');
+  // Covers Mandatory Tests A, B, C, and D
+  console.log('\n--- SCENARIO 9 (T-M1-C01): Direct Account A-to-B Switch (Stale Snapshot Refresh, Trigger Conditions, Drive Vault Refresh & Failure Safety) ---');
   prod.localStorage.clear();
+  idb.stores.annotations.clear();
 
-  // Set up User A with distinctive plannerPrefs, currentPdfFitMode, Google Drive token/metadata, VIP entitlement, and workspace
+  // ==========================================================================
+  // TEST A & TEST C (Part 1): Existing Stale Snapshot + Existing Older Drive Vault
+  // ==========================================================================
   const futureExpA = Date.now() + 3600 * 1000;
   await prod.handleAuthSessionChange({ id: userA_Id, email: 'user_a@exo.edu', name: 'User A' }, false);
-  prod.localStorage.setItem('pharmaLastActiveCloudUid', userA_Id);
-  prod.localStorage.setItem('pharmaLastActiveUserIdV1', userA_Id);
+
+  // Seed an OLDER, STALE pharmaAccountWorkspace_<userA_Id> snapshot and an OLDER pharmaGdriveSync_<userA_Id> vault
+  prod.localStorage.setItem('pharmaGdriveSync_' + userA_Id, JSON.stringify({
+    linked: true,
+    userEmail: 'stale_old_drive_a@gmail.com',
+    folderId: 'stale_folder_A_000',
+    quotaInfo: '1.1 / 15.0 GB'
+  }));
+  prod.localStorage.setItem(prod.getAccountBackupStorageKey(userA_Id), JSON.stringify({
+    user_id: userA_Id,
+    user_email: 'user_a@exo.edu',
+    can_upload_media: false,
+    revision: 3,
+    dirty: false,
+    subjects: [{ id: 'sub_stale_old_a', name: 'Stale Old Subject A', groups: [] }],
+    schedule: {
+      version: 3,
+      events: [{ id: 'ev_stale_old_a', title: 'Stale Event', day: 6, startHour: 6, duration: 1 }],
+      backlog: [],
+      plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75, currentWeekStartIso: '2026-10-10' },
+      weeklyReports: [],
+      pdfFitMode: 'height',
+      cloudMediaRegistry: {},
+      gdriveSync: {
+        linked: true,
+        userEmail: 'stale_old_drive_a@gmail.com',
+        folderId: 'stale_folder_A_000',
+        quotaInfo: '1.1 / 15.0 GB'
+      }
+    },
+    logs: [],
+    academy_progress: [],
+    annotations: {
+      'stale_deleted_lec': { 1: [{ id: 'str_stale_0', tool: 'pen', note: 'STALE SNAPSHOT ANNOTATION' }] }
+    }
+  }));
+
+  // Now give User A NEWER live workspace data, dirty flag, verified IndexedDB annotations, and pending annotations
+  await prod.restoreAllAnnotationsMapToDB({
+    [sharedLectureId]: userA_Strokes
+  }, userA_Id);
+
   prod.setWorkspaceState({
-    subjects: [{ id: 'sub_direct_a', name: 'Medicinal Chemistry A', groups: [] }],
-    scheduleEvents: [{ id: 'ev_direct_a', title: 'Lab A', day: 1, startHour: 10, duration: 2 }],
-    scheduleBacklog: [{ id: 'bl_direct_a', title: 'Task A' }],
-    weeklyReports: [{ id: 'rep_direct_a', weekStartIso: '2026-10-26', score: 91 }],
+    subjects: [{ id: 'sub_direct_a_fresh', name: 'Fresh Medicinal Chemistry A', groups: [] }],
+    scheduleEvents: [{ id: 'ev_direct_a_fresh', title: 'Fresh Lab A', day: 1, startHour: 10, duration: 2 }],
+    scheduleBacklog: [{ id: 'bl_direct_a_fresh', title: 'Fresh Task A' }],
+    weeklyReports: [{ id: 'rep_direct_a_fresh', weekStartIso: '2026-10-26', score: 95 }],
     plannerPrefs: { weekStartDay: 1, dayStartHour: 8, dayEndHour: 20, autoCompletePct: 90, currentWeekStartIso: '2026-10-26' },
     currentPdfFitMode: 'width',
     currentUserCanUploadMedia: true,
     googleAccessToken: 'ya29.secret_token_user_A',
     googleTokenExpiry: futureExpA,
-    logs: [{ id: 'log_direct_a', text: 'Studied MedChem', timestamp: 1700001000 }],
-    completedAcademyModules: ['mod_direct_a1'],
-    cloudMediaRegistry: { 'lec_direct_a': { pdfUploaded: true, ownerUid: userA_Id } },
-    dirty: false
-  });
-  prod.localStorage.setItem('exo_gdrive_connected', '1');
-  prod.localStorage.setItem('exo_gdrive_user_email', 'user_a_drive@gmail.com');
-  prod.localStorage.setItem('exo_gdrive_folder_id', 'folder_A_drive_111');
-  prod.localStorage.setItem('exo_gdrive_quota_info', '8.4 / 15.0 GB');
-  prod.localStorage.setItem('exo_gdrive_bound_user_id', userA_Id);
-  prod.localStorage.setItem('pharmaGdriveSync_' + userA_Id, JSON.stringify({
-    linked: true,
-    userEmail: 'user_a_drive@gmail.com',
-    folderId: 'folder_A_drive_111',
-    quotaInfo: '8.4 / 15.0 GB'
-  }));
-  prod.localStorage.setItem(prod.getAccountBackupStorageKey(userA_Id), JSON.stringify({
-    user_id: userA_Id,
-    can_upload_media: true,
-    subjects: [{ id: 'sub_direct_a', name: 'Medicinal Chemistry A', groups: [] }],
-    schedule: {
-      version: 3,
-      events: [{ id: 'ev_direct_a', title: 'Lab A', day: 1, startHour: 10, duration: 2 }],
-      backlog: [{ id: 'bl_direct_a', title: 'Task A' }],
-      plannerPrefs: { weekStartDay: 1, dayStartHour: 8, dayEndHour: 20, autoCompletePct: 90, currentWeekStartIso: '2026-10-26' },
-      weeklyReports: [{ id: 'rep_direct_a', weekStartIso: '2026-10-26', score: 91 }],
-      pdfFitMode: 'width',
-      cloudMediaRegistry: { 'lec_direct_a': { pdfUploaded: true, ownerUid: userA_Id } },
-      gdriveSync: { linked: true, userEmail: 'user_a_drive@gmail.com', folderId: 'folder_A_drive_111', quotaInfo: '8.4 / 15.0 GB' }
+    logs: [{ id: 'log_direct_a_fresh', text: 'Studied Fresh MedChem', timestamp: 1700005000 }],
+    completedAcademyModules: ['mod_direct_a1', 'mod_direct_a2'],
+    cloudMediaRegistry: { 'lec_direct_a_fresh': { pdfUploaded: true, ownerUid: userA_Id } },
+    pendingAnnoSaveMap: {
+      'lec_pending_flush_a': { 1: [{ id: 'str_pending_a', tool: 'pen', note: 'Flushed Pending Note A' }] }
     },
-    logs: [{ id: 'log_direct_a', text: 'Studied MedChem', timestamp: 1700001000 }],
-    academy_progress: ['mod_direct_a1'],
-    annotations: { [sharedLectureId]: userA_Strokes }
-  }));
+    dirty: true
+  });
+  prod.localStorage.setItem('pharmaWorkspaceRevision_' + userA_Id, '7');
+  // Newer live Google Drive metadata bound to User A
+  prod.localStorage.setItem('exo_gdrive_connected', '1');
+  prod.localStorage.setItem('exo_gdrive_user_email', 'user_a_fresh_drive@gmail.com');
+  prod.localStorage.setItem('exo_gdrive_folder_id', 'folder_A_fresh_777');
+  prod.localStorage.setItem('exo_gdrive_quota_info', '9.8 / 15.0 GB');
+  prod.localStorage.setItem('exo_gdrive_bound_user_id', userA_Id);
 
-  // Verify User A's Drive and VIP state are active prior to switch
   assert(
     prod.getWorkspaceState().currentUserCanUploadMedia === true &&
     prod.isGoogleDriveTokenActive() === true &&
     prod.isGoogleDriveAccountLinked() === true &&
     prod.isGoogleDriveConnected() === true,
-    'T-M1-C01a: Pre-switch User A has active VIP entitlement, Google OAuth token, and linked Drive state'
+    'T-M1-C01a: Pre-switch User A has active VIP entitlement, Google OAuth token, and newer live workspace/Drive state'
   );
 
-  // CASE 1: Switch directly to User B1 (no saved workspace or Drive configuration) WITHOUT calling handleCloudSignOut()
+  // Switch directly from User A to User B1 (no saved workspace or Drive configuration) WITHOUT calling handleCloudSignOut()
   const userB1_EmptyId = 'b1111111-0000-4444-8888-111111111111';
   await prod.handleAuthSessionChange({ id: userB1_EmptyId, email: 'user_b1_empty@exo.edu', name: 'User B1 Empty' }, true);
   const stateB1 = prod.getWorkspaceState();
@@ -658,7 +701,7 @@ async function main() {
     storedPrefsB1 && storedPrefsB1.weekStartDay === 6 &&
     stateB1.currentPdfFitMode === 'height' &&
     prod.localStorage.getItem('pharmaPdfFitMode') === 'height',
-    'T-M1-C01b (Case 1): Direct switch to unconfigured User B1 resets plannerPrefs and currentPdfFitMode ("height") to platform defaults'
+    'T-M1-C01b (Test A): Direct switch to unconfigured User B1 resets plannerPrefs and currentPdfFitMode ("height") to platform defaults'
   );
   assert(
     stateB1.googleAccessToken === null &&
@@ -673,7 +716,7 @@ async function main() {
     prod.localStorage.getItem('exo_gdrive_user_email') === null &&
     prod.localStorage.getItem('exo_gdrive_quota_info') === null &&
     prod.localStorage.getItem('exo_gdrive_bound_user_id') === null,
-    'T-M1-C01c (Case 1): User A Google token, expiry, and all 7 exo_gdrive_* global keys are cleared before User B1 becomes active'
+    'T-M1-C01c (Test A): User A Google token, expiry, and all 7 exo_gdrive_* global keys are cleared before User B1 becomes active'
   );
   assert(
     stateB1.currentUserCanUploadMedia === false &&
@@ -684,31 +727,115 @@ async function main() {
     stateB1.logs.length === 0 &&
     stateB1.completedAcademyModules.length === 0 &&
     Object.keys(stateB1.cloudMediaRegistry).length === 0,
-    'T-M1-C01d (Case 1): User B1 does not inherit User A VIP entitlement, workspace data, or cloud media registry'
+    'T-M1-C01d (Test A): User B1 does not inherit User A VIP entitlement, workspace data, or cloud media registry'
   );
 
+  // Verify User A's stale snapshot and Drive vault were REFRESHED with all latest live changes and verified IndexedDB annotations
   const vaultAAfterB1 = JSON.parse(prod.localStorage.getItem(prod.getAccountBackupStorageKey(userA_Id)) || 'null');
   const gdriveVaultAAfterB1 = JSON.parse(prod.localStorage.getItem('pharmaGdriveSync_' + userA_Id) || 'null');
   assert(
-    vaultAAfterB1 && vaultAAfterB1.subjects.length === 1 && vaultAAfterB1.subjects[0].id === 'sub_direct_a' &&
-    gdriveVaultAAfterB1 && gdriveVaultAAfterB1.linked === true && gdriveVaultAAfterB1.userEmail === 'user_a_drive@gmail.com',
-    'T-M1-C01e (Case 1): User A account-scoped workspace vault and pharmaGdriveSync_<uidA> remain 100% intact after direct switch'
+    vaultAAfterB1 &&
+    vaultAAfterB1.subjects.length === 1 &&
+    vaultAAfterB1.subjects[0].id === 'sub_direct_a_fresh' &&
+    vaultAAfterB1.schedule.events.length === 1 &&
+    vaultAAfterB1.schedule.events[0].id === 'ev_direct_a_fresh' &&
+    vaultAAfterB1.schedule.backlog.length === 1 &&
+    vaultAAfterB1.schedule.backlog[0].id === 'bl_direct_a_fresh' &&
+    vaultAAfterB1.schedule.weeklyReports.length === 1 &&
+    vaultAAfterB1.schedule.weeklyReports[0].id === 'rep_direct_a_fresh' &&
+    vaultAAfterB1.schedule.plannerPrefs.weekStartDay === 1 &&
+    vaultAAfterB1.schedule.plannerPrefs.autoCompletePct === 90 &&
+    vaultAAfterB1.schedule.pdfFitMode === 'width' &&
+    vaultAAfterB1.schedule.cloudMediaRegistry['lec_direct_a_fresh'] !== undefined &&
+    vaultAAfterB1.logs.length === 1 &&
+    vaultAAfterB1.logs[0].id === 'log_direct_a_fresh' &&
+    vaultAAfterB1.academy_progress.length === 2 &&
+    vaultAAfterB1.can_upload_media === true &&
+    vaultAAfterB1.revision === 7 &&
+    vaultAAfterB1.dirty === true,
+    'T-M1-C01e (Test A): Stale pharmaAccountWorkspace_A is refreshed with all of User A latest live workspace fields, revision, and dirty state'
+  );
+  assert(
+    vaultAAfterB1 &&
+    vaultAAfterB1.annotations &&
+    vaultAAfterB1.annotations[sharedLectureId] &&
+    vaultAAfterB1.annotations[sharedLectureId][1][0].note === 'CONFIDENTIAL: User A Private Exam Notes' &&
+    vaultAAfterB1.annotations['lec_pending_flush_a'] &&
+    vaultAAfterB1.annotations['lec_pending_flush_a'][1][0].note === 'Flushed Pending Note A' &&
+    vaultAAfterB1.annotations['stale_deleted_lec'] === undefined,
+    'T-M1-C01f (Test A): Refreshed pharmaAccountWorkspace_A preserves User A verified IndexedDB annotations (including flushed pending strokes) instead of writing annotations: {} or keeping stale snapshot annotations'
+  );
+  assert(
+    gdriveVaultAAfterB1 &&
+    gdriveVaultAAfterB1.linked === true &&
+    gdriveVaultAAfterB1.userEmail === 'user_a_fresh_drive@gmail.com' &&
+    gdriveVaultAAfterB1.folderId === 'folder_A_fresh_777' &&
+    gdriveVaultAAfterB1.quotaInfo === '9.8 / 15.0 GB' &&
+    gdriveVaultAAfterB1.token === undefined &&
+    vaultAAfterB1.schedule.gdriveSync.linked === true &&
+    vaultAAfterB1.schedule.gdriveSync.userEmail === 'user_a_fresh_drive@gmail.com' &&
+    vaultAAfterB1.schedule.gdriveSync.folderId === 'folder_A_fresh_777' &&
+    vaultAAfterB1.schedule.gdriveSync.quotaInfo === '9.8 / 15.0 GB',
+    'T-M1-C01g (Test C): Existing pharmaGdriveSync_<uidA> and pharmaAccountWorkspace_A.schedule.gdriveSync are refreshed with User A latest bound Drive metadata without storing any OAuth token'
   );
 
-  // CASE 2: Switch directly from User A to User B2 (who has its own saved workspace and Drive configuration) WITHOUT calling handleCloudSignOut()
-  // First switch back to User A and re-establish active token/state
-  await prod.handleAuthSessionChange({ id: userA_Id, email: 'user_a@exo.edu', name: 'User A' }, true);
+  // ==========================================================================
+  // TEST B: No Existing Snapshot — Only Non-Default plannerPrefs & completedAcademyModules
+  // ==========================================================================
+  const userA2_PrefsOnlyId = 'a2222222-1111-4444-8888-222222222222';
+  await prod.handleAuthSessionChange({ id: userA2_PrefsOnlyId, email: 'user_a2@exo.edu', name: 'User A2 Prefs Only' }, false);
+  assert(
+    prod.localStorage.getItem(prod.getAccountBackupStorageKey(userA2_PrefsOnlyId)) === null,
+    'T-M1-C01h (Test B Prep): User A2 starts with no existing pharmaAccountWorkspace_A2 snapshot'
+  );
+  // Give User A2 ONLY non-default plannerPrefs and completedAcademyModules (empty subjects, events, logs, default pdfFitMode)
   prod.setWorkspaceState({
-    googleAccessToken: 'ya29.secret_token_user_A_reissued',
-    googleTokenExpiry: futureExpA
+    plannerPrefs: { weekStartDay: 2, dayStartHour: 5, dayEndHour: 21, autoCompletePct: 85, currentWeekStartIso: '2026-10-27' },
+    completedAcademyModules: ['mod_only_1', 'mod_only_2']
   });
+  // Switch directly from User A2 to User B1 without calling handleCloudSignOut()
+  await prod.handleAuthSessionChange({ id: userB1_EmptyId, email: 'user_b1_empty@exo.edu', name: 'User B1 Empty' }, true);
+  const snapA2 = JSON.parse(prod.localStorage.getItem(prod.getAccountBackupStorageKey(userA2_PrefsOnlyId)) || 'null');
+  assert(
+    snapA2 !== null &&
+    snapA2.user_id === userA2_PrefsOnlyId &&
+    snapA2.schedule &&
+    snapA2.schedule.plannerPrefs &&
+    snapA2.schedule.plannerPrefs.weekStartDay === 2 &&
+    snapA2.schedule.plannerPrefs.dayStartHour === 5 &&
+    snapA2.schedule.plannerPrefs.dayEndHour === 21 &&
+    snapA2.schedule.plannerPrefs.autoCompletePct === 85 &&
+    Array.isArray(snapA2.academy_progress) &&
+    snapA2.academy_progress.length === 2 &&
+    snapA2.academy_progress[0] === 'mod_only_1',
+    'T-M1-C01i (Test B): Outgoing user with no prior snapshot and only non-default plannerPrefs + completedAcademyModules has snapshot created on direct switch'
+  );
+
+  // ==========================================================================
+  // TEST C (Part 2): Foreign Drive Metadata Rejection & Configured User B2 Restoration
+  // ==========================================================================
+  // Return to User A and verify all refreshed data + verified annotations restore cleanly
+  await prod.handleAuthSessionChange({ id: userA_Id, email: 'user_a@exo.edu', name: 'User A' }, true);
   assert(
     prod.getWorkspaceState().currentUserCanUploadMedia === true &&
     prod.getWorkspaceState().currentPdfFitMode === 'width' &&
     prod.getWorkspaceState().plannerPrefs.weekStartDay === 1 &&
-    prod.isGoogleDriveAccountLinked() === true,
-    'T-M1-C01f (Case 2 Prep): Returning directly to User A restores User A settings, VIP entitlement, and Drive link'
+    prod.getWorkspaceState().subjects.length === 1 &&
+    prod.getWorkspaceState().subjects[0].id === 'sub_direct_a_fresh' &&
+    prod.localStorage.getItem('exo_gdrive_user_email') === 'user_a_fresh_drive@gmail.com' &&
+    prod.localStorage.getItem('exo_gdrive_folder_id') === 'folder_A_fresh_777',
+    'T-M1-C01j (Test A/C Verify): Returning to User A restores refreshed snapshot and refreshed Drive metadata'
   );
+
+  // Plant foreign-bound Drive metadata in global localStorage while User A is active to verify User A vault ignores foreign metadata
+  prod.localStorage.setItem('exo_gdrive_connected', '1');
+  prod.localStorage.setItem('exo_gdrive_user_email', 'foreign_intruder@gmail.com');
+  prod.localStorage.setItem('exo_gdrive_folder_id', 'foreign_folder_666');
+  prod.localStorage.setItem('exo_gdrive_bound_user_id', 'foreign-uid-9999');
+  prod.setWorkspaceState({
+    googleAccessToken: 'ya29.foreign_or_live_token_must_not_leak',
+    googleTokenExpiry: futureExpA
+  });
 
   // Seed User B2's saved workspace and Drive configuration (omitting quotaInfo on B2 to prove A's quotaInfo is never mixed in)
   const userB2_ConfigId = 'b2222222-0000-4444-8888-222222222222';
@@ -743,6 +870,13 @@ async function main() {
   // Direct switch from User A to User B2 without calling handleCloudSignOut()
   await prod.handleAuthSessionChange({ id: userB2_ConfigId, email: 'user_b2@exo.edu', name: 'User B2 Configured' }, true);
   const stateB2 = prod.getWorkspaceState();
+  const gdriveVaultAAfterForeignAttempt = JSON.parse(prod.localStorage.getItem('pharmaGdriveSync_' + userA_Id) || 'null');
+  const snapAAfterForeignAttempt = JSON.parse(prod.localStorage.getItem(prod.getAccountBackupStorageKey(userA_Id)) || 'null');
+  assert(
+    gdriveVaultAAfterForeignAttempt.userEmail === 'user_a_fresh_drive@gmail.com' &&
+    snapAAfterForeignAttempt.schedule.gdriveSync.userEmail === 'user_a_fresh_drive@gmail.com',
+    'T-M1-C01k (Test C): Foreign-bound exo_gdrive_* metadata is never written into outgoing User A Drive vault or workspace snapshot'
+  );
   assert(
     stateB2.plannerPrefs.weekStartDay === 0 &&
     stateB2.plannerPrefs.dayStartHour === 5 &&
@@ -750,7 +884,7 @@ async function main() {
     stateB2.plannerPrefs.autoCompletePct === 85 &&
     stateB2.currentPdfFitMode === 'custom' &&
     prod.localStorage.getItem('pharmaPdfFitMode') === 'custom',
-    'T-M1-C01g (Case 2): Direct switch to configured User B2 restores B2 plannerPrefs and PDF fit mode ("custom")'
+    'T-M1-C01l (Test C): Direct switch to configured User B2 restores B2 plannerPrefs and PDF fit mode ("custom")'
   );
   assert(
     prod.localStorage.getItem('exo_gdrive_connected') === '1' &&
@@ -762,14 +896,82 @@ async function main() {
     prod.localStorage.getItem('exo_gdrive_token') === null &&
     prod.isGoogleDriveAccountLinked() === true &&
     prod.isGoogleDriveConnected() === true,
-    'T-M1-C01h (Case 2): User B2 Drive metadata is restored with zero User A metadata (quotaInfo/token) mixed in'
+    'T-M1-C01m (Test C): User B2 Drive metadata is restored with zero User A metadata (quotaInfo/token) mixed in'
   );
   assert(
     stateB2.currentUserCanUploadMedia === true &&
     stateB2.subjects.length === 1 && stateB2.subjects[0].id === 'sub_direct_b2' &&
     stateB2.cloudMediaRegistry['lec_direct_b2'] !== undefined &&
-    stateB2.cloudMediaRegistry['lec_direct_a'] === undefined,
-    'T-M1-C01i (Case 2): User B2 receives its own VIP entitlement, subjects, and cloud media registry with zero User A records'
+    stateB2.cloudMediaRegistry['lec_direct_a_fresh'] === undefined,
+    'T-M1-C01n (Test C): User B2 receives its own VIP entitlement, subjects, and cloud media registry with zero User A records'
+  );
+
+  // ==========================================================================
+  // TEST D: Failure Paths During Direct Account Switch
+  //   (1) IndexedDB annotation read failure
+  //   (2) Account snapshot localStorage write failure
+  // ==========================================================================
+  await prod.handleAuthSessionChange({ id: userA_Id, email: 'user_a@exo.edu', name: 'User A' }, true);
+  prod.setWorkspaceState({
+    subjects: [
+      { id: 'sub_direct_a_fresh', name: 'Fresh Medicinal Chemistry A', groups: [] },
+      { id: 'sub_unsaved_d', name: 'Unsaved Subject Before Failure D', groups: [] }
+    ],
+    dirty: true
+  });
+
+  // D.1: Simulate IndexedDB annotation read failure during direct A -> B1 switch
+  idb.failNextTransaction = true;
+  const failReadSwitchRes = await prod.handleAuthSessionChange({ id: userB1_EmptyId, email: 'user_b1_empty@exo.edu', name: 'User B1 Empty' }, true);
+  const snapAAfterReadFail = JSON.parse(prod.localStorage.getItem(prod.getAccountBackupStorageKey(userA_Id)) || 'null');
+  assert(
+    failReadSwitchRes &&
+    failReadSwitchRes.ok === false &&
+    failReadSwitchRes.reason === 'outgoing_annotations_read_failed' &&
+    failReadSwitchRes.isDirty === true,
+    'T-M1-C01o (Test D.1): Direct switch aborts with { ok: false, reason: "outgoing_annotations_read_failed" } when IndexedDB annotation read fails'
+  );
+  assert(
+    prod.getWorkspaceState().currentCloudUser.id === userA_Id &&
+    prod.getWorkspaceState().subjects.length === 2 &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1' &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty_' + userA_Id) === '1' &&
+    snapAAfterReadFail &&
+    snapAAfterReadFail.annotations &&
+    snapAAfterReadFail.annotations[sharedLectureId] !== undefined,
+    'T-M1-C01p (Test D.1): On IDB annotation read failure, outgoing dirty workspace is NOT reset, currentCloudUser stays User A, and existing snapshot annotations are NOT overwritten with {}'
+  );
+
+  // D.2: Simulate Account Snapshot Write Failure (QuotaExceededError) during direct A -> B1 switch
+  prod.setFailNextAccountSnapshotWrite(true);
+  const failWriteSwitchRes = await prod.handleAuthSessionChange({ id: userB1_EmptyId, email: 'user_b1_empty@exo.edu', name: 'User B1 Empty' }, true);
+  assert(
+    failWriteSwitchRes &&
+    failWriteSwitchRes.ok === false &&
+    failWriteSwitchRes.reason === 'outgoing_account_snapshot_write_failed' &&
+    failWriteSwitchRes.isDirty === true &&
+    prod.getWorkspaceState().currentCloudUser.id === userA_Id &&
+    prod.getWorkspaceState().subjects.length === 2 &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1' &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty_' + userA_Id) === '1',
+    'T-M1-C01q (Test D.2): On account snapshot write failure, direct switch aborts without wiping User A in-memory/global workspace or dirty flags'
+  );
+
+  // D.3: Once failure conditions clear, retrying the direct switch to User B1 succeeds and preserves all of User A's unsaved changes + annotations
+  const retrySwitchRes = await prod.handleAuthSessionChange({ id: userB1_EmptyId, email: 'user_b1_empty@exo.edu', name: 'User B1 Empty' }, true);
+  const snapAAfterRetry = JSON.parse(prod.localStorage.getItem(prod.getAccountBackupStorageKey(userA_Id)) || 'null');
+  assert(
+    retrySwitchRes &&
+    retrySwitchRes.ok !== false &&
+    prod.getWorkspaceState().currentCloudUser.id === userB1_EmptyId &&
+    prod.getWorkspaceState().subjects.length === 0 &&
+    snapAAfterRetry &&
+    snapAAfterRetry.subjects.length === 2 &&
+    snapAAfterRetry.subjects[1].id === 'sub_unsaved_d' &&
+    snapAAfterRetry.annotations &&
+    snapAAfterRetry.annotations[sharedLectureId] !== undefined &&
+    snapAAfterRetry.dirty === true,
+    'T-M1-C01r (Test D.3): Retrying the switch after failure clears succeeds, refreshes pharmaAccountWorkspace_A with both subjects and verified annotations, and isolates User B1'
   );
 
   console.log('\n======================================================================');
