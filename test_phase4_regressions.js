@@ -3108,16 +3108,77 @@ async function main() {
   prod.localStorage.removeItem('pharmaLastActiveCloudUid');
   prod.localStorage.removeItem('pharmaLastActiveUserIdV1');
 
+  // Set up rich guest metadata: tombstones, conflict recovery, device registry, and annotations
+  const guestStones = {
+    subjects: { 'sub_del_guest': { id: 'sub_del_guest', entityType: 'subjects', clientTimestamp: 1000, operationId: 'op_guest_del_1' } },
+    groups: {}, lectures: {}, events: {}, logs: {}
+  };
+  prod.localStorage.setItem('pharmaTombstones_local', JSON.stringify(guestStones));
+
+  const guestRecoveryRecords = [
+    { recoveryId: 'rec_guest_1', scopeId: 'scope_g1', losingOperationId: 'op_l1', winningOperationId: 'op_w1', candidateEnvelope: { data: 'cand1' } }
+  ];
+  prod.localStorage.setItem('pharmaConflictRecovery_local', JSON.stringify(guestRecoveryRecords));
+
+  const guestDevReg = {
+    'dev_guest_static': { deviceId: 'dev_guest_static', lastActorId: 'act_g1', lastSeenRevision: 1, diagnosticOnly: true, neverPurgeTombstones: true }
+  };
+  prod.localStorage.setItem('pharmaDeviceRegistry_local', JSON.stringify(guestDevReg));
+
+  // Seed committed guest annotation in IndexedDB
+  const guestLecId = 'lec_guest_1005';
+  await new Promise((resolve) => {
+    const tx = idb.transaction('annotations', 'readwrite');
+    const store = tx.objectStore('annotations');
+    store.put({
+      id: 'usr_local::' + guestLecId,
+      rawId: guestLecId,
+      userId: 'local',
+      pages: { '1': [{ id: 'strk_g1', tool: 'pen', color: '#ff0000', points: [[1, 1], [2, 2]] }] }
+    });
+    tx.oncomplete = () => resolve(true);
+  });
+
   // Trigger quarantine explicitly
   const qPreserveRes = await prod.preserveUnverifiedGuestWorkspace('unverified_guest_provenance');
 
-  // Clear in-memory subjects to prove restoration actually repopulates them
+  // Verify that quarantine snapshot and manifest contain expected metadata and vault key
+  const savedSnap = JSON.parse(prod.localStorage.getItem('pharmaGuestQuarantine_' + qPreserveRes.quarantineId) || 'null');
+  assert(
+    savedSnap &&
+    savedSnap.annotationsVaultKey &&
+    savedSnap.annotationsCount === 1 &&
+    savedSnap._tombstones && savedSnap._tombstones.subjects && savedSnap._tombstones.subjects['sub_del_guest'] &&
+    savedSnap._conflictRecovery && savedSnap._conflictRecovery.length === 1 &&
+    savedSnap._deviceRegistry && savedSnap._deviceRegistry['dev_guest_static'],
+    'T-5.1-09-C1: preserveUnverifiedGuestWorkspace captures complete guest workspace including tombstones, conflict recovery, device registry, and IndexedDB annotations with valid vault key'
+  );
+
+  // Clear in-memory subjects, annotations, and storage keys to prove restoration actually repopulates them
   prod.setRuntimeState({ subjects: [], scheduleEvents: [] });
   prod.localStorage.removeItem('pharmaWorkspaceDirty');
+  prod.localStorage.removeItem('pharmaTombstones_local');
+  prod.localStorage.removeItem('pharmaConflictRecovery_local');
+  prod.localStorage.removeItem('pharmaDeviceRegistry_local');
+  await new Promise((resolve) => {
+    const tx = idb.transaction('annotations', 'readwrite');
+    tx.objectStore('annotations').delete('usr_local::' + guestLecId);
+    tx.oncomplete = () => resolve(true);
+  });
 
   // Execute durable restoration
   const restoreResC = await prod.restoreUnverifiedGuestWorkspace(qPreserveRes.quarantineId);
   const stateAfterRestore = prod.getRuntimeState();
+
+  const restoredStones = prod.getLocalTombstones('local');
+  const restoredRecovery = prod.getConflictRecoveryRecords('local');
+  const restoredDevReg = prod.getLocalDeviceRegistry('local');
+  const restoredAnnoRec = await new Promise((resolve) => {
+    const tx = idb.transaction('annotations', 'readonly');
+    const req = tx.objectStore('annotations').get('usr_local::' + guestLecId);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => resolve(null);
+  });
 
   assert(
     restoreResC &&
@@ -3126,8 +3187,12 @@ async function main() {
     restoreResC.quarantineId === qPreserveRes.quarantineId &&
     stateAfterRestore.subjects.some(s => s.id === 1005 && s.name === 'Quarantined Guest Chemistry Subject') &&
     stateAfterRestore.scheduleEvents.some(e => e.id === 2005) &&
+    restoredStones && restoredStones.subjects && restoredStones.subjects['sub_del_guest'] &&
+    restoredRecovery && restoredRecovery.length === 1 && restoredRecovery[0].recoveryId === 'rec_guest_1' &&
+    restoredDevReg && restoredDevReg['dev_guest_static'] &&
+    restoredAnnoRec && restoredAnnoRec.userId === 'local' && restoredAnnoRec.pages && restoredAnnoRec.pages['1'] &&
     prod.localStorage.getItem('pharmaWorkspaceDirty') === '1',
-    'T-5.1-09-C: Durable quarantine restoration via restoreUnverifiedGuestWorkspace safely recovers in-memory arrays, localStorage keys, and marks workspace dirty'
+    'T-5.1-09-C: Durable quarantine restoration via restoreUnverifiedGuestWorkspace safely recovers in-memory arrays, canonical localStorage metadata (tombstones, conflict recovery, device registry), IndexedDB annotations, and marks workspace dirty'
   );
 
   // --- Test D: Fail-closed annotation flush failure in reconcileDirtyWorkspaceWithRemote (T-5.1-09-D) ---
@@ -3522,6 +3587,93 @@ async function main() {
     rpcCallsT19I === 0 &&
     prod.localStorage.getItem('pharmaWorkspaceDirty') === '1',
     'T-5.1-09-I: Quarantine persistence failure (quota or IDB write error) aborts fail-closed, does not apply remote row or advance revision, and preserves original local dirty data in place'
+  );
+
+  // --- Test J: M5-A.2.1 Failure Injection Tests (T-5.1-09-J1 to J4) ---
+
+  // J.1: Missing IndexedDB database / stores during quarantine when annotations must be preserved
+  prod.setDbInstance(null);
+  prod.setRuntimeState({
+    pendingAnnoSaveMap: { 'usr_local::lec_fail_1': { '1': [{ id: 'strk_fail_1', tool: 'pen' }] } }
+  });
+  const qPreserveFailDb = await prod.preserveUnverifiedGuestWorkspace('guest_fail_db_test');
+  assert(
+    qPreserveFailDb &&
+    qPreserveFailDb.ok === false &&
+    qPreserveFailDb.quarantined === false &&
+    qPreserveFailDb.reason === 'quarantine_persistence_failed',
+    'T-5.1-09-J1: preserveUnverifiedGuestWorkspace aborts with quarantine_persistence_failed when IndexedDB is unavailable and guest annotations must be preserved'
+  );
+
+  // Restore dbInstance
+  prod.setDbInstance(idb);
+  prod.setRuntimeState({ pendingAnnoSaveMap: {} });
+
+  // J.2: Missing annotation vault record during restoration when annotations were expected
+  const fakeQuarantineId = 'guest_fake_q_' + Date.now();
+  const fakeSnapshotWithAnnos = {
+    quarantineId: fakeQuarantineId,
+    preservedAt: new Date().toISOString(),
+    reason: 'fake_test',
+    subjects: [{ id: 9999, name: 'Fake Subject' }],
+    annotationsVaultKey: 'nonexistent_vault_key_' + fakeQuarantineId,
+    annotationsCount: 2
+  };
+  prod.localStorage.setItem('pharmaGuestQuarantine_' + fakeQuarantineId, JSON.stringify(fakeSnapshotWithAnnos));
+  const restoreMissingVaultRes = await prod.restoreUnverifiedGuestWorkspace(fakeQuarantineId);
+  assert(
+    restoreMissingVaultRes &&
+    restoreMissingVaultRes.ok === false &&
+    restoreMissingVaultRes.restored === false &&
+    restoreMissingVaultRes.reason === 'missing_annotation_vault_record',
+    'T-5.1-09-J2: restoreUnverifiedGuestWorkspace aborts with missing_annotation_vault_record when expected vault entry is absent'
+  );
+
+  // J.3: IndexedDB write failure during restoration
+  // Create a real quarantine with 1 annotation in vault
+  const qRealId = 'guest_real_q_' + Date.now();
+  const qVaultKey = 'guest_quarantine_annotations_' + qRealId;
+  await new Promise((resolve) => {
+    const tx = idb.transaction('annotation_recovery_vault', 'readwrite');
+    tx.objectStore('annotation_recovery_vault').put({
+      id: qVaultKey,
+      quarantineId: qRealId,
+      type: 'guest_quarantine_annotations',
+      userId: 'local',
+      annotations: { 'lec_j3': { '1': [{ id: 'strk_j3' }] } },
+      annotationsCount: 1
+    });
+    tx.oncomplete = () => resolve(true);
+  });
+  const qRealSnapshot = {
+    quarantineId: qRealId,
+    preservedAt: new Date().toISOString(),
+    reason: 'real_test',
+    subjects: [{ id: 8888, name: 'Real Subject' }],
+    annotationsVaultKey: qVaultKey,
+    annotationsCount: 1
+  };
+  prod.localStorage.setItem('pharmaGuestQuarantine_' + qRealId, JSON.stringify(qRealSnapshot));
+
+  // Trigger write failure on next transaction
+  idb.failNextTransaction = true;
+  const restoreWriteFailRes = await prod.restoreUnverifiedGuestWorkspace(qRealId);
+  assert(
+    restoreWriteFailRes &&
+    restoreWriteFailRes.ok === false &&
+    restoreWriteFailRes.restored === false &&
+    restoreWriteFailRes.reason === 'annotation_restoration_failed',
+    'T-5.1-09-J3: restoreUnverifiedGuestWorkspace aborts with annotation_restoration_failed when IndexedDB write transaction fails'
+  );
+
+  // J.4: Successful retry after failure restores completely
+  const restoreRetrySuccess = await prod.restoreUnverifiedGuestWorkspace(qRealId);
+  assert(
+    restoreRetrySuccess &&
+    restoreRetrySuccess.ok === true &&
+    restoreRetrySuccess.restored === true &&
+    restoreRetrySuccess.counts.annotations === 1,
+    'T-5.1-09-J4: restoreUnverifiedGuestWorkspace retry succeeds after write failure clears, leaving original quarantine intact and recoverable'
   );
 
 

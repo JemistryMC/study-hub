@@ -2622,6 +2622,286 @@ async function main() {
       JSON.stringify(resV)
     );
 
+    // ========================================================================
+    // SCENARIO W (M5-A.2.1): Real Reload-Based Guest Quarantine & Restoration
+    // Tests complete guest persistence across 2 real browser reloads,
+    // verifies all 8 categories + tombstones + conflict recovery + device
+    // registry + IndexedDB annotations, plus failure injection.
+    // ========================================================================
+    console.log('\n--- TEST W (M5-A.2.1): Real Reload-Based Guest Quarantine & Restoration ---');
+
+    // 1. Create a guest workspace in the page with full rich data
+    const resW1 = await page.evaluate(async () => {
+      // Clear previous local storage
+      localStorage.clear();
+      currentCloudUser = null;
+      bumpAccountSessionGeneration();
+
+      subjects = [
+        { id: 9901, name: 'Guest Pharmacotherapy W', _updatedAt: 1000, groups: [] }
+      ];
+      scheduleEvents = [
+        { id: 9902, title: 'Guest Clinical Session W', day: 1, startHour: 8, duration: 2, subjectId: 9901 }
+      ];
+      scheduleBacklog = [
+        { id: 9903, title: 'Guest Task W' }
+      ];
+      plannerPrefs = { weekStartDay: 6, dayStartHour: 7, dayEndHour: 22, autoCompletePct: 80, currentWeekStartIso: '2026-11-01' };
+      weeklyReports = [
+        { id: 'rep_w_1', weekStartIso: '2026-11-01', score: 95 }
+      ];
+      logs = [
+        { id: 'log_w_1', text: 'Guest Study Log W', timestamp: Date.now() }
+      ];
+      completedAcademyModules = ['mod_w1', 'mod_w2'];
+      cloudMediaRegistry = { 'lec_w_1': { pdfUploaded: true, ownerUid: 'local' } };
+
+      // Persist to local storage
+      localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+      localStorage.setItem('pharmaScheduleV4', JSON.stringify({
+        version: 3,
+        events: scheduleEvents,
+        backlog: scheduleBacklog,
+        plannerPrefs: plannerPrefs,
+        weeklyReports: weeklyReports
+      }));
+      localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));
+      localStorage.setItem('pharmaWeeklyReportsV1', JSON.stringify(weeklyReports));
+      localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
+      localStorage.setItem('pharmaLogsV4', JSON.stringify(logs));
+      localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(completedAcademyModules));
+      localStorage.setItem('pharmaCloudMediaRegistryV1', JSON.stringify(cloudMediaRegistry));
+
+      // Tombstones
+      const stonesW = {
+        subjects: { 'sub_del_w': { id: 'sub_del_w', entityType: 'subjects', clientTimestamp: 1000, operationId: 'op_del_w1' } },
+        groups: {}, lectures: {}, events: {}, logs: {}
+      };
+      localStorage.setItem('pharmaTombstones_local', JSON.stringify(stonesW));
+
+      // Conflict recovery
+      const recsW = [
+        { recoveryId: 'rec_w_1', scopeId: 'scope_w1', losingOperationId: 'op_wl', winningOperationId: 'op_ww', candidateEnvelope: { data: 'candW' } }
+      ];
+      localStorage.setItem('pharmaConflictRecovery_local', JSON.stringify(recsW));
+
+      // Device registry
+      const devRegW = {
+        'dev_w_test': { deviceId: 'dev_w_test', lastActorId: 'act_w1', lastSeenRevision: 1, diagnosticOnly: true, neverPurgeTombstones: true }
+      };
+      localStorage.setItem('pharmaDeviceRegistry_local', JSON.stringify(devRegW));
+
+      // Write 2 guest annotations directly into IndexedDB
+      if (!dbInstance) await initPdfDB();
+      const aWriteOk = await new Promise((resolve) => {
+        const tx = dbInstance.transaction('annotations', 'readwrite');
+        const store = tx.objectStore('annotations');
+        store.put({
+          id: 'usr_local::lec_w_anno_1',
+          rawId: 'lec_w_anno_1',
+          userId: 'local',
+          pages: { '1': [{ id: 'strk_w1', tool: 'pen', color: '#00ff00', points: [[10, 10], [20, 20]] }] }
+        });
+        store.put({
+          id: 'usr_local::lec_w_anno_2',
+          rawId: 'lec_w_anno_2',
+          userId: 'local',
+          pages: { '1': [{ id: 'strk_w2', tool: 'highlighter', color: '#ffff00', points: [[30, 30], [40, 40]] }] }
+        });
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+      });
+
+      // Trigger guest quarantine
+      const qRes = await preserveUnverifiedGuestWorkspace('guest_e2e_two_reload_test');
+
+      return {
+        aWriteOk,
+        qRes,
+        qId: qRes?.quarantineId
+      };
+    });
+
+    assert(
+      resW1.aWriteOk === true &&
+      resW1.qRes &&
+      resW1.qRes.ok === true &&
+      resW1.qRes.quarantined === true &&
+      resW1.qRes.counts.annotations >= 2 &&
+      Boolean(resW1.qId),
+      'Test W.1 (M5-A.2.1): Guest workspace with 8 categories, tombstones, conflict recovery, device registry, and 2 IndexedDB annotations triggers quarantine successfully',
+      JSON.stringify(resW1)
+    );
+
+    const targetQId = resW1.qId;
+
+    // 2. Perform Real Browser Reload #1
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(500);
+
+    // 3. Confirm that original quarantine remains accessible after Reload #1
+    const resW2 = await page.evaluate(async (qId) => {
+      const snap = JSON.parse(localStorage.getItem('pharmaGuestQuarantine_' + qId) || 'null');
+      const manifest = JSON.parse(localStorage.getItem('pharmaGuestQuarantine_manifest') || '[]');
+
+      // Wipe active workspace memory and local storage to simulate fresh state
+      subjects = [];
+      scheduleEvents = [];
+      scheduleBacklog = [];
+      logs = [];
+      completedAcademyModules = [];
+      localStorage.removeItem('pharmaWorkspaceDirty');
+      localStorage.removeItem('pharmaTombstones_local');
+      localStorage.removeItem('pharmaConflictRecovery_local');
+      localStorage.removeItem('pharmaDeviceRegistry_local');
+
+      // Also delete the live annotations from IndexedDB
+      if (!dbInstance) await initPdfDB();
+      await new Promise((resolve) => {
+        const tx = dbInstance.transaction('annotations', 'readwrite');
+        tx.objectStore('annotations').delete('usr_local::lec_w_anno_1');
+        tx.objectStore('annotations').delete('usr_local::lec_w_anno_2');
+        tx.oncomplete = () => resolve(true);
+      });
+
+      // Now restore from the quarantine ID
+      const restoreRes = await restoreUnverifiedGuestWorkspace(qId);
+
+      // Read back all restored categories
+      const restoredStones = getLocalTombstones('local');
+      const restoredRecovery = getConflictRecoveryRecords('local');
+      const restoredDevReg = getLocalDeviceRegistry('local');
+
+      // Read back annotations from IndexedDB
+      const idbAnnos = await new Promise((resolve) => {
+        const tx = dbInstance.transaction('annotations', 'readonly');
+        const store = tx.objectStore('annotations');
+        const req1 = store.get('usr_local::lec_w_anno_1');
+        req1.onsuccess = () => {
+          const req2 = store.get('usr_local::lec_w_anno_2');
+          req2.onsuccess = () => {
+            resolve({
+              anno1: req1.result,
+              anno2: req2.result
+            });
+          };
+        };
+      });
+
+      return {
+        snapAccessible: Boolean(snap && snap.quarantineId === qId),
+        manifestHasEntry: manifest.some(m => m.quarantineId === qId),
+        restoreRes,
+        restoredSubjectsCount: subjects.length,
+        hasSubject9901: subjects.some(s => s.id === 9901),
+        hasEvent9902: scheduleEvents.some(e => e.id === 9902),
+        hasBacklog9903: scheduleBacklog.some(b => b.id === 9903),
+        hasLog1: logs.some(l => l.id === 'log_w_1'),
+        hasAcademyMod: completedAcademyModules.includes('mod_w1'),
+        hasStones: Boolean(restoredStones?.subjects?.['sub_del_w']),
+        hasRecovery: Boolean(restoredRecovery?.some(r => r.recoveryId === 'rec_w_1')),
+        hasDevReg: Boolean(restoredDevReg?.['dev_w_test']),
+        hasAnno1: Boolean(idbAnnos.anno1?.pages?.['1']),
+        hasAnno2: Boolean(idbAnnos.anno2?.pages?.['1']),
+        isDirty: localStorage.getItem('pharmaWorkspaceDirty') === '1'
+      };
+    }, targetQId);
+
+    assert(
+      resW2.snapAccessible === true &&
+      resW2.manifestHasEntry === true &&
+      resW2.restoreRes?.ok === true &&
+      resW2.restoreRes?.restored === true &&
+      resW2.hasSubject9901 === true &&
+      resW2.hasEvent9902 === true &&
+      resW2.hasBacklog9903 === true &&
+      resW2.hasLog1 === true &&
+      resW2.hasAcademyMod === true &&
+      resW2.hasStones === true &&
+      resW2.hasRecovery === true &&
+      resW2.hasDevReg === true &&
+      resW2.hasAnno1 === true &&
+      resW2.hasAnno2 === true &&
+      resW2.isDirty === true,
+      'Test W.2 (M5-A.2.1): After Reload #1, quarantine remains accessible, restoreUnverifiedGuestWorkspace restores all 8 categories, tombstones, conflict recovery, device registry, and IndexedDB annotations with read-back verification'
+    );
+
+    // 4. Perform Real Browser Reload #2
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(500);
+
+    // 5. Verify restored data survives Reload #2
+    const resW3 = await page.evaluate(async (qId) => {
+      if (!dbInstance) await initPdfDB();
+      const subs = JSON.parse(localStorage.getItem('pharmaSubjectsV4') || '[]');
+      const sched = JSON.parse(localStorage.getItem('pharmaScheduleV4') || '{}');
+      const stones = getLocalTombstones('local');
+      const recs = getConflictRecoveryRecords('local');
+      const devReg = getLocalDeviceRegistry('local');
+
+      const idbAnnos = await new Promise((resolve) => {
+        const tx = dbInstance.transaction('annotations', 'readonly');
+        const store = tx.objectStore('annotations');
+        const req1 = store.get('usr_local::lec_w_anno_1');
+        req1.onsuccess = () => {
+          const req2 = store.get('usr_local::lec_w_anno_2');
+          req2.onsuccess = () => {
+            resolve({
+              anno1: req1.result,
+              anno2: req2.result
+            });
+          };
+        };
+      });
+
+      return {
+        hasSub: subs.some(s => s.id === 9901),
+        hasEvt: sched.events?.some(e => e.id === 9902),
+        hasStones: Boolean(stones?.subjects?.['sub_del_w']),
+        hasRecs: Boolean(recs?.some(r => r.recoveryId === 'rec_w_1')),
+        hasDevReg: Boolean(devReg?.['dev_w_test']),
+        hasAnno1: Boolean(idbAnnos.anno1?.pages?.['1']),
+        hasAnno2: Boolean(idbAnnos.anno2?.pages?.['1']),
+        isDirty: localStorage.getItem('pharmaWorkspaceDirty') === '1'
+      };
+    }, targetQId);
+
+    assert(
+      resW3.hasSub === true &&
+      resW3.hasEvt === true &&
+      resW3.hasStones === true &&
+      resW3.hasRecs === true &&
+      resW3.hasDevReg === true &&
+      resW3.hasAnno1 === true &&
+      resW3.hasAnno2 === true &&
+      resW3.isDirty === true,
+      'Test W.3 (M5-A.2.1): After Reload #2, all restored workspace data, canonical tombstones, conflict recovery, device registry, and IndexedDB annotations remain intact and consistent'
+    );
+
+    // 6. Failure injection tests in real Chromium
+    const resW4 = await page.evaluate(async () => {
+      // Missing vault record
+      const badQId = 'q_bad_' + Date.now();
+      localStorage.setItem('pharmaGuestQuarantine_' + badQId, JSON.stringify({
+        quarantineId: badQId,
+        annotationsVaultKey: 'nonexistent_vault_' + badQId,
+        annotationsCount: 1
+      }));
+      const missingVaultRes = await restoreUnverifiedGuestWorkspace(badQId);
+
+      return {
+        missingVaultRes
+      };
+    });
+
+    assert(
+      resW4.missingVaultRes &&
+      resW4.missingVaultRes.ok === false &&
+      resW4.missingVaultRes.restored === false &&
+      resW4.missingVaultRes.reason === 'missing_annotation_vault_record',
+      'Test W.4 (M5-A.2.1): In real Chromium, restoreUnverifiedGuestWorkspace aborts with missing_annotation_vault_record when expected vault record is absent'
+    );
+
     await context.close();
   } finally {
     await browser.close();

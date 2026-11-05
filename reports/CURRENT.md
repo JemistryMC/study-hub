@@ -9,18 +9,17 @@
 
 - فرع العمل النشط: `main`.
 - خط الأساس المثبت لبداية المهمة الحالية (Required Starting Baseline HEAD):  
-  `9a96ab0b5cc92c21061b1b8d02dca558b57e221f` (Commit لـ Milestone M5-A.2 المتعثر في تشغيل CI Run #26).
-- Commit البداية لـ M5-A.1 المعتمد عبر CI:  
+  `041a6476e0d77b6812ea3a519576dfd326cc44a8` (Commit البداية لـ M5-A.2.1 بعد نجاح تشغيل CI Run #27).
+- Commit السابق لـ M5-A.1 المعتمد عبر CI:  
   `e16943d176a851561275d75e28a5f73ce9ec4fc9` (GitHub Actions Run #25: 448/448 PASSED).
-- الملفات المعدلة ضمن النطاق المصرح به لمهمة التصحيح M5-A.2:
+- الملفات المعدلة ضمن النطاق المصرح به لمهمة M5-A.2.1:
   - `index.html`
-  - `test_phase3_cross_account_isolation.js`
   - `test_phase4_regressions.js`
   - `test_phase4_1_chromium_e2e.js`
   - `reports/CURRENT.md`
-- الملفات المحذوفة المصرح بها:
-  - تم حذف الملف التجريبي العرضي `_temp_test_debug.js` نهائيًا.
-- لا تعتبر التعديلات المحلية الحالية لـ Milestone M5-A.2 مرفوعة إلى GitHub حتى يراجعها المالك ويزامنها ويتحقق من الـCommit SHA الجديد على GitHub.
+- لم يُعدّل ملف `test_phase3_cross_account_isolation.js` لعدم وجود عيوب فيه واجتيازه التام 52/52 في Run #27 ومحليًا.
+- لم يُعد إنشاء الملف المحذوف سابقًا `_temp_test_debug.js`.
+- لا تعتبر التعديلات المحلية الحالية لـ Milestone M5-A.2.1 مرفوعة إلى GitHub حتى يراجعها المالك ويزامنها ويتحقق من الـCommit SHA الجديد على GitHub.
 
 الفروع المرجعية:
 - `Deploying`: مرجع تاريخي لخط أساس سابق، وليس فرع العمل الحالي.
@@ -28,42 +27,32 @@
 
 ## 2. نتائج الاختبار المثبتة
 
-### 2.1 آخر تشغيل CI ناجح ومثبت على GitHub (Milestone M5-A.1 — Run #25)
-- GitHub Actions Run #25: `42104593921`
-- Run URL: `https://github.com/JemistryMC/study-hub/actions/runs/42104593921`
-- Source SHA: `e16943d176a851561275d75e28a5f73ce9ec4fc9`
-- النتيجة المثبتة في CI: **448/448 PASSED (0 failed)** موزعة كالتالي:
-  - Static Security (`run_verification_tests.js`): **54/54 PASSED**.
-  - Unit Verification (`run_comprehensive_verification.js`): **42/42 PASSED**.
-  - Phase 4.1 Cross-Account Isolation (`test_phase3_cross_account_isolation.js`): **52/52 PASSED**.
-  - Asynchronous Regression (`test_phase4_regressions.js`): **97/97 PASSED**.
-  - Embedded PostgreSQL (`test_phase4_2_postgres_integration.js` — PGlite): **41/41 PASSED**.
-  - Real PostgreSQL 16 Concurrency (`test_phase4_2_1_pg16_concurrency.js`): **96/96 PASSED**.
-  - Headless Chromium + IndexedDB Browser E2E (`test_phase4_1_chromium_e2e.js` — Scenarios A–V): **66/66 PASSED**.
+### 2.1 تشغيل CI المثبت لـ M5-A.2 (Run #27)
+- GitHub Actions Run #27
+- Source SHA: `041a6476e0d77b6812ea3a519576dfd326cc44a8`
+- النتيجة المثبتة في CI: **450/450 PASSED (0 failed)** بنسبة نجاح 100%.
 - الحالة: **CI VERIFIED — NOT APPROVED**.
 
-### 2.2 تشغيل CI المتعثر (Milestone M5-A.2 — Run #26)
-- GitHub Actions Run #26
-- Source SHA: `9a96ab0b5cc92c21061b1b8d02dca558b57e221f`
-- سبب التعثر في CI:
-  فشل الفحص `T-M1-C01r (Test D.3)` في `test_phase3_cross_account_isolation.js` برسالة:
-  `syncWorkspaceOnLogin aborted: verifyLocalWorkspaceProvenance is unavailable (fail-closed)`
-- السبب الجذري: بيئة الاختبار المعزولة في `test_phase3_cross_account_isolation.js` لم تكن تستخرج وتُصدّر الدوال الإنتاجية `verifyLocalWorkspaceProvenance` و`preserveUnverifiedGuestWorkspace` و`restoreUnverifiedGuestWorkspace` من `index.html`، مما جعل الفحص الأمني الإيجابي يفشل fail-closed تلقائيًا داخل بيئة الاختبار.
-- الحل: تم تصدير واستخراج الدوال الإنتاجية الحقيقية بالكامل إلى بيئة الاختبار وتزويد `InMemoryIDBDatabase` بـ `objectStoreNames`، واجتاز الفحص بنجاح 52/52 دون أي إضعاف لضوابط الإنتاج.
+### 2.2 تشغيل CI المثبت لـ M5-A.1 (Run #25)
+- GitHub Actions Run #25: `42105196599`
+- Run URL: `https://github.com/JemistryMC/study-hub/actions/runs/42105196599`
+- Source SHA: `e16943d176a851561275d75e28a5f73ce9ec4fc9`
+- النتيجة المثبتة في CI: **448/448 PASSED (0 failed)**.
+- الحالة: **CI VERIFIED — NOT APPROVED**.
 
-### 2.3 نتائج الاختبارات المحلية لتعديلات Milestone M5-A.2 التصحيحية الحالية
-- Base SHA: `9a96ab0b5cc92c21061b1b8d02dca558b57e221f`.
+### 2.3 نتائج الاختبارات المحلية لتعديلات Milestone M5-A.2.1 الحالية
+- Base SHA: `041a6476e0d77b6812ea3a519576dfd326cc44a8`.
 - `npm run lint`: **PASSED** (Syntax check لجميع ملفات الخادم والبناء والاختبارات دون أخطاء).
 - `npm run build`: **PASSED**.
 - `npm run test:static` (`run_verification_tests.js`): **54/54 PASSED**.
-- `npm run test:unit`: **192/192 PASSED** موزعة كالتالي:
+- `npm run test:unit`: **197/197 PASSED** موزعة كالتالي:
   - `run_comprehensive_verification.js`: **42/42 PASSED**.
-  - `test_phase3_cross_account_isolation.js`: **52/52 PASSED** (اجتاز بالكامل بعد تزويده بالدوال الإنتاجية).
-  - `test_phase4_regressions.js`: **98/98 PASSED** (شاملة الفحوصات التسعة `T-5.1-09-A` حتى `T-5.1-09-I`).
+  - `test_phase3_cross_account_isolation.js`: **52/52 PASSED**.
+  - `test_phase4_regressions.js`: **103/103 PASSED** (شاملة الفحوصات الجديدة لـ M5-A.2.1: `T-5.1-09-C1`, `T-5.1-09-J1` إلى `J4`).
 - `npm run test:pglite` (`test_phase4_2_postgres_integration.js`): **41/41 PASSED**.
-- `npm run test:e2e` (`test_phase4_1_chromium_e2e.js`): **67/67 PASSED** (شاملة السيناريوهات الكاملة A–V بعد إضافة استعادة مساحة عمل الضيف `Test V.7`).
-- `npm run test:pg16` (`test_phase4_2_1_pg16_concurrency.js`): **NOT RUN LOCALLY** (يتطلب خادم PostgreSQL 16 مخصص على المنفذ `5432`؛ يُشغّل في GitHub Actions CI متوقعًا 96 فحصًا إضافيًا بإجمالي 449).
-- إجمالي الفحوصات المنفذة محليًا: **354/354 PASSED (0 failed)**.
+- `npm run test:e2e` (`test_phase4_1_chromium_e2e.js`): **71/71 PASSED** (شاملة السيناريوهات الكاملة A–V والسيناريو الجديد W المعتمد على عمليتي reload حقيقيتين واختبارات حقن الفشل: `Test W.1` إلى `Test W.4`).
+- `npm run test:pg16` (`test_phase4_2_1_pg16_concurrency.js`): **NOT RUN LOCALLY** (يتطلب خادم PostgreSQL 16 مخصص على المنفذ `5432`؛ يُشغّل في GitHub Actions CI متوقعًا 96 فحصًا إضافيًا بإجمالي 459).
+- إجمالي الفحوصات المنفذة محليًا: **363/363 PASSED (0 failed)**.
 
 ## 3. العمل المنجز والمرجع التاريخي
 
@@ -81,37 +70,45 @@ Commit: `e16943d176a851561275d75e28a5f73ce9ec4fc9`
 GitHub Actions Run #25: `448/448 PASSED`  
 الحالة: **CI VERIFIED — NOT APPROVED**.
 
+### Milestone M5-A.2 — Test Harness Compatibility & CI Restoration
+Commit: `041a6476e0d77b6812ea3a519576dfd326cc44a8`  
+GitHub Actions Run #27: `450/450 PASSED`  
+الحالة: **CI VERIFIED — NOT APPROVED**.
+
 ## 4. المرحلة النشطة
 
-# Milestone M5-A.2 — Quarantine Recovery, Test Harness Compatibility & CI Restoration
+# Milestone M5-A.2.1 — Final Durable Guest Recovery Completion
 
 **Status: IMPLEMENTED — LOCAL TESTS ONLY (IN PROGRESS — NOT APPROVED)**
 
-- مسار العمل الحالي: **M5-A.2 التصحيحي (استعادة مساحة عمل الضيف المعزولة، تكامل بيئة الاختبارات، وتصحيح انقطاع CI)**.
+- مسار العمل الحالي: **M5-A.2.1 (إكمال متانة وصدقية عزل واستعادة مساحة عمل الضيف، التحقق الإيجابي من IndexedDB، واستعادة شواهد القبور وسجلات التعافي وسجل الأجهزة إلى مخازنها القياسية)**.
 - مسار العمل القادم: **Milestone M5 Workstream B (F-05 Annotation Decoupling & N-02 Version-Counter Redesign)**.
 - **حدود الاعتماد:** لا يُعتبر Milestone M5 مكتملاً حتى يكتمل كلا مساري العمل (M5-A ومسار M5-B) ويجتازا المراجعة المستقلة وCI.
 
-### التصحيحات المنفذة في M5-A.2:
+### التصحيحات المنفذة في M5-A.2.1:
 
-1. **حل انقطاع CI في تشغيل Run #26:**
-   - فحص بيئة الاختبار `test_phase3_cross_account_isolation.js` وإضافة استخراج وتصدير الدوال الإنتاجية الحقيقية: `verifyLocalWorkspaceProvenance` و`preserveUnverifiedGuestWorkspace` و`restoreUnverifiedGuestWorkspace` مع دعم `objectStoreNames` في `InMemoryIDBDatabase`.
-   - نجاح الفحص `T-M1-C01r (Test D.3)` ومرور جميع اختبارات العزل 52/52 محليًا.
+1. **تصحيح العزل الإيجابي في IndexedDB (Correction A):**
+   - في `preserveUnverifiedGuestWorkspace`: إلزامية وجود `dbInstance` والمخازن `annotations` و`annotation_recovery_vault` عند الحاجة لحفظ الحواشي أو التحقق من وجودها.
+   - قراءة الحواشي الملتزمة وحواشي الخزنة غير الملتزمة الخاصة بـ `local` والحواشي غير الملتزمة في الذاكرة مع العزل الصارم ضد بيانات أي حساب مصادق آخر.
+   - كتابة سجل العزل في `annotation_recovery_vault` وانتظار اكتمال المعاملة `tx.oncomplete` وقراءة السجل فورًا للتأكد من تطابق العدد والمحتوى؛ وفي حال فشل المعاملة أو تعذر القراءة الإيجابية يتم الإجهاض برمز `quarantine_persistence_failed` دون ادعاء نجاح كاذب ودون إتلاف البيانات المتسخة المحلية.
 
-2. **تعزيز الإغلاق الآمن لعزل بيانات الضيف (Fail-Closed Quarantine Persistence):**
-   - في `preserveUnverifiedGuestWorkspace`: التأكد التام من إجهاض العزل إذا فشل تفريغ الحواشي المعلقة أو تعطلت معاملات IndexedDB لكتابة `annotation_recovery_vault`، مع إرجاع سبب الفشل الصريح `quarantine_persistence_failed` وإبقاء البيانات متسخة محليًا دون مساس.
+2. **استعادة البيانات إلى مخازنها القياسية الحقيقية (Correction B):**
+   - في `restoreUnverifiedGuestWorkspace`: استعادة شواهد القبور السببية `_tombstones` إلى المفتاح القياسي `pharmaTombstones_local` مع التطبيع الكامل، دون اختراع دوال وهمية.
+   - استعادة سجلات التعافي من النزاع `_conflictRecovery` إلى `pharmaConflictRecovery_local`.
+   - استعادة سجل الأجهزة `_deviceRegistry` إلى `pharmaDeviceRegistry_local` مع دمج السجلات القائمة وعدم نسبها للمستخدم المصادق.
 
-3. **استعادة مساحة عمل الضيف القابلة للتحقق (Verifiable Guest Quarantine Restoration):**
-   - في `restoreUnverifiedGuestWorkspace`: التحقق من نجاح معاملات الكتابة لـ IndexedDB قبل إرجاع النجاح، واستعادة كافة الحقول الأكاديمية الثمانية، وشواهد القبور السببية `_tombstones` وسجلات التعافي `_conflictRecovery` وسجل الأجهزة `_deviceRegistry`، مع رفع علم الاتساخ للمزامنة اللاحقة.
+3. **التحقق من استعادة الحواشي قبل إعلان النجاح (Correction C):**
+   - التحقق من البيان الموثق (manifest entry) ووجود سجل الخزنة ومطابقة عدد الحواشي المتوقع.
+   - كتابة الحواشي إلى مخزن `annotations` مع انتظار اكتمال المعاملة `tx.oncomplete` وقراءة الحواشي المستعادة للتأكد من هويتها وتطابقها؛ وإذا تعذر أي فحص يتم الإجهاض الصريح مع الاحتفاظ بسجل العزل كاملاً للاستعادة لاحقاً دون ادعاء نجاح كاذب.
 
-4. **حذف الملفات المؤقتة غير المصرح بها:**
-   - تم حذف `_temp_test_debug.js` بالكامل لتطهير المستودع والالتزام الصارم بالنطاق المصرح به.
+4. **اختبارات Chromium E2E الحقيقية عبر عمليتي Reload (Correction D):**
+   - إضافة السيناريو `Test W` في `test_phase4_1_chromium_e2e.js`: إنشاء مساحة عمل غنية بالبيانات مع شواهد قبور وسجلات تعافي وسجل أجهزة وحواشي في IndexedDB، وتفعيل العزل، ثم إعادة تحميل الصفحة مرتين والتأكد من بقاء واستعادة كافة الفئات والحواشي وسجلات Causal Engine بنجاح 100%.
 
-### الملفات الخمسة الوحيدة المعدلة ضمن النطاق المصرح به:
+### الملفات الأربعة الوحيدة المعدلة ضمن النطاق المصرح به:
 1. `index.html`
-2. `test_phase3_cross_account_isolation.js`
-3. `test_phase4_regressions.js`
-4. `test_phase4_1_chromium_e2e.js`
-5. `reports/CURRENT.md`
+2. `test_phase4_regressions.js`
+3. `test_phase4_1_chromium_e2e.js`
+4. `reports/CURRENT.md`
 
 ### حدود الاعتماد الحالية
 - حالة المرحلة الحالية هي **`IMPLEMENTED — LOCAL TESTS ONLY (IN PROGRESS — NOT APPROVED)`**.
@@ -130,10 +127,10 @@ GitHub Actions Run #25: `448/448 PASSED`
 - العمود: `can_upload_media`
 - المالك يغيّر القيمة يدويًا بين FALSE وTRUE لمنح أو إلغاء استحقاق رفع الوسائط ومزامنة Google Drive.
 
-## 6. خطوات العمل بعد M5-A.2
+## 6. خطوات العمل بعد M5-A.2.1
 
-1. مراجعة مستقلة لتعديلات M5-A.2 في الملفات الخمسة المصرح بها.
-2. قرار المالك بشأن مزامنة GitHub وتشغيل GitHub Actions CI (Run #27).
+1. مراجعة مستقلة لتعديلات M5-A.2.1 في الملفات الأربعة المصرح بها.
+2. قرار المالك بشأن مزامنة GitHub وتشغيل GitHub Actions CI (Run #28 متوقع).
 3. بعد اعتماد M5-A، الانتقال إلى **Milestone M5 Workstream B (F-05 & N-02)**.
 4. لا تنفذ M5-B تلقائيًا.
 
