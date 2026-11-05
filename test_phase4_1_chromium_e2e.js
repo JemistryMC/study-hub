@@ -2262,6 +2262,233 @@ async function main() {
       JSON.stringify({ postReloadVerification, uiScenarioPageErrors, uiScenarioConsoleErrors })
     );
 
+    // ========================================================================
+    // TEST V: Phase 5.1 Milestone M5-A — Dirty-State Login & Manual Pull Reconciliation (F-03, T-5.1-08)
+    // ========================================================================
+    console.log('--- TEST V: Dirty-State Login & Manual Pull Reconciliation ---');
+    const resV = await page.evaluate(async () => {
+      const uidV = 'user-m5a-chromium-v1';
+      await handleAuthSessionChange({ id: uidV, email: 'user_v@exo.edu', name: 'User V' }, false);
+      const opCtxV = createAccountOperationContext(uidV);
+
+      // 1. Setup local dirty workspace state with subjects, schedule, and PDF annotations
+      const localSubV1 = { id: 9101, name: 'Local Offline Subject V1', _updatedAt: 2000, groups: [] };
+      const localEvtV1 = { id: 9201, title: 'Local Study V1', _updatedAt: 2000, subjectId: 9101, lectureId: null, startTime: '09:00', durationMinutes: 60, dayIndex: 0 };
+      subjects = [localSubV1];
+      scheduleEvents = [localEvtV1];
+      scheduleBacklog = [];
+      logs = [];
+      weeklyReports = [];
+      saveSubjects();
+      saveScheduleData(false);
+
+      await restoreAllAnnotationsMapToDB({
+        '9101': { '1': [{ id: 'stk_local_v1', tool: 'pen', color: '#ff0000', size: 2, points: [[10, 10], [20, 20]] }] }
+      }, uidV, opCtxV);
+
+      localStorage.setItem('pharmaWorkspaceDirty', '1');
+      localStorage.setItem('pharmaWorkspaceDirty_' + uidV, '1');
+      localStorage.setItem('pharmaLastActiveCloudUid', uidV);
+
+      // Remote cloud state with overlapping revision but non-conflicting new items
+      const remoteRowV1 = {
+        user_id: uidV,
+        user_email: uidV + '@exo.edu',
+        revision: 2,
+        subjects: [{ id: 9102, name: 'Remote Cloud Subject V1', _updatedAt: 1500, groups: [] }],
+        schedule: {
+          version: 3,
+          events: [{ id: 9202, title: 'Remote Study V1', _updatedAt: 1500, subjectId: 9102, lectureId: null, startTime: '11:00', durationMinutes: 45, dayIndex: 1 }],
+          backlog: [],
+          plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 },
+          weeklyReports: []
+        },
+        logs: [],
+        academy_progress: [],
+        annotations: {
+          [toScopedKey('9102', uidV)]: {
+            '1': [{ id: 'stk_remote_v1', tool: 'highlighter', color: '#00ff00', size: 10, points: [[50, 50], [60, 60]] }]
+          }
+        },
+        updated_at: '2026-11-05T12:00:00.000Z'
+      };
+
+      let rpcCallCountV = 0;
+      let lastPushedPayloadV = null;
+      const origClient = supabaseClient;
+      supabaseClient = {
+        from: (table) => ({
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({ data: remoteRowV1, error: null })
+            })
+          })
+        }),
+        rpc: async (fn, params) => {
+          rpcCallCountV++;
+          lastPushedPayloadV = params?.p_payload;
+          return { data: { status: 'success', revision: 3 }, error: null };
+        }
+      };
+
+      // V.1: syncWorkspaceOnLogin() with dirty state
+      const loginSyncRes = await syncWorkspaceOnLogin(opCtxV);
+      const idbMapAfterLogin = await getAllAnnotationsMapFromDB(uidV, opCtxV);
+      const v1HasLocalSub = subjects.some(s => s.id === 9101);
+      const v1HasRemoteSub = subjects.some(s => s.id === 9102);
+      const v1HasLocalEvt = scheduleEvents.some(e => e.id === 9201);
+      const v1HasRemoteEvt = scheduleEvents.some(e => e.id === 9202);
+      const v1HasLocalAnno = Boolean(idbMapAfterLogin.verifiedMap?.['9101']?.['1']?.some(s => s.id === 'stk_local_v1'));
+      const v1HasRemoteAnno = Boolean(idbMapAfterLogin.verifiedMap?.['9102']?.['1']?.some(s => s.id === 'stk_remote_v1'));
+      const v1DirtyCleared = localStorage.getItem('pharmaWorkspaceDirty') === null && localStorage.getItem('pharmaWorkspaceDirty_' + uidV) === null;
+
+      // V.2: Manual pull with force=true on dirty state
+      const localSubV2 = { id: 9103, name: 'Local Pre-Pull Subject V2', _updatedAt: 3000, groups: [] };
+      subjects.push(localSubV2);
+      saveSubjects();
+      localStorage.setItem('pharmaWorkspaceDirty', '1');
+      localStorage.setItem('pharmaWorkspaceDirty_' + uidV, '1');
+
+      const remoteRowV2 = {
+        user_id: uidV,
+        user_email: uidV + '@exo.edu',
+        revision: 4,
+        subjects: [
+          ...subjects.filter(s => s.id !== 9103),
+          { id: 9104, name: 'Remote Pulled Subject V2', _updatedAt: 2500, groups: [] }
+        ],
+        schedule: { version: 3, events: scheduleEvents, backlog: [], plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 }, weeklyReports: [] },
+        logs: [],
+        academy_progress: [],
+        annotations: {},
+        updated_at: '2026-11-05T12:10:00.000Z'
+      };
+
+      supabaseClient = {
+        from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: remoteRowV2, error: null }) }) }) }),
+        rpc: async () => ({ data: { status: 'success', revision: 5 }, error: null })
+      };
+
+      const manualPullRes = await pullWorkspaceFromCloud(true, opCtxV);
+      const v2HasLocalSub = subjects.some(s => s.id === 9103);
+      const v2HasRemoteSub = subjects.some(s => s.id === 9104);
+
+      // V.3: Simulated RPC error during pull reconciliation preserves dirty state
+      const localSubV3 = { id: 9105, name: 'Local Edit Prior To Push Error V3', _updatedAt: 4000, groups: [] };
+      subjects.push(localSubV3);
+      saveSubjects();
+      localStorage.setItem('pharmaWorkspaceDirty', '1');
+      localStorage.setItem('pharmaWorkspaceDirty_' + uidV, '1');
+
+      const remoteRowV3 = {
+        user_id: uidV,
+        user_email: uidV + '@exo.edu',
+        revision: 5,
+        subjects: [
+          ...subjects.filter(s => s.id !== 9105),
+          { id: 9106, name: 'Remote Subject V3', _updatedAt: 3500, groups: [] }
+        ],
+        schedule: { version: 3, events: scheduleEvents, backlog: [], plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 }, weeklyReports: [] },
+        logs: [],
+        academy_progress: [],
+        annotations: {},
+        updated_at: '2026-11-05T12:20:00.000Z'
+      };
+
+      supabaseClient = {
+        from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: remoteRowV3, error: null }) }) }) }),
+        rpc: async () => { throw new Error('Simulated 503 Network Timeout'); }
+      };
+
+      const pullErrRes = await pullWorkspaceFromCloud(false, opCtxV);
+      const v3HasLocalSub = subjects.some(s => s.id === 9105);
+      const v3HasRemoteSub = subjects.some(s => s.id === 9106);
+      const v3DirtyPreserved = localStorage.getItem('pharmaWorkspaceDirty') === '1' && localStorage.getItem('pharmaWorkspaceDirty_' + uidV) === '1';
+
+      // V.4: Subsequent retry push succeeds and clears dirty state
+      let retryRpcConfirmed = false;
+      supabaseClient = {
+        from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: remoteRowV3, error: null }) }) }) }),
+        rpc: async () => {
+          retryRpcConfirmed = true;
+          return { data: { status: 'success', revision: 6 }, error: null };
+        }
+      };
+
+      const retryPushRes = await pushWorkspaceToCloud(false, false, opCtxV);
+      const v4DirtyCleared = localStorage.getItem('pharmaWorkspaceDirty') === null && localStorage.getItem('pharmaWorkspaceDirty_' + uidV) === null;
+
+      // Restore client
+      supabaseClient = origClient;
+
+      return {
+        loginSyncRes,
+        v1HasLocalSub,
+        v1HasRemoteSub,
+        v1HasLocalEvt,
+        v1HasRemoteEvt,
+        v1HasLocalAnno,
+        v1HasRemoteAnno,
+        v1DirtyCleared,
+        manualPullRes,
+        v2HasLocalSub,
+        v2HasRemoteSub,
+        pullErrRes,
+        v3HasLocalSub,
+        v3HasRemoteSub,
+        v3DirtyPreserved,
+        retryPushRes,
+        retryRpcConfirmed,
+        v4DirtyCleared
+      };
+    });
+
+    assert(
+      resV.loginSyncRes &&
+      resV.loginSyncRes.ok === true &&
+      resV.loginSyncRes.reconciled === true &&
+      resV.v1HasLocalSub === true &&
+      resV.v1HasRemoteSub === true &&
+      resV.v1HasLocalEvt === true &&
+      resV.v1HasRemoteEvt === true &&
+      resV.v1HasLocalAnno === true &&
+      resV.v1HasRemoteAnno === true &&
+      resV.v1DirtyCleared === true,
+      'Test V.1 (T-5.1-08-A): Real Chromium page with offline dirty edits (subjects, schedule, annotations) reconciles on login, preserves local and remote items in memory and IndexedDB, and clears dirty flags upon confirmed push',
+      JSON.stringify(resV)
+    );
+
+    assert(
+      resV.manualPullRes &&
+      resV.manualPullRes.ok === true &&
+      resV.manualPullRes.reconciled === true &&
+      resV.v2HasLocalSub === true &&
+      resV.v2HasRemoteSub === true,
+      'Test V.2 (T-5.1-08-B): Real Chromium page triggers manual pull with force=true on dirty state and reconciles safely without discarding local edits',
+      JSON.stringify(resV)
+    );
+
+    assert(
+      resV.pullErrRes &&
+      resV.pullErrRes.reconciled === true &&
+      resV.pullErrRes.status === 'reconciled_locally' &&
+      resV.pullErrRes.pushResult?.status === 'error' &&
+      resV.v3HasLocalSub === true &&
+      resV.v3HasRemoteSub === true &&
+      resV.v3DirtyPreserved === true,
+      'Test V.3 (T-5.1-08-C): Simulated RPC error during pull reconciliation preserves merged local data and keeps pharmaWorkspaceDirty set in localStorage without false acknowledgment',
+      JSON.stringify(resV)
+    );
+
+    assert(
+      resV.retryPushRes &&
+      resV.retryPushRes.status === 'success' &&
+      resV.retryRpcConfirmed === true &&
+      resV.v4DirtyCleared === true,
+      'Test V.4 (T-5.1-08-D): Subsequent retry push persists reconciled state to cloud and clears dirty flags only after server confirms success',
+      JSON.stringify(resV)
+    );
+
     await context.close();
   } finally {
     await browser.close();
@@ -2277,7 +2504,7 @@ async function main() {
   if (testsFailed > 0) {
     process.exit(1);
   } else {
-    console.log('ALL 20 MANDATORY CHROMIUM + INDEXEDDB E2E SCENARIOS (A - U) PASSED (100%).');
+    console.log('ALL 21 MANDATORY CHROMIUM + INDEXEDDB E2E SCENARIOS (A - V) PASSED (100%).');
     process.exit(0);
   }
 }

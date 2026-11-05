@@ -8,16 +8,16 @@
 ## 1. حالة المستودع
 
 - فرع العمل النشط: `main`.
-- آخر `main` تم التحقق منه كبداية لمهمة Phase 5.1.3.1 الحالية (Base HEAD):  
+- آخر `main` تم التحقق منه كبداية لمهمة Milestone M5 Workstream A الحالية (Base HEAD):  
+  `ee5cf7e2d7d2c63ad44ca87edf6461299d05efc4`
+- الـCommit الأب (بداية Phase 5.1.3.1):  
   `3925b5133eef07cd165dadcfbea0b4b30a6d4b2f`
-- الـCommit الأب (بداية Phase 5.1.3):  
-  `1c65d0ac70f8d6915d2bb92086834bac51ae2fce`
-- الـBlobs الأساسية عند بداية Phase 5.1.3.1 (`3925b5133eef07cd165dadcfbea0b4b30a6d4b2f`):
-  - `index.html`: `3e516e5e6bb44cea698b6c3d2c45752eef3317d3`
-  - `test_phase4_regressions.js`: `867d2dabcd1add5f7095bbfeb16d9629ebf7b663`
+- الـBlobs الأساسية عند بداية Milestone M5 Workstream A (`ee5cf7e2d7d2c63ad44ca87edf6461299d05efc4`):
+  - `index.html`: `c095b17005fa1119d79d92eacdf8354f92788dca`
+  - `test_phase4_regressions.js`: `93c24d2004cdb1cf6d7d8ed2a530062da80f6f6b`
   - `test_phase4_1_chromium_e2e.js`: `416b2d5df65ebf49844fd4e00109c1eacd5cc7a0`
-  - `reports/CURRENT.md`: `f9c05acc4381759b64e5bd2f0ec86b45fae17cc7`
-- لا تعتبر التعديلات المحلية الحالية لـ Phase 5.1.3.1 مرفوعة إلى GitHub حتى يراجعها المالك ويزامنها ويتحقق من الـCommit SHA الجديد على GitHub.
+  - `reports/CURRENT.md`: `4adb88302ac9e3093f622bc74efe92dcab691923`
+- لا تعتبر التعديلات المحلية الحالية لـ Milestone M5 Workstream A مرفوعة إلى GitHub حتى يراجعها المالك ويزامنها ويتحقق من الـCommit SHA الجديد على GitHub.
 
 الفروع المرجعية:
 - `Deploying`: مرجع تاريخي لخط أساس سابق، وليس فرع العمل الحالي.
@@ -25,126 +25,126 @@
 
 ## 2. نتائج الاختبار المثبتة
 
-### 2.1 آخر تشغيل CI موثق على GitHub (Phase 5.1.3 — Run #22)
-- GitHub Actions Run #22: `42089989335`
-- Run URL: `https://github.com/JemistryMC/study-hub/actions/runs/42089989335`
-- Source SHA: `3925b5133eef07cd165dadcfbea0b4b30a6d4b2f`
-- النتيجة المثبتة في CI: **425/425 PASSED (0 failed)** موزعة كالتالي:
+### 2.1 آخر تشغيل CI موثق على GitHub (Phase 5.1.3.1 — Run #23)
+- GitHub Actions Run #23: `42095996755`
+- Run URL: `https://github.com/JemistryMC/study-hub/actions/runs/42095996755`
+- Source SHA: `ee5cf7e2d7d2c63ad44ca87edf6461299d05efc4`
+- النتيجة المثبتة في CI: **428/428 PASSED (0 failed)** موزعة كالتالي:
   - Static (`run_verification_tests.js`): **54/54 PASSED**.
-  - Unit (`run_comprehensive_verification.js` **42/42** + `test_phase3_cross_account_isolation.js` **52/52** + `test_phase4_regressions.js` **80/80**): **174/174 PASSED**.
+  - Unit (`run_comprehensive_verification.js` **42/42** + `test_phase3_cross_account_isolation.js` **52/52** + `test_phase4_regressions.js` **83/83**): **177/177 PASSED**.
   - Embedded PostgreSQL (`test_phase4_2_postgres_integration.js` — PGlite): **41/41 PASSED**.
   - Real PostgreSQL 16 (`test_phase4_2_1_pg16_concurrency.js`): **96/96 PASSED**.
   - Real Headless Chromium + IndexedDB E2E (`test_phase4_1_chromium_e2e.js` — Scenarios A–U): **60/60 PASSED**.
-
-### 2.2 تشغيل CI السابق (Phase 5.1.2 — Run #21)
-- GitHub Actions Run #21: `42077770432`
-- Run URL: `https://github.com/JemistryMC/study-hub/actions/runs/42077770432`
-- Source SHA: `1c65d0ac70f8d6915d2bb92086834bac51ae2fce`
-- النتيجة المثبتة في CI: **411/411 PASSED (0 failed)**.
 - الحالة: **CI VERIFIED — NOT APPROVED**.
 
-### 2.3 نتائج الاختبارات المحلية لتعديلات Phase 5.1.3.1 الحالية (محليًا فقط قبل GitHub Sync)
-- Base SHA: `3925b5133eef07cd165dadcfbea0b4b30a6d4b2f` (+ التعديلات المحلية في الملفات الثلاثة المصرح بها فقط).
+### 2.2 تشغيل CI السابق (Phase 5.1.3 — Run #22)
+- GitHub Actions Run #22: `42089989335`
+- Run URL: `https://github.com/JemistryMC/study-hub/actions/runs/42089989335`
+- Source SHA: `3925b5133eef07cd165dadcfbea0b4b30a6d4b2f`
+- النتيجة المثبتة في CI: **425/425 PASSED (0 failed)**.
+- الحالة: **CI VERIFIED — NOT APPROVED**.
+
+### 2.3 نتائج الاختبارات المحلية لتعديلات Milestone M5 Workstream A الحالية (محليًا فقط قبل GitHub Sync)
+- Base SHA: `ee5cf7e2d7d2c63ad44ca87edf6461299d05efc4` (+ التعديلات المحلية في الملفات الأربعة المصرح بها فقط).
 - `npm run lint`: **PASSED** (فحص syntax لجميع ملفات الخادم والبناء والاختبارات).
 - `npm run build`: **PASSED**.
 - `npm run test:static` (`run_verification_tests.js`): **54/54 PASSED**.
-- `npm run test:unit`: **177/177 PASSED** موزعة كالتالي:
+- `npm run test:unit`: **183/183 PASSED** موزعة كالتالي:
   - `run_comprehensive_verification.js`: **42/42 PASSED**.
   - `test_phase3_cross_account_isolation.js`: **52/52 PASSED**.
-  - `test_phase4_regressions.js`: **83/83 PASSED** (شاملة 80 فحصًا سابقًا + 3 فحوصات جديدة في `TEST 17`: `T-5.1.3.1-A1` و`T-5.1.3.1-B1` و`T-5.1.3.1-B2`).
+  - `test_phase4_regressions.js`: **89/89 PASSED** (شاملة 83 فحصًا سابقًا + 6 فحوصات جديدة في `TEST 18`: `T-5.1-08-A` حتى `T-5.1-08-F`).
 - `npm run test:pglite` (`test_phase4_2_postgres_integration.js`): **41/41 PASSED**.
-- `npm run test:e2e` (`test_phase4_1_chromium_e2e.js`): **60/60 PASSED** (الملف لم يُعدل مطلقًا وظل مطابقًا للـBaseline blob `416b2d5df65ebf49844fd4e00109c1eacd5cc7a0`).
+- `npm run test:e2e` (`test_phase4_1_chromium_e2e.js`): **64/64 PASSED** (شاملة 60 فحصًا سابقًا للسيناريوهات A–U + 4 فحوصات للسيناريو الجديد V: `Test V.1` حتى `Test V.4`).
 - `npm run test:pg16` (`test_phase4_2_1_pg16_concurrency.js`): **NOT RUN LOCALLY** (يتطلب خادم PostgreSQL 16 محلي على المنفذ `5432` غير متاح داخل حاوية AI Studio؛ يُشغّل في GitHub Actions CI).
-- إجمالي الفحوصات المنفذة محليًا: **332/332 PASSED (0 failed)**.
+- إجمالي الفحوصات المنفذة محليًا: **342/342 PASSED (0 failed)**.
 
 ## 3. العمل المنجز والمرجع التاريخي
 
 ### Phase 4.2.x — Security, OCC, PostgreSQL 16
-
-تقارير وملفات هذه المرحلة سجلات هندسية تاريخية. لا تجعلها المرحلة النشطة مرة أخرى ولا تعِد تنفيذها تلقائيًا. ارجع إليها فقط عندما تتطلب Phase حالية دليلًا أو سياقًا محددًا منها.
+تقارير وملفات هذه المرحلة سجلات هندسية تاريخية. لا تجعلها المرحلة النشطة مرة أخرى ولا تعِد تنفيذها تلقائيًا.
 
 ### Phase 5.0 — Storage, Sync & Google Drive Audit
-
 تقرير التدقيق المرجعي موجود في:
 `reports/phases/phase-5-storage-sync-audit/gemini-report.md` (Commit: `1758bba343746f4b457d8793fa9389b80117bcf8`).
 
 ### Phase 5.1.0 / 5.1.1 — Implementation Blueprint
-
 المستند: `reports/phases/phase-5-storage-sync-audit/phase-5-1-implementation-blueprint.md` (Commit: `6020a78e585d415ca3d8dcdd37a024cda2614652`).
 الحالة: **CHANGES REQUESTED — NOT APPROVED**.
 
 ### Phase 5.1.2 — Corrective Integration of M2 + M3 + M4
-
 Commit: `1c65d0ac70f8d6915d2bb92086834bac51ae2fce`  
 GitHub Actions Run #21: `42077770432` (`411/411 PASSED`)  
 الحالة: **CI VERIFIED — NOT APPROVED**.
 
 ### Phase 5.1.3 — Causal Save Safety, Deletion Semantics & Real Annotation UI E2E
-
 Commit: `3925b5133eef07cd165dadcfbea0b4b30a6d4b2f`  
 GitHub Actions Run #22: `42089989335` (`425/425 PASSED`)  
 الحالة: **CI VERIFIED — NOT APPROVED**.
 
+### Phase 5.1.3.1 — Final Integrity Corrections (Weekly Reports & Tombstone Fail-Closed)
+Commit: `ee5cf7e2d7d2c63ad44ca87edf6461299d05efc4`  
+GitHub Actions Run #23: `42095996755` (`428/428 PASSED`)  
+الحالة: **CI VERIFIED — NOT APPROVED**.
+
 ## 4. المرحلة النشطة
 
-# Phase 5.1.3.1 — Final Integrity Corrections: Weekly Report References, Tombstone Fail-Closed Coverage & Accurate Handoff
+# Milestone M5 — Offline-First Lifecycle & Decoupled Annotations
 
 **Status: IN PROGRESS — NOT APPROVED**
 
-**الهدف:** متابعة تصحيحية محدودة النطاق ومحددة بدقة فوق Commit `3925b5133eef07cd165dadcfbea0b4b30a6d4b2f` (Run #22: `425/425`) لمعالجة تكامل علاقات التقارير الأسبوعية وسد فجوات تغطية الفشل المغلق في مسارات الحذف، وتصحيح مصطلحات تسليم الـHandoff:
-1. الحفاظ الكامل على التقارير الأسبوعية وأهدافها المؤرشفة (`archivedGoals`) عند حذف المواد مع فك مراجع المواد الملغاة فقط وختم التعديل سببيًا وحفظه محليًا.
-2. فرض الإجهاض الآمن المغلق (Fail-Closed) في جميع مسارات الحذف إذا كان مساعد حفظ شواهد الحذف غير متاح أو فشل في الحفظ، مع إضافة تغطية حقن الفشل لـ `deleteSessionDirect` و`deleteEventFromPdfAdjuster`.
-3. تصحيح التوصيفات التقنية في التوثيق: استخدام المفتاح الفعلي لمعرف الجهاز (`exo_installation_device_id_v1`)، ومسار معرف الفاعل الحي في الذاكرة (`liveTabActorId`)، والمساعدات الفعلية لشواهد الحذف (`recordTombstone()` و`recordTombstonesAtomicBatch()`) دون الإشارة لمساعد وهمي.
+- مسار العمل الحالي: **M5 Workstream A — Dirty-State Login & Pull Reconciliation (F-03, T-5.1-08)**.
+- مسار العمل القادم: **M5 Workstream B (F-05 Annotation Decoupling & N-02 Version-Counter Redesign)**.
+- **حدود الاعتماد:** لا يُعتبر Milestone M5 مكتملاً حتى يكتمل كلا مساري العمل (M5-A وM5-B) ويجتازا المراجعة المستقلة وCI.
 
-**الملفات الثلاثة الوحيدة المعدلة ضمن النطاق المصرح به:**
+### الهدف من مسار M5 Workstream A:
+معالجة الملاحظة F-03 في تقرير التدقيق، حيث كانت عمليتا `syncWorkspaceOnLogin()` و`pullWorkspaceFromCloud()` تقومان باستبدال أعمى للبيانات المحلية (`applyCloudWorkspacePayload`) عند تسجيل الدخول أو السحب اليدوي في وجود تعديلات محلية غير متزامنة (Dirty State)، مما يؤدي لضياع عمل المستخدم دون إنذار.
+
+### الملفات الأربعة الوحيدة المعدلة ضمن النطاق المصرح به:
 1. `index.html`
 2. `test_phase4_regressions.js`
-3. `reports/CURRENT.md`
+3. `test_phase4_1_chromium_e2e.js`
+4. `reports/CURRENT.md`
 
-*(ملاحظة: ملف `test_phase4_1_chromium_e2e.js` لم يُمس وظل مطابقًا للـBaseline blob `416b2d5df65ebf49844fd4e00109c1eacd5cc7a0`)*.
+### ملخص التعديلات المنفذة في Workstream M5-A:
 
-**ملخص التصحيحات المنفذة في Phase 5.1.3.1:**
+1. **دالة المصالحة السببية `reconcileDirtyWorkspaceWithRemote(remoteRow, opCtx, manualNotify)`:**
+   - تم بناؤها في `index.html` لتوفير مسار مصالحة آمن وموحد عند وجود تعديلات غير متزامنة.
+   - تفرغ الحواشي المعلقة إلى IndexedDB عبر `flushPendingAnnotationsSave(false, opCtx)` وتُجهض العملية فورًا (Fail-Closed) في حال فشل التفريغ لحماية بيانات الرسم.
+   - تقوم بختم التعديلات المحلية غير المدموغة سببيًا عبر `autoStampTrackedWorkspaceMutations('all', opCtx.uid)`.
+   - تبني `localPayload` متكاملاً يحتوي على المواد، الجدول، المهام، التقارير الأسبوعية، السجلات، وشواهد الحذف المحلية.
+   - تستدعي محرك الدمج السببي ثلاثي الأطراف المعتمد `mergeAndApplyCloudConflict(remoteRow, localPayload, opCtx)` الذي يحفظ عناصر الطرفين ويطبق شواهد الحذف ويدمج الحواشي بدقة.
+   - إذا كان الاتصال متاحًا، تقوم برفع الحالة المدمجة عبر `pushWorkspaceToCloud(manualNotify, false, opCtx)`، ولا تُمسح أعلام الاتساخ (`pharmaWorkspaceDirty`) إلا بعد تأكيد الخادم لنجاح العملية (`p_status = 'success'`).
+   - في حال فشل الرفع السحابي (انقطاع شبكة أو خطأ RPC)، تبقى البيانات المدمجة محفوظة محليًا في `localStorage` وIndexedDB ومخزن الحساب الاحتياطي، ويبقى علم الاتساخ مرفوعًا (`pharmaWorkspaceDirty = '1'`) للمحاولة لاحقًا دون إقرار سحابي كاذب.
 
-1. **Correction A — الحفاظ على علاقات التقارير الأسبوعية (Weekly Report Relationship Preservation):**
-   - تم تحديث دالة `detachDeletedHierarchyReferences()` في `index.html` لتشمل فحص مصفوفة `weeklyReports`:
-     - يتم الحفاظ التام على كل تقرير أسبوعي (`weeklyReports[]`) وكل هدف مؤرشف (`weeklyReports[].archivedGoals[]`).
-     - يتم الحفاظ على كافة الحقول النصية وحقول الحالة التي أنشأها المستخدم (`id`, `title`, `text`, `date`, `notes`, `done`, `duration`, `weekStartIso`).
-     - عند حذف مادة دراسية مرجعية، يتم فقط فك ارتباط المادة الملغاة بجعل `goal.subjectId = ''` (وكذلك `rep.subjectId = ''` إذا وُجد) دون حذف الهدف أو التقرير ودون تسجيل شاهد حذف للتقرير.
-     - يتم وسم التقرير المعدل وتحديث بصمته السببية عبر استدعاء `stampEntityMutation(rep, 'weekly_reports', rep.weekStartIso || rep.id)` ضمن البنية السببية المعتمدة.
-     - يتم حفظ التقرير المعدل فورًا عبر `saveScheduleData()` في التخزين المحلي (`pharmaWeeklyReportsV1` و`pharmaScheduleV4.weeklyReports`).
-     - التقارير الأسبوعية غير المرتبطة بالمادة المحذوفة تظل سليمة تمامًا دون تعديل أو إعادة ختم غير ضرورية.
+2. **تحديث `pullWorkspaceFromCloud(manualNotify, ctx)`:**
+   - يفحص أعلام الاتساخ المحلية (`hasDirtyWorkspace` و`hasDirtyAnnotations` و`hasUncommittedOps`) وأصل البيانات (`isSameOwnerOrVerifiedPreLogin`).
+   - إذا وُجدت تعديلات محلية متسخة لنفس الحساب أو جلسة الضيف السابقة، يتم توجيه السحب تلقائيًا لمسار المصالحة `reconcileDirtyWorkspaceWithRemote` بدلاً من المسح الأعمى.
+   - إذا كانت الحالة المحلية نظيفة تمامًا أو لحساب مختلف، يتم تطبيق السحب العادي عبر `applyCloudWorkspacePayload`.
 
-2. **Correction B — تغطية الإجهاض المغلق في مسارات الحذف (Fail-Closed Deletion Coverage):**
-   - تم فحص وتأكيد جميع مسارات الحذف في `index.html` (`triggerDeleteSubject`, `deleteContinuousSubjectWirdLog`, `triggerDeleteGroup`, `triggerDeleteLecture`, `deleteSessionDirect`, `executeClearSchedule`, `deleteBacklogTask`, `triggerDeleteLog`, `deleteEventFromPdfAdjuster`, `markMissedSessionDoneOffline`, `finalizeWeekAndArchiveReport`, `deleteWeeklyEvaluationReport`):
-     - جميع هذه المسارات تشترط توفر مساعد حفظ الشواهد الفعلي (`recordTombstone` أو `recordTombstonesAtomicBatch`) ونجاحه الفعلي قبل الإقدام على أي إزالة محلية للكيان من الذاكرة أو التخزين.
-     - في حال عدم توفر المساعد أو فشل الحفظ في `localStorage`، تُجهض العملية فورًا (Fail-Closed) مع إظهار رسالة خطأ للمستخدم عبر `showToast`، وبقاء الكيان المستهدف وسجلاته الفرعية سليمة 100%، وعدم إصدار أي إشعار نجاح زائف.
-   - تمت إضافة فحوصات انحدار دقيقة في `test_phase4_regressions.js` (`TEST 17`):
-     - `T-5.1.3.1-A1`: فحص فك ارتباط `subjectId` في `archivedGoals` مع بقاء محتوى الهدف المؤرشف وختم التقرير الأسبوعي سببيًا وحفظه في `localStorage`.
-     - `T-5.1.3.1-B1`: حقن فشل تخزين الشواهد أثناء `deleteSessionDirect` والتأكد من بقاء الجلسة المستهدفة وملاحظاتها وبيانات Workspace التابعة سليمة دون حذف، والتأكد من عدم ظهور إشعار نجاح، ثم إعادة المحاولة بنجاح بعد استعادة التخزين.
-     - `T-5.1.3.1-B2`: حقن فشل تخزين الشواهد أثناء `deleteEventFromPdfAdjuster` والتأكد من بقاء الجلسة المستهدفة في جدول الـPDF وملاحظاتها سليمة، ثم إعادة المحاولة بنجاح بعد استعادة التخزين.
+3. **تحديث `syncWorkspaceOnLogin(ctx)`:**
+   - في المسار (أ) عند وجود سجل سحابي سابق للمستخدم (`if (data)`): يفحص اتساخ الحالة المحلية وأصل الحساب.
+   - في حال وجود تعديلات محلية متسخة لنفس المستخدم، يوجه التدفق إلى `reconcileDirtyWorkspaceWithRemote(data, opCtx, false)`.
+   - يحافظ تمامًا على المسار (ب) المعتمد في F-15 للمستخدمين الجدد كليًا بحفظ تقدم الأكاديمية `completedAcademyModules`.
+   - يحافظ على العزل التام بين الحسابات: التعديلات المتسخة للمستخدم (X) تظل معزولة في مخزنه الاحتياطي ولا تُدمج مطلقًا في جلسة المستخدم (Y) عند تبديل الحساب.
 
-3. **Correction C — دقة التسليم والتوصيف التقني (Accurate Handoff & Technical Details):**
-   - مفتاح معرف الجهاز على مستوى التثبيت في التخزين المحلي هو `exo_installation_device_id_v1` (المسجل لكل حساب في `pharmaDeviceRegistry_<uid>`).
-   - معرف الفاعل لعلامة التبويب الحية يُولّد عبر CSPRNG ويُحتفظ به في الذاكرة الحية فقط تحت `liveTabActorId` دون حفظه في `sessionStorage`.
-   - دوال شواهد الحذف الفعلية في الكود هي `recordTombstone()` و`recordTombstonesAtomicBatch()` (ولا وجود لدالة باسم `saveLocalTombstones()`).
-   - الفصل التام بين حفظ التعديلات محليًا وصحة المزامنة السحابية: يتم حفظ تعديل المستخدم دائمًا في `localStorage` أولًا، وإذا فشل الختم السببي يُوسم الـWorkspace بالاتساخ ويُخطر المستخدم مع منع الـPush السحابي حتى ينجح الختم السببي.
+4. **تغطية الاختبارات الموسعة:**
+   - **`test_phase4_regressions.js` (`TEST 18`):** 6 فحوصات دقيقة (`T-5.1-08-A` حتى `T-5.1-08-F`) تغطي تسجيل الدخول المتسخ لنفس الحساب، السحب اليدوي القسري المتسخ، أمان فشل الرفع وبقاء علم الاتساخ، نجاح إعادة المحاولة بعد تأكيد الخادم، عزل تبديل الحسابات، والحفاظ على تقدم الأكاديمية للمستخدمين الجدد.
+   - **`test_phase4_1_chromium_e2e.js` (`TEST V`):** 4 فحوصات حقيقية في متصفح Chromium (`Test V.1` حتى `Test V.4`) تؤكد سلامة المصالحة الحقيقية للجدول والمواد والحواشي في IndexedDB وDOM و`localStorage` في بيئة متصفح كاملة.
 
 ### حدود الاعتماد الحالية
 - حالة المرحلة الحالية هي **`IN PROGRESS — NOT APPROVED`**.
-- لم يتم التحقق من تعديلات Phase 5.1.3.1 بعد عبر GitHub Actions CI على GitHub (`NOT CI VERIFIED`).
-- لم يتم اعتماد المرحلة بعد (`NOT APPROVED`)؛ الاعتماد النهائي قرار المالك بعد المراجعة المستقلة ونجاح CI.
+- لم يتم التحقق من تعديلات Milestone M5 Workstream A بعد عبر GitHub Actions CI على GitHub (`NOT CI VERIFIED`).
+- لم يتم اعتماد المرحلة بعد (`NOT APPROVED`)؛ الاعتماد النهائي قرار المالك بعد استكمال M5-B والمراجعة المستقلة ونجاح CI.
 
 ## 5. سياسة المنتج والحسابات
 
 ### Free
-
 يظل الحفظ المحلي الأساسي وبيانات Workspace الأكاديمية ومزامنة البيانات والـannotations الأساسية عبر Supabase متاحة للمستخدم المسجل عندما تكون الخدمة مهيأة وتنجح صلاحياتها. لا تجعل VIP شرطًا للحفظ الأكاديمي الأساسي.
 
 - Annotated PDF Export مجاني لمستخدمي Free وVIP.
 - Extra Note Sheet مجاني لمستخدمي Free وVIP، ويسمح بإنشاء عدة Note Sheets. لا تطبق قفل VIP على إنشاء هذه الأوراق أو الوصول إليها، ولا تخترع حدًا عدديًا غير معتمد.
 
 ### VIP
-
 الاستحقاق يدوي من المالك باستخدام:
 - الجدول: `public.user_workspaces`
 - العمود: `can_upload_media`
@@ -153,7 +153,6 @@ GitHub Actions Run #22: `42089989335` (`425/425 PASSED`)
 لا يوجد في النطاق الحالي نظام اشتراكات أو دفع آلي. WhatsApp قناة تواصل فقط، وليس تفعيلًا آليًا. `can_upload_media` بوابة ميزات وسائط/ميزات مميزة محددة، وليست بوابة حفظ Workspace الأساسي أو Annotated PDF Export أو Extra Note Sheet. هذه الوظيفتان متاحتان لـFree، بما في ذلك إنشاء عدة Note Sheets.
 
 ### Supabase وGoogle Drive
-
 - المستخدم أكد أن migrations الخاصة بـExo لم تُطبق بعد على مشروع Supabase الفعلي.
 - المستخدم أكد وجود `public.user_workspaces` وعمود `can_upload_media`، لكن ذلك لا يثبت سلامة بقية schema أو RPC أو RLS أو grants أو triggers.
 - لا توجد مراجعة شاملة حديثة للـlive schema؛ اعتبرها غير معروفة.
@@ -161,14 +160,12 @@ GitHub Actions Run #22: `42089989335` (`425/425 PASSED`)
 - لا توجد موافقة للاتصال الحي أو تنفيذ migrations.
 - Google Drive media workflow منفصل عن Core Workspace sync. لا تفترض أن الملفات الخاصة متاحة لـFree أو أن روابط Drive عامة.
 
-## 6. خطوات العمل بعد Phase 5.1.3.1
+## 6. خطوات العمل بعد M5 Workstream A
 
-1. مراجعة مستقلة للتعديلات المحلية في الملفات الثلاثة المصرح بها.
-2. قرار المالك بشأن مزامنة GitHub وتشغيل GitHub Actions CI (Run #23).
-3. التحقق من نتائج CI الفعلية (بما في ذلك PostgreSQL 16 الحقيقي وChromium E2E) على الـCommit الجديد بعد المزامنة.
-4. قرار المالك بالاعتماد (`APPROVED`) أو طلب تعديلات إضافية (`CHANGES REQUESTED`).
-
-لا تنفذ المرحلة التالية تلقائيًا.
+1. مراجعة مستقلة لتعديلات M5-A في الملفات الأربعة المصرح بها.
+2. قرار المالك بشأن مزامنة GitHub وتشغيل GitHub Actions CI (Run #24).
+3. بعد اعتماد M5-A، الانتقال إلى **Milestone M5 Workstream B (F-05 & N-02)**.
+4. لا تنفذ M5-B أو M6 تلقائيًا.
 
 ## 7. دورة المراجعة والمزامنة
 
@@ -179,3 +176,4 @@ GitHub Actions Run #22: `42089989335` (`425/425 PASSED`)
 5. المالك وحده يقرر GitHub Sync.
 6. بعد ظهور Commit على GitHub نتحقق من SHA والملفات والـDiff.
 7. لا تعتبر المهمة APPROVED إلا بعد مراجعة مستقلة وقرار المالك.
+

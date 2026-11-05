@@ -369,6 +369,8 @@ ${extractFunctionSource(indexHtmlContent, 'markLocalWorkspaceModified')}
 ${extractFunctionSource(indexHtmlContent, 'mergeAndApplyCloudConflict')}
 ${extractFunctionSource(indexHtmlContent, 'pushWorkspaceToCloud')}
 ${extractFunctionSource(indexHtmlContent, 'applyCloudWorkspacePayload')}
+${extractFunctionSource(indexHtmlContent, 'reconcileDirtyWorkspaceWithRemote')}
+${extractFunctionSource(indexHtmlContent, 'pullWorkspaceFromCloud')}
 ${extractFunctionSource(indexHtmlContent, 'syncWorkspaceOnLogin')}
 module.exports = {
   localStorage,
@@ -480,6 +482,8 @@ module.exports = {
   mergeAndApplyCloudConflict,
   pushWorkspaceToCloud,
   applyCloudWorkspacePayload,
+  reconcileDirtyWorkspaceWithRemote,
+  pullWorkspaceFromCloud,
   syncWorkspaceOnLogin,
   sanitizeForScopedKey,
   getCanonicalUserId,
@@ -2615,6 +2619,344 @@ async function main() {
     stateAfterRetryPdfAdjDel.logs.length === 1 &&
     stateAfterRetryPdfAdjDel.weeklyReports.length === 1,
     'T-5.1.3.1-B2: deleteEventFromPdfAdjuster aborts fail-closed when recordTombstone persistence fails (preserving target session, associated data, and emitting no false success toast) and succeeds cleanly on subsequent retry'
+  );
+
+  // =========================================================================
+  // TEST 18: PHASE 5.1 MILESTONE M5-A — DIRTY-STATE LOGIN & MANUAL PULL RECONCILIATION (F-03, T-5.1-08)
+  // =========================================================================
+  console.log('\n[TEST 18] Phase 5.1 Milestone M5-A — Dirty-State Login & Manual Pull Reconciliation (F-03, T-5.1-08)...');
+
+  const makeSupabaseMock = (remoteRowGetter, rpcHandler) => ({
+    from: (table) => ({
+      select: (cols) => ({
+        eq: (field, val) => ({
+          maybeSingle: async () => {
+            const row = typeof remoteRowGetter === 'function' ? remoteRowGetter(val) : remoteRowGetter;
+            return { data: row ? JSON.parse(JSON.stringify(row)) : null, error: null };
+          }
+        })
+      })
+    }),
+    rpc: async (name, params) => {
+      if (typeof rpcHandler === 'function') {
+        return await rpcHandler(name, params);
+      }
+      return { data: { status: 'success', revision: (params?.p_expected_revision || 1) + 1 }, error: null };
+    }
+  });
+
+  // --- Test A: Same-account dirty login reconciliation (T-5.1-08-A) ---
+  const uidM5A1 = 'user_m5a_recon_1';
+  prod.localStorage.clear();
+  prod.toastHistory.length = 0;
+  prod.setSessionUser(uidM5A1);
+  prod.resetLiveActorForTabSimulation('dev_m5a_1');
+
+  // Seed local offline state for uidM5A1
+  const localSubM5A = { id: 101, name: 'Local Offline Pharmacology', _updatedAt: 2000, groups: [] };
+  const localEvM5A = { id: 201, title: 'Local Offline Study Session', day: 1, startHour: 10, duration: 2, _updatedAt: 2000 };
+  const localTaskM5A = { id: 301, title: 'Local Offline Backlog Task', done: false, _updatedAt: 2000 };
+  const localLogM5A = { id: 401, date: '2026-11-05', text: 'Local Offline Log', _updatedAt: 2000 };
+  const localAnnoKey = prod.toScopedKey('1011', uidM5A1);
+  seedIdbRecord('annotations', localAnnoKey, '1011', uidM5A1, {
+    '1': [{ id: 'stk_local_1', tool: 'pen', color: '#10b981', size: 2, points: [[10, 10], [20, 20]] }]
+  });
+  prod.setDbInstance(idb);
+
+  prod.setRuntimeState({
+    activeSubjectId: 101,
+    subjects: [localSubM5A],
+    scheduleEvents: [localEvM5A],
+    scheduleBacklog: [localTaskM5A],
+    logs: [localLogM5A],
+    weeklyReports: [],
+    dirtyAnnotationsForCloud: true
+  });
+  prod.saveSubjects();
+  prod.saveScheduleData();
+  prod.saveLogs();
+
+  // Create a local tombstone for subject 999
+  prod.recordTombstone('subjects', 999, uidM5A1);
+  prod.localStorage.setItem('pharmaWorkspaceDirty', '1');
+  prod.localStorage.setItem('pharmaWorkspaceDirty_' + uidM5A1, '1');
+  prod.localStorage.setItem('pharmaLastActiveCloudUid', uidM5A1);
+  prod.localStorage.setItem('pharmaWorkspaceRevision_' + uidM5A1, '1');
+
+  // Seed remote row in Supabase: has remote subject 102, stale subject 999 (which was tombstoned locally), and remote event 202
+  const remoteRowM5A = {
+    user_id: uidM5A1,
+    user_email: uidM5A1 + '@test.edu',
+    revision: 2,
+    subjects: [
+      { id: 102, name: 'Remote Cloud Anatomy', _updatedAt: 1500, groups: [] },
+      { id: 999, name: 'Deleted Subject Stale Remote', _updatedAt: 500, groups: [] }
+    ],
+    schedule: {
+      version: 3,
+      events: [{ id: 202, title: 'Remote Cloud Session', day: 3, startHour: 14, duration: 1, _updatedAt: 1500 }],
+      backlog: [],
+      plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 },
+      weeklyReports: [],
+      _tombstones: { subjects: {}, groups: {}, lectures: {}, events: {}, backlog: {}, logs: {}, weekly_reports: {}, wird_logs: {} }
+    },
+    logs: [],
+    academy_progress: [],
+    annotations: {
+      [prod.toScopedKey('1012', uidM5A1)]: {
+        '1': [{ id: 'stk_remote_1', tool: 'pen', color: '#38bdf8', size: 2, points: [[50, 50], [60, 60]] }]
+      }
+    },
+    updated_at: '2026-11-05T12:00:00.000Z'
+  };
+
+  let rpcCallsM5A = 0;
+  let lastRpcPayload = null;
+  prod.setSupabaseClient(makeSupabaseMock(remoteRowM5A, async (name, params) => {
+    rpcCallsM5A++;
+    lastRpcPayload = params?.p_payload;
+    return { data: { status: 'success', revision: 3 }, error: null };
+  }));
+
+  // Trigger login sync with dirty local state
+  const loginSyncRes = await prod.syncWorkspaceOnLogin();
+  const stateAfterLoginSync = prod.getRuntimeState();
+  const tombsAfterLoginSync = prod.getLocalTombstones(uidM5A1);
+  const accountVaultM5A1 = JSON.parse(prod.localStorage.getItem(prod.getAccountBackupStorageKey(uidM5A1)) || '{}');
+
+  assert(
+    loginSyncRes &&
+    loginSyncRes.ok === true &&
+    loginSyncRes.reconciled === true &&
+    loginSyncRes.status === 'reconciled_and_synced' &&
+    stateAfterLoginSync.subjects.some(s => s.id === 101 && s.name === 'Local Offline Pharmacology') &&
+    stateAfterLoginSync.subjects.some(s => s.id === 102 && s.name === 'Remote Cloud Anatomy') &&
+    !stateAfterLoginSync.subjects.some(s => s.id === 999) &&
+    Boolean(tombsAfterLoginSync.subjects['999']) &&
+    stateAfterLoginSync.scheduleEvents.some(e => e.id === 201 && e.title === 'Local Offline Study Session') &&
+    stateAfterLoginSync.scheduleEvents.some(e => e.id === 202 && e.title === 'Remote Cloud Session') &&
+    stateAfterLoginSync.scheduleBacklog.some(b => b.id === 301) &&
+    stateAfterLoginSync.logs.some(l => l.id === 401) &&
+    rpcCallsM5A === 1 &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === null &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty_' + uidM5A1) === null &&
+    accountVaultM5A1.subjects?.some(s => s.id === 101) &&
+    accountVaultM5A1.subjects?.some(s => s.id === 102),
+    'T-5.1-08-A: Same-account dirty login reconciles local edits with remote row without overwriting, preserves local and remote items, enforces tombstones against stale remote items, and clears dirty flags upon confirmed push'
+  );
+
+  // --- Test B: Manual pull reconciliation & flush failure safety (T-5.1-08-B) ---
+  const uidM5A2 = 'user_m5a_recon_2';
+  prod.localStorage.clear();
+  prod.toastHistory.length = 0;
+  prod.setSessionUser(uidM5A2);
+  prod.resetLiveActorForTabSimulation('dev_m5a_2');
+
+  const localSubM5B = { id: 103, name: 'Local Pre-Pull Subject', _updatedAt: 3000, groups: [] };
+  prod.setRuntimeState({
+    activeSubjectId: 103,
+    subjects: [localSubM5B],
+    scheduleEvents: [],
+    scheduleBacklog: [],
+    logs: [],
+    weeklyReports: []
+  });
+  prod.saveSubjects();
+  prod.localStorage.setItem('pharmaWorkspaceDirty', '1');
+  prod.localStorage.setItem('pharmaWorkspaceDirty_' + uidM5A2, '1');
+  prod.localStorage.setItem('pharmaLastActiveCloudUid', uidM5A2);
+
+  const remoteRowM5B = {
+    user_id: uidM5A2,
+    user_email: uidM5A2 + '@test.edu',
+    revision: 3,
+    subjects: [{ id: 104, name: 'Remote Pulled Subject', _updatedAt: 2500, groups: [] }],
+    schedule: { version: 3, events: [], backlog: [], plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 }, weeklyReports: [] },
+    logs: [],
+    academy_progress: [],
+    annotations: {},
+    updated_at: '2026-11-05T12:10:00.000Z'
+  };
+
+  prod.setSupabaseClient(makeSupabaseMock(remoteRowM5B, async () => {
+    return { data: { status: 'success', revision: 4 }, error: null };
+  }));
+
+  // Trigger manual pull with force=true on dirty state
+  const manualPullRes = await prod.pullWorkspaceFromCloud(true);
+  const stateAfterManualPull = prod.getRuntimeState();
+
+  assert(
+    manualPullRes &&
+    manualPullRes.ok === true &&
+    manualPullRes.reconciled === true &&
+    stateAfterManualPull.subjects.some(s => s.id === 103 && s.name === 'Local Pre-Pull Subject') &&
+    stateAfterManualPull.subjects.some(s => s.id === 104 && s.name === 'Remote Pulled Subject'),
+    'T-5.1-08-B: Manual pull with force=true on dirty state executes safe reconciliation rather than silently discarding local edits'
+  );
+
+  // --- Test C: Push failure preserves dirty state and local edits (T-5.1-08-C) ---
+  const uidM5A3 = 'user_m5a_recon_3';
+  prod.localStorage.clear();
+  prod.toastHistory.length = 0;
+  prod.setSessionUser(uidM5A3);
+  prod.resetLiveActorForTabSimulation('dev_m5a_3');
+
+  const localSubM5C = { id: 105, name: 'Offline Edit Prior To Push Error', _updatedAt: 4000, groups: [] };
+  prod.setRuntimeState({
+    activeSubjectId: 105,
+    subjects: [localSubM5C],
+    scheduleEvents: [],
+    scheduleBacklog: [],
+    logs: [],
+    weeklyReports: []
+  });
+  prod.saveSubjects();
+  prod.localStorage.setItem('pharmaWorkspaceDirty', '1');
+  prod.localStorage.setItem('pharmaWorkspaceDirty_' + uidM5A3, '1');
+  prod.localStorage.setItem('pharmaLastActiveCloudUid', uidM5A3);
+
+  const remoteRowM5C = {
+    user_id: uidM5A3,
+    user_email: uidM5A3 + '@test.edu',
+    revision: 1,
+    subjects: [{ id: 106, name: 'Remote Existing Subject', _updatedAt: 1000, groups: [] }],
+    schedule: { version: 3, events: [], backlog: [], plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 }, weeklyReports: [] },
+    logs: [],
+    academy_progress: [],
+    annotations: {},
+    updated_at: '2026-11-05T12:20:00.000Z'
+  };
+
+  // Simulate RPC error during cloud push
+  prod.setSupabaseClient(makeSupabaseMock(remoteRowM5C, async () => {
+    throw new Error('Simulated 503 Network Timeout');
+  }));
+
+  const pullWithRpcErrorRes = await prod.pullWorkspaceFromCloud(false);
+  const stateAfterFailedPush = prod.getRuntimeState();
+
+  assert(
+    pullWithRpcErrorRes &&
+    pullWithRpcErrorRes.reconciled === true &&
+    pullWithRpcErrorRes.status === 'reconciled_locally' &&
+    pullWithRpcErrorRes.pushResult?.status === 'error' &&
+    stateAfterFailedPush.subjects.some(s => s.id === 105) &&
+    stateAfterFailedPush.subjects.some(s => s.id === 106) &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1' &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty_' + uidM5A3) === '1',
+    'T-5.1-08-C: Push failure during dirty reconciliation preserves merged local data and keeps pharmaWorkspaceDirty set without false cloud acknowledgment'
+  );
+
+  // --- Test D: Successful retry clears dirty state after confirmed server success (T-5.1-08-D) ---
+  let retryRpcConfirmed = false;
+  prod.setSupabaseClient(makeSupabaseMock(remoteRowM5C, async (name, params) => {
+    retryRpcConfirmed = true;
+    return { data: { status: 'success', revision: 2 }, error: null };
+  }));
+
+  const retryPushResult = await prod.pushWorkspaceToCloud(false, false);
+  const accountVaultM5A3AfterRetry = JSON.parse(prod.localStorage.getItem(prod.getAccountBackupStorageKey(uidM5A3)) || '{}');
+
+  assert(
+    retryPushResult &&
+    retryPushResult.status === 'success' &&
+    retryRpcConfirmed === true &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === null &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty_' + uidM5A3) === null &&
+    accountVaultM5A3AfterRetry.dirty === false,
+    'T-5.1-08-D: Subsequent retry push persists reconciled state to cloud and clears dirty flags only after server confirms success'
+  );
+
+  // --- Test E: Account isolation during reconciliation / direct switch (T-5.1-08-E) ---
+  const uidUserX = 'user_m5a_x';
+  const uidUserY = 'user_m5a_y';
+  prod.localStorage.clear();
+  prod.setSessionUser(uidUserX);
+  prod.resetLiveActorForTabSimulation('dev_m5a_x');
+
+  const subUserX = { id: 701, name: 'Confidential Subject of User X', _updatedAt: 5000, groups: [] };
+  prod.setRuntimeState({
+    activeSubjectId: 701,
+    subjects: [subUserX],
+    scheduleEvents: [],
+    scheduleBacklog: [],
+    logs: [],
+    weeklyReports: []
+  });
+  prod.saveSubjects();
+  prod.localStorage.setItem('pharmaWorkspaceDirty', '1');
+  prod.localStorage.setItem('pharmaWorkspaceDirty_' + uidUserX, '1');
+  prod.localStorage.setItem('pharmaLastActiveCloudUid', uidUserX);
+
+  // Switch to User Y
+  prod.setSessionUser(uidUserY);
+  prod.resetLiveActorForTabSimulation('dev_m5a_y');
+
+  const remoteRowUserY = {
+    user_id: uidUserY,
+    user_email: uidUserY + '@test.edu',
+    revision: 1,
+    subjects: [{ id: 801, name: 'Normal Subject of User Y', _updatedAt: 1000, groups: [] }],
+    schedule: { version: 3, events: [], backlog: [], plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 }, weeklyReports: [] },
+    logs: [],
+    academy_progress: [],
+    annotations: {},
+    updated_at: '2026-11-05T12:30:00.000Z'
+  };
+
+  prod.setSupabaseClient(makeSupabaseMock(remoteRowUserY, async () => {
+    return { data: { status: 'success', revision: 2 }, error: null };
+  }));
+
+  await prod.syncWorkspaceOnLogin();
+  const stateUserY = prod.getRuntimeState();
+  const vaultUserX = JSON.parse(prod.localStorage.getItem(prod.getAccountBackupStorageKey(uidUserX)) || '{}');
+
+  assert(
+    stateUserY.subjects.some(s => s.id === 801 && s.name === 'Normal Subject of User Y') &&
+    !stateUserY.subjects.some(s => s.id === 701) &&
+    vaultUserX.subjects?.some(s => s.id === 701 && s.name === 'Confidential Subject of User X'),
+    'T-5.1-08-E: Account switch preserves User X dirty edits in User X vault and never merges User X data into User Y session'
+  );
+
+  // --- Test F: Preservation of existing M1 first-login academy_progress and M3/M4 regressions (T-5.1-08-F) ---
+  const uidBrandNew = 'user_m5a_brand_new';
+  prod.localStorage.clear();
+  prod.setSessionUser(uidBrandNew);
+  prod.resetLiveActorForTabSimulation('dev_m5a_new');
+
+  // Seed pre-login academy progress in memory and localStorage
+  prod.setRuntimeState({
+    completedAcademyModules: ['mod_cardiology_101', 'mod_neurology_201'],
+    subjects: [],
+    scheduleEvents: [],
+    scheduleBacklog: [],
+    logs: [],
+    weeklyReports: []
+  });
+  prod.localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(['mod_cardiology_101', 'mod_neurology_201']));
+
+  let brandNewInitialPushPayload = null;
+  prod.setSupabaseClient(makeSupabaseMock(null, async (name, params) => {
+    brandNewInitialPushPayload = params?.p_payload;
+    return { data: { status: 'success', revision: 1 }, error: null };
+  }));
+
+  // Trigger login sync for brand-new cloud user (data === null)
+  const brandNewSyncRes = await prod.syncWorkspaceOnLogin();
+  const stateBrandNew = prod.getRuntimeState();
+  const academyStorageBrandNew = JSON.parse(prod.localStorage.getItem('pharmaAcademyProgressV1') || '[]');
+
+  assert(
+    brandNewSyncRes &&
+    stateBrandNew.completedAcademyModules.includes('mod_cardiology_101') &&
+    stateBrandNew.completedAcademyModules.includes('mod_neurology_201') &&
+    academyStorageBrandNew.includes('mod_cardiology_101') &&
+    academyStorageBrandNew.includes('mod_neurology_201') &&
+    brandNewInitialPushPayload?.academy_progress?.includes('mod_cardiology_101') &&
+    brandNewInitialPushPayload?.academy_progress?.includes('mod_neurology_201'),
+    'T-5.1-08-F: Brand-new cloud account login preserves pre-login completedAcademyModules in memory, localStorage, and initial cloud push without regression'
   );
 
   console.log('\n======================================================================');

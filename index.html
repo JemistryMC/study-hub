@@ -34238,12 +34238,117 @@ function togglePdfAudioPlayerBar(forceState) {
             return { ok: true, status: 'applied', userId: targetUid };
         }
 
+        // --- M5-A: Dirty-Aware Login & Manual Pull Reconciliation Engine (F-03, F-15) ---
+        async function reconcileDirtyWorkspaceWithRemote(remoteRow, opCtx, manualNotify = false) {
+            if (!remoteRow) return { ok: false, status: 'aborted', reason: 'missing_remote_row' };
+            if (!opCtx || !opCtx.ok || !opCtx.isCurrent()) {
+                return { ok: false, status: 'aborted', reason: 'account_switched' };
+            }
+            if (remoteRow.user_id && sanitizeForScopedKey(remoteRow.user_id) !== opCtx.sanitizedUid) {
+                return { ok: false, status: 'aborted', reason: 'remote_row_user_mismatch' };
+            }
+
+            // 1. Flush active in-memory PDF annotations to IndexedDB (fail-closed)
+            if (typeof flushPendingAnnotationsSave === 'function') {
+                let flushOk = false;
+                try {
+                    flushOk = await flushPendingAnnotationsSave(false, opCtx);
+                } catch (flushErr) {
+                    flushOk = false;
+                }
+                if (!opCtx.isCurrent()) {
+                    return { ok: false, status: 'aborted', reason: 'account_switched' };
+                }
+                if (!flushOk) {
+                    console.error('Reconciliation aborted: failed to flush pending annotations (fail-closed)');
+                    try { localStorage.setItem('pharmaWorkspaceDirty', '1'); } catch (e) {}
+                    try { localStorage.setItem('pharmaWorkspaceDirty_' + opCtx.uid, '1'); } catch (e) {}
+                    dirtyAnnotationsForCloud = true;
+                    updateCloudNavUI('error');
+                    return {
+                        ok: false,
+                        status: 'error',
+                        reason: 'pending_annotations_flush_failed',
+                        error: 'PENDING_ANNOTATIONS_FLUSH_FAILED',
+                        isDirty: true
+                    };
+                }
+            }
+
+            // 2. Reconcile dirty causal metadata using existing causal infrastructure
+            if (typeof autoStampTrackedWorkspaceMutations === 'function') {
+                try {
+                    autoStampTrackedWorkspaceMutations('all', opCtx.uid);
+                } catch (stampErr) {
+                    console.warn('Reconciliation causal auto-stamp warning:', stampErr);
+                }
+            }
+
+            // 3. Build current local payload for causal conflict merge
+            const localPayload = {
+                user_id: opCtx.uid,
+                user_email: String(currentCloudUser?.email || '').toLowerCase(),
+                subjects: Array.isArray(subjects) ? subjects : [],
+                schedule: {
+                    version: 3,
+                    events: Array.isArray(scheduleEvents) ? scheduleEvents : [],
+                    backlog: Array.isArray(scheduleBacklog) ? scheduleBacklog : [],
+                    plannerPrefs: plannerPrefs,
+                    weeklyReports: Array.isArray(weeklyReports) ? weeklyReports : [],
+                    pdfFitMode: currentPdfFitMode || 'height',
+                    cloudMediaRegistry: cloudMediaRegistry || {},
+                    _tombstones: typeof getLocalTombstones === 'function' ? getLocalTombstones(opCtx.uid) : {},
+                    _conflictRecovery: typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(opCtx.uid) : [],
+                    _deviceRegistry: typeof getLocalDeviceRegistry === 'function' ? getLocalDeviceRegistry(opCtx.uid) : {}
+                },
+                logs: Array.isArray(logs) ? logs : [],
+                academy_progress: Array.isArray(completedAcademyModules) ? completedAcademyModules : [],
+                revision: Number(localStorage.getItem('pharmaWorkspaceRevision_' + opCtx.uid) || currentCloudWorkspaceRevision || 1)
+            };
+
+            // 4. Invoke verified M3/M4 three-way causal merger
+            const mergeRes = await mergeAndApplyCloudConflict(remoteRow, localPayload, opCtx);
+            if (!opCtx.isCurrent()) {
+                return { ok: false, status: 'aborted', reason: 'account_switched' };
+            }
+            if (!mergeRes || !mergeRes.ok) {
+                updateCloudNavUI('error');
+                return {
+                    ok: false,
+                    status: 'error',
+                    reason: (mergeRes && mergeRes.reason) || 'reconciliation_merge_failed',
+                    error: (mergeRes && mergeRes.reason) || 'reconciliation_merge_failed',
+                    isDirty: true
+                };
+            }
+
+            // 5. Keep workspace dirty and push reconciled state to Supabase if online
+            if (supabaseClient && navigator.onLine && opCtx.isCurrent()) {
+                const pushRes = await pushWorkspaceToCloud(manualNotify, false, opCtx);
+                if (!opCtx.isCurrent()) {
+                    return { ok: false, status: 'aborted', reason: 'account_switched' };
+                }
+                const isPushSuccess = Boolean(pushRes && pushRes.status === 'success');
+                return {
+                    ok: true,
+                    status: isPushSuccess ? 'reconciled_and_synced' : 'reconciled_locally',
+                    reconciled: true,
+                    pushResult: pushRes,
+                    revision: currentCloudWorkspaceRevision
+                };
+            }
+
+            return { ok: true, status: 'reconciled_locally', reconciled: true, revision: currentCloudWorkspaceRevision };
+        }
+
         async function pullWorkspaceFromCloud(manualNotify = false, ctx = null) {
             if (!currentCloudUser) return { status: 'aborted', reason: 'not_logged_in' };
             const opCtx = resolveAccountOperationContext(ctx?.uid || currentCloudUser.id, ctx);
             if (!opCtx.ok || !opCtx.isCurrent()) {
                 return { status: 'aborted', reason: 'account_switched' };
             }
+
+            const isManual = (typeof manualNotify === 'object') ? Boolean(manualNotify?.manualNotify) : Boolean(manualNotify);
 
             updateCloudNavUI('syncing');
             try {
@@ -34267,9 +34372,36 @@ function togglePdfAudioPlayerBar(forceState) {
                     return { status: 'aborted', reason: 'account_switched' };
                 }
                 if (!data) {
-                    return await pushWorkspaceToCloud(manualNotify, false, opCtx);
+                    return await pushWorkspaceToCloud(isManual, false, opCtx);
                 }
-                return await applyCloudWorkspacePayload(data, manualNotify, opCtx);
+
+                // Check local dirty & provenance state (F-03)
+                const hasDirtyWorkspace = Boolean(
+                    localStorage.getItem('pharmaWorkspaceDirty') === '1' ||
+                    localStorage.getItem('pharmaWorkspaceDirty_' + opCtx.uid) === '1'
+                );
+                const hasDirtyAnnotations = Boolean(
+                    dirtyAnnotationsForCloud ||
+                    (typeof pendingAnnoSaveMap !== 'undefined' && pendingAnnoSaveMap && Object.keys(pendingAnnoSaveMap).length > 0)
+                );
+                const hasUncommittedOps = typeof hasAnyUncommittedOperationsInMemory === 'function'
+                    ? hasAnyUncommittedOperationsInMemory(opCtx.uid)
+                    : false;
+                const isLocalDirty = Boolean(hasDirtyWorkspace || hasDirtyAnnotations || hasUncommittedOps);
+
+                const lastActiveUid = localStorage.getItem('pharmaLastActiveCloudUid') || localStorage.getItem('pharmaLastActiveUserIdV1');
+                const isSameOwnerOrVerifiedPreLogin = Boolean(
+                    (lastActiveUid && String(lastActiveUid) === opCtx.uid) ||
+                    (!lastActiveUid || lastActiveUid === 'local')
+                );
+
+                if (isLocalDirty && isSameOwnerOrVerifiedPreLogin) {
+                    if (typeof reconcileDirtyWorkspaceWithRemote === 'function') {
+                        return await reconcileDirtyWorkspaceWithRemote(data, opCtx, isManual);
+                    }
+                }
+
+                return await applyCloudWorkspacePayload(data, isManual, opCtx);
             } catch (err) {
                 if (opCtx.isCurrent()) {
                     updateCloudNavUI('synced');
@@ -34670,6 +34802,33 @@ function togglePdfAudioPlayerBar(forceState) {
                 updateCloudMediaStatsUI();
 
                 if (data) {
+                    // Check local dirty & provenance state (F-03)
+                    const hasDirtyWorkspace = Boolean(
+                        localStorage.getItem('pharmaWorkspaceDirty') === '1' ||
+                        localStorage.getItem('pharmaWorkspaceDirty_' + opCtx.uid) === '1'
+                    );
+                    const hasDirtyAnnotations = Boolean(
+                        dirtyAnnotationsForCloud ||
+                        (typeof pendingAnnoSaveMap !== 'undefined' && pendingAnnoSaveMap && Object.keys(pendingAnnoSaveMap).length > 0)
+                    );
+                    const hasUncommittedOps = typeof hasAnyUncommittedOperationsInMemory === 'function'
+                        ? hasAnyUncommittedOperationsInMemory(opCtx.uid)
+                        : false;
+                    const isLocalDirty = Boolean(hasDirtyWorkspace || hasDirtyAnnotations || hasUncommittedOps);
+
+                    const isSameOwnerOrVerifiedPreLogin = Boolean(
+                        !isSwitchingDifferentUser && (
+                            (lastLoggedUserId && String(lastLoggedUserId) === opCtx.uid) ||
+                            (!lastLoggedUserId || lastLoggedUserId === 'local')
+                        )
+                    );
+
+                    if (isLocalDirty && isSameOwnerOrVerifiedPreLogin) {
+                        if (typeof reconcileDirtyWorkspaceWithRemote === 'function') {
+                            return await reconcileDirtyWorkspaceWithRemote(data, opCtx, false);
+                        }
+                    }
+
                     const applyRes = await applyCloudWorkspacePayload(data, false, opCtx);
                     if (!opCtx.isCurrent()) {
                         return { status: 'aborted', reason: 'account_switched' };
