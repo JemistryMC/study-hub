@@ -68,7 +68,7 @@ Commit:
 
 # Phase 5.1.1 — Blueprint Technical Validation & Correction
 
-<badge>CHANGES REQUESTED — DOCUMENTATION ONLY — NOT APPROVED</badge>
+**Status: CHANGES REQUESTED — DOCUMENTATION ONLY — NOT APPROVED**
 
 **الهدف:** تصحيح Blueprint Phase 5.1.0 اعتمادًا على تقرير Phase 5.0.2 والكود الفعلي والأدلة المتاحة، قبل السماح بأي تنفيذ.
 
