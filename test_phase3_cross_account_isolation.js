@@ -844,14 +844,17 @@ async function main() {
     vaultAAfterB1.dirty === true,
     'T-M1-C01e (Test A): Stale pharmaAccountWorkspace_A is refreshed with all of User A latest live workspace fields, revision, and dirty state'
   );
+  const idbRecordA = idb.records.get('usr_' + userA_Id + '::' + sharedLectureId);
+  const idbPendingA = idb.records.get('usr_' + userA_Id + '::lec_pending_flush_a');
   assert(
     vaultAAfterB1 &&
-    vaultAAfterB1.annotations &&
-    vaultAAfterB1.annotations[sharedLectureId] &&
-    vaultAAfterB1.annotations[sharedLectureId][1][0].note === 'CONFIDENTIAL: User A Private Exam Notes' &&
-    vaultAAfterB1.annotations['lec_pending_flush_a'] &&
-    vaultAAfterB1.annotations['lec_pending_flush_a'][1][0].note === 'Flushed Pending Note A' &&
-    vaultAAfterB1.annotations['stale_deleted_lec'] === undefined,
+    vaultAAfterB1.annotationsStoredInIndexedDB === true &&
+    vaultAAfterB1.annotations === undefined &&
+    idbRecordA &&
+    idbRecordA[1][0].note === 'CONFIDENTIAL: User A Private Exam Notes' &&
+    idbPendingA &&
+    idbPendingA[1][0].note === 'Flushed Pending Note A' &&
+    idb.records.get('usr_' + userA_Id + '::stale_deleted_lec') === undefined,
     'T-M1-C01f (Test A): Refreshed pharmaAccountWorkspace_A preserves User A verified IndexedDB annotations (including flushed pending strokes) instead of writing annotations: {} or keeping stale snapshot annotations'
   );
   assert(

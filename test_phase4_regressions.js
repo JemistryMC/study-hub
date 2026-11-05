@@ -208,6 +208,8 @@ let activeCloudSyncPromise = null;
 let isCloudSyncing = false;
 let isBulkMediaUploading = false;
 let cloudAutoSaveTimer = null;
+let annotationMutationSeq = 0;
+let lastUploadedAnnotationVersion = 0;
 let localWorkspaceMutationSeq = 0;
 let localAnnotationsMutationSeq = 0;
 let currentCloudWorkspaceRevision = 1;
@@ -367,6 +369,9 @@ ${extractFunctionSource(indexHtmlContent, 'hasVerifiedLegacyProvenance')}
 ${extractFunctionSource(indexHtmlContent, 'normalizeAndRecoverLectureAnnotations')}
 ${extractFunctionSource(indexHtmlContent, 'computeStrokeUniqueSignature')}
 ${extractFunctionSource(indexHtmlContent, 'computeFastStringSignature')}
+${extractFunctionSource(indexHtmlContent, 'computeFullStringHash')}
+${extractFunctionSource(indexHtmlContent, 'bumpAnnotationMutationVersion')}
+${extractFunctionSource(indexHtmlContent, 'migrateLegacyAccountAnnotationsToIDB')}
 ${extractFunctionSource(indexHtmlContent, 'getAllAnnotationsMapFromDB')}
 ${extractFunctionSource(indexHtmlContent, 'restoreAllAnnotationsMapToDB')}
 ${extractFunctionSource(indexHtmlContent, 'markLocalWorkspaceModified')}
@@ -515,7 +520,13 @@ module.exports = {
   resolveAuthorizedScopedKey,
   hasStrictDualRecordOwnership,
   hasVerifiedLegacyProvenance,
-  computeStrokeUniqueSignature
+  computeStrokeUniqueSignature,
+  computeFastStringSignature,
+  computeFullStringHash,
+  bumpAnnotationMutationVersion,
+  migrateLegacyAccountAnnotationsToIDB,
+  getAnnotationMutationSeq: () => annotationMutationSeq,
+  resetAnnotationMutationSeq: () => { annotationMutationSeq = 0; lastUploadedAnnotationVersion = 0; localAnnotationsMutationSeq = 0; }
 };
 `;
 
@@ -1023,17 +1034,20 @@ async function main() {
   );
   assert(
     snapAfterC03 &&
-    snapAfterC03.annotations &&
-    snapAfterC03.annotations['lec_verified_local'] &&
-    snapAfterC03.annotations['lec_verified_local'][1][0].note === 'VERIFIED CURRENT IDB ANNOTATION',
-    'T-M1-C03b: Account-scoped snapshot pharmaAccountWorkspace_<uid> retains the verified local IndexedDB annotation map'
+    snapAfterC03.annotationsStoredInIndexedDB === true &&
+    snapAfterC03.annotations === undefined,
+    'T-M1-C03b: Account-scoped snapshot pharmaAccountWorkspace_<uid> decouples annotations into IndexedDB with annotationsStoredInIndexedDB: true'
   );
+  const idbMapC03 = await prod.getAllAnnotationsMapFromDB(uidA, ctxC03);
   assert(
-    snapAfterC03 &&
-    snapAfterC03.annotations['stale_vault_lec'] === undefined &&
-    snapAfterC03.annotations['foreign_lec_999'] === undefined &&
-    Object.keys(snapAfterC03.annotations).length === 1,
-    'T-M1-C03c: Neither empty {}, nor stale old vault annotations, nor foreign account annotations replace or pollute the snapshot'
+    idbMapC03 &&
+    idbMapC03.ok === true &&
+    idbMapC03.verifiedMap &&
+    idbMapC03.verifiedMap['lec_verified_local'] &&
+    idbMapC03.verifiedMap['lec_verified_local'][1][0].note === 'VERIFIED CURRENT IDB ANNOTATION' &&
+    idbMapC03.verifiedMap['stale_vault_lec'] === undefined &&
+    idbMapC03.verifiedMap['foreign_lec_999'] === undefined,
+    'T-M1-C03c: Neither empty {}, nor stale old vault annotations, nor foreign account annotations replace or pollute verified IndexedDB annotations'
   );
 
   // Now simulate an account switch occurring DURING the IndexedDB annotation read in mergeAndApplyCloudConflict
@@ -1164,10 +1178,10 @@ async function main() {
     refreshedOutSnap.academy_progress.length === 2 &&
     refreshedOutSnap.revision === 9 &&
     refreshedOutSnap.dirty === true &&
-    refreshedOutSnap.annotations &&
-    refreshedOutSnap.annotations['lec_out_verified'] &&
-    refreshedOutSnap.annotations['lec_out_verified'][1][0].note === 'Verified Outgoing IDB Note' &&
-    refreshedOutSnap.annotations['stale_out_lec'] === undefined &&
+    refreshedOutSnap.annotationsStoredInIndexedDB === true &&
+    refreshedOutSnap.annotations === undefined &&
+    idb.stores.annotations.get(`usr_${uidOut}::lec_out_verified`) &&
+    idb.stores.annotations.get(`usr_${uidOut}::stale_out_lec`) === undefined &&
     refreshedOutDrive &&
     refreshedOutDrive.userEmail === 'fresh_out@gmail.com' &&
     refreshedOutDrive.folderId === 'fresh_out_folder_99' &&
@@ -3782,6 +3796,254 @@ async function main() {
     restoreRetrySuccess.restored === true &&
     restoreRetrySuccess.counts.annotations === 1,
     'T-5.1-09-J8: restoreUnverifiedGuestWorkspace aborts on IDB write transaction failure, and subsequent retry succeeds leaving original quarantine intact'
+  );
+
+  // =========================================================================
+  // TEST 20: PHASE 5.1 MILESTONE M5-B — ANNOTATION DECOUPLING & MUTATION-VERSION INTEGRITY (F-05 & N-02)
+  // =========================================================================
+  console.log('\n--- TEST 20 (Milestone M5-B): Annotation Decoupling & Mutation-Version Integrity (F-05 & N-02) ---');
+  const m5bUid = 'user_m5b_decouple_1111-2222-333333333333';
+  prod.setSessionUser(m5bUid);
+  const m5bCtx = prod.createAccountOperationContext();
+  const m5bSnapKey = prod.getAccountBackupStorageKey(m5bUid);
+
+  // 1. T-5.1-M5B-01: F-05 Metadata-Only Snapshot Writers (No Embedded Annotations)
+  // Seed verified local annotation in IndexedDB
+  const m5bInitialStrokes = {
+    'lec_m5b_test': {
+      1: [{ id: 'str_m5b_1', tool: 'pen', color: '#38bdf8', points: [[10, 10], [20, 20]], _causal: { opId: 'op_m5b_1' } }]
+    }
+  };
+  await prod.restoreAllAnnotationsMapToDB(m5bInitialStrokes, m5bUid, m5bCtx);
+
+  // Writer 3 verification: mergeAndApplyCloudConflict
+  const m5bRemoteRow = {
+    user_id: m5bUid,
+    revision: 20,
+    subjects: [{ id: 'sub_m5b_1', name: 'M5B Subject', groups: [] }],
+    schedule: { version: 3, events: [], backlog: [], weeklyReports: [] },
+    logs: [],
+    academy_progress: []
+  };
+  const m5bLocalPayload = {
+    user_id: m5bUid,
+    subjects: [{ id: 'sub_m5b_local', name: 'M5B Local', groups: [] }],
+    schedule: { version: 3, events: [], backlog: [], weeklyReports: [] },
+    logs: [],
+    academy_progress: []
+  };
+  const m5bMergeRes = await prod.mergeAndApplyCloudConflict(m5bRemoteRow, m5bLocalPayload, m5bCtx);
+  const m5bSnapMerge = JSON.parse(prod.localStorage.getItem(m5bSnapKey) || 'null');
+  assert(
+    m5bMergeRes && m5bMergeRes.ok === true &&
+    m5bSnapMerge &&
+    m5bSnapMerge.annotationsStoredInIndexedDB === true &&
+    m5bSnapMerge.annotations === undefined,
+    'T-5.1-M5B-01a: mergeAndApplyCloudConflict writes metadata-only snapshot with annotationsStoredInIndexedDB: true and no embedded annotations'
+  );
+
+  // Writer 4 & 5 verification: pushWorkspaceToCloud (pre-push & post-push)
+  let m5bOutgoingPayload = null;
+  prod.setSupabaseClient({
+    rpc: async (name, params) => {
+      m5bOutgoingPayload = params.p_payload;
+      return { data: { status: 'success', revision: 21 }, error: null };
+    }
+  });
+  prod.setNavigatorOnline(true);
+  const m5bPushRes = await prod.pushWorkspaceToCloud(false, true, m5bCtx);
+  const m5bSnapPush = JSON.parse(prod.localStorage.getItem(m5bSnapKey) || 'null');
+  assert(
+    m5bPushRes && m5bPushRes.status === 'success' &&
+    m5bOutgoingPayload && m5bOutgoingPayload.annotations &&
+    m5bSnapPush &&
+    m5bSnapPush.annotationsStoredInIndexedDB === true &&
+    m5bSnapPush.annotations === undefined,
+    'T-5.1-M5B-01b: pushWorkspaceToCloud sends annotations in network payload but stores metadata-only snapshot in localStorage'
+  );
+
+  // Writer 6 verification: syncWorkspaceOnLogin outgoing account switch
+  const m5bIncomingUid = 'user_m5b_incoming_4444-5555-666666666666';
+  prod.setSessionUser(m5bIncomingUid);
+  await prod.syncWorkspaceOnLogin();
+  const m5bOutgoingSnapAfterSwitch = JSON.parse(prod.localStorage.getItem(m5bSnapKey) || 'null');
+  assert(
+    m5bOutgoingSnapAfterSwitch &&
+    m5bOutgoingSnapAfterSwitch.annotationsStoredInIndexedDB === true &&
+    m5bOutgoingSnapAfterSwitch.annotations === undefined,
+    'T-5.1-M5B-01c: syncWorkspaceOnLogin preserves outgoing account snapshot with annotationsStoredInIndexedDB: true and no embedded annotations'
+  );
+
+  // 2. T-5.1-M5B-02: Durability Condition & Quota Safety
+  prod.setSessionUser(m5bUid);
+  const m5bFreshCtx = prod.createAccountOperationContext();
+  prod.setFailNextAccountSnapshotKey(m5bSnapKey);
+  const m5bQuotaConflictRes = await prod.mergeAndApplyCloudConflict(m5bRemoteRow, m5bLocalPayload, m5bFreshCtx);
+  assert(
+    m5bQuotaConflictRes && m5bQuotaConflictRes.ok === false &&
+    m5bQuotaConflictRes.reason === 'account_snapshot_write_failed' &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1' &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty_' + m5bUid) === '1',
+    'T-5.1-M5B-02: Snapshot write failure during conflict merge handles QuotaExceededError safely and preserves dirty flags'
+  );
+
+  // 3. T-5.1-M5B-03: Legacy Migration — Successful Upgrade
+  const m5bMigrateUid = 'user_m5b_legacy_migrate_7777';
+  prod.setSessionUser(m5bMigrateUid);
+  const m5bMigrateCtx = prod.createAccountOperationContext();
+  const m5bMigrateKey = prod.getAccountBackupStorageKey(m5bMigrateUid);
+  const legacySnapshot = {
+    user_id: m5bMigrateUid,
+    user_email: 'legacy@exo.edu',
+    subjects: [{ id: 'sub_leg_1', name: 'Legacy Subject' }],
+    schedule: { version: 3, events: [], backlog: [] },
+    logs: [],
+    academy_progress: [],
+    revision: 5,
+    dirty: false,
+    annotations: {
+      'lec_legacy_101': {
+        1: [{ id: 'leg_str_1', tool: 'pen', color: '#ef4444', points: [[5, 5], [15, 15]] }]
+      }
+    }
+  };
+  prod.localStorage.setItem(m5bMigrateKey, JSON.stringify(legacySnapshot));
+
+  const migrateRes = await prod.migrateLegacyAccountAnnotationsToIDB(legacySnapshot, m5bMigrateUid, m5bMigrateCtx);
+  const snapshotAfterMigration = JSON.parse(prod.localStorage.getItem(m5bMigrateKey) || 'null');
+  const idbAfterMigration = await prod.getAllAnnotationsMapFromDB(m5bMigrateUid, m5bMigrateCtx);
+
+  assert(
+    migrateRes && migrateRes.ok === true && migrateRes.migrated === true &&
+    snapshotAfterMigration &&
+    snapshotAfterMigration.annotationsStoredInIndexedDB === true &&
+    snapshotAfterMigration.annotations === undefined &&
+    idbAfterMigration.ok === true &&
+    idbAfterMigration.verifiedMap &&
+    idbAfterMigration.verifiedMap['lec_legacy_101'] !== undefined,
+    'T-5.1-M5B-03: migrateLegacyAccountAnnotationsToIDB migrates legacy annotations to IndexedDB and replaces snapshot with metadata-only'
+  );
+
+  // 4. T-5.1-M5B-04: Legacy Migration — Cross-Account Rejection Fail-Closed
+  const m5bForeignUid = 'user_m5b_foreign_attacker';
+  const foreignLegacySnapshot = {
+    user_id: m5bMigrateUid,
+    annotations: {
+      [`usr_${m5bForeignUid}::lec_stolen`]: {
+        1: [{ id: 'str_stolen', tool: 'pen', note: 'STOLEN FOREIGN STROKE' }]
+      }
+    }
+  };
+  const foreignMigrateRes = await prod.migrateLegacyAccountAnnotationsToIDB(foreignLegacySnapshot, m5bMigrateUid, m5bMigrateCtx);
+  assert(
+    foreignMigrateRes && foreignMigrateRes.ok === false &&
+    foreignLegacySnapshot.annotations !== undefined,
+    'T-5.1-M5B-04: migrateLegacyAccountAnnotationsToIDB strictly rejects cross-account/foreign keys fail-closed and leaves snapshot intact'
+  );
+
+  // 5. T-5.1-M5B-05: Legacy Migration — IDB Write Failure & Read-Back Mismatch Fail-Closed
+  const legacySnapshotFail = {
+    user_id: m5bMigrateUid,
+    revision: 6,
+    annotations: {
+      'lec_fail_tx': {
+        1: [{ id: 'str_fail_1', tool: 'pen', points: [[1, 1]] }]
+      }
+    }
+  };
+  idb.failNextTransaction = true;
+  const failTxMigrateRes = await prod.migrateLegacyAccountAnnotationsToIDB(legacySnapshotFail, m5bMigrateUid, m5bMigrateCtx);
+  assert(
+    failTxMigrateRes && failTxMigrateRes.ok === false &&
+    legacySnapshotFail.annotations !== undefined &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1',
+    'T-5.1-M5B-05: migrateLegacyAccountAnnotationsToIDB aborts on IDB write transaction failure, keeps legacy annotations intact, and sets dirty'
+  );
+
+  // 6. T-5.1-M5B-06: N-02 Monotonic Version Counter Invariants
+  prod.resetAnnotationMutationSeq();
+  const v0 = prod.getAnnotationMutationSeq();
+  assert(v0 === 0, 'T-5.1-M5B-06a: Initial annotation mutation sequence starts at 0');
+
+  // Verify bumpAnnotationMutationVersion advances counter and marks dirty
+  prod.bumpAnnotationMutationVersion();
+  const v1 = prod.getAnnotationMutationSeq();
+  assert(v1 === 1 && prod.getRuntimeState().dirtyAnnotationsForCloud === true, 'T-5.1-M5B-06b: bumpAnnotationMutationVersion advances counter monotonically and sets dirtyAnnotationsForCloud');
+
+  // Verify IDB flush does NOT advance counter
+  await prod.flushPendingAnnotationsSave(false, m5bMigrateCtx);
+  const vAfterFlush = prod.getAnnotationMutationSeq();
+  assert(vAfterFlush === v1, 'T-5.1-M5B-06c: flushPendingAnnotationsSave (IDB flush) does NOT advance annotation mutation counter');
+
+  // 7. T-5.1-M5B-07: N-02 Blind Spot Proof — 100KB Payload Single Character Edit
+  // Construct 100KB+ JSON string where a single character differs (#ef4444 -> #38bdf8)
+  const paddingChunk = '{"p":[[100,200],[300,400],[500,600]],"t":"pen","w":2},'.repeat(2000); // ~112 KB
+  const payloadA = `{"strokes":[${paddingChunk}{"id":"str_target","color":"#ef4444"}]}`;
+  const payloadB = `{"strokes":[${paddingChunk}{"id":"str_target","color":"#38bdf8"}]}`;
+  assert(payloadA.length === payloadB.length && payloadA.length > 100000, 'T-5.1-M5B-07a: Test payloads are identical length and > 100KB');
+
+  const fastSigA = prod.computeFastStringSignature(payloadA);
+  const fastSigB = prod.computeFastStringSignature(payloadB);
+  const fullHashA = prod.computeFullStringHash(payloadA);
+  const fullHashB = prod.computeFullStringHash(payloadB);
+
+  assert(
+    fastSigA === fastSigB,
+    'T-5.1-M5B-07b: 512-sample stride hash fails to detect single-character fixed-length edit in 100KB payload (blind spot confirmed)'
+  );
+  assert(
+    fullHashA !== fullHashB,
+    'T-5.1-M5B-07c: computeFullStringHash reliably detects single-character edit in 100KB payload without blind spots'
+  );
+
+  // 8. T-5.1-M5B-08: N-02 In-Flight Concurrency — Mutation During RPC Wait Keeps Dirty
+  const m5bRaceUid = 'user_m5b_race_rpc_concurrency';
+  prod.setSessionUser(m5bRaceUid);
+  const m5bRaceCtx = prod.createAccountOperationContext();
+  prod.resetAnnotationMutationSeq();
+  prod.bumpAnnotationMutationVersion(); // v = 1
+
+  prod.setSupabaseClient({
+    rpc: async (name, params) => {
+      // Simulate in-flight mutation while waiting for RPC response:
+      prod.bumpAnnotationMutationVersion(); // v = 2 (user mutated while RPC is in flight)
+      return { data: { status: 'success', revision: 30 }, error: null };
+    }
+  });
+
+  const racePushRes = await prod.pushWorkspaceToCloud(false, true, m5bRaceCtx);
+  assert(
+    racePushRes && racePushRes.status === 'success' &&
+    prod.getRuntimeState().dirtyAnnotationsForCloud === true &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1',
+    'T-5.1-M5B-08: When annotation mutation occurs while cloud push is in-flight, dirty annotations and workspace dirty remain set upon response'
+  );
+
+  // 9. T-5.1-M5B-09: Account Hydration from Decoupled Snapshot
+  const m5bHydrateUid = 'user_m5b_hydrate_decoupled';
+  prod.setSessionUser(m5bHydrateUid);
+  const m5bHydrateCtx = prod.createAccountOperationContext();
+  await prod.restoreAllAnnotationsMapToDB({
+    'lec_hydrated_1': { 1: [{ id: 'str_hydrated_1', tool: 'pen' }] }
+  }, m5bHydrateUid, m5bHydrateCtx);
+
+  const decoupledPayload = {
+    user_id: m5bHydrateUid,
+    can_upload_media: false,
+    subjects: [{ id: 'sub_hyd', name: 'Hydrated Subject' }],
+    schedule: { version: 3, events: [], backlog: [] },
+    logs: [],
+    academy_progress: [],
+    annotationsStoredInIndexedDB: true
+  };
+  const applyDecoupledRes = await prod.applyCloudWorkspacePayload(decoupledPayload, false, m5bHydrateCtx);
+  const idbCheckAfterApply = await prod.getAllAnnotationsMapFromDB(m5bHydrateUid, m5bHydrateCtx);
+  assert(
+    applyDecoupledRes && applyDecoupledRes.ok === true &&
+    idbCheckAfterApply.ok === true &&
+    idbCheckAfterApply.verifiedMap &&
+    idbCheckAfterApply.verifiedMap['lec_hydrated_1'] !== undefined,
+    'T-5.1-M5B-09: applyCloudWorkspacePayload on decoupled snapshot preserves existing IndexedDB annotations without treating workspace as empty'
   );
 
 

@@ -1244,6 +1244,17 @@ async function main() {
       await handleAuthSessionChange({ id: uidB1, email: 'b1@exo.edu', name: 'User B1' }, true);
       const refreshedSnapA = JSON.parse(localStorage.getItem(`pharmaAccountWorkspace_${uidA}`) || 'null');
       const refreshedDriveA = JSON.parse(localStorage.getItem(`pharmaGdriveSync_${uidA}`) || 'null');
+      const idbRecordA = await new Promise((resolve) => {
+        if (!dbInstance) return resolve(null);
+        try {
+          const tx = dbInstance.transaction('annotations', 'readonly');
+          const req = tx.objectStore('annotations').get(`usr_${uidA}::lec_a_e2e_verified`);
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => resolve(null);
+        } catch (e) {
+          resolve(null);
+        }
+      });
       const case1Passed = (
         currentCloudUser && currentCloudUser.id === uidB1 &&
         currentUserCanUploadMedia === false &&
@@ -1276,10 +1287,13 @@ async function main() {
         refreshedSnapA.academy_progress.length === 2 &&
         refreshedSnapA.revision === 6 &&
         refreshedSnapA.dirty === true &&
-        refreshedSnapA.annotations &&
-        refreshedSnapA.annotations.lec_a_e2e_verified &&
-        refreshedSnapA.annotations.lec_a_e2e_verified['1'][0].id === 's_a_e2e_1' &&
-        refreshedSnapA.annotations.stale_old_lec === undefined
+        refreshedSnapA.annotationsStoredInIndexedDB === true &&
+        refreshedSnapA.annotations === undefined &&
+        idbRecordA &&
+        idbRecordA.pages &&
+        idbRecordA.pages['1'] &&
+        idbRecordA.pages['1'][0] &&
+        idbRecordA.pages['1'][0].id === 's_a_e2e_1'
       );
 
       // Case 2 (Test B & Test C): Start uidA2 with NO existing snapshot, give only non-default plannerPrefs + academyModules, switch to B2
@@ -1374,7 +1388,8 @@ async function main() {
         currentCloudUser && currentCloudUser.id === uidB1 &&
         snapAAfterD3 &&
         Array.isArray(snapAAfterD3.subjects) && snapAAfterD3.subjects.length === 2 &&
-        snapAAfterD3.annotations && snapAAfterD3.annotations.lec_a_e2e_verified !== undefined
+        snapAAfterD3.annotationsStoredInIndexedDB === true &&
+        snapAAfterD3.annotations === undefined
       );
 
       // 2. T-M1-C02 & T-M1-C03: Missing remote annotations + Snapshot write failure during conflict merge
@@ -1443,11 +1458,8 @@ async function main() {
         c03Res &&
         c03Res.ok === true &&
         savedSnapC &&
-        savedSnapC.annotations &&
-        savedSnapC.annotations.lec_e2e_c03 &&
-        Array.isArray(savedSnapC.annotations.lec_e2e_c03['1']) &&
-        savedSnapC.annotations.lec_e2e_c03['1'].length === 1 &&
-        savedSnapC.annotations.lec_e2e_c03['1'][0].id === 's_e2e_1' &&
+        savedSnapC.annotationsStoredInIndexedDB === true &&
+        savedSnapC.annotations === undefined &&
         idbAnnosAfter.ok === true &&
         idbAnnosAfter.verifiedMap &&
         idbAnnosAfter.verifiedMap.lec_e2e_c03 &&
@@ -2984,6 +2996,87 @@ async function main() {
       resW4.missingVaultRes.reason === 'missing_annotation_vault_record',
       'Test W.4 (M5-A.2.1): In real Chromium, restoreUnverifiedGuestWorkspace rejects missing manifest entry and aborts with missing_annotation_vault_record when vault record is absent',
       JSON.stringify(resW4)
+    );
+
+    // =========================================================================
+    // TEST X (Milestone M5-B): Real Browser Annotation Decoupling & Mutation Version
+    // =========================================================================
+    console.log('\n--- TEST X (Milestone M5-B): Real Browser Annotation Decoupling & Mutation Version ---');
+    const pageX = await context.newPage();
+    await pageX.goto(page.url(), { waitUntil: 'domcontentloaded' });
+    await pageX.waitForFunction(() => typeof initPdfDB === 'function');
+
+    const resX = await pageX.evaluate(async () => {
+      const uidX = 'user_m5b_e2e_x';
+      supabaseClient = null;
+      await handleAuthSessionChange({ id: uidX, email: 'userx@exo.edu', name: 'User X' }, false);
+      const ctxX = createAccountOperationContext();
+
+      // Seed 2 annotations in real IndexedDB
+      await restoreAllAnnotationsMapToDB({
+        'lec_x_1': { 1: [{ id: 'str_x_1', tool: 'pen', color: '#38bdf8', points: [[10, 10], [50, 50]] }] },
+        'lec_x_2': { 1: [{ id: 'str_x_2', tool: 'pen', color: '#10b981', points: [[20, 20], [60, 60]] }] }
+      }, uidX, ctxX);
+
+      // Verify mutation version counter advanced
+      const initialVer = annotationMutationSeq;
+      bumpAnnotationMutationVersion();
+      const bumpedVer = annotationMutationSeq;
+
+      // Perform a direct switch to uidY to trigger outgoing snapshot persistence
+      const uidY = 'user_m5b_e2e_y';
+      await handleAuthSessionChange({ id: uidY, email: 'usery@exo.edu', name: 'User Y' }, false);
+
+      // Inspect persisted snapshot in localStorage for uidX
+      const snapXRaw = localStorage.getItem(`pharmaAccountWorkspace_${uidX}`);
+      const snapX = JSON.parse(snapXRaw || 'null');
+
+      // Hydrate uidX back and verify annotations in IndexedDB are untouched
+      await handleAuthSessionChange({ id: uidX, email: 'userx@exo.edu', name: 'User X' }, false);
+      const idbMapBack = await getAllAnnotationsMapFromDB(uidX);
+
+      // Verify in-flight push concurrency with version tracking
+      let capturedInFlightVer = 0;
+      supabaseClient = {
+        rpc: async (name, params) => {
+          capturedInFlightVer = annotationMutationSeq;
+          // User makes another edit while RPC is in flight:
+          bumpAnnotationMutationVersion();
+          return { data: { status: 'success', revision: 25 }, error: null };
+        }
+      };
+      navigator.onLine = true;
+      const pushRes = await pushWorkspaceToCloud(false, true, createAccountOperationContext());
+
+      return {
+        initialVer,
+        bumpedVer,
+        snapXStoredInIDB: snapX?.annotationsStoredInIndexedDB === true,
+        snapXHasAnnotations: snapX?.annotations !== undefined,
+        idbHasLec1: Boolean(idbMapBack?.verifiedMap?.lec_x_1),
+        idbHasLec2: Boolean(idbMapBack?.verifiedMap?.lec_x_2),
+        pushSuccess: pushRes?.status === 'success',
+        dirtyAnnotationsRemains: dirtyAnnotationsForCloud === true,
+        workspaceDirtyRemains: localStorage.getItem('pharmaWorkspaceDirty') === '1'
+      };
+    });
+
+    assert(
+      resX.bumpedVer > resX.initialVer &&
+      resX.snapXStoredInIDB === true &&
+      resX.snapXHasAnnotations === false &&
+      resX.idbHasLec1 === true &&
+      resX.idbHasLec2 === true,
+      'Test X.1 (M5-B): Real Chromium switches account with metadata-only snapshot (annotationsStoredInIndexedDB: true, annotations: undefined) and hydrates annotations cleanly from IndexedDB',
+      JSON.stringify(resX)
+    );
+
+    assert(
+      resX.pushSuccess === true &&
+      resX.dirtyAnnotationsRemains === true &&
+      resX.workspaceDirtyRemains === true,
+      'Test X.2 (M5-B): In real Chromium, annotation mutation during in-flight cloud push prevents clearing dirty flags upon response',
+      JSON.stringify(resX)
     );
 
     await context.close();
