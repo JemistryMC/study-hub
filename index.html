@@ -11405,17 +11405,22 @@
                 const gateCheck = isImportInProgressOrQuarantined(currentUid);
                 if (gateCheck && gateCheck.blocked) {
                     if (gateCheck.reason === 'import_in_progress') {
+                        const domainPayload = {
+                            payload: (subjects && typeof subjects === 'object') ? JSON.parse(JSON.stringify(subjects)) : [],
+                            timestamp: Date.now(),
+                            userId: currentUid
+                        };
                         if (!pendingDomainWritesDuringImportByAccount.has(currentUid)) {
                             pendingDomainWritesDuringImportByAccount.set(currentUid, {});
                         }
-                        pendingDomainWritesDuringImportByAccount.get(currentUid).subjects = true;
+                        pendingDomainWritesDuringImportByAccount.get(currentUid).subjects = domainPayload;
                         try {
                             const pKey = 'pharmaPendingDomainWrites_' + currentUid;
                             const existing = JSON.parse(localStorage.getItem(pKey) || '{}');
-                            existing.subjects = true;
+                            existing.subjects = domainPayload;
                             localStorage.setItem(pKey, JSON.stringify(existing));
                         } catch (e) {}
-                        return { ok: true, queued: true, domain: 'subjects', reason: 'import_in_progress', message: 'Subject changes queued and will be saved when import completes.' };
+                        return { ok: true, queued: true, domain: 'subjects', reason: 'import_in_progress', message: 'Subject changes queued and will be saved when import completes.', item: domainPayload };
                     }
                     return { ok: false, domain: 'subjects', blocked: true, reason: gateCheck.reason };
                 }
@@ -13312,17 +13317,31 @@
                 const gateCheck = isImportInProgressOrQuarantined(currentUid);
                 if (gateCheck && gateCheck.blocked) {
                     if (gateCheck.reason === 'import_in_progress') {
+                        const schedulePayload = {
+                            version: 3,
+                            events: (scheduleEvents && typeof scheduleEvents === 'object') ? JSON.parse(JSON.stringify(scheduleEvents)) : [],
+                            backlog: (scheduleBacklog && typeof scheduleBacklog === 'object') ? JSON.parse(JSON.stringify(scheduleBacklog)) : [],
+                            plannerPrefs: (plannerPrefs && typeof plannerPrefs === 'object') ? JSON.parse(JSON.stringify(plannerPrefs)) : {},
+                            weeklyReports: (weeklyReports && typeof weeklyReports === 'object') ? JSON.parse(JSON.stringify(weeklyReports)) : [],
+                            academy_progress: (completedAcademyModules && typeof completedAcademyModules === 'object') ? JSON.parse(JSON.stringify(completedAcademyModules)) : [],
+                            cloudMediaRegistry: (cloudMediaRegistry && typeof cloudMediaRegistry === 'object') ? JSON.parse(JSON.stringify(cloudMediaRegistry)) : {}
+                        };
+                        const domainPayload = {
+                            payload: schedulePayload,
+                            timestamp: Date.now(),
+                            userId: currentUid
+                        };
                         if (!pendingDomainWritesDuringImportByAccount.has(currentUid)) {
                             pendingDomainWritesDuringImportByAccount.set(currentUid, {});
                         }
-                        pendingDomainWritesDuringImportByAccount.get(currentUid).schedule = true;
+                        pendingDomainWritesDuringImportByAccount.get(currentUid).schedule = domainPayload;
                         try {
                             const pKey = 'pharmaPendingDomainWrites_' + currentUid;
                             const existing = JSON.parse(localStorage.getItem(pKey) || '{}');
-                            existing.schedule = true;
+                            existing.schedule = domainPayload;
                             localStorage.setItem(pKey, JSON.stringify(existing));
                         } catch (e) {}
-                        return { ok: true, queued: true, domain: 'schedule', reason: 'import_in_progress', message: 'Schedule changes queued and will be saved when import completes.' };
+                        return { ok: true, queued: true, domain: 'schedule', reason: 'import_in_progress', message: 'Schedule changes queued and will be saved when import completes.', item: domainPayload };
                     }
                     return { ok: false, domain: 'schedule', blocked: true, reason: gateCheck.reason };
                 }
@@ -16226,17 +16245,22 @@
                 const gateCheck = isImportInProgressOrQuarantined(currentUid);
                 if (gateCheck && gateCheck.blocked) {
                     if (gateCheck.reason === 'import_in_progress') {
+                        const domainPayload = {
+                            payload: (logs && typeof logs === 'object') ? JSON.parse(JSON.stringify(logs)) : [],
+                            timestamp: Date.now(),
+                            userId: currentUid
+                        };
                         if (!pendingDomainWritesDuringImportByAccount.has(currentUid)) {
                             pendingDomainWritesDuringImportByAccount.set(currentUid, {});
                         }
-                        pendingDomainWritesDuringImportByAccount.get(currentUid).logs = true;
+                        pendingDomainWritesDuringImportByAccount.get(currentUid).logs = domainPayload;
                         try {
                             const pKey = 'pharmaPendingDomainWrites_' + currentUid;
                             const existing = JSON.parse(localStorage.getItem(pKey) || '{}');
-                            existing.logs = true;
+                            existing.logs = domainPayload;
                             localStorage.setItem(pKey, JSON.stringify(existing));
                         } catch (e) {}
-                        return { ok: true, queued: true, domain: 'logs', reason: 'import_in_progress', message: 'Logs changes queued and will be saved when import completes.' };
+                        return { ok: true, queued: true, domain: 'logs', reason: 'import_in_progress', message: 'Logs changes queued and will be saved when import completes.', item: domainPayload };
                     }
                     return { ok: false, domain: 'logs', blocked: true, reason: gateCheck.reason };
                 }
@@ -19575,49 +19599,96 @@
         }
 
         // Durable, account-scoped annotation write queueing across tabs and browser restarts
-        function recordQueuedAnnotationWriteDurably(uid, item) {
-            if (!uid || !item) return Promise.resolve(false);
+        async function recordQueuedAnnotationWriteDurably(uid, item) {
+            if (!uid || !item) return false;
 
-            // 1. In-memory queue map
+            // 1. In-memory queue map (updated immediately so current tab sees queued state synchronously)
             if (!queuedAnnotationWritesDuringImportByAccount.has(uid)) {
                 queuedAnnotationWritesDuringImportByAccount.set(uid, []);
             }
             queuedAnnotationWritesDuringImportByAccount.get(uid).push(item);
 
-            // 2. LocalStorage durable queue (synchronous, cross-tab immediate visibility)
+            const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
+            if (testHooks && testHooks.failAnnotationQueuePersist) {
+                return false;
+            }
+
+            let idbSucceeded = false;
+            let idbAttempted = false;
+
+            // 1. Durable IndexedDB annotation_recovery_vault write (primary durable store)
+            if (dbInstance && dbInstance.objectStoreNames && dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
+                idbAttempted = true;
+                try {
+                    const vaultKey = toScopedKey('__import_queued_annos_v1__', uid);
+                    idbSucceeded = await new Promise((resolve) => {
+                        try {
+                            const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+                            const store = tx.objectStore('annotation_recovery_vault');
+                            const getReq = store.get(vaultKey);
+                            getReq.onsuccess = () => {
+                                const rec = getReq.result || { id: vaultKey, userId: uid, queue: [] };
+                                if (!Array.isArray(rec.queue)) rec.queue = [];
+                                rec.queue.push(item);
+                                store.put(rec);
+                            };
+                            getReq.onerror = () => resolve(false);
+                            tx.oncomplete = () => resolve(true);
+                            tx.onerror = () => resolve(false);
+                            tx.onabort = () => resolve(false);
+                        } catch (e) {
+                            resolve(false);
+                        }
+                    });
+                } catch (e) {
+                    idbSucceeded = false;
+                }
+            } else if (dbInstance && dbInstance.stores && dbInstance.stores.annotation_recovery_vault) {
+                // In-memory test store mock support
+                idbAttempted = true;
+                try {
+                    const vaultKey = toScopedKey('__import_queued_annos_v1__', uid);
+                    const rec = dbInstance.stores.annotation_recovery_vault.get(vaultKey) || { id: vaultKey, userId: uid, queue: [] };
+                    if (!Array.isArray(rec.queue)) rec.queue = [];
+                    rec.queue.push(item);
+                    dbInstance.stores.annotation_recovery_vault.set(vaultKey, rec);
+                    idbSucceeded = true;
+                } catch (e) {
+                    idbSucceeded = false;
+                }
+            }
+
+            // 2. LocalStorage durable queue (synchronous fallback and cross-tab immediate visibility)
+            let lsSucceeded = false;
             try {
                 const lsKey = 'pharmaImportQueuedAnnos_' + uid;
                 const existingList = JSON.parse(localStorage.getItem(lsKey) || '[]');
                 existingList.push(item);
-                localStorage.setItem(lsKey, JSON.stringify(existingList));
-            } catch (lsErr) {}
+                const serialized = JSON.stringify(existingList);
+                localStorage.setItem(lsKey, serialized);
+                if (localStorage.getItem(lsKey) === serialized) {
+                    lsSucceeded = true;
+                }
+            } catch (lsErr) {
+                lsSucceeded = false;
+            }
 
-            // 3. Durable IndexedDB annotation_recovery_vault write
-            return new Promise((resolve) => {
-                if (!dbInstance || !dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
-                    return resolve(true);
+            // If neither durable store succeeded, report failure! Truthful acknowledgement:
+            if (!idbSucceeded && !lsSucceeded) {
+                console.error('Failed to durably persist queued annotation write to either IndexedDB or LocalStorage');
+                // Remove from in-memory queue since durable write failed
+                if (queuedAnnotationWritesDuringImportByAccount.has(uid)) {
+                    const q = queuedAnnotationWritesDuringImportByAccount.get(uid);
+                    const idx = q.indexOf(item);
+                    if (idx !== -1) q.splice(idx, 1);
                 }
-                try {
-                    const vaultKey = toScopedKey('__import_queued_annos_v1__', uid);
-                    const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
-                    const store = tx.objectStore('annotation_recovery_vault');
-                    const getReq = store.get(vaultKey);
-                    getReq.onsuccess = () => {
-                        const rec = getReq.result || { id: vaultKey, userId: uid, queue: [] };
-                        if (!Array.isArray(rec.queue)) rec.queue = [];
-                        rec.queue.push(item);
-                        store.put(rec);
-                    };
-                    tx.oncomplete = () => resolve(true);
-                    tx.onerror = () => resolve(true);
-                    tx.onabort = () => resolve(true);
-                } catch (e) {
-                    resolve(true);
-                }
-            });
+                return false;
+            }
+
+            return true;
         }
 
-        // Drain durable queued annotation writes into IndexedDB annotations store
+        // Drain durable queued annotation writes into IndexedDB annotations store atomically
         async function applyQueuedAnnotationWritesAfterImport(uid, mode = 'merge') {
             if (!uid) return;
 
@@ -19627,7 +19698,6 @@
 
             if (queuedAnnotationWritesDuringImportByAccount.has(uid)) {
                 const memQueue = queuedAnnotationWritesDuringImportByAccount.get(uid);
-                queuedAnnotationWritesDuringImportByAccount.delete(uid);
                 if (Array.isArray(memQueue)) {
                     memQueue.forEach(q => {
                         const qId = q.id || (q.lecId + '_' + q.timestamp);
@@ -19637,8 +19707,9 @@
             }
 
             const lsKey = 'pharmaImportQueuedAnnos_' + uid;
+            let rawLs = null;
             try {
-                const rawLs = localStorage.getItem(lsKey);
+                rawLs = localStorage.getItem(lsKey);
                 if (rawLs) {
                     const parsedLs = JSON.parse(rawLs);
                     if (Array.isArray(parsedLs)) {
@@ -19647,37 +19718,49 @@
                             if (!seenIds.has(qId)) { seenIds.add(qId); items.push(q); }
                         });
                     }
-                    localStorage.removeItem(lsKey);
                 }
             } catch (e) {}
 
             const vaultKey = toScopedKey('__import_queued_annos_v1__', uid);
-            if (dbInstance && dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
+            let vaultItems = [];
+            if (dbInstance && dbInstance.objectStoreNames && dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
                 try {
                     const vaultRec = await new Promise(resolve => {
-                        const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+                        const tx = dbInstance.transaction('annotation_recovery_vault', 'readonly');
                         const store = tx.objectStore('annotation_recovery_vault');
                         const req = store.get(vaultKey);
-                        req.onsuccess = () => {
-                            const res = req.result;
-                            store.delete(vaultKey);
-                            resolve(res);
-                        };
+                        req.onsuccess = () => resolve(req.result || null);
                         req.onerror = () => resolve(null);
                     });
                     if (vaultRec && Array.isArray(vaultRec.queue)) {
-                        vaultRec.queue.forEach(q => {
+                        vaultItems = vaultRec.queue;
+                        vaultItems.forEach(q => {
                             const qId = q.id || (q.lecId + '_' + q.timestamp);
                             if (!seenIds.has(qId)) { seenIds.add(qId); items.push(q); }
                         });
                     }
                 } catch (e) {}
+            } else if (dbInstance && dbInstance.stores && dbInstance.stores.annotation_recovery_vault) {
+                const vaultRec = dbInstance.stores.annotation_recovery_vault.get(vaultKey);
+                if (vaultRec && Array.isArray(vaultRec.queue)) {
+                    vaultItems = vaultRec.queue;
+                    vaultItems.forEach(q => {
+                        const qId = q.id || (q.lecId + '_' + q.timestamp);
+                        if (!seenIds.has(qId)) { seenIds.add(qId); items.push(q); }
+                    });
+                }
             }
 
-            if (items.length === 0) return;
+            if (items.length === 0) {
+                queuedAnnotationWritesDuringImportByAccount.delete(uid);
+                try { localStorage.removeItem(lsKey); } catch (e) {}
+                return;
+            }
 
             // Apply directly into IndexedDB annotations store with strict ownership
+            let applySucceeded = false;
             if (dbInstance && dbInstance.stores && dbInstance.stores.annotations) {
+                // In-memory test store mock
                 items.forEach(item => {
                     const scopedKey = toScopedKey(item.lecId, uid);
                     const existing = dbInstance.stores.annotations.get(scopedKey);
@@ -19709,14 +19792,25 @@
                         updatedAt: new Date().toISOString()
                     });
                 });
+                if (dbInstance.stores.annotation_recovery_vault) {
+                    dbInstance.stores.annotation_recovery_vault.delete(vaultKey);
+                }
+                applySucceeded = true;
             } else if (dbInstance && dbInstance.objectStoreNames && dbInstance.objectStoreNames.contains('annotations')) {
-                await new Promise((resolve) => {
+                // ATOMIC MULTI-STORE TRANSACTION: ['annotations', 'annotation_recovery_vault']
+                const storeNames = dbInstance.objectStoreNames.contains('annotation_recovery_vault')
+                    ? ['annotations', 'annotation_recovery_vault']
+                    : ['annotations'];
+
+                applySucceeded = await new Promise((resolve) => {
                     try {
-                        const tx = dbInstance.transaction('annotations', 'readwrite');
-                        const store = tx.objectStore('annotations');
+                        const tx = dbInstance.transaction(storeNames, 'readwrite');
+                        const annoStore = tx.objectStore('annotations');
+                        const vaultStore = storeNames.includes('annotation_recovery_vault') ? tx.objectStore('annotation_recovery_vault') : null;
+
                         items.forEach(item => {
                             const scopedKey = toScopedKey(item.lecId, uid);
-                            const getReq = store.get(scopedKey);
+                            const getReq = annoStore.get(scopedKey);
                             getReq.onsuccess = () => {
                                 const existing = getReq.result;
                                 let mergedPages = {};
@@ -19739,7 +19833,7 @@
                                         }
                                     }
                                 });
-                                store.put({
+                                annoStore.put({
                                     id: scopedKey,
                                     rawId: item.lecId,
                                     userId: uid,
@@ -19748,14 +19842,31 @@
                                 });
                             };
                         });
-                        tx.oncomplete = () => resolve();
-                        tx.onerror = () => resolve();
-                        tx.onabort = () => resolve();
+
+                        // Delete queued records from vault within the EXACT SAME committed transaction
+                        if (vaultStore) {
+                            vaultStore.delete(vaultKey);
+                        }
+
+                        tx.oncomplete = () => resolve(true);
+                        tx.onerror = () => resolve(false);
+                        tx.onabort = () => resolve(false);
                     } catch (e) {
-                        resolve();
+                        resolve(false);
                     }
                 });
             }
+
+            // Only remove LocalStorage fallback and in-memory queue if the atomic commit succeeded!
+            if (applySucceeded) {
+                queuedAnnotationWritesDuringImportByAccount.delete(uid);
+                try { localStorage.removeItem(lsKey); } catch (e) {}
+            } else {
+                console.warn('Queue apply transaction failed or aborted; preserving queued annotations for retry');
+                return;
+            }
+
+            // If this tab's active session is currently uid, also update in-memory caches and schedule flush
 
             // If this tab's active session is currently uid, also update in-memory caches and schedule flush
             const activeUid = (typeof getCanonicalUserId === 'function') ? getCanonicalUserId() : null;
@@ -19788,19 +19899,73 @@
                 pendingDomainWritesDuringImportByAccount.delete(uid);
             }
             if (!pending) return;
-            try { localStorage.removeItem(key); } catch (e) {}
 
+            let allPersisted = true;
             const curUid = (typeof getCanonicalUserId === 'function') ? getCanonicalUserId() : null;
-            if (curUid === uid) {
-                if (pending.subjects && typeof saveSubjects === 'function') {
-                    saveSubjects();
+
+            // 1. Drain subjects payload
+            if (pending.subjects) {
+                const subItem = pending.subjects;
+                const subPayload = (subItem && subItem.payload !== undefined) ? subItem.payload : (subItem === true ? subjects : subItem);
+                try {
+                    const serialized = JSON.stringify(subPayload);
+                    localStorage.setItem('pharmaSubjectsV4', serialized);
+                    if (localStorage.getItem('pharmaSubjectsV4') !== serialized) allPersisted = false;
+                } catch (e) { allPersisted = false; }
+                if (curUid === uid) {
+                    subjects = Array.isArray(subPayload) ? subPayload : (subjects || []);
+                    if (typeof renderSubjectsList === 'function') renderSubjectsList();
                 }
-                if (pending.schedule && typeof saveScheduleData === 'function') {
-                    saveScheduleData(true);
+            }
+
+            // 2. Drain schedule payload
+            if (pending.schedule) {
+                const schedItem = pending.schedule;
+                const schedPayload = (schedItem && schedItem.payload !== undefined) ? schedItem.payload : (schedItem === true ? { version: 3, events: scheduleEvents, backlog: scheduleBacklog, plannerPrefs } : schedItem);
+                try {
+                    const serialized = JSON.stringify(schedPayload);
+                    localStorage.setItem('pharmaScheduleV4', serialized);
+                    if (localStorage.getItem('pharmaScheduleV4') !== serialized) allPersisted = false;
+                    if (schedPayload && schedPayload.plannerPrefs) {
+                        localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(schedPayload.plannerPrefs));
+                    }
+                } catch (e) { allPersisted = false; }
+                if (curUid === uid && schedPayload && typeof schedPayload === 'object') {
+                    if (Array.isArray(schedPayload.events)) scheduleEvents = schedPayload.events;
+                    if (Array.isArray(schedPayload.backlog)) scheduleBacklog = schedPayload.backlog;
+                    if (schedPayload.plannerPrefs) plannerPrefs = schedPayload.plannerPrefs;
+                    if (Array.isArray(schedPayload.weeklyReports)) weeklyReports = schedPayload.weeklyReports;
+                    if (Array.isArray(schedPayload.academy_progress)) completedAcademyModules = schedPayload.academy_progress;
+                    if (schedPayload.cloudMediaRegistry) cloudMediaRegistry = schedPayload.cloudMediaRegistry;
+                    if (typeof renderSchedule === 'function') renderSchedule();
                 }
-                if (pending.logs && typeof saveLogs === 'function') {
-                    saveLogs();
+            }
+
+            // 3. Drain logs payload
+            if (pending.logs) {
+                const logsItem = pending.logs;
+                const logsPayload = (logsItem && logsItem.payload !== undefined) ? logsItem.payload : (logsItem === true ? logs : logsItem);
+                try {
+                    const serialized = JSON.stringify(logsPayload);
+                    localStorage.setItem('pharmaLogsV4', serialized);
+                    if (localStorage.getItem('pharmaLogsV4') !== serialized) allPersisted = false;
+                } catch (e) { allPersisted = false; }
+                if (curUid === uid) {
+                    logs = Array.isArray(logsPayload) ? logsPayload : (logs || []);
+                    if (typeof updateTracker === 'function') updateTracker();
+                    if (typeof updateWeeklyMetrics === 'function') updateWeeklyMetrics();
                 }
+            }
+
+            // Mark workspace dirty so changes are saved to account snapshot and cloud
+            try {
+                localStorage.setItem('pharmaWorkspaceDirty', '1');
+                localStorage.setItem('pharmaWorkspaceDirty_' + uid, '1');
+            } catch (e) {}
+
+            // Delete pending key ONLY after successful write
+            if (allPersisted) {
+                try { localStorage.removeItem(key); } catch (e) {}
             }
         }
 
@@ -20250,9 +20415,10 @@
                     });
                 });
             } else if (dbInstance && dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
-                // Safe durable IndexedDB lock fallback: atomic readwrite transaction
+                // Safe durable IndexedDB lock fallback: atomic readwrite transaction with fencing token
                 const lockKey = toScopedKey('__import_lock_v1__', uid);
                 let lockAcquired = false;
+                let fencingToken = null;
                 try {
                     lockAcquired = await new Promise((resolve) => {
                         const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
@@ -20264,10 +20430,13 @@
                                 resolve(false);
                                 return;
                             }
+                            const priorToken = (existing && typeof existing.fencingToken === 'number') ? existing.fencingToken : 0;
+                            fencingToken = priorToken + 1;
                             store.put({
                                 id: lockKey,
                                 userId: uid,
                                 txId: txId,
+                                fencingToken: fencingToken,
                                 startedAt: Date.now(),
                                 heartbeatAt: Date.now()
                             });
@@ -20299,12 +20468,20 @@
                 const idbHeartbeatTimer = setInterval(async () => {
                     try {
                         const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
-                        tx.objectStore('annotation_recovery_vault').put({
-                            id: lockKey,
-                            userId: uid,
-                            txId: txId,
-                            heartbeatAt: Date.now()
-                        });
+                        const store = tx.objectStore('annotation_recovery_vault');
+                        const getReq = store.get(lockKey);
+                        getReq.onsuccess = () => {
+                            const cur = getReq.result;
+                            if (cur && cur.txId === txId && cur.fencingToken === fencingToken) {
+                                store.put({
+                                    id: lockKey,
+                                    userId: uid,
+                                    txId: txId,
+                                    fencingToken: fencingToken,
+                                    heartbeatAt: Date.now()
+                                });
+                            }
+                        };
                     } catch (e) {}
                 }, 2000);
 
@@ -20312,13 +20489,20 @@
                     if (testHooks && testHooks.holdImportAfterLock) {
                         await testHooks.holdImportAfterLock;
                     }
-                    return await actionFn();
+                    return await actionFn(fencingToken);
                 } finally {
                     clearInterval(idbHeartbeatTimer);
                     stopBarrierHeartbeat(uid);
                     try {
                         const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
-                        tx.objectStore('annotation_recovery_vault').delete(lockKey);
+                        const store = tx.objectStore('annotation_recovery_vault');
+                        const getReq = store.get(lockKey);
+                        getReq.onsuccess = () => {
+                            const cur = getReq.result;
+                            if (cur && cur.txId === txId && cur.fencingToken === fencingToken) {
+                                store.delete(lockKey);
+                            }
+                        };
                     } catch (e) {}
                 }
             } else {
@@ -20341,13 +20525,29 @@
             const uid = opCtx.uid;
             const txId = 'imp_tx_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
 
-            return await runWithImportLock(uid, txId, async () => {
-                return await executeImportTransactionInternal(backupInput, chosenMode, uid, opCtx, txId);
+            return await runWithImportLock(uid, txId, async (fencingToken = null) => {
+                return await executeImportTransactionInternal(backupInput, chosenMode, uid, opCtx, txId, fencingToken);
             });
         }
 
-        async function executeImportTransactionInternal(backupInput, chosenMode, uid, opCtx, passedTxId = null) {
+        async function executeImportTransactionInternal(backupInput, chosenMode, uid, opCtx, passedTxId = null, fencingToken = null) {
             const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
+
+            // Fencing token verification helper
+            async function assertFencingTokenValid() {
+                if (fencingToken !== null && dbInstance && dbInstance.objectStoreNames && dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
+                    const lockKey = toScopedKey('__import_lock_v1__', uid);
+                    const curLock = await new Promise(res => {
+                        const tx = dbInstance.transaction('annotation_recovery_vault', 'readonly');
+                        const req = tx.objectStore('annotation_recovery_vault').get(lockKey);
+                        req.onsuccess = () => res(req.result || null);
+                        req.onerror = () => res(null);
+                    });
+                    if (!curLock || curLock.txId !== passedTxId || curLock.fencingToken !== fencingToken) {
+                        throw new Error('STALE_FENCING_TOKEN: IDB import lock was stolen or preempted by another tab');
+                    }
+                }
+            }
 
             // Gate: Block if account is quarantined or another import is in progress
             const gateCheck = isImportInProgressOrQuarantined(uid, passedTxId);
@@ -20517,6 +20717,8 @@
 
             // Helper to persist phase transition into durable IndexedDB vault
             async function persistPhase(newPhase) {
+                await assertFencingTokenValid();
+
                 journalRecord.phase = newPhase;
                 journalRecord.updatedAt = new Date().toISOString();
 
@@ -21290,43 +21492,151 @@
                 return { recovered: false, quarantine: true, reason: 'CORRUPT_JOURNAL' };
             }
 
+            const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
+
             // 6. Authoritative phase evaluation from IndexedDB
             if (journalRecord.phase === 'COMMITTED' || journalRecord.phase === 'FINALIZE') {
                 // Transaction completed through COMMITTED: finalize cleanly
+                // Step 6a: Persist FINALIZE pointer in LocalStorage and verify readback
+                let finPointerPersisted = false;
                 try {
+                    if (testHooks && testHooks.failRecoveryFinalizePointer) {
+                        throw new Error('TEST_FAULT_INJECTION: fail_recovery_finalize_pointer');
+                    }
+                    const ptrVal = JSON.stringify({
+                        txId: journalRecord.txId,
+                        phase: 'FINALIZE',
+                        mode: journalRecord.mode,
+                        recoveredAt: Date.now()
+                    });
+                    localStorage.setItem(txStateKey, ptrVal);
+                    if (localStorage.getItem(txStateKey) === ptrVal) {
+                        finPointerPersisted = true;
+                    }
+                } catch (ptrErr) {
+                    finPointerPersisted = false;
+                    console.warn('Failed to persist FINALIZE pointer during recovery:', ptrErr);
+                    if (testHooks && testHooks.failRecoveryFinalizePointer) throw ptrErr;
+                }
+
+                if (testHooks && testHooks.crashAfterRecoveryFinalizePointer) {
+                    throw new Error('TEST_FAULT_INJECTION: crash_after_recovery_finalize_pointer');
+                }
+
+                if (!finPointerPersisted) {
+                    console.warn('FINALIZE pointer verification failed during recovery: retaining durable journal and barrier');
+                    return { recovered: false, quarantine: false, reason: 'FINALIZE_POINTER_FAILED', retainedJournal: true };
+                }
+
+                // Step 6b: Only then delete durable journal from IndexedDB vault, awaiting transaction completion
+                let journalDeleted = false;
+                try {
+                    if (testHooks && testHooks.failRecoveryJournalDelete) {
+                        throw new Error('TEST_FAULT_INJECTION: fail_recovery_journal_delete');
+                    }
                     await new Promise((resolve, reject) => {
                         const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
                         tx.objectStore('annotation_recovery_vault').delete(journalScopedKey);
                         tx.oncomplete = () => resolve();
-                        tx.onerror = () => reject(tx.error);
-                        tx.onabort = () => reject(tx.error);
+                        tx.onerror = () => reject(tx.error || new Error('Vault delete failed'));
+                        tx.onabort = () => reject(tx.error || new Error('Vault delete aborted'));
                     });
-                } catch (e) {}
+                    journalDeleted = true;
+                } catch (delErr) {
+                    console.warn('Failed to delete journal during COMMITTED recovery:', delErr);
+                    if (testHooks && testHooks.failRecoveryJournalDelete) throw delErr;
+                    return { recovered: false, quarantine: false, reason: 'RECOVERY_JOURNAL_DELETE_FAILED', retainedJournal: true };
+                }
 
+                if (testHooks && testHooks.crashAfterRecoveryJournalDeleted) {
+                    throw new Error('TEST_FAULT_INJECTION: crash_after_recovery_journal_deleted');
+                }
+
+                // Step 6c: Remove pointer from LocalStorage
                 try { localStorage.removeItem(txStateKey); } catch (e) {}
+
+                if (testHooks && testHooks.crashBeforeRecoveryBarrierCleanup) {
+                    throw new Error('TEST_FAULT_INJECTION: crash_before_recovery_barrier_cleanup');
+                }
+
+                // Step 6d: Remove barrier & drain queued writes
                 try { localStorage.removeItem(barrierKey); } catch (e) {}
                 activeImportBarriersByAccount.delete(uid);
                 stopBarrierHeartbeat(uid);
-                applyQueuedAnnotationWritesAfterImport(uid, journalRecord.mode || 'replace');
+                await applyQueuedAnnotationWritesAfterImport(uid, journalRecord.mode || 'replace');
+                flushQueuedDomainWritesAfterImport(uid);
                 if (typeof showToast === 'function') showToast('تم إكمال اعتماد استرجاع النسخة الاحتياطية بنجاح ✓');
                 return { recovered: true, action: 'finalized' };
             } else if (journalRecord.phase === 'ROLLED_BACK') {
-                // Rollback was already completed, just clean up journal and pointers
+                // Rollback was already completed in IndexedDB, finish cleanup safely
+                // Step 6a: Ensure ROLLED_BACK pointer is persisted and verified in LocalStorage
+                let rbPointerPersisted = false;
                 try {
+                    if (testHooks && testHooks.failRecoveryRolledBackPointer) {
+                        throw new Error('TEST_FAULT_INJECTION: fail_recovery_rolled_back_pointer');
+                    }
+                    const ptrVal = JSON.stringify({
+                        txId: journalRecord.txId,
+                        phase: 'ROLLED_BACK',
+                        mode: journalRecord.mode,
+                        recoveredAt: Date.now()
+                    });
+                    localStorage.setItem(txStateKey, ptrVal);
+                    if (localStorage.getItem(txStateKey) === ptrVal) {
+                        rbPointerPersisted = true;
+                    }
+                } catch (ptrErr) {
+                    rbPointerPersisted = false;
+                    console.warn('Failed to persist ROLLED_BACK pointer during recovery:', ptrErr);
+                    if (testHooks && testHooks.failRecoveryRolledBackPointer) throw ptrErr;
+                }
+
+                if (testHooks && testHooks.crashAfterRecoveryRolledBackPointer) {
+                    throw new Error('TEST_FAULT_INJECTION: crash_after_recovery_rolled_back_pointer');
+                }
+
+                if (!rbPointerPersisted) {
+                    console.warn('ROLLED_BACK pointer verification failed during recovery: retaining durable journal and barrier');
+                    return { recovered: false, quarantine: false, reason: 'ROLLED_BACK_POINTER_FAILED', retainedJournal: true };
+                }
+
+                // Step 6b: Delete journal from IndexedDB vault, awaiting transaction completion
+                let journalDeleted = false;
+                try {
+                    if (testHooks && testHooks.failRecoveryJournalDelete) {
+                        throw new Error('TEST_FAULT_INJECTION: fail_recovery_journal_delete');
+                    }
                     await new Promise((resolve, reject) => {
                         const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
                         tx.objectStore('annotation_recovery_vault').delete(journalScopedKey);
                         tx.oncomplete = () => resolve();
-                        tx.onerror = () => reject(tx.error);
-                        tx.onabort = () => reject(tx.error);
+                        tx.onerror = () => reject(tx.error || new Error('Vault delete failed'));
+                        tx.onabort = () => reject(tx.error || new Error('Vault delete aborted'));
                     });
-                } catch (e) {}
+                    journalDeleted = true;
+                } catch (delErr) {
+                    console.warn('Failed to delete journal during ROLLED_BACK recovery:', delErr);
+                    if (testHooks && testHooks.failRecoveryJournalDelete) throw delErr;
+                    return { recovered: false, quarantine: false, reason: 'RECOVERY_JOURNAL_DELETE_FAILED', retainedJournal: true };
+                }
 
+                if (testHooks && testHooks.crashAfterRecoveryJournalDeleted) {
+                    throw new Error('TEST_FAULT_INJECTION: crash_after_recovery_journal_deleted');
+                }
+
+                // Step 6c: Remove pointer from LocalStorage
                 try { localStorage.removeItem(txStateKey); } catch (e) {}
+
+                if (testHooks && testHooks.crashBeforeRecoveryBarrierCleanup) {
+                    throw new Error('TEST_FAULT_INJECTION: crash_before_recovery_barrier_cleanup');
+                }
+
+                // Step 6d: Remove barrier & drain queued writes
                 try { localStorage.removeItem(barrierKey); } catch (e) {}
                 activeImportBarriersByAccount.delete(uid);
                 stopBarrierHeartbeat(uid);
-                applyQueuedAnnotationWritesAfterImport(uid, 'merge');
+                await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
+                flushQueuedDomainWritesAfterImport(uid);
                 return { recovered: true, action: 'rolled_back' };
             } else {
                 // Pre-COMMITTED phase (PREPARE, APPLY_IDB, APPLY_LOCALSTORAGE): roll back safely!
@@ -23085,7 +23395,6 @@
                         ? recordQueuedAnnotationWriteDurably(ctx.uid, qItem)
                         : Promise.resolve(true);
 
-                    console.warn('saveAnnotationsToDB queued safely: import in progress for user', ctx.uid);
                     const res = {
                         ok: false,
                         queued: true,
@@ -23093,7 +23402,26 @@
                         message: 'Annotation write safely queued during import.',
                         item: qItem,
                         then(onFulfilled, onRejected) {
-                            return durableP.then(() => onFulfilled(res), onRejected);
+                            return durableP.then((persistOk) => {
+                                if (persistOk === false) {
+                                    const failRes = {
+                                        ok: false,
+                                        queued: false,
+                                        reason: 'queue_storage_failed',
+                                        error: 'Failed to durably persist queued annotation write to either IndexedDB or LocalStorage.'
+                                    };
+                                    return onFulfilled ? onFulfilled(failRes) : failRes;
+                                }
+                                return onFulfilled ? onFulfilled(res) : res;
+                            }, (err) => {
+                                const failRes = {
+                                    ok: false,
+                                    queued: false,
+                                    reason: 'queue_storage_failed',
+                                    error: err?.message || String(err)
+                                };
+                                return onFulfilled ? onFulfilled(failRes) : failRes;
+                            });
                         }
                     };
                     return res;

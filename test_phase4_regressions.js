@@ -89,8 +89,10 @@ class InMemoryIDBDatabase {
 
   transaction(storeName, mode = 'readonly') {
     const db = this;
-    const storeMap = db.stores[storeName];
-    if (!storeMap) throw new Error(`Store ${storeName} does not exist`);
+    const storeNames = Array.isArray(storeName) ? storeName : [storeName];
+    for (const name of storeNames) {
+      if (!db.stores[name]) throw new Error(`Store ${name} does not exist`);
+    }
 
     const stagedOps = [];
     const tx = {
@@ -101,6 +103,7 @@ class InMemoryIDBDatabase {
       onabort: null,
       objectStore(name) {
         const targetMap = db.stores[name];
+        if (!targetMap) throw new Error(`Store ${name} not in transaction`);
         return {
           getAll() {
             const req = { result: null, error: null, onsuccess: null, onerror: null };
@@ -111,7 +114,7 @@ class InMemoryIDBDatabase {
                 db.onGetAllHook = null;
                 hook();
               }
-              const shouldFailRead = db.failNextTransaction && (!db.failOnStore || db.failOnStore === name) && (!db.failOnMode || db.failOnMode === mode);
+              const shouldFailRead = db.failNextTransaction && (!db.failOnStore || storeNames.includes(db.failOnStore)) && (!db.failOnMode || db.failOnMode === mode);
               if (shouldFailRead) {
                 db.failNextTransaction = false;
                 db.failOnStore = null;
@@ -133,15 +136,15 @@ class InMemoryIDBDatabase {
             setImmediate(() => {
               req.result = targetMap.get(String(key));
               if (req.onsuccess) req.onsuccess();
-              if (tx.oncomplete) tx.oncomplete();
+              if (mode === 'readonly' && tx.oncomplete) tx.oncomplete();
             });
             return req;
           },
           put(val) {
-            stagedOps.push({ type: 'put', key: String(val.id), val });
+            stagedOps.push({ store: name, type: 'put', key: String(val.id), val });
           },
           delete(key) {
-            stagedOps.push({ type: 'delete', key: String(key) });
+            stagedOps.push({ store: name, type: 'delete', key: String(key) });
           }
         };
       }
@@ -149,7 +152,7 @@ class InMemoryIDBDatabase {
 
     if (mode === 'readwrite') {
       setImmediate(() => {
-        const shouldFailWrite = db.failNextTransaction && (!db.failOnStore || db.failOnStore === storeName) && (!db.failOnMode || db.failOnMode === mode);
+        const shouldFailWrite = db.failNextTransaction && (!db.failOnStore || storeNames.includes(db.failOnStore)) && (!db.failOnMode || db.failOnMode === mode);
         if (shouldFailWrite) {
           db.failNextTransaction = false;
           db.failOnStore = null;
@@ -159,8 +162,11 @@ class InMemoryIDBDatabase {
           return;
         }
         for (const op of stagedOps) {
-          if (op.type === 'put') storeMap.set(op.key, op.val);
-          else if (op.type === 'delete') storeMap.delete(op.key);
+          const map = db.stores[op.store];
+          if (map) {
+            if (op.type === 'put') map.set(op.key, op.val);
+            else if (op.type === 'delete') map.delete(op.key);
+          }
         }
         if (tx.oncomplete) tx.oncomplete();
       });
