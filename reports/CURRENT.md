@@ -265,44 +265,58 @@ SELECT json_build_object(
 
 ---
 
-## 7. نتائج الاختبارات المعتمدة محلياً (Local Test Execution Summary)
+## 7. نتائج الاختبارات المعتمدة محلياً (Local Test Execution Summary — M6 Critical Corrective Pass)
 
-تم تشغيل والتحقق من كافة مجموعات الاختبارات بنسبة نجاح 100%:
+تم تشغيل والتحقق من كافة مجموعات الاختبارات بنسبة نجاح 100% بعد تنفيذ التمريرة التصحيحية الحرجة (M6 Critical Corrective Pass):
 
 | مسار الاختبار | الأمر المنفذ | النتيجة الفعلية | الملاحظات |
 | :--- | :--- | :--- | :--- |
 | **فحص الصياغة والقواعد** | `npm run lint` | **PASSED** | فحص كافة ملفات الخادم والبناء والاختبارات دون أخطاء صياغية. |
-| **بناء الإنتاج** | `npm run build` | **PASSED** | نسخ الأصول وتجهيز حزمة الإنتاج في `dist/` بنجاح. |
-| **الأمان والتشفير الثابت** | `npm run test:static` | **54/54 PASSED** | اختبارات PBKDF2 والتحقق من الأمان الثابت. |
+| **بناء الإنتاج والتجميع** | `npm run build` | **PASSED** | نسخ الأصول وتجهيز حزمة الإنتاج وتجميع التطبيق بنجاح. |
+| **الأمان والتشفير الثابت** | `npm run test:static` | **54/54 PASSED** | اختبارات PBKDF2 والتحقق من الأمان الثابت وتجريد الأسرار. |
 | **عزل الحسابات والذاكرة** | `node test_phase3_cross_account_isolation.js` | **52/52 PASSED** | التحقق من عزل الحسابات ولحظات IndexedDB المجردة. |
-| **الانحدار والمنطق اللاتزامني** | `node test_phase4_regressions.js` | **141/141 PASSED** | شاملة 11 فحصاً لـ M5-B و10 فحوصات لـ M6 (WP-7 & WP-8). |
+| **الانحدار والمنطق اللاتزامني** | `node test_phase4_regressions.js` | **155/155 PASSED** | شاملة 11 فحصاً لـ M5-B و21 فحصاً لـ M6 (فحوصات التجزئة، البايتات، النطاقات المطلوبة، السجل المتين، الحجر الصحي). |
 | **التحقق الشامل** | `node run_comprehensive_verification.js` | **42/42 PASSED** | اختبارات المنطق الأكاديمي والتحقق الشامل. |
 | **مكتبة PGlite WASM** | `npm run test:pglite` | **41/41 PASSED** | توافق استعلامات ودوال PostgreSQL عبر محاكي WASM. |
-| **المتصفح الحقيقي Chromium E2E** | `npm run test:e2e` | **78/78 PASSED** | شاملة سيناريوهات M5-B (Test X) وسيناريوهات M6 (Test Y). |
-| **مشغل الاختبارات الموحد** | `node run_all_tests.js` | **408/408 PASSED** | إجمالي الفحوصات المدمجة المنفذة محلياً بنجاح تام. |
+| **المتصفح الحقيقي Chromium E2E** | `node test_phase4_1_chromium_e2e.js` | **81/81 PASSED** | شاملة سيناريوهات M5-B (Test X) وسيناريوهات M6 الموسعة (Test Y.1–Y.7 عبر الانهيار والحجر وحجب المزامنة). |
+| **مشغل الاختبارات الموحد** | `node run_all_tests.js` | **425/425 PASSED** | إجمالي الفحوصات المدمجة المنفذة محلياً بنجاح تام (100% Success). |
+| **حزمة قياس الأداء Tier A** | `node benchmark_tier_a.js` | **5/5 TIERS PASSED** | قياس أداء النسخ والاستعادة لحمولات 1، 5، 15، 25، 50 ميجابايت بنجاح تام. |
 
-*(ملاحظة: `test_phase4_2_1_pg16_concurrency.js` مخصص لبيئة CI مع خادم PostgreSQL 16 خارجي، ومتوقع اجتيازه 96 فحصاً إضافياً في CI ليصل إجمالي تشغيل CI المستهدف إلى 504 فحوصات).*
+*(ملاحظة: `test_phase4_2_1_pg16_concurrency.js` مخصص لبيئة CI مع خادم PostgreSQL 16 حقيقي متعدد الاتصالات، ومتوقع اجتيازه 96 فحصاً إضافياً في CI ليصل إجمالي تشغيل CI المتوقع إلى 521 فحصاً).*
 
 ---
 
-## 8. الملفات المعدلة بدقة ضمن النطاق المصرح به
+## 8. تفاصيل التمريرة التصحيحية الحرجة (M6 Critical Corrective Pass Details)
 
-1. `/index.html`:
-   - إجهاض السحب والمزامنة فوراً عند فشل هجرة الحواشي القديمة (Fail-Closed).
-   - تنفيذ محرك التشفير المعياري `canonicalizeJson` و`computeCanonicalSha256` و`computePureSha256`.
-   - تنفيذ مصدّر النسخ الاحتياطي v4 `exportWorkspaceBackupV4` ومعاين النسخ `inspectWorkspaceBackup`.
-   - تنفيذ دورة حياة الاستعادة خماسية المراحل القابلة للتعافي من الانهيار `importWorkspaceBackupV4`.
-   - تنفيذ التراجع الطارئ `rollbackImportFromJournal` وخطاف التعافي عند بدء التشغيل `recoverPendingImportJournalIfNeeded`.
-   - إضافة نافذة المعاينة المسبقة `#backupImportPreflightModalOverlay` بتصميم زجاجي منسجم.
-   - تنفيذ مصنف أخطاء Supabase العشري `classifySupabaseError` ودالة تجريد الأسرار `sanitizeTechnicalErrorDetail`.
-2. `/test_phase4_regressions.js`:
-   - تعزيز Test 20 باختبار السباق الحقيقي المعلق على الشبكة `T-5.1-M5B-08` باستخدام Deferred Promises.
-   - إضافة `T-5.1-M5B-10` و`T-5.1-M5B-11` للتحقق من إجهاض السحب وتسجيل الدخول عند فشل الهجرة.
-   - إضافة مجموعة اختبارات M6 الشاملة (`T-5.1-M6-01` حتى `T-5.1-M6-10`) التي تغطي التجزئة القياسية، والتسلسل المعياري، والاستبدال، والدمج، والتعافي من الانهيار، وتصنيف الأخطاء وتجريد الأسرار.
-3. `/test_phase4_1_chromium_e2e.js`:
-   - إضافة سيناريو Test Y المتكامل في متصفح Chromium الحقيقي، مغطياً تصدير النسخة v4، ونافذة المعاينة المسبقة، ونمطي الاستبدال والدمج، ورفض التلاعب، والتصنيف الحتمي للأخطاء.
-4. `/reports/CURRENT.md`:
-   - توثيق الإغلاق النهائي لـ M5-B، والتنفيذ الكامل لـ M6 (WP-7 وWP-8)، وجدول قياسات الأداء، واستعلام الفحص المسبق، واستراتيجية تطور قاعدة البيانات.
+1. **التحقق الصارم من سلامة النسخ v4 (Strict Fix A):**
+   - التحقق الإلزامي من العناصر الثمانية لنسخ v4: (`schema === 'exo_workspace_backup_v4'`, `version === 4`, كائن `data` صالح، `integrity.algorithm === 'SHA-256'`, `integrity.canonicalScope === 'data'`, بصمة 64-hex SHA-256 صالحة، مطابقة تامة لـ `byteLength` مع بايتات UTF-8 للبيانات المقننة، وتطابق التجزئة المحسوبة).
+   - حظر قبول أي نسخة v4 بحالة سلامة `integrityStatus === 'none'`.
+   - فحص الحجم الصارم (حد أقصى 50 ميجابايت) لكافة المدخلات (نصوص، ملفات، أو كائنات محللة) دون الاعتماد على الحجم المصرح به.
+2. **التحقق الهيكلي من النطاقات الإلزامية (Strict Fix B):**
+   - إلزامية تواجد نطاقات `subjects` (مصفوفة)، `schedule` (كائن)، `logs` (مصفوفة)، `annotations` (كائن).
+   - رفض النسخ الناقصة فوراً بأخطاء `MISSING_REQUIRED_DOMAIN` و`INVALID_DOMAIN_TYPE` لمنع تحويل النسخ الناقصة إلى عمليات استبدال مدمرة.
+   - التحقق من الهياكل الداخلية (معرفات المواد وكائنات صفحات الحواشي).
+   - في النسخ القديمة (v1-v3)، تتبع النطاقات المتوفرة وتعطيل نمط الاستبدال (`canReplace = false`) عند نقص النطاقات.
+   - تنظيف `deepSanitizeBackupObject`: رفع الحد الأقصى للعمق إلى 32، واستبدال البايتات الصفرية فقط دون اقتصاص النصوص أو المصفوفات.
+3. **تصدير مغلق عند الفشل (Strict Fix C - Fail-Closed Export):**
+   - إجهاض فوري برمز `ANNOTATION_FLUSH_FAILED` عند فشل تفريغ الحواشي المعلقة.
+   - التحقق من سياق الحساب `ACCOUNT_CONTEXT_SWITCHED` لمنع التصدير أثناء تبديل الحساب.
+   - إجهاض فوري برمز `ANNOTATIONS_READ_FAILED` عند فشل قراءة حواشي الحساب من IndexedDB.
+   - تضمين `integrity.byteLength` وتطهير تلميح الحساب `accountScopeHint`.
+4. **إعادة تصميم سجل المعاملات حول مخزن الحقيقة المتين (Strict Fix D - Vault-Backed Durable Journal):**
+   - جعل `annotation_recovery_vault` في IndexedDB هو المصدر الوحيد لحالة ومراحل المعاملة: `PREPARE`, `APPLY_IDB`, `APPLY_LOCALSTORAGE`, `COMMITTED`, `FINALIZE`.
+   - التقاط لقطة تجميدية لكافة مفاتيح LocalStorage الاثني عشر وحواشي IndexedDB السابقة مع بيانات السجلات المستهدفة.
+   - إنشاء حاجز العمليات `pharmaImportBarrier_<uid>`.
+   - تراجع دقيق في `rollbackImportFromJournal` واستعادة الحالة السابقة وحذف السجلات الجديدة المستوردة.
+   - عند فشل التراجع، الانتقال فوراً إلى `ROLLBACK_FAILED_QUARANTINE` وتفعيل الحجر الصحي.
+   - في `recoverPendingImportJournalIfNeeded`: قراءة السجل مباشرة من IndexedDB؛ وجود مؤشر دون سجل يؤدي للحجر فورا؛ وجود سجل تالف يؤدي للحجر؛ مرحلة `COMMITTED` تُثبت وتُنهى؛ ما قبل `COMMITTED` يتراجع بأمان.
+   - حجب فوري حاسم (Fail-Closed) لأي محاولة رفع أو سحب سحابي (`pushWorkspaceToCloud`, `pullWorkspaceFromCloud`, `syncWorkspaceOnLogin`) عند وجود حاجز استيراد أو حجر نشط.
+5. **فحوصات الانهيار في المتصفح الحقيقي (Strict Fix E - Real Chromium Fault Injections):**
+   - سيناريوهات Test Y.5 وY.6 وY.7 في Chromium E2E تتحقق بنجاح 100% من تعافي مراحل ما قبل وما بعد `COMMITTED`، وحجر السجلات التالفة أو المفقودة، وحجب المزامنة السحابية أثناء الحجر.
+6. **حزمة قياس الأداء (Strict Fix F - Benchmark Tier A):**
+   - إضافة الملف المستقل والمكرر `/benchmark_tier_a.js` واختبار الحمولات 1، 5، 15، 25، 50 ميجابايت.
+7. **تدقيق تشخيص أخطاء Supabase (Strict Fix G - WP-8 Diagnostics Refinement):**
+   - تدقيق `classifySupabaseError` لاشتراط سياق الشبكة قبل تصنيف `offline` واشتراط سياق الدوال والوسائط قبل تصنيف `function_signature_mismatch`.
 
 ---
 
@@ -313,3 +327,4 @@ SELECT json_build_object(
 - **النسخ الاحتياطي والاستعادة القياسية (WP-7 JSON Backup & Restore):** مجاني 100% لكافة المستخدمين.
 - **VIP:** استحقاق يدوي حصري عبر تغيير `can_upload_media` في `public.user_workspaces` لرفع وسائط Google Drive والميزات الإضافية المعتمدة من المالك.
 - **حدود الصلاحيات:** لم يُجرَ أي دفع أو مزامنة لـ GitHub، والتغييرات بانتظار مراجعة المالك المستقلة.
+

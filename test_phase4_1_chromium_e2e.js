@@ -3169,6 +3169,7 @@ async function main() {
         'lec_y_replaced': { 1: [{ id: 'str_y_rep', tool: 'highlighter', color: '#fbbf24', points: [[5, 5]] }] }
       };
       const canonStr = canonicalizeJson(replaceObj.data);
+      replaceObj.integrity.byteLength = new TextEncoder().encode(canonStr).length;
       replaceObj.integrity.sha256 = await computeCanonicalSha256(canonStr);
 
       // Run Replace Restore
@@ -3178,6 +3179,7 @@ async function main() {
       return {
         restoreOk: restoreRes?.ok === true,
         restoreMode: restoreRes?.mode,
+        restoreReason: restoreRes?.reason,
         hasReplacedSub: subjects.some(s => s.id === 'sub_y_replaced'),
         oldSubGone: !subjects.some(s => s.id === 'sub_y_1'),
         hasReplacedAnno: Boolean(idbAfter?.verifiedMap?.lec_y_replaced),
@@ -3216,6 +3218,7 @@ async function main() {
       return {
         mergeOk: mergeRes?.ok === true,
         mergeMode: mergeRes?.mode,
+        mergeReason: mergeRes?.reason,
         hasBothSubs: subjects.some(s => s.id === 'sub_y_replaced') && subjects.some(s => s.id === 'sub_y_1'),
         hasBothAnnos: Boolean(idbAfterMerge?.verifiedMap?.lec_y_replaced) && Boolean(idbAfterMerge?.verifiedMap?.lec_y_1),
         modalExistsInDOM: Boolean(modalEl),
@@ -3240,9 +3243,9 @@ async function main() {
       const uidY = 'user_m6_e2e_y';
       const ctxY = createAccountOperationContext(uidY);
 
-      // Tamper backup data by modifying one property without updating sha256
+      // Tamper backup data by modifying one character preserving byte length without updating sha256
       const tamperedObj = JSON.parse(validBackupJson);
-      tamperedObj.data.subjects[0].name = 'Tampered Subject Name';
+      tamperedObj.data.schedule.events[0].id = 'ev_y_2'; // preserves byteLength, alters SHA-256
       const tamperedRes = await importWorkspaceBackupV4(tamperedObj, 'merge', uidY, ctxY);
 
       // WP-8 Diagnostics check in browser
@@ -3283,6 +3286,152 @@ async function main() {
       resY4.passwordRedacted === true,
       'Test Y.4 (M6 WP-7 & WP-8): Real Chromium rejects tampered backup fail-closed via SHA-256 mismatch, deterministically classifies Supabase errors, and redacts secrets',
       JSON.stringify(resY4)
+    );
+
+    // Test Y.5: Real Chromium Crash Recovery across phases (PREPARE, APPLY_IDB, COMMITTED)
+    const resY5 = await pageY.evaluate(async () => {
+      const uidCrash = 'user_m6_e2e_crash_phases';
+      await handleAuthSessionChange({ id: uidCrash, email: 'usercrash@exo.edu', name: 'User Crash' }, false);
+      const ctxCrash = createAccountOperationContext(uidCrash);
+
+      // Scenario 1: Interrupted at APPLY_IDB (pre-COMMITTED) -> Should safely roll back
+      const journalKey = toScopedKey('__import_journal_v1__', uidCrash);
+      localStorage.setItem('pharmaSubjectsV4', JSON.stringify([{ id: 'sub_uncommitted', name: 'مادة غير مثبتة' }]));
+      localStorage.setItem('pharmaImportTxState_' + uidCrash, JSON.stringify({ phase: 'APPLY_IDB', mode: 'replace', startedAt: Date.now() }));
+      localStorage.setItem('pharmaImportBarrier_' + uidCrash, JSON.stringify({ txId: 'tx_crash_1', startedAt: Date.now() }));
+
+      await new Promise((resolve, reject) => {
+        const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+        const store = tx.objectStore('annotation_recovery_vault');
+        store.put({
+          id: journalKey,
+          userId: uidCrash,
+          phase: 'APPLY_IDB',
+          mode: 'replace',
+          preImportSnapshot: {
+            localStorage: {
+              pharmaSubjectsV4: { existed: true, value: JSON.stringify([{ id: 'sub_durable_restored', name: 'مادة أصلية مسترجعة' }]) }
+            },
+            annotations: {}
+          }
+        });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+
+      const recoverPreCommitRes = await recoverPendingImportJournalIfNeeded(uidCrash, ctxCrash);
+
+      // Scenario 2: Interrupted at COMMITTED -> Should safely finalize
+      localStorage.setItem('pharmaImportTxState_' + uidCrash, JSON.stringify({ phase: 'COMMITTED', mode: 'replace', startedAt: Date.now() }));
+      localStorage.setItem('pharmaImportBarrier_' + uidCrash, JSON.stringify({ txId: 'tx_crash_2', startedAt: Date.now() }));
+      await new Promise((resolve, reject) => {
+        const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+        const store = tx.objectStore('annotation_recovery_vault');
+        store.put({
+          id: journalKey,
+          userId: uidCrash,
+          phase: 'COMMITTED',
+          mode: 'replace',
+          preImportSnapshot: { localStorage: {}, annotations: {} }
+        });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+
+      const recoverCommittedRes = await recoverPendingImportJournalIfNeeded(uidCrash, ctxCrash);
+
+      return {
+        preCommitRecovered: recoverPreCommitRes?.recovered === true,
+        preCommitAction: recoverPreCommitRes?.action,
+        preCommitRestoredContent: localStorage.getItem('pharmaSubjectsV4')?.includes('مادة أصلية مسترجعة'),
+        preCommitBarrierCleared: localStorage.getItem('pharmaImportBarrier_' + uidCrash) === null,
+        committedRecovered: recoverCommittedRes?.recovered === true,
+        committedAction: recoverCommittedRes?.action,
+        committedBarrierCleared: localStorage.getItem('pharmaImportBarrier_' + uidCrash) === null
+      };
+    });
+
+    assert(
+      resY5.preCommitRecovered === true &&
+      resY5.preCommitAction === 'rolled_back' &&
+      resY5.preCommitRestoredContent === true &&
+      resY5.preCommitBarrierCleared === true &&
+      resY5.committedRecovered === true &&
+      resY5.committedAction === 'finalized' &&
+      resY5.committedBarrierCleared === true,
+      'Test Y.5 (M6): Real Chromium crash recovery rolls back pre-COMMITTED phase and finalizes COMMITTED phase from durable IndexedDB vault',
+      JSON.stringify(resY5)
+    );
+
+    // Test Y.6: Missing journal record with pointer & corrupt journal record trigger fail-closed quarantine
+    const resY6 = await pageY.evaluate(async () => {
+      const uidQuar = 'user_m6_e2e_quar_test';
+      await handleAuthSessionChange({ id: uidQuar, email: 'userquar@exo.edu', name: 'User Quar' }, false);
+      const ctxQuar = createAccountOperationContext(uidQuar);
+
+      // Case 1: LocalStorage pointer exists, but IndexedDB vault has NO journal entry -> Quarantine
+      localStorage.setItem('pharmaImportTxState_' + uidQuar, JSON.stringify({ phase: 'COMMITTED', mode: 'merge', startedAt: Date.now() }));
+      const missingVaultRes = await recoverPendingImportJournalIfNeeded(uidQuar, ctxQuar);
+
+      // Case 2: IndexedDB vault has corrupt/unrecognized journal -> Quarantine
+      const corruptKey = toScopedKey('__import_journal_v1__', uidQuar);
+      await new Promise((resolve, reject) => {
+        const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+        const store = tx.objectStore('annotation_recovery_vault');
+        store.put({ id: corruptKey, userId: uidQuar, phase: 'CORRUPTED_PHASE' });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+      const corruptVaultRes = await recoverPendingImportJournalIfNeeded(uidQuar, ctxQuar);
+
+      return {
+        missingQuarantined: missingVaultRes?.quarantine === true && missingVaultRes?.reason === 'MISSING_JOURNAL_RECORD',
+        missingFlagStored: localStorage.getItem('pharmaImportQuarantine_' + uidQuar) !== null,
+        corruptQuarantined: corruptVaultRes?.quarantine === true && corruptVaultRes?.reason === 'CORRUPT_JOURNAL'
+      };
+    });
+
+    assert(
+      resY6.missingQuarantined === true &&
+      resY6.missingFlagStored === true &&
+      resY6.corruptQuarantined === true,
+      'Test Y.6 (M6): Real Chromium missing or corrupt journal in IndexedDB triggers fail-closed quarantine and locks account',
+      JSON.stringify(resY6)
+    );
+
+    // Test Y.7: Cloud Push & Pull operations are strictly blocked when account import barrier or quarantine is active
+    const resY7 = await pageY.evaluate(async () => {
+      const uidGate = 'user_m6_e2e_gate_test';
+      await handleAuthSessionChange({ id: uidGate, email: 'usergate@exo.edu', name: 'User Gate' }, false);
+      const ctxGate = createAccountOperationContext(uidGate);
+
+      // 1. Test barrier blocks push & pull
+      localStorage.setItem('pharmaImportBarrier_' + uidGate, JSON.stringify({ txId: 'tx_gate_active', startedAt: Date.now() }));
+      const pushBlocked = await pushWorkspaceToCloud(false, false, ctxGate);
+      const pullBlocked = await pullWorkspaceFromCloud(false, ctxGate);
+      localStorage.removeItem('pharmaImportBarrier_' + uidGate);
+
+      // 2. Test quarantine blocks push & pull
+      localStorage.setItem('pharmaImportQuarantine_' + uidGate, JSON.stringify({ quarantinedAt: Date.now(), reason: 'fault_injection' }));
+      const pushQuarBlocked = await pushWorkspaceToCloud(false, false, ctxGate);
+      const pullQuarBlocked = await pullWorkspaceFromCloud(false, ctxGate);
+      localStorage.removeItem('pharmaImportQuarantine_' + uidGate);
+
+      return {
+        barrierPushBlocked: pushBlocked?.status === 'aborted' && pushBlocked?.reason === 'import_in_progress',
+        barrierPullBlocked: pullBlocked?.status === 'aborted' && pullBlocked?.reason === 'import_in_progress',
+        quarPushBlocked: pushQuarBlocked?.status === 'aborted' && pushQuarBlocked?.reason === 'quarantine_active',
+        quarPullBlocked: pullQuarBlocked?.status === 'aborted' && pullQuarBlocked?.reason === 'quarantine_active'
+      };
+    });
+
+    assert(
+      resY7.barrierPushBlocked === true &&
+      resY7.barrierPullBlocked === true &&
+      resY7.quarPushBlocked === true &&
+      resY7.quarPullBlocked === true,
+      'Test Y.7 (M6): Real Chromium cloud push and pull are blocked fail-closed when account import barrier or quarantine is active',
+      JSON.stringify(resY7)
     );
 
     await pageY.close();

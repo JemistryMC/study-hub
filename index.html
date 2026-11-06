@@ -11253,15 +11253,15 @@
         }
 
         function deepSanitizeBackupObject(obj, depth = 0) {
-            if (depth > 8 || obj === null || obj === undefined) return obj;
+            if (depth > 32 || obj === null || obj === undefined) return obj;
             if (typeof obj === 'string') {
-                return sanitizeUserText(obj, 1200);
+                return obj.replace(/\0/g, '');
             }
             if (typeof obj === 'number' || typeof obj === 'boolean') {
                 return obj;
             }
             if (Array.isArray(obj)) {
-                return obj.slice(0, 2500).map(item => deepSanitizeBackupObject(item, depth + 1));
+                return obj.map(item => deepSanitizeBackupObject(item, depth + 1));
             }
             if (typeof obj === 'object') {
                 const clean = {};
@@ -19483,29 +19483,65 @@
             return computePureSha256(str);
         }
 
+        // Global account operation barriers & quarantines for backup import
+        const activeImportBarriersByAccount = new Map();
+        const activeImportQuarantinesByAccount = new Map();
+
+        function isImportInProgressOrQuarantined(uid) {
+            if (!uid) return { blocked: false };
+            const quarantineRaw = (typeof localStorage !== 'undefined' && localStorage.getItem) ? localStorage.getItem('pharmaImportQuarantine_' + uid) : null;
+            const isQuarantinedInMem = (typeof activeImportQuarantinesByAccount !== 'undefined' && activeImportQuarantinesByAccount.get) ? activeImportQuarantinesByAccount.get(uid) : false;
+            if (quarantineRaw || isQuarantinedInMem) {
+                return {
+                    blocked: true,
+                    reason: 'quarantine_active',
+                    error: 'Workspace account is quarantined due to an unresolved restore or rollback failure. Cloud sync is disabled.'
+                };
+            }
+            const barrierRaw = (typeof localStorage !== 'undefined' && localStorage.getItem) ? localStorage.getItem('pharmaImportBarrier_' + uid) : null;
+            const isBarrierInMem = (typeof activeImportBarriersByAccount !== 'undefined' && activeImportBarriersByAccount.get) ? activeImportBarriersByAccount.get(uid) : false;
+            if (barrierRaw || isBarrierInMem) {
+                return {
+                    blocked: true,
+                    reason: 'import_in_progress',
+                    error: 'Workspace import is currently in progress for this account. Competing operations are blocked.'
+                };
+            }
+            return { blocked: false };
+        }
+
         // Export complete Tier A workspace backup (v4 schema with canonical SHA-256 integrity hash)
         async function exportWorkspaceBackupV4(targetUserId = null, ctx = null) {
             const opCtx = resolveAccountOperationContext(targetUserId, ctx);
             if (!opCtx.ok || !opCtx.isCurrent()) {
-                throw new Error('Account operation context invalid or switched');
+                throw new Error('ACCOUNT_CONTEXT_INVALID: Account operation context invalid or switched');
             }
             const uid = opCtx.uid;
 
-            // Flush pending annotation modifications before taking snapshot
+            // Fail-closed: flush pending annotation modifications before taking snapshot; abort on failure
             if (typeof flushPendingAnnotationsSave === 'function') {
                 try {
-                    await flushPendingAnnotationsSave(false, opCtx);
+                    const flushRes = await flushPendingAnnotationsSave(false, opCtx);
+                    if (flushRes === false || (flushRes && flushRes.ok === false)) {
+                        throw new Error('ANNOTATION_FLUSH_FAILED: Flush returned unsuccessful');
+                    }
                 } catch (flushErr) {
-                    console.warn('Annotation flush before backup export encountered warning:', flushErr);
+                    throw new Error('ANNOTATION_FLUSH_FAILED: Failed to flush pending annotations before backup export: ' + (flushErr?.message || String(flushErr)));
                 }
             }
 
-            // Read all verified account annotations from IndexedDB
+            if (!opCtx.isCurrent()) {
+                throw new Error('ACCOUNT_CONTEXT_SWITCHED: Context switched during annotation flush');
+            }
+
+            // Read all verified account annotations from IndexedDB - Fail-closed if read fails
             let annotationsMap = {};
             if (typeof getAllAnnotationsMapFromDB === 'function') {
                 const annoRes = await getAllAnnotationsMapFromDB(uid, opCtx);
-                if (annoRes && annoRes.ok && annoRes.verifiedMap) {
-                    // Export portable raw IDs so backup is universally verifiable
+                if (!annoRes || !annoRes.ok) {
+                    throw new Error('ANNOTATIONS_READ_FAILED: Failed to read complete account annotations from IndexedDB');
+                }
+                if (annoRes.verifiedMap) {
                     const verifiedMap = annoRes.verifiedMap;
                     Object.keys(verifiedMap).forEach(key => {
                         const rawId = typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(key) : key;
@@ -19515,6 +19551,9 @@
                     });
                 }
             }
+
+            // Sanitize account scope hint - never export raw authenticated UID
+            const accountScopeHint = 'account_' + (typeof uid === 'string' && uid.length > 8 ? uid.slice(0, 8) + '...' : 'active');
 
             // Complete Tier A data inventory (strictly no binary media, no credentials/tokens)
             const backupData = {
@@ -19549,7 +19588,7 @@
                 schema: 'exo_workspace_backup_v4',
                 version: 4,
                 exportedAt: new Date().toISOString(),
-                accountScopeHint: uid,
+                accountScopeHint: accountScopeHint,
                 integrity: {
                     algorithm: 'SHA-256',
                     canonicalScope: 'data',
@@ -19585,20 +19624,32 @@
             }
         }
 
-        // Inspect workspace backup file/string before restoring (size limit <= 50MB, integrity check, counts)
+        // Inspect workspace backup file/string before restoring (size limit <= 50MB, integrity check, required domains)
         async function inspectWorkspaceBackup(input) {
             let parsed = input;
             let byteLength = 0;
+
             if (typeof input === 'string') {
                 byteLength = new TextEncoder().encode(input).length;
-                if (byteLength > 50 * 1024 * 1024) {
-                    return {
-                        isValid: false,
-                        error: 'FILE_TOO_LARGE',
-                        errorAr: 'حجم ملف النسخة الاحتياطية يتجاوز الحد الأقصى المدعوم (50 ميجابايت)',
-                        sizeBytes: byteLength
-                    };
+            } else if (input && typeof input === 'object') {
+                try {
+                    const serialized = JSON.stringify(input);
+                    byteLength = new TextEncoder().encode(serialized).length;
+                } catch (e) {
+                    return { isValid: false, error: 'SERIALIZATION_FAILED', errorAr: 'فشل تسلسل بيانات النسخة الاحتياطية' };
                 }
+            }
+
+            if (byteLength > 50 * 1024 * 1024) {
+                return {
+                    isValid: false,
+                    error: 'FILE_TOO_LARGE',
+                    errorAr: 'حجم ملف النسخة الاحتياطية يتجاوز الحد الأقصى المدعوم (50 ميجابايت)',
+                    sizeBytes: byteLength
+                };
+            }
+
+            if (typeof input === 'string') {
                 try {
                     parsed = JSON.parse(input);
                 } catch (e) {
@@ -19611,31 +19662,106 @@
                 }
             }
 
-            if (!parsed || typeof parsed !== 'object') {
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
                 return { isValid: false, error: 'INVALID_OBJECT', errorAr: 'محتوى النسخة الاحتياطية غير صالح' };
             }
             parsed = JSON.parse(JSON.stringify(parsed));
 
-            const isV4 = (parsed.schema === 'exo_workspace_backup_v4' && parsed.version === 4 && parsed.data && typeof parsed.data === 'object');
+            const isV4 = (parsed.schema === 'exo_workspace_backup_v4' || parsed.version === 4);
             let targetData = null;
             let integrityStatus = 'none';
             let accountScopeHint = null;
+            let canReplace = true;
 
             if (isV4) {
+                if (parsed.schema !== 'exo_workspace_backup_v4') {
+                    return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'INVALID_SCHEMA', errorAr: 'معرف المخطط غير مطابق لـ exo_workspace_backup_v4' };
+                }
+                if (parsed.version !== 4) {
+                    return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'INVALID_VERSION', errorAr: 'رقم إصدار المخطط يجب أن يكون 4' };
+                }
+                if (!parsed.data || typeof parsed.data !== 'object' || Array.isArray(parsed.data)) {
+                    return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'INVALID_DATA_OBJECT', errorAr: 'حقل البيانات data مفقود أو غير صالح' };
+                }
+                if (!parsed.integrity || typeof parsed.integrity !== 'object' || Array.isArray(parsed.integrity)) {
+                    return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'INTEGRITY_MISSING', errorAr: 'كائن التحقق من السلامة integrity مفقود في النسخة v4' };
+                }
+                if (parsed.integrity.algorithm !== 'SHA-256') {
+                    return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'INVALID_INTEGRITY_ALGORITHM', errorAr: 'خوارزمية التشفير يجب أن تكون SHA-256' };
+                }
+                if (parsed.integrity.canonicalScope !== 'data') {
+                    return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'INVALID_CANONICAL_SCOPE', errorAr: 'نطاق التحقق المشفر يجب أن يكون data' };
+                }
+                const declaredSha = String(parsed.integrity.sha256 || '').trim().toLowerCase();
+                if (!/^[0-9a-f]{64}$/.test(declaredSha)) {
+                    return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'INVALID_DIGEST_FORMAT', errorAr: 'صيغة البصمة الرقمية SHA-256 غير صالحة' };
+                }
+
                 targetData = parsed.data;
                 accountScopeHint = parsed.accountScopeHint || null;
-                if (parsed.integrity && parsed.integrity.sha256) {
-                    const canonicalStr = canonicalizeJson(targetData);
-                    const computedSha = await computeCanonicalSha256(canonicalStr);
-                    if (computedSha.toLowerCase() === String(parsed.integrity.sha256).toLowerCase().trim()) {
-                        integrityStatus = 'valid';
-                    } else {
-                        integrityStatus = 'invalid';
+
+                // Explicit v4 required data domains validation
+                if (!('subjects' in targetData)) {
+                    return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'MISSING_REQUIRED_DOMAIN', missingDomain: 'subjects', errorAr: 'نطاق المواد الدراسية subjects مفقود في النسخة v4' };
+                }
+                if (!Array.isArray(targetData.subjects)) {
+                    return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'INVALID_DOMAIN_TYPE', domain: 'subjects', errorAr: 'نوع نطاق subjects غير صالح (يجب أن يكون مصفوفة)' };
+                }
+
+                if (!('schedule' in targetData)) {
+                    return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'MISSING_REQUIRED_DOMAIN', missingDomain: 'schedule', errorAr: 'نطاق الجدول الدراسي schedule مفقود في النسخة v4' };
+                }
+                if (!targetData.schedule || typeof targetData.schedule !== 'object') {
+                    return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'INVALID_DOMAIN_TYPE', domain: 'schedule', errorAr: 'نوع نطاق schedule غير صالح' };
+                }
+
+                if (!('logs' in targetData)) {
+                    return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'MISSING_REQUIRED_DOMAIN', missingDomain: 'logs', errorAr: 'نطاق سجلات المذاكرة logs مفقود في النسخة v4' };
+                }
+                if (!Array.isArray(targetData.logs)) {
+                    return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'INVALID_DOMAIN_TYPE', domain: 'logs', errorAr: 'نوع نطاق logs غير صالح (يجب أن يكون مصفوفة)' };
+                }
+
+                if (!('annotations' in targetData)) {
+                    return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'MISSING_REQUIRED_DOMAIN', missingDomain: 'annotations', errorAr: 'نطاق دفاتر الملاحظات annotations مفقود في النسخة v4' };
+                }
+                if (!targetData.annotations || typeof targetData.annotations !== 'object' || Array.isArray(targetData.annotations)) {
+                    return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'INVALID_DOMAIN_TYPE', domain: 'annotations', errorAr: 'نوع نطاق annotations غير صالح (يجب أن يكون كائناً)' };
+                }
+
+                // Nested structure validation
+                for (const s of targetData.subjects) {
+                    if (!s || typeof s !== 'object' || !s.id) {
+                        return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'MALFORMED_SUBJECT_ENTRY', errorAr: 'عنصر مادة دراسية غير صالح أو مفقود المعرف' };
                     }
                 }
+                for (const [k, val] of Object.entries(targetData.annotations)) {
+                    if (val !== null && typeof val !== 'object') {
+                        return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'MALFORMED_ANNOTATION_ENTRY', errorAr: 'عنصر حواشي غير صالح في المحاضرة: ' + k };
+                    }
+                }
+
+                const canonicalStr = canonicalizeJson(targetData);
+                const computedByteLength = new TextEncoder().encode(canonicalStr).length;
+                if (typeof parsed.integrity.byteLength !== 'number' || parsed.integrity.byteLength !== computedByteLength) {
+                    return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'BYTE_LENGTH_MISMATCH', errorAr: 'طول البايتات المصرح به غير مطابق لحجم البيانات المقننة' };
+                }
+
+                const computedSha = await computeCanonicalSha256(canonicalStr);
+                if (computedSha !== declaredSha) {
+                    return { isValid: false, isV4: true, integrityStatus: 'invalid', error: 'INTEGRITY_MISMATCH', errorAr: 'فشل التحقق من صحة التشفير (SHA-256 mismatch)' };
+                }
+
+                integrityStatus = 'valid';
+                canReplace = true;
             } else {
                 targetData = deepSanitizeBackupObject(parsed);
                 integrityStatus = 'none';
+
+                const hasSubjects = Array.isArray(targetData.subjects);
+                const hasSchedule = targetData.schedule && typeof targetData.schedule === 'object';
+                const hasLogs = Array.isArray(targetData.logs);
+                canReplace = Boolean(hasSubjects && (hasSchedule || hasLogs));
             }
 
             const normSubjects = Array.isArray(targetData.subjects) ? targetData.subjects : [];
@@ -19667,6 +19793,7 @@
             return {
                 isValid: true,
                 isV4,
+                canReplace,
                 integrityStatus,
                 expectedSha: parsed.integrity?.sha256 || null,
                 accountScopeHint,
@@ -19688,7 +19815,7 @@
             };
         }
 
-        // Staged crash-recoverable import transaction execution (5-phase lifecycle: PREPARE -> APPLY_IDB -> APPLY_LOCALSTORAGE -> COMMITTED -> FINALIZE)
+        // Staged crash-recoverable import transaction execution (5-phase durable lifecycle in IndexedDB vault)
         async function importWorkspaceBackupV4(backupInput, mode = 'merge', targetUserId = null, ctx = null) {
             const chosenMode = (mode === 'replace') ? 'replace' : 'merge';
             const opCtx = resolveAccountOperationContext(targetUserId, ctx);
@@ -19697,12 +19824,21 @@
             }
             const uid = opCtx.uid;
 
+            // Gate: Block if account is quarantined or another import is in progress
+            const gateCheck = isImportInProgressOrQuarantined(uid);
+            if (gateCheck.blocked) {
+                return { ok: false, status: 'error', reason: gateCheck.reason, error: gateCheck.error };
+            }
+
             const inspection = await inspectWorkspaceBackup(backupInput);
             if (!inspection || !inspection.isValid) {
                 return { ok: false, status: 'error', reason: inspection?.error || 'INVALID_BACKUP', error: inspection?.errorAr || 'Backup inspection failed' };
             }
-            if (inspection.isV4 && inspection.integrityStatus === 'invalid') {
+            if (inspection.isV4 && inspection.integrityStatus !== 'valid') {
                 return { ok: false, status: 'error', reason: 'INTEGRITY_MISMATCH', error: 'فشل التحقق من صحة التشفير (SHA-256 mismatch): محتوى النسخة قد تم تعديله أو تلفه' };
+            }
+            if (chosenMode === 'replace' && inspection.canReplace === false) {
+                return { ok: false, status: 'error', reason: 'REPLACE_MODE_DISALLOWED', error: 'Replace mode disallowed because backup lacks required data domains' };
             }
 
             if (!dbInstance && typeof initPdfDB === 'function') {
@@ -19713,18 +19849,39 @@
             }
 
             const targetData = inspection.normalizedData;
+            const txId = 'imp_tx_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
             const txStateKey = 'pharmaImportTxState_' + uid;
+            const barrierKey = 'pharmaImportBarrier_' + uid;
             const journalScopedKey = toScopedKey('__import_journal_v1__', uid);
 
+            // Establish account operation barrier across tabs
+            localStorage.setItem(barrierKey, JSON.stringify({ txId, startedAt: Date.now() }));
+            activeImportBarriersByAccount.set(uid, txId);
+
             // --- PHASE 1: PREPARE ---
-            // Snapshot current local state into crash-recovery journal record in annotation_recovery_vault
-            const preImportLocalStorage = {
-                pharmaSubjectsV4: localStorage.getItem('pharmaSubjectsV4'),
-                pharmaScheduleV4: localStorage.getItem('pharmaScheduleV4'),
-                pharmaLogsV4: localStorage.getItem('pharmaLogsV4'),
-                pharmaCompletedAcademyModules: localStorage.getItem('pharmaCompletedAcademyModules'),
-                pharmaCloudMediaRegistry: localStorage.getItem('pharmaCloudMediaRegistry')
-            };
+            // Complete snapshot of all managed LocalStorage keys with exact prior existence state
+            const managedKeys = [
+                'pharmaSubjectsV4',
+                'pharmaScheduleV4',
+                'pharmaLogsV4',
+                'pharmaWeeklyReportsV1',
+                'pharmaScheduleBacklogV1',
+                'pharmaAcademyProgressV1',
+                'pharmaCloudMediaRegistryV1',
+                'pharmaPlannerPrefsV1',
+                'pharmaPdfFitMode',
+                'pharmaWorkspaceDirty',
+                'pharmaWorkspaceDirty_' + uid,
+                'pharmaWorkspaceRevision_' + uid
+            ];
+            const preImportLocalStorage = {};
+            managedKeys.forEach(k => {
+                const val = localStorage.getItem(k);
+                preImportLocalStorage[k] = {
+                    existed: (val !== null),
+                    value: val
+                };
+            });
 
             let currentAnnosMap = {};
             try {
@@ -19736,41 +19893,64 @@
                 console.warn('Warning snapshotting current annotations during import prepare:', readErr);
             }
 
+            const incomingAnnos = (targetData && targetData.annotations && typeof targetData.annotations === 'object') ? targetData.annotations : {};
+            const incomingLecIds = Object.keys(incomingAnnos).filter(k => !String(k).startsWith('_cloudMedia_'));
+            const targetRecordManifest = incomingLecIds.map(lecId => {
+                const rawLec = typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(lecId) : lecId;
+                return toScopedKey(rawLec, uid);
+            });
+            const replacementDeletionManifest = (chosenMode === 'replace')
+                ? Object.keys(currentAnnosMap).map(k => toScopedKey(typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(k) : k, uid))
+                : [];
+
             const journalRecord = {
                 id: journalScopedKey,
+                txId: txId,
                 userId: uid,
                 phase: 'PREPARE',
                 mode: chosenMode,
+                schema: inspection.isV4 ? 'exo_workspace_backup_v4' : 'legacy',
+                digest: inspection.expectedSha || null,
                 startedAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
                 preImportSnapshot: {
                     localStorage: preImportLocalStorage,
                     annotations: currentAnnosMap
-                }
+                },
+                targetRecordManifest: targetRecordManifest,
+                replacementDeletionManifest: replacementDeletionManifest
             };
 
-            try {
+            // Helper to persist phase transition into durable IndexedDB vault
+            async function persistPhase(newPhase) {
+                journalRecord.phase = newPhase;
+                journalRecord.updatedAt = new Date().toISOString();
                 await new Promise((resolve, reject) => {
                     const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
                     tx.objectStore('annotation_recovery_vault').put(journalRecord);
                     tx.oncomplete = () => resolve();
-                    tx.onerror = () => reject(tx.error);
-                    tx.onabort = () => reject(tx.error);
+                    tx.onerror = () => reject(tx.error || new Error('Vault transaction failed'));
+                    tx.onabort = () => reject(tx.error || new Error('Vault transaction aborted'));
                 });
-                localStorage.setItem(txStateKey, JSON.stringify({ phase: 'PREPARE', mode: chosenMode, startedAt: Date.now() }));
+                localStorage.setItem(txStateKey, JSON.stringify({ txId, phase: newPhase, mode: chosenMode, startedAt: journalRecord.startedAt }));
+            }
+
+            try {
+                await persistPhase('PREPARE');
             } catch (prepareErr) {
+                localStorage.removeItem(barrierKey);
+                activeImportBarriersByAccount.delete(uid);
                 return { ok: false, status: 'error', reason: 'JOURNAL_PREPARE_FAILED', error: 'Failed to stage recovery journal: ' + prepareErr?.message };
             }
 
             if (!opCtx.isCurrent()) {
+                await rollbackImportFromJournal(uid, journalRecord);
                 return { ok: false, status: 'aborted', reason: 'account_switched' };
             }
 
             // --- PHASE 2: APPLY_IDB ---
-            localStorage.setItem(txStateKey, JSON.stringify({ phase: 'APPLY_IDB', mode: chosenMode, startedAt: Date.now() }));
-
             try {
-                const incomingAnnos = (targetData && targetData.annotations && typeof targetData.annotations === 'object') ? targetData.annotations : {};
-                const incomingLecIds = Object.keys(incomingAnnos).filter(k => !String(k).startsWith('_cloudMedia_'));
+                await persistPhase('APPLY_IDB');
 
                 await new Promise((resolve, reject) => {
                     const tx = dbInstance.transaction('annotations', 'readwrite');
@@ -19827,20 +20007,19 @@
                 });
             } catch (idbErr) {
                 console.error('IDB apply failure during backup restore:', idbErr);
-                // Rollback IDB immediately from journal
-                await rollbackImportFromJournal(uid, journalRecord.preImportSnapshot);
+                await rollbackImportFromJournal(uid, journalRecord);
                 return { ok: false, status: 'error', reason: 'IDB_APPLY_FAILED', error: 'Failed to apply annotations to IndexedDB: ' + idbErr?.message };
             }
 
             if (!opCtx.isCurrent()) {
-                await rollbackImportFromJournal(uid, journalRecord.preImportSnapshot);
+                await rollbackImportFromJournal(uid, journalRecord);
                 return { ok: false, status: 'aborted', reason: 'account_switched' };
             }
 
             // --- PHASE 3: APPLY_LOCALSTORAGE ---
-            localStorage.setItem(txStateKey, JSON.stringify({ phase: 'APPLY_LOCALSTORAGE', mode: chosenMode, startedAt: Date.now() }));
-
             try {
+                await persistPhase('APPLY_LOCALSTORAGE');
+
                 if (chosenMode === 'replace') {
                     if (Array.isArray(targetData.subjects)) {
                         subjects = targetData.subjects;
@@ -19942,12 +20121,16 @@
                 }
             } catch (lsErr) {
                 console.error('LocalStorage apply failure during backup restore:', lsErr);
-                await rollbackImportFromJournal(uid, journalRecord.preImportSnapshot);
+                await rollbackImportFromJournal(uid, journalRecord);
                 return { ok: false, status: 'error', reason: 'LOCALSTORAGE_APPLY_FAILED', error: 'Failed to update local workspace data: ' + lsErr?.message };
             }
 
             // --- PHASE 4: COMMITTED ---
-            localStorage.setItem(txStateKey, JSON.stringify({ phase: 'COMMITTED', mode: chosenMode, startedAt: Date.now() }));
+            try {
+                await persistPhase('COMMITTED');
+            } catch (commErr) {
+                console.warn('Warning committing phase to vault:', commErr);
+            }
 
             // --- PHASE 5: FINALIZE ---
             try {
@@ -19959,7 +20142,10 @@
                     tx.onabort = () => resolve();
                 });
             } catch (e) {}
+
             localStorage.removeItem(txStateKey);
+            localStorage.removeItem(barrierKey);
+            activeImportBarriersByAccount.delete(uid);
 
             // Re-render UI views
             if (typeof renderSubjectsList === 'function') renderSubjectsList();
@@ -19976,62 +20162,119 @@
         }
 
         // Rollback helper for interrupted/failed import transactions
-        async function rollbackImportFromJournal(uid, preImportSnapshot) {
-            if (!preImportSnapshot) return;
-            const opCtx = resolveAccountOperationContext(uid);
+        async function rollbackImportFromJournal(uid, journal) {
+            if (!journal) return { ok: false, error: 'NO_JOURNAL' };
+            const snapshot = journal.preImportSnapshot || journal;
             console.warn('Executing emergency rollback of interrupted import transaction for user:', uid);
 
-            // Restore LocalStorage
-            if (preImportSnapshot.localStorage) {
-                const ls = preImportSnapshot.localStorage;
-                if (ls.pharmaSubjectsV4 !== null) localStorage.setItem('pharmaSubjectsV4', ls.pharmaSubjectsV4);
-                if (ls.pharmaScheduleV4 !== null) localStorage.setItem('pharmaScheduleV4', ls.pharmaScheduleV4);
-                if (ls.pharmaLogsV4 !== null) localStorage.setItem('pharmaLogsV4', ls.pharmaLogsV4);
-                try {
-                    subjects = JSON.parse(ls.pharmaSubjectsV4 || '[]');
-                    const sched = JSON.parse(ls.pharmaScheduleV4 || '{}');
-                    scheduleEvents = Array.isArray(sched.events) ? sched.events : [];
-                    scheduleBacklog = Array.isArray(sched.backlog) ? sched.backlog : [];
-                    logs = JSON.parse(ls.pharmaLogsV4 || '[]');
-                } catch (e) {}
-            }
+            try {
+                // 1. Restore LocalStorage
+                if (snapshot.localStorage) {
+                    const ls = snapshot.localStorage;
+                    Object.keys(ls).forEach(k => {
+                        const item = ls[k];
+                        if (item && item.existed === false) {
+                            localStorage.removeItem(k);
+                        } else if (item && item.value !== null && item.value !== undefined) {
+                            localStorage.setItem(k, item.value);
+                        } else if (typeof item === 'string') {
+                            localStorage.setItem(k, item);
+                        }
+                    });
 
-            // Restore IndexedDB annotations
-            if (dbInstance && preImportSnapshot.annotations) {
-                try {
-                    await new Promise((resolve) => {
+                    try {
+                        subjects = JSON.parse(localStorage.getItem('pharmaSubjectsV4') || '[]');
+                        const sched = JSON.parse(localStorage.getItem('pharmaScheduleV4') || '{}');
+                        scheduleEvents = Array.isArray(sched.events) ? sched.events : [];
+                        scheduleBacklog = Array.isArray(sched.backlog) ? sched.backlog : [];
+                        plannerPrefs = sched.plannerPrefs || {};
+                        weeklyReports = Array.isArray(sched.weeklyReports) ? sched.weeklyReports : [];
+                        completedAcademyModules = Array.isArray(sched.academy_progress) ? sched.academy_progress : [];
+                        cloudMediaRegistry = sched.cloudMediaRegistry || {};
+                        logs = JSON.parse(localStorage.getItem('pharmaLogsV4') || '[]');
+                    } catch (e) {}
+                }
+
+                // 2. Restore IndexedDB annotations
+                if (dbInstance && snapshot.annotations) {
+                    await new Promise((resolve, reject) => {
                         const tx = dbInstance.transaction('annotations', 'readwrite');
                         const store = tx.objectStore('annotations');
-                        const map = preImportSnapshot.annotations;
-                        Object.keys(map).forEach(rawLec => {
-                            const pages = map[rawLec];
+                        const originalMap = snapshot.annotations;
+
+                        // Delete newly introduced target records that were not originally present
+                        if (Array.isArray(journal.targetRecordManifest)) {
+                            journal.targetRecordManifest.forEach(scopedKey => {
+                                const rawId = typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(scopedKey) : scopedKey;
+                                if (!originalMap[rawId] && !originalMap[scopedKey]) {
+                                    store.delete(toScopedKey(rawId, uid));
+                                }
+                            });
+                        }
+
+                        // Restore original records
+                        Object.keys(originalMap).forEach(rawLec => {
+                            const pages = originalMap[rawLec];
                             if (pages) {
                                 const scopedKey = toScopedKey(rawLec, uid);
+                                const pagesVal = (pages.pages && typeof pages.pages === 'object' && !Array.isArray(pages.pages)) ? pages.pages : pages;
                                 store.put({
                                     id: scopedKey,
                                     rawId: rawLec,
                                     userId: uid,
-                                    pages: pages,
+                                    pages: pagesVal,
                                     updatedAt: new Date().toISOString()
                                 });
                             }
                         });
-                        tx.oncomplete = () => resolve();
-                        tx.onerror = () => resolve();
-                        tx.onabort = () => resolve();
-                    });
-                } catch (e) {}
-            }
 
-            // Clean up journal & tx state
-            const journalScopedKey = toScopedKey('__import_journal_v1__', uid);
-            if (dbInstance) {
-                try {
-                    const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
-                    tx.objectStore('annotation_recovery_vault').delete(journalScopedKey);
-                } catch (e) {}
+                        tx.oncomplete = () => resolve();
+                        tx.onerror = () => reject(tx.error || new Error('IDB rollback aborted'));
+                        tx.onabort = () => reject(tx.error || new Error('IDB rollback aborted'));
+                    });
+                }
+
+                // Clean up journal & tx state upon successful rollback
+                const journalScopedKey = toScopedKey('__import_journal_v1__', uid);
+                if (dbInstance) {
+                    await new Promise((resolve, reject) => {
+                        const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+                        tx.objectStore('annotation_recovery_vault').delete(journalScopedKey);
+                        tx.oncomplete = () => resolve();
+                        tx.onerror = () => reject(tx.error);
+                        tx.onabort = () => reject(tx.error);
+                    });
+                }
+
+                localStorage.removeItem('pharmaImportTxState_' + uid);
+                localStorage.removeItem('pharmaImportBarrier_' + uid);
+                activeImportBarriersByAccount.delete(uid);
+
+                return { ok: true, rolledBack: true };
+            } catch (rbErr) {
+                console.error('CRITICAL: Emergency rollback failed, quarantining account:', rbErr);
+                const journalScopedKey = toScopedKey('__import_journal_v1__', uid);
+                if (dbInstance && journal.phase) {
+                    try {
+                        journal.phase = 'ROLLBACK_FAILED_QUARANTINE';
+                        journal.quarantineError = String(rbErr?.message || rbErr);
+                        journal.quarantinedAt = new Date().toISOString();
+                        const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+                        tx.objectStore('annotation_recovery_vault').put(journal);
+                    } catch (e) {}
+                }
+                localStorage.setItem('pharmaImportQuarantine_' + uid, JSON.stringify({
+                    userId: uid,
+                    quarantinedAt: Date.now(),
+                    error: String(rbErr?.message || rbErr)
+                }));
+                activeImportQuarantinesByAccount.set(uid, true);
+                return { ok: false, status: 'quarantine', reason: 'ROLLBACK_FAILED_QUARANTINE', error: rbErr };
             }
-            localStorage.removeItem('pharmaImportTxState_' + uid);
+        }
+
+        function rawLecSafe(k) {
+            return typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(k) : k;
         }
 
         // Automatic crash-recovery hook executed on startup / login
@@ -20040,50 +20283,84 @@
             if (!opCtx.ok || !opCtx.isCurrent()) return { recovered: false, reason: 'invalid_context' };
             const uid = opCtx.uid;
 
-            const txStateKey = 'pharmaImportTxState_' + uid;
-            const txRaw = localStorage.getItem(txStateKey);
-            if (!txRaw) return { recovered: false };
-
-            let txState = null;
-            try { txState = JSON.parse(txRaw); } catch (e) { return { recovered: false }; }
-            if (!txState || !txState.phase) return { recovered: false };
-
             if (!dbInstance && typeof initPdfDB === 'function') {
                 try { await initPdfDB(); } catch (e) {}
             }
             if (!dbInstance) return { recovered: false, reason: 'db_not_ready' };
 
+            const txStateKey = 'pharmaImportTxState_' + uid;
+            const txRaw = localStorage.getItem(txStateKey);
             const journalScopedKey = toScopedKey('__import_journal_v1__', uid);
+
+            // Authoritative journal record discovery directly from IndexedDB vault
             let journalRecord = null;
             try {
                 journalRecord = await new Promise((resolve) => {
                     const tx = dbInstance.transaction('annotation_recovery_vault', 'readonly');
                     const req = tx.objectStore('annotation_recovery_vault').get(journalScopedKey);
-                    req.onsuccess = () => resolve(req.result);
+                    req.onsuccess = () => resolve(req.result || null);
                     req.onerror = () => resolve(null);
                 });
             } catch (e) {}
 
-            if (txState.phase === 'COMMITTED') {
-                // Transaction succeeded before finalization cleanup: complete finalization cleanly
+            // 1. Account already in quarantine
+            if (journalRecord && journalRecord.phase === 'ROLLBACK_FAILED_QUARANTINE') {
+                localStorage.setItem('pharmaImportQuarantine_' + uid, JSON.stringify({ userId: uid, quarantinedAt: journalRecord.quarantinedAt }));
+                activeImportQuarantinesByAccount.set(uid, true);
+                return { recovered: false, quarantine: true, reason: 'ROLLBACK_FAILED_QUARANTINE' };
+            }
+
+            // 2. Pointer exists in LocalStorage but journal missing from IndexedDB: FAIL CLOSED / QUARANTINE!
+            if (txRaw && !journalRecord) {
+                console.error('Import transaction pointer exists in LocalStorage but journal record missing in IndexedDB: quarantining fail-closed');
+                localStorage.setItem('pharmaImportQuarantine_' + uid, JSON.stringify({ userId: uid, quarantinedAt: Date.now(), error: 'MISSING_JOURNAL_RECORD' }));
+                activeImportQuarantinesByAccount.set(uid, true);
+                return { recovered: false, quarantine: true, reason: 'MISSING_JOURNAL_RECORD' };
+            }
+
+            // 3. Neither exists: nothing to recover
+            if (!txRaw && !journalRecord) {
+                return { recovered: false };
+            }
+
+            // 4. Corrupt journal in IndexedDB: fail closed / quarantine
+            if (!journalRecord || typeof journalRecord !== 'object' || !journalRecord.phase || !journalRecord.preImportSnapshot) {
+                console.error('Corrupt import journal detected in IndexedDB: quarantining fail-closed');
+                localStorage.setItem('pharmaImportQuarantine_' + uid, JSON.stringify({ userId: uid, quarantinedAt: Date.now(), error: 'CORRUPT_JOURNAL' }));
+                activeImportQuarantinesByAccount.set(uid, true);
+                return { recovered: false, quarantine: true, reason: 'CORRUPT_JOURNAL' };
+            }
+
+            // 5. Authoritative phase evaluation from IndexedDB
+            if (journalRecord.phase === 'COMMITTED') {
+                // Transaction completed through COMMITTED: finalize cleanly
                 try {
-                    const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
-                    tx.objectStore('annotation_recovery_vault').delete(journalScopedKey);
+                    await new Promise((resolve, reject) => {
+                        const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+                        tx.objectStore('annotation_recovery_vault').delete(journalScopedKey);
+                        tx.oncomplete = () => resolve();
+                        tx.onerror = () => reject(tx.error);
+                        tx.onabort = () => reject(tx.error);
+                    });
                 } catch (e) {}
+
                 localStorage.removeItem(txStateKey);
-                showToast('تم إكمال اعتماد استرجاع النسخة الاحتياطية بنجاح ✓');
+                localStorage.removeItem('pharmaImportBarrier_' + uid);
+                activeImportBarriersByAccount.delete(uid);
+                if (typeof showToast === 'function') showToast('تم إكمال اعتماد استرجاع النسخة الاحتياطية بنجاح ✓');
                 return { recovered: true, action: 'finalized' };
             } else {
-                // Interrupted during PREPARE, APPLY_IDB, or APPLY_LOCALSTORAGE: execute safe rollback!
-                if (journalRecord && journalRecord.preImportSnapshot) {
-                    await rollbackImportFromJournal(uid, journalRecord.preImportSnapshot);
+                // Pre-COMMITTED phase (PREPARE, APPLY_IDB, APPLY_LOCALSTORAGE): roll back safely!
+                const rbRes = await rollbackImportFromJournal(uid, journalRecord);
+                if (rbRes && rbRes.ok) {
+                    if (typeof showToast === 'function') showToast('تم التراجع عن عملية استرجاع غير مكتملة لحماية سلامة بياناتك 🛡️', 'error');
+                    return { recovered: true, action: 'rolled_back' };
                 } else {
-                    localStorage.removeItem(txStateKey);
+                    return { recovered: false, quarantine: true, reason: 'ROLLBACK_FAILED_QUARANTINE' };
                 }
-                showToast('تم التراجع عن عملية استرجاع غير مكتملة لحماية سلامة بياناتك 🛡️', 'error');
-                return { recovered: true, action: 'rolled_back' };
             }
         }
+
 
         // Display preflight modal for backup file review before applying changes
         let pendingImportData = null;
@@ -20141,10 +20418,22 @@
                 };
             }
             if (replaceBtn) {
-                replaceBtn.onclick = async () => {
-                    closeModal('backupImportPreflightModalOverlay');
-                    await executeWorkspaceImport(pendingImportData, 'replace');
-                };
+                if (inspection.canReplace === false) {
+                    replaceBtn.disabled = true;
+                    replaceBtn.style.opacity = '0.5';
+                    replaceBtn.style.cursor = 'not-allowed';
+                    replaceBtn.onclick = () => {
+                        showToast('وضع الاستبدال غير متاح لهذه النسخة لحماية بياناتك من المسح غير المقصود؛ استخدم الدمج الذكي', 'error');
+                    };
+                } else {
+                    replaceBtn.disabled = false;
+                    replaceBtn.style.opacity = '1';
+                    replaceBtn.style.cursor = 'pointer';
+                    replaceBtn.onclick = async () => {
+                        closeModal('backupImportPreflightModalOverlay');
+                        await executeWorkspaceImport(pendingImportData, 'replace');
+                    };
+                }
             }
 
             const modal = document.getElementById('backupImportPreflightModalOverlay');
@@ -20242,7 +20531,8 @@
                 msg.includes('enotfound') ||
                 msg.includes('econnrefused') ||
                 msg.includes('timeout') ||
-                msg.includes('abort')
+                errObj.name === 'AbortError' ||
+                (msg.includes('abort') && (msg.includes('network') || msg.includes('fetch') || msg.includes('connection') || msg.includes('timeout')))
             ) {
                 category = 'offline';
                 codeName = 'ERR_OFFLINE';
@@ -20270,9 +20560,8 @@
             // 3. Function Signature Mismatch
             else if (
                 code === '42883' ||
-                msg.includes('parameter') ||
-                msg.includes('argument') ||
-                msg.includes('signature mismatch')
+                (msg.includes('function') && (msg.includes('does not exist with') || msg.includes('argument list') || msg.includes('types mismatch') || msg.includes('signature mismatch'))) ||
+                ((msg.includes('parameter') || msg.includes('argument')) && (msg.includes('signature') || msg.includes('types mismatch') || msg.includes('does not match') || msg.includes('function')))
             ) {
                 category = 'function_signature_mismatch';
                 codeName = 'ERR_SIG_MISMATCH';
@@ -34731,6 +35020,12 @@ function togglePdfAudioPlayerBar(forceState) {
             }
 
             const syncUserId = opCtx.uid;
+            if (typeof isImportInProgressOrQuarantined === 'function') {
+                const gateCheck = isImportInProgressOrQuarantined(syncUserId);
+                if (gateCheck && gateCheck.blocked) {
+                    return Promise.resolve({ status: 'aborted', reason: gateCheck.reason, error: gateCheck.error });
+                }
+            }
             const existingAccountSync = activeCloudSyncByAccount.get(syncUserId);
             if (existingAccountSync && existingAccountSync.promise && existingAccountSync.generation === opCtx.generation) {
                 return existingAccountSync.promise; // Await ongoing sync for this same account session
@@ -36300,6 +36595,12 @@ function togglePdfAudioPlayerBar(forceState) {
             }
 
             const isManual = (typeof manualNotify === 'object') ? Boolean(manualNotify?.manualNotify) : Boolean(manualNotify);
+            if (typeof isImportInProgressOrQuarantined === 'function') {
+                const gateCheck = isImportInProgressOrQuarantined(opCtx.uid);
+                if (gateCheck && gateCheck.blocked) {
+                    return { status: 'aborted', reason: gateCheck.reason, error: gateCheck.error };
+                }
+            }
 
             updateCloudNavUI('syncing');
             try {
@@ -36433,9 +36734,18 @@ function togglePdfAudioPlayerBar(forceState) {
                 }
                 if (typeof recoverPendingImportJournalIfNeeded === 'function') {
                     try {
-                        await recoverPendingImportJournalIfNeeded(opCtx.uid, opCtx);
+                        const recRes = await recoverPendingImportJournalIfNeeded(opCtx.uid, opCtx);
+                        if (recRes && recRes.quarantine) {
+                            return { status: 'aborted', reason: 'quarantine_active', error: 'Workspace account is quarantined due to unresolved import rollback failure' };
+                        }
                     } catch (recErr) {
                         console.warn('Import recovery warning on login:', recErr);
+                    }
+                }
+                if (typeof isImportInProgressOrQuarantined === 'function') {
+                    const gateCheck = isImportInProgressOrQuarantined(opCtx.uid);
+                    if (gateCheck && gateCheck.blocked) {
+                        return { status: 'aborted', reason: gateCheck.reason, error: gateCheck.error };
                     }
                 }
                 updateCloudNavUI('syncing');
@@ -36946,6 +37256,12 @@ function togglePdfAudioPlayerBar(forceState) {
             const opCtx = resolveAccountOperationContext(ctx?.uid || currentCloudUser.id, ctx);
             if (!opCtx.ok || !opCtx.isCurrent()) {
                 return { status: 'aborted', reason: 'account_switched' };
+            }
+            if (typeof isImportInProgressOrQuarantined === 'function') {
+                const gateCheck = isImportInProgressOrQuarantined(opCtx.uid);
+                if (gateCheck && gateCheck.blocked) {
+                    return { status: 'aborted', reason: gateCheck.reason, error: gateCheck.error };
+                }
             }
             try {
                 const { data: metaRow, error } = await supabaseClient

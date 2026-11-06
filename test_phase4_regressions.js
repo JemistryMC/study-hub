@@ -172,6 +172,8 @@ class InMemoryIDBDatabase {
 
 const prodHelpersCode = `
 const storageBacking = new Map();
+const activeImportBarriersByAccount = new Map();
+const activeImportQuarantinesByAccount = new Map();
 let failNextAccountSnapshotKey = null;
 const localStorage = {
   getItem: (k) => (storageBacking.has(String(k)) ? storageBacking.get(String(k)) : null),
@@ -409,6 +411,7 @@ ${extractFunctionSource(indexHtmlContent, 'verifyLocalWorkspaceProvenance')}
 ${extractFunctionSource(indexHtmlContent, 'reconcileDirtyWorkspaceWithRemote')}
 ${extractFunctionSource(indexHtmlContent, 'pullWorkspaceFromCloud')}
 ${extractFunctionSource(indexHtmlContent, 'syncWorkspaceOnLogin')}
+${extractFunctionSource(indexHtmlContent, 'isImportInProgressOrQuarantined')}
 module.exports = {
   localStorage,
   scheduledTimers,
@@ -562,6 +565,7 @@ module.exports = {
   sanitizeTechnicalErrorDetail,
   classifySupabaseError,
   migrateLegacyAccountAnnotationsToIDB,
+  isImportInProgressOrQuarantined,
   getAnnotationMutationSeq: () => annotationMutationSeq,
   resetAnnotationMutationSeq: () => { annotationMutationSeq = 0; lastUploadedAnnotationVersion = 0; localAnnotationsMutationSeq = 0; }
 };
@@ -4272,16 +4276,49 @@ async function main() {
   assert(
     v4Backup && v4Backup.schema === 'exo_workspace_backup_v4' &&
     v4Backup.version === 4 &&
-    v4Backup.accountScopeHint === m6ExportUid &&
+    typeof v4Backup.accountScopeHint === 'string' &&
+    v4Backup.accountScopeHint.startsWith('account_') &&
+    !v4Backup.accountScopeHint.includes(m6ExportUid) &&
     v4Backup.integrity && v4Backup.integrity.algorithm === 'SHA-256' &&
+    v4Backup.integrity.canonicalScope === 'data' &&
     typeof v4Backup.integrity.sha256 === 'string' && v4Backup.integrity.sha256.length === 64 &&
+    typeof v4Backup.integrity.byteLength === 'number' && v4Backup.integrity.byteLength > 0 &&
     v4Backup.data && v4Backup.data.subjects.length === 1 &&
     v4Backup.data.annotations && v4Backup.data.annotations['lec_m6_101'] !== undefined &&
     v4Backup.data.schedule.events.length === 1 &&
     v4Backup.data.schedule.gdriveSync !== undefined &&
     v4Backup.data.schedule.gdriveSync.token === undefined, // strictly zero secret tokens!
-    'T-5.1-M6-03: exportWorkspaceBackupV4 produces complete Tier A backup with canonical SHA-256 integrity hash, IndexedDB annotations, and zero tokens'
+    'T-5.1-M6-03: exportWorkspaceBackupV4 produces complete Tier A backup with canonical SHA-256 integrity hash, byteLength, sanitized accountScopeHint, and zero tokens'
   );
+
+  // 14b. Fail-closed export: flush failure aborts immediately
+  prod.saveAnnotationsToDB('lec_m6_fail_flush', {
+    1: [{ id: 'str_fail', tool: 'pen', color: '#ff0000', points: [[0, 0], [1, 1]] }]
+  }, null, m6ExportCtx);
+  idb.failNextTransaction = true;
+  idb.failOnStore = 'annotation_recovery_vault';
+  idb.failOnMode = 'readwrite';
+  let flushFailThrew = false;
+  try {
+    await prod.exportWorkspaceBackupV4(m6ExportUid, m6ExportCtx);
+  } catch (err) {
+    flushFailThrew = String(err.message).includes('ANNOTATION_FLUSH_FAILED');
+  }
+  // Clear the failed pending save so it doesn't affect later tests
+  await prod.flushPendingAnnotationsSave(false, m6ExportCtx);
+  assert(flushFailThrew, 'T-5.1-M6-03b: exportWorkspaceBackupV4 fail-closed aborts immediately when annotation flush fails');
+
+  // 14c. Fail-closed export: IDB read failure aborts immediately
+  idb.failNextTransaction = true;
+  idb.failOnStore = 'annotations';
+  idb.failOnMode = 'readonly';
+  let readFailThrew = false;
+  try {
+    await prod.exportWorkspaceBackupV4(m6ExportUid, m6ExportCtx);
+  } catch (err) {
+    readFailThrew = String(err.message).includes('ANNOTATIONS_READ_FAILED');
+  }
+  assert(readFailThrew, 'T-5.1-M6-03c: exportWorkspaceBackupV4 fail-closed aborts immediately when IDB annotation read fails');
 
   // 15. T-5.1-M6-04: inspectWorkspaceBackup Accurately Validates Backup and Detects Tampering Fail-Closed
   const inspectValid = await prod.inspectWorkspaceBackup(JSON.stringify(v4Backup));
@@ -4295,18 +4332,19 @@ async function main() {
     'T-5.1-M6-04a: inspectWorkspaceBackup successfully validates healthy v4 backup and computes matching stats'
   );
 
-  // Tamper with one character in payload
+  // Tamper with one character in payload preserving exact byte length (e.g. '1' -> '2')
   const tamperedBackup = JSON.parse(JSON.stringify(v4Backup));
-  tamperedBackup.data.subjects[0].name = 'علم الأدوية التالف'; // altered payload without updating hash
+  tamperedBackup.data.schedule.events[0].id = 'ev_m6_2'; // exactly 7 bytes: preserves byteLength but alters SHA-256
   const inspectTampered = await prod.inspectWorkspaceBackup(JSON.stringify(tamperedBackup));
   assert(
-    inspectTampered.isValid === true &&
+    inspectTampered.isValid === false &&
     inspectTampered.isV4 === true &&
-    inspectTampered.integrityStatus === 'invalid',
+    inspectTampered.integrityStatus === 'invalid' &&
+    inspectTampered.error === 'INTEGRITY_MISMATCH',
     'T-5.1-M6-04b: inspectWorkspaceBackup detects single-character tampering in backup data fail-closed via SHA-256 mismatch'
   );
 
-  // Attempting import on tampered backup fails closed
+  // Attempting import on tampered backup fails closed with zero persistent mutation
   const tamperedImportRes = await prod.importWorkspaceBackupV4(JSON.stringify(tamperedBackup), 'merge', m6ExportUid, m6ExportCtx);
   assert(
     tamperedImportRes && tamperedImportRes.ok === false &&
@@ -4314,13 +4352,94 @@ async function main() {
     'T-5.1-M6-04c: importWorkspaceBackupV4 strictly refuses to import tampered backup with mismatched SHA-256 checksum'
   );
 
+  // Strict Fix A tests: Missing integrity, missing digest, invalid algorithm, invalid scope, malformed digest, wrong byteLength
+  const noIntegrityBackup = JSON.parse(JSON.stringify(v4Backup));
+  delete noIntegrityBackup.integrity;
+  const inspectNoIntegrity = await prod.inspectWorkspaceBackup(noIntegrityBackup);
+  assert(
+    inspectNoIntegrity.isValid === false &&
+    inspectNoIntegrity.integrityStatus === 'invalid' &&
+    inspectNoIntegrity.error === 'INTEGRITY_MISSING',
+    'T-5.1-M6-04d: inspectWorkspaceBackup strictly rejects v4 backup with missing integrity object'
+  );
+
+  const badAlgoBackup = JSON.parse(JSON.stringify(v4Backup));
+  badAlgoBackup.integrity.algorithm = 'MD5';
+  const inspectBadAlgo = await prod.inspectWorkspaceBackup(badAlgoBackup);
+  assert(
+    inspectBadAlgo.isValid === false &&
+    inspectBadAlgo.error === 'INVALID_INTEGRITY_ALGORITHM',
+    'T-5.1-M6-04e: inspectWorkspaceBackup strictly rejects v4 backup with non-SHA-256 algorithm'
+  );
+
+  const badScopeBackup = JSON.parse(JSON.stringify(v4Backup));
+  badScopeBackup.integrity.canonicalScope = 'all';
+  const inspectBadScope = await prod.inspectWorkspaceBackup(badScopeBackup);
+  assert(
+    inspectBadScope.isValid === false &&
+    inspectBadScope.error === 'INVALID_CANONICAL_SCOPE',
+    'T-5.1-M6-04f: inspectWorkspaceBackup strictly rejects v4 backup with non-data canonicalScope'
+  );
+
+  const malformedDigestBackup = JSON.parse(JSON.stringify(v4Backup));
+  malformedDigestBackup.integrity.sha256 = 'not_a_valid_64_hex_hash';
+  const inspectMalformedDigest = await prod.inspectWorkspaceBackup(malformedDigestBackup);
+  assert(
+    inspectMalformedDigest.isValid === false &&
+    inspectMalformedDigest.error === 'INVALID_DIGEST_FORMAT',
+    'T-5.1-M6-04g: inspectWorkspaceBackup strictly rejects v4 backup with malformed digest format'
+  );
+
+  const wrongByteLengthBackup = JSON.parse(JSON.stringify(v4Backup));
+  wrongByteLengthBackup.integrity.byteLength = wrongByteLengthBackup.integrity.byteLength + 999;
+  const inspectWrongByteLength = await prod.inspectWorkspaceBackup(wrongByteLengthBackup);
+  assert(
+    inspectWrongByteLength.isValid === false &&
+    inspectWrongByteLength.error === 'BYTE_LENGTH_MISMATCH',
+    'T-5.1-M6-04h: inspectWorkspaceBackup strictly rejects v4 backup with byteLength mismatch'
+  );
+
+  // Strict Fix B tests: Required data domains
+  const missingSubjectsBackup = JSON.parse(JSON.stringify(v4Backup));
+  delete missingSubjectsBackup.data.subjects;
+  const inspectMissingSubjects = await prod.inspectWorkspaceBackup(missingSubjectsBackup);
+  assert(
+    inspectMissingSubjects.isValid === false &&
+    inspectMissingSubjects.error === 'MISSING_REQUIRED_DOMAIN' &&
+    inspectMissingSubjects.missingDomain === 'subjects',
+    'T-5.1-M6-04i: inspectWorkspaceBackup strictly rejects v4 backup missing subjects domain'
+  );
+
+  const missingAnnotationsBackup = JSON.parse(JSON.stringify(v4Backup));
+  delete missingAnnotationsBackup.data.annotations;
+  const inspectMissingAnnos = await prod.inspectWorkspaceBackup(missingAnnotationsBackup);
+  assert(
+    inspectMissingAnnos.isValid === false &&
+    inspectMissingAnnos.error === 'MISSING_REQUIRED_DOMAIN' &&
+    inspectMissingAnnos.missingDomain === 'annotations',
+    'T-5.1-M6-04j: inspectWorkspaceBackup strictly rejects v4 backup missing annotations domain'
+  );
+
+  const invalidDomainTypeBackup = JSON.parse(JSON.stringify(v4Backup));
+  invalidDomainTypeBackup.data.subjects = 'not_an_array';
+  const inspectInvalidDomainType = await prod.inspectWorkspaceBackup(invalidDomainTypeBackup);
+  assert(
+    inspectInvalidDomainType.isValid === false &&
+    inspectInvalidDomainType.error === 'INVALID_DOMAIN_TYPE',
+    'T-5.1-M6-04k: inspectWorkspaceBackup strictly rejects v4 backup with invalid domain type'
+  );
+
   // 16. T-5.1-M6-05: inspectWorkspaceBackup Rejects Payloads Exceeding 50 MB
   const oversizeFakeString = 'x'.repeat(51 * 1024 * 1024); // 51 MB string
   const inspectOversize = await prod.inspectWorkspaceBackup(oversizeFakeString);
+  const oversizeObject = { largeField: 'y'.repeat(51 * 1024 * 1024) };
+  const inspectOversizeObj = await prod.inspectWorkspaceBackup(oversizeObject);
   assert(
     inspectOversize.isValid === false &&
-    inspectOversize.error === 'FILE_TOO_LARGE',
-    'T-5.1-M6-05: inspectWorkspaceBackup strictly rejects inputs exceeding 50 MB with FILE_TOO_LARGE error'
+    inspectOversize.error === 'FILE_TOO_LARGE' &&
+    inspectOversizeObj.isValid === false &&
+    inspectOversizeObj.error === 'FILE_TOO_LARGE',
+    'T-5.1-M6-05: inspectWorkspaceBackup strictly rejects string and parsed object inputs exceeding 50 MB with FILE_TOO_LARGE error'
   );
 
   // 17. T-5.1-M6-06: importWorkspaceBackupV4 in Replace Mode Scopes Active Account and Preserves Other Accounts & Binary Stores
@@ -4344,7 +4463,7 @@ async function main() {
   const replaceBackupData = {
     schema: 'exo_workspace_backup_v4',
     version: 4,
-    accountScopeHint: m6ReplaceUid,
+    accountScopeHint: 'account_' + m6ReplaceUid.slice(0, 8),
     data: {
       subjects: [{ id: 'sub_m6_fresh', name: 'مادة بديلة كاملة' }],
       logs: [{ id: 'log_fresh_1', duration: 60 }],
@@ -4358,7 +4477,8 @@ async function main() {
   replaceBackupData.integrity = {
     algorithm: 'SHA-256',
     canonicalScope: 'data',
-    sha256: await prod.computeCanonicalSha256(replaceBackupStr)
+    sha256: await prod.computeCanonicalSha256(replaceBackupStr),
+    byteLength: Buffer.byteLength(replaceBackupStr, 'utf8')
   };
 
   const replaceImportRes = await prod.importWorkspaceBackupV4(replaceBackupData, 'replace', m6ReplaceUid, m6ReplaceCtx);
@@ -4400,7 +4520,7 @@ async function main() {
   const mergeBackupData = {
     schema: 'exo_workspace_backup_v4',
     version: 4,
-    accountScopeHint: m6MergeUid,
+    accountScopeHint: 'account_' + m6MergeUid.slice(0, 8),
     data: {
       subjects: [{ id: 'sub_incoming_merge', name: 'المادة المستوردة', chapters: [] }],
       logs: [{ id: 'log_incoming_merge', duration: 40 }],
@@ -4418,7 +4538,8 @@ async function main() {
   mergeBackupData.integrity = {
     algorithm: 'SHA-256',
     canonicalScope: 'data',
-    sha256: await prod.computeCanonicalSha256(mergeBackupStr)
+    sha256: await prod.computeCanonicalSha256(mergeBackupStr),
+    byteLength: Buffer.byteLength(mergeBackupStr, 'utf8')
   };
 
   const mergeImportRes = await prod.importWorkspaceBackupV4(mergeBackupData, 'merge', m6MergeUid, m6MergeCtx);
@@ -4459,23 +4580,116 @@ async function main() {
     crashImportRes && crashImportRes.ok === false &&
     crashImportRes.reason === 'IDB_APPLY_FAILED' &&
     idbAfterCrashRollback.verifiedMap['lec_pre_crash'] !== undefined &&
-    prod.localStorage.getItem('pharmaImportTxState_' + m6CrashUid) === null,
-    'T-5.1-M6-08: Emergency rollback upon IDB transaction failure restores pre-import IndexedDB annotations and cleans up crash journal'
+    prod.localStorage.getItem('pharmaImportTxState_' + m6CrashUid) === null &&
+    prod.localStorage.getItem('pharmaImportBarrier_' + m6CrashUid) === null,
+    'T-5.1-M6-08: Emergency rollback upon IDB transaction failure restores pre-import IndexedDB annotations, clears journal and barrier'
   );
 
-  // 20. T-5.1-M6-09: recoverPendingImportJournalIfNeeded Startup Finalization
+  // 20. T-5.1-M6-09: Durable Crash Journal & Startup Recovery Scenarios
+  // T-5.1-M6-09a: Pointer without IndexedDB journal fails closed and quarantines account
+  const m6PointerOnlyUid = 'user_m6_pointer_only_orphan';
+  prod.setSessionUser(m6PointerOnlyUid);
+  const m6PointerOnlyCtx = prod.createAccountOperationContext();
+  prod.localStorage.setItem('pharmaImportTxState_' + m6PointerOnlyUid, JSON.stringify({ phase: 'COMMITTED', mode: 'merge', startedAt: Date.now() }));
+  const orphanPointerRes = await prod.recoverPendingImportJournalIfNeeded(m6PointerOnlyUid, m6PointerOnlyCtx);
+  assert(
+    orphanPointerRes && orphanPointerRes.recovered === false &&
+    orphanPointerRes.quarantine === true &&
+    orphanPointerRes.reason === 'MISSING_JOURNAL_RECORD' &&
+    prod.localStorage.getItem('pharmaImportQuarantine_' + m6PointerOnlyUid) !== null,
+    'T-5.1-M6-09a: recoverPendingImportJournalIfNeeded fails closed and quarantines account when LocalStorage pointer has no IndexedDB journal'
+  );
+
+  // T-5.1-M6-09b: Corrupt IndexedDB journal fails closed and quarantines account
+  const m6CorruptUid = 'user_m6_corrupt_journal';
+  prod.setSessionUser(m6CorruptUid);
+  const m6CorruptCtx = prod.createAccountOperationContext();
+  idb.stores.annotation_recovery_vault.set(prod.toScopedKey('__import_journal_v1__', m6CorruptUid), { id: 'corrupt', phase: 'UNKNOWN' });
+  const corruptRes = await prod.recoverPendingImportJournalIfNeeded(m6CorruptUid, m6CorruptCtx);
+  assert(
+    corruptRes && corruptRes.recovered === false &&
+    corruptRes.quarantine === true &&
+    corruptRes.reason === 'CORRUPT_JOURNAL',
+    'T-5.1-M6-09b: recoverPendingImportJournalIfNeeded fails closed and quarantines account when IndexedDB journal is corrupt'
+  );
+
+  // T-5.1-M6-09c: Durable IndexedDB journal in COMMITTED phase safely finalizes
   const m6FinalizeUid = 'user_m6_finalize_startup';
   prod.setSessionUser(m6FinalizeUid);
   const m6FinalizeCtx = prod.createAccountOperationContext();
-  const txStateKey = 'pharmaImportTxState_' + m6FinalizeUid;
-  prod.localStorage.setItem(txStateKey, JSON.stringify({ phase: 'COMMITTED', mode: 'merge', startedAt: Date.now() }));
+  const finalizeScopedKey = prod.toScopedKey('__import_journal_v1__', m6FinalizeUid);
+  idb.stores.annotation_recovery_vault.set(finalizeScopedKey, {
+    id: finalizeScopedKey,
+    userId: m6FinalizeUid,
+    phase: 'COMMITTED',
+    mode: 'merge',
+    preImportSnapshot: { localStorage: {}, annotations: {} }
+  });
+  prod.localStorage.setItem('pharmaImportTxState_' + m6FinalizeUid, JSON.stringify({ phase: 'COMMITTED', mode: 'merge', startedAt: Date.now() }));
+  prod.localStorage.setItem('pharmaImportBarrier_' + m6FinalizeUid, 'active');
 
   const recoveryRes = await prod.recoverPendingImportJournalIfNeeded(m6FinalizeUid, m6FinalizeCtx);
   assert(
     recoveryRes && recoveryRes.recovered === true &&
     recoveryRes.action === 'finalized' &&
-    prod.localStorage.getItem(txStateKey) === null,
-    'T-5.1-M6-09: recoverPendingImportJournalIfNeeded on startup safely finalizes transactions that completed through COMMITTED phase'
+    idb.stores.annotation_recovery_vault.get(finalizeScopedKey) === undefined &&
+    prod.localStorage.getItem('pharmaImportTxState_' + m6FinalizeUid) === null &&
+    prod.localStorage.getItem('pharmaImportBarrier_' + m6FinalizeUid) === null,
+    'T-5.1-M6-09c: recoverPendingImportJournalIfNeeded on startup safely finalizes transactions that completed through COMMITTED phase in vault'
+  );
+
+  // T-5.1-M6-09d: Pre-COMMITTED phase in vault safely rolls back and clears barrier
+  const m6PreCommittedUid = 'user_m6_precommit_rollback';
+  prod.setSessionUser(m6PreCommittedUid);
+  const m6PreCommittedCtx = prod.createAccountOperationContext();
+  const preCommittedScopedKey = prod.toScopedKey('__import_journal_v1__', m6PreCommittedUid);
+  prod.localStorage.setItem('pharmaSubjectsV4', JSON.stringify([{ id: 'sub_before_crash', name: 'قبل الكراش' }]));
+  idb.stores.annotation_recovery_vault.set(preCommittedScopedKey, {
+    id: preCommittedScopedKey,
+    userId: m6PreCommittedUid,
+    phase: 'APPLY_IDB',
+    mode: 'merge',
+    preImportSnapshot: {
+      localStorage: {
+        pharmaSubjectsV4: { existed: true, value: JSON.stringify([{ id: 'sub_original_restored', name: 'الأصل المسترجع' }]) }
+      },
+      annotations: {}
+    }
+  });
+  prod.localStorage.setItem('pharmaImportTxState_' + m6PreCommittedUid, JSON.stringify({ phase: 'APPLY_IDB', mode: 'merge', startedAt: Date.now() }));
+  prod.localStorage.setItem('pharmaImportBarrier_' + m6PreCommittedUid, 'active');
+
+  const preCommitRecoveryRes = await prod.recoverPendingImportJournalIfNeeded(m6PreCommittedUid, m6PreCommittedCtx);
+  assert(
+    preCommitRecoveryRes && preCommitRecoveryRes.recovered === true &&
+    preCommitRecoveryRes.action === 'rolled_back' &&
+    prod.localStorage.getItem('pharmaSubjectsV4').includes('الأصل المسترجع') &&
+    idb.stores.annotation_recovery_vault.get(preCommittedScopedKey) === undefined &&
+    prod.localStorage.getItem('pharmaImportBarrier_' + m6PreCommittedUid) === null,
+    'T-5.1-M6-09d: recoverPendingImportJournalIfNeeded safely rolls back pre-COMMITTED transactions from durable vault and clears barrier'
+  );
+
+  // T-5.1-M6-09e: Active import barrier and quarantine block cloud push and pull fail-closed
+  const m6BarrierUid = 'user_m6_barrier_gate';
+  prod.setSessionUser(m6BarrierUid);
+  const m6BarrierCtx = prod.createAccountOperationContext();
+  prod.localStorage.setItem('pharmaImportBarrier_' + m6BarrierUid, 'active');
+
+  const pushBlockedRes = await prod.pushWorkspaceToCloud(false, false, m6BarrierCtx);
+  const pullBlockedRes = await prod.pullWorkspaceFromCloud(false, m6BarrierCtx);
+  prod.localStorage.removeItem('pharmaImportBarrier_' + m6BarrierUid);
+
+  prod.localStorage.setItem('pharmaImportQuarantine_' + m6BarrierUid, 'quarantine');
+  const pushQuarantineRes = await prod.pushWorkspaceToCloud(false, false, m6BarrierCtx);
+  const pullQuarantineRes = await prod.pullWorkspaceFromCloud(false, m6BarrierCtx);
+  prod.localStorage.removeItem('pharmaImportQuarantine_' + m6BarrierUid);
+
+  assert(
+    pushBlockedRes && pushBlockedRes.status === 'aborted' && pushBlockedRes.reason === 'import_in_progress' &&
+    pullBlockedRes && pullBlockedRes.status === 'aborted' && pullBlockedRes.reason === 'import_in_progress' &&
+    pushQuarantineRes && pushQuarantineRes.status === 'aborted' && pushQuarantineRes.reason === 'quarantine_active' &&
+    pullQuarantineRes && pullQuarantineRes.status === 'aborted' && pullQuarantineRes.reason === 'quarantine_active',
+    'T-5.1-M6-09e: pushWorkspaceToCloud and pullWorkspaceFromCloud fail-closed abort when account import barrier or quarantine is active'
   );
 
   // ============================================================================
