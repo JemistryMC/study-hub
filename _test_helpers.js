@@ -218,6 +218,8 @@ ${extractFunctionSource(indexHtmlContent, 'canonicalizeJson')}
 ${extractFunctionSource(indexHtmlContent, 'computeCanonicalSha256')}
 ${extractFunctionSource(indexHtmlContent, 'exportWorkspaceBackupV4')}
 ${extractFunctionSource(indexHtmlContent, 'inspectWorkspaceBackup')}
+${extractFunctionSource(indexHtmlContent, 'cleanupBarrierOnPrepareFailure')}
+${extractFunctionSource(indexHtmlContent, 'executeImportTransactionInternal')}
 ${extractFunctionSource(indexHtmlContent, 'importWorkspaceBackupV4')}
 ${extractFunctionSource(indexHtmlContent, 'rollbackImportFromJournal')}
 ${extractFunctionSource(indexHtmlContent, 'recoverPendingImportJournalIfNeeded')}
@@ -384,6 +386,8 @@ module.exports = {
   computeCanonicalSha256,
   exportWorkspaceBackupV4,
   inspectWorkspaceBackup,
+  cleanupBarrierOnPrepareFailure,
+  executeImportTransactionInternal,
   importWorkspaceBackupV4,
   rollbackImportFromJournal,
   recoverPendingImportJournalIfNeeded,

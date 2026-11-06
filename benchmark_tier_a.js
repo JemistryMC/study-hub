@@ -1,5 +1,11 @@
 // ============================================================================
-// Exo Academic Platform — Tier A Backup & Restore Performance Benchmark
+// Exo Academic Platform — Tier A Backup & Restore Performance Benchmark (Node.js)
+// CLASSIFICATION: NODE.JS / V8 ENGINE MICROBENCHMARK
+// NOTE: This benchmark executes inside Node.js using simulated in-memory storage.
+// Real browser V8 heaps, browser IndexedDB transaction overhead (IPC, leveldb/sqlite),
+// structured clone boundaries, and main-thread DOM scheduling differ significantly
+// from Node.js process memory.
+// For real browser measurements, run: npm run benchmark:browser
 // Category: Benchmark Suite for 1 MB, 5 MB, 15 MB, 25 MB, and 50 MB Payloads
 // Measures: Canonicalization, SHA-256 Digest, IndexedDB Apply, LocalStorage Apply,
 //           Emergency Rollback, and Journal Recovery Latencies.

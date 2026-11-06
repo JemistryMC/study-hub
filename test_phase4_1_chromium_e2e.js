@@ -3365,36 +3365,41 @@ async function main() {
 
     // Test Y.6: Missing journal record with pointer & corrupt journal record trigger fail-closed quarantine
     const resY6 = await pageY.evaluate(async () => {
-      const uidQuar = 'user_m6_e2e_quar_test';
-      await handleAuthSessionChange({ id: uidQuar, email: 'userquar@exo.edu', name: 'User Quar' }, false);
-      const ctxQuar = createAccountOperationContext(uidQuar);
+      const uidMissing = 'user_m6_quar_missing';
+      await handleAuthSessionChange({ id: uidMissing, email: 'usermissing@exo.edu', name: 'User Missing' }, false);
+      const ctxMissing = createAccountOperationContext(uidMissing);
 
       // Case 1: LocalStorage pointer exists, but IndexedDB vault has NO journal entry -> Quarantine
-      localStorage.setItem('pharmaImportTxState_' + uidQuar, JSON.stringify({ phase: 'COMMITTED', mode: 'merge', startedAt: Date.now() }));
-      const missingVaultRes = await recoverPendingImportJournalIfNeeded(uidQuar, ctxQuar);
+      localStorage.setItem('pharmaImportTxState_' + uidMissing, JSON.stringify({ phase: 'COMMITTED', mode: 'merge', startedAt: Date.now() }));
+      const missingVaultRes = await recoverPendingImportJournalIfNeeded(uidMissing, ctxMissing);
 
-      // Case 2: IndexedDB vault has corrupt/unrecognized journal -> Quarantine
-      const corruptKey = toScopedKey('__import_journal_v1__', uidQuar);
+      // Case 2: IndexedDB vault has corrupt/unrecognized journal -> Quarantine (isolated user)
+      const uidCorrupt = 'user_m6_quar_corrupt';
+      await handleAuthSessionChange({ id: uidCorrupt, email: 'usercorrupt@exo.edu', name: 'User Corrupt' }, false);
+      const ctxCorrupt = createAccountOperationContext(uidCorrupt);
+      const corruptKey = toScopedKey('__import_journal_v1__', uidCorrupt);
       await new Promise((resolve, reject) => {
         const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
         const store = tx.objectStore('annotation_recovery_vault');
-        store.put({ id: corruptKey, userId: uidQuar, phase: 'CORRUPTED_PHASE' });
+        store.put({ id: corruptKey, userId: uidCorrupt, phase: 'CORRUPTED_PHASE' });
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
       });
-      const corruptVaultRes = await recoverPendingImportJournalIfNeeded(uidQuar, ctxQuar);
+      const corruptVaultRes = await recoverPendingImportJournalIfNeeded(uidCorrupt, ctxCorrupt);
 
       return {
         missingQuarantined: missingVaultRes?.quarantine === true && missingVaultRes?.reason === 'MISSING_JOURNAL_RECORD',
-        missingFlagStored: localStorage.getItem('pharmaImportQuarantine_' + uidQuar) !== null,
-        corruptQuarantined: corruptVaultRes?.quarantine === true && corruptVaultRes?.reason === 'CORRUPT_JOURNAL'
+        missingFlagStored: localStorage.getItem('pharmaImportQuarantine_' + uidMissing) !== null,
+        corruptQuarantined: corruptVaultRes?.quarantine === true && corruptVaultRes?.reason === 'CORRUPT_JOURNAL',
+        corruptFlagStored: localStorage.getItem('pharmaImportQuarantine_' + uidCorrupt) !== null
       };
     });
 
     assert(
       resY6.missingQuarantined === true &&
       resY6.missingFlagStored === true &&
-      resY6.corruptQuarantined === true,
+      resY6.corruptQuarantined === true &&
+      resY6.corruptFlagStored === true,
       'Test Y.6 (M6): Real Chromium missing or corrupt journal in IndexedDB triggers fail-closed quarantine and locks account',
       JSON.stringify(resY6)
     );
@@ -3434,7 +3439,401 @@ async function main() {
       JSON.stringify(resY7)
     );
 
+    console.log('\n--- TEST Z (Milestone M6 Critical Fix 9): Real Chromium Page Close/Reload Recovery & Two-Tab Competition ---');
+
+    // Test Z.1: Interrupted APPLY_IDB -> Close Page -> Open New Page -> Natural Startup Rollback
+    const uidZ1 = 'user_z1_precommit_reload';
+    await pageY.evaluate(async (uid) => {
+      localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify({ id: uid, email: 'z1@exo.edu', name: 'User Z1' }));
+      await handleAuthSessionChange({ id: uid, email: 'z1@exo.edu', name: 'User Z1' }, false);
+      const ctx = createAccountOperationContext(uid);
+
+      // Seed pre-import baseline
+      localStorage.setItem('pharmaSubjectsV4', JSON.stringify([{ id: 'sub_z1_baseline', name: 'أصلية' }]));
+      localStorage.setItem('pharmaAccountWorkspace_' + uid, JSON.stringify({ subjects: [{ id: 'sub_z1_baseline', name: 'أصلية' }] }));
+      saveAnnotationsToDB('lec_z1_test', { 1: [{ id: 'str_z1_base', tool: 'pen' }] }, null, ctx);
+      await flushPendingAnnotationsSave(false, ctx);
+
+      // Construct uncommitted APPLY_IDB crash state
+      const preSnapshot = {
+        localStorage: {
+          pharmaSubjectsV4: { existed: true, value: JSON.stringify([{ id: 'sub_z1_baseline', name: 'أصلية' }]) },
+          ['pharmaAccountWorkspace_' + uid]: { existed: true, value: JSON.stringify({ subjects: [{ id: 'sub_z1_baseline', name: 'أصلية' }] }) }
+        },
+        annotations: {
+          [toScopedKey('lec_z1_test', uid)]: { id: toScopedKey('lec_z1_test', uid), userId: uid, pages: { 1: [{ id: 'str_z1_base', tool: 'pen' }] } }
+        }
+      };
+
+      // Mutate workspace in-flight
+      localStorage.setItem('pharmaSubjectsV4', JSON.stringify([{ id: 'sub_z1_mutated_crash', name: 'معدلة بالخطأ' }]));
+      saveAnnotationsToDB('lec_z1_test', { 1: [{ id: 'str_z1_crashed', tool: 'highlighter' }] }, null, ctx);
+      await flushPendingAnnotationsSave(false, ctx);
+
+      // Persist APPLY_IDB journal in vault & write pointer/barrier
+      const jKey = toScopedKey('__import_journal_v1__', uid);
+      await new Promise((resolve, reject) => {
+        const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+        tx.objectStore('annotation_recovery_vault').put({
+          id: jKey,
+          txId: 'tx_z1_crash',
+          userId: uid,
+          phase: 'APPLY_IDB',
+          mode: 'replace',
+          preImportSnapshot: preSnapshot
+        });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+      localStorage.setItem('pharmaImportTxState_' + uid, JSON.stringify({ phase: 'APPLY_IDB', mode: 'replace', startedAt: Date.now() }));
+      localStorage.setItem('pharmaImportBarrier_' + uid, JSON.stringify({ txId: 'tx_z1_crash', startedAt: Date.now() }));
+    }, uidZ1);
+
+    // Hard page close to simulate browser crash
     await pageY.close();
+
+    // Reopen in fresh page within the same browser context & profile
+    const pageZ1 = await context.newPage();
+    await pageZ1.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+    await pageZ1.waitForTimeout(500);
+
+    const resZ1 = await pageZ1.evaluate(async (uid) => {
+      if (!dbInstance && typeof initPdfDB === 'function') {
+        try { await initPdfDB(); } catch (e) {}
+      }
+      const ctx = createAccountOperationContext(uid);
+
+      // Verify journal deleted from vault
+      const jKey = toScopedKey('__import_journal_v1__', uid);
+      let vaultRecord = null;
+      try {
+        vaultRecord = await new Promise(resolve => {
+          const tx = dbInstance.transaction('annotation_recovery_vault', 'readonly');
+          const req = tx.objectStore('annotation_recovery_vault').get(jKey);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => resolve(null);
+        });
+      } catch (e) {
+        vaultRecord = null;
+      }
+
+      // Verify restored annotations
+      const annosRes = await getAllAnnotationsMapFromDB(uid, ctx);
+      const subjectsRaw = localStorage.getItem('pharmaSubjectsV4') || '';
+
+      return {
+        pointerCleared: localStorage.getItem('pharmaImportTxState_' + uid) === null,
+        barrierCleared: localStorage.getItem('pharmaImportBarrier_' + uid) === null,
+        vaultCleaned: (vaultRecord === null || vaultRecord === undefined),
+        vaultRecordRaw: vaultRecord,
+        subjectsRestored: subjectsRaw.includes('sub_z1_baseline'),
+        crashedSubjectAbsent: !subjectsRaw.includes('sub_z1_mutated_crash'),
+        annotationsRestored: annosRes?.verifiedMap?.['lec_z1_test']?.[1]?.[0]?.id === 'str_z1_base'
+      };
+    }, uidZ1);
+
+    assert(
+      resZ1.pointerCleared === true &&
+      resZ1.barrierCleared === true &&
+      resZ1.vaultCleaned === true &&
+      resZ1.subjectsRestored === true &&
+      resZ1.crashedSubjectAbsent === true &&
+      resZ1.annotationsRestored === true,
+      'Test Z.1 (M6): Real Chromium close & reload automatically rolls back interrupted APPLY_IDB and restores baseline state',
+      JSON.stringify(resZ1)
+    );
+
+    // Test Z.2: Interrupted COMMITTED -> Close Page -> Open New Page -> Natural Startup Finalization
+    const uidZ2 = 'user_z2_committed_reload';
+    await pageZ1.evaluate(async (uid) => {
+      localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify({ id: uid, email: 'z2@exo.edu', name: 'User Z2' }));
+      await handleAuthSessionChange({ id: uid, email: 'z2@exo.edu', name: 'User Z2' }, false);
+      const ctx = createAccountOperationContext(uid);
+
+      // Seed committed state in IDB and localStorage
+      localStorage.setItem('pharmaSubjectsV4', JSON.stringify([{ id: 'sub_z2_committed', name: 'مؤكدة' }]));
+      saveAnnotationsToDB('lec_z2_test', { 1: [{ id: 'str_z2_committed', tool: 'pen' }] }, null, ctx);
+      await flushPendingAnnotationsSave(false, ctx);
+
+      // Persist COMMITTED journal in vault
+      const jKey = toScopedKey('__import_journal_v1__', uid);
+      await new Promise((resolve, reject) => {
+        const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+        tx.objectStore('annotation_recovery_vault').put({
+          id: jKey,
+          txId: 'tx_z2_comm',
+          userId: uid,
+          phase: 'COMMITTED',
+          mode: 'merge',
+          preImportSnapshot: { localStorage: {}, annotations: {} }
+        });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+      localStorage.setItem('pharmaImportTxState_' + uid, JSON.stringify({ phase: 'COMMITTED', mode: 'merge', startedAt: Date.now() }));
+      localStorage.setItem('pharmaImportBarrier_' + uid, JSON.stringify({ txId: 'tx_z2_comm', startedAt: Date.now() }));
+    }, uidZ2);
+
+    await pageZ1.close();
+
+    const pageZ2 = await context.newPage();
+    await pageZ2.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+    await pageZ2.waitForTimeout(500);
+
+    const resZ2 = await pageZ2.evaluate(async (uid) => {
+      const ctx = createAccountOperationContext(uid);
+
+      const jKey = toScopedKey('__import_journal_v1__', uid);
+      const vaultRecord = await new Promise(resolve => {
+        const tx = dbInstance.transaction('annotation_recovery_vault', 'readonly');
+        const req = tx.objectStore('annotation_recovery_vault').get(jKey);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => resolve(null);
+      });
+
+      const annosRes = await getAllAnnotationsMapFromDB(uid, ctx);
+      const subjectsRaw = localStorage.getItem('pharmaSubjectsV4') || '';
+
+      return {
+        pointerCleared: localStorage.getItem('pharmaImportTxState_' + uid) === null,
+        barrierCleared: localStorage.getItem('pharmaImportBarrier_' + uid) === null,
+        vaultCleaned: vaultRecord === null,
+        committedSubjectsPreserved: subjectsRaw.includes('sub_z2_committed'),
+        committedAnnotationsPreserved: annosRes?.verifiedMap?.['lec_z2_test']?.[1]?.[0]?.id === 'str_z2_committed'
+      };
+    }, uidZ2);
+
+    assert(
+      resZ2.pointerCleared === true &&
+      resZ2.barrierCleared === true &&
+      resZ2.vaultCleaned === true &&
+      resZ2.committedSubjectsPreserved === true &&
+      resZ2.committedAnnotationsPreserved === true,
+      'Test Z.2 (M6): Real Chromium close & reload automatically finalizes COMMITTED phase and cleans all recovery artifacts',
+      JSON.stringify(resZ2)
+    );
+
+    // Test Z.3: Crash window in FINALIZE (IDB deleted, pointer has phase: 'FINALIZE') -> Clean without quarantine
+    const uidZ3 = 'user_z3_fin_crash_reload';
+    await pageZ2.evaluate(async (uid) => {
+      localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify({ id: uid, email: 'z3@exo.edu', name: 'User Z3' }));
+      await handleAuthSessionChange({ id: uid, email: 'z3@exo.edu', name: 'User Z3' }, false);
+      // Journal is absent in IndexedDB vault!
+      // Pointer has FINALIZE phase
+      localStorage.setItem('pharmaImportTxState_' + uid, JSON.stringify({ phase: 'FINALIZE', mode: 'merge', startedAt: Date.now() }));
+      localStorage.setItem('pharmaImportBarrier_' + uid, JSON.stringify({ txId: 'tx_z3', startedAt: Date.now() }));
+    }, uidZ3);
+
+    await pageZ2.close();
+
+    const pageZ3 = await context.newPage();
+    await pageZ3.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+    await pageZ3.waitForTimeout(500);
+
+    const resZ3 = await pageZ3.evaluate(async (uid) => {
+      return {
+        pointerCleared: localStorage.getItem('pharmaImportTxState_' + uid) === null,
+        barrierCleared: localStorage.getItem('pharmaImportBarrier_' + uid) === null,
+        notQuarantined: localStorage.getItem('pharmaImportQuarantine_' + uid) === null,
+        quarantineMapClean: !activeImportQuarantinesByAccount.has(uid)
+      };
+    }, uidZ3);
+
+    assert(
+      resZ3.pointerCleared === true &&
+      resZ3.barrierCleared === true &&
+      resZ3.notQuarantined === true &&
+      resZ3.quarantineMapClean === true,
+      'Test Z.3 (M6): Real Chromium close & reload during FINALIZE safely completes cleanup without false quarantine',
+      JSON.stringify(resZ3)
+    );
+
+    // Test Z.4: Crash window in FINALIZE (Pointer deleted, only barrier remains) -> Clears barrier without quarantine
+    const uidZ4 = 'user_z4_abandoned_barrier';
+    await pageZ3.evaluate(async (uid) => {
+      localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify({ id: uid, email: 'z4@exo.edu', name: 'User Z4' }));
+      await handleAuthSessionChange({ id: uid, email: 'z4@exo.edu', name: 'User Z4' }, false);
+      localStorage.removeItem('pharmaImportTxState_' + uid);
+      localStorage.setItem('pharmaImportBarrier_' + uid, JSON.stringify({ txId: 'tx_z4', startedAt: Date.now() }));
+    }, uidZ4);
+
+    await pageZ3.close();
+
+    const pageZ4 = await context.newPage();
+    await pageZ4.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+    await pageZ4.waitForTimeout(500);
+
+    const resZ4 = await pageZ4.evaluate(async (uid) => {
+      const ctx = createAccountOperationContext(uid);
+      const pushRes = await pushWorkspaceToCloud(false, false, ctx);
+      return {
+        barrierCleared: localStorage.getItem('pharmaImportBarrier_' + uid) === null,
+        notQuarantined: localStorage.getItem('pharmaImportQuarantine_' + uid) === null,
+        pushNotBlockedByBarrier: pushRes?.reason !== 'import_in_progress'
+      };
+    }, uidZ4);
+
+    assert(
+      resZ4.barrierCleared === true &&
+      resZ4.notQuarantined === true &&
+      resZ4.pushNotBlockedByBarrier === true,
+      'Test Z.4 (M6): Real Chromium close & reload with abandoned barrier cleans barrier safely and permits normal operations',
+      JSON.stringify(resZ4)
+    );
+
+    // Test Z.5: Authoritative ROLLBACK_FAILED_QUARANTINE in vault locks account across reload and blocks sync
+    const uidZ5 = 'user_z5_durable_lock';
+    await pageZ4.evaluate(async (uid) => {
+      localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify({ id: uid, email: 'z5@exo.edu', name: 'User Z5' }));
+      await handleAuthSessionChange({ id: uid, email: 'z5@exo.edu', name: 'User Z5' }, false);
+      const jKey = toScopedKey('__import_journal_v1__', uid);
+      await new Promise((resolve, reject) => {
+        const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+        tx.objectStore('annotation_recovery_vault').put({
+          id: jKey,
+          txId: 'tx_z5',
+          userId: uid,
+          phase: 'ROLLBACK_FAILED_QUARANTINE',
+          quarantineError: 'TEST_INJECTED_ROLLBACK_FAILURE'
+        });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+      localStorage.setItem('pharmaImportTxState_' + uid, JSON.stringify({ phase: 'ROLLBACK_FAILED_QUARANTINE' }));
+      localStorage.setItem('pharmaImportBarrier_' + uid, JSON.stringify({ txId: 'tx_z5' }));
+    }, uidZ5);
+
+    await pageZ4.close();
+
+    const pageZ5 = await context.newPage();
+    await pageZ5.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+    await pageZ5.waitForTimeout(500);
+
+    const resZ5 = await pageZ5.evaluate(async (uid) => {
+      await handleAuthSessionChange({ id: uid, email: 'z5@exo.edu', name: 'User Z5' }, false);
+      const ctx = createAccountOperationContext(uid);
+      const pushBlocked = await pushWorkspaceToCloud(false, false, ctx);
+      const pullBlocked = await pullWorkspaceFromCloud(false, ctx);
+      return {
+        quarantineMarkerSet: localStorage.getItem('pharmaImportQuarantine_' + uid) !== null,
+        quarantineMapLocked: activeImportQuarantinesByAccount.get(uid) === true,
+        pushBlockedQuarantine: pushBlocked?.status === 'aborted' && pushBlocked?.reason === 'quarantine_active',
+        pullBlockedQuarantine: pullBlocked?.status === 'aborted' && pullBlocked?.reason === 'quarantine_active'
+      };
+    }, uidZ5);
+
+    assert(
+      resZ5.quarantineMarkerSet === true &&
+      resZ5.quarantineMapLocked === true &&
+      resZ5.pushBlockedQuarantine === true &&
+      resZ5.pullBlockedQuarantine === true,
+      'Test Z.5 (M6): Real Chromium authoritative ROLLBACK_FAILED_QUARANTINE survives reload and locks account from cloud sync',
+      JSON.stringify(resZ5)
+    );
+
+    // Test Z.6: Real Two-Tab Competition in Chromium (Tab 1 blocks User A in Tab 2, but User B in Tab 2 succeeds)
+    const tab1 = await context.newPage();
+    const tab2 = await context.newPage();
+    await tab1.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+    await tab2.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+    await tab1.waitForTimeout(300);
+    await tab2.waitForTimeout(300);
+
+    const uidA_Comp = 'user_z6_tab_comp_a';
+    const uidB_Comp = 'user_z6_tab_comp_b';
+
+    // In Tab 1: establish active import barrier and tx state for User A
+    await tab1.evaluate(async (uidA) => {
+      localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify({ id: uidA, email: 'usera@exo.edu', name: 'User A' }));
+      await handleAuthSessionChange({ id: uidA, email: 'usera@exo.edu', name: 'User A' }, false);
+      localStorage.setItem('pharmaImportTxState_' + uidA, JSON.stringify({
+        txId: 'tx_tab1_held',
+        phase: 'APPLY_IDB',
+        mode: 'merge',
+        startedAt: Date.now()
+      }));
+      localStorage.setItem('pharmaImportBarrier_' + uidA, JSON.stringify({
+        txId: 'tx_tab1_held',
+        userId: uidA,
+        startedAt: Date.now()
+      }));
+      activeImportBarriersByAccount.set(uidA, true);
+    }, uidA_Comp);
+
+    // In Tab 2: attempt import for User A -> MUST BE BLOCKED
+    const resTab2UserA = await tab2.evaluate(async (uidA) => {
+      await handleAuthSessionChange({ id: uidA, email: 'usera@exo.edu', name: 'User A' }, false);
+      const ctxA = createAccountOperationContext(uidA);
+      const backupData = {
+        schema: 'exo_workspace_backup_v4',
+        version: 4,
+        accountScopeHint: 'account_' + uidA.slice(0, 8),
+        data: { subjects: [], schedule: { events: [] }, logs: [], annotations: {} }
+      };
+      const canonicalData = canonicalizeJson(backupData.data);
+      backupData.integrity = {
+        algorithm: 'SHA-256',
+        canonicalScope: 'data',
+        sha256: await computeCanonicalSha256(canonicalData),
+        byteLength: new TextEncoder().encode(canonicalData).length
+      };
+
+      const importRes = await importWorkspaceBackupV4(backupData, 'merge', uidA, ctxA);
+      return {
+        blocked: Boolean(importRes?.reason === 'import_in_progress' || importRes?.reason === 'quarantine_active'),
+        status: importRes?.status,
+        reason: importRes?.reason
+      };
+    }, uidA_Comp);
+
+    // In Tab 2: switch to User B and attempt import -> MUST SUCCEED
+    const resTab2UserB = await tab2.evaluate(async (uidB) => {
+      await handleAuthSessionChange({ id: uidB, email: 'userb@exo.edu', name: 'User B' }, false);
+      const ctxB = createAccountOperationContext(uidB);
+      const backupData = {
+        schema: 'exo_workspace_backup_v4',
+        version: 4,
+        accountScopeHint: 'account_' + uidB.slice(0, 8),
+        data: {
+          subjects: [{ id: 'sub_user_b_tab2', name: 'مادة مستخدم ب المستقل' }],
+          schedule: { events: [] },
+          logs: [],
+          annotations: {}
+        }
+      };
+      const canonicalData = canonicalizeJson(backupData.data);
+      backupData.integrity = {
+        algorithm: 'SHA-256',
+        canonicalScope: 'data',
+        sha256: await computeCanonicalSha256(canonicalData),
+        byteLength: new TextEncoder().encode(canonicalData).length
+      };
+
+      const importRes = await importWorkspaceBackupV4(backupData, 'merge', uidB, ctxB);
+      return {
+        succeeded: importRes?.ok === true && importRes?.status === 'success',
+        subjectsWritten: (localStorage.getItem('pharmaSubjectsV4') || '').includes('sub_user_b_tab2')
+      };
+    }, uidB_Comp);
+
+    // Clean up barriers
+    await tab1.evaluate((uidA) => {
+      localStorage.removeItem('pharmaImportBarrier_' + uidA);
+      localStorage.removeItem('pharmaImportTxState_' + uidA);
+      activeImportBarriersByAccount.delete(uidA);
+    }, uidA_Comp);
+
+    await tab1.close();
+    await tab2.close();
+    await pageZ5.close();
+
+    assert(
+      resTab2UserA.blocked === true &&
+      resTab2UserB.succeeded === true &&
+      resTab2UserB.subjectsWritten === true,
+      'Test Z.6 (M6): Two real Chromium tabs correctly serialize User A via import lock while allowing independent User B import',
+      JSON.stringify({ resTab2UserA, resTab2UserB })
+    );
     await context.close();
   } finally {
     await browser.close();

@@ -392,6 +392,8 @@ ${extractFunctionSource(indexHtmlContent, 'canonicalizeJson')}
 ${extractFunctionSource(indexHtmlContent, 'computeCanonicalSha256')}
 ${extractFunctionSource(indexHtmlContent, 'exportWorkspaceBackupV4')}
 ${extractFunctionSource(indexHtmlContent, 'inspectWorkspaceBackup')}
+${extractFunctionSource(indexHtmlContent, 'cleanupBarrierOnPrepareFailure')}
+${extractFunctionSource(indexHtmlContent, 'executeImportTransactionInternal')}
 ${extractFunctionSource(indexHtmlContent, 'importWorkspaceBackupV4')}
 ${extractFunctionSource(indexHtmlContent, 'rollbackImportFromJournal')}
 ${extractFunctionSource(indexHtmlContent, 'recoverPendingImportJournalIfNeeded')}
@@ -559,6 +561,8 @@ module.exports = {
   computeCanonicalSha256,
   exportWorkspaceBackupV4,
   inspectWorkspaceBackup,
+  cleanupBarrierOnPrepareFailure,
+  executeImportTransactionInternal,
   importWorkspaceBackupV4,
   rollbackImportFromJournal,
   recoverPendingImportJournalIfNeeded,
@@ -4690,6 +4694,304 @@ async function main() {
     pushQuarantineRes && pushQuarantineRes.status === 'aborted' && pushQuarantineRes.reason === 'quarantine_active' &&
     pullQuarantineRes && pullQuarantineRes.status === 'aborted' && pullQuarantineRes.reason === 'quarantine_active',
     'T-5.1-M6-09e: pushWorkspaceToCloud and pullWorkspaceFromCloud fail-closed abort when account import barrier or quarantine is active'
+  );
+
+  // ============================================================================
+  // M6 — WP-7: CRITICAL DATA INTEGRITY CLOSURE (CRITICAL FIXES 1 - 8)
+  // ============================================================================
+
+  // CF1: COMMITTED Must Be Durable Before Finalization
+  // CF1-a: Persisting COMMITTED fails -> retain journal, execute rollback, report COMMITTED_PERSIST_FAILED
+  const cf1Uid = 'user_cf1_commit_fail';
+  prod.setSessionUser(cf1Uid);
+  const cf1Ctx = prod.createAccountOperationContext();
+  prod.localStorage.setItem('pharmaSubjectsV4', JSON.stringify([{ id: 'sub_cf1_init', name: 'أصلي' }]));
+  const cf1Backup = {
+    schema: 'exo_workspace_backup_v4',
+    version: 4,
+    integrity: { algorithm: 'SHA-256', canonicalScope: 'data', sha256: '', byteLength: 0 },
+    data: {
+      subjects: [{ id: 'sub_cf1_mutated', name: 'معدل' }],
+      schedule: { events: [], backlog: [] },
+      logs: [],
+      annotations: {}
+    }
+  };
+  const cf1Canon = prod.canonicalizeJson(cf1Backup.data);
+  cf1Backup.integrity.sha256 = await prod.computeCanonicalSha256(cf1Canon);
+  cf1Backup.integrity.byteLength = Buffer.byteLength(cf1Canon, 'utf8');
+
+  // Inject failure on persisting COMMITTED
+  globalThis.__exoImportTestHooks = {
+    failPhasePersist: { COMMITTED: new Error('Simulated QuotaExceededError during COMMITTED vault write') }
+  };
+  const cf1Res = await prod.importWorkspaceBackupV4(cf1Backup, 'replace', cf1Uid, cf1Ctx);
+  globalThis.__exoImportTestHooks = null;
+
+  assert(
+    cf1Res && cf1Res.ok === false &&
+    cf1Res.reason === 'COMMITTED_PERSIST_FAILED' &&
+    prod.localStorage.getItem('pharmaSubjectsV4').includes('أصلي') &&
+    prod.localStorage.getItem('pharmaImportBarrier_' + cf1Uid) === null,
+    'T-5.1-M6-CF1-a: Failed COMMITTED persistence does NOT finalize, executes verified rollback, and preserves pre-import state'
+  );
+
+  // CF1-b: Persisting COMMITTED fails AND rollback fails -> enter durable ROLLBACK_FAILED_QUARANTINE
+  const cf1bUid = 'user_cf1b_rollback_fail';
+  prod.setSessionUser(cf1bUid);
+  const cf1bCtx = prod.createAccountOperationContext();
+  globalThis.__exoImportTestHooks = {
+    failPhasePersist: { COMMITTED: new Error('COMMITTED write failed') },
+    failRollbackLs: true
+  };
+  const cf1bRes = await prod.importWorkspaceBackupV4(cf1Backup, 'replace', cf1bUid, cf1bCtx);
+  globalThis.__exoImportTestHooks = null;
+
+  const cf1bJournal = idb.stores.annotation_recovery_vault.get(prod.toScopedKey('__import_journal_v1__', cf1bUid));
+  assert(
+    cf1bRes && cf1bRes.ok === false &&
+    cf1bRes.reason === 'COMMITTED_PERSIST_AND_ROLLBACK_FAILED' &&
+    cf1bJournal && cf1bJournal.phase === 'ROLLBACK_FAILED_QUARANTINE' &&
+    prod.localStorage.getItem('pharmaImportQuarantine_' + cf1bUid) !== null,
+    'T-5.1-M6-CF1-b: When COMMITTED persistence fails and rollback fails, account enters durable ROLLBACK_FAILED_QUARANTINE'
+  );
+
+  // CF2: Crash-Safe Finalization Protocol
+  // CF2-a: Crash after journal deleted from IDB but before pointer removed (parsedTx.phase === 'FINALIZE')
+  const cf2aUid = 'user_cf2a_finalize_cleanup';
+  prod.setSessionUser(cf2aUid);
+  const cf2aCtx = prod.createAccountOperationContext();
+  prod.localStorage.setItem('pharmaImportTxState_' + cf2aUid, JSON.stringify({ phase: 'FINALIZE', mode: 'merge', startedAt: Date.now() }));
+  prod.localStorage.setItem('pharmaImportBarrier_' + cf2aUid, 'active');
+  const cf2aRecRes = await prod.recoverPendingImportJournalIfNeeded(cf2aUid, cf2aCtx);
+  assert(
+    cf2aRecRes && cf2aRecRes.recovered === true &&
+    cf2aRecRes.action === 'finalized' &&
+    prod.localStorage.getItem('pharmaImportTxState_' + cf2aUid) === null &&
+    prod.localStorage.getItem('pharmaImportBarrier_' + cf2aUid) === null &&
+    prod.localStorage.getItem('pharmaImportQuarantine_' + cf2aUid) === null,
+    'T-5.1-M6-CF2-a: Recovery recognizes FINALIZE pointer after journal deletion and completes cleanup without quarantine'
+  );
+
+  // CF2-b: Crash while journal has phase FINALIZE in IDB vault
+  const cf2bUid = 'user_cf2b_finalize_journal';
+  prod.setSessionUser(cf2bUid);
+  const cf2bCtx = prod.createAccountOperationContext();
+  const cf2bKey = prod.toScopedKey('__import_journal_v1__', cf2bUid);
+  idb.stores.annotation_recovery_vault.set(cf2bKey, {
+    id: cf2bKey,
+    userId: cf2bUid,
+    phase: 'FINALIZE',
+    mode: 'replace',
+    preImportSnapshot: { localStorage: {}, annotations: {} }
+  });
+  prod.localStorage.setItem('pharmaImportTxState_' + cf2bUid, JSON.stringify({ phase: 'FINALIZE', mode: 'replace', startedAt: Date.now() }));
+  prod.localStorage.setItem('pharmaImportBarrier_' + cf2bUid, 'active');
+
+  const cf2bRecRes = await prod.recoverPendingImportJournalIfNeeded(cf2bUid, cf2bCtx);
+  assert(
+    cf2bRecRes && cf2bRecRes.recovered === true &&
+    cf2bRecRes.action === 'finalized' &&
+    idb.stores.annotation_recovery_vault.get(cf2bKey) === undefined &&
+    prod.localStorage.getItem('pharmaImportTxState_' + cf2bUid) === null &&
+    prod.localStorage.getItem('pharmaImportBarrier_' + cf2bUid) === null,
+    'T-5.1-M6-CF2-b: Recovery from FINALIZE journal in IDB forward-finalizes and clears all artifacts'
+  );
+
+  // CF3: Fail-Closed Annotation Snapshot Before Import
+  // CF3-a: IDB read error during pre-import snapshot aborts without mutation
+  const cf3aUid = 'user_cf3a_snapshot_read_fail';
+  prod.setSessionUser(cf3aUid);
+  const cf3aCtx = prod.createAccountOperationContext();
+  prod.localStorage.setItem('pharmaSubjectsV4', JSON.stringify([{ id: 'sub_cf3_preserve', name: 'محفوظ' }]));
+  idb.failNextTransaction = true;
+  idb.failOnStore = 'annotations';
+  idb.failOnMode = 'readonly';
+
+  const cf3aRes = await prod.importWorkspaceBackupV4(cf1Backup, 'replace', cf3aUid, cf3aCtx);
+  assert(
+    cf3aRes && cf3aRes.ok === false &&
+    cf3aRes.reason === 'ANNOTATION_SNAPSHOT_FAILED' &&
+    prod.localStorage.getItem('pharmaSubjectsV4').includes('محفوظ') &&
+    idb.stores.annotation_recovery_vault.get(prod.toScopedKey('__import_journal_v1__', cf3aUid)) === undefined,
+    'T-5.1-M6-CF3-a: IDB read failure during pre-import snapshot aborts fail-closed before any mutation occurs'
+  );
+
+  // CF3-b: Cross-account record encountered during snapshot aborts fail-closed
+  const cf3bUid = 'user_cf3b_foreign_rec';
+  prod.setSessionUser(cf3bUid);
+  const cf3bCtx = prod.createAccountOperationContext();
+  globalThis.__exoImportTestHooks = {
+    overrideAnnotationSnapshot: async () => ({
+      ok: true,
+      verifiedMap: {
+        'usr_foreign_attacker::lec_hijack': { id: 'usr_foreign_attacker::lec_hijack', pages: {} }
+      }
+    })
+  };
+
+  const cf3bRes = await prod.importWorkspaceBackupV4(cf1Backup, 'replace', cf3bUid, cf3bCtx);
+  globalThis.__exoImportTestHooks = null;
+  assert(
+    cf3bRes && cf3bRes.ok === false &&
+    cf3bRes.reason === 'CROSS_ACCOUNT_RECORD_DETECTED',
+    'T-5.1-M6-CF3-b: Cross-account record detected during annotation snapshot aborts import fail-closed'
+  );
+
+  // CF4: Complete 17-Key LocalStorage Snapshot & Exact Rollback
+  const cf4Uid = 'user_cf4_complete_ls_keys';
+  prod.setSessionUser(cf4Uid);
+  const cf4Ctx = prod.createAccountOperationContext();
+
+  prod.localStorage.setItem('pharmaSubjectsV4', JSON.stringify([{ id: 'sub_cf4_init' }]));
+  prod.localStorage.setItem('pharmaScheduleV4', JSON.stringify({ events: [{ id: 'ev_cf4_init' }] }));
+  prod.localStorage.setItem('pharmaLogsV4', JSON.stringify([{ id: 'log_cf4_init' }]));
+  prod.localStorage.setItem('pharmaWeeklyReportsV1', JSON.stringify([{ id: 'rep_cf4_init' }]));
+  prod.localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify([{ id: 'bk_cf4_init' }]));
+  prod.localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify({ weekStartDay: 1 }));
+  prod.localStorage.setItem('pharmaPdfFitMode', 'width');
+  prod.localStorage.setItem('pharmaWorkspaceDirty', '0');
+  prod.localStorage.setItem('pharmaWorkspaceDirty_' + cf4Uid, '0');
+  prod.localStorage.setItem('pharmaWorkspaceRevision_' + cf4Uid, '12');
+  prod.localStorage.setItem('pharmaWorkspaceUpdatedAt', '1700000000000');
+  prod.localStorage.setItem(prod.getAccountBackupStorageKey(cf4Uid), JSON.stringify({ user_id: cf4Uid, initial: true }));
+  prod.localStorage.setItem('pharmaTombstones_' + cf4Uid, JSON.stringify({ events: {} }));
+  prod.localStorage.setItem('pharmaConflictRecovery_' + cf4Uid, JSON.stringify([]));
+  prod.localStorage.setItem('pharmaDeviceRegistry_' + cf4Uid, JSON.stringify({ dev1: {} }));
+  prod.localStorage.removeItem('pharmaAcademyProgressV1');
+  prod.localStorage.removeItem('pharmaCloudMediaRegistryV1');
+
+  const beforeKeys = [
+    'pharmaSubjectsV4', 'pharmaScheduleV4', 'pharmaLogsV4', 'pharmaWeeklyReportsV1',
+    'pharmaScheduleBacklogV1', 'pharmaAcademyProgressV1', 'pharmaCloudMediaRegistryV1',
+    'pharmaPlannerPrefsV1', 'pharmaPdfFitMode', 'pharmaWorkspaceDirty',
+    'pharmaWorkspaceDirty_' + cf4Uid, 'pharmaWorkspaceRevision_' + cf4Uid,
+    'pharmaWorkspaceUpdatedAt', prod.getAccountBackupStorageKey(cf4Uid),
+    'pharmaTombstones_' + cf4Uid, 'pharmaConflictRecovery_' + cf4Uid,
+    'pharmaDeviceRegistry_' + cf4Uid
+  ];
+  const beforeState = {};
+  beforeKeys.forEach(k => { beforeState[k] = prod.localStorage.getItem(k); });
+
+  globalThis.__exoImportTestHooks = { failLsApply: new Error('Simulated crash during LocalStorage apply') };
+  const cf4Res = await prod.importWorkspaceBackupV4(cf1Backup, 'replace', cf4Uid, cf4Ctx);
+  globalThis.__exoImportTestHooks = null;
+
+  const afterState = {};
+  beforeKeys.forEach(k => { afterState[k] = prod.localStorage.getItem(k); });
+
+  let allKeysIdentical = true;
+  beforeKeys.forEach(k => {
+    if (beforeState[k] !== afterState[k]) {
+      allKeysIdentical = false;
+      console.error(`Key mismatch for ${k}: before=${beforeState[k]}, after=${afterState[k]}`);
+    }
+  });
+
+  assert(
+    cf4Res && cf4Res.ok === false &&
+    allKeysIdentical &&
+    prod.localStorage.getItem('pharmaAcademyProgressV1') === null &&
+    prod.localStorage.getItem('pharmaCloudMediaRegistryV1') === null,
+    'T-5.1-M6-CF4: Rollback restores exact prior state across all 17 managed LocalStorage keys with zero residue'
+  );
+
+  // CF5: Legacy Replace Protection (Absent Annotations Domain)
+  const legacyNoAnnos = {
+    subjects: [{ id: 'sub_leg_1', name: 'Legacy Subject' }],
+    schedule: { events: [] },
+    logs: []
+  };
+  const legInspection = await prod.inspectWorkspaceBackup(legacyNoAnnos);
+  assert(
+    legInspection.isValid === true &&
+    legInspection.isV4 === false &&
+    legInspection.canReplace === false &&
+    legInspection.hasAnnotationsDomain === false &&
+    legInspection.stats.annotationsMissingFromBackup === true,
+    'T-5.1-M6-CF5-a: inspectWorkspaceBackup strictly disables Replace for legacy backup lacking annotations domain'
+  );
+
+  const cf5Uid = 'user_cf5_legacy_replace';
+  prod.setSessionUser(cf5Uid);
+  const cf5Ctx = prod.createAccountOperationContext();
+  prod.saveAnnotationsToDB('lec_cf5_preserve', { 1: [{ id: 'stroke_cf5_valuable' }] }, null, cf5Ctx);
+  await prod.flushPendingAnnotationsSave(false, cf5Ctx);
+
+  const legReplaceRes = await prod.importWorkspaceBackupV4(legacyNoAnnos, 'replace', cf5Uid, cf5Ctx);
+  const cf5AnnosAfter = await prod.getAnnotationsFromDB('lec_cf5_preserve', cf5Uid, cf5Ctx);
+
+  assert(
+    legReplaceRes && legReplaceRes.ok === false &&
+    legReplaceRes.reason === 'REPLACE_MODE_DISALLOWED' &&
+    cf5AnnosAfter && cf5AnnosAfter[1] !== undefined,
+    'T-5.1-M6-CF5-b: importWorkspaceBackupV4 in Replace mode strictly rejects legacy backup lacking annotations and preserves user data'
+  );
+
+  const legMergeRes = await prod.importWorkspaceBackupV4(legacyNoAnnos, 'merge', cf5Uid, cf5Ctx);
+  const cf5AnnosAfterMerge = await prod.getAnnotationsFromDB('lec_cf5_preserve', cf5Uid, cf5Ctx);
+
+  assert(
+    legMergeRes && legMergeRes.ok === true &&
+    cf5AnnosAfterMerge && cf5AnnosAfterMerge[1] !== undefined &&
+    cf5AnnosAfterMerge[1][0].id === 'stroke_cf5_valuable',
+    'T-5.1-M6-CF5-c: importWorkspaceBackupV4 in Merge mode preserves existing annotations when legacy backup lacks annotations domain'
+  );
+
+  const legacyWithAnnos = {
+    subjects: [{ id: 'sub_leg_with_annos', name: 'Legacy With Annos' }],
+    schedule: { events: [] },
+    logs: [],
+    annotations: {
+      lec_cf5_imported: { 1: [{ id: 'stroke_imported' }] }
+    }
+  };
+  const legWithAnnosInspection = await prod.inspectWorkspaceBackup(legacyWithAnnos);
+  assert(
+    legWithAnnosInspection.canReplace === true &&
+    legWithAnnosInspection.hasAnnotationsDomain === true,
+    'T-5.1-M6-CF5-d: inspectWorkspaceBackup allows Replace when legacy backup provides a valid annotations domain'
+  );
+
+  // CF6: Concurrency & Cross-Account Isolation
+  const cf6UserA = 'user_cf6_compete_a';
+  const cf6UserB = 'user_cf6_independent_b';
+  prod.localStorage.setItem('pharmaImportBarrier_' + cf6UserA, JSON.stringify({ txId: 'tx_active_1', startedAt: Date.now() }));
+
+  const gateUserA = prod.isImportInProgressOrQuarantined(cf6UserA);
+  const gateUserB = prod.isImportInProgressOrQuarantined(cf6UserB);
+
+  assert(
+    gateUserA.blocked === true && gateUserA.reason === 'import_in_progress' &&
+    gateUserB.blocked === false,
+    'T-5.1-M6-CF6: Active import barrier for User A blocks User A but does NOT block independent User B'
+  );
+  prod.localStorage.removeItem('pharmaImportBarrier_' + cf6UserA);
+
+  // CF8: Durable Rollback-Failed Quarantine
+  const cf8Uid = 'user_cf8_durable_quarantine';
+  prod.setSessionUser(cf8Uid);
+  const cf8Ctx = prod.createAccountOperationContext();
+  const cf8JournalKey = prod.toScopedKey('__import_journal_v1__', cf8Uid);
+
+  const cf8JournalObj = {
+    id: cf8JournalKey,
+    userId: cf8Uid,
+    phase: 'APPLY_IDB',
+    mode: 'replace',
+    preImportSnapshot: { localStorage: {}, annotations: {} }
+  };
+  globalThis.__exoImportTestHooks = { failRollbackLs: true };
+  const cf8RollbackRes = await prod.rollbackImportFromJournal(cf8Uid, cf8JournalObj);
+  globalThis.__exoImportTestHooks = null;
+
+  const cf8VaultRecord = idb.stores.annotation_recovery_vault.get(cf8JournalKey);
+  assert(
+    cf8RollbackRes && cf8RollbackRes.ok === false &&
+    cf8RollbackRes.reason === 'ROLLBACK_FAILED_QUARANTINE' &&
+    cf8VaultRecord && cf8VaultRecord.phase === 'ROLLBACK_FAILED_QUARANTINE' &&
+    prod.localStorage.getItem('pharmaImportQuarantine_' + cf8Uid) !== null,
+    'T-5.1-M6-CF8: Rollback failure persists authoritative ROLLBACK_FAILED_QUARANTINE to IndexedDB vault and locks account'
   );
 
   // ============================================================================
