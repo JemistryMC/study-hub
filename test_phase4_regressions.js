@@ -81,6 +81,8 @@ class InMemoryIDBDatabase {
       contains: (name) => Boolean(this.stores[name])
     };
     this.failNextTransaction = false;
+    this.failOnStore = null;
+    this.failOnMode = null;
     this.getAllCount = 0;
     this.onGetAllHook = null;
   }
@@ -109,8 +111,11 @@ class InMemoryIDBDatabase {
                 db.onGetAllHook = null;
                 hook();
               }
-              if (db.failNextTransaction) {
+              const shouldFailRead = db.failNextTransaction && (!db.failOnStore || db.failOnStore === name) && (!db.failOnMode || db.failOnMode === mode);
+              if (shouldFailRead) {
                 db.failNextTransaction = false;
+                db.failOnStore = null;
+                db.failOnMode = null;
                 req.error = new Error('Simulated IDB read failure');
                 tx.error = req.error;
                 if (req.onerror) req.onerror();
@@ -144,8 +149,11 @@ class InMemoryIDBDatabase {
 
     if (mode === 'readwrite') {
       setImmediate(() => {
-        if (db.failNextTransaction) {
+        const shouldFailWrite = db.failNextTransaction && (!db.failOnStore || db.failOnStore === storeName) && (!db.failOnMode || db.failOnMode === mode);
+        if (shouldFailWrite) {
           db.failNextTransaction = false;
+          db.failOnStore = null;
+          db.failOnMode = null;
           tx.error = new Error('Simulated IDB write transaction abort');
           if (tx.onabort) tx.onabort();
           return;
@@ -200,6 +208,9 @@ let inMemoryAnnotationsCacheNormalized = {};
 let inMemoryAnnotationsCacheLoaded = false;
 let pendingAnnoSaveMap = {};
 let autoSaveTimer = null;
+let isActivelyDrawingOnPdf = false;
+let lastPenActivityTimeMs = 0;
+function initScheduleData() {}
 let mergedContinuousPdfMode = false;
 function syncMergedAnnotationsToLectureRecords() {}
 let dirtyAnnotationsForCloud = false;
@@ -371,6 +382,19 @@ ${extractFunctionSource(indexHtmlContent, 'computeStrokeUniqueSignature')}
 ${extractFunctionSource(indexHtmlContent, 'computeFastStringSignature')}
 ${extractFunctionSource(indexHtmlContent, 'computeFullStringHash')}
 ${extractFunctionSource(indexHtmlContent, 'bumpAnnotationMutationVersion')}
+${extractFunctionSource(indexHtmlContent, 'saveAnnotationsToDB')}
+${extractFunctionSource(indexHtmlContent, 'getAnnotationsFromDB')}
+${extractFunctionSource(indexHtmlContent, 'deepSanitizeBackupObject')}
+${extractFunctionSource(indexHtmlContent, 'computePureSha256')}
+${extractFunctionSource(indexHtmlContent, 'canonicalizeJson')}
+${extractFunctionSource(indexHtmlContent, 'computeCanonicalSha256')}
+${extractFunctionSource(indexHtmlContent, 'exportWorkspaceBackupV4')}
+${extractFunctionSource(indexHtmlContent, 'inspectWorkspaceBackup')}
+${extractFunctionSource(indexHtmlContent, 'importWorkspaceBackupV4')}
+${extractFunctionSource(indexHtmlContent, 'rollbackImportFromJournal')}
+${extractFunctionSource(indexHtmlContent, 'recoverPendingImportJournalIfNeeded')}
+${extractFunctionSource(indexHtmlContent, 'sanitizeTechnicalErrorDetail')}
+${extractFunctionSource(indexHtmlContent, 'classifySupabaseError')}
 ${extractFunctionSource(indexHtmlContent, 'migrateLegacyAccountAnnotationsToIDB')}
 ${extractFunctionSource(indexHtmlContent, 'getAllAnnotationsMapFromDB')}
 ${extractFunctionSource(indexHtmlContent, 'restoreAllAnnotationsMapToDB')}
@@ -524,6 +548,19 @@ module.exports = {
   computeFastStringSignature,
   computeFullStringHash,
   bumpAnnotationMutationVersion,
+  saveAnnotationsToDB,
+  getAnnotationsFromDB,
+  deepSanitizeBackupObject,
+  computePureSha256,
+  canonicalizeJson,
+  computeCanonicalSha256,
+  exportWorkspaceBackupV4,
+  inspectWorkspaceBackup,
+  importWorkspaceBackupV4,
+  rollbackImportFromJournal,
+  recoverPendingImportJournalIfNeeded,
+  sanitizeTechnicalErrorDetail,
+  classifySupabaseError,
   migrateLegacyAccountAnnotationsToIDB,
   getAnnotationMutationSeq: () => annotationMutationSeq,
   resetAnnotationMutationSeq: () => { annotationMutationSeq = 0; lastUploadedAnnotationVersion = 0; localAnnotationsMutationSeq = 0; }
@@ -4010,27 +4047,88 @@ async function main() {
     'T-5.1-M5B-07c: computeFullStringHash reliably detects single-character edit in 100KB payload without blind spots'
   );
 
-  // 8. T-5.1-M5B-08: N-02 In-Flight Concurrency — Mutation During RPC Wait Keeps Dirty
+  // 8. T-5.1-M5B-08: N-02 In-Flight Concurrency — Genuine Deferred RPC Race Proof
   const m5bRaceUid = 'user_m5b_race_rpc_concurrency';
   prod.setSessionUser(m5bRaceUid);
   const m5bRaceCtx = prod.createAccountOperationContext();
   prod.resetAnnotationMutationSeq();
-  prod.bumpAnnotationMutationVersion(); // v = 1
+
+  // Initial seed annotation for lecture
+  const initialPages = {
+    1: [{ id: 'str_init_1', tool: 'pen', color: '#10b981', points: [[1, 1], [2, 2]] }]
+  };
+  prod.saveAnnotationsToDB('lec_race_101', initialPages, null, m5bRaceCtx);
+  await prod.flushPendingAnnotationsSave(false, m5bRaceCtx);
+  const vAtStart = prod.getAnnotationMutationSeq();
+  assert(vAtStart > 0, 'T-5.1-M5B-08a: Initial seed annotation established with mutation version > 0');
+
+  // Deferred promise to pause first RPC in flight
+  let resolveRpc1;
+  const deferredRpc1Promise = new Promise((resolve) => { resolveRpc1 = resolve; });
+  let rpc1Started;
+  const rpc1StartedPromise = new Promise((resolve) => { rpc1Started = resolve; });
+  let rpcCallCount = 0;
+  let rpc1Payload = null;
+  let rpc2Payload = null;
 
   prod.setSupabaseClient({
     rpc: async (name, params) => {
-      // Simulate in-flight mutation while waiting for RPC response:
-      prod.bumpAnnotationMutationVersion(); // v = 2 (user mutated while RPC is in flight)
-      return { data: { status: 'success', revision: 30 }, error: null };
+      rpcCallCount++;
+      if (rpcCallCount === 1) {
+        rpc1Payload = JSON.parse(JSON.stringify(params.p_payload));
+        rpc1Started();
+        return deferredRpc1Promise;
+      }
+      if (rpcCallCount === 2) {
+        rpc2Payload = JSON.parse(JSON.stringify(params.p_payload));
+        return { data: { status: 'success', revision: 32 }, error: null };
+      }
+      return { data: { status: 'success', revision: 33 }, error: null };
     }
   });
 
-  const racePushRes = await prod.pushWorkspaceToCloud(false, true, m5bRaceCtx);
+  // Launch Push 1 (unresolved while RPC is pending)
+  const push1Promise = prod.pushWorkspaceToCloud(false, true, m5bRaceCtx);
+  await rpc1StartedPromise; // Ensure RPC 1 is actively in-flight on the network!
+
+  // While RPC 1 is pending in-flight, user draws new annotations
+  const mutatedPagesDuringRpc = {
+    1: [
+      { id: 'str_init_1', tool: 'pen', color: '#10b981', points: [[1, 1], [2, 2]] },
+      { id: 'str_race_new', tool: 'pen', color: '#ef4444', points: [[5, 5], [10, 10]] }
+    ]
+  };
+  const saveOk = prod.saveAnnotationsToDB('lec_race_101', mutatedPagesDuringRpc, null, m5bRaceCtx);
+  await prod.flushPendingAnnotationsSave(false, m5bRaceCtx);
+  const vDuringRpc = prod.getAnnotationMutationSeq();
+
   assert(
-    racePushRes && racePushRes.status === 'success' &&
+    saveOk && vDuringRpc > vAtStart,
+    'T-5.1-M5B-08b: saveAnnotationsToDB while RPC is in flight advances annotation mutation counter and modifies content'
+  );
+
+  // Now resolve RPC 1
+  resolveRpc1({ data: { status: 'success', revision: 31 }, error: null });
+  const push1Res = await push1Promise;
+
+  assert(
+    push1Res && push1Res.status === 'success' &&
     prod.getRuntimeState().dirtyAnnotationsForCloud === true &&
-    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1',
-    'T-5.1-M5B-08: When annotation mutation occurs while cloud push is in-flight, dirty annotations and workspace dirty remain set upon response'
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1' &&
+    rpc1Payload && rpc1Payload.annotations &&
+    !JSON.stringify(rpc1Payload.annotations).includes('str_race_new'),
+    'T-5.1-M5B-08c: Push 1 response preserves dirtyAnnotationsForCloud and workspace dirty because newer mutation occurred in-flight'
+  );
+
+  // Launch Push 2: Must pick up the in-flight mutation and clear dirty flags upon completion
+  const push2Res = await prod.pushWorkspaceToCloud(false, false, m5bRaceCtx);
+  assert(
+    push2Res && push2Res.status === 'success' &&
+    rpc2Payload && rpc2Payload.annotations &&
+    JSON.stringify(rpc2Payload.annotations).includes('str_race_new') &&
+    prod.getRuntimeState().dirtyAnnotationsForCloud === false &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') !== '1',
+    'T-5.1-M5B-08d: Subsequent Push 2 transmits newly mutated annotations and cleanly resets dirty flags'
   );
 
   // 9. T-5.1-M5B-09: Account Hydration from Decoupled Snapshot
@@ -4058,6 +4156,368 @@ async function main() {
     idbCheckAfterApply.verifiedMap &&
     idbCheckAfterApply.verifiedMap['lec_hydrated_1'] !== undefined,
     'T-5.1-M5B-09: applyCloudWorkspacePayload on decoupled snapshot preserves existing IndexedDB annotations without treating workspace as empty'
+  );
+
+  // 10. T-5.1-M5B-10: Legacy Migration Failure During pullWorkspaceFromCloud Aborts Fail-Closed
+  const m5bPullFailUid = 'user_m5b_pull_mig_fail';
+  prod.setSessionUser(m5bPullFailUid);
+  const m5bPullFailCtx = prod.createAccountOperationContext();
+  const m5bPullFailKey = prod.getAccountBackupStorageKey(m5bPullFailUid);
+  prod.localStorage.setItem(m5bPullFailKey, JSON.stringify({
+    user_id: m5bPullFailUid,
+    annotations: { 'lec_corrupt': { 1: [{ id: 'str_c1', tool: 'pen' }] } }
+  }));
+  idb.failNextTransaction = true; // force migration IDB transaction to fail
+  prod.setSupabaseClient({
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({ data: null, error: null })
+        })
+      })
+    })
+  });
+  const pullMigFailRes = await prod.pullWorkspaceFromCloud(false, m5bPullFailCtx);
+  assert(
+    pullMigFailRes && pullMigFailRes.status === 'error' &&
+    pullMigFailRes.reason === 'legacy_migration_failed' &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1',
+    'T-5.1-M5B-10: pullWorkspaceFromCloud aborts immediately when legacy migration fails, preserving local dirty state and returning structured error'
+  );
+
+  // 11. T-5.1-M5B-11: Legacy Migration Failure During syncWorkspaceOnLogin Aborts Fail-Closed
+  const m5bLoginFailUid = 'user_m5b_login_mig_fail';
+  prod.setSessionUser(m5bLoginFailUid);
+  const m5bLoginFailCtx = prod.createAccountOperationContext();
+  const m5bLoginFailKey = prod.getAccountBackupStorageKey(m5bLoginFailUid);
+  prod.localStorage.setItem(m5bLoginFailKey, JSON.stringify({
+    user_id: m5bLoginFailUid,
+    annotations: { 'lec_corrupt_login': { 1: [{ id: 'str_c2', tool: 'pen' }] } }
+  }));
+  prod.localStorage.setItem('pharmaLastActiveCloudUid', m5bLoginFailUid);
+  prod.setSupabaseClient({
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({ data: null, error: null })
+        })
+      })
+    })
+  });
+  idb.failNextTransaction = true; // force migration IDB transaction to fail
+  const loginMigFailRes = await prod.syncWorkspaceOnLogin(m5bLoginFailCtx);
+  assert(
+    loginMigFailRes && loginMigFailRes.status === 'error' &&
+    loginMigFailRes.reason === 'legacy_migration_failed' &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1',
+    'T-5.1-M5B-11: syncWorkspaceOnLogin aborts immediately when legacy migration fails, preserving local dirty state and returning structured error'
+  );
+
+  // ============================================================================
+  // M6 — WP-7: COMPLETE TIER A WORKSPACE BACKUP & RESTORE TEST SUITE
+  // ============================================================================
+
+  // 12. T-5.1-M6-01: Canonical JSON Serialization Lexicographical Key Ordering Invariant
+  const objA = { z: 10, a: 20, m: { y: 'last', b: 'first' }, arr: [3, 1, 2] };
+  const objB = { a: 20, m: { b: 'first', y: 'last' }, arr: [3, 1, 2], z: 10 };
+  const canonA = prod.canonicalizeJson(objA);
+  const canonB = prod.canonicalizeJson(objB);
+  assert(
+    canonA === canonB &&
+    canonA.indexOf('"a"') < canonA.indexOf('"z"') &&
+    canonA.indexOf('"b"') < canonA.indexOf('"y"') &&
+    canonA.includes('[3,1,2]'),
+    'T-5.1-M6-01: canonicalizeJson recursively sorts object keys lexicographically while preserving exact array element order'
+  );
+
+  // 13. T-5.1-M6-02: Canonical SHA-256 Checksum Standard Compliance
+  const emptySha = await prod.computeCanonicalSha256('');
+  const knownEmptySha = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+  const arabicSha = await prod.computeCanonicalSha256('مساحة عمل إكسو الدراسية 2026');
+  assert(
+    emptySha === knownEmptySha &&
+    typeof arabicSha === 'string' && arabicSha.length === 64,
+    'T-5.1-M6-02: computeCanonicalSha256 matches FIPS 180-4 standard empty string hash and correctly digests UTF-8 Arabic text'
+  );
+
+  // 14. T-5.1-M6-03: exportWorkspaceBackupV4 Full Tier A Inventory & Integrity Hash
+  const m6ExportUid = 'user_m6_export_tier_a';
+  prod.setSessionUser(m6ExportUid);
+  const m6ExportCtx = prod.createAccountOperationContext();
+
+  prod.setRuntimeState({
+    subjects: [
+      {
+        id: 'sub_m6_pharma',
+        name: 'علم الأدوية السريري',
+        chapters: [{ id: 'ch_m6_1', name: 'Pharmacokinetics', lectures: [{ id: 'lec_m6_101', name: 'Clearance' }] }]
+      }
+    ],
+    scheduleEvents: [{ id: 'ev_m6_1', title: 'مذاكرة الفينيتوين', date: '2026-11-10' }],
+    scheduleBacklog: [{ id: 'bk_m6_1', title: 'حل كويز الحركيات' }],
+    plannerPrefs: { weekStartDay: 6, dayStartHour: 8, dayEndHour: 22 },
+    weeklyReports: [{ id: 'rep_m6_1', weekIso: '2026-11-07', score: 95 }],
+    logs: [{ id: 'log_m6_1', duration: 45, date: '2026-11-06' }],
+    completedAcademyModules: ['mod_kinetics_1'],
+    cloudMediaRegistry: { 'lec_m6_101': { pdfDriveId: 'gdrive_fake_pdf_id_111' } }
+  });
+
+  // Seed lecture annotations in IndexedDB
+  prod.saveAnnotationsToDB('lec_m6_101', {
+    1: [{ id: 'str_m6_export', tool: 'pen', color: '#38bdf8', points: [[10, 10], [20, 20]] }]
+  }, null, m6ExportCtx);
+  await prod.flushPendingAnnotationsSave(false, m6ExportCtx);
+
+  const v4Backup = await prod.exportWorkspaceBackupV4(m6ExportUid, m6ExportCtx);
+  assert(
+    v4Backup && v4Backup.schema === 'exo_workspace_backup_v4' &&
+    v4Backup.version === 4 &&
+    v4Backup.accountScopeHint === m6ExportUid &&
+    v4Backup.integrity && v4Backup.integrity.algorithm === 'SHA-256' &&
+    typeof v4Backup.integrity.sha256 === 'string' && v4Backup.integrity.sha256.length === 64 &&
+    v4Backup.data && v4Backup.data.subjects.length === 1 &&
+    v4Backup.data.annotations && v4Backup.data.annotations['lec_m6_101'] !== undefined &&
+    v4Backup.data.schedule.events.length === 1 &&
+    v4Backup.data.schedule.gdriveSync !== undefined &&
+    v4Backup.data.schedule.gdriveSync.token === undefined, // strictly zero secret tokens!
+    'T-5.1-M6-03: exportWorkspaceBackupV4 produces complete Tier A backup with canonical SHA-256 integrity hash, IndexedDB annotations, and zero tokens'
+  );
+
+  // 15. T-5.1-M6-04: inspectWorkspaceBackup Accurately Validates Backup and Detects Tampering Fail-Closed
+  const inspectValid = await prod.inspectWorkspaceBackup(JSON.stringify(v4Backup));
+  assert(
+    inspectValid.isValid === true &&
+    inspectValid.isV4 === true &&
+    inspectValid.integrityStatus === 'valid' &&
+    inspectValid.stats.subjectsCount === 1 &&
+    inspectValid.stats.lecturesCount === 1 &&
+    inspectValid.stats.annotationLecturesCount === 1,
+    'T-5.1-M6-04a: inspectWorkspaceBackup successfully validates healthy v4 backup and computes matching stats'
+  );
+
+  // Tamper with one character in payload
+  const tamperedBackup = JSON.parse(JSON.stringify(v4Backup));
+  tamperedBackup.data.subjects[0].name = 'علم الأدوية التالف'; // altered payload without updating hash
+  const inspectTampered = await prod.inspectWorkspaceBackup(JSON.stringify(tamperedBackup));
+  assert(
+    inspectTampered.isValid === true &&
+    inspectTampered.isV4 === true &&
+    inspectTampered.integrityStatus === 'invalid',
+    'T-5.1-M6-04b: inspectWorkspaceBackup detects single-character tampering in backup data fail-closed via SHA-256 mismatch'
+  );
+
+  // Attempting import on tampered backup fails closed
+  const tamperedImportRes = await prod.importWorkspaceBackupV4(JSON.stringify(tamperedBackup), 'merge', m6ExportUid, m6ExportCtx);
+  assert(
+    tamperedImportRes && tamperedImportRes.ok === false &&
+    tamperedImportRes.reason === 'INTEGRITY_MISMATCH',
+    'T-5.1-M6-04c: importWorkspaceBackupV4 strictly refuses to import tampered backup with mismatched SHA-256 checksum'
+  );
+
+  // 16. T-5.1-M6-05: inspectWorkspaceBackup Rejects Payloads Exceeding 50 MB
+  const oversizeFakeString = 'x'.repeat(51 * 1024 * 1024); // 51 MB string
+  const inspectOversize = await prod.inspectWorkspaceBackup(oversizeFakeString);
+  assert(
+    inspectOversize.isValid === false &&
+    inspectOversize.error === 'FILE_TOO_LARGE',
+    'T-5.1-M6-05: inspectWorkspaceBackup strictly rejects inputs exceeding 50 MB with FILE_TOO_LARGE error'
+  );
+
+  // 17. T-5.1-M6-06: importWorkspaceBackupV4 in Replace Mode Scopes Active Account and Preserves Other Accounts & Binary Stores
+  const m6ReplaceUid = 'user_m6_replace_target';
+  const foreignUserUid = 'user_m6_foreign_preserve';
+
+  // Seed foreign user annotation in IDB first under foreign user session
+  prod.setSessionUser(foreignUserUid);
+  const foreignCtx = prod.createAccountOperationContext();
+  prod.saveAnnotationsToDB('lec_foreign_preserve', { 1: [{ id: 'str_foreign_safe', tool: 'pen' }] }, null, foreignCtx);
+  await prod.flushPendingAnnotationsSave(false, foreignCtx);
+
+  // Switch to active user
+  prod.setSessionUser(m6ReplaceUid);
+  const m6ReplaceCtx = prod.createAccountOperationContext();
+
+  // Seed active user existing annotation to be replaced
+  prod.saveAnnotationsToDB('lec_to_be_replaced', { 1: [{ id: 'str_old_replace', tool: 'pen' }] }, null, m6ReplaceCtx);
+  await prod.flushPendingAnnotationsSave(false, m6ReplaceCtx);
+
+  const replaceBackupData = {
+    schema: 'exo_workspace_backup_v4',
+    version: 4,
+    accountScopeHint: m6ReplaceUid,
+    data: {
+      subjects: [{ id: 'sub_m6_fresh', name: 'مادة بديلة كاملة' }],
+      logs: [{ id: 'log_fresh_1', duration: 60 }],
+      schedule: { events: [{ id: 'ev_fresh_1', title: 'جلسة جديدة' }] },
+      annotations: {
+        'lec_fresh_101': { 1: [{ id: 'str_fresh_101', tool: 'highlighter', color: '#fbbf24', points: [[1, 1], [3, 3]] }] }
+      }
+    }
+  };
+  const replaceBackupStr = prod.canonicalizeJson(replaceBackupData.data);
+  replaceBackupData.integrity = {
+    algorithm: 'SHA-256',
+    canonicalScope: 'data',
+    sha256: await prod.computeCanonicalSha256(replaceBackupStr)
+  };
+
+  const replaceImportRes = await prod.importWorkspaceBackupV4(replaceBackupData, 'replace', m6ReplaceUid, m6ReplaceCtx);
+  const activeIdbAfterReplace = await prod.getAllAnnotationsMapFromDB(m6ReplaceUid, m6ReplaceCtx);
+
+  // Verify foreign user's annotations under foreign user session context
+  prod.setSessionUser(foreignUserUid);
+  const foreignCtxCheck = prod.createAccountOperationContext();
+  const foreignIdbAfterReplace = await prod.getAllAnnotationsMapFromDB(foreignUserUid, foreignCtxCheck);
+  prod.setSessionUser(m6ReplaceUid);
+
+  assert(
+    replaceImportRes && replaceImportRes.ok === true &&
+    replaceImportRes.mode === 'replace' &&
+    activeIdbAfterReplace.verifiedMap['lec_fresh_101'] !== undefined &&
+    activeIdbAfterReplace.verifiedMap['lec_to_be_replaced'] === undefined &&
+    foreignIdbAfterReplace.verifiedMap['lec_foreign_preserve'] !== undefined &&
+    prod.localStorage.getItem('pharmaWorkspaceDirty') === '1' &&
+    prod.getRuntimeState().dirtyAnnotationsForCloud === true,
+    'T-5.1-M6-06: importWorkspaceBackupV4 replace mode cleanly replaces active account workspace & annotations without touching foreign accounts, marking workspace dirty'
+  );
+
+  // 18. T-5.1-M6-07: importWorkspaceBackupV4 in Merge Mode Merges Hierarchies and Annotations Non-Destructively
+  const m6MergeUid = 'user_m6_merge_target';
+  prod.setSessionUser(m6MergeUid);
+  const m6MergeCtx = prod.createAccountOperationContext();
+
+  prod.setRuntimeState({
+    subjects: [{ id: 'sub_local_exist', name: 'المادة المحلية', chapters: [] }],
+    scheduleEvents: [{ id: 'ev_local_exist', title: 'جلسة محلية' }],
+    scheduleBacklog: [],
+    logs: [{ id: 'log_local_exist', duration: 30 }]
+  });
+  prod.saveAnnotationsToDB('lec_shared_101', {
+    1: [{ id: 'str_local_p1', tool: 'pen', color: '#10b981', points: [[2, 2]] }]
+  }, null, m6MergeCtx);
+  await prod.flushPendingAnnotationsSave(false, m6MergeCtx);
+
+  const mergeBackupData = {
+    schema: 'exo_workspace_backup_v4',
+    version: 4,
+    accountScopeHint: m6MergeUid,
+    data: {
+      subjects: [{ id: 'sub_incoming_merge', name: 'المادة المستوردة', chapters: [] }],
+      logs: [{ id: 'log_incoming_merge', duration: 40 }],
+      schedule: {
+        events: [{ id: 'ev_incoming_merge', title: 'جلسة مستوردة' }]
+      },
+      annotations: {
+        'lec_shared_101': {
+          2: [{ id: 'str_incoming_p2', tool: 'highlighter', color: '#38bdf8', points: [[8, 8]] }]
+        }
+      }
+    }
+  };
+  const mergeBackupStr = prod.canonicalizeJson(mergeBackupData.data);
+  mergeBackupData.integrity = {
+    algorithm: 'SHA-256',
+    canonicalScope: 'data',
+    sha256: await prod.computeCanonicalSha256(mergeBackupStr)
+  };
+
+  const mergeImportRes = await prod.importWorkspaceBackupV4(mergeBackupData, 'merge', m6MergeUid, m6MergeCtx);
+  const mergedIdb = await prod.getAllAnnotationsMapFromDB(m6MergeUid, m6MergeCtx);
+  const stateAfterMerge = prod.getRuntimeState();
+
+  const sharedAnnos = mergedIdb.verifiedMap['lec_shared_101'];
+  assert(
+    mergeImportRes && mergeImportRes.ok === true &&
+    mergeImportRes.mode === 'merge' &&
+    stateAfterMerge.subjects.some(s => s.id === 'sub_local_exist') &&
+    stateAfterMerge.subjects.some(s => s.id === 'sub_incoming_merge') &&
+    sharedAnnos && sharedAnnos[1] !== undefined && sharedAnnos[2] !== undefined,
+    'T-5.1-M6-07: importWorkspaceBackupV4 merge mode non-destructively combines subjects, schedule, logs, and lecture annotation pages'
+  );
+
+  // 19. T-5.1-M6-08: Crash Recovery Journal Emergency Rollback on Transaction Interruption
+  const m6CrashUid = 'user_m6_crash_rollback';
+  prod.setSessionUser(m6CrashUid);
+  const m6CrashCtx = prod.createAccountOperationContext();
+
+  prod.setRuntimeState({
+    subjects: [{ id: 'sub_pre_crash', name: 'مادة قبل الانهيار' }],
+    scheduleEvents: [],
+    scheduleBacklog: [],
+    logs: []
+  });
+  prod.saveAnnotationsToDB('lec_pre_crash', { 1: [{ id: 'str_pre_crash', tool: 'pen' }] }, null, m6CrashCtx);
+  await prod.flushPendingAnnotationsSave(false, m6CrashCtx);
+
+  // Force failure during annotations IDB transaction to trigger emergency rollback
+  idb.failNextTransaction = true;
+  idb.failOnStore = 'annotations';
+  idb.failOnMode = 'readwrite';
+  const crashImportRes = await prod.importWorkspaceBackupV4(replaceBackupData, 'replace', m6CrashUid, m6CrashCtx);
+  const idbAfterCrashRollback = await prod.getAllAnnotationsMapFromDB(m6CrashUid, m6CrashCtx);
+  assert(
+    crashImportRes && crashImportRes.ok === false &&
+    crashImportRes.reason === 'IDB_APPLY_FAILED' &&
+    idbAfterCrashRollback.verifiedMap['lec_pre_crash'] !== undefined &&
+    prod.localStorage.getItem('pharmaImportTxState_' + m6CrashUid) === null,
+    'T-5.1-M6-08: Emergency rollback upon IDB transaction failure restores pre-import IndexedDB annotations and cleans up crash journal'
+  );
+
+  // 20. T-5.1-M6-09: recoverPendingImportJournalIfNeeded Startup Finalization
+  const m6FinalizeUid = 'user_m6_finalize_startup';
+  prod.setSessionUser(m6FinalizeUid);
+  const m6FinalizeCtx = prod.createAccountOperationContext();
+  const txStateKey = 'pharmaImportTxState_' + m6FinalizeUid;
+  prod.localStorage.setItem(txStateKey, JSON.stringify({ phase: 'COMMITTED', mode: 'merge', startedAt: Date.now() }));
+
+  const recoveryRes = await prod.recoverPendingImportJournalIfNeeded(m6FinalizeUid, m6FinalizeCtx);
+  assert(
+    recoveryRes && recoveryRes.recovered === true &&
+    recoveryRes.action === 'finalized' &&
+    prod.localStorage.getItem(txStateKey) === null,
+    'T-5.1-M6-09: recoverPendingImportJournalIfNeeded on startup safely finalizes transactions that completed through COMMITTED phase'
+  );
+
+  // ============================================================================
+  // M6 — WP-8: ACTIONABLE SUPABASE DIAGNOSTICS TEST SUITE
+  // ============================================================================
+
+  // 21. T-5.1-M6-10: 10-Category Deterministic Error Classification & Secret Stripping
+  const testCases = [
+    { err: new Error('Failed to fetch'), expectedCat: 'offline', expectedCode: 'ERR_OFFLINE' },
+    { err: { status: 401, message: 'JWT expired' }, expectedCat: 'unauthorized', expectedCode: 'ERR_UNAUTHORIZED' },
+    { err: { status: 404, message: 'function sync_workspace_with_concurrency does not exist' }, expectedCat: 'missing_rpc', expectedCode: 'ERR_MISSING_RPC' },
+    { err: { code: 'PGRST200', message: 'Could not query the database for the schema cache' }, expectedCat: 'postgrest_schema_cache', expectedCode: 'ERR_SCHEMA_CACHE' },
+    { err: { code: '42883', message: 'function sync_workspace_with_concurrency(jsonb) does not exist with given arguments' }, expectedCat: 'function_signature_mismatch', expectedCode: 'ERR_SIG_MISMATCH' },
+    { err: { status: 403, code: '42501', message: 'new row violates row-level security policy for table user_workspaces' }, expectedCat: 'permission_denied', expectedCode: 'ERR_PERMISSION_DENIED' },
+    { err: null, rpc: { status: 'conflict', current_revision: 55 }, expectedCat: 'occ_conflict', expectedCode: 'ERR_OCC_CONFLICT' },
+    { err: { status: 400, code: '22P02', message: 'invalid input syntax for type json' }, expectedCat: 'invalid_payload', expectedCode: 'ERR_INVALID_PAYLOAD' },
+    { err: { status: 502, message: 'Bad Gateway Cloudflare' }, expectedCat: 'server_error', expectedCode: 'ERR_SERVER_ERROR' },
+    { err: new Error('Custom internal application anomaly'), expectedCat: 'unknown', expectedCode: 'ERR_UNKNOWN' }
+  ];
+
+  let diagAllPassed = true;
+  for (let i = 0; i < testCases.length; i++) {
+    const tc = testCases[i];
+    const diag = prod.classifySupabaseError(tc.err, tc.rpc);
+    if (!diag || diag.category !== tc.expectedCat || diag.code !== tc.expectedCode || !diag.preservesDirty || !diag.messageAr) {
+      diagAllPassed = false;
+      console.error(`Diag mismatch for index ${i}: expected ${tc.expectedCat}, got ${diag?.category}`);
+      break;
+    }
+  }
+  assert(diagAllPassed, 'T-5.1-M6-10a: classifySupabaseError deterministically classifies all 10 standard categories with preservesDirty: true');
+
+  // Verify secret stripping in technicalDetail
+  const sensitiveError = new Error('RPC failure on authorization Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.token123 and password=super_secret_password_999');
+  const sanitizedDiag = prod.classifySupabaseError(sensitiveError);
+  assert(
+    sanitizedDiag &&
+    !sanitizedDiag.technicalDetail.includes('eyJhbGci') &&
+    !sanitizedDiag.technicalDetail.includes('super_secret_password_999') &&
+    sanitizedDiag.technicalDetail.includes('Bearer [REDACTED]') &&
+    sanitizedDiag.technicalDetail.includes('password=[REDACTED]'),
+    'T-5.1-M6-10b: sanitizeTechnicalErrorDetail strictly strips JWT tokens, passwords, and secrets from diagnostics output'
   );
 
 

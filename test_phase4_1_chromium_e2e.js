@@ -3103,6 +3103,189 @@ async function main() {
       JSON.stringify(resX3)
     );
 
+    // ============================================================================
+    // TEST Y (Milestone M6): Tier A Complete Backup & Restore + Supabase Diagnostics
+    // ============================================================================
+    console.log('\n--- TEST Y (Milestone M6): Tier A Complete Backup & Restore + Supabase Diagnostics ---');
+    const pageY = await context.newPage();
+    await pageY.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+    await pageY.waitForFunction(() => typeof exportWorkspaceBackupV4 === 'function');
+
+    const resY1 = await pageY.evaluate(async () => {
+      const uidY = 'user_m6_e2e_y';
+      await handleAuthSessionChange({ id: uidY, email: 'usery@exo.edu', name: 'User Y' }, false);
+      const ctxY = createAccountOperationContext(uidY);
+
+      // Seed subjects, schedule, logs, and IDB annotations
+      subjects = [{ id: 'sub_y_1', name: 'Biochemistry E2E', chapters: [{ id: 'ch_y_1', lectures: [{ id: 'lec_y_1', name: 'Enzymes' }] }] }];
+      scheduleEvents = [{ id: 'ev_y_1', title: 'Review Kinetics' }];
+      logs = [{ id: 'log_y_1', duration: 45 }];
+      saveSubjects();
+      saveScheduleData();
+      saveLogs();
+
+      saveAnnotationsToDB('lec_y_1', {
+        1: [{ id: 'str_y_1', tool: 'pen', color: '#10b981', points: [[10, 10], [20, 20]] }]
+      }, null, ctxY);
+      await flushPendingAnnotationsSave(false, ctxY);
+
+      // Export v4 backup
+      const backupV4 = await exportWorkspaceBackupV4(uidY, ctxY);
+      const inspectRes = await inspectWorkspaceBackup(JSON.stringify(backupV4));
+
+      return {
+        schema: backupV4?.schema,
+        version: backupV4?.version,
+        hasSha: typeof backupV4?.integrity?.sha256 === 'string' && backupV4.integrity.sha256.length === 64,
+        isValid: inspectRes?.isValid === true,
+        integrityValid: inspectRes?.integrityStatus === 'valid',
+        subjectsCount: inspectRes?.stats?.subjectsCount,
+        annotationLecturesCount: inspectRes?.stats?.annotationLecturesCount,
+        backupJson: JSON.stringify(backupV4)
+      };
+    });
+
+    assert(
+      resY1.schema === 'exo_workspace_backup_v4' &&
+      resY1.version === 4 &&
+      resY1.hasSha === true &&
+      resY1.isValid === true &&
+      resY1.integrityValid === true &&
+      resY1.subjectsCount === 1 &&
+      resY1.annotationLecturesCount === 1,
+      'Test Y.1 (M6): Real Chromium exports complete v4 Tier A backup with valid canonical SHA-256 integrity checksum and matching stats',
+      JSON.stringify(resY1)
+    );
+
+    // Test Y.2: Preflight modal display and Replace restore in Real Chromium
+    const resY2 = await pageY.evaluate(async (backupJson) => {
+      const uidY = 'user_m6_e2e_y';
+      const ctxY = createAccountOperationContext(uidY);
+
+      // Create a replace backup with distinct content
+      const replaceObj = JSON.parse(backupJson);
+      replaceObj.data.subjects = [{ id: 'sub_y_replaced', name: 'Molecular Biology Replaced', groups: [], chapters: [] }];
+      replaceObj.data.annotations = {
+        'lec_y_replaced': { 1: [{ id: 'str_y_rep', tool: 'highlighter', color: '#fbbf24', points: [[5, 5]] }] }
+      };
+      const canonStr = canonicalizeJson(replaceObj.data);
+      replaceObj.integrity.sha256 = await computeCanonicalSha256(canonStr);
+
+      // Run Replace Restore
+      const restoreRes = await importWorkspaceBackupV4(replaceObj, 'replace', uidY, ctxY);
+      const idbAfter = await getAllAnnotationsMapFromDB(uidY, ctxY);
+
+      return {
+        restoreOk: restoreRes?.ok === true,
+        restoreMode: restoreRes?.mode,
+        hasReplacedSub: subjects.some(s => s.id === 'sub_y_replaced'),
+        oldSubGone: !subjects.some(s => s.id === 'sub_y_1'),
+        hasReplacedAnno: Boolean(idbAfter?.verifiedMap?.lec_y_replaced),
+        oldAnnoGone: !Boolean(idbAfter?.verifiedMap?.lec_y_1),
+        isDirty: localStorage.getItem('pharmaWorkspaceDirty') === '1',
+        dirtyAnno: dirtyAnnotationsForCloud === true
+      };
+    }, resY1.backupJson);
+
+    assert(
+      resY2.restoreOk === true &&
+      resY2.restoreMode === 'replace' &&
+      resY2.hasReplacedSub === true &&
+      resY2.oldSubGone === true &&
+      resY2.hasReplacedAnno === true &&
+      resY2.oldAnnoGone === true &&
+      resY2.isDirty === true &&
+      resY2.dirtyAnno === true,
+      'Test Y.2 (M6): Real Chromium replace mode restore atomically replaces active workspace & IndexedDB annotations and marks workspace dirty',
+      JSON.stringify(resY2)
+    );
+
+    // Test Y.3: Merge restore and Preflight modal DOM verification
+    const resY3 = await pageY.evaluate(async (originalBackupJson) => {
+      const uidY = 'user_m6_e2e_y';
+      const ctxY = createAccountOperationContext(uidY);
+
+      // Perform merge restore of original backup
+      const mergeRes = await importWorkspaceBackupV4(originalBackupJson, 'merge', uidY, ctxY);
+      const idbAfterMerge = await getAllAnnotationsMapFromDB(uidY, ctxY);
+
+      // Verify Preflight Modal DOM elements exist
+      const modalEl = document.getElementById('backupImportPreflightModalOverlay');
+      const inspectMeta = await inspectWorkspaceBackup(originalBackupJson);
+
+      return {
+        mergeOk: mergeRes?.ok === true,
+        mergeMode: mergeRes?.mode,
+        hasBothSubs: subjects.some(s => s.id === 'sub_y_replaced') && subjects.some(s => s.id === 'sub_y_1'),
+        hasBothAnnos: Boolean(idbAfterMerge?.verifiedMap?.lec_y_replaced) && Boolean(idbAfterMerge?.verifiedMap?.lec_y_1),
+        modalExistsInDOM: Boolean(modalEl),
+        inspectValid: inspectMeta?.isValid === true,
+        inspectIntegrity: inspectMeta?.integrityStatus === 'valid'
+      };
+    }, resY1.backupJson);
+
+    assert(
+      resY3.mergeOk === true &&
+      resY3.mergeMode === 'merge' &&
+      resY3.hasBothSubs === true &&
+      resY3.hasBothAnnos === true &&
+      resY3.modalExistsInDOM === true &&
+      resY3.inspectValid === true,
+      'Test Y.3 (M6): Real Chromium merge restore non-destructively unites subjects and lecture annotations, and preflight modal DOM is verified',
+      JSON.stringify(resY3)
+    );
+
+    // Test Y.4: Tampering fail-closed rejection and WP-8 Supabase Error Classification in Real Chromium
+    const resY4 = await pageY.evaluate(async (validBackupJson) => {
+      const uidY = 'user_m6_e2e_y';
+      const ctxY = createAccountOperationContext(uidY);
+
+      // Tamper backup data by modifying one property without updating sha256
+      const tamperedObj = JSON.parse(validBackupJson);
+      tamperedObj.data.subjects[0].name = 'Tampered Subject Name';
+      const tamperedRes = await importWorkspaceBackupV4(tamperedObj, 'merge', uidY, ctxY);
+
+      // WP-8 Diagnostics check in browser
+      const diagOffline = classifySupabaseError(new TypeError('Failed to fetch'));
+      const diagUnauthorized = classifySupabaseError({ status: 401, message: 'JWT expired' });
+      const diagMissingRpc = classifySupabaseError({ status: 404, message: 'function does not exist' });
+      const diagSigMismatch = classifySupabaseError({ code: '42883', message: 'function sync_workspace_with_concurrency(jsonb) does not exist with given arguments' });
+      const diagRls = classifySupabaseError({ status: 403, code: '42501', message: 'violates row-level security policy' });
+      const diagOcc = classifySupabaseError(null, { status: 'conflict', current_revision: 99 });
+      const diagSanitized = sanitizeTechnicalErrorDetail('Error with token Bearer eyJhbGci.secret123 and password=pass123');
+
+      return {
+        tamperedOk: tamperedRes?.ok === false,
+        tamperedReason: tamperedRes?.reason,
+        offlineCat: diagOffline?.category,
+        unauthCat: diagUnauthorized?.category,
+        missingRpcCat: diagMissingRpc?.category,
+        sigMismatchCat: diagSigMismatch?.category,
+        rlsCat: diagRls?.category,
+        occCat: diagOcc?.category,
+        allPreserveDirty: diagOffline?.preservesDirty && diagUnauthorized?.preservesDirty && diagSigMismatch?.preservesDirty && diagRls?.preservesDirty,
+        tokenRedacted: !diagSanitized.includes('eyJhbGci') && diagSanitized.includes('[REDACTED]'),
+        passwordRedacted: !diagSanitized.includes('pass123') && diagSanitized.includes('password=[REDACTED]')
+      };
+    }, resY1.backupJson);
+
+    assert(
+      resY4.tamperedOk === true &&
+      resY4.tamperedReason === 'INTEGRITY_MISMATCH' &&
+      resY4.offlineCat === 'offline' &&
+      resY4.unauthCat === 'unauthorized' &&
+      resY4.missingRpcCat === 'missing_rpc' &&
+      resY4.sigMismatchCat === 'function_signature_mismatch' &&
+      resY4.rlsCat === 'permission_denied' &&
+      resY4.occCat === 'occ_conflict' &&
+      resY4.allPreserveDirty === true &&
+      resY4.tokenRedacted === true &&
+      resY4.passwordRedacted === true,
+      'Test Y.4 (M6 WP-7 & WP-8): Real Chromium rejects tampered backup fail-closed via SHA-256 mismatch, deterministically classifies Supabase errors, and redacts secrets',
+      JSON.stringify(resY4)
+    );
+
+    await pageY.close();
     await context.close();
   } finally {
     await browser.close();
