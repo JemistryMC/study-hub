@@ -11404,6 +11404,19 @@
             if (typeof isImportInProgressOrQuarantined === 'function') {
                 const gateCheck = isImportInProgressOrQuarantined(currentUid);
                 if (gateCheck && gateCheck.blocked) {
+                    if (gateCheck.reason === 'import_in_progress') {
+                        if (!pendingDomainWritesDuringImportByAccount.has(currentUid)) {
+                            pendingDomainWritesDuringImportByAccount.set(currentUid, {});
+                        }
+                        pendingDomainWritesDuringImportByAccount.get(currentUid).subjects = true;
+                        try {
+                            const pKey = 'pharmaPendingDomainWrites_' + currentUid;
+                            const existing = JSON.parse(localStorage.getItem(pKey) || '{}');
+                            existing.subjects = true;
+                            localStorage.setItem(pKey, JSON.stringify(existing));
+                        } catch (e) {}
+                        return { ok: true, queued: true, domain: 'subjects', reason: 'import_in_progress', message: 'Subject changes queued and will be saved when import completes.' };
+                    }
                     return { ok: false, domain: 'subjects', blocked: true, reason: gateCheck.reason };
                 }
             }
@@ -13298,6 +13311,19 @@
             if (typeof isImportInProgressOrQuarantined === 'function') {
                 const gateCheck = isImportInProgressOrQuarantined(currentUid);
                 if (gateCheck && gateCheck.blocked) {
+                    if (gateCheck.reason === 'import_in_progress') {
+                        if (!pendingDomainWritesDuringImportByAccount.has(currentUid)) {
+                            pendingDomainWritesDuringImportByAccount.set(currentUid, {});
+                        }
+                        pendingDomainWritesDuringImportByAccount.get(currentUid).schedule = true;
+                        try {
+                            const pKey = 'pharmaPendingDomainWrites_' + currentUid;
+                            const existing = JSON.parse(localStorage.getItem(pKey) || '{}');
+                            existing.schedule = true;
+                            localStorage.setItem(pKey, JSON.stringify(existing));
+                        } catch (e) {}
+                        return { ok: true, queued: true, domain: 'schedule', reason: 'import_in_progress', message: 'Schedule changes queued and will be saved when import completes.' };
+                    }
                     return { ok: false, domain: 'schedule', blocked: true, reason: gateCheck.reason };
                 }
             }
@@ -16199,6 +16225,19 @@
             if (typeof isImportInProgressOrQuarantined === 'function') {
                 const gateCheck = isImportInProgressOrQuarantined(currentUid);
                 if (gateCheck && gateCheck.blocked) {
+                    if (gateCheck.reason === 'import_in_progress') {
+                        if (!pendingDomainWritesDuringImportByAccount.has(currentUid)) {
+                            pendingDomainWritesDuringImportByAccount.set(currentUid, {});
+                        }
+                        pendingDomainWritesDuringImportByAccount.get(currentUid).logs = true;
+                        try {
+                            const pKey = 'pharmaPendingDomainWrites_' + currentUid;
+                            const existing = JSON.parse(localStorage.getItem(pKey) || '{}');
+                            existing.logs = true;
+                            localStorage.setItem(pKey, JSON.stringify(existing));
+                        } catch (e) {}
+                        return { ok: true, queued: true, domain: 'logs', reason: 'import_in_progress', message: 'Logs changes queued and will be saved when import completes.' };
+                    }
                     return { ok: false, domain: 'logs', blocked: true, reason: gateCheck.reason };
                 }
             }
@@ -19509,6 +19548,7 @@
         const activeImportQuarantinesByAccount = new Map();
         const queuedAnnotationWritesDuringImportByAccount = new Map();
         const barrierHeartbeatTimersByAccount = new Map();
+        const pendingDomainWritesDuringImportByAccount = new Map();
 
         function startBarrierHeartbeat(uid, barrierKey, txId) {
             stopBarrierHeartbeat(uid);
@@ -19534,34 +19574,233 @@
             }
         }
 
-        function applyQueuedAnnotationWritesAfterImport(uid, mode = 'merge') {
-            if (!uid || !queuedAnnotationWritesDuringImportByAccount.has(uid)) return;
-            const queue = queuedAnnotationWritesDuringImportByAccount.get(uid);
-            queuedAnnotationWritesDuringImportByAccount.delete(uid);
-            if (!Array.isArray(queue) || queue.length === 0) return;
+        // Durable, account-scoped annotation write queueing across tabs and browser restarts
+        function recordQueuedAnnotationWriteDurably(uid, item) {
+            if (!uid || !item) return Promise.resolve(false);
 
-            const currentUid = (typeof getCanonicalUserId === 'function') ? getCanonicalUserId() : null;
-            if (currentUid !== uid) {
-                console.warn('Discarding queued annotation writes: account context switched from', uid, 'to', currentUid);
-                return;
+            // 1. In-memory queue map
+            if (!queuedAnnotationWritesDuringImportByAccount.has(uid)) {
+                queuedAnnotationWritesDuringImportByAccount.set(uid, []);
             }
-            const ctx = (typeof resolveAccountOperationContext === 'function') ? resolveAccountOperationContext(uid) : null;
-            if (!ctx || !ctx.isCurrent()) {
-                console.warn('Discarding queued annotation writes: context not current for', uid);
-                return;
-            }
+            queuedAnnotationWritesDuringImportByAccount.get(uid).push(item);
 
-            queue.forEach(item => {
+            // 2. LocalStorage durable queue (synchronous, cross-tab immediate visibility)
+            try {
+                const lsKey = 'pharmaImportQueuedAnnos_' + uid;
+                const existingList = JSON.parse(localStorage.getItem(lsKey) || '[]');
+                existingList.push(item);
+                localStorage.setItem(lsKey, JSON.stringify(existingList));
+            } catch (lsErr) {}
+
+            // 3. Durable IndexedDB annotation_recovery_vault write
+            return new Promise((resolve) => {
+                if (!dbInstance || !dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
+                    return resolve(true);
+                }
                 try {
-                    const scopedKey = toScopedKey(item.lecId, uid);
-                    inMemoryAnnotationsCache[scopedKey] = item.pagesData;
-                    pendingAnnoSaveMap[scopedKey] = item.pagesData;
+                    const vaultKey = toScopedKey('__import_queued_annos_v1__', uid);
+                    const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+                    const store = tx.objectStore('annotation_recovery_vault');
+                    const getReq = store.get(vaultKey);
+                    getReq.onsuccess = () => {
+                        const rec = getReq.result || { id: vaultKey, userId: uid, queue: [] };
+                        if (!Array.isArray(rec.queue)) rec.queue = [];
+                        rec.queue.push(item);
+                        store.put(rec);
+                    };
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => resolve(true);
+                    tx.onabort = () => resolve(true);
                 } catch (e) {
-                    console.warn('Failed to apply queued annotation write:', e);
+                    resolve(true);
                 }
             });
-            if (typeof flushPendingAnnotationsSave === 'function') {
-                flushPendingAnnotationsSave(false, ctx);
+        }
+
+        // Drain durable queued annotation writes into IndexedDB annotations store
+        async function applyQueuedAnnotationWritesAfterImport(uid, mode = 'merge') {
+            if (!uid) return;
+
+            // Load queued items from all tiers: in-memory, LocalStorage, and IndexedDB vault
+            const items = [];
+            const seenIds = new Set();
+
+            if (queuedAnnotationWritesDuringImportByAccount.has(uid)) {
+                const memQueue = queuedAnnotationWritesDuringImportByAccount.get(uid);
+                queuedAnnotationWritesDuringImportByAccount.delete(uid);
+                if (Array.isArray(memQueue)) {
+                    memQueue.forEach(q => {
+                        const qId = q.id || (q.lecId + '_' + q.timestamp);
+                        if (!seenIds.has(qId)) { seenIds.add(qId); items.push(q); }
+                    });
+                }
+            }
+
+            const lsKey = 'pharmaImportQueuedAnnos_' + uid;
+            try {
+                const rawLs = localStorage.getItem(lsKey);
+                if (rawLs) {
+                    const parsedLs = JSON.parse(rawLs);
+                    if (Array.isArray(parsedLs)) {
+                        parsedLs.forEach(q => {
+                            const qId = q.id || (q.lecId + '_' + q.timestamp);
+                            if (!seenIds.has(qId)) { seenIds.add(qId); items.push(q); }
+                        });
+                    }
+                    localStorage.removeItem(lsKey);
+                }
+            } catch (e) {}
+
+            const vaultKey = toScopedKey('__import_queued_annos_v1__', uid);
+            if (dbInstance && dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
+                try {
+                    const vaultRec = await new Promise(resolve => {
+                        const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+                        const store = tx.objectStore('annotation_recovery_vault');
+                        const req = store.get(vaultKey);
+                        req.onsuccess = () => {
+                            const res = req.result;
+                            store.delete(vaultKey);
+                            resolve(res);
+                        };
+                        req.onerror = () => resolve(null);
+                    });
+                    if (vaultRec && Array.isArray(vaultRec.queue)) {
+                        vaultRec.queue.forEach(q => {
+                            const qId = q.id || (q.lecId + '_' + q.timestamp);
+                            if (!seenIds.has(qId)) { seenIds.add(qId); items.push(q); }
+                        });
+                    }
+                } catch (e) {}
+            }
+
+            if (items.length === 0) return;
+
+            // Apply directly into IndexedDB annotations store with strict ownership
+            if (dbInstance && dbInstance.stores && dbInstance.stores.annotations) {
+                items.forEach(item => {
+                    const scopedKey = toScopedKey(item.lecId, uid);
+                    const existing = dbInstance.stores.annotations.get(scopedKey);
+                    let mergedPages = {};
+                    if (existing && existing.pages) {
+                        mergedPages = (typeof existing.pages === 'object' && !Array.isArray(existing.pages)) ? JSON.parse(JSON.stringify(existing.pages)) : {};
+                    }
+                    const incomingPages = (item.pagesData && typeof item.pagesData === 'object' && !Array.isArray(item.pagesData)) ? item.pagesData : {};
+                    Object.keys(incomingPages).forEach(pNum => {
+                        const incStrokes = Array.isArray(incomingPages[pNum]) ? incomingPages[pNum] : (incomingPages[pNum]?.strokes || []);
+                        if (!mergedPages[pNum]) {
+                            mergedPages[pNum] = incomingPages[pNum];
+                        } else {
+                            const exStrokes = Array.isArray(mergedPages[pNum]) ? mergedPages[pNum] : (mergedPages[pNum]?.strokes || []);
+                            const exIds = new Set(exStrokes.map(s => s && (s.id || s.strokeId)));
+                            const toAdd = incStrokes.filter(s => s && !exIds.has(s.id || s.strokeId));
+                            if (Array.isArray(mergedPages[pNum])) {
+                                mergedPages[pNum] = mergedPages[pNum].concat(toAdd);
+                            } else if (mergedPages[pNum]?.strokes) {
+                                mergedPages[pNum].strokes = mergedPages[pNum].strokes.concat(toAdd);
+                            }
+                        }
+                    });
+                    dbInstance.stores.annotations.set(scopedKey, {
+                        id: scopedKey,
+                        rawId: item.lecId,
+                        userId: uid,
+                        pages: mergedPages,
+                        updatedAt: new Date().toISOString()
+                    });
+                });
+            } else if (dbInstance && dbInstance.objectStoreNames && dbInstance.objectStoreNames.contains('annotations')) {
+                await new Promise((resolve) => {
+                    try {
+                        const tx = dbInstance.transaction('annotations', 'readwrite');
+                        const store = tx.objectStore('annotations');
+                        items.forEach(item => {
+                            const scopedKey = toScopedKey(item.lecId, uid);
+                            const getReq = store.get(scopedKey);
+                            getReq.onsuccess = () => {
+                                const existing = getReq.result;
+                                let mergedPages = {};
+                                if (existing && existing.pages) {
+                                    mergedPages = (typeof existing.pages === 'object' && !Array.isArray(existing.pages)) ? JSON.parse(JSON.stringify(existing.pages)) : {};
+                                }
+                                const incomingPages = (item.pagesData && typeof item.pagesData === 'object' && !Array.isArray(item.pagesData)) ? item.pagesData : {};
+                                Object.keys(incomingPages).forEach(pNum => {
+                                    const incStrokes = Array.isArray(incomingPages[pNum]) ? incomingPages[pNum] : (incomingPages[pNum]?.strokes || []);
+                                    if (!mergedPages[pNum]) {
+                                        mergedPages[pNum] = incomingPages[pNum];
+                                    } else {
+                                        const exStrokes = Array.isArray(mergedPages[pNum]) ? mergedPages[pNum] : (mergedPages[pNum]?.strokes || []);
+                                        const exIds = new Set(exStrokes.map(s => s && (s.id || s.strokeId)));
+                                        const toAdd = incStrokes.filter(s => s && !exIds.has(s.id || s.strokeId));
+                                        if (Array.isArray(mergedPages[pNum])) {
+                                            mergedPages[pNum] = mergedPages[pNum].concat(toAdd);
+                                        } else if (mergedPages[pNum]?.strokes) {
+                                            mergedPages[pNum].strokes = mergedPages[pNum].strokes.concat(toAdd);
+                                        }
+                                    }
+                                });
+                                store.put({
+                                    id: scopedKey,
+                                    rawId: item.lecId,
+                                    userId: uid,
+                                    pages: mergedPages,
+                                    updatedAt: new Date().toISOString()
+                                });
+                            };
+                        });
+                        tx.oncomplete = () => resolve();
+                        tx.onerror = () => resolve();
+                        tx.onabort = () => resolve();
+                    } catch (e) {
+                        resolve();
+                    }
+                });
+            }
+
+            // If this tab's active session is currently uid, also update in-memory caches and schedule flush
+            const activeUid = (typeof getCanonicalUserId === 'function') ? getCanonicalUserId() : null;
+            if (activeUid === uid) {
+                const ctx = (typeof resolveAccountOperationContext === 'function') ? resolveAccountOperationContext(uid) : null;
+                items.forEach(item => {
+                    try {
+                        const scopedKey = toScopedKey(item.lecId, uid);
+                        inMemoryAnnotationsCache[scopedKey] = item.pagesData;
+                        pendingAnnoSaveMap[scopedKey] = item.pagesData;
+                    } catch (e) {}
+                });
+                if (typeof flushPendingAnnotationsSave === 'function' && ctx && ctx.isCurrent()) {
+                    flushPendingAnnotationsSave(false, ctx);
+                }
+            }
+        }
+
+        // Flush queued domain mutations (subjects, schedule, logs) after import barrier clears
+        function flushQueuedDomainWritesAfterImport(uid) {
+            if (!uid) return;
+            const key = 'pharmaPendingDomainWrites_' + uid;
+            let pending = null;
+            try {
+                const raw = localStorage.getItem(key);
+                if (raw) pending = JSON.parse(raw);
+            } catch (e) {}
+            if (pendingDomainWritesDuringImportByAccount.has(uid)) {
+                pending = Object.assign({}, pending || {}, pendingDomainWritesDuringImportByAccount.get(uid));
+                pendingDomainWritesDuringImportByAccount.delete(uid);
+            }
+            if (!pending) return;
+            try { localStorage.removeItem(key); } catch (e) {}
+
+            const curUid = (typeof getCanonicalUserId === 'function') ? getCanonicalUserId() : null;
+            if (curUid === uid) {
+                if (pending.subjects && typeof saveSubjects === 'function') {
+                    saveSubjects();
+                }
+                if (pending.schedule && typeof saveScheduleData === 'function') {
+                    saveScheduleData(true);
+                }
+                if (pending.logs && typeof saveLogs === 'function') {
+                    saveLogs();
+                }
             }
         }
 
@@ -19573,7 +19812,7 @@
             globalThis.__exoImportTestHooks = null;
         }
 
-        function isImportInProgressOrQuarantined(uid) {
+        function isImportInProgressOrQuarantined(uid, ignoreTxId = null) {
             if (!uid) return { blocked: false };
             const quarantineRaw = (typeof localStorage !== 'undefined' && localStorage.getItem) ? localStorage.getItem('pharmaImportQuarantine_' + uid) : null;
             const isQuarantinedInMem = (typeof activeImportQuarantinesByAccount !== 'undefined' && activeImportQuarantinesByAccount.get) ? activeImportQuarantinesByAccount.get(uid) : false;
@@ -19588,13 +19827,15 @@
             const barrierRaw = (typeof localStorage !== 'undefined' && localStorage.getItem) ? localStorage.getItem('pharmaImportBarrier_' + uid) : null;
             const isBarrierInMem = (typeof activeImportBarriersByAccount !== 'undefined' && activeImportBarriersByAccount.get) ? activeImportBarriersByAccount.get(uid) : false;
 
-            // In-memory active barrier in the originating tab is 100% authoritative and NEVER stale
-            if (isBarrierInMem) {
-                return {
-                    blocked: true,
-                    reason: 'import_in_progress',
-                    error: 'Workspace import is currently in progress for this account in this tab. Competing operations are blocked.'
-                };
+            // In-memory active barrier in the originating tab
+            if (isBarrierInMem && (!ignoreTxId || (isBarrierInMem !== true && isBarrierInMem !== ignoreTxId))) {
+                if (!ignoreTxId || isBarrierInMem !== ignoreTxId) {
+                    return {
+                        blocked: true,
+                        reason: 'import_in_progress',
+                        error: 'Workspace import is currently in progress for this account in this tab. Competing operations are blocked.'
+                    };
+                }
             }
 
             if (barrierRaw) {
@@ -19602,19 +19843,35 @@
                 if (typeof barrierRaw === 'string' && barrierRaw.startsWith(String.fromCharCode(123))) {
                     try {
                         const parsedB = JSON.parse(barrierRaw);
-                        const lastActivity = parsedB.heartbeatAt || parsedB.startedAt || 0;
-                        // Verified liveness protocol: only clear stale lease if heartbeat stopped > 30 seconds ago
-                        if (lastActivity && (Date.now() - lastActivity > 30000)) {
-                            isLive = false;
-                            console.warn('Clearing stale import barrier lease (heartbeat inactive >30s) for user:', uid);
-                            if (typeof localStorage !== 'undefined' && localStorage.removeItem) {
-                                localStorage.removeItem('pharmaImportBarrier_' + uid);
-                            }
-                            activeImportBarriersByAccount.delete(uid);
-                            stopBarrierHeartbeat(uid);
+                        if (ignoreTxId && parsedB && parsedB.txId === ignoreTxId) {
                             return { blocked: false };
                         }
-                    } catch (e) {}
+                        const lastActivity = parsedB.heartbeatAt || parsedB.startedAt || 0;
+                        // Requirement 3: Distinguish abandoned imports from live delayed/suspended imports using durable lock/journal ownership state.
+                        // Do NOT treat elapsed time alone (>30s) as proof that an import has ended.
+                        if (lastActivity && (Date.now() - lastActivity > 30000)) {
+                            const txRaw = (typeof localStorage !== 'undefined' && localStorage.getItem) ? localStorage.getItem('pharmaImportTxState_' + uid) : null;
+                            const hasPointer = Boolean(txRaw);
+                            let hasLiveLockOrJournal = hasPointer;
+
+                            // If pointer or journal exists, or if a lock exists, do NOT clear barrier — fail closed!
+                            if (hasLiveLockOrJournal) {
+                                isLive = true;
+                            } else {
+                                // Ownership verification confirmed: no lock, no journal, no pointer. Confirm abandoned barrier.
+                                isLive = false;
+                                console.warn('Clearing verified abandoned import barrier lease (no active lock or journal) for user:', uid);
+                                if (typeof localStorage !== 'undefined' && localStorage.removeItem) {
+                                    localStorage.removeItem('pharmaImportBarrier_' + uid);
+                                }
+                                activeImportBarriersByAccount.delete(uid);
+                                stopBarrierHeartbeat(uid);
+                                return { blocked: false };
+                            }
+                        }
+                    } catch (e) {
+                        isLive = true;
+                    }
                 }
                 if (isLive) {
                     return {
@@ -19972,11 +20229,22 @@
                                 error: 'Workspace import is currently in progress for this account in another tab.'
                             });
                         }
-                        if (testHooks && testHooks.holdImportAfterLock) {
-                            await testHooks.holdImportAfterLock;
+                        const barrierKey = 'pharmaImportBarrier_' + uid;
+                        try {
+                            localStorage.setItem(barrierKey, JSON.stringify({ txId, startedAt: Date.now(), heartbeatAt: Date.now() }));
+                        } catch (e) {}
+                        activeImportBarriersByAccount.set(uid, txId);
+                        startBarrierHeartbeat(uid, barrierKey, txId);
+
+                        try {
+                            if (testHooks && testHooks.holdImportAfterLock) {
+                                await testHooks.holdImportAfterLock;
+                            }
+                            const res = await actionFn();
+                            resolve(res);
+                        } finally {
+                            stopBarrierHeartbeat(uid);
                         }
-                        const res = await actionFn();
-                        resolve(res);
                     }).catch(lockErr => {
                         resolve({ ok: false, status: 'error', reason: 'LOCK_ERROR', error: lockErr?.message || String(lockErr) });
                     });
@@ -20021,6 +20289,13 @@
                     };
                 }
 
+                const barrierKey = 'pharmaImportBarrier_' + uid;
+                try {
+                    localStorage.setItem(barrierKey, JSON.stringify({ txId, startedAt: Date.now(), heartbeatAt: Date.now() }));
+                } catch (e) {}
+                activeImportBarriersByAccount.set(uid, txId);
+                startBarrierHeartbeat(uid, barrierKey, txId);
+
                 const idbHeartbeatTimer = setInterval(async () => {
                     try {
                         const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
@@ -20040,6 +20315,7 @@
                     return await actionFn();
                 } finally {
                     clearInterval(idbHeartbeatTimer);
+                    stopBarrierHeartbeat(uid);
                     try {
                         const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
                         tx.objectStore('annotation_recovery_vault').delete(lockKey);
@@ -20074,7 +20350,7 @@
             const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
 
             // Gate: Block if account is quarantined or another import is in progress
-            const gateCheck = isImportInProgressOrQuarantined(uid);
+            const gateCheck = isImportInProgressOrQuarantined(uid, passedTxId);
             if (gateCheck.blocked) {
                 return { ok: false, status: 'error', reason: gateCheck.reason, error: gateCheck.error };
             }
@@ -20710,30 +20986,78 @@
                     });
                 }
 
-                // Step 3c: Update LocalStorage pointer to ROLLED_BACK
+                // Crash hook right after durable ROLLED_BACK journal write in vault
+                if (testHooks && testHooks.crashAfterRolledBackJournal) {
+                    throw new Error('TEST_FAULT_INJECTION: crash_after_rolled_back_journal');
+                }
+
+                // Step 3c: Update LocalStorage pointer to ROLLED_BACK (verified step!)
+                let pointerPersisted = false;
                 try {
-                    localStorage.setItem('pharmaImportTxState_' + uid, JSON.stringify({
+                    if (testHooks && testHooks.failRollbackPointerWrite) {
+                        throw new Error('TEST_FAULT_INJECTION: fail_rollback_pointer_write');
+                    }
+                    const ptrVal = JSON.stringify({
                         txId: journal.txId,
                         phase: 'ROLLED_BACK',
                         mode: journal.mode,
                         rolledBackAt: journal.rolledBackAt
-                    }));
-                } catch (e) {}
+                    });
+                    localStorage.setItem('pharmaImportTxState_' + uid, ptrVal);
+                    if (localStorage.getItem('pharmaImportTxState_' + uid) === ptrVal) {
+                        pointerPersisted = true;
+                    }
+                } catch (ptrErr) {
+                    pointerPersisted = false;
+                    console.warn('Failed to persist ROLLED_BACK pointer to LocalStorage:', ptrErr);
+                    if (testHooks && testHooks.failRollbackPointerWrite) {
+                        throw ptrErr;
+                    }
+                }
 
+                // Crash hook after pointer write but before journal deletion
+                if (testHooks && testHooks.crashAfterRolledBackPointer) {
+                    throw new Error('TEST_FAULT_INJECTION: crash_after_rolled_back_pointer');
+                }
                 if (testHooks && testHooks.crashAfterRolledBackPersisted) {
                     throw new Error('TEST_FAULT_INJECTION: crash_after_rolled_back_persisted');
                 }
 
+                // If pointer persistence failed: RETAIN durable ROLLED_BACK journal & barrier! Never delete journal!
+                if (!pointerPersisted) {
+                    console.warn('Pointer persistence failed; retaining durable ROLLED_BACK journal and barrier in vault');
+                    return {
+                        ok: true,
+                        rolledBack: true,
+                        pointerPending: true,
+                        retainedJournal: true
+                    };
+                }
+
                 // Step 3d: Delete journal from IndexedDB vault (awaiting completion)
                 const journalScopedKey = toScopedKey('__import_journal_v1__', uid);
-                if (dbInstance) {
-                    await new Promise((resolve, reject) => {
-                        const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
-                        tx.objectStore('annotation_recovery_vault').delete(journalScopedKey);
-                        tx.oncomplete = () => resolve();
-                        tx.onerror = () => reject(tx.error);
-                        tx.onabort = () => reject(tx.error);
-                    });
+                let journalDeleted = false;
+                try {
+                    if (testHooks && testHooks.failRollbackJournalDelete) {
+                        throw new Error('TEST_FAULT_INJECTION: fail_rollback_journal_delete');
+                    }
+                    if (dbInstance) {
+                        await new Promise((resolve, reject) => {
+                            const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+                            tx.objectStore('annotation_recovery_vault').delete(journalScopedKey);
+                            tx.oncomplete = () => resolve();
+                            tx.onerror = () => reject(tx.error);
+                            tx.onabort = () => reject(tx.error);
+                        });
+                        journalDeleted = true;
+                    }
+                } catch (delErr) {
+                    console.warn('Failed to delete journal after rollback:', delErr);
+                    if (testHooks && testHooks.failRollbackJournalDelete) {
+                        throw delErr;
+                    }
+                    // Pointer is ROLLED_BACK, journal in vault is ROLLED_BACK: safe for recovery, do not quarantine!
+                    return { ok: true, rolledBack: true, journalDeletionPending: true };
                 }
 
                 // Hook for testing crash after journal deleted but before pointer/barrier cleanup
@@ -20752,7 +21076,8 @@
                 try { localStorage.removeItem('pharmaImportBarrier_' + uid); } catch (e) {}
                 activeImportBarriersByAccount.delete(uid);
                 stopBarrierHeartbeat(uid);
-                applyQueuedAnnotationWritesAfterImport(uid, 'merge');
+                await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
+                flushQueuedDomainWritesAfterImport(uid);
 
                 // Re-render UI views safely
                 try {
@@ -20767,7 +21092,7 @@
                 return { ok: true, rolledBack: true };
             } catch (rbErr) {
                 // If fault injection test intentionally caused crash, rethrow for the test harness
-                if (testHooks && (testHooks.crashDuringRollback || testHooks.crashDuringRollbackCleanup || testHooks.crashAfterRolledBackPersisted || testHooks.crashBeforeRollbackBarrierCleanup)) {
+                if (testHooks && (testHooks.crashDuringRollback || testHooks.crashDuringRollbackCleanup || testHooks.crashAfterRolledBackPersisted || testHooks.crashAfterRolledBackJournal || testHooks.crashAfterRolledBackPointer || testHooks.crashBeforeRollbackBarrierCleanup || testHooks.failRollbackPointerWrite || testHooks.failRollbackJournalDelete)) {
                     throw rbErr;
                 }
                 console.error('CRITICAL: Emergency rollback failed, quarantining account:', rbErr);
@@ -20909,9 +21234,44 @@
                 // Check if an abandoned barrier exists without journal or pointer
                 const barrierRaw = (typeof localStorage !== 'undefined' && localStorage.getItem) ? localStorage.getItem(barrierKey) : null;
                 if (barrierRaw) {
-                    try { localStorage.removeItem(barrierKey); } catch (e) {}
-                    activeImportBarriersByAccount.delete(uid);
-                    stopBarrierHeartbeat(uid);
+                    let hasLiveLock = false;
+                    try {
+                        if (typeof navigator !== 'undefined' && navigator.locks && typeof navigator.locks.query === 'function') {
+                            const lq = await navigator.locks.query();
+                            if (lq && Array.isArray(lq.held) && lq.held.some(l => l && l.name === 'exo_import_lock_' + uid)) {
+                                hasLiveLock = true;
+                            }
+                        }
+                    } catch (e) {}
+
+                    if (!hasLiveLock && dbInstance && dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
+                        try {
+                            const lockKey = toScopedKey('__import_lock_v1__', uid);
+                            const idbLock = await new Promise(res => {
+                                const tx = dbInstance.transaction('annotation_recovery_vault', 'readonly');
+                                const req = tx.objectStore('annotation_recovery_vault').get(lockKey);
+                                req.onsuccess = () => res(req.result || null);
+                                req.onerror = () => res(null);
+                            });
+                            if (idbLock && idbLock.heartbeatAt && (Date.now() - idbLock.heartbeatAt < 15000)) {
+                                hasLiveLock = true;
+                            }
+                        } catch (e) {}
+                    }
+
+                    // In-memory active barrier check for the originating tab
+                    if (activeImportBarriersByAccount.get(uid)) {
+                        hasLiveLock = true;
+                    }
+
+                    // If NO live lock, NO journal, and NO pointer exists: the barrier is an abandoned barrier from a prior crashed tab or crash before barrier cleanup!
+                    if (!hasLiveLock) {
+                        try { localStorage.removeItem(barrierKey); } catch (e) {}
+                        activeImportBarriersByAccount.delete(uid);
+                        stopBarrierHeartbeat(uid);
+                        await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
+                        flushQueuedDomainWritesAfterImport(uid);
+                    }
                 }
                 return { recovered: false };
             }
@@ -22712,19 +23072,31 @@
             const gateCheck = (typeof isImportInProgressOrQuarantined === 'function') ? isImportInProgressOrQuarantined(ctx.uid) : { blocked: false };
             if (gateCheck.blocked) {
                 if (gateCheck.reason === 'import_in_progress') {
-                    // Do not silently discard edits! Queue safely until active import completes
-                    if (!queuedAnnotationWritesDuringImportByAccount.has(ctx.uid)) {
-                        queuedAnnotationWritesDuringImportByAccount.set(ctx.uid, []);
-                    }
-                    queuedAnnotationWritesDuringImportByAccount.get(ctx.uid).push({
+                    // Do not silently discard edits! Queue safely and durably until active import completes
+                    const qItem = {
+                        id: 'qitem_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
                         lecId,
                         pagesData: (pagesData && typeof pagesData === 'object') ? JSON.parse(JSON.stringify(pagesData)) : pagesData,
                         specificPageKey,
                         timestamp: Date.now(),
-                        opCtx: ctx
-                    });
+                        userId: ctx.uid
+                    };
+                    const durableP = (typeof recordQueuedAnnotationWriteDurably === 'function')
+                        ? recordQueuedAnnotationWriteDurably(ctx.uid, qItem)
+                        : Promise.resolve(true);
+
                     console.warn('saveAnnotationsToDB queued safely: import in progress for user', ctx.uid);
-                    return { ok: false, queued: true, reason: 'import_in_progress', message: 'Annotation write safely queued during import.' };
+                    const res = {
+                        ok: false,
+                        queued: true,
+                        reason: 'import_in_progress',
+                        message: 'Annotation write safely queued during import.',
+                        item: qItem,
+                        then(onFulfilled, onRejected) {
+                            return durableP.then(() => onFulfilled(res), onRejected);
+                        }
+                    };
+                    return res;
                 }
                 console.warn('saveAnnotationsToDB blocked:', gateCheck.reason, 'for user', ctx.uid);
                 return { ok: false, queued: false, reason: gateCheck.reason, error: gateCheck.error };
@@ -29035,6 +29407,15 @@ function togglePdfAudioPlayerBar(forceState) {
                     try {
                         await flushPendingAnnotationsSave(false, activeCtx);
                     } catch (e) {}
+                }
+            }
+
+            if (nextUid && nextUid !== 'local') {
+                if (typeof applyQueuedAnnotationWritesAfterImport === 'function') {
+                    try { await applyQueuedAnnotationWritesAfterImport(nextUid, 'merge'); } catch (e) {}
+                }
+                if (typeof flushQueuedDomainWritesAfterImport === 'function') {
+                    try { flushQueuedDomainWritesAfterImport(nextUid); } catch (e) {}
                 }
             }
 

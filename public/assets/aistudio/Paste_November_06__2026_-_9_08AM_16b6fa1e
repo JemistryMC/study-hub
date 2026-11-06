@@ -1,0 +1,859 @@
+# EXO — M5-B Continuation & Acceptance Repair
+## F-05 Annotation Decoupling + N-02 Mutation-Version Integrity
+
+**Repository:** `JemistryMC/study-hub`
+
+**Branch:** `main`
+
+**Exact required starting HEAD:**
+
+`7b2304f4e653dff931e2c8cab9c768fad2279b69`
+
+**Parent / original M5-B baseline:**
+
+`ab44f08bcf97328b1583d5bdd8a85943d4dbe079`
+
+**Current status:** PARTIALLY IMPLEMENTED — CI FAILED — NOT APPROVED.
+
+---
+
+## 1. Mission: Continue, Do Not Restart
+
+Continue the existing M5-B implementation from the exact current HEAD.
+
+Do not restart from the original M5-B baseline.
+
+The existing commit:
+
+`7b2304f4e653dff931e2c8cab9c768fad2279b69`
+
+already introduced substantial changes to:
+
+- `index.html`
+- `test_phase4_regressions.js`
+- `test_phase4_1_chromium_e2e.js`
+- `test_phase3_cross_account_isolation.js`
+
+Preserve all correct work in that commit.
+
+Your task is to audit, repair, and complete the unfinished implementation.
+
+M5-A is frozen and remains an approved dependency. Do not redesign or weaken its provenance, quarantine, IndexedDB recovery, or account isolation behavior.
+
+Do not start Phase 5.3.
+
+## 2. Verified Current GitHub State
+
+The current `main` HEAD is `7b2304f4e653dff931e2c8cab9c768fad2279b69`.
+
+It is one commit ahead of `ab44f08bcf97328b1583d5bdd8a85943d4dbe079`.
+
+The M5-A final acceptance reference remains:
+
+- CI Run #29
+- Run ID: `42117460988`
+- Result: 463/463 PASSED.
+
+Current M5-B CI:
+
+- Run #30
+- Run ID: `42123495932`
+- Source SHA: `7b2304f4e653dff931e2c8cab9c768fad2279b69`
+- Result: FAILURE.
+
+Verified CI steps:
+
+- Syntax & Lint: PASSED.
+- Production Build: PASSED.
+- Static Security Audit: PASSED.
+- Unit & Asynchronous Logic Isolation: FAILED.
+- PGlite: SKIPPED.
+- PostgreSQL 16: SKIPPED.
+- Chromium E2E: SKIPPED.
+- Unified Test Runner: SKIPPED.
+
+The exact failure:
+
+`TypeError: Cannot read properties of undefined (reading 'get')`
+
+Location:
+
+`test_phase3_cross_account_isolation.js:847:34`
+
+The cause is an invalid test-harness reference:
+
+`idb.records.get(...)`
+
+The existing `InMemoryIDBDatabase` exposes:
+
+`idb.stores.annotations`
+
+as a Map.
+
+The separate Pages deployment workflow succeeded, but that is not application acceptance CI.
+
+Do not describe M5-B as CI-verified.
+
+## 3. Authorized Files
+
+Modify only:
+
+1. `index.html`
+2. `test_phase4_regressions.js`
+3. `test_phase4_1_chromium_e2e.js`
+4. `reports/CURRENT.md`
+
+**Narrow corrective exception:**
+
+5. `test_phase3_cross_account_isolation.js`
+
+This fifth file was already modified in the interrupted commit and introduces the current CI failure. You are explicitly authorized to repair that existing modification and update its assertions to reflect the new metadata-only account snapshot architecture.
+
+Limit changes in this file to:
+- Fixing the invalid IDB harness references.
+- Correctly checking the existing IndexedDB record structure.
+- Preserving the original cross-account isolation coverage.
+- Verifying that metadata-only snapshots reference data that really exists in the correct account's IndexedDB scope.
+
+Do not use this exception to redesign the Phase 4.1 suite.
+
+Do not modify package dependencies, package.json, migrations, SQL schema, Supabase policies, CI workflow configuration, or any other files.
+
+If another file is technically essential, stop and explain why before expanding scope.
+
+## 4. Priority 1 — Repair the Current CI Failure
+
+Inspect the existing `InMemoryIDBDatabase` implementation in `test_phase3_cross_account_isolation.js`.
+
+It defines:
+
+- `idb.stores.annotations`
+- `idb.stores.annotation_recovery_vault`
+- `idb.stores.pdfs`
+- `idb.stores.audios`
+
+Each is a Map.
+
+Stored annotation records use an object representation containing fields such as:
+
+- `id`
+- `rawId`
+- `userId`
+- `pages`
+
+Repair the new Test A assertions.
+
+Replace the incorrect usage of:
+
+`idb.records.get(...)`
+
+with the actual annotations store.
+
+Check the stored annotation page data using the correct record structure, such as:
+
+`record.pages['1']`
+
+after confirming the actual stored representation.
+
+Also replace the incorrect stale-record lookup with an appropriate Map lookup.
+
+Do not simply remove the failing assertions.
+
+The corrected test must still prove:
+
+1. User A's annotations are present in User A's IndexedDB scope.
+2. User A's pending annotation save is flushed and persisted.
+3. User A's account LocalStorage snapshot contains no annotations property.
+4. The metadata marker is present only when the underlying data has been verified.
+5. Deleted lecture annotations are not resurrected.
+6. No User A annotation record becomes accessible through User B's scope.
+
+Preserve all previous assertions that remain valid.
+
+Run the entire `test_phase3_cross_account_isolation.js` suite successfully before moving to final acceptance.
+
+## 5. Priority 2 — Complete F-05 Snapshot Durability
+
+Audit every account snapshot writer, including:
+
+1. `handleCloudSignOut()`
+2. `pushWorkspaceToCloud()`
+3. Account switching through `handleAuthSessionChange()`
+4. Outgoing-account snapshot creation inside `syncWorkspaceOnLogin()`
+5. `mergeAndApplyCloudConflict()`
+6. Every fallback and retry snapshot writer.
+
+The required account snapshot architecture is:
+
+- Full annotation data lives in the account-scoped IndexedDB stores.
+- `pharmaAccountWorkspace_<uid>` contains workspace metadata only.
+- No new LocalStorage key may contain another copy of the complete annotations payload.
+
+Every successful metadata-only snapshot must omit:
+
+`annotations`
+
+and include:
+
+`annotationsStoredInIndexedDB: true`
+
+However, that marker is a durability assertion, not an unconditional default.
+
+### Required durability gate
+
+Before writing the marker, verify that the corresponding account's annotation data is actually accessible and durably stored in IndexedDB.
+
+Require:
+
+- Correct authenticated UID.
+- Correct account operation context.
+- Successful IndexedDB initialization where needed.
+- Successful account-scoped IndexedDB read.
+- Completed database transactions.
+- Correct ownership metadata.
+- Correct scoped record keys.
+- Read-back verification for newly migrated or written data.
+
+Do not infer that data exists simply because `dbInstance` exists.
+
+Do not infer an empty annotation workspace from an unavailable database.
+
+### Specifically inspect the current partial implementation
+
+The current `pushWorkspaceToCloud()` code writes:
+
+`lightweightVaultCopy.annotationsStoredInIndexedDB = true`
+
+and silently catches LocalStorage backup failures.
+
+Verify that the annotation read succeeded before allowing the marker.
+
+Do not silently swallow failures that would leave the account's recoverable snapshot or dirty state inconsistent.
+
+The `mergeAndApplyCloudConflict()` writer must prove that its merged annotation state is safely persisted in IndexedDB before writing the marker.
+
+The sign-out and account-switch paths must preserve their current fail-closed behavior.
+
+### Quota failure rules
+
+When a LocalStorage metadata write fails:
+
+- Do not destroy an older recoverable snapshot.
+- Do not clear workspace dirty state.
+- Do not delete or overwrite IndexedDB annotation data.
+- Return an explicit failure result where the operation requires successful persistence.
+- Abort sign-out or account switching when outgoing data cannot be safely preserved.
+
+## 6. Priority 3 — Correct Legacy Migration
+
+Audit and complete:
+
+`migrateLegacyAccountAnnotationsToIDB()`
+
+The current implementation has several conditions that require correction.
+
+### A. Empty or missing legacy annotations
+
+The current function can set:
+
+`annotationsStoredInIndexedDB: true`
+
+when the snapshot does not contain annotations or contains an empty map, without positively verifying the account's IndexedDB state.
+
+Fix this.
+
+A missing LocalStorage annotations property does not prove that the account has no annotations.
+
+For both empty and non-empty legacy snapshots:
+
+- Verify account identity.
+- Verify successful IndexedDB access.
+- Verify that the correct account's annotation data can be read.
+- Preserve a failure result when the database cannot be accessed.
+- Do not mark the snapshot as migrated or verified prematurely.
+
+An actually empty, successfully verified store may be recognized as empty.
+
+### B. Legacy account validation
+
+Require:
+
+- Correct target account UID.
+- Valid snapshot ownership.
+- Correct scoped record IDs.
+- Correct record ownership metadata.
+- Rejection of foreign-account keys and records.
+
+Do not silently accept a missing or conflicting UID when ownership cannot be established.
+
+### C. Durable migration
+
+Continue using the existing IndexedDB V4 architecture and recovery mechanisms.
+
+Do not introduce a new database schema.
+
+Use the existing:
+
+- `annotations`
+- `annotation_recovery_vault`
+
+and the established restoration and ownership-validation functions.
+
+Await transaction completion.
+
+After migration, read the records back and verify:
+
+- Expected annotation record count.
+- Expected record keys.
+- Correct UID ownership.
+- Expected annotation content.
+- No missing or partial records.
+
+Do not rely on a truthy property check alone.
+
+### D. Idempotency
+
+Repeated migration attempts must not duplicate, corrupt, or overwrite records belonging to another account.
+
+An interrupted migration must be safely retryable.
+
+### E. Preserve the original LocalStorage snapshot
+
+The legacy annotations property must remain intact until:
+
+1. IndexedDB migration succeeds.
+2. Read-back verification succeeds.
+3. Metadata-only snapshot serialization succeeds.
+4. LocalStorage replacement succeeds.
+
+If any step fails, retain the old recoverable snapshot.
+
+Do not mutate an in-memory snapshot in a manner that makes it appear migrated before the durable LocalStorage update succeeds.
+
+Do not silently ignore LocalStorage serialization or quota failures.
+
+### F. Migration callers
+
+The existing implementation calls the migration function from two account-restoration paths:
+
+- `syncWorkspaceOnLogin()`
+- `handleAuthSessionChange()` / account snapshot restoration.
+
+Both paths currently await the migration without reliably checking its returned result.
+
+Fix both.
+
+If migration returns `ok: false`:
+
+- Stop the relevant restoration operation.
+- Return a recoverable error.
+- Preserve the original snapshot.
+- Keep the account dirty where appropriate.
+- Never continue by applying an empty annotation workspace.
+
+Re-check `opCtx.isCurrent()` after every awaited database operation, including the `initPdfDB()` await.
+
+## 7. Priority 4 — Complete Account-Scoped Hydration
+
+Audit every local account snapshot restoration path.
+
+The target behavior is:
+
+- Metadata-only snapshots restore workspace metadata from LocalStorage.
+- Annotation data is hydrated from the appropriate account-scoped IndexedDB records.
+- Missing LocalStorage annotations never become an empty valid annotation cache.
+- IndexedDB failures produce explicit recoverable errors.
+- Stale asynchronous User A results cannot enter User B's memory or UI.
+
+Use the existing production functions and ownership validation, including:
+
+`getAllAnnotationsMapFromDB(targetUserId, opCtx)`
+
+and the established lecture-specific retrieval path where appropriate.
+
+Inspect the current `applyCloudWorkspacePayload()` change involving:
+
+`cloudRow.annotationsStoredInIndexedDB`
+
+Verify that the correct annotation records for the account and active lecture are loaded.
+
+Do not assume that loading the currently displayed lecture proves that all account annotation state is safe.
+
+Ensure the annotation cache is not initialized to a valid empty state before required hydration has completed.
+
+Check operation-context validity:
+
+- After every awaited IndexedDB operation.
+- Before applying hydration results.
+- Before updating global page annotation state.
+- Before changing dirty flags.
+
+Keep the IndexedDB V4 account ownership invariants unchanged.
+
+## 8. Priority 5 — Complete N-02 Mutation-Version Integrity
+
+Audit the current implementation:
+
+- `annotationMutationSeq`
+- `localAnnotationsMutationSeq`
+- `lastUploadedAnnotationVersion`
+- `bumpAnnotationMutationVersion()`
+- `markLocalWorkspaceModified()`
+- `saveAnnotationsToDB()`
+- `flushPendingAnnotationsSave()`
+- `pushWorkspaceToCloud()`
+
+The current implementation has introduced a mutation helper, but the complete mutation coverage and account association are not yet proven.
+
+### A. One authoritative counter
+
+Establish exactly one authoritative annotation mutation/version counter for cloud dirty-state decisions.
+
+Do not maintain two competing counters.
+
+The current mirroring behavior between:
+
+`annotationMutationSeq`
+
+and
+
+`localAnnotationsMutationSeq`
+
+must be reviewed and simplified so that only one value is authoritative.
+
+The version must be associated with the correct active account and operation context.
+
+The uploaded/acknowledged version must not leak between accounts.
+
+Do not use `Date.now()` as the mutation version.
+
+Keep the annotation version distinct from:
+
+- `user_workspaces.revision`
+- M3 Lamport counters.
+- M3 causal operation IDs.
+- M4 operation acknowledgement metadata.
+
+Do not weaken causal synchronization.
+
+### B. Central mutation boundary
+
+Route accepted local annotation mutations through a single reliable mutation boundary.
+
+Prefer the existing central annotation persistence boundary where its semantics allow it.
+
+Audit actual production paths, not just helper availability.
+
+Include:
+
+- Ink strokes.
+- Eraser.
+- Partial stroke deletion.
+- Undo and redo.
+- Page clear.
+- Extra Note Sheet creation and editing.
+- Extra Note Sheet page clear.
+- Floating text note creation, editing, and deletion.
+- Audio pin creation, editing, and deletion.
+- Page hide/exclude and restoration.
+- Excluded-page metadata updates.
+- Stroke/page tombstones.
+- Any additional direct annotation object mutations found in the source.
+
+Each accepted user mutation must advance the appropriate account's authoritative version and immediately mark cloud annotation state dirty.
+
+### C. Do not double-count persistence
+
+A durable IndexedDB flush is a persistence operation, not a second user edit.
+
+Do not increment the version merely because `flushPendingAnnotationsSave()` persists an already accepted mutation.
+
+Remote hydration, cloud restoration, and account loading must not accidentally become fresh local user mutations.
+
+### D. Full-string hash is secondary only
+
+The current `pushWorkspaceToCloud()` implementation uses:
+
+`computeFullStringHash(serializedAnnos)`
+
+as part of the condition deciding whether annotations should be included.
+
+This must be reviewed and corrected.
+
+A full-string non-cryptographic hash can be retained for diagnostics or caching, but it must not replace the authoritative mutation version.
+
+A matching hash must never prove that no mutation occurred.
+
+Use the version and dirty state as the authoritative indication that an annotation update needs to be sent.
+
+Do not unnecessarily serialize the entire annotations map for metadata-only pushes.
+
+If retaining the full-string hash, measure its runtime and describe it accurately as a non-cryptographic diagnostic hash.
+
+### E. In-flight cloud acknowledgement
+
+At the start of an annotation push:
+
+Capture:
+
+- Account UID.
+- Account operation context.
+- Authoritative annotation mutation version.
+- Exact outgoing annotation snapshot.
+- Existing causal outgoing-operation snapshot.
+
+The outgoing annotation data and captured version must refer to the same accepted annotation state.
+
+After the RPC response succeeds:
+
+- Validate that the account operation context remains current.
+- Validate that the account UID is unchanged.
+- Compare the current annotation version with the captured version.
+- Confirm that the exact annotation payload was included and committed.
+
+Clear `dirtyAnnotationsForCloud` only when the committed snapshot version is still the latest version for that same account.
+
+If a newer user mutation occurred during the RPC:
+
+- Keep annotation cloud state dirty.
+- Preserve the newer local data.
+- Do not let the older successful response acknowledge the newer edit.
+- Allow or schedule a safe subsequent push through the existing approved synchronization policy.
+
+Do not acknowledge annotation mutations that were never included in the outgoing payload.
+
+## 9. Priority 6 — Fix and Expand M5-B Regression Coverage
+
+The existing M5-B Test 20 in `test_phase4_regressions.js` is a useful starting point.
+
+Keep its correct assertions.
+
+However, its current coverage is not sufficient.
+
+### F-05 tests
+
+Verify:
+
+1. `pushWorkspaceToCloud()` writes metadata-only account snapshots.
+2. `handleCloudSignOut()` writes metadata-only snapshots.
+3. Direct account switching writes metadata-only snapshots.
+4. `syncWorkspaceOnLogin()` preserves metadata-only snapshots.
+5. `mergeAndApplyCloudConflict()` writes metadata-only snapshots.
+6. No writer copies `existingVault.annotations`.
+7. No writer sets the marker before verifying IndexedDB.
+8. Large annotations never become a LocalStorage payload.
+9. LocalStorage quota failures preserve existing recoverable snapshots and dirty state.
+10. IndexedDB unavailability never becomes a false empty workspace.
+
+### Migration tests
+
+Add separate tests for:
+
+- Successful migration.
+- Empty legacy annotation map.
+- Missing annotation property with successful IndexedDB verification.
+- IndexedDB initialization failure.
+- IndexedDB read failure.
+- IndexedDB write transaction failure.
+- Read-back failure.
+- Read-back content mismatch.
+- Read-back record count mismatch.
+- Foreign scoped key rejection.
+- Incorrect or missing ownership metadata.
+- LocalStorage quota failure after successful IndexedDB write.
+- Idempotent retry after interrupted migration.
+- Migration caller aborts restoration when migration fails.
+
+### N-02 tests
+
+The current test manually invokes:
+
+`bumpAnnotationMutationVersion()`
+
+That alone is not proof that the application detects actual user edits.
+
+Add tests showing real production annotation mutation paths advance the version.
+
+Prove that flush operations and remote hydration do not produce false increments.
+
+### Required 100 KB blind-spot regression
+
+Keep the existing large fixed-length payload regression.
+
+The test must demonstrate that a change from:
+
+`#ef4444`
+
+to:
+
+`#38bdf8`
+
+at a position missed by the previous 512-sample stride does not escape authoritative mutation tracking.
+
+Do not stop at proving that two hash functions return different values.
+
+Prove the complete behavior:
+
+1. The real annotation mutation increments the authoritative version.
+2. `dirtyAnnotationsForCloud` becomes true.
+3. The next eligible push contains the changed annotation state.
+4. An older in-flight response cannot clear the newer dirty state.
+5. A subsequent retry includes the newer annotation version.
+6. Dirty state clears only after successful acknowledgement of that newer version.
+
+### Required deferred RPC concurrency test
+
+Replace or supplement the current synchronous RPC mutation test.
+
+Use a genuinely deferred Promise.
+
+Sequence:
+
+1. Start a cloud push and capture the outgoing annotation version and payload.
+2. Hold the RPC response pending.
+3. Perform a real local annotation mutation while the RPC is pending.
+4. Confirm that the version advances and annotation dirty state remains true.
+5. Resolve the original RPC successfully.
+6. Verify that its response does not clear the newer mutation's dirty state.
+7. Start the next eligible cloud push.
+8. Verify that the new outgoing payload contains the actual newer annotation content.
+9. Resolve the second RPC successfully without additional edits.
+10. Verify that the newer version is acknowledged and dirty state clears.
+
+## 10. Priority 7 — Real Chromium E2E Acceptance
+
+The existing Test X in `test_phase4_1_chromium_e2e.js` is a good starting point, but its two assertions do not prove full M5-B acceptance.
+
+Expand it using the actual production functions and real IndexedDB.
+
+Required scenarios:
+
+1. User A creates and saves annotations.
+2. Account snapshot is metadata-only.
+3. Reload the browser.
+4. User A re-authenticates and recovers the same annotations from IndexedDB.
+5. User B cannot see User A's annotation records.
+6. Switching back to User A preserves the original records.
+7. Sign-out and re-login do not lose annotations.
+8. A real annotation edit advances the authoritative mutation version.
+9. A deferred cloud push with a concurrent real mutation preserves dirty state.
+10. A subsequent successful retry sends the newer annotation data and clears dirty state only after confirmation.
+11. IndexedDB failure never results in an empty valid annotation workspace.
+12. The approved cloud synchronization triggers remain intact.
+
+Do not treat a direct manual call to `bumpAnnotationMutationVersion()` as equivalent to a real annotation edit.
+
+Do not use synchronous mocked responses as a substitute for deferred network concurrency testing.
+
+Preserve all existing M1–M5-A Chromium scenarios and assertions.
+
+## 11. Cloud Synchronization Trigger Policy
+
+Preserve the existing approved synchronization triggers:
+
+- `closePdfViewer()`.
+- `visibilitychange` to hidden.
+- Explicit user-triggered Cloud Sync.
+
+Do not introduce an idle upload timer while the PDF modal is open.
+
+Do not introduce new periodic background upload behavior.
+
+Add regression coverage proving that this policy remains unchanged.
+
+Do not implement per-lecture Supabase annotations tables or delta synchronization.
+
+Keep the existing Supabase `user_workspaces.annotations` JSONB contract and RPC/OCC behavior.
+
+The LocalStorage marker is account-backup metadata, not a reason to change the remote database contract.
+
+## 12. Required Performance Measurements
+
+The previous M5-B commit did not provide the required measurements.
+
+Measure and report:
+
+1. IndexedDB annotation read performance for a representative 50-page annotated lecture.
+2. Full serialized annotation size.
+3. Full-string secondary hash runtime, if retained.
+4. Serialized workspace/RPC payload size.
+5. Relevant client-side preparation time.
+
+Reference targets:
+
+- Under 25 ms main-thread blocking for the representative IndexedDB read + full-string hash measurement.
+- Under 1.5 MB serialized workspace JSONB payload as a target for considering background idle sync.
+
+These are measurement targets, not permission to introduce a new timer.
+
+Record:
+
+- Hardware/runtime environment if known.
+- Browser and Node.js versions.
+- Sample size.
+- Number of annotated pages.
+- Serialized byte counts.
+- Actual timing results.
+
+Do not invent measurements or claim mocked RPC latency represents production latency.
+
+If a measurement cannot be completed, mark it NOT MEASURED and explain why.
+
+## 13. Product and Architecture Boundaries
+
+Preserve all previously approved behavior:
+
+- M1–M4.
+- M5-A provenance and dirty-login reconciliation.
+- M5-A.2.1 durable quarantine restoration.
+- Guest provenance and quarantine.
+- M3/M4 causal conflict resolution.
+- Exact outgoing operation acknowledgement semantics.
+- PostgreSQL 16 compatibility.
+- IndexedDB V4.
+- Existing Supabase RLS and RPC contracts.
+
+Do not:
+
+- Modify production SQL schema or migrations.
+- Change Storage or RLS policies.
+- Create a new `lecture_annotations` table.
+- Implement Phase 5.3 delta sync.
+- Perform production database changes.
+- Delete user data or Google Drive files.
+- Change Google Drive OAuth or media upload behavior.
+- Add subscriptions or payment flows.
+- Change VIP entitlements.
+- Gate core annotation features behind VIP.
+
+Permanent product decisions remain:
+
+- Annotated PDF Export is FREE.
+- Extra Note Sheet is FREE.
+- Users may create multiple Extra Note Sheets.
+- VIP remains limited to the owner's manually controlled Google Drive media upload/management entitlement through `can_upload_media`.
+
+## 14. Documentation
+
+Update:
+
+`reports/CURRENT.md`
+
+The previous version is stale: it still describes M5-A.2.1 as the active workstream and does not record the current M5-B commit.
+
+Record:
+
+- Current starting HEAD: `7b2304f4e653dff931e2c8cab9c768fad2279b69`.
+- Original M5-B parent baseline: `ab44f08bcf97328b1583d5bdd8a85943d4dbe079`.
+- M5-A remains frozen.
+- M5-B is the active implementation workstream.
+- GitHub Actions Run #30 failed at the Unit & Asynchronous Logic Isolation step.
+- Exact failure: `test_phase3_cross_account_isolation.js:847:34`.
+- PGlite, PostgreSQL 16, Chromium E2E, and unified runner were skipped in Run #30.
+- The separate Pages deployment success does not constitute application CI verification.
+- Every file modified by this continuation.
+- Actual test counts per suite.
+- Exact performance measurements.
+- Tests not run.
+- Remaining risks.
+
+Do not mark M5-B CI-verified until a new GitHub Actions run succeeds after owner upload.
+
+## 15. Verification Sequence
+
+First run focused tests:
+
+1. Corrected `test_phase3_cross_account_isolation.js`.
+2. M5-B focused F-05 tests.
+3. M5-B focused N-02 tests.
+4. Deferred RPC concurrency tests.
+5. Migration failure/idempotency tests.
+
+Then run the full available suite:
+
+1. Syntax and lint.
+2. Production build.
+3. Static security audit.
+4. Unit verification.
+5. Phase 4.1 cross-account isolation.
+6. Full regression tests.
+7. PGlite.
+8. PostgreSQL 16.
+9. Real Chromium + IndexedDB E2E.
+10. Unified test runner.
+
+Report exact pass/fail counts.
+
+Do not report skipped tests as passed.
+
+PostgreSQL 16 must be verified again in GitHub Actions if unavailable locally.
+
+The complete sequence must get beyond the current failing Unit step before any other suite can be considered verified.
+
+## 16. Strict Git Rules
+
+- Do not commit.
+- Do not push.
+- Do not force-push.
+- Do not reset.
+- Do not rebase.
+- Do not create branches.
+- Do not alter Git history.
+- Do not overwrite newer work.
+- Do not modify files outside the authorized list.
+
+I will manually review and synchronize the changes.
+
+## 17. Final Report Required
+
+Provide:
+
+1. Exact verified starting HEAD.
+2. Full list of modified files.
+3. Current CI failure and how it was fixed.
+4. Complete account snapshot writer audit.
+5. Proof that the marker is durability-gated.
+6. Legacy migration success and failure behavior.
+7. Idempotency proof.
+8. Account-scoped hydration behavior.
+9. Authoritative mutation counter design.
+10. Real mutation categories covered.
+11. In-flight stale response protection.
+12. Successful retry evidence.
+13. 100 KB regression evidence.
+14. Real Chromium E2E scenarios completed.
+15. Performance measurements.
+16. Exact local tests per suite.
+17. Tests not run.
+18. Remaining risks.
+19. Confirmation M5-A was not modified.
+20. Confirmation Phase 5.3 was not started.
+21. Confirmation no Git commit/push/reset/rebase occurred.
+
+## Acceptance Rule
+
+M5-B remains INCOMPLETE until all of the following are proven:
+
+- All account snapshots are metadata-only.
+- No annotation marker is written without verified IndexedDB durability.
+- Legacy migration is safe, idempotent, and failure-safe.
+- Failed migration cannot silently continue as an empty workspace.
+- Account-scoped hydration is correct.
+- Actual accepted annotation mutations advance the authoritative version.
+- Flush and remote hydration do not double-count mutations.
+- Hashes are not authoritative.
+- Older successful cloud responses cannot acknowledge newer local changes.
+- The subsequent retry successfully commits the newer version.
+- The corrected Phase 4.1 suite passes.
+- Full Regression and real Chromium E2E pass.
+- The complete CI pipeline passes after owner upload.
+
+### Immediate Instruction
+
+Start with a read-only audit of the current HEAD `7b2304f4e653dff931e2c8cab9c768fad2279b69`.
+
+Preserve the correct work already present.
+
+Fix the exact CI-breaking test-harness references first, then continue the remaining F-05 and N-02 acceptance work.
+
+Do not stop after fixing the single CI error. The objective is to complete M5-B safely, with evidence, without expanding the architectural scope.

@@ -51,6 +51,7 @@ let activeImportBarriersByAccount = new Map();
 let activeImportQuarantinesByAccount = new Map();
 let queuedAnnotationWritesDuringImportByAccount = new Map();
 let barrierHeartbeatTimersByAccount = new Map();
+let pendingDomainWritesDuringImportByAccount = new Map();
 let annotationMutationSeq = 0;
 let lastUploadedAnnotationVersion = 0;
 let localWorkspaceMutationSeq = 0;
@@ -224,7 +225,9 @@ ${extractFunctionSource(indexHtmlContent, 'exportWorkspaceBackupV4')}
 ${extractFunctionSource(indexHtmlContent, 'inspectWorkspaceBackup')}
 ${extractFunctionSource(indexHtmlContent, 'startBarrierHeartbeat')}
 ${extractFunctionSource(indexHtmlContent, 'stopBarrierHeartbeat')}
+${extractFunctionSource(indexHtmlContent, 'recordQueuedAnnotationWriteDurably')}
 ${extractFunctionSource(indexHtmlContent, 'applyQueuedAnnotationWritesAfterImport')}
+${extractFunctionSource(indexHtmlContent, 'flushQueuedDomainWritesAfterImport')}
 ${extractFunctionSource(indexHtmlContent, 'isImportInProgressOrQuarantined')}
 ${extractFunctionSource(indexHtmlContent, 'cleanupBarrierOnPrepareFailure')}
 ${extractFunctionSource(indexHtmlContent, 'runWithImportLock')}
@@ -399,6 +402,10 @@ module.exports = {
   runWithImportLock,
   activeImportBarriersByAccount,
   queuedAnnotationWritesDuringImportByAccount,
+  pendingDomainWritesDuringImportByAccount,
+  recordQueuedAnnotationWriteDurably,
+  applyQueuedAnnotationWritesAfterImport,
+  flushQueuedDomainWritesAfterImport,
   cleanupBarrierOnPrepareFailure,
   executeImportTransactionInternal,
   importWorkspaceBackupV4,

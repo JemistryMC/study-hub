@@ -3838,7 +3838,9 @@ async function main() {
     // ========================================================================
     // TEST AA: Real Production-Path Crash & Restart Recovery (10 Durable Phase Cases)
     // ========================================================================
-    console.log('\n--- TEST AA: Real Production-Path Crash & Restart Recovery (10 Cases) ---');
+    // TEST AA: Real Production-Path Crash & Restart Recovery (14 Cases)
+    // ========================================================================
+    console.log('\n--- TEST AA: Real Production-Path Crash & Restart Recovery (14 Cases) ---');
 
     const crashCases = [
       { hook: 'crashAfterPrepare', preCommit: true, name: 'AA.1: crash_after_PREPARE' },
@@ -3850,7 +3852,11 @@ async function main() {
       { hook: 'crashBeforePointerCleanup', preCommit: false, name: 'AA.7: crash_before_pointer_cleanup' },
       { hook: 'crashBeforeBarrierCleanup', preCommit: false, name: 'AA.8: crash_before_barrier_cleanup' },
       { hook: 'crashDuringRollback', preCommit: true, name: 'AA.9: crash_during_rollback' },
-      { hook: 'crashDuringRollbackCleanup', preCommit: true, name: 'AA.10: crash_during_rollback_cleanup' }
+      { hook: 'crashDuringRollbackCleanup', preCommit: true, name: 'AA.10: crash_during_rollback_cleanup' },
+      { hook: 'failRollbackPointerWrite', preCommit: true, name: 'AA.11: fail_rollback_pointer_write' },
+      { hook: 'crashAfterRolledBackJournal', preCommit: true, name: 'AA.12: crash_after_rolled_back_journal' },
+      { hook: 'crashAfterRolledBackPointer', preCommit: true, name: 'AA.13: crash_after_rolled_back_pointer' },
+      { hook: 'crashBeforeRollbackBarrierCleanup', preCommit: true, name: 'AA.14: crash_before_rollback_barrier_cleanup' }
     ];
 
     for (let i = 0; i < crashCases.length; i++) {
@@ -3895,8 +3901,16 @@ async function main() {
         // Set hook
         window.__exoImportTestHooks = { [hook]: true };
 
-        // For cases 9 and 10 (rollback crash hooks), trigger an error that causes rollback:
-        if (hook === 'crashDuringRollback' || hook === 'crashDuringRollbackCleanup') {
+        // For rollback crash hooks, trigger an error that causes rollback:
+        const isRollbackHook = [
+          'crashDuringRollback',
+          'crashDuringRollbackCleanup',
+          'failRollbackPointerWrite',
+          'crashAfterRolledBackJournal',
+          'crashAfterRolledBackPointer',
+          'crashBeforeRollbackBarrierCleanup'
+        ].includes(hook);
+        if (isRollbackHook) {
           window.__exoImportTestHooks.failIdbApply = true;
         }
 
@@ -4099,10 +4113,48 @@ async function main() {
       return await window.__importPromise;
     });
 
-    await tabA.waitForTimeout(300);
+    await tabA.waitForTimeout(400);
+
+    // Verify User A persisted annotations directly in IndexedDB
+    const userAPersistedAnno = await tabA.evaluate(async (uid) => {
+      const scopedKey = toScopedKey('lec_bb_concurrent', uid);
+      return await new Promise(resolve => {
+        if (!dbInstance) return resolve(null);
+        const tx = dbInstance.transaction('annotations', 'readonly');
+        const req = tx.objectStore('annotations').get(scopedKey);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => resolve(null);
+      });
+    }, uidCompA);
 
     await tabA.close();
     await tabB.close();
+
+    // Close and reopen tabs, then verify queued writes survive restart and are eventually persisted
+    const tabReopen = await context.newPage();
+    await tabReopen.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+    await tabReopen.waitForTimeout(400);
+
+    const restartVerification = await tabReopen.evaluate(async ({ uidA, uidB }) => {
+      await handleAuthSessionChange({ id: uidA, email: `${uidA}@exo.edu`, name: 'User A' }, false);
+      const ctxA = createAccountOperationContext(uidA);
+      const annosResA = await getAllAnnotationsMapFromDB(uidA, ctxA);
+      const lecAnnoA = annosResA?.verifiedMap?.['lec_bb_concurrent'];
+      const strokeFound = Boolean(
+        lecAnnoA && Array.isArray(lecAnnoA[1]) &&
+        lecAnnoA[1].some(s => s && s.id === 'str_queued_tab_b')
+      );
+
+      // Verify User B remained isolated
+      await handleAuthSessionChange({ id: uidB, email: `${uidB}@exo.edu`, name: 'User B' }, false);
+      const ctxB = createAccountOperationContext(uidB);
+      const annosResB = await getAllAnnotationsMapFromDB(uidB, ctxB);
+      const userBIsolated = !annosResB?.verifiedMap?.['lec_bb_concurrent'];
+
+      return { strokeFound, userBIsolated };
+    }, { uidA: uidCompA, uidB: uidCompB });
+
+    await tabReopen.close();
 
     assert(
       resTabBUserA.blocked === true,
@@ -4115,6 +4167,16 @@ async function main() {
     assert(
       resTabBUserB.succeeded === true && resTabBUserB.subjectsWritten === true,
       'Test BB.3: Independent User B import succeeds concurrently without cross-account lock interference'
+    );
+    assert(
+      userAPersistedAnno &&
+      userAPersistedAnno.userId === uidCompA &&
+      userAPersistedAnno.pages?.[1] !== undefined,
+      'Test BB.4: Queued annotation write from Tab 2 is actually persisted into User A IndexedDB with correct ownership and content'
+    );
+    assert(
+      restartVerification.strokeFound === true && restartVerification.userBIsolated === true,
+      'Test BB.5: Persisted queued annotations survive tab close and page restart, while User B remains strictly isolated'
     );
 
     await context.close();
