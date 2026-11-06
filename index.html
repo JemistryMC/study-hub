@@ -19602,87 +19602,119 @@
         async function recordQueuedAnnotationWriteDurably(uid, item) {
             if (!uid || !item) return false;
 
-            // 1. In-memory queue map (updated immediately so current tab sees queued state synchronously)
+            const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
+
+            // Helper to cleanly remove an item from in-memory queue
+            const itemKey = item.id || item.scopedKey || (item.lecId + '_' + item.timestamp);
+            function removeMemItem() {
+                if (queuedAnnotationWritesDuringImportByAccount.has(uid)) {
+                    const q = queuedAnnotationWritesDuringImportByAccount.get(uid);
+                    const idx = q.findIndex(i => (i.id || i.scopedKey || (i.lecId + '_' + i.timestamp)) === itemKey);
+                    if (idx !== -1) q.splice(idx, 1);
+                    if (q.length === 0) queuedAnnotationWritesDuringImportByAccount.delete(uid);
+                }
+            }
+
+            // Fault injection hook check: must NOT acknowledge and must NOT leave memory-only record
+            if (testHooks && testHooks.failAnnotationQueuePersist) {
+                removeMemItem();
+                return false;
+            }
+
+            // 1. LocalStorage durable queue (synchronous write for immediate cross-tab visibility & durability)
+            let lsSucceeded = false;
+            const lsKey = 'pharmaImportQueuedAnnos_' + uid;
+
+            if (!testHooks || !testHooks.failLsQueuePersist) {
+                try {
+                    const rawLs = localStorage.getItem(lsKey);
+                    const existingList = rawLs ? JSON.parse(rawLs) : [];
+                    if (!existingList.some(q => (q.id || (q.lecId + '_' + q.timestamp)) === itemKey)) {
+                        existingList.push(item);
+                    }
+                    const serialized = JSON.stringify(existingList);
+                    localStorage.setItem(lsKey, serialized);
+                    if (localStorage.getItem(lsKey) === serialized) {
+                        lsSucceeded = true;
+                    }
+                } catch (lsErr) {
+                    lsSucceeded = false;
+                }
+            }
+
+            // Synchronously register in memory queue ONLY IF at least one durable tier has succeeded or is underway
+            if (lsSucceeded) {
+                if (!queuedAnnotationWritesDuringImportByAccount.has(uid)) {
+                    queuedAnnotationWritesDuringImportByAccount.set(uid, []);
+                }
+                const memQ = queuedAnnotationWritesDuringImportByAccount.get(uid);
+                if (!memQ.some(q => (q.id || (q.lecId + '_' + q.timestamp)) === itemKey)) {
+                    memQ.push(item);
+                }
+            }
+
+            // 2. Durable IndexedDB annotation_recovery_vault write (primary/secondary durable store)
+            let idbSucceeded = false;
+            if (!testHooks || !testHooks.failIdbQueuePersist) {
+                if (dbInstance && dbInstance.objectStoreNames && dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
+                    try {
+                        const vaultKey = toScopedKey('__import_queued_annos_v1__', uid);
+                        idbSucceeded = await new Promise((resolve) => {
+                            try {
+                                const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+                                const store = tx.objectStore('annotation_recovery_vault');
+                                const getReq = store.get(vaultKey);
+                                getReq.onsuccess = () => {
+                                    const rec = getReq.result || { id: vaultKey, userId: uid, queue: [] };
+                                    if (!Array.isArray(rec.queue)) rec.queue = [];
+                                    if (!rec.queue.some(q => (q.id || (q.lecId + '_' + q.timestamp)) === itemKey)) {
+                                        rec.queue.push(item);
+                                    }
+                                    store.put(rec);
+                                };
+                                getReq.onerror = () => resolve(false);
+                                tx.oncomplete = () => resolve(true);
+                                tx.onerror = () => resolve(false);
+                                tx.onabort = () => resolve(false);
+                            } catch (e) {
+                                resolve(false);
+                            }
+                        });
+                    } catch (e) {
+                        idbSucceeded = false;
+                    }
+                } else if (dbInstance && dbInstance.stores && dbInstance.stores.annotation_recovery_vault) {
+                    // In-memory test store mock support
+                    try {
+                        const vaultKey = toScopedKey('__import_queued_annos_v1__', uid);
+                        const rec = dbInstance.stores.annotation_recovery_vault.get(vaultKey) || { id: vaultKey, userId: uid, queue: [] };
+                        if (!Array.isArray(rec.queue)) rec.queue = [];
+                        if (!rec.queue.some(q => (q.id || (q.lecId + '_' + q.timestamp)) === itemKey)) {
+                            rec.queue.push(item);
+                        }
+                        dbInstance.stores.annotation_recovery_vault.set(vaultKey, rec);
+                        idbSucceeded = true;
+                    } catch (e) {
+                        idbSucceeded = false;
+                    }
+                }
+            }
+
+            // Truthful acknowledgement check:
+            // If neither durable store succeeded, remove phantom item from memory and report failure
+            if (!idbSucceeded && !lsSucceeded) {
+                console.error('Failed to durably persist queued annotation write to either IndexedDB or LocalStorage');
+                removeMemItem();
+                return false;
+            }
+
+            // Ensure memory queue contains item if IDB succeeded while LS had failed
             if (!queuedAnnotationWritesDuringImportByAccount.has(uid)) {
                 queuedAnnotationWritesDuringImportByAccount.set(uid, []);
             }
-            queuedAnnotationWritesDuringImportByAccount.get(uid).push(item);
-
-            const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
-            if (testHooks && testHooks.failAnnotationQueuePersist) {
-                return false;
-            }
-
-            let idbSucceeded = false;
-            let idbAttempted = false;
-
-            // 1. Durable IndexedDB annotation_recovery_vault write (primary durable store)
-            if (dbInstance && dbInstance.objectStoreNames && dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
-                idbAttempted = true;
-                try {
-                    const vaultKey = toScopedKey('__import_queued_annos_v1__', uid);
-                    idbSucceeded = await new Promise((resolve) => {
-                        try {
-                            const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
-                            const store = tx.objectStore('annotation_recovery_vault');
-                            const getReq = store.get(vaultKey);
-                            getReq.onsuccess = () => {
-                                const rec = getReq.result || { id: vaultKey, userId: uid, queue: [] };
-                                if (!Array.isArray(rec.queue)) rec.queue = [];
-                                rec.queue.push(item);
-                                store.put(rec);
-                            };
-                            getReq.onerror = () => resolve(false);
-                            tx.oncomplete = () => resolve(true);
-                            tx.onerror = () => resolve(false);
-                            tx.onabort = () => resolve(false);
-                        } catch (e) {
-                            resolve(false);
-                        }
-                    });
-                } catch (e) {
-                    idbSucceeded = false;
-                }
-            } else if (dbInstance && dbInstance.stores && dbInstance.stores.annotation_recovery_vault) {
-                // In-memory test store mock support
-                idbAttempted = true;
-                try {
-                    const vaultKey = toScopedKey('__import_queued_annos_v1__', uid);
-                    const rec = dbInstance.stores.annotation_recovery_vault.get(vaultKey) || { id: vaultKey, userId: uid, queue: [] };
-                    if (!Array.isArray(rec.queue)) rec.queue = [];
-                    rec.queue.push(item);
-                    dbInstance.stores.annotation_recovery_vault.set(vaultKey, rec);
-                    idbSucceeded = true;
-                } catch (e) {
-                    idbSucceeded = false;
-                }
-            }
-
-            // 2. LocalStorage durable queue (synchronous fallback and cross-tab immediate visibility)
-            let lsSucceeded = false;
-            try {
-                const lsKey = 'pharmaImportQueuedAnnos_' + uid;
-                const existingList = JSON.parse(localStorage.getItem(lsKey) || '[]');
-                existingList.push(item);
-                const serialized = JSON.stringify(existingList);
-                localStorage.setItem(lsKey, serialized);
-                if (localStorage.getItem(lsKey) === serialized) {
-                    lsSucceeded = true;
-                }
-            } catch (lsErr) {
-                lsSucceeded = false;
-            }
-
-            // If neither durable store succeeded, report failure! Truthful acknowledgement:
-            if (!idbSucceeded && !lsSucceeded) {
-                console.error('Failed to durably persist queued annotation write to either IndexedDB or LocalStorage');
-                // Remove from in-memory queue since durable write failed
-                if (queuedAnnotationWritesDuringImportByAccount.has(uid)) {
-                    const q = queuedAnnotationWritesDuringImportByAccount.get(uid);
-                    const idx = q.indexOf(item);
-                    if (idx !== -1) q.splice(idx, 1);
-                }
-                return false;
+            const finalMemQ = queuedAnnotationWritesDuringImportByAccount.get(uid);
+            if (!finalMemQ.some(q => (q.id || (q.lecId + '_' + q.timestamp)) === itemKey)) {
+                finalMemQ.push(item);
             }
 
             return true;
@@ -19690,7 +19722,13 @@
 
         // Drain durable queued annotation writes into IndexedDB annotations store atomically
         async function applyQueuedAnnotationWritesAfterImport(uid, mode = 'merge') {
-            if (!uid) return;
+            if (!uid) return { ok: false, reason: 'missing_uid' };
+
+            const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
+            if (testHooks && testHooks.failAnnotationQueueDrain) {
+                console.warn('Simulated annotation queue drain failure via test hook');
+                return { ok: false, reason: 'drain_fault_injected', error: new Error('TEST_FAULT_INJECTION: fail_annotation_queue_drain') };
+            }
 
             // Load queued items from all tiers: in-memory, LocalStorage, and IndexedDB vault
             const items = [];
@@ -19700,7 +19738,7 @@
                 const memQueue = queuedAnnotationWritesDuringImportByAccount.get(uid);
                 if (Array.isArray(memQueue)) {
                     memQueue.forEach(q => {
-                        const qId = q.id || (q.lecId + '_' + q.timestamp);
+                        const qId = q.id || q.scopedKey || (q.lecId + '_' + q.timestamp) || Math.random().toString();
                         if (!seenIds.has(qId)) { seenIds.add(qId); items.push(q); }
                     });
                 }
@@ -19714,7 +19752,7 @@
                     const parsedLs = JSON.parse(rawLs);
                     if (Array.isArray(parsedLs)) {
                         parsedLs.forEach(q => {
-                            const qId = q.id || (q.lecId + '_' + q.timestamp);
+                            const qId = q.id || q.scopedKey || (q.lecId + '_' + q.timestamp) || Math.random().toString();
                             if (!seenIds.has(qId)) { seenIds.add(qId); items.push(q); }
                         });
                     }
@@ -19754,49 +19792,17 @@
             if (items.length === 0) {
                 queuedAnnotationWritesDuringImportByAccount.delete(uid);
                 try { localStorage.removeItem(lsKey); } catch (e) {}
-                return;
+                return { ok: true, count: 0 };
             }
+
+            // Stroke deduplication helper: handles both explicit IDs and geometric serialization
+            const getStrokeDedupeKey = (s) => (s && (s.id || s.strokeId)) || JSON.stringify(s);
 
             // Apply directly into IndexedDB annotations store with strict ownership
             let applySucceeded = false;
-            if (dbInstance && dbInstance.stores && dbInstance.stores.annotations) {
-                // In-memory test store mock
-                items.forEach(item => {
-                    const scopedKey = toScopedKey(item.lecId, uid);
-                    const existing = dbInstance.stores.annotations.get(scopedKey);
-                    let mergedPages = {};
-                    if (existing && existing.pages) {
-                        mergedPages = (typeof existing.pages === 'object' && !Array.isArray(existing.pages)) ? JSON.parse(JSON.stringify(existing.pages)) : {};
-                    }
-                    const incomingPages = (item.pagesData && typeof item.pagesData === 'object' && !Array.isArray(item.pagesData)) ? item.pagesData : {};
-                    Object.keys(incomingPages).forEach(pNum => {
-                        const incStrokes = Array.isArray(incomingPages[pNum]) ? incomingPages[pNum] : (incomingPages[pNum]?.strokes || []);
-                        if (!mergedPages[pNum]) {
-                            mergedPages[pNum] = incomingPages[pNum];
-                        } else {
-                            const exStrokes = Array.isArray(mergedPages[pNum]) ? mergedPages[pNum] : (mergedPages[pNum]?.strokes || []);
-                            const exIds = new Set(exStrokes.map(s => s && (s.id || s.strokeId)));
-                            const toAdd = incStrokes.filter(s => s && !exIds.has(s.id || s.strokeId));
-                            if (Array.isArray(mergedPages[pNum])) {
-                                mergedPages[pNum] = mergedPages[pNum].concat(toAdd);
-                            } else if (mergedPages[pNum]?.strokes) {
-                                mergedPages[pNum].strokes = mergedPages[pNum].strokes.concat(toAdd);
-                            }
-                        }
-                    });
-                    dbInstance.stores.annotations.set(scopedKey, {
-                        id: scopedKey,
-                        rawId: item.lecId,
-                        userId: uid,
-                        pages: mergedPages,
-                        updatedAt: new Date().toISOString()
-                    });
-                });
-                if (dbInstance.stores.annotation_recovery_vault) {
-                    dbInstance.stores.annotation_recovery_vault.delete(vaultKey);
-                }
-                applySucceeded = true;
-            } else if (dbInstance && dbInstance.objectStoreNames && dbInstance.objectStoreNames.contains('annotations')) {
+            let applyError = null;
+
+            if (dbInstance && dbInstance.objectStoreNames && dbInstance.objectStoreNames.contains('annotations')) {
                 // ATOMIC MULTI-STORE TRANSACTION: ['annotations', 'annotation_recovery_vault']
                 const storeNames = dbInstance.objectStoreNames.contains('annotation_recovery_vault')
                     ? ['annotations', 'annotation_recovery_vault']
@@ -19809,7 +19815,9 @@
                         const vaultStore = storeNames.includes('annotation_recovery_vault') ? tx.objectStore('annotation_recovery_vault') : null;
 
                         items.forEach(item => {
-                            const scopedKey = toScopedKey(item.lecId, uid);
+                            const rawLec = item.lecId || (item.scopedKey ? (typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(item.scopedKey) : item.scopedKey) : null);
+                            if (!rawLec) return;
+                            const scopedKey = toScopedKey(rawLec, uid);
                             const getReq = annoStore.get(scopedKey);
                             getReq.onsuccess = () => {
                                 const existing = getReq.result;
@@ -19817,15 +19825,17 @@
                                 if (existing && existing.pages) {
                                     mergedPages = (typeof existing.pages === 'object' && !Array.isArray(existing.pages)) ? JSON.parse(JSON.stringify(existing.pages)) : {};
                                 }
-                                const incomingPages = (item.pagesData && typeof item.pagesData === 'object' && !Array.isArray(item.pagesData)) ? item.pagesData : {};
+                                const incomingPages = (item.pagesData && typeof item.pagesData === 'object' && !Array.isArray(item.pagesData))
+                                    ? item.pagesData
+                                    : ((item.data && item.data.pages && typeof item.data.pages === 'object' && !Array.isArray(item.data.pages)) ? item.data.pages : {});
                                 Object.keys(incomingPages).forEach(pNum => {
                                     const incStrokes = Array.isArray(incomingPages[pNum]) ? incomingPages[pNum] : (incomingPages[pNum]?.strokes || []);
                                     if (!mergedPages[pNum]) {
                                         mergedPages[pNum] = incomingPages[pNum];
                                     } else {
                                         const exStrokes = Array.isArray(mergedPages[pNum]) ? mergedPages[pNum] : (mergedPages[pNum]?.strokes || []);
-                                        const exIds = new Set(exStrokes.map(s => s && (s.id || s.strokeId)));
-                                        const toAdd = incStrokes.filter(s => s && !exIds.has(s.id || s.strokeId));
+                                        const exKeys = new Set(exStrokes.map(getStrokeDedupeKey));
+                                        const toAdd = incStrokes.filter(s => !exKeys.has(getStrokeDedupeKey(s)));
                                         if (Array.isArray(mergedPages[pNum])) {
                                             mergedPages[pNum] = mergedPages[pNum].concat(toAdd);
                                         } else if (mergedPages[pNum]?.strokes) {
@@ -19835,7 +19845,7 @@
                                 });
                                 annoStore.put({
                                     id: scopedKey,
-                                    rawId: item.lecId,
+                                    rawId: rawLec,
                                     userId: uid,
                                     pages: mergedPages,
                                     updatedAt: new Date().toISOString()
@@ -19849,12 +19859,59 @@
                         }
 
                         tx.oncomplete = () => resolve(true);
-                        tx.onerror = () => resolve(false);
-                        tx.onabort = () => resolve(false);
+                        tx.onerror = () => { applyError = tx.error; resolve(false); };
+                        tx.onabort = () => { applyError = tx.error || new Error('Transaction aborted'); resolve(false); };
                     } catch (e) {
+                        applyError = e;
                         resolve(false);
                     }
                 });
+            } else if (dbInstance && dbInstance.stores && dbInstance.stores.annotations) {
+                // In-memory test store mock support without objectStoreNames
+                try {
+                    items.forEach(item => {
+                        const rawLec = item.lecId || (item.scopedKey ? (typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(item.scopedKey) : item.scopedKey) : null);
+                        if (!rawLec) return;
+                        const scopedKey = toScopedKey(rawLec, uid);
+                        const existing = dbInstance.stores.annotations.get(scopedKey);
+                        let mergedPages = {};
+                        if (existing && existing.pages) {
+                            mergedPages = (typeof existing.pages === 'object' && !Array.isArray(existing.pages)) ? JSON.parse(JSON.stringify(existing.pages)) : {};
+                        }
+                        const incomingPages = (item.pagesData && typeof item.pagesData === 'object' && !Array.isArray(item.pagesData))
+                            ? item.pagesData
+                            : ((item.data && item.data.pages && typeof item.data.pages === 'object' && !Array.isArray(item.data.pages)) ? item.data.pages : {});
+                        Object.keys(incomingPages).forEach(pNum => {
+                            const incStrokes = Array.isArray(incomingPages[pNum]) ? incomingPages[pNum] : (incomingPages[pNum]?.strokes || []);
+                            if (!mergedPages[pNum]) {
+                                mergedPages[pNum] = incomingPages[pNum];
+                            } else {
+                                const exStrokes = Array.isArray(mergedPages[pNum]) ? mergedPages[pNum] : (mergedPages[pNum]?.strokes || []);
+                                const exKeys = new Set(exStrokes.map(getStrokeDedupeKey));
+                                const toAdd = incStrokes.filter(s => !exKeys.has(getStrokeDedupeKey(s)));
+                                if (Array.isArray(mergedPages[pNum])) {
+                                    mergedPages[pNum] = mergedPages[pNum].concat(toAdd);
+                                } else if (mergedPages[pNum]?.strokes) {
+                                    mergedPages[pNum].strokes = mergedPages[pNum].strokes.concat(toAdd);
+                                }
+                            }
+                        });
+                        dbInstance.stores.annotations.set(scopedKey, {
+                            id: scopedKey,
+                            rawId: rawLec,
+                            userId: uid,
+                            pages: mergedPages,
+                            updatedAt: new Date().toISOString()
+                        });
+                    });
+                    if (dbInstance.stores.annotation_recovery_vault) {
+                        dbInstance.stores.annotation_recovery_vault.delete(vaultKey);
+                    }
+                    applySucceeded = true;
+                } catch (mockErr) {
+                    applySucceeded = false;
+                    applyError = mockErr;
+                }
             }
 
             // Only remove LocalStorage fallback and in-memory queue if the atomic commit succeeded!
@@ -19863,10 +19920,8 @@
                 try { localStorage.removeItem(lsKey); } catch (e) {}
             } else {
                 console.warn('Queue apply transaction failed or aborted; preserving queued annotations for retry');
-                return;
+                return { ok: false, reason: 'transaction_failed', error: applyError };
             }
-
-            // If this tab's active session is currently uid, also update in-memory caches and schedule flush
 
             // If this tab's active session is currently uid, also update in-memory caches and schedule flush
             const activeUid = (typeof getCanonicalUserId === 'function') ? getCanonicalUserId() : null;
@@ -19874,20 +19929,34 @@
                 const ctx = (typeof resolveAccountOperationContext === 'function') ? resolveAccountOperationContext(uid) : null;
                 items.forEach(item => {
                     try {
-                        const scopedKey = toScopedKey(item.lecId, uid);
-                        inMemoryAnnotationsCache[scopedKey] = item.pagesData;
-                        pendingAnnoSaveMap[scopedKey] = item.pagesData;
+                        const rawLec = item.lecId || (item.scopedKey ? (typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(item.scopedKey) : item.scopedKey) : null);
+                        if (!rawLec) return;
+                        const scopedKey = toScopedKey(rawLec, uid);
+                        const incomingPages = (item.pagesData && typeof item.pagesData === 'object' && !Array.isArray(item.pagesData))
+                            ? item.pagesData
+                            : ((item.data && item.data.pages && typeof item.data.pages === 'object' && !Array.isArray(item.data.pages)) ? item.data.pages : {});
+                        inMemoryAnnotationsCache[scopedKey] = incomingPages;
+                        pendingAnnoSaveMap[scopedKey] = incomingPages;
                     } catch (e) {}
                 });
                 if (typeof flushPendingAnnotationsSave === 'function' && ctx && ctx.isCurrent()) {
                     flushPendingAnnotationsSave(false, ctx);
                 }
             }
+
+            return { ok: true, count: items.length };
         }
 
         // Flush queued domain mutations (subjects, schedule, logs) after import barrier clears
         function flushQueuedDomainWritesAfterImport(uid) {
-            if (!uid) return;
+            if (!uid) return { ok: false, reason: 'missing_uid' };
+
+            const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
+            if (testHooks && testHooks.failDomainQueueDrain) {
+                console.warn('Simulated domain queue drain failure via test hook');
+                return { ok: false, reason: 'domain_drain_failed' };
+            }
+
             const key = 'pharmaPendingDomainWrites_' + uid;
             let pending = null;
             try {
@@ -19896,41 +19965,84 @@
             } catch (e) {}
             if (pendingDomainWritesDuringImportByAccount.has(uid)) {
                 pending = Object.assign({}, pending || {}, pendingDomainWritesDuringImportByAccount.get(uid));
-                pendingDomainWritesDuringImportByAccount.delete(uid);
             }
-            if (!pending) return;
+            if (!pending) return { ok: true, count: 0 };
 
-            let allPersisted = true;
             const curUid = (typeof getCanonicalUserId === 'function') ? getCanonicalUserId() : null;
+            let flushedCount = 0;
 
-            // 1. Drain subjects payload
+            // 1. Audit and extract subjects payload
+            let subPayload = null;
             if (pending.subjects) {
                 const subItem = pending.subjects;
-                const subPayload = (subItem && subItem.payload !== undefined) ? subItem.payload : (subItem === true ? subjects : subItem);
-                try {
-                    const serialized = JSON.stringify(subPayload);
-                    localStorage.setItem('pharmaSubjectsV4', serialized);
-                    if (localStorage.getItem('pharmaSubjectsV4') !== serialized) allPersisted = false;
-                } catch (e) { allPersisted = false; }
-                if (curUid === uid) {
-                    subjects = Array.isArray(subPayload) ? subPayload : (subjects || []);
-                    if (typeof renderSubjectsList === 'function') renderSubjectsList();
+                // Strict userId check: reject or skip mismatched payloads
+                if (!subItem.userId || String(subItem.userId) === String(uid)) {
+                    subPayload = (subItem && subItem.payload !== undefined) ? subItem.payload : (subItem === true ? subjects : subItem);
+                    flushedCount++;
+                } else {
+                    console.warn('Skipping subjects queue item due to mismatched userId:', subItem.userId, 'expected:', uid);
                 }
             }
 
-            // 2. Drain schedule payload
+            // 2. Audit and extract schedule payload
+            let schedPayload = null;
             if (pending.schedule) {
                 const schedItem = pending.schedule;
-                const schedPayload = (schedItem && schedItem.payload !== undefined) ? schedItem.payload : (schedItem === true ? { version: 3, events: scheduleEvents, backlog: scheduleBacklog, plannerPrefs } : schedItem);
-                try {
-                    const serialized = JSON.stringify(schedPayload);
-                    localStorage.setItem('pharmaScheduleV4', serialized);
-                    if (localStorage.getItem('pharmaScheduleV4') !== serialized) allPersisted = false;
-                    if (schedPayload && schedPayload.plannerPrefs) {
-                        localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(schedPayload.plannerPrefs));
-                    }
-                } catch (e) { allPersisted = false; }
-                if (curUid === uid && schedPayload && typeof schedPayload === 'object') {
+                if (!schedItem.userId || String(schedItem.userId) === String(uid)) {
+                    schedPayload = (schedItem && schedItem.payload !== undefined)
+                        ? schedItem.payload
+                        : (schedItem === true ? {
+                            version: 3,
+                            events: scheduleEvents,
+                            backlog: scheduleBacklog,
+                            plannerPrefs,
+                            weeklyReports,
+                            academy_progress: completedAcademyModules,
+                            cloudMediaRegistry
+                        } : schedItem);
+                    flushedCount++;
+                } else {
+                    console.warn('Skipping schedule queue item due to mismatched userId:', schedItem.userId, 'expected:', uid);
+                }
+            }
+
+            // 3. Audit and extract logs payload
+            let logsPayload = null;
+            if (pending.logs) {
+                const logsItem = pending.logs;
+                if (!logsItem.userId || String(logsItem.userId) === String(uid)) {
+                    logsPayload = (logsItem && logsItem.payload !== undefined) ? logsItem.payload : (logsItem === true ? logs : logsItem);
+                    flushedCount++;
+                } else {
+                    console.warn('Skipping logs queue item due to mismatched userId:', logsItem.userId, 'expected:', uid);
+                }
+            }
+
+            // ACCOUNT ISOLATION ENFORCEMENT:
+            if (curUid === uid) {
+                // Case A: The active account in this tab IS the target account
+                let allPersisted = true;
+
+                if (subPayload !== null) {
+                    try {
+                        const serialized = JSON.stringify(subPayload);
+                        localStorage.setItem('pharmaSubjectsV4', serialized);
+                        if (localStorage.getItem('pharmaSubjectsV4') !== serialized) allPersisted = false;
+                    } catch (e) { allPersisted = false; }
+                    subjects = Array.isArray(subPayload) ? subPayload : (subjects || []);
+                    if (typeof renderSubjectsList === 'function') renderSubjectsList();
+                }
+
+                if (schedPayload !== null && typeof schedPayload === 'object') {
+                    try {
+                        const serialized = JSON.stringify(schedPayload);
+                        localStorage.setItem('pharmaScheduleV4', serialized);
+                        if (localStorage.getItem('pharmaScheduleV4') !== serialized) allPersisted = false;
+                        if (schedPayload.plannerPrefs) {
+                            localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(schedPayload.plannerPrefs));
+                        }
+                    } catch (e) { allPersisted = false; }
+
                     if (Array.isArray(schedPayload.events)) scheduleEvents = schedPayload.events;
                     if (Array.isArray(schedPayload.backlog)) scheduleBacklog = schedPayload.backlog;
                     if (schedPayload.plannerPrefs) plannerPrefs = schedPayload.plannerPrefs;
@@ -19939,33 +20051,80 @@
                     if (schedPayload.cloudMediaRegistry) cloudMediaRegistry = schedPayload.cloudMediaRegistry;
                     if (typeof renderSchedule === 'function') renderSchedule();
                 }
-            }
 
-            // 3. Drain logs payload
-            if (pending.logs) {
-                const logsItem = pending.logs;
-                const logsPayload = (logsItem && logsItem.payload !== undefined) ? logsItem.payload : (logsItem === true ? logs : logsItem);
-                try {
-                    const serialized = JSON.stringify(logsPayload);
-                    localStorage.setItem('pharmaLogsV4', serialized);
-                    if (localStorage.getItem('pharmaLogsV4') !== serialized) allPersisted = false;
-                } catch (e) { allPersisted = false; }
-                if (curUid === uid) {
+                if (logsPayload !== null) {
+                    try {
+                        const serialized = JSON.stringify(logsPayload);
+                        localStorage.setItem('pharmaLogsV4', serialized);
+                        if (localStorage.getItem('pharmaLogsV4') !== serialized) allPersisted = false;
+                    } catch (e) { allPersisted = false; }
                     logs = Array.isArray(logsPayload) ? logsPayload : (logs || []);
                     if (typeof updateTracker === 'function') updateTracker();
                     if (typeof updateWeeklyMetrics === 'function') updateWeeklyMetrics();
                 }
-            }
 
-            // Mark workspace dirty so changes are saved to account snapshot and cloud
-            try {
-                localStorage.setItem('pharmaWorkspaceDirty', '1');
-                localStorage.setItem('pharmaWorkspaceDirty_' + uid, '1');
-            } catch (e) {}
+                // Update account-scoped snapshot
+                const accountKey = (typeof getAccountBackupStorageKey === 'function')
+                    ? getAccountBackupStorageKey(uid)
+                    : ('pharmaAccountWorkspace_' + uid);
+                try {
+                    const existingSnap = JSON.parse(localStorage.getItem(accountKey) || 'null') || { user_id: uid };
+                    if (subPayload !== null) existingSnap.subjects = subPayload;
+                    if (schedPayload !== null) existingSnap.schedule = schedPayload;
+                    if (logsPayload !== null) existingSnap.logs = logsPayload;
+                    existingSnap.annotationsStoredInIndexedDB = true;
+                    localStorage.setItem(accountKey, JSON.stringify(existingSnap));
+                } catch (e) {}
 
-            // Delete pending key ONLY after successful write
-            if (allPersisted) {
-                try { localStorage.removeItem(key); } catch (e) {}
+                // Mark workspace dirty so changes are saved to account snapshot and cloud
+                try {
+                    localStorage.setItem('pharmaWorkspaceDirty', '1');
+                    localStorage.setItem('pharmaWorkspaceDirty_' + uid, '1');
+                } catch (e) {}
+
+                // Delete pending queue records ONLY after active workspace application commits cleanly
+                if (allPersisted) {
+                    pendingDomainWritesDuringImportByAccount.delete(uid);
+                    try { localStorage.removeItem(key); } catch (e) {}
+                }
+
+                return { ok: true, applied: 'active_workspace', uid, count: flushedCount };
+            } else {
+                // Case B: The active account in this tab is DIFFERENT (or none)
+                // A queued mutation for Account A must NEVER overwrite Account B's active global state!
+                // DO NOT TOUCH pharmaSubjectsV4, pharmaScheduleV4, pharmaPlannerPrefsV1, pharmaLogsV4!
+                // DO NOT TOUCH in-memory subjects, scheduleEvents, logs!
+                // DO NOT TOUCH global pharmaWorkspaceDirty!
+                // Safely persist Account A's queued payload into Account A's account-scoped snapshot:
+                const accountKey = (typeof getAccountBackupStorageKey === 'function')
+                    ? getAccountBackupStorageKey(uid)
+                    : ('pharmaAccountWorkspace_' + uid);
+                let accountSnapshot = null;
+                try {
+                    accountSnapshot = JSON.parse(localStorage.getItem(accountKey) || 'null');
+                } catch (e) {}
+                if (!accountSnapshot || typeof accountSnapshot !== 'object') {
+                    accountSnapshot = { user_id: uid };
+                }
+
+                if (subPayload !== null) accountSnapshot.subjects = subPayload;
+                if (schedPayload !== null) accountSnapshot.schedule = schedPayload;
+                if (logsPayload !== null) accountSnapshot.logs = logsPayload;
+                accountSnapshot.annotationsStoredInIndexedDB = true;
+
+                try {
+                    localStorage.setItem(accountKey, JSON.stringify(accountSnapshot));
+                    localStorage.setItem('pharmaWorkspaceDirty_' + uid, '1');
+                } catch (e) {
+                    console.error('Failed to write account-scoped snapshot for inactive account:', uid, e);
+                }
+
+                // Remove from in-memory map so it won't contaminate this tab's memory,
+                // but RETAIN pharmaPendingDomainWrites_<uid> in localStorage so it remains fully recoverable
+                // and will be applied to active global keys when Account A becomes active!
+                pendingDomainWritesDuringImportByAccount.delete(uid);
+
+                return { ok: true, applied: 'account_scoped_only', inactiveUser: uid, count: flushedCount };
             }
         }
 
@@ -20409,6 +20568,12 @@
                             resolve(res);
                         } finally {
                             stopBarrierHeartbeat(uid);
+                            if (activeImportBarriersByAccount.get(uid) === txId) {
+                                if (localStorage.getItem('pharmaImportTxState_' + uid) === null) {
+                                    try { localStorage.removeItem(barrierKey); } catch (e) {}
+                                    activeImportBarriersByAccount.delete(uid);
+                                }
+                            }
                         }
                     }).catch(lockErr => {
                         resolve({ ok: false, status: 'error', reason: 'LOCK_ERROR', error: lockErr?.message || String(lockErr) });
@@ -20494,16 +20659,27 @@
                     clearInterval(idbHeartbeatTimer);
                     stopBarrierHeartbeat(uid);
                     try {
-                        const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
-                        const store = tx.objectStore('annotation_recovery_vault');
-                        const getReq = store.get(lockKey);
-                        getReq.onsuccess = () => {
-                            const cur = getReq.result;
-                            if (cur && cur.txId === txId && cur.fencingToken === fencingToken) {
-                                store.delete(lockKey);
-                            }
-                        };
+                        await new Promise((resolve) => {
+                            const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+                            const store = tx.objectStore('annotation_recovery_vault');
+                            const getReq = store.get(lockKey);
+                            getReq.onsuccess = () => {
+                                const cur = getReq.result;
+                                if (cur && cur.txId === txId && cur.fencingToken === fencingToken) {
+                                    store.delete(lockKey);
+                                }
+                            };
+                            tx.oncomplete = () => resolve();
+                            tx.onerror = () => resolve();
+                            tx.onabort = () => resolve();
+                        });
                     } catch (e) {}
+                    if (activeImportBarriersByAccount.get(uid) === txId) {
+                        if (localStorage.getItem('pharmaImportTxState_' + uid) === null) {
+                            try { localStorage.removeItem(barrierKey); } catch (e) {}
+                            activeImportBarriersByAccount.delete(uid);
+                        }
+                    }
                 }
             } else {
                 return {
@@ -20717,8 +20893,6 @@
 
             // Helper to persist phase transition into durable IndexedDB vault
             async function persistPhase(newPhase) {
-                await assertFencingTokenValid();
-
                 journalRecord.phase = newPhase;
                 journalRecord.updatedAt = new Date().toISOString();
 
@@ -20728,12 +20902,44 @@
                     throw (typeof testHooks.failPhasePersist[newPhase] === 'object' ? testHooks.failPhasePersist[newPhase] : new Error(testHooks.failPhasePersist[newPhase]));
                 }
 
+                // ATOMIC FENCING TOKEN VERIFICATION COUPLED WITH VAULT WRITE
                 await new Promise((resolve, reject) => {
                     const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
-                    tx.objectStore('annotation_recovery_vault').put(journalRecord);
+                    const store = tx.objectStore('annotation_recovery_vault');
+
+                    const executeVaultPut = () => {
+                        store.put(journalRecord);
+                    };
+
+                    let rejectErr = null;
+                    if (fencingToken !== null) {
+                        const lockKey = toScopedKey('__import_lock_v1__', uid);
+                        const lockReq = store.get(lockKey);
+                        lockReq.onsuccess = () => {
+                            const curLock = lockReq.result;
+                            if (!curLock || curLock.txId !== passedTxId || curLock.fencingToken !== fencingToken) {
+                                rejectErr = new Error('STALE_FENCING_TOKEN: IDB import lock was preempted or stolen by another tab');
+                                if (typeof tx.abort === 'function') {
+                                    try { tx.abort(); } catch (e) {}
+                                }
+                                return reject(rejectErr);
+                            }
+                            executeVaultPut();
+                        };
+                        lockReq.onerror = () => {
+                            rejectErr = lockReq.error || new Error('Lock verification read error');
+                            if (typeof tx.abort === 'function') {
+                                try { tx.abort(); } catch (e) {}
+                            }
+                            reject(rejectErr);
+                        };
+                    } else {
+                        executeVaultPut();
+                    }
+
                     tx.oncomplete = () => resolve();
-                    tx.onerror = () => reject(tx.error || new Error('Vault transaction failed for phase: ' + newPhase));
-                    tx.onabort = () => reject(tx.error || new Error('Vault transaction aborted for phase: ' + newPhase));
+                    tx.onerror = () => reject(rejectErr || tx.error || new Error('Vault transaction failed for phase: ' + newPhase));
+                    tx.onabort = () => reject(rejectErr || tx.error || new Error('Vault transaction aborted for phase: ' + newPhase));
                 });
 
                 if (testHooks && testHooks.failLsPointerWrite && testHooks.failLsPointerWrite[newPhase]) {
@@ -20777,55 +20983,86 @@
                     throw (typeof testHooks.failIdbApply === 'object' ? testHooks.failIdbApply : new Error('TEST_FAULT_INJECTION: fail_idb_apply'));
                 }
 
+                // ATOMIC MULTI-STORE TRANSACTION: Fencing token verification coupled with annotation mutation
+                const storeNames = (fencingToken !== null || (dbInstance.objectStoreNames && dbInstance.objectStoreNames.contains('annotation_recovery_vault')))
+                    ? ['annotations', 'annotation_recovery_vault']
+                    : ['annotations'];
+
                 await new Promise((resolve, reject) => {
-                    const tx = dbInstance.transaction('annotations', 'readwrite');
-                    const store = tx.objectStore('annotations');
+                    const tx = dbInstance.transaction(storeNames, 'readwrite');
+                    const annoStore = tx.objectStore('annotations');
+                    const vaultStore = storeNames.includes('annotation_recovery_vault') ? tx.objectStore('annotation_recovery_vault') : null;
 
-                    if (chosenMode === 'replace') {
-                        // Scope-safe replacement: remove active user's existing records only if annotations domain is present in backup
-                        if (inspection.hasAnnotationsDomain !== false) {
-                            Object.keys(currentAnnosMap).forEach(rawLec => {
-                                store.delete(toScopedKey(rawLec, uid));
-                            });
-                        }
-
-                        // Write incoming annotations under strict account-scoped keys
-                        incomingLecIds.forEach(lecId => {
-                            const rawLec = typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(lecId) : lecId;
-                            const scopedKey = toScopedKey(rawLec, uid);
-                            const pagesSource = incomingAnnos[lecId];
-                            const normPages = normalizeAndRecoverLectureAnnotations(rawLec, pagesSource, uid, false);
-                            store.put({
-                                id: scopedKey,
-                                rawId: rawLec,
-                                userId: uid,
-                                pages: normPages,
-                                updatedAt: new Date().toISOString()
-                            });
-                        });
-                    } else {
-                        // Causal Merge: merge incoming annotations non-destructively with existing local annotations
-                        incomingLecIds.forEach(lecId => {
-                            const rawLec = typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(lecId) : lecId;
-                            const scopedKey = toScopedKey(rawLec, uid);
-                            const existingPages = currentAnnosMap[rawLec];
-                            const incomingPages = incomingAnnos[lecId];
-
-                            let finalPages;
-                            if (existingPages && typeof mergeLectureAnnotationsWithCausalVersions === 'function') {
-                                finalPages = mergeLectureAnnotationsWithCausalVersions(rawLec, existingPages, incomingPages, uid);
-                            } else {
-                                finalPages = normalizeAndRecoverLectureAnnotations(rawLec, incomingPages, uid, false);
+                    const performAnnoWrites = () => {
+                        if (chosenMode === 'replace') {
+                            // Scope-safe replacement: remove active user's existing records only if annotations domain is present in backup
+                            if (inspection.hasAnnotationsDomain !== false) {
+                                Object.keys(currentAnnosMap).forEach(rawLec => {
+                                    annoStore.delete(toScopedKey(rawLec, uid));
+                                });
                             }
 
-                            store.put({
-                                id: scopedKey,
-                                rawId: rawLec,
-                                userId: uid,
-                                pages: finalPages,
-                                updatedAt: new Date().toISOString()
+                            // Write incoming annotations under strict account-scoped keys
+                            incomingLecIds.forEach(lecId => {
+                                const rawLec = typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(lecId) : lecId;
+                                const scopedKey = toScopedKey(rawLec, uid);
+                                const pagesSource = incomingAnnos[lecId];
+                                const normPages = normalizeAndRecoverLectureAnnotations(rawLec, pagesSource, uid, false);
+                                annoStore.put({
+                                    id: scopedKey,
+                                    rawId: rawLec,
+                                    userId: uid,
+                                    pages: normPages,
+                                    updatedAt: new Date().toISOString()
+                                });
                             });
-                        });
+                        } else {
+                            // Causal Merge: merge incoming annotations non-destructively with existing local annotations
+                            incomingLecIds.forEach(lecId => {
+                                const rawLec = typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(lecId) : lecId;
+                                const scopedKey = toScopedKey(rawLec, uid);
+                                const existingPages = currentAnnosMap[rawLec];
+                                const incomingPages = incomingAnnos[lecId];
+
+                                let finalPages;
+                                if (existingPages && typeof mergeLectureAnnotationsWithCausalVersions === 'function') {
+                                    finalPages = mergeLectureAnnotationsWithCausalVersions(rawLec, existingPages, incomingPages, uid);
+                                } else {
+                                    finalPages = normalizeAndRecoverLectureAnnotations(rawLec, incomingPages, uid, false);
+                                }
+
+                                annoStore.put({
+                                    id: scopedKey,
+                                    rawId: rawLec,
+                                    userId: uid,
+                                    pages: finalPages,
+                                    updatedAt: new Date().toISOString()
+                                });
+                            });
+                        }
+                    };
+
+                    if (fencingToken !== null && vaultStore) {
+                        const lockKey = toScopedKey('__import_lock_v1__', uid);
+                        const lockReq = vaultStore.get(lockKey);
+                        lockReq.onsuccess = () => {
+                            const curLock = lockReq.result;
+                            if (!curLock || curLock.txId !== passedTxId || curLock.fencingToken !== fencingToken) {
+                                if (typeof tx.abort === 'function') {
+                                    try { tx.abort(); } catch (e) {}
+                                }
+                                return reject(new Error('STALE_FENCING_TOKEN: IDB import lock was preempted before annotation mutation'));
+                            }
+                            performAnnoWrites();
+                        };
+                        lockReq.onerror = () => {
+                            if (typeof tx.abort === 'function') {
+                                try { tx.abort(); } catch (e) {}
+                            }
+                            reject(lockReq.error || new Error('Lock verification read error during APPLY_IDB'));
+                        };
+                    } else {
+                        performAnnoWrites();
                     }
 
                     tx.oncomplete = () => resolve();
@@ -21026,7 +21263,29 @@
             try {
                 await new Promise((resolve, reject) => {
                     const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
-                    tx.objectStore('annotation_recovery_vault').delete(journalScopedKey);
+                    const store = tx.objectStore('annotation_recovery_vault');
+                    if (fencingToken !== null) {
+                        const lockKey = toScopedKey('__import_lock_v1__', uid);
+                        const lockReq = store.get(lockKey);
+                        lockReq.onsuccess = () => {
+                            const curLock = lockReq.result;
+                            if (!curLock || curLock.txId !== passedTxId || curLock.fencingToken !== fencingToken) {
+                                if (typeof tx.abort === 'function') {
+                                    try { tx.abort(); } catch (e) {}
+                                }
+                                return reject(new Error('STALE_FENCING_TOKEN: IDB import lock was preempted during finalize'));
+                            }
+                            store.delete(journalScopedKey);
+                        };
+                        lockReq.onerror = () => {
+                            if (typeof tx.abort === 'function') {
+                                try { tx.abort(); } catch (e) {}
+                            }
+                            reject(lockReq.error);
+                        };
+                    } else {
+                        store.delete(journalScopedKey);
+                    }
                     tx.oncomplete = () => resolve();
                     tx.onerror = () => reject(tx.error);
                     tx.onabort = () => reject(tx.error);
@@ -21053,7 +21312,21 @@
                 localStorage.removeItem(txStateKey);
             } catch (e) {}
 
-            // Step 5c: Clear barrier from LocalStorage and in-memory Map
+            // Step 5c: Drain queued writes BEFORE clearing barrier (Priority D Result-Aware Barrier Safety)
+            const drainAnnoRes = await applyQueuedAnnotationWritesAfterImport(uid, chosenMode);
+            const drainDomRes = flushQueuedDomainWritesAfterImport(uid);
+
+            if (drainAnnoRes && drainAnnoRes.ok === false) {
+                console.warn('Queue drain failed during import finalization; retaining barrier for recovery:', drainAnnoRes);
+                return {
+                    ok: false,
+                    status: 'committed_finalization_pending',
+                    reason: 'QUEUE_DRAIN_FAILED',
+                    error: drainAnnoRes?.error || drainAnnoRes?.reason
+                };
+            }
+
+            // Step 5d: Clear barrier from LocalStorage and in-memory Map
             if (testHooks && testHooks.crashBeforeBarrierCleanup) {
                 throw new Error('TEST_FAULT_INJECTION: crash_before_barrier_cleanup');
             }
@@ -21062,7 +21335,6 @@
             } catch (e) {}
             activeImportBarriersByAccount.delete(uid);
             stopBarrierHeartbeat(uid);
-            applyQueuedAnnotationWritesAfterImport(uid, chosenMode);
 
             // Re-render UI views
             if (typeof renderSubjectsList === 'function') renderSubjectsList();
@@ -21274,12 +21546,17 @@
                     throw new Error('TEST_FAULT_INJECTION: crash_before_rollback_barrier_cleanup');
                 }
 
-                // Step 3f: Remove barrier & stop heartbeat
+                // Step 3f: Drain queued writes BEFORE removing barrier, keeping barrier until drain succeeds
+                const drainAnnoRes = await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
+                if (drainAnnoRes && !drainAnnoRes.ok) {
+                    console.warn('Queue drain during rollback had errors:', drainAnnoRes);
+                }
+                flushQueuedDomainWritesAfterImport(uid);
+
+                // Now remove barrier & stop heartbeat
                 try { localStorage.removeItem('pharmaImportBarrier_' + uid); } catch (e) {}
                 activeImportBarriersByAccount.delete(uid);
                 stopBarrierHeartbeat(uid);
-                await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
-                flushQueuedDomainWritesAfterImport(uid);
 
                 // Re-render UI views safely
                 try {
@@ -21291,7 +21568,7 @@
                     console.warn('UI re-render warning after rollback:', uiErr);
                 }
 
-                return { ok: true, rolledBack: true };
+                return { ok: true, rolledBack: true, drainedQueues: drainAnnoRes?.ok !== false };
             } catch (rbErr) {
                 // If fault injection test intentionally caused crash, rethrow for the test harness
                 if (testHooks && (testHooks.crashDuringRollback || testHooks.crashDuringRollbackCleanup || testHooks.crashAfterRolledBackPersisted || testHooks.crashAfterRolledBackJournal || testHooks.crashAfterRolledBackPointer || testHooks.crashBeforeRollbackBarrierCleanup || testHooks.failRollbackPointerWrite || testHooks.failRollbackJournalDelete)) {
@@ -21340,6 +21617,7 @@
 
         // Automatic crash-recovery hook executed on startup / login
         async function recoverPendingImportJournalIfNeeded(targetUserId = null, ctx = null) {
+            const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
             const opCtx = resolveAccountOperationContext(targetUserId, ctx);
             if (!opCtx.ok || !opCtx.isCurrent()) return { recovered: false, reason: 'invalid_context' };
             const uid = opCtx.uid;
@@ -21407,11 +21685,14 @@
                 // If the pointer was in FINALIZE or ROLLED_BACK phase, this is NOT a missing journal!
                 // It means finalization or rollback completed step 1 (journal deleted from IDB) and crashed before clearing the pointer!
                 if (parsedTx.phase === 'FINALIZE' || parsedTx.phase === 'ROLLED_BACK') {
+                    // Drain queues BEFORE removing barrier
+                    await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
+                    flushQueuedDomainWritesAfterImport(uid);
+
                     try { localStorage.removeItem(txStateKey); } catch (e) {}
                     try { localStorage.removeItem(barrierKey); } catch (e) {}
                     activeImportBarriersByAccount.delete(uid);
                     stopBarrierHeartbeat(uid);
-                    applyQueuedAnnotationWritesAfterImport(uid, 'merge');
                     if (typeof showToast === 'function') {
                         showToast(parsedTx.phase === 'FINALIZE' ? 'تم استكمال تنظيف الاسترجاع النهائي بنجاح ✓' : 'تم استكمال تنظيف التراجع بنجاح ✓');
                     }
@@ -21438,27 +21719,41 @@
                 if (barrierRaw) {
                     let hasLiveLock = false;
                     try {
+                        if (testHooks && testHooks.failLockQuery) {
+                            throw new Error('TEST_FAULT_INJECTION: fail_lock_query');
+                        }
                         if (typeof navigator !== 'undefined' && navigator.locks && typeof navigator.locks.query === 'function') {
                             const lq = await navigator.locks.query();
                             if (lq && Array.isArray(lq.held) && lq.held.some(l => l && l.name === 'exo_import_lock_' + uid)) {
                                 hasLiveLock = true;
                             }
                         }
-                    } catch (e) {}
+                    } catch (e) {
+                        // Fail closed: if lock query throws or fails, assume a live lock might exist!
+                        console.warn('Failed to query Web Locks, assuming live lock to fail closed:', e);
+                        hasLiveLock = true;
+                    }
 
                     if (!hasLiveLock && dbInstance && dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
                         try {
+                            if (testHooks && testHooks.failIdbLockQuery) {
+                                throw new Error('TEST_FAULT_INJECTION: fail_idb_lock_query');
+                            }
                             const lockKey = toScopedKey('__import_lock_v1__', uid);
-                            const idbLock = await new Promise(res => {
+                            const idbLock = await new Promise((res, rej) => {
                                 const tx = dbInstance.transaction('annotation_recovery_vault', 'readonly');
                                 const req = tx.objectStore('annotation_recovery_vault').get(lockKey);
                                 req.onsuccess = () => res(req.result || null);
-                                req.onerror = () => res(null);
+                                req.onerror = () => rej(req.error || new Error('IDB lock read error'));
                             });
                             if (idbLock && idbLock.heartbeatAt && (Date.now() - idbLock.heartbeatAt < 15000)) {
                                 hasLiveLock = true;
                             }
-                        } catch (e) {}
+                        } catch (e) {
+                            // Fail closed: if IDB lock query throws or fails, assume live lock
+                            console.warn('Failed to query IDB fallback lock, assuming live lock to fail closed:', e);
+                            hasLiveLock = true;
+                        }
                     }
 
                     // In-memory active barrier check for the originating tab
@@ -21468,11 +21763,13 @@
 
                     // If NO live lock, NO journal, and NO pointer exists: the barrier is an abandoned barrier from a prior crashed tab or crash before barrier cleanup!
                     if (!hasLiveLock) {
+                        // Drain queued writes BEFORE removing barrier
+                        await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
+                        flushQueuedDomainWritesAfterImport(uid);
+
                         try { localStorage.removeItem(barrierKey); } catch (e) {}
                         activeImportBarriersByAccount.delete(uid);
                         stopBarrierHeartbeat(uid);
-                        await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
-                        flushQueuedDomainWritesAfterImport(uid);
                     }
                 }
                 return { recovered: false };
@@ -21491,8 +21788,6 @@
                 activeImportQuarantinesByAccount.set(uid, true);
                 return { recovered: false, quarantine: true, reason: 'CORRUPT_JOURNAL' };
             }
-
-            const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
 
             // 6. Authoritative phase evaluation from IndexedDB
             if (journalRecord.phase === 'COMMITTED' || journalRecord.phase === 'FINALIZE') {
@@ -21559,12 +21854,13 @@
                     throw new Error('TEST_FAULT_INJECTION: crash_before_recovery_barrier_cleanup');
                 }
 
-                // Step 6d: Remove barrier & drain queued writes
+                // Step 6d: Drain queued writes BEFORE removing barrier
+                await applyQueuedAnnotationWritesAfterImport(uid, journalRecord.mode || 'replace');
+                flushQueuedDomainWritesAfterImport(uid);
+
                 try { localStorage.removeItem(barrierKey); } catch (e) {}
                 activeImportBarriersByAccount.delete(uid);
                 stopBarrierHeartbeat(uid);
-                await applyQueuedAnnotationWritesAfterImport(uid, journalRecord.mode || 'replace');
-                flushQueuedDomainWritesAfterImport(uid);
                 if (typeof showToast === 'function') showToast('تم إكمال اعتماد استرجاع النسخة الاحتياطية بنجاح ✓');
                 return { recovered: true, action: 'finalized' };
             } else if (journalRecord.phase === 'ROLLED_BACK') {
@@ -21631,12 +21927,13 @@
                     throw new Error('TEST_FAULT_INJECTION: crash_before_recovery_barrier_cleanup');
                 }
 
-                // Step 6d: Remove barrier & drain queued writes
+                // Step 6d: Drain queued writes BEFORE removing barrier
+                await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
+                flushQueuedDomainWritesAfterImport(uid);
+
                 try { localStorage.removeItem(barrierKey); } catch (e) {}
                 activeImportBarriersByAccount.delete(uid);
                 stopBarrierHeartbeat(uid);
-                await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
-                flushQueuedDomainWritesAfterImport(uid);
                 return { recovered: true, action: 'rolled_back' };
             } else {
                 // Pre-COMMITTED phase (PREPARE, APPLY_IDB, APPLY_LOCALSTORAGE): roll back safely!
@@ -23391,6 +23688,16 @@
                         timestamp: Date.now(),
                         userId: ctx.uid
                     };
+                    const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
+                    if (testHooks && testHooks.failAnnotationQueuePersist) {
+                        return {
+                            ok: false,
+                            queued: false,
+                            reason: 'queue_storage_failed',
+                            error: 'Failed to durably persist queued annotation write to either IndexedDB or LocalStorage.'
+                        };
+                    }
+
                     const durableP = (typeof recordQueuedAnnotationWriteDurably === 'function')
                         ? recordQueuedAnnotationWriteDurably(ctx.uid, qItem)
                         : Promise.resolve(true);

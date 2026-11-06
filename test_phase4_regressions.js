@@ -95,19 +95,28 @@ class InMemoryIDBDatabase {
     }
 
     const stagedOps = [];
+    let aborted = false;
     const tx = {
       mode,
       error: null,
       oncomplete: null,
       onerror: null,
       onabort: null,
+      abort() {
+        aborted = true;
+        if (!tx.error) tx.error = new Error('Transaction aborted');
+        if (typeof tx.onabort === 'function') tx.onabort();
+      },
       objectStore(name) {
         const targetMap = db.stores[name];
         if (!targetMap) throw new Error(`Store ${name} not in transaction`);
         return {
           getAll() {
             const req = { result: null, error: null, onsuccess: null, onerror: null };
+            pendingRequests++;
             setImmediate(() => {
+              pendingRequests--;
+              if (aborted) return;
               db.getAllCount++;
               if (typeof db.onGetAllHook === 'function') {
                 const hook = db.onGetAllHook;
@@ -127,13 +136,16 @@ class InMemoryIDBDatabase {
               }
               req.result = Array.from(targetMap.values());
               if (req.onsuccess) req.onsuccess();
-              if (tx.oncomplete) tx.oncomplete();
+              if (mode === 'readonly' && tx.oncomplete) tx.oncomplete();
             });
             return req;
           },
           get(key) {
             const req = { result: null, error: null, onsuccess: null, onerror: null };
+            pendingRequests++;
             setImmediate(() => {
+              pendingRequests--;
+              if (aborted) return;
               req.result = targetMap.get(String(key));
               if (req.onsuccess) req.onsuccess();
               if (mode === 'readonly' && tx.oncomplete) tx.oncomplete();
@@ -141,35 +153,45 @@ class InMemoryIDBDatabase {
             return req;
           },
           put(val) {
+            if (aborted) return;
             stagedOps.push({ store: name, type: 'put', key: String(val.id), val });
           },
           delete(key) {
+            if (aborted) return;
             stagedOps.push({ store: name, type: 'delete', key: String(key) });
           }
         };
       }
     };
 
+    let pendingRequests = 0;
+    const processCommit = () => {
+      if (aborted) return;
+      if (pendingRequests > 0) {
+        setImmediate(processCommit);
+        return;
+      }
+      const shouldFailWrite = db.failNextTransaction && (!db.failOnStore || storeNames.includes(db.failOnStore)) && (!db.failOnMode || db.failOnMode === mode);
+      if (shouldFailWrite) {
+        db.failNextTransaction = false;
+        db.failOnStore = null;
+        db.failOnMode = null;
+        tx.error = new Error('Simulated IDB write transaction abort');
+        if (tx.onabort) tx.onabort();
+        return;
+      }
+      for (const op of stagedOps) {
+        const map = db.stores[op.store];
+        if (map) {
+          if (op.type === 'put') map.set(op.key, op.val);
+          else if (op.type === 'delete') map.delete(op.key);
+        }
+      }
+      if (tx.oncomplete) tx.oncomplete();
+    };
+
     if (mode === 'readwrite') {
-      setImmediate(() => {
-        const shouldFailWrite = db.failNextTransaction && (!db.failOnStore || storeNames.includes(db.failOnStore)) && (!db.failOnMode || db.failOnMode === mode);
-        if (shouldFailWrite) {
-          db.failNextTransaction = false;
-          db.failOnStore = null;
-          db.failOnMode = null;
-          tx.error = new Error('Simulated IDB write transaction abort');
-          if (tx.onabort) tx.onabort();
-          return;
-        }
-        for (const op of stagedOps) {
-          const map = db.stores[op.store];
-          if (map) {
-            if (op.type === 'put') map.set(op.key, op.val);
-            else if (op.type === 'delete') map.delete(op.key);
-          }
-        }
-        if (tx.oncomplete) tx.oncomplete();
-      });
+      setImmediate(processCommit);
     }
 
     return tx;
@@ -598,6 +620,14 @@ module.exports = {
   activeImportBarriersByAccount,
   queuedAnnotationWritesDuringImportByAccount,
   pendingDomainWritesDuringImportByAccount,
+  getSubjects: () => subjects,
+  setSubjects: (s) => { subjects = s; },
+  getScheduleEvents: () => scheduleEvents,
+  setScheduleEvents: (ev) => { scheduleEvents = ev; },
+  getLogs: () => logs,
+  setLogs: (l) => { logs = l; },
+  getPlannerPrefs: () => plannerPrefs,
+  setPlannerPrefs: (p) => { plannerPrefs = p; },
   getAnnotationMutationSeq: () => annotationMutationSeq,
   resetAnnotationMutationSeq: () => { annotationMutationSeq = 0; lastUploadedAnnotationVersion = 0; localAnnotationsMutationSeq = 0; }
 };
@@ -5476,6 +5506,259 @@ async function main() {
     lockRes && lockRes.ok === true && actionRan === true,
     'T-5.1-M6-CFD: Fallback lock primitive atomically acquires vault-backed lock and executes import action'
   );
+
+  // --------------------------------------------------------------------------
+  // PRIORITY A: Domain Queue Account Isolation
+  // --------------------------------------------------------------------------
+  console.log('\n--- M6 FINAL: Priority A - Domain Queue Account Isolation ---');
+  const userA_pA = 'user_pA_isolation_A';
+  const userB_pA = 'user_pA_isolation_B';
+
+  // Step 1: User A is active and queues subject/schedule/log changes during an import
+  prod.setSessionUser(userA_pA);
+  prod.localStorage.setItem('pharmaImportBarrier_' + userA_pA, JSON.stringify({ txId: 'tx_pA', startedAt: Date.now(), heartbeatAt: Date.now() }));
+  prod.activeImportBarriersByAccount.set(userA_pA, 'tx_pA');
+
+  prod.setSubjects([{ id: 'sub_A1', title: 'User A Subject', code: 'A101' }]);
+  prod.setScheduleEvents([{ id: 'ev_A1', title: 'User A Lecture' }]);
+  prod.setLogs([{ id: 'log_A1', text: 'User A Log' }]);
+  prod.setPlannerPrefs({ weekStartDay: 6, dayStartHour: 8, dayEndHour: 22, autoCompletePct: 80, currentWeekStartIso: '2026-11-01' });
+
+  const queueSubA = prod.saveSubjects();
+  const queueSchedA = prod.saveScheduleData(true);
+  const queueLogsA = prod.saveLogs();
+  assert(queueSubA && queueSubA.queued === true, 'Priority A.1: User A saveSubjects queues while barrier is active');
+  assert(queueSchedA && queueSchedA.queued === true, 'Priority A.2: User A saveScheduleData queues while barrier is active');
+  assert(queueLogsA && queueLogsA.queued === true, 'Priority A.3: User A saveLogs queues while barrier is active');
+
+  // Step 2: Tab switches to User B!
+  prod.setSessionUser(userB_pA);
+  const userBSubjects = [{ id: 'sub_B1', title: 'User B Subject Original', code: 'B201' }];
+  const userBSchedule = [{ id: 'ev_B1', title: 'User B Event Original' }];
+  const userBLogs = [{ id: 'log_B1', text: 'User B Log Original' }];
+  const userBPrefs = { weekStartDay: 0, dayStartHour: 7, dayEndHour: 20, autoCompletePct: 60, currentWeekStartIso: '2026-11-02' };
+
+  prod.setSubjects(userBSubjects);
+  prod.setScheduleEvents(userBSchedule);
+  prod.setLogs(userBLogs);
+  prod.setPlannerPrefs(userBPrefs);
+  prod.localStorage.setItem('pharmaSubjectsV4', JSON.stringify(userBSubjects));
+  prod.localStorage.setItem('pharmaScheduleV4', JSON.stringify({ events: userBSchedule, backlog: [], weeklyReports: [] }));
+  prod.localStorage.setItem('pharmaLogsV4', JSON.stringify(userBLogs));
+  prod.localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(userBPrefs));
+
+  // Step 3: User A's import completes while User B is active tab!
+  prod.localStorage.removeItem('pharmaImportBarrier_' + userA_pA);
+  prod.activeImportBarriersByAccount.delete(userA_pA);
+  prod.flushQueuedDomainWritesAfterImport(userA_pA);
+
+  // Verify User B's active global state is completely untouched!
+  const currentSubsAfterFlush = prod.getSubjects();
+  assert(currentSubsAfterFlush && currentSubsAfterFlush[0].id === 'sub_B1', 'Priority A.4: Inactive account flush does NOT mutate active account in-memory subjects');
+  assert(prod.localStorage.getItem('pharmaSubjectsV4').includes('sub_B1'), 'Priority A.5: Active global LocalStorage pharmaSubjectsV4 remains User B data');
+  assert(prod.localStorage.getItem('pharmaLogsV4').includes('log_B1'), 'Priority A.6: Active global LocalStorage pharmaLogsV4 remains User B data');
+  assert(prod.localStorage.getItem('pharmaScheduleV4').includes('ev_B1'), 'Priority A.7: Active global LocalStorage pharmaScheduleV4 remains User B data');
+
+  // Verify User A's queued payload is safely persisted in account-scoped storage and pending queue
+  const userAScopedWorkspace = JSON.parse(prod.localStorage.getItem('pharmaAccountWorkspace_' + userA_pA) || '{}');
+  assert(userAScopedWorkspace && Array.isArray(userAScopedWorkspace.subjects) && userAScopedWorkspace.subjects[0].id === 'sub_A1', 'Priority A.8: Inactive User A payload persisted to account-scoped workspace');
+  assert(prod.localStorage.getItem('pharmaPendingDomainWrites_' + userA_pA) !== null, 'Priority A.9: Inactive User A payload retained in pending queue for later activation');
+
+  // Step 4: Switch back to User A and flush
+  prod.setSessionUser(userA_pA);
+  prod.flushQueuedDomainWritesAfterImport(userA_pA);
+  assert(prod.getSubjects()[0].id === 'sub_A1', 'Priority A.10: Switching back to User A safely applies payload to in-memory state');
+  assert(prod.localStorage.getItem('pharmaSubjectsV4').includes('sub_A1'), 'Priority A.11: Switching back to User A safely updates global pharmaSubjectsV4');
+  assert(prod.localStorage.getItem('pharmaPendingDomainWrites_' + userA_pA) === null, 'Priority A.12: Queue record cleaned up after active account application');
+
+  // --------------------------------------------------------------------------
+  // PRIORITY B: Complete Fencing Token Enforcement
+  // --------------------------------------------------------------------------
+  console.log('\n--- M6 FINAL: Priority B - Complete Fencing Token Enforcement ---');
+  const user_pB = 'user_pB_fencing';
+  prod.setSessionUser(user_pB);
+
+  // Tab A acquires fallback lock
+  const lockKey_pB = prod.toScopedKey('__import_lock_v1__', user_pB);
+  const tokenA = 'token_tab_A_' + Date.now();
+  idb.stores['annotation_recovery_vault'].set(lockKey_pB, {
+    id: lockKey_pB,
+    ownerTabId: 'tab_A',
+    fencingToken: tokenA,
+    fencingCounter: 1,
+    acquiredAt: Date.now(),
+    heartbeatAt: Date.now()
+  });
+
+  // Tab B takes over the lock with a newer fencing token
+  const tokenB = 'token_tab_B_' + Date.now();
+  idb.stores['annotation_recovery_vault'].set(lockKey_pB, {
+    id: lockKey_pB,
+    ownerTabId: 'tab_B',
+    fencingToken: tokenB,
+    fencingCounter: 2,
+    acquiredAt: Date.now(),
+    heartbeatAt: Date.now()
+  });
+
+  const backupData_pB = {
+    subjects: [{ id: 'sub_pB', name: 'Subject B' }],
+    schedule: { events: [], backlog: [] },
+    logs: [],
+    annotations: {
+      'lec_pB': { 1: ['Stale write note'] }
+    }
+  };
+  const cfaCanon_pB = prod.canonicalizeJson(backupData_pB);
+  const backup_pB = {
+    schema: 'exo_workspace_backup_v4',
+    version: 4,
+    integrity: { algorithm: 'SHA-256', canonicalScope: 'data', sha256: await prod.computeCanonicalSha256(cfaCanon_pB), byteLength: Buffer.byteLength(cfaCanon_pB, 'utf8') },
+    data: backupData_pB
+  };
+
+  const opCtx_pB = prod.createAccountOperationContext();
+  let staleCaught = false;
+  try {
+    const impRes = await prod.executeImportTransactionInternal(backup_pB, 'replace', user_pB, opCtx_pB, 'tx_pB_tabA', tokenA);
+    if (impRes && (String(impRes.reason || '').includes('STALE_FENCING_TOKEN') || String(impRes.error || '').includes('STALE_FENCING_TOKEN'))) {
+      staleCaught = true;
+    } else {
+      console.log('Priority B impRes result:', impRes);
+    }
+  } catch (err) {
+    if (String(err?.message || err).includes('STALE_FENCING_TOKEN')) {
+      staleCaught = true;
+    } else {
+      console.log('Priority B thrown error:', err);
+    }
+  }
+  assert(staleCaught === true, 'Priority B.1: Stale lock owner Tab A cannot commit write transaction after takeover');
+
+  // Verify Tab B's vault lock record is completely intact and never overwritten by Tab A
+  const currentLock_pB = idb.stores['annotation_recovery_vault'].get(lockKey_pB);
+  assert(currentLock_pB && currentLock_pB.fencingToken === tokenB && currentLock_pB.ownerTabId === 'tab_B', 'Priority B.2: Tab B newer lock ownership and state are preserved');
+
+  // --------------------------------------------------------------------------
+  // PRIORITY C: Annotation Queue Failure Acknowledgement
+  // --------------------------------------------------------------------------
+  console.log('\n--- M6 FINAL: Priority C - Annotation Queue Failure Acknowledgement ---');
+  const user_pC = 'user_pC_ack';
+  prod.setSessionUser(user_pC);
+  const item_pC = {
+    scopedKey: prod.toScopedKey('lec_pC', user_pC),
+    userId: user_pC,
+    timestamp: Date.now(),
+    data: { id: prod.toScopedKey('lec_pC', user_pC), userId: user_pC, pages: { 1: ['Test stroke'] } }
+  };
+
+  // Case 1: Both IDB and LocalStorage succeed
+  const resBothSuccess = await prod.recordQueuedAnnotationWriteDurably(user_pC, item_pC);
+  assert(resBothSuccess === true, 'Priority C.1: Both stores succeeding acknowledges true');
+  assert(prod.localStorage.getItem('pharmaImportQueuedAnnos_' + user_pC) !== null, 'Priority C.1b: LocalStorage queue populated');
+
+  // Case 2: IDB fails, LocalStorage succeeds
+  idb.failNextTransaction = true;
+  idb.failOnStore = 'annotation_recovery_vault';
+  idb.failOnMode = 'readwrite';
+  const item_pC2 = { ...item_pC, scopedKey: prod.toScopedKey('lec_pC2', user_pC) };
+  const resLsOnlySuccess = await prod.recordQueuedAnnotationWriteDurably(user_pC, item_pC2);
+  assert(resLsOnlySuccess === true, 'Priority C.2: LocalStorage success when IDB fails acknowledges true');
+
+  // Case 3: Test hook explicit failure removes memory item and returns false
+  globalThis.__exoImportTestHooks = { failAnnotationQueuePersist: true };
+  const queueBeforeHookFail = (prod.queuedAnnotationWritesDuringImportByAccount.get(user_pC) || []).length;
+  const item_pC3 = { ...item_pC, scopedKey: prod.toScopedKey('lec_pC3', user_pC) };
+  const resHookFail = await prod.recordQueuedAnnotationWriteDurably(user_pC, item_pC3);
+  globalThis.__exoImportTestHooks = null;
+  assert(resHookFail === false, 'Priority C.3: failAnnotationQueuePersist returns false');
+  const queueAfterHookFail = (prod.queuedAnnotationWritesDuringImportByAccount.get(user_pC) || []).length;
+  assert(queueAfterHookFail === queueBeforeHookFail, 'Priority C.4: Memory queue does NOT retain phantom item after persistence failure');
+
+  // Case 4: saveAnnotationsToDB with active barrier and failAnnotationQueuePersist
+  prod.localStorage.setItem('pharmaImportBarrier_' + user_pC, JSON.stringify({ txId: 'tx_pC', startedAt: Date.now(), heartbeatAt: Date.now() }));
+  prod.activeImportBarriersByAccount.set(user_pC, 'tx_pC');
+  globalThis.__exoImportTestHooks = { failAnnotationQueuePersist: true };
+  const saveWithFailHook = await prod.saveAnnotationsToDB('lec_pC4', { 1: ['Stroke'] }, user_pC);
+  globalThis.__exoImportTestHooks = null;
+  assert(saveWithFailHook && saveWithFailHook.ok === false && saveWithFailHook.queued === false, 'Priority C.5: saveAnnotationsToDB never returns false queued:true when persistence fails');
+  prod.localStorage.removeItem('pharmaImportBarrier_' + user_pC);
+  prod.activeImportBarriersByAccount.delete(user_pC);
+
+  // --------------------------------------------------------------------------
+  // PRIORITY D: Result-Aware Queue Drain & Stroke Deduplication
+  // --------------------------------------------------------------------------
+  console.log('\n--- M6 FINAL: Priority D - Result-Aware Queue Drain & Stroke Deduplication ---');
+  const user_pD = 'user_pD_drain';
+  prod.setSessionUser(user_pD);
+
+  // Setup duplicate strokes in queued items
+  const dStroke1 = { id: 'stroke_1', color: '#ff0000', points: [10, 10, 20, 20] };
+  const dStroke2 = { id: 'stroke_2', color: '#00ff00', points: [30, 30, 40, 40] };
+  const queuedItems_pD = [
+    { id: 'q_batch1', scopedKey: prod.toScopedKey('lec_pD', user_pD), userId: user_pD, data: { id: prod.toScopedKey('lec_pD', user_pD), userId: user_pD, pages: { 1: [dStroke1] } } },
+    { id: 'q_batch2', scopedKey: prod.toScopedKey('lec_pD', user_pD), userId: user_pD, data: { id: prod.toScopedKey('lec_pD', user_pD), userId: user_pD, pages: { 1: [dStroke1, dStroke2] } } }
+  ];
+  prod.localStorage.setItem('pharmaImportQueuedAnnos_' + user_pD, JSON.stringify(queuedItems_pD));
+  prod.queuedAnnotationWritesDuringImportByAccount.set(user_pD, [...queuedItems_pD]);
+
+  // Apply queued annotations
+  const drainRes = await prod.applyQueuedAnnotationWritesAfterImport(user_pD, 'merge');
+  if (!drainRes || !drainRes.ok || drainRes.count !== 2) {
+    console.log('Priority D drainRes:', drainRes);
+  }
+  assert(drainRes && drainRes.ok === true && drainRes.count === 2, 'Priority D.1: applyQueuedAnnotationWritesAfterImport returns explicit structured result { ok: true, count }');
+
+  // Verify deduplication: page 1 should contain exactly dStroke1 and dStroke2, NOT duplicated dStroke1!
+  const savedLecRecord = idb.stores['annotations'].get(prod.toScopedKey('lec_pD', user_pD));
+  if (!savedLecRecord || !Array.isArray(savedLecRecord.pages?.[1]) || savedLecRecord.pages[1].length !== 2) {
+    console.log('Priority D savedLecRecord:', JSON.stringify(savedLecRecord));
+  }
+  assert(savedLecRecord && Array.isArray(savedLecRecord.pages[1]) && savedLecRecord.pages[1].length === 2, 'Priority D.2: Repeated stroke delivery is safely deduplicated without duplicate strokes');
+
+  // Verify queue records in LocalStorage and memory are now cleared after successful commit
+  assert(prod.localStorage.getItem('pharmaImportQueuedAnnos_' + user_pD) === null, 'Priority D.3: LocalStorage queue cleared only after successful transaction commit');
+
+  // Test transaction abort preserves queue items
+  const queuedItems_pD_abort = [
+    { scopedKey: prod.toScopedKey('lec_pD_abort', user_pD), userId: user_pD, data: { id: prod.toScopedKey('lec_pD_abort', user_pD), userId: user_pD, pages: { 1: ['Note to retain'] } } }
+  ];
+  prod.localStorage.setItem('pharmaImportQueuedAnnos_' + user_pD, JSON.stringify(queuedItems_pD_abort));
+  prod.queuedAnnotationWritesDuringImportByAccount.set(user_pD, [...queuedItems_pD_abort]);
+
+  idb.failNextTransaction = true;
+  idb.failOnStore = 'annotations';
+  idb.failOnMode = 'readwrite';
+  const drainAbortRes = await prod.applyQueuedAnnotationWritesAfterImport(user_pD, 'merge');
+  assert(drainAbortRes && drainAbortRes.ok === false, 'Priority D.4: applyQueuedAnnotationWritesAfterImport returns { ok: false } when transaction aborts');
+  assert(prod.localStorage.getItem('pharmaImportQueuedAnnos_' + user_pD) !== null, 'Priority D.5: Transaction abort retains queue items in LocalStorage for retry');
+
+  // --------------------------------------------------------------------------
+  // PRIORITY E: Fail-Closed Barrier Recovery on Query Errors
+  // --------------------------------------------------------------------------
+  console.log('\n--- M6 FINAL: Priority E - Fail-Closed Barrier Recovery on Query Errors ---');
+  const user_pE = 'user_pE_failclosed';
+  prod.setSessionUser(user_pE);
+
+  // Set an abandoned barrier without journal or pointer
+  const barrierKey_pE = 'pharmaImportBarrier_' + user_pE;
+  prod.localStorage.setItem(barrierKey_pE, JSON.stringify({ txId: 'tx_pE', startedAt: Date.now() }));
+
+  // Simulate Web Lock query failure: must fail closed and retain barrier!
+  globalThis.__exoImportTestHooks = { failLockQuery: true };
+  const recQueryFail = await prod.recoverPendingImportJournalIfNeeded(user_pE);
+  globalThis.__exoImportTestHooks = null;
+  assert(prod.localStorage.getItem(barrierKey_pE) !== null, 'Priority E.1: Web Lock query failure fails closed and retains barrier');
+
+  // Simulate IDB fallback lock query failure: must fail closed and retain barrier!
+  globalThis.__exoImportTestHooks = { failIdbLockQuery: true };
+  const recIdbQueryFail = await prod.recoverPendingImportJournalIfNeeded(user_pE);
+  globalThis.__exoImportTestHooks = null;
+  assert(prod.localStorage.getItem(barrierKey_pE) !== null, 'Priority E.2: IDB lock query failure fails closed and retains barrier');
+
+  // When both succeed with no live lock: abandoned barrier is cleanly recovered
+  const recClean = await prod.recoverPendingImportJournalIfNeeded(user_pE);
+  assert(prod.localStorage.getItem(barrierKey_pE) === null, 'Priority E.3: Legitimate abandoned barrier with verified no live lock is cleanly cleared');
 
 
   console.log('\n======================================================================');
