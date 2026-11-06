@@ -30314,27 +30314,6 @@ function togglePdfAudioPlayerBar(forceState) {
                 return { ok: false, error: 'ACCOUNT_CONTEXT_INVALID', reason: 'account_context_invalid' };
             }
 
-            // If snapshot has no legacy annotations, nothing to migrate
-            if (!snapshot.annotations || typeof snapshot.annotations !== 'object' || Array.isArray(snapshot.annotations)) {
-                if (!snapshot.annotationsStoredInIndexedDB) {
-                    snapshot.annotationsStoredInIndexedDB = true;
-                    try {
-                        localStorage.setItem(getAccountBackupStorageKey(opCtx.uid), JSON.stringify(snapshot));
-                    } catch (e) {}
-                }
-                return { ok: true, migrated: false, count: 0 };
-            }
-
-            const legacyKeys = Object.keys(snapshot.annotations);
-            if (legacyKeys.length === 0) {
-                delete snapshot.annotations;
-                snapshot.annotationsStoredInIndexedDB = true;
-                try {
-                    localStorage.setItem(getAccountBackupStorageKey(opCtx.uid), JSON.stringify(snapshot));
-                } catch (e) {}
-                return { ok: true, migrated: false, count: 0 };
-            }
-
             // Validate UID ownership and reject foreign/cross-account records fail-closed
             if (snapshot.user_id && sanitizeForScopedKey(snapshot.user_id) !== opCtx.sanitizedUid) {
                 return { ok: false, error: 'CROSS_ACCOUNT_SNAPSHOT_VIOLATION', reason: 'cross_account_snapshot_violation' };
@@ -30349,6 +30328,34 @@ function togglePdfAudioPlayerBar(forceState) {
             }
             if (!dbInstance) {
                 return { ok: false, error: 'DB_NOT_INITIALIZED', reason: 'db_not_initialized' };
+            }
+
+            const hasLegacyAnnos = snapshot.annotations && typeof snapshot.annotations === 'object' && !Array.isArray(snapshot.annotations);
+            const legacyKeys = hasLegacyAnnos ? Object.keys(snapshot.annotations) : [];
+
+            // If snapshot has no legacy annotations, positively verify that IndexedDB is readable before asserting durability marker
+            if (legacyKeys.length === 0) {
+                const idbCheck = await getAllAnnotationsMapFromDB(opCtx.uid, opCtx);
+                if (!opCtx.isCurrent()) {
+                    return { ok: false, error: 'ACCOUNT_SWITCHED', reason: 'account_switched' };
+                }
+                if (!idbCheck || !idbCheck.ok) {
+                    return { ok: false, error: idbCheck?.error || 'IDB_VERIFICATION_FAILED', reason: 'idb_verification_failed' };
+                }
+                if (hasLegacyAnnos) {
+                    delete snapshot.annotations;
+                }
+                snapshot.annotationsStoredInIndexedDB = true;
+                try {
+                    localStorage.setItem(getAccountBackupStorageKey(opCtx.uid), JSON.stringify(snapshot));
+                } catch (saveErr) {
+                    try {
+                        localStorage.setItem('pharmaWorkspaceDirty', '1');
+                        localStorage.setItem('pharmaWorkspaceDirty_' + opCtx.uid, '1');
+                    } catch (e) {}
+                    return { ok: false, error: saveErr?.message || 'SNAPSHOT_UPDATE_FAILED', reason: 'snapshot_update_failed' };
+                }
+                return { ok: true, migrated: false, count: 0 };
             }
 
             // Restore annotations into IndexedDB using restoreAllAnnotationsMapToDB (which enforces ownership and awaits tx.oncomplete)
@@ -33857,8 +33864,9 @@ function togglePdfAudioPlayerBar(forceState) {
 
                     let annotationsActuallyIncluded = false;
                     let currentSig = '';
+                    let annoResult = null;
                     if (shouldSendAnnotations) {
-                        const annoResult = await getAllAnnotationsMapFromDB(syncUserId, opCtx);
+                        annoResult = await getAllAnnotationsMapFromDB(syncUserId, opCtx);
                         if (!opCtx.isCurrent()) {
                             return { status: 'aborted', reason: 'account_switched' };
                         }
@@ -33889,13 +33897,28 @@ function togglePdfAudioPlayerBar(forceState) {
                         : null;
 
                     // Per-account local vault backup (metadata-only, decoupled from annotations)
+                    let accountSnapshotPersisted = false;
                     try {
                         const accountKey = getAccountBackupStorageKey(syncUserId);
-                        const lightweightVaultCopy = Object.assign({}, payload);
-                        delete lightweightVaultCopy.annotations;
-                        lightweightVaultCopy.annotationsStoredInIndexedDB = true;
-                        localStorage.setItem(accountKey, JSON.stringify(lightweightVaultCopy));
-                    } catch (quotaErr) {}
+                        let idbVerified = false;
+                        if (shouldSendAnnotations && annoResult && annoResult.ok) {
+                            idbVerified = true;
+                        } else {
+                            const checkAnno = await getAllAnnotationsMapFromDB(syncUserId, opCtx);
+                            if (checkAnno && checkAnno.ok) {
+                                idbVerified = true;
+                            }
+                        }
+                        if (idbVerified && opCtx.isCurrent()) {
+                            const lightweightVaultCopy = Object.assign({}, payload);
+                            delete lightweightVaultCopy.annotations;
+                            lightweightVaultCopy.annotationsStoredInIndexedDB = true;
+                            localStorage.setItem(accountKey, JSON.stringify(lightweightVaultCopy));
+                            accountSnapshotPersisted = true;
+                        }
+                    } catch (quotaErr) {
+                        console.warn('Per-account vault backup warning in pushWorkspaceToCloud:', quotaErr);
+                    }
 
                     // Verify user has not switched before executing network call
                     if (!opCtx.isCurrent()) {
@@ -33983,7 +34006,7 @@ function togglePdfAudioPlayerBar(forceState) {
                         const hasRemainingUncommittedOps = typeof hasAnyUncommittedOperationsInMemory === 'function'
                             ? hasAnyUncommittedOperationsInMemory(syncUserId)
                             : false;
-                        const isCleanNow = Boolean(noNewWorkspaceMutations && !dirtyAnnotationsForCloud && !hasRemainingUncommittedOps);
+                        const isCleanNow = Boolean(noNewWorkspaceMutations && !dirtyAnnotationsForCloud && !hasRemainingUncommittedOps && accountSnapshotPersisted);
                         if (isCleanNow) {
                             localStorage.removeItem('pharmaWorkspaceDirty');
                             localStorage.removeItem('pharmaWorkspaceDirty_' + syncUserId);
@@ -34012,7 +34035,12 @@ function togglePdfAudioPlayerBar(forceState) {
                                 delete existingVault.annotations;
                                 localStorage.setItem(accountKey, JSON.stringify(existingVault));
                             }
-                        } catch (vaultUpdateErr) {}
+                        } catch (vaultUpdateErr) {
+                            try {
+                                localStorage.setItem('pharmaWorkspaceDirty', '1');
+                                localStorage.setItem('pharmaWorkspaceDirty_' + syncUserId, '1');
+                            } catch (e) {}
+                        }
 
                         updateCloudNavUI('synced');
                         const timeEl = document.getElementById('cloudLastSyncedTime');
@@ -35332,8 +35360,11 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (!data) {
                     const accountKey = getAccountBackupStorageKey(opCtx.uid);
                     data = JSON.parse(localStorage.getItem(accountKey) || 'null');
-                    if (data && data.annotations && typeof data.annotations === 'object' && Object.keys(data.annotations).length > 0) {
-                        await migrateLegacyAccountAnnotationsToIDB(data, opCtx.uid, opCtx);
+                    if (typeof migrateLegacyAccountAnnotationsToIDB === 'function' && data && ((data.annotations && typeof data.annotations === 'object' && Object.keys(data.annotations).length > 0) || !data.annotationsStoredInIndexedDB)) {
+                        const migRes = await migrateLegacyAccountAnnotationsToIDB(data, opCtx.uid, opCtx);
+                        if (!migRes || !migRes.ok) {
+                            console.warn('Legacy annotations migration during pull did not succeed:', migRes?.error);
+                        }
                     }
                 }
                 if (!opCtx.isCurrent()) {
@@ -35793,8 +35824,11 @@ function togglePdfAudioPlayerBar(forceState) {
                     data = JSON.parse(localStorage.getItem(accountKey) || 'null');
                     if (data) {
                         loadedFromLocalAccountSnapshot = true;
-                        if (data.annotations && typeof data.annotations === 'object' && Object.keys(data.annotations).length > 0) {
-                            await migrateLegacyAccountAnnotationsToIDB(data, opCtx.uid, opCtx);
+                        if (typeof migrateLegacyAccountAnnotationsToIDB === 'function' && ((data.annotations && typeof data.annotations === 'object' && Object.keys(data.annotations).length > 0) || !data.annotationsStoredInIndexedDB)) {
+                            const migRes = await migrateLegacyAccountAnnotationsToIDB(data, opCtx.uid, opCtx);
+                            if (!migRes || !migRes.ok) {
+                                console.warn('Legacy annotations migration during login did not succeed:', migRes?.error);
+                            }
                         }
                     }
                 }

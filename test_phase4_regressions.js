@@ -3960,6 +3960,20 @@ async function main() {
     'T-5.1-M5B-05: migrateLegacyAccountAnnotationsToIDB aborts on IDB write transaction failure, keeps legacy annotations intact, and sets dirty'
   );
 
+  // 5b. T-5.1-M5B-05b: Empty Legacy Snapshot With IDB Failure Aborts Fail-Closed Without Marker
+  const emptyLegacySnapshot = {
+    user_id: m5bMigrateUid,
+    revision: 7,
+    annotations: {}
+  };
+  idb.failNextTransaction = true;
+  const failEmptyMigrateRes = await prod.migrateLegacyAccountAnnotationsToIDB(emptyLegacySnapshot, m5bMigrateUid, m5bMigrateCtx);
+  assert(
+    failEmptyMigrateRes && failEmptyMigrateRes.ok === false &&
+    emptyLegacySnapshot.annotationsStoredInIndexedDB === undefined,
+    'T-5.1-M5B-05b: migrateLegacyAccountAnnotationsToIDB on empty legacy snapshot aborts fail-closed and refuses to set marker when IDB read fails'
+  );
+
   // 6. T-5.1-M5B-06: N-02 Monotonic Version Counter Invariants
   prod.resetAnnotationMutationSeq();
   const v0 = prod.getAnnotationMutationSeq();

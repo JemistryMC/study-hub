@@ -3079,6 +3079,30 @@ async function main() {
       JSON.stringify(resX)
     );
 
+    // Test X.3: Real Chromium page reload with decoupled snapshot retains full IndexedDB annotations
+    await pageX.reload({ waitUntil: 'domcontentloaded' });
+    await pageX.waitForFunction(() => typeof initPdfDB === 'function');
+    const resX3 = await pageX.evaluate(async () => {
+      const uidX = 'user_m5b_e2e_x';
+      await handleAuthSessionChange({ id: uidX, email: 'userx@exo.edu', name: 'User X' }, false);
+      const idbMapAfterReload = await getAllAnnotationsMapFromDB(uidX);
+      const snapAfterReload = JSON.parse(localStorage.getItem(`pharmaAccountWorkspace_${uidX}`) || 'null');
+      return {
+        snapStoredInIDB: snapAfterReload?.annotationsStoredInIndexedDB === true,
+        snapHasAnnotations: snapAfterReload?.annotations !== undefined,
+        idbHasLec1: Boolean(idbMapAfterReload?.verifiedMap?.lec_x_1),
+        idbHasLec2: Boolean(idbMapAfterReload?.verifiedMap?.lec_x_2)
+      };
+    });
+    assert(
+      resX3.snapStoredInIDB === true &&
+      resX3.snapHasAnnotations === false &&
+      resX3.idbHasLec1 === true &&
+      resX3.idbHasLec2 === true,
+      'Test X.3 (M5-B): Real Chromium reload with decoupled metadata-only snapshot retains full IndexedDB annotations across browser reload',
+      JSON.stringify(resX3)
+    );
+
     await context.close();
   } finally {
     await browser.close();

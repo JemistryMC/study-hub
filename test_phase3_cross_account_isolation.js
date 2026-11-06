@@ -344,6 +344,7 @@ ${extractFunctionSource(indexHtmlContent, 'normalizeAndRecoverLectureAnnotations
 ${extractFunctionSource(indexHtmlContent, 'computeFastStringSignature')}
 ${extractFunctionSource(indexHtmlContent, 'getAllAnnotationsMapFromDB')}
 ${extractFunctionSource(indexHtmlContent, 'restoreAllAnnotationsMapToDB')}
+${extractFunctionSource(indexHtmlContent, 'migrateLegacyAccountAnnotationsToIDB')}
 ${extractFunctionSource(indexHtmlContent, 'isGoogleDriveTokenActive')}
 ${extractFunctionSource(indexHtmlContent, 'isGoogleDriveAccountLinked')}
 ${extractFunctionSource(indexHtmlContent, 'isGoogleDriveConnected')}
@@ -844,17 +845,19 @@ async function main() {
     vaultAAfterB1.dirty === true,
     'T-M1-C01e (Test A): Stale pharmaAccountWorkspace_A is refreshed with all of User A latest live workspace fields, revision, and dirty state'
   );
-  const idbRecordA = idb.records.get('usr_' + userA_Id + '::' + sharedLectureId);
-  const idbPendingA = idb.records.get('usr_' + userA_Id + '::lec_pending_flush_a');
+  const idbRecordA = idb.stores.annotations.get('usr_' + userA_Id + '::' + sharedLectureId);
+  const idbPendingA = idb.stores.annotations.get('usr_' + userA_Id + '::lec_pending_flush_a');
   assert(
     vaultAAfterB1 &&
     vaultAAfterB1.annotationsStoredInIndexedDB === true &&
     vaultAAfterB1.annotations === undefined &&
     idbRecordA &&
-    idbRecordA[1][0].note === 'CONFIDENTIAL: User A Private Exam Notes' &&
+    idbRecordA.pages &&
+    (idbRecordA.pages['1'] || idbRecordA.pages[1])[0].note === 'CONFIDENTIAL: User A Private Exam Notes' &&
     idbPendingA &&
-    idbPendingA[1][0].note === 'Flushed Pending Note A' &&
-    idb.records.get('usr_' + userA_Id + '::stale_deleted_lec') === undefined,
+    idbPendingA.pages &&
+    (idbPendingA.pages['1'] || idbPendingA.pages[1])[0].note === 'Flushed Pending Note A' &&
+    idb.stores.annotations.get('usr_' + userA_Id + '::stale_deleted_lec') === undefined,
     'T-M1-C01f (Test A): Refreshed pharmaAccountWorkspace_A preserves User A verified IndexedDB annotations (including flushed pending strokes) instead of writing annotations: {} or keeping stale snapshot annotations'
   );
   assert(
@@ -1029,8 +1032,8 @@ async function main() {
     prod.localStorage.getItem('pharmaWorkspaceDirty') === '1' &&
     prod.localStorage.getItem('pharmaWorkspaceDirty_' + userA_Id) === '1' &&
     snapAAfterReadFail &&
-    snapAAfterReadFail.annotations &&
-    snapAAfterReadFail.annotations[sharedLectureId] !== undefined,
+    snapAAfterReadFail.annotationsStoredInIndexedDB === true &&
+    snapAAfterReadFail.annotations === undefined,
     'T-M1-C01p (Test D.1): On IDB annotation read failure, outgoing dirty workspace is NOT reset, currentCloudUser stays User A, and existing snapshot annotations are NOT overwritten with {}'
   );
 
@@ -1052,6 +1055,7 @@ async function main() {
   // D.3: Once failure conditions clear, retrying the direct switch to User B1 succeeds and preserves all of User A's unsaved changes + annotations
   const retrySwitchRes = await prod.handleAuthSessionChange({ id: userB1_EmptyId, email: 'user_b1_empty@exo.edu', name: 'User B1 Empty' }, true);
   const snapAAfterRetry = JSON.parse(prod.localStorage.getItem(prod.getAccountBackupStorageKey(userA_Id)) || 'null');
+  const idbRetryA = idb.stores.annotations.get('usr_' + userA_Id + '::' + sharedLectureId);
   assert(
     retrySwitchRes &&
     retrySwitchRes.ok !== false &&
@@ -1060,8 +1064,11 @@ async function main() {
     snapAAfterRetry &&
     snapAAfterRetry.subjects.length === 2 &&
     snapAAfterRetry.subjects[1].id === 'sub_unsaved_d' &&
-    snapAAfterRetry.annotations &&
-    snapAAfterRetry.annotations[sharedLectureId] !== undefined &&
+    snapAAfterRetry.annotationsStoredInIndexedDB === true &&
+    snapAAfterRetry.annotations === undefined &&
+    idbRetryA &&
+    idbRetryA.pages &&
+    (idbRetryA.pages['1'] || idbRetryA.pages[1])[0].note === 'CONFIDENTIAL: User A Private Exam Notes' &&
     snapAAfterRetry.dirty === true,
     'T-M1-C01r (Test D.3): Retrying the switch after failure clears succeeds, refreshes pharmaAccountWorkspace_A with both subjects and verified annotations, and isolates User B1'
   );
