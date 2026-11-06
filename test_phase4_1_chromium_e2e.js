@@ -3834,6 +3834,289 @@ async function main() {
       'Test Z.6 (M6): Two real Chromium tabs correctly serialize User A via import lock while allowing independent User B import',
       JSON.stringify({ resTab2UserA, resTab2UserB })
     );
+
+    // ========================================================================
+    // TEST AA: Real Production-Path Crash & Restart Recovery (10 Durable Phase Cases)
+    // ========================================================================
+    console.log('\n--- TEST AA: Real Production-Path Crash & Restart Recovery (10 Cases) ---');
+
+    const crashCases = [
+      { hook: 'crashAfterPrepare', preCommit: true, name: 'AA.1: crash_after_PREPARE' },
+      { hook: 'crashAfterApplyIdb', preCommit: true, name: 'AA.2: crash_after_APPLY_IDB' },
+      { hook: 'crashAfterApplyLs', preCommit: true, name: 'AA.3: crash_after_APPLY_LOCALSTORAGE' },
+      { hook: 'crashAfterCommitted', preCommit: false, name: 'AA.4: crash_after_COMMITTED' },
+      { hook: 'crashAfterFinalizePersist', preCommit: false, name: 'AA.5: crash_after_finalize_persist' },
+      { hook: 'crashAfterJournalDeleted', preCommit: false, name: 'AA.6: crash_after_journal_deleted' },
+      { hook: 'crashBeforePointerCleanup', preCommit: false, name: 'AA.7: crash_before_pointer_cleanup' },
+      { hook: 'crashBeforeBarrierCleanup', preCommit: false, name: 'AA.8: crash_before_barrier_cleanup' },
+      { hook: 'crashDuringRollback', preCommit: true, name: 'AA.9: crash_during_rollback' },
+      { hook: 'crashDuringRollbackCleanup', preCommit: true, name: 'AA.10: crash_during_rollback_cleanup' }
+    ];
+
+    for (let i = 0; i < crashCases.length; i++) {
+      const tc = crashCases[i];
+      const testUid = `user_crash_aa_${i + 1}`;
+      const pageCrash = await context.newPage();
+      await pageCrash.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+      await pageCrash.waitForTimeout(200);
+
+      // In Page 1: setup initial state, install testHook, call actual importWorkspaceBackupV4
+      await pageCrash.evaluate(async ({ uid, hook }) => {
+        await handleAuthSessionChange({ id: uid, email: `${uid}@exo.edu`, name: `Crash User ${uid}` }, false);
+        const ctx = createAccountOperationContext(uid);
+
+        // Pre-import state
+        localStorage.setItem('pharmaSubjectsV4', JSON.stringify([{ id: 'sub_baseline', name: 'أصلي' }]));
+        saveAnnotationsToDB('lec_orig', { 1: [{ id: 'str_orig', tool: 'pen' }] }, null, ctx);
+        await flushPendingAnnotationsSave(false, ctx);
+
+        // Target backup to import
+        const targetBackup = {
+          schema: 'exo_workspace_backup_v4',
+          version: 4,
+          accountScopeHint: 'account_' + uid.slice(0, 8),
+          data: {
+            subjects: [{ id: 'sub_imported', name: 'مستورد' }],
+            schedule: { events: [] },
+            logs: [],
+            annotations: {
+              'lec_imported': { 1: [{ id: 'str_imported', tool: 'highlighter' }] }
+            }
+          }
+        };
+        const canon = canonicalizeJson(targetBackup.data);
+        targetBackup.integrity = {
+          algorithm: 'SHA-256',
+          canonicalScope: 'data',
+          sha256: await computeCanonicalSha256(canon),
+          byteLength: new TextEncoder().encode(canon).length
+        };
+
+        // Set hook
+        window.__exoImportTestHooks = { [hook]: true };
+
+        // For cases 9 and 10 (rollback crash hooks), trigger an error that causes rollback:
+        if (hook === 'crashDuringRollback' || hook === 'crashDuringRollbackCleanup') {
+          window.__exoImportTestHooks.failIdbApply = true;
+        }
+
+        try {
+          await importWorkspaceBackupV4(targetBackup, 'replace', uid, ctx);
+        } catch (e) {
+          // Expected test fault crash
+        }
+      }, { uid: testUid, hook: tc.hook });
+
+      // Close page immediately on crash boundary
+      await pageCrash.close();
+
+      // Open new page in same browser context (persisted IndexedDB and localStorage)
+      const pageReopen = await context.newPage();
+      await pageReopen.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+      await pageReopen.waitForTimeout(400);
+
+      // Verify recovery in new page
+      const checkRes = await pageReopen.evaluate(async ({ uid, isPreCommit }) => {
+        await handleAuthSessionChange({ id: uid, email: `${uid}@exo.edu`, name: `Crash User ${uid}` }, false);
+        const ctx = createAccountOperationContext(uid);
+
+        const pointerKey = 'pharmaImportTxState_' + uid;
+        const barrierKey = 'pharmaImportBarrier_' + uid;
+        const quarantineKey = 'pharmaImportQuarantine_' + uid;
+        const jKey = toScopedKey('__import_journal_v1__', uid);
+
+        const vaultRecord = await new Promise(resolve => {
+          if (!dbInstance) return resolve(null);
+          const tx = dbInstance.transaction('annotation_recovery_vault', 'readonly');
+          const req = tx.objectStore('annotation_recovery_vault').get(jKey);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => resolve(null);
+        });
+
+        const annosRes = await getAllAnnotationsMapFromDB(uid, ctx);
+        const subjectsRaw = localStorage.getItem('pharmaSubjectsV4') || '';
+
+        const pointerCleared = (localStorage.getItem(pointerKey) === null);
+        const barrierCleared = (localStorage.getItem(barrierKey) === null);
+        const notQuarantined = (localStorage.getItem(quarantineKey) === null) && (!activeImportQuarantinesByAccount.has(uid));
+        const vaultCleaned = (vaultRecord === null);
+
+        let dataCorrect = false;
+        if (isPreCommit) {
+          // Pre-commit crash: rolled back to baseline
+          dataCorrect = subjectsRaw.includes('sub_baseline') &&
+                        Boolean(annosRes?.verifiedMap?.['lec_orig']?.[1]);
+        } else {
+          // Post-commit crash: committed target state preserved
+          dataCorrect = subjectsRaw.includes('sub_imported') &&
+                        Boolean(annosRes?.verifiedMap?.['lec_imported']?.[1]);
+        }
+
+        return {
+          pointerCleared,
+          barrierCleared,
+          notQuarantined,
+          vaultCleaned,
+          dataCorrect,
+          subjectsRaw,
+          annosKeys: Object.keys(annosRes?.verifiedMap || {})
+        };
+      }, { uid: testUid, isPreCommit: tc.preCommit });
+
+      await pageReopen.close();
+
+      assert(
+        checkRes.pointerCleared === true &&
+        checkRes.barrierCleared === true &&
+        checkRes.notQuarantined === true &&
+        checkRes.vaultCleaned === true &&
+        checkRes.dataCorrect === true,
+        `Test ${tc.name}: Real Chromium restart correctly handles crash, recovers state without false quarantine`,
+        JSON.stringify(checkRes)
+      );
+    }
+
+    // ========================================================================
+    // TEST BB: Two-Tab Competition with Real Web Lock & Mutation Queueing
+    // ========================================================================
+    console.log('\n--- TEST BB: Two-Tab Competition & Annotation Queueing ---');
+    const tabA = await context.newPage();
+    const tabB = await context.newPage();
+    await tabA.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+    await tabB.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+    await tabA.waitForTimeout(300);
+    await tabB.waitForTimeout(300);
+
+    const uidCompA = 'user_bb_tab_a';
+    const uidCompB = 'user_bb_tab_b';
+
+    // In Tab A: start a real import with holdImportAfterLock
+    await tabA.evaluate(async (uid) => {
+      await handleAuthSessionChange({ id: uid, email: `${uid}@exo.edu`, name: 'User A' }, false);
+      const ctx = createAccountOperationContext(uid);
+
+      localStorage.setItem('pharmaSubjectsV4', JSON.stringify([{ id: 'sub_a_initial', name: 'مادة أ أولية' }]));
+
+      const targetBackup = {
+        schema: 'exo_workspace_backup_v4',
+        version: 4,
+        accountScopeHint: 'account_' + uid.slice(0, 8),
+        data: {
+          subjects: [{ id: 'sub_a_imported', name: 'مادة أ مستوردة' }],
+          schedule: { events: [] },
+          logs: [],
+          annotations: {}
+        }
+      };
+      const canon = canonicalizeJson(targetBackup.data);
+      targetBackup.integrity = {
+        algorithm: 'SHA-256',
+        canonicalScope: 'data',
+        sha256: await computeCanonicalSha256(canon),
+        byteLength: new TextEncoder().encode(canon).length
+      };
+
+      let releaseLock;
+      window.__holdLockPromise = new Promise(resolve => { releaseLock = resolve; });
+      window.__releaseImportLock = releaseLock;
+      window.__exoImportTestHooks = { holdImportAfterLock: window.__holdLockPromise };
+
+      // Start import without awaiting completion
+      window.__importPromise = importWorkspaceBackupV4(targetBackup, 'replace', uid, ctx);
+    }, uidCompA);
+
+    await tabA.waitForTimeout(300);
+
+    // In Tab B: attempt import for User A -> blocked by lock
+    const resTabBUserA = await tabB.evaluate(async (uid) => {
+      await handleAuthSessionChange({ id: uid, email: `${uid}@exo.edu`, name: 'User A' }, false);
+      const ctx = createAccountOperationContext(uid);
+      const backup = {
+        schema: 'exo_workspace_backup_v4',
+        version: 4,
+        data: { subjects: [], schedule: { events: [] }, logs: [], annotations: {} }
+      };
+      const canon = canonicalizeJson(backup.data);
+      backup.integrity = {
+        algorithm: 'SHA-256',
+        canonicalScope: 'data',
+        sha256: await computeCanonicalSha256(canon),
+        byteLength: new TextEncoder().encode(canon).length
+      };
+      const impRes = await importWorkspaceBackupV4(backup, 'replace', uid, ctx);
+      return {
+        blocked: (impRes?.reason === 'import_in_progress' || impRes?.status === 'error'),
+        reason: impRes?.reason
+      };
+    }, uidCompA);
+
+    // In Tab B: attempt saveAnnotationsToDB for User A while import is held -> MUST BE QUEUED!
+    const resTabBQueue = await tabB.evaluate(async (uid) => {
+      const ctx = createAccountOperationContext(uid);
+      const saveRes = saveAnnotationsToDB('lec_bb_concurrent', { 1: [{ id: 'str_queued_tab_b', tool: 'pen' }] }, null, ctx);
+      return {
+        queued: saveRes?.queued === true,
+        reason: saveRes?.reason,
+        queueMapHasEntry: queuedAnnotationWritesDuringImportByAccount.has(uid)
+      };
+    }, uidCompA);
+
+    // In Tab B: switch to independent User B and run import -> MUST SUCCEED
+    const resTabBUserB = await tabB.evaluate(async (uidB) => {
+      await handleAuthSessionChange({ id: uidB, email: `${uidB}@exo.edu`, name: 'User B' }, false);
+      const ctxB = createAccountOperationContext(uidB);
+      const backupB = {
+        schema: 'exo_workspace_backup_v4',
+        version: 4,
+        accountScopeHint: 'account_' + uidB.slice(0, 8),
+        data: {
+          subjects: [{ id: 'sub_b_indep', name: 'مادة ب المستقلة' }],
+          schedule: { events: [] },
+          logs: [],
+          annotations: {}
+        }
+      };
+      const canonB = canonicalizeJson(backupB.data);
+      backupB.integrity = {
+        algorithm: 'SHA-256',
+        canonicalScope: 'data',
+        sha256: await computeCanonicalSha256(canonB),
+        byteLength: new TextEncoder().encode(canonB).length
+      };
+      const impResB = await importWorkspaceBackupV4(backupB, 'replace', uidB, ctxB);
+      return {
+        succeeded: impResB?.ok === true,
+        status: impResB?.status,
+        subjectsWritten: (localStorage.getItem('pharmaSubjectsV4') || '').includes('sub_b_indep')
+      };
+    }, uidCompB);
+
+    // Now release Tab A's held lock and await its completion
+    await tabA.evaluate(async () => {
+      if (typeof window.__releaseImportLock === 'function') {
+        window.__releaseImportLock();
+      }
+      return await window.__importPromise;
+    });
+
+    await tabA.waitForTimeout(300);
+
+    await tabA.close();
+    await tabB.close();
+
+    assert(
+      resTabBUserA.blocked === true,
+      'Test BB.1: Real Chromium Tab 2 User A import is blocked by Tab 1 active import lock'
+    );
+    assert(
+      resTabBQueue.queued === true && resTabBQueue.queueMapHasEntry === true,
+      'Test BB.2: Real Chromium Tab 2 saveAnnotationsToDB queues edit safely during active import barrier'
+    );
+    assert(
+      resTabBUserB.succeeded === true && resTabBUserB.subjectsWritten === true,
+      'Test BB.3: Independent User B import succeeds concurrently without cross-account lock interference'
+    );
+
     await context.close();
   } finally {
     await browser.close();

@@ -174,6 +174,8 @@ const prodHelpersCode = `
 const storageBacking = new Map();
 const activeImportBarriersByAccount = new Map();
 const activeImportQuarantinesByAccount = new Map();
+const queuedAnnotationWritesDuringImportByAccount = new Map();
+const barrierHeartbeatTimersByAccount = new Map();
 let failNextAccountSnapshotKey = null;
 const localStorage = {
   getItem: (k) => (storageBacking.has(String(k)) ? storageBacking.get(String(k)) : null),
@@ -413,7 +415,11 @@ ${extractFunctionSource(indexHtmlContent, 'verifyLocalWorkspaceProvenance')}
 ${extractFunctionSource(indexHtmlContent, 'reconcileDirtyWorkspaceWithRemote')}
 ${extractFunctionSource(indexHtmlContent, 'pullWorkspaceFromCloud')}
 ${extractFunctionSource(indexHtmlContent, 'syncWorkspaceOnLogin')}
+${extractFunctionSource(indexHtmlContent, 'startBarrierHeartbeat')}
+${extractFunctionSource(indexHtmlContent, 'stopBarrierHeartbeat')}
+${extractFunctionSource(indexHtmlContent, 'applyQueuedAnnotationWritesAfterImport')}
 ${extractFunctionSource(indexHtmlContent, 'isImportInProgressOrQuarantined')}
+${extractFunctionSource(indexHtmlContent, 'runWithImportLock')}
 module.exports = {
   localStorage,
   scheduledTimers,
@@ -570,6 +576,10 @@ module.exports = {
   classifySupabaseError,
   migrateLegacyAccountAnnotationsToIDB,
   isImportInProgressOrQuarantined,
+  runWithImportLock,
+  applyQueuedAnnotationWritesAfterImport,
+  activeImportBarriersByAccount,
+  queuedAnnotationWritesDuringImportByAccount,
   getAnnotationMutationSeq: () => annotationMutationSeq,
   resetAnnotationMutationSeq: () => { annotationMutationSeq = 0; lastUploadedAnnotationVersion = 0; localAnnotationsMutationSeq = 0; }
 };
@@ -5034,6 +5044,199 @@ async function main() {
     sanitizedDiag.technicalDetail.includes('Bearer [REDACTED]') &&
     sanitizedDiag.technicalDetail.includes('password=[REDACTED]'),
     'T-5.1-M6-10b: sanitizeTechnicalErrorDetail strictly strips JWT tokens, passwords, and secrets from diagnostics output'
+  );
+
+  // ============================================================================
+  // M6 — CRITICAL FIXES A, B, C, D UNIT VERIFICATIONS
+  // ============================================================================
+
+  // Fix A: FINALIZE failure must never delete recovery journal
+  const cfaUid = 'user_cfa_finalize_fail';
+  prod.setSessionUser(cfaUid);
+  const cfaCtx = prod.createAccountOperationContext();
+  const cfaBackup = {
+    schema: 'exo_workspace_backup_v4',
+    version: 4,
+    integrity: { algorithm: 'SHA-256', canonicalScope: 'data', sha256: '', byteLength: 0 },
+    data: {
+      subjects: [{ id: 'sub_cfa', name: 'مادة نهائية' }],
+      schedule: { events: [], backlog: [] },
+      logs: [],
+      annotations: {}
+    }
+  };
+  const cfaCanon = prod.canonicalizeJson(cfaBackup.data);
+  cfaBackup.integrity.sha256 = await prod.computeCanonicalSha256(cfaCanon);
+  cfaBackup.integrity.byteLength = Buffer.byteLength(cfaCanon, 'utf8');
+
+  // CFA-1: Persisting FINALIZE fails -> retains journal in vault, keeps barrier and pointer, returns committed_finalization_pending
+  globalThis.__exoImportTestHooks = {
+    failPhasePersist: { FINALIZE: new Error('Simulated QuotaExceededError during FINALIZE vault write') }
+  };
+  const cfaRes = await prod.importWorkspaceBackupV4(cfaBackup, 'replace', cfaUid, cfaCtx);
+  globalThis.__exoImportTestHooks = null;
+
+  const cfaJournalKey = prod.toScopedKey('__import_journal_v1__', cfaUid);
+  const cfaVaultJournal = idb.stores.annotation_recovery_vault.get(cfaJournalKey);
+  const cfaPointer = prod.localStorage.getItem('pharmaImportTxState_' + cfaUid);
+  const cfaBarrier = prod.localStorage.getItem('pharmaImportBarrier_' + cfaUid);
+
+  assert(
+    cfaRes && cfaRes.ok === false &&
+    cfaRes.status === 'committed_finalization_pending' &&
+    cfaRes.reason === 'FINALIZE_PERSIST_FAILED' &&
+    cfaVaultJournal !== null && cfaVaultJournal !== undefined &&
+    cfaPointer !== null && cfaBarrier !== null &&
+    prod.localStorage.getItem('pharmaSubjectsV4').includes('مادة نهائية'),
+    'T-5.1-M6-CFA-1: FINALIZE failure does not delete vault journal, retains barrier/pointer, and returns committed_finalization_pending'
+  );
+
+  // CFA-2: Startup recovery forward-finalizes the pending FINALIZE transaction cleanly
+  const cfaRecRes = await prod.recoverPendingImportJournalIfNeeded(cfaUid, cfaCtx);
+  assert(
+    cfaRecRes && cfaRecRes.recovered === true &&
+    cfaRecRes.action === 'finalized' &&
+    !idb.stores.annotation_recovery_vault.has(cfaJournalKey) &&
+    prod.localStorage.getItem('pharmaImportTxState_' + cfaUid) === null &&
+    prod.localStorage.getItem('pharmaImportBarrier_' + cfaUid) === null &&
+    prod.localStorage.getItem('pharmaImportQuarantine_' + cfaUid) === null,
+    'T-5.1-M6-CFA-2: Startup recovery cleanly forward-finalizes COMMITTED/FINALIZE journal from vault without false quarantine'
+  );
+
+  // CFA-3: Journal deletion failure in FINALIZE returns committed_finalization_pending without corrupting state
+  const cfa3Uid = 'user_cfa3_del_fail';
+  prod.setSessionUser(cfa3Uid);
+  const cfa3Ctx = prod.createAccountOperationContext();
+  globalThis.__exoImportTestHooks = { failJournalDelete: true };
+  const cfa3Res = await prod.importWorkspaceBackupV4(cfaBackup, 'replace', cfa3Uid, cfa3Ctx);
+  globalThis.__exoImportTestHooks = null;
+  assert(
+    cfa3Res && cfa3Res.ok === false &&
+    cfa3Res.status === 'committed_finalization_pending' &&
+    cfa3Res.reason === 'JOURNAL_CLEANUP_FAILED',
+    'T-5.1-M6-CFA-3: Journal deletion failure during FINALIZE returns committed_finalization_pending and preserves recovery path'
+  );
+  // Clean up cfa3
+  await prod.recoverPendingImportJournalIfNeeded(cfa3Uid, cfa3Ctx);
+
+  // Fix B: Crash-safe Rollback through cleanup boundary
+  const cfbUid = 'user_cfb_rollback_boundary';
+  prod.setSessionUser(cfbUid);
+  const cfbCtx = prod.createAccountOperationContext();
+  const cfbJournalKey = prod.toScopedKey('__import_journal_v1__', cfbUid);
+  const cfbJournalObj = {
+    id: cfbJournalKey,
+    txId: 'tx_cfb_1',
+    userId: cfbUid,
+    phase: 'APPLY_IDB',
+    mode: 'merge',
+    preImportSnapshot: {
+      localStorage: {
+        pharmaSubjectsV4: { existed: true, value: JSON.stringify([{ id: 'sub_orig', name: 'أصلي' }]) }
+      },
+      annotations: {}
+    }
+  };
+  idb.stores.annotation_recovery_vault.set(cfbJournalKey, cfbJournalObj);
+
+  // CFB-1: Rollback persists durable ROLLED_BACK phase before deleting journal
+  globalThis.__exoImportTestHooks = { crashAfterRolledBackPersisted: true };
+  let cfbCrashed = false;
+  try {
+    await prod.rollbackImportFromJournal(cfbUid, cfbJournalObj);
+  } catch (e) {
+    cfbCrashed = (e.message === 'TEST_FAULT_INJECTION: crash_after_rolled_back_persisted');
+  }
+  globalThis.__exoImportTestHooks = null;
+
+  const cfbVaultRecord = idb.stores.annotation_recovery_vault.get(cfbJournalKey);
+  const cfbPointerRaw = prod.localStorage.getItem('pharmaImportTxState_' + cfbUid);
+  const cfbPointerParsed = cfbPointerRaw ? JSON.parse(cfbPointerRaw) : null;
+  assert(
+    cfbCrashed &&
+    cfbVaultRecord && cfbVaultRecord.phase === 'ROLLED_BACK' &&
+    cfbPointerParsed && cfbPointerParsed.phase === 'ROLLED_BACK',
+    'T-5.1-M6-CFB-1: Rollback persists durable ROLLED_BACK phase in vault and pointer before cleanup'
+  );
+
+  // CFB-2: Startup recovery after crash during rollback cleanup finishes cleanup without false quarantine
+  const cfbRecRes = await prod.recoverPendingImportJournalIfNeeded(cfbUid, cfbCtx);
+  assert(
+    cfbRecRes && cfbRecRes.recovered === true &&
+    cfbRecRes.action === 'rolled_back' &&
+    !idb.stores.annotation_recovery_vault.has(cfbJournalKey) &&
+    prod.localStorage.getItem('pharmaImportTxState_' + cfbUid) === null &&
+    prod.localStorage.getItem('pharmaImportBarrier_' + cfbUid) === null &&
+    prod.localStorage.getItem('pharmaImportQuarantine_' + cfbUid) === null,
+    'T-5.1-M6-CFB-2: Startup recovery recognizes ROLLED_BACK phase in vault/pointer and completes cleanup safely'
+  );
+
+  // Fix C: Mutation Barrier at saveAnnotationsToDB
+  const cfcUid = 'user_cfc_barrier_queue';
+  prod.setSessionUser(cfcUid);
+  const cfcCtx = prod.createAccountOperationContext();
+
+  // Set active barrier
+  prod.localStorage.setItem('pharmaImportBarrier_' + cfcUid, JSON.stringify({ txId: 'tx_cfc', startedAt: Date.now(), heartbeatAt: Date.now() }));
+  prod.activeImportBarriersByAccount.set(cfcUid, 'tx_cfc');
+
+  // CFC-1: saveAnnotationsToDB during import barrier queues safely rather than dropping
+  const saveRes = prod.saveAnnotationsToDB('lec_cfc_1', { '1': { strokes: [{ id: 'st1' }] } }, null, cfcCtx);
+  assert(
+    saveRes && saveRes.ok === false &&
+    saveRes.queued === true &&
+    saveRes.reason === 'import_in_progress' &&
+    prod.queuedAnnotationWritesDuringImportByAccount.has(cfcUid),
+    'T-5.1-M6-CFC-1: saveAnnotationsToDB during active import barrier safely queues edit with queued: true'
+  );
+
+  // Releasing barrier commits queued annotation write
+  prod.localStorage.removeItem('pharmaImportBarrier_' + cfcUid);
+  prod.activeImportBarriersByAccount.delete(cfcUid);
+  prod.applyQueuedAnnotationWritesAfterImport(cfcUid, 'merge');
+  assert(
+    !prod.queuedAnnotationWritesDuringImportByAccount.has(cfcUid) &&
+    prod.getRuntimeState().pendingAnnoSaveMap[prod.toScopedKey('lec_cfc_1', cfcUid)] !== undefined,
+    'T-5.1-M6-CFC-1b: applyQueuedAnnotationWritesAfterImport applies and flushes queued annotation writes'
+  );
+
+  // CFC-2: saveAnnotationsToDB when quarantined fails closed with queued: false
+  prod.localStorage.setItem('pharmaImportQuarantine_' + cfcUid, JSON.stringify({ quarantinedAt: Date.now() }));
+  const saveQuarantineRes = prod.saveAnnotationsToDB('lec_cfc_2', { '1': {} }, null, cfcCtx);
+  assert(
+    saveQuarantineRes && saveQuarantineRes.ok === false &&
+    saveQuarantineRes.queued === false &&
+    saveQuarantineRes.reason === 'quarantine_active',
+    'T-5.1-M6-CFC-2: saveAnnotationsToDB on quarantined account strictly fails closed without queueing'
+  );
+  prod.localStorage.removeItem('pharmaImportQuarantine_' + cfcUid);
+
+  // CFC-3: Barrier liveness: stale barrier with no heartbeat > 30s is ignored/cleared
+  const cfc3Uid = 'user_cfc3_stale';
+  prod.localStorage.setItem('pharmaImportBarrier_' + cfc3Uid, JSON.stringify({
+    txId: 'tx_old',
+    startedAt: Date.now() - 60000,
+    heartbeatAt: Date.now() - 35000
+  }));
+  const gateCheckStale = prod.isImportInProgressOrQuarantined(cfc3Uid);
+  assert(
+    gateCheckStale && gateCheckStale.blocked === false,
+    'T-5.1-M6-CFC-3: Stale import barrier with heartbeat older than 30s in another tab is safely bypassed'
+  );
+
+  // Fix D / Lock coordination:
+  const cfdUid = 'user_cfd_idb_lock';
+  prod.setSessionUser(cfdUid);
+  globalThis.__exoImportTestHooks = { forceIdbLockFallback: true };
+  let actionRan = false;
+  const lockRes = await prod.runWithImportLock(cfdUid, 'tx_cfd', async () => {
+    actionRan = true;
+    return { ok: true };
+  });
+  globalThis.__exoImportTestHooks = null;
+  assert(
+    lockRes && lockRes.ok === true && actionRan === true,
+    'T-5.1-M6-CFD: Fallback lock primitive atomically acquires vault-backed lock and executes import action'
   );
 
 

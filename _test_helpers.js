@@ -47,6 +47,10 @@ let activeCloudSyncPromise = null;
 let isCloudSyncing = false;
 let isBulkMediaUploading = false;
 let cloudAutoSaveTimer = null;
+let activeImportBarriersByAccount = new Map();
+let activeImportQuarantinesByAccount = new Map();
+let queuedAnnotationWritesDuringImportByAccount = new Map();
+let barrierHeartbeatTimersByAccount = new Map();
 let annotationMutationSeq = 0;
 let lastUploadedAnnotationVersion = 0;
 let localWorkspaceMutationSeq = 0;
@@ -218,7 +222,12 @@ ${extractFunctionSource(indexHtmlContent, 'canonicalizeJson')}
 ${extractFunctionSource(indexHtmlContent, 'computeCanonicalSha256')}
 ${extractFunctionSource(indexHtmlContent, 'exportWorkspaceBackupV4')}
 ${extractFunctionSource(indexHtmlContent, 'inspectWorkspaceBackup')}
+${extractFunctionSource(indexHtmlContent, 'startBarrierHeartbeat')}
+${extractFunctionSource(indexHtmlContent, 'stopBarrierHeartbeat')}
+${extractFunctionSource(indexHtmlContent, 'applyQueuedAnnotationWritesAfterImport')}
+${extractFunctionSource(indexHtmlContent, 'isImportInProgressOrQuarantined')}
 ${extractFunctionSource(indexHtmlContent, 'cleanupBarrierOnPrepareFailure')}
+${extractFunctionSource(indexHtmlContent, 'runWithImportLock')}
 ${extractFunctionSource(indexHtmlContent, 'executeImportTransactionInternal')}
 ${extractFunctionSource(indexHtmlContent, 'importWorkspaceBackupV4')}
 ${extractFunctionSource(indexHtmlContent, 'rollbackImportFromJournal')}
@@ -386,6 +395,10 @@ module.exports = {
   computeCanonicalSha256,
   exportWorkspaceBackupV4,
   inspectWorkspaceBackup,
+  isImportInProgressOrQuarantined,
+  runWithImportLock,
+  activeImportBarriersByAccount,
+  queuedAnnotationWritesDuringImportByAccount,
   cleanupBarrierOnPrepareFailure,
   executeImportTransactionInternal,
   importWorkspaceBackupV4,

@@ -19507,6 +19507,63 @@
         // Global account operation barriers & quarantines for backup import
         const activeImportBarriersByAccount = new Map();
         const activeImportQuarantinesByAccount = new Map();
+        const queuedAnnotationWritesDuringImportByAccount = new Map();
+        const barrierHeartbeatTimersByAccount = new Map();
+
+        function startBarrierHeartbeat(uid, barrierKey, txId) {
+            stopBarrierHeartbeat(uid);
+            const timer = setInterval(() => {
+                try {
+                    const raw = localStorage.getItem(barrierKey);
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (parsed && parsed.txId === txId) {
+                            parsed.heartbeatAt = Date.now();
+                            localStorage.setItem(barrierKey, JSON.stringify(parsed));
+                        }
+                    }
+                } catch (e) {}
+            }, 2500);
+            barrierHeartbeatTimersByAccount.set(uid, timer);
+        }
+
+        function stopBarrierHeartbeat(uid) {
+            if (barrierHeartbeatTimersByAccount.has(uid)) {
+                clearInterval(barrierHeartbeatTimersByAccount.get(uid));
+                barrierHeartbeatTimersByAccount.delete(uid);
+            }
+        }
+
+        function applyQueuedAnnotationWritesAfterImport(uid, mode = 'merge') {
+            if (!uid || !queuedAnnotationWritesDuringImportByAccount.has(uid)) return;
+            const queue = queuedAnnotationWritesDuringImportByAccount.get(uid);
+            queuedAnnotationWritesDuringImportByAccount.delete(uid);
+            if (!Array.isArray(queue) || queue.length === 0) return;
+
+            const currentUid = (typeof getCanonicalUserId === 'function') ? getCanonicalUserId() : null;
+            if (currentUid !== uid) {
+                console.warn('Discarding queued annotation writes: account context switched from', uid, 'to', currentUid);
+                return;
+            }
+            const ctx = (typeof resolveAccountOperationContext === 'function') ? resolveAccountOperationContext(uid) : null;
+            if (!ctx || !ctx.isCurrent()) {
+                console.warn('Discarding queued annotation writes: context not current for', uid);
+                return;
+            }
+
+            queue.forEach(item => {
+                try {
+                    const scopedKey = toScopedKey(item.lecId, uid);
+                    inMemoryAnnotationsCache[scopedKey] = item.pagesData;
+                    pendingAnnoSaveMap[scopedKey] = item.pagesData;
+                } catch (e) {
+                    console.warn('Failed to apply queued annotation write:', e);
+                }
+            });
+            if (typeof flushPendingAnnotationsSave === 'function') {
+                flushPendingAnnotationsSave(false, ctx);
+            }
+        }
 
         // Optional test fault injection hooks container
         if (typeof window !== 'undefined' && !window.__exoImportTestHooks) {
@@ -19527,28 +19584,45 @@
                     error: 'Workspace account is quarantined due to an unresolved restore or rollback failure. Cloud sync is disabled.'
                 };
             }
+
             const barrierRaw = (typeof localStorage !== 'undefined' && localStorage.getItem) ? localStorage.getItem('pharmaImportBarrier_' + uid) : null;
             const isBarrierInMem = (typeof activeImportBarriersByAccount !== 'undefined' && activeImportBarriersByAccount.get) ? activeImportBarriersByAccount.get(uid) : false;
-            if (barrierRaw || isBarrierInMem) {
-                // Recover from stale crash barrier lease (> 60 seconds)
-                if (barrierRaw && typeof barrierRaw === 'string' && barrierRaw.startsWith(String.fromCharCode(123))) {
+
+            // In-memory active barrier in the originating tab is 100% authoritative and NEVER stale
+            if (isBarrierInMem) {
+                return {
+                    blocked: true,
+                    reason: 'import_in_progress',
+                    error: 'Workspace import is currently in progress for this account in this tab. Competing operations are blocked.'
+                };
+            }
+
+            if (barrierRaw) {
+                let isLive = true;
+                if (typeof barrierRaw === 'string' && barrierRaw.startsWith(String.fromCharCode(123))) {
                     try {
                         const parsedB = JSON.parse(barrierRaw);
-                        if (parsedB.startedAt && (Date.now() - parsedB.startedAt > 60000)) {
-                            console.warn('Clearing stale import barrier lease for user:', uid);
+                        const lastActivity = parsedB.heartbeatAt || parsedB.startedAt || 0;
+                        // Verified liveness protocol: only clear stale lease if heartbeat stopped > 30 seconds ago
+                        if (lastActivity && (Date.now() - lastActivity > 30000)) {
+                            isLive = false;
+                            console.warn('Clearing stale import barrier lease (heartbeat inactive >30s) for user:', uid);
                             if (typeof localStorage !== 'undefined' && localStorage.removeItem) {
                                 localStorage.removeItem('pharmaImportBarrier_' + uid);
                             }
                             activeImportBarriersByAccount.delete(uid);
+                            stopBarrierHeartbeat(uid);
                             return { blocked: false };
                         }
                     } catch (e) {}
                 }
-                return {
-                    blocked: true,
-                    reason: 'import_in_progress',
-                    error: 'Workspace import is currently in progress for this account. Competing operations are blocked.'
-                };
+                if (isLive) {
+                    return {
+                        blocked: true,
+                        reason: 'import_in_progress',
+                        error: 'Workspace import is currently in progress for this account. Competing operations are blocked.'
+                    };
+                }
             }
             return { blocked: false };
         }
@@ -19882,17 +19956,12 @@
             activeImportBarriersByAccount.delete(uid);
         }
 
-        // Staged crash-recoverable import transaction execution (6-phase durable lifecycle in IndexedDB vault)
-        async function importWorkspaceBackupV4(backupInput, mode = 'merge', targetUserId = null, ctx = null) {
-            const chosenMode = (mode === 'replace') ? 'replace' : 'merge';
-            const opCtx = resolveAccountOperationContext(targetUserId, ctx);
-            if (!opCtx.ok || !opCtx.isCurrent()) {
-                return { ok: false, status: 'error', reason: 'account_context_invalid', error: 'Invalid or switched account operation context' };
-            }
-            const uid = opCtx.uid;
+        // Atomic Cross-Tab Import Locking Primitive (Web Locks API + Atomic IDB Transaction Fallback)
+        async function runWithImportLock(uid, txId, actionFn) {
+            const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
+            const forceIdbFallback = Boolean(testHooks && testHooks.forceIdbLockFallback);
 
-            // Cross-Tab Concurrency Guard (Web Locks API when available, with atomic fallback)
-            if (typeof navigator !== 'undefined' && navigator.locks && typeof navigator.locks.request === 'function') {
+            if (!forceIdbFallback && typeof navigator !== 'undefined' && navigator.locks && typeof navigator.locks.request === 'function') {
                 return await new Promise((resolve) => {
                     navigator.locks.request('exo_import_lock_' + uid, { ifAvailable: true }, async (lock) => {
                         if (!lock) {
@@ -19903,18 +19972,107 @@
                                 error: 'Workspace import is currently in progress for this account in another tab.'
                             });
                         }
-                        const res = await executeImportTransactionInternal(backupInput, chosenMode, uid, opCtx);
+                        if (testHooks && testHooks.holdImportAfterLock) {
+                            await testHooks.holdImportAfterLock;
+                        }
+                        const res = await actionFn();
                         resolve(res);
                     }).catch(lockErr => {
                         resolve({ ok: false, status: 'error', reason: 'LOCK_ERROR', error: lockErr?.message || String(lockErr) });
                     });
                 });
+            } else if (dbInstance && dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
+                // Safe durable IndexedDB lock fallback: atomic readwrite transaction
+                const lockKey = toScopedKey('__import_lock_v1__', uid);
+                let lockAcquired = false;
+                try {
+                    lockAcquired = await new Promise((resolve) => {
+                        const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+                        const store = tx.objectStore('annotation_recovery_vault');
+                        const getReq = store.get(lockKey);
+                        getReq.onsuccess = () => {
+                            const existing = getReq.result;
+                            if (existing && existing.heartbeatAt && (Date.now() - existing.heartbeatAt < 15000)) {
+                                resolve(false);
+                                return;
+                            }
+                            store.put({
+                                id: lockKey,
+                                userId: uid,
+                                txId: txId,
+                                startedAt: Date.now(),
+                                heartbeatAt: Date.now()
+                            });
+                        };
+                        tx.oncomplete = () => resolve(true);
+                        tx.onerror = () => resolve(false);
+                        tx.onabort = () => resolve(false);
+                    });
+                } catch (e) {
+                    lockAcquired = false;
+                }
+
+                if (!lockAcquired) {
+                    return {
+                        ok: false,
+                        status: 'error',
+                        reason: 'import_in_progress',
+                        error: 'Workspace import is currently in progress for this account in another tab (IDB lock).'
+                    };
+                }
+
+                const idbHeartbeatTimer = setInterval(async () => {
+                    try {
+                        const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+                        tx.objectStore('annotation_recovery_vault').put({
+                            id: lockKey,
+                            userId: uid,
+                            txId: txId,
+                            heartbeatAt: Date.now()
+                        });
+                    } catch (e) {}
+                }, 2000);
+
+                try {
+                    if (testHooks && testHooks.holdImportAfterLock) {
+                        await testHooks.holdImportAfterLock;
+                    }
+                    return await actionFn();
+                } finally {
+                    clearInterval(idbHeartbeatTimer);
+                    try {
+                        const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+                        tx.objectStore('annotation_recovery_vault').delete(lockKey);
+                    } catch (e) {}
+                }
             } else {
-                return await executeImportTransactionInternal(backupInput, chosenMode, uid, opCtx);
+                return {
+                    ok: false,
+                    status: 'error',
+                    reason: 'LOCK_UNAVAILABLE',
+                    error: 'No safe coordination primitive available (neither Web Locks nor IndexedDB lock store)'
+                };
             }
         }
 
-        async function executeImportTransactionInternal(backupInput, chosenMode, uid, opCtx) {
+        // Staged crash-recoverable import transaction execution (6-phase durable lifecycle in IndexedDB vault)
+        async function importWorkspaceBackupV4(backupInput, mode = 'merge', targetUserId = null, ctx = null) {
+            const chosenMode = (mode === 'replace') ? 'replace' : 'merge';
+            const opCtx = resolveAccountOperationContext(targetUserId, ctx);
+            if (!opCtx.ok || !opCtx.isCurrent()) {
+                return { ok: false, status: 'error', reason: 'account_context_invalid', error: 'Invalid or switched account operation context' };
+            }
+            const uid = opCtx.uid;
+            const txId = 'imp_tx_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+
+            return await runWithImportLock(uid, txId, async () => {
+                return await executeImportTransactionInternal(backupInput, chosenMode, uid, opCtx, txId);
+            });
+        }
+
+        async function executeImportTransactionInternal(backupInput, chosenMode, uid, opCtx, passedTxId = null) {
+            const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
+
             // Gate: Block if account is quarantined or another import is in progress
             const gateCheck = isImportInProgressOrQuarantined(uid);
             if (gateCheck.blocked) {
@@ -19940,16 +20098,17 @@
             }
 
             const targetData = inspection.normalizedData;
-            const txId = 'imp_tx_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+            const txId = passedTxId || ('imp_tx_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9));
             const txStateKey = 'pharmaImportTxState_' + uid;
             const barrierKey = 'pharmaImportBarrier_' + uid;
             const journalScopedKey = toScopedKey('__import_journal_v1__', uid);
 
-            // Establish account operation barrier across tabs
+            // Establish account operation barrier across tabs with liveness heartbeat
             try {
-                localStorage.setItem(barrierKey, JSON.stringify({ txId, startedAt: Date.now() }));
+                localStorage.setItem(barrierKey, JSON.stringify({ txId, startedAt: Date.now(), heartbeatAt: Date.now() }));
             } catch (e) {}
             activeImportBarriersByAccount.set(uid, txId);
+            startBarrierHeartbeat(uid, barrierKey, txId);
 
             // --- PHASE 1: PREPARE ---
             // Complete snapshot of ALL 17 managed LocalStorage keys with exact prior existence state
@@ -20088,7 +20247,7 @@
                 // Test fault injection hook for testing phase persistence failures
                 const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
                 if (testHooks && testHooks.failPhasePersist && testHooks.failPhasePersist[newPhase]) {
-                    throw testHooks.failPhasePersist[newPhase];
+                    throw (typeof testHooks.failPhasePersist[newPhase] === 'object' ? testHooks.failPhasePersist[newPhase] : new Error(testHooks.failPhasePersist[newPhase]));
                 }
 
                 await new Promise((resolve, reject) => {
@@ -20099,10 +20258,18 @@
                     tx.onabort = () => reject(tx.error || new Error('Vault transaction aborted for phase: ' + newPhase));
                 });
 
+                if (testHooks && testHooks.failLsPointerWrite && testHooks.failLsPointerWrite[newPhase]) {
+                    throw (typeof testHooks.failLsPointerWrite[newPhase] === 'object' ? testHooks.failLsPointerWrite[newPhase] : new Error(testHooks.failLsPointerWrite[newPhase]));
+                }
+
                 try {
                     localStorage.setItem(txStateKey, JSON.stringify({ txId, phase: newPhase, mode: chosenMode, startedAt: journalRecord.startedAt }));
                 } catch (lsErr) {
                     console.warn('LocalStorage pointer write warning for phase ' + newPhase + ':', lsErr);
+                    // For FINALIZE, pointer update failure must be treated as critical to prevent unrecoverable crash window before deleting journal
+                    if (newPhase === 'FINALIZE') {
+                        throw new Error('POINTER_WRITE_FAILED: Failed to update local pointer to FINALIZE: ' + (lsErr?.message || lsErr));
+                    }
                 }
             }
 
@@ -20110,7 +20277,12 @@
                 await persistPhase('PREPARE');
             } catch (prepareErr) {
                 await cleanupBarrierOnPrepareFailure(uid, barrierKey);
+                stopBarrierHeartbeat(uid);
                 return { ok: false, status: 'error', reason: 'JOURNAL_PREPARE_FAILED', error: 'Failed to stage recovery journal: ' + prepareErr?.message };
+            }
+
+            if (testHooks && testHooks.crashAfterPrepare) {
+                throw new Error('TEST_FAULT_INJECTION: crash_after_PREPARE');
             }
 
             if (!opCtx.isCurrent()) {
@@ -20123,7 +20295,6 @@
                 await persistPhase('APPLY_IDB');
 
                 // Test hook for IDB apply failure
-                const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
                 if (testHooks && testHooks.failIdbApply) {
                     throw (typeof testHooks.failIdbApply === 'object' ? testHooks.failIdbApply : new Error('TEST_FAULT_INJECTION: fail_idb_apply'));
                 }
@@ -20189,6 +20360,10 @@
                 return { ok: false, status: 'error', reason: 'IDB_APPLY_FAILED', error: 'Failed to apply annotations to IndexedDB: ' + idbErr?.message };
             }
 
+            if (testHooks && testHooks.crashAfterApplyIdb) {
+                throw new Error('TEST_FAULT_INJECTION: crash_after_APPLY_IDB');
+            }
+
             if (!opCtx.isCurrent()) {
                 await rollbackImportFromJournal(uid, journalRecord);
                 return { ok: false, status: 'aborted', reason: 'account_switched' };
@@ -20199,7 +20374,6 @@
                 await persistPhase('APPLY_LOCALSTORAGE');
 
                 // Test hook for LocalStorage apply failure
-                const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
                 if (testHooks && testHooks.failLsApply) {
                     throw (typeof testHooks.failLsApply === 'object' ? testHooks.failLsApply : new Error('TEST_FAULT_INJECTION: fail_ls_apply'));
                 }
@@ -20309,6 +20483,10 @@
                 return { ok: false, status: 'error', reason: 'LOCALSTORAGE_APPLY_FAILED', error: 'Failed to update local workspace data: ' + lsErr?.message };
             }
 
+            if (testHooks && testHooks.crashAfterApplyLs) {
+                throw new Error('TEST_FAULT_INJECTION: crash_after_APPLY_LOCALSTORAGE');
+            }
+
             // --- PHASE 4: COMMITTED (CRITICAL FIX 1: Durable Before Finalization) ---
             if (!opCtx.isCurrent()) {
                 console.error('Account context switched before COMMITTED phase; executing verified rollback');
@@ -20330,20 +20508,40 @@
             }
 
             // Test hook: simulate crash immediately after COMMITTED
-            const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
             if (testHooks && testHooks.crashAfterCommitted) {
                 throw new Error('TEST_FAULT_INJECTION: crash_after_COMMITTED');
             }
 
-            // --- PHASE 5: FINALIZE (CRITICAL FIX 2: Crash-Safe Finalization Protocol) ---
+            // --- PHASE 5: FINALIZE (CRITICAL FIX A: Crash-Safe Finalization Protocol) ---
             try {
                 await persistPhase('FINALIZE');
             } catch (finErr) {
-                console.warn('Warning persisting FINALIZE phase to vault:', finErr);
+                console.error('Failed to persist FINALIZE phase to vault or pointer:', finErr);
+                // Retain journal, retain barrier, retain pointer! Do NOT delete journal!
+                // Return an actionable recoverable result indicating that target is COMMITTED but finalization remains pending:
+                return {
+                    ok: false,
+                    status: 'committed_finalization_pending',
+                    reason: 'FINALIZE_PERSIST_FAILED',
+                    error: 'Target committed durably, but finalization phase persistence failed: ' + (finErr?.message || finErr)
+                };
             }
 
             if (testHooks && testHooks.crashDuringFinalize) {
                 throw new Error('TEST_FAULT_INJECTION: crash_during_FINALIZE');
+            }
+
+            if (testHooks && testHooks.crashAfterFinalizePersist) {
+                throw new Error('TEST_FAULT_INJECTION: crash_after_finalize_persist');
+            }
+
+            if (testHooks && testHooks.failJournalDelete) {
+                return {
+                    ok: false,
+                    status: 'committed_finalization_pending',
+                    reason: 'JOURNAL_CLEANUP_FAILED',
+                    error: 'TEST_FAULT_INJECTION: fail_journal_delete'
+                };
             }
 
             // Step 5a: Delete journal from IndexedDB vault, awaiting transaction completion
@@ -20356,7 +20554,13 @@
                     tx.onabort = () => reject(tx.error);
                 });
             } catch (delErr) {
-                console.warn('Warning deleting journal during finalize:', delErr);
+                console.error('Failed to delete journal during finalize:', delErr);
+                return {
+                    ok: false,
+                    status: 'committed_finalization_pending',
+                    reason: 'JOURNAL_CLEANUP_FAILED',
+                    error: 'Target committed, but journal cleanup in vault failed: ' + (delErr?.message || delErr)
+                };
             }
 
             if (testHooks && testHooks.crashAfterJournalDeleted) {
@@ -20364,15 +20568,23 @@
             }
 
             // Step 5b: Clear pointer from LocalStorage
+            if (testHooks && testHooks.crashBeforePointerCleanup) {
+                throw new Error('TEST_FAULT_INJECTION: crash_before_pointer_cleanup');
+            }
             try {
                 localStorage.removeItem(txStateKey);
             } catch (e) {}
 
             // Step 5c: Clear barrier from LocalStorage and in-memory Map
+            if (testHooks && testHooks.crashBeforeBarrierCleanup) {
+                throw new Error('TEST_FAULT_INJECTION: crash_before_barrier_cleanup');
+            }
             try {
                 localStorage.removeItem(barrierKey);
             } catch (e) {}
             activeImportBarriersByAccount.delete(uid);
+            stopBarrierHeartbeat(uid);
+            applyQueuedAnnotationWritesAfterImport(uid, chosenMode);
 
             // Re-render UI views
             if (typeof renderSubjectsList === 'function') renderSubjectsList();
@@ -20472,7 +20684,47 @@
                     });
                 }
 
-                // 3. Clean up journal & tx state upon successful rollback
+                // Hook for testing crash after restore but before ROLLED_BACK persisted
+                if (testHooks && testHooks.crashDuringRollback) {
+                    throw new Error('TEST_FAULT_INJECTION: crash_during_rollback');
+                }
+
+                // Step 3a: Verify restored state before declaring rollback complete
+                if (snapshot.localStorage && snapshot.localStorage.pharmaSubjectsV4) {
+                    const checkSub = localStorage.getItem('pharmaSubjectsV4');
+                    if (snapshot.localStorage.pharmaSubjectsV4.existed && snapshot.localStorage.pharmaSubjectsV4.value !== checkSub) {
+                        throw new Error('Rollback verification failed: pharmaSubjectsV4 does not match snapshot');
+                    }
+                }
+
+                // Step 3b: Persist durable ROLLED_BACK phase to IndexedDB vault (CRITICAL FIX B)
+                journal.phase = 'ROLLED_BACK';
+                journal.rolledBackAt = new Date().toISOString();
+                if (dbInstance) {
+                    await new Promise((resolve, reject) => {
+                        const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+                        tx.objectStore('annotation_recovery_vault').put(journal);
+                        tx.oncomplete = () => resolve();
+                        tx.onerror = () => reject(tx.error || new Error('Failed to persist ROLLED_BACK phase'));
+                        tx.onabort = () => reject(tx.error || new Error('Failed to persist ROLLED_BACK phase'));
+                    });
+                }
+
+                // Step 3c: Update LocalStorage pointer to ROLLED_BACK
+                try {
+                    localStorage.setItem('pharmaImportTxState_' + uid, JSON.stringify({
+                        txId: journal.txId,
+                        phase: 'ROLLED_BACK',
+                        mode: journal.mode,
+                        rolledBackAt: journal.rolledBackAt
+                    }));
+                } catch (e) {}
+
+                if (testHooks && testHooks.crashAfterRolledBackPersisted) {
+                    throw new Error('TEST_FAULT_INJECTION: crash_after_rolled_back_persisted');
+                }
+
+                // Step 3d: Delete journal from IndexedDB vault (awaiting completion)
                 const journalScopedKey = toScopedKey('__import_journal_v1__', uid);
                 if (dbInstance) {
                     await new Promise((resolve, reject) => {
@@ -20484,9 +20736,23 @@
                     });
                 }
 
+                // Hook for testing crash after journal deleted but before pointer/barrier cleanup
+                if (testHooks && testHooks.crashDuringRollbackCleanup) {
+                    throw new Error('TEST_FAULT_INJECTION: crash_during_rollback_cleanup');
+                }
+
+                // Step 3e: Remove pointer
                 try { localStorage.removeItem('pharmaImportTxState_' + uid); } catch (e) {}
+
+                if (testHooks && testHooks.crashBeforeRollbackBarrierCleanup) {
+                    throw new Error('TEST_FAULT_INJECTION: crash_before_rollback_barrier_cleanup');
+                }
+
+                // Step 3f: Remove barrier & stop heartbeat
                 try { localStorage.removeItem('pharmaImportBarrier_' + uid); } catch (e) {}
                 activeImportBarriersByAccount.delete(uid);
+                stopBarrierHeartbeat(uid);
+                applyQueuedAnnotationWritesAfterImport(uid, 'merge');
 
                 // Re-render UI views safely
                 try {
@@ -20500,6 +20766,10 @@
 
                 return { ok: true, rolledBack: true };
             } catch (rbErr) {
+                // If fault injection test intentionally caused crash, rethrow for the test harness
+                if (testHooks && (testHooks.crashDuringRollback || testHooks.crashDuringRollbackCleanup || testHooks.crashAfterRolledBackPersisted || testHooks.crashBeforeRollbackBarrierCleanup)) {
+                    throw rbErr;
+                }
                 console.error('CRITICAL: Emergency rollback failed, quarantining account:', rbErr);
                 const journalScopedKey = toScopedKey('__import_journal_v1__', uid);
 
@@ -20607,14 +20877,18 @@
 
             // 3. Pointer exists in LocalStorage but journal missing from IndexedDB:
             if (parsedTx && !journalRecord) {
-                // CRITICAL FIX 2: If the pointer was in FINALIZE phase, this is NOT a missing journal!
-                // It means finalization completed step 1 (journal deleted from IDB) and crashed before clearing the pointer!
-                if (parsedTx.phase === 'FINALIZE') {
+                // If the pointer was in FINALIZE or ROLLED_BACK phase, this is NOT a missing journal!
+                // It means finalization or rollback completed step 1 (journal deleted from IDB) and crashed before clearing the pointer!
+                if (parsedTx.phase === 'FINALIZE' || parsedTx.phase === 'ROLLED_BACK') {
                     try { localStorage.removeItem(txStateKey); } catch (e) {}
                     try { localStorage.removeItem(barrierKey); } catch (e) {}
                     activeImportBarriersByAccount.delete(uid);
-                    if (typeof showToast === 'function') showToast('تم استكمال تنظيف الاسترجاع النهائي بنجاح ✓');
-                    return { recovered: true, action: 'finalized', note: 'cleanup_completed_from_pointer' };
+                    stopBarrierHeartbeat(uid);
+                    applyQueuedAnnotationWritesAfterImport(uid, 'merge');
+                    if (typeof showToast === 'function') {
+                        showToast(parsedTx.phase === 'FINALIZE' ? 'تم استكمال تنظيف الاسترجاع النهائي بنجاح ✓' : 'تم استكمال تنظيف التراجع بنجاح ✓');
+                    }
+                    return { recovered: true, action: parsedTx.phase === 'FINALIZE' ? 'finalized' : 'rolled_back', note: 'cleanup_completed_from_pointer' };
                 }
 
                 // Any other phase: missing journal is an abnormal crash during an uncommitted mutation -> FAIL CLOSED!
@@ -20637,6 +20911,7 @@
                 if (barrierRaw) {
                     try { localStorage.removeItem(barrierKey); } catch (e) {}
                     activeImportBarriersByAccount.delete(uid);
+                    stopBarrierHeartbeat(uid);
                 }
                 return { recovered: false };
             }
@@ -20671,8 +20946,28 @@
                 try { localStorage.removeItem(txStateKey); } catch (e) {}
                 try { localStorage.removeItem(barrierKey); } catch (e) {}
                 activeImportBarriersByAccount.delete(uid);
+                stopBarrierHeartbeat(uid);
+                applyQueuedAnnotationWritesAfterImport(uid, journalRecord.mode || 'replace');
                 if (typeof showToast === 'function') showToast('تم إكمال اعتماد استرجاع النسخة الاحتياطية بنجاح ✓');
                 return { recovered: true, action: 'finalized' };
+            } else if (journalRecord.phase === 'ROLLED_BACK') {
+                // Rollback was already completed, just clean up journal and pointers
+                try {
+                    await new Promise((resolve, reject) => {
+                        const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
+                        tx.objectStore('annotation_recovery_vault').delete(journalScopedKey);
+                        tx.oncomplete = () => resolve();
+                        tx.onerror = () => reject(tx.error);
+                        tx.onabort = () => reject(tx.error);
+                    });
+                } catch (e) {}
+
+                try { localStorage.removeItem(txStateKey); } catch (e) {}
+                try { localStorage.removeItem(barrierKey); } catch (e) {}
+                activeImportBarriersByAccount.delete(uid);
+                stopBarrierHeartbeat(uid);
+                applyQueuedAnnotationWritesAfterImport(uid, 'merge');
+                return { recovered: true, action: 'rolled_back' };
             } else {
                 // Pre-COMMITTED phase (PREPARE, APPLY_IDB, APPLY_LOCALSTORAGE): roll back safely!
                 const rbRes = await rollbackImportFromJournal(uid, journalRecord);
@@ -22412,6 +22707,28 @@
             if (!dbInstance) return false;
             const ctx = resolveAccountOperationContext(opCtx);
             if (!ctx.isCurrent()) return false;
+
+            // CRITICAL FIX C: Complete the account mutation barrier at the annotation boundary
+            const gateCheck = (typeof isImportInProgressOrQuarantined === 'function') ? isImportInProgressOrQuarantined(ctx.uid) : { blocked: false };
+            if (gateCheck.blocked) {
+                if (gateCheck.reason === 'import_in_progress') {
+                    // Do not silently discard edits! Queue safely until active import completes
+                    if (!queuedAnnotationWritesDuringImportByAccount.has(ctx.uid)) {
+                        queuedAnnotationWritesDuringImportByAccount.set(ctx.uid, []);
+                    }
+                    queuedAnnotationWritesDuringImportByAccount.get(ctx.uid).push({
+                        lecId,
+                        pagesData: (pagesData && typeof pagesData === 'object') ? JSON.parse(JSON.stringify(pagesData)) : pagesData,
+                        specificPageKey,
+                        timestamp: Date.now(),
+                        opCtx: ctx
+                    });
+                    console.warn('saveAnnotationsToDB queued safely: import in progress for user', ctx.uid);
+                    return { ok: false, queued: true, reason: 'import_in_progress', message: 'Annotation write safely queued during import.' };
+                }
+                console.warn('saveAnnotationsToDB blocked:', gateCheck.reason, 'for user', ctx.uid);
+                return { ok: false, queued: false, reason: gateCheck.reason, error: gateCheck.error };
+            }
 
             lastPenActivityTimeMs = performance.now();
             bumpAnnotationMutationVersion();
