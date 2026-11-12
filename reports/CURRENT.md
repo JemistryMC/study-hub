@@ -3,8 +3,9 @@
 **آخر تحديث:** 2026-11-12  
 **المستودع:** `JemistryMC/study-hub`  
 **الفرع النشط:** `main`  
-**نقطة البداية المعتمدة (Authoritative Baseline HEAD):** `0841b76d6c07ce756a44a874e8e574253ed2aeb3`  
-**الحالة:** `IMPLEMENTED — LOCAL TESTS ONLY (EXO — M6 STABLE BASELINE CHECKPOINT)`
+**آخر HEAD معتمد للتحقق (Latest Verified HEAD):** `94259b543a021d4f06fdc0a9aa44d3f346d63037`  
+**نقاط الأساس التاريخية السابقة (Previous Baseline Checkpoints):** `0841b76d6c07ce756a44a874e8e574253ed2aeb3` ← `2433bf6d4a128acf6736f3c099496d551947cc7e` ← `9362085a32c173766800e416bd47d17301c837a6` ← `ecedff6069c5d1691812b3427f83e159cc6eed16`  
+**الحالة:** `CI VERIFIED (PENDING OWNER APPROVAL — NOT APPROVED)`
 
 هذا الملف هو المرجع الوحيد للحالة الحالية والمرحلة النشطة. إذا خالفه تقرير تاريخي أو تعليمات مرحلة قديمة، يُتبع هذا الملف ومستند المرحلة النشطة.
 
@@ -14,10 +15,10 @@
 
 - **المستودع المعتمد:** `JemistryMC/study-hub`
 - **فرع العمل المعتاد:** `main`
-- **نقطة البداية الدقيقة لعملية الإغلاق والتنفيذ الحالية (Starting HEAD):**  
-  `0841b76d6c07ce756a44a874e8e574253ed2aeb3`
-- **حالة الاختبارات والتحقق المكتملة:**  
-  تم تنفيذ واجتياز كافة الفحوصات محلياً (510/510 بنسبة 100%). بانتظار مزامنة المالك ومصادقة GitHub Actions CI.
+- **آخر HEAD معتمد للتحقق (Authoritative Verified HEAD):**  
+  `94259b543a021d4f06fdc0a9aa44d3f346d63037` (مبني على نقاط الأساس السابقة `0841b76d6c07ce756a44a874e8e574253ed2aeb3` و`2433bf6d4a128acf6736f3c099496d551947cc7e`)
+- **أدلة التحقق الرسمية في GitHub Actions CI لـ M6:**  
+  GitHub Actions **CI Run #43** (Run ID: `43241683581`, Commit SHA: `94259b543a021d4f06fdc0a9aa44d3f346d63037`) — **628/628 PASSED (100% SUCCESS)** شاملة PostgreSQL 16 الحقيقي (`96/96`) ومتصفح Chromium E2E الحقيقي (`111/111`). المرحلة في حالة `CI VERIFIED` بانتظار قرار الاعتماد النهائي (`APPROVED`) من المالك.
 - **المرجع المعتمد لنهائيات M5-A (Frozen Dependency):**  
   GitHub Actions CI Run #29 (Run ID: `42117460988`, Source SHA: `ab44f08bcf97328b1583d5bdd8a85943d4dbe079`) — **463/463 PASSED (100% SUCCESS)**. سلوكيات الحجر الصحي (Quarantine) وفصل الحسابات واستعادة IndexedDB لـ M5-A مجمدة ومحمية بالكامل.
 - **المرجع المعتمد لـ M5-B الأساسي:**  
@@ -622,14 +623,99 @@ SELECT json_build_object(
 - **الأولوية D (Result-Aware Barrier Safety):** التحقق المزدوج من نتيجة تفريغ طابور الحواشي وطابور النطاقات في خطوة الإنهاء (5c) والتراجع الطارئ ومسارات التعافي الأربعة عند بدء التشغيل. لا يتم فك الحاجز إلا بعد نجاح التصريف بنسبة 100%. في `isImportInProgressOrQuarantined`، يتم الاحتفاظ بالحاجز مغلقاً عند الفشل إذا كان مؤشر المعاملة موجوداً، مع السماح بتجاوز الحواجز المهجورة (>30 ثانية) بعد إثبات غياب المؤشر.
 - **الأولوية E (E2E Test Environment Stabilization):** تصحيح احتساب أسبوع البداية في السيناريو `Test W` ليعتمد على الأسبوع الحالي ديناميكياً متوافقاً مع السيناريوهات `M.1` و`M.2`، مما يمنع انطلاق الترحيل الأسبوعي التلقائي السابق لأوانه عند إعادة تحميل المتصفح.
 
-### 16.3 المصفوفة الشاملة للتحقق النهائي (Final Verification Matrix)
+### 16.3 المصفوفة الشاملة للتحقق المحلي قبل مصادقة CI (Pre-CI Local Verification Matrix at Checkpoint `0841b76`)
 - `npm run lint`: **PASSED** (0 Errors)
 - `npm run build`: **PASSED** (Assets copied to `dist/`)
 - `npm run test:static`: **54/54 PASSED** (100%)
 - `node test_phase3_cross_account_isolation.js`: **52/52 PASSED** (100%)
 - `node run_comprehensive_verification.js`: **42/42 PASSED** (100%)
-- `node test_phase4_regressions.js`: **215/215 PASSED** (100%)
+- `node test_phase4_regressions.js`: **215/215 PASSED** (100% — ارتفعت لاحقاً إلى `232/232` في `94259b5` بعد إضافة الفحوصات F.1–I.3)
 - `npm run test:pglite`: **41/41 PASSED** (100%)
-- `npm run test:e2e` (`node test_phase4_1_chromium_e2e.js`): **106/106 PASSED** (100%)
-- `test:pg16` (`test_phase4_2_1_pg16_concurrency.js`): **NOT VERIFIED LOCALLY** (يتطلب خادم PostgreSQL 16 خارجي في CI)
-- **المجموع الإجمالي للفحوصات المنفذة محلياً:** **510/510 PASSED (100% Success)**.
+- `npm run test:e2e` (`node test_phase4_1_chromium_e2e.js`): **106/106 PASSED** (100% — ارتفعت لاحقاً إلى `111/111` في `94259b5` بعد إضافة CC.1 وDD.1–DD.3 وEE.1)
+- `test:pg16` (`test_phase4_2_1_pg16_concurrency.js`): **NOT VERIFIED LOCALLY** (يتطلب خادم PostgreSQL 16 خارجي في CI؛ تم التحقق منه رسمياً في CI Run #43 بنتيجة `96/96 PASSED`)
+- **المجموع الإجمالي للفحوصات المنفذة محلياً عند نقطة الأساس `0841b76`:** **510/510 PASSED (100% Success)**.
+
+---
+
+## 17. مزامنة توثيق التحقق النهائي وأدلة GitHub Actions الرسمية (M6 Final Verification Documentation Synchronization — Commit `94259b5`)
+
+تمت مزامنة هذا التقرير مع آخر HEAD معتمد للتحقق على الفرع `main` وسجل GitHub Actions الرسمي دون أي تعديل على الكود المصدري أو الاختبارات أو إعدادات الحزم:
+
+### 17.1 بيانات الاعتماد المرجعية لـ GitHub Actions CI
+- **المستودع:** `JemistryMC/study-hub`
+- **الفرع:** `main`
+- **آخر HEAD معتمد للتحقق (Commit SHA):** `94259b543a021d4f06fdc0a9aa44d3f346d63037`
+- **رقم تشغيل CI الرسمي:** **CI Run #43**
+- **معرف التشغيل (Run ID):** `43241683581`
+- **النتيجة الإجمالية:** **SUCCESS (628/628 PASSED — 100%)**
+
+### 17.2 جدول نتائج CI Run #43 (`43241683581`) على Commit `94259b543a021d4f06fdc0a9aa44d3f346d63037`
+
+| جناح الاختبار (Test Suite) | النتيجة في CI Run #43 | التفاصيل والملاحظات |
+| :--- | :--- | :--- |
+| **Static Security** | **54/54 PASSED** | فحوصات التشفير PBKDF2 وثوابت الأمان وتجريد الأسرار و`sw.js`. |
+| **Comprehensive Verification** | **42/42 PASSED** | التحقق الشامل من المنطق الأكاديمي والوظائف الأساسية. |
+| **Cross-account Isolation** | **52/52 PASSED** | عزل الحسابات وسلامة مفاتيح وسجلات IndexedDB وLocalStorage. |
+| **Phase 4 Regressions** | **232/232 PASSED** | شاملة كافة فحوصات M5-B وM6 والفحوصات التصحيحية النهائية (Priorities A–I). |
+| **PGlite** | **41/41 PASSED** | توافق PostgreSQL المدمج وRLS المزدوج والـ OCC. |
+| **PostgreSQL 16** | **96/96 PASSED** | اختبارات التكامل والتزامن الحقيقية على خادم PostgreSQL 16 في بيئة CI المعزولة. |
+| **Real Chromium E2E** | **111/111 PASSED** | شاملة السيناريوهات الكاملة في متصفح Chromium الحقيقي بما فيها `CC.1` و`DD.1` و`DD.2` و`DD.3` و`EE.1`. |
+| **Unified Test Runner** | **628/628 PASSED** | إجمالي الفحوصات المدمجة المنفذة في CI Run #43 بنسبة نجاح 100%. |
+
+#### نتائج اختبارات Chromium E2E الجديدة المؤكدة في CI Run #43:
+- `CC.1`: **PASS** (`Tab 2 is blocked by active IDB fallback lock held by Tab 1`)
+- `DD.1`: **PASS** (`Tab 2 writes queued during active barrier`)
+- `DD.2`: **PASS** (`Queued annotations drained cleanly with in-batch stroke deduplication in real Chromium`)
+- `DD.3`: **PASS** (`Queued domain edits flushed cleanly into canonical state in real Chromium`)
+- `EE.1`: **PASS** (`Chromium recovery fault injection hooks verify fail-closed barrier retention on query failures`)
+
+### 17.3 توضيح دقيق بخصوص الأمر المستقل `npm run test:dd`
+1. **في سجل GitHub Actions (CI Run #43 — Run ID `43241683581`):**
+   - الأمر `npm run test:dd` (`node test_phase4_1_chromium_e2e.js --dd-only`) أُضيف كأمر مستقل في `package.json` لتسهيل الفحص المعزول لاختبار `Test DD`.
+   - **لم يُشغّل CI Run #43 الأمر `npm run test:dd` كخطوة منفصلة ومستقلة**؛ بل شغّل مجموعة اختبارات Chromium E2E الكاملة (`111/111`) التي تضمنت الفحوصات `DD.1` و`DD.2` و`DD.3` ضمن المسار الكامل.
+2. **التشغيل المحلي المباشر للأمر `npm run test:dd` (Local Standalone Execution):**
+   - تم تشغيل الأمر `npm run test:dd` محلياً في بيئة العمل الحالية للتحقق المستقل من عمل المشغل المعزول `--dd-only`.
+   - **الأمر المنفذ:** `npm run test:dd` (`node test_phase4_1_chromium_e2e.js --dd-only`)
+   - **كود الخروج الفعلي (Exit Code):** `0`
+   - **النتيجة الفعلية:** `TOTAL DD CHECKS: 3 | PASSED: 3 | FAILED: 0` (`ALL TEST DD CHECKS PASSED (100%).`)
+   - **سجل المخرجات الفعلي (Actual Execution Logs):**
+     ```text
+     > exo-academic-platform@1.4.2-1 test:dd
+     > node test_phase4_1_chromium_e2e.js --dd-only
+
+     ======================================================================
+     EXO PHASE 4.1: STANDALONE TEST DD (TWO-TAB CONCURRENT DRAIN & DEDUPE)
+     ======================================================================
+
+     --- [المرحلة 1] تشغيل الخادم والمتصفح وفتح التبويبين ---
+     --- [المرحلة 2] بدء الاستيراد في التبويب 1 واحتجاز القفل الحي ---
+     --- [المرحلة 3] كتابة تعديلات التبويب 2 أثناء نشاط الحاجز ---
+     [Tab DD2] [DD3] قبل initPdfDB
+     [Tab DD2] [DD3] بعد initPdfDB
+     [Tab DD2] [DD3] قبل handleAuthSessionChange
+     [Tab DD2] [DD3] بعد handleAuthSessionChange
+     [Tab DD2] [DD3] قبل saveAnnotationsToDB الأول
+     [Tab DD2] [DD3] بعد saveAnnotationsToDB الأول
+     [Tab DD2] [DD3] قبل saveAnnotationsToDB الثاني
+     [Tab DD2] [DD3] بعد saveAnnotationsToDB الثاني
+     [Tab DD2] [DD3] قبل saveSubjects
+     [Tab DD2] [DD3] بعد saveSubjects
+     --- [المرحلة 4] تحرير قفل التبويب 1 واستكمال الاستيراد وتفريغ الطوابير ---
+     --- [المرحلة 5] التحقق من صحة النتائج ---
+       [PASS] Test DD.1: Tab 2 writes queued during active barrier
+       [PASS] Test DD.2: Queued annotations drained cleanly with in-batch stroke deduplication in real Chromium
+       [PASS] Test DD.3: Queued domain edits flushed cleanly into canonical state in real Chromium
+     جاري إغلاق التبويبين والمتصفح ومسح الموارد...
+     تم إغلاق الموارد بنجاح.
+
+     ======================================================================
+     TOTAL DD CHECKS: 3 | PASSED: 3 | FAILED: 0
+     ======================================================================
+
+     ALL TEST DD CHECKS PASSED (100%).
+     ```
+
+### 17.4 حالة المرحلة والقرار النهائي (Phase Status & Governance Gate)
+- **الحالة الهندسية الحالية:** `CI VERIFIED` (بموجب نجاح CI Run #43 برقم `43241683581` على Commit `94259b543a021d4f06fdc0a9aa44d3f346d63037` بنتيجة `628/628`، واجتياز `npm run test:dd` محلياً بنتيجة `3/3` وExit Code `0`).
+- **حالة الاعتماد الرسمي (`APPROVED`):** **غير معلنة من قِبل Gemini (Pending Owner Decision)**؛ وفقاً للبند 10 من عقد العمل الهندسي الدائم `GEMINI.md`، فإن `CI VERIFIED` لا يساوي `APPROVED` تلقائياً، وقرار إعلان `APPROVED` النهائي لمرحلة M6 حصري للمالك بعد مراجعته المستقلة.
+
