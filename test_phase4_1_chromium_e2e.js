@@ -4397,7 +4397,286 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error('Fatal Chromium E2E test runner error:', err);
-  process.exit(1);
-});
+// ============================================================================
+// STANDALONE TEST DD RUNNER (npm run test:dd)
+// Features:
+// - Overall timeout: 90 seconds
+// - Per-phase timeout: 30 seconds with explicit Arabic status messages
+// - Safe resource cleanup: both tabs, browser context, and browser close in finally
+// ============================================================================
+async function runTestDDStandalone() {
+  console.log('======================================================================');
+  console.log('EXO PHASE 4.1: STANDALONE TEST DD (TWO-TAB CONCURRENT DRAIN & DEDUPE)');
+  console.log('======================================================================\n');
+
+  let spawnedServer = null;
+  let browser = null;
+  let context = null;
+  let tabDD1 = null;
+  let tabDD2 = null;
+
+  async function cleanupResources() {
+    try {
+      if (tabDD1 && !tabDD1.isClosed()) {
+        await tabDD1.close().catch(() => {});
+      }
+    } catch {}
+    try {
+      if (tabDD2 && !tabDD2.isClosed()) {
+        await tabDD2.close().catch(() => {});
+      }
+    } catch {}
+    try {
+      if (context) {
+        await context.close().catch(() => {});
+      }
+    } catch {}
+    try {
+      if (browser) {
+        await browser.close().catch(() => {});
+      }
+    } catch {}
+    try {
+      if (spawnedServer) {
+        spawnedServer.kill();
+      }
+    } catch {}
+  }
+
+  const OVERALL_TIMEOUT_MS = 90000;
+  let overallTimer = null;
+  const overallTimeoutPromise = new Promise((_, reject) => {
+    overallTimer = setTimeout(() => {
+      const err = new Error(`[TIMEOUT] انتهت المهلة الإجمالية لاختبار DD (${OVERALL_TIMEOUT_MS / 1000} ثانية).`);
+      err.isOverallTimeout = true;
+      reject(err);
+    }, OVERALL_TIMEOUT_MS);
+  });
+  if (typeof overallTimer?.unref === 'function') {
+    overallTimer.unref();
+  }
+
+  const PHASE_TIMEOUT_MS = 30000;
+  async function withPhaseTimeout(phaseName, phaseFn) {
+    let timer;
+    const timeoutPromise = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        const err = new Error(`[TIMEOUT] انتهت مهلة المرحلة (${PHASE_TIMEOUT_MS / 1000} ثانية): ${phaseName}`);
+        err.isPhaseTimeout = true;
+        err.phaseName = phaseName;
+        reject(err);
+      }, PHASE_TIMEOUT_MS);
+    });
+    try {
+      return await Promise.race([phaseFn(), timeoutPromise]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function executeTestDD() {
+    // المرحلة 1: تشغيل الخادم والمتصفح وفتح التبويبين
+    await withPhaseTimeout('المرحلة 1: تشغيل الخادم والمتصفح وفتح التبويبين (Tab 1 & Tab 2 Setup)', async () => {
+      console.log('--- [المرحلة 1] تشغيل الخادم والمتصفح وفتح التبويبين ---');
+      spawnedServer = await ensureLocalServerRunning();
+      browser = await chromium.launch(resolveChromiumLaunchOptions());
+      context = await browser.newContext();
+      tabDD1 = await context.newPage();
+      tabDD2 = await context.newPage();
+      await tabDD1.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+      await tabDD2.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+      await tabDD1.waitForFunction(() => typeof initPdfDB === 'function');
+      await tabDD2.waitForFunction(() => typeof initPdfDB === 'function');
+    });
+
+    const uidDD = 'user_dd_drain_' + Date.now();
+
+    // المرحلة 2: التبويب 1 يبدأ الاستيراد ويحتجز القفل الحي
+    await withPhaseTimeout('المرحلة 2: بدء الاستيراد في التبويب 1 واحتجاز القفل الحي (Tab 1 Start & Hold Import)', async () => {
+      console.log('--- [المرحلة 2] بدء الاستيراد في التبويب 1 واحتجاز القفل الحي ---');
+      await tabDD1.evaluate(async (uid) => {
+        await initPdfDB();
+        await handleAuthSessionChange({ id: uid, email: `${uid}@exo.edu`, name: 'User DD' }, false);
+        const ctx = createAccountOperationContext(uid);
+        const targetBackup = {
+          schema: 'exo_workspace_backup_v4',
+          version: 4,
+          data: { subjects: [{ id: 'sub_dd_orig', name: 'Original DD' }], schedule: { events: [] }, logs: [], annotations: {} }
+        };
+        const canon = canonicalizeJson(targetBackup.data);
+        targetBackup.integrity = {
+          algorithm: 'SHA-256',
+          canonicalScope: 'data',
+          sha256: await computeCanonicalSha256(canon),
+          byteLength: new TextEncoder().encode(canon).length
+        };
+        let releaseLock;
+        window.__holdLockPromise = new Promise(resolve => { releaseLock = resolve; });
+        window.__releaseImportLock = releaseLock;
+        window.__exoImportTestHooks = { holdImportAfterLock: window.__holdLockPromise };
+        window.__importPromise = importWorkspaceBackupV4(targetBackup, 'replace', uid, ctx);
+      }, uidDD);
+      await tabDD1.waitForTimeout(300);
+    });
+
+    // المرحلة 3: التبويب 2 يكتب تعديلات أثناء نشاط الحاجز
+let tabDD2Writes = null;
+
+tabDD2.on('console', msg => console.log('[Tab DD2]', msg.text()));
+
+await withPhaseTimeout(
+  'المرحلة 3: كتابة تعديلات التبويب 2 أثناء نشاط الحاجز (Tab 2 Writes During Active Barrier)',
+  async () => {
+    console.log('--- [المرحلة 3] كتابة تعديلات التبويب 2 أثناء نشاط الحاجز ---');
+
+    tabDD2Writes = await tabDD2.evaluate(async (uid) => {
+      console.log('[DD3] قبل initPdfDB');
+      await initPdfDB();
+      console.log('[DD3] بعد initPdfDB');
+
+      console.log('[DD3] قبل handleAuthSessionChange');
+      await handleAuthSessionChange(
+        { id: uid, email: `${uid}@exo.edu`, name: 'User DD' },
+        false
+      );
+      console.log('[DD3] بعد handleAuthSessionChange');
+
+      const ctx = createAccountOperationContext(uid);
+
+      // الكتابة الأولى للتعليقات
+      const strA = {
+        id: 'str_dd_1',
+        points: [10, 20, 30, 40],
+        color: '#ff0000'
+      };
+
+      console.log('[DD3] قبل saveAnnotationsToDB الأول');
+      const qRes1 = await saveAnnotationsToDB(
+        'lec_dd_1',
+        { 1: [strA] },
+        null,
+        ctx
+      );
+      console.log('[DD3] بعد saveAnnotationsToDB الأول');
+
+      // الكتابة الثانية مع ضربة مكررة وضربة جديدة
+      console.log('[DD3] قبل saveAnnotationsToDB الثاني');
+      const qRes2 = await saveAnnotationsToDB(
+        'lec_dd_1',
+        {
+          1: [
+            strA,
+            {
+              id: 'str_dd_2',
+              points: [50, 60],
+              color: '#00ff00'
+            }
+          ]
+        },
+        null,
+        ctx
+      );
+      console.log('[DD3] بعد saveAnnotationsToDB الثاني');
+
+      // تعديل المادة
+      console.log('[DD3] قبل saveSubjects');
+      subjects = [{ id: 'sub_dd_queued', name: 'Queued Subject DD' }];
+      const subRes = saveSubjects();
+      console.log('[DD3] بعد saveSubjects');
+
+      return {
+        qRes1Queued: qRes1?.queued === true,
+        qRes2Queued: qRes2?.queued === true,
+        subResQueued: subRes?.queued === true
+      };
+    }, uidDD);
+  }
+);
+
+    // المرحلة 4: تحرير قفل التبويب 1 واستكمال الاستيراد وتفريغ الطوابير
+    let tabDD1Drain = null;
+    await withPhaseTimeout('المرحلة 4: تحرير قفل التبويب 1 واستكمال الاستيراد وتفريغ الطوابير (Tab 1 Release Lock & Drain Queues)', async () => {
+      console.log('--- [المرحلة 4] تحرير قفل التبويب 1 واستكمال الاستيراد وتفريغ الطوابير ---');
+      tabDD1Drain = await tabDD1.evaluate(async (uid) => {
+        if (typeof window.__releaseImportLock === 'function') window.__releaseImportLock();
+        await window.__importPromise;
+
+        // Check persisted annotations in IDB
+        const persistedRec = await new Promise(res => {
+          const tx = dbInstance.transaction('annotations', 'readonly');
+          const req = tx.objectStore('annotations').get(toScopedKey('lec_dd_1', uid));
+          req.onsuccess = () => res(req.result || null);
+          req.onerror = () => res(null);
+        });
+
+        return {
+          persistedRec,
+          subjects: JSON.parse(localStorage.getItem('pharmaSubjectsV4') || '[]')
+        };
+      }, uidDD);
+    });
+
+    // المرحلة 5: التحقق من نجاح الفحوصات
+    await withPhaseTimeout('المرحلة 5: التحقق من نجاح الفحوصات DD.1 و DD.2 و DD.3 (Verify Assertions)', async () => {
+      console.log('--- [المرحلة 5] التحقق من صحة النتائج ---');
+      assert(
+        tabDD2Writes && tabDD2Writes.qRes1Queued === true && tabDD2Writes.qRes2Queued === true && tabDD2Writes.subResQueued === true,
+        'Test DD.1: Tab 2 writes queued during active barrier'
+      );
+      assert(
+        tabDD1Drain && tabDD1Drain.persistedRec && Array.isArray(tabDD1Drain.persistedRec.pages?.[1]) &&
+        tabDD1Drain.persistedRec.pages[1].length === 2,
+        'Test DD.2: Queued annotations drained cleanly with in-batch stroke deduplication in real Chromium'
+      );
+      assert(
+        tabDD1Drain && Array.isArray(tabDD1Drain.subjects) && tabDD1Drain.subjects.some(s => s && s.id === 'sub_dd_queued'),
+        'Test DD.3: Queued domain edits flushed cleanly into canonical state in real Chromium'
+      );
+    });
+  }
+
+  try {
+    await Promise.race([executeTestDD(), overallTimeoutPromise]);
+  } catch (err) {
+    console.error('\n[ERROR] فشل اختبار DD:');
+    if (err.isPhaseTimeout) {
+      console.error(`  السبب: ${err.message}`);
+      console.error(`  المرحلة العالقة: ${err.phaseName}`);
+    } else if (err.isOverallTimeout) {
+      console.error(`  السبب: ${err.message}`);
+    } else {
+      console.error('  السبب:', err);
+    }
+    testsFailed++;
+  } finally {
+    if (overallTimer) clearTimeout(overallTimer);
+    console.log('جاري إغلاق التبويبين والمتصفح ومسح الموارد...');
+    await cleanupResources();
+    console.log('تم إغلاق الموارد بنجاح.');
+  }
+
+  console.log('\n======================================================================');
+  console.log(`TOTAL DD CHECKS: ${testsPassed + testsFailed} | PASSED: ${testsPassed} | FAILED: ${testsFailed}`);
+  console.log('======================================================================\n');
+
+  if (testsFailed > 0) {
+    process.exit(1);
+  } else {
+    console.log('ALL TEST DD CHECKS PASSED (100%).');
+    process.exit(0);
+  }
+}
+
+const isDdOnly = process.argv.includes('--dd-only') || process.env.TEST_DD === '1';
+
+if (isDdOnly) {
+  runTestDDStandalone().catch((err) => {
+    console.error('Fatal Test DD runner error:', err);
+    process.exit(1);
+  });
+} else {
+  main().catch((err) => {
+    console.error('Fatal Chromium E2E test runner error:', err);
+    process.exit(1);
+  });
+}

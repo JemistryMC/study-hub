@@ -19652,7 +19652,10 @@
                     memQ.push(item);
                 }
             }
-
+// LocalStorage already durably persisted the queue; don't block on the IndexedDB mirror.
+if (lsSucceeded) {
+    return true;
+}
             // 2. Durable IndexedDB annotation_recovery_vault write (primary/secondary durable store)
             let idbSucceeded = false;
             if (!testHooks || !testHooks.failIdbQueuePersist) {
@@ -24082,29 +24085,36 @@
                         reason: 'import_in_progress',
                         message: 'Annotation write safely queued during import.',
                         item: qItem,
-                        then(onFulfilled, onRejected) {
-                            return durableP.then((persistOk) => {
-                                if (persistOk === false) {
-                                    const failRes = {
-                                        ok: false,
-                                        queued: false,
-                                        reason: 'queue_storage_failed',
-                                        error: 'Failed to durably persist queued annotation write to either IndexedDB or LocalStorage.'
-                                    };
-                                    return onFulfilled ? onFulfilled(failRes) : failRes;
-                                }
-                                return onFulfilled ? onFulfilled(res) : res;
-                            }, (err) => {
-                                const failRes = {
-                                    ok: false,
-                                    queued: false,
-                                    reason: 'queue_storage_failed',
-                                    error: err?.message || String(err)
-                                };
-                                return onFulfilled ? onFulfilled(failRes) : failRes;
-                            });
-                        }
-                    };
+then(onFulfilled, onRejected) {
+    return durableP.then((persistOk) => {
+        if (persistOk === false) {
+            const failRes = {
+                ok: false,
+                queued: false,
+                reason: 'queue_storage_failed',
+                error: 'Failed to durably persist queued annotation write to either IndexedDB or LocalStorage.'
+            };
+            return onFulfilled ? onFulfilled(failRes) : failRes;
+        }
+
+        const queuedRes = {
+            ok: false,
+            queued: true,
+            reason: 'import_in_progress',
+            message: 'Annotation write safely queued during import.',
+            item: qItem
+        };
+        return onFulfilled ? onFulfilled(queuedRes) : queuedRes;
+    }, (err) => {
+        const failRes = {
+            ok: false,
+            queued: false,
+            reason: 'queue_storage_failed',
+            error: err?.message || String(err)
+        };
+        return onFulfilled ? onFulfilled(failRes) : failRes;
+    });
+}                    };
                     return res;
                 }
                 console.warn('saveAnnotationsToDB blocked:', gateCheck.reason, 'for user', ctx.uid);
