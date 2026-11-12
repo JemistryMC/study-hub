@@ -19798,6 +19798,54 @@
             // Stroke deduplication helper: handles both explicit IDs and geometric serialization
             const getStrokeDedupeKey = (s) => (s && (s.id || s.strokeId)) || JSON.stringify(s);
 
+            // Consolidate queued items by lecture rawId first to prevent concurrent gets/puts
+            // on the same record in IndexedDB and to deduplicate strokes within the incoming batch.
+            const itemsByLec = new Map();
+            items.forEach(item => {
+                const rawLec = item.lecId || (item.scopedKey ? (typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(item.scopedKey) : item.scopedKey) : null);
+                if (!rawLec) return;
+                if (!itemsByLec.has(rawLec)) {
+                    itemsByLec.set(rawLec, { rawLec, pages: {} });
+                }
+                const lecEntry = itemsByLec.get(rawLec);
+                const incomingPages = (item.pagesData && typeof item.pagesData === 'object' && !Array.isArray(item.pagesData))
+                    ? item.pagesData
+                    : ((item.data && item.data.pages && typeof item.data.pages === 'object' && !Array.isArray(item.data.pages)) ? item.data.pages : {});
+
+                Object.keys(incomingPages).forEach(pNum => {
+                    const incStrokes = Array.isArray(incomingPages[pNum]) ? incomingPages[pNum] : (incomingPages[pNum]?.strokes || []);
+                    if (!lecEntry.pages[pNum]) {
+                        // In-batch deduplication for fresh page
+                        const batchKeys = new Set();
+                        const dedupedInc = [];
+                        incStrokes.forEach(s => {
+                            const k = getStrokeDedupeKey(s);
+                            if (!batchKeys.has(k)) {
+                                batchKeys.add(k);
+                                dedupedInc.push(s);
+                            }
+                        });
+                        lecEntry.pages[pNum] = Array.isArray(incomingPages[pNum]) ? dedupedInc : { strokes: dedupedInc };
+                    } else {
+                        const exStrokes = Array.isArray(lecEntry.pages[pNum]) ? lecEntry.pages[pNum] : (lecEntry.pages[pNum]?.strokes || []);
+                        const exKeys = new Set(exStrokes.map(getStrokeDedupeKey));
+                        const toAdd = [];
+                        incStrokes.forEach(s => {
+                            const k = getStrokeDedupeKey(s);
+                            if (!exKeys.has(k)) {
+                                exKeys.add(k);
+                                toAdd.push(s);
+                            }
+                        });
+                        if (Array.isArray(lecEntry.pages[pNum])) {
+                            lecEntry.pages[pNum] = lecEntry.pages[pNum].concat(toAdd);
+                        } else if (lecEntry.pages[pNum]?.strokes) {
+                            lecEntry.pages[pNum].strokes = lecEntry.pages[pNum].strokes.concat(toAdd);
+                        }
+                    }
+                });
+            });
+
             // Apply directly into IndexedDB annotations store with strict ownership
             let applySucceeded = false;
             let applyError = null;
@@ -19814,9 +19862,8 @@
                         const annoStore = tx.objectStore('annotations');
                         const vaultStore = storeNames.includes('annotation_recovery_vault') ? tx.objectStore('annotation_recovery_vault') : null;
 
-                        items.forEach(item => {
-                            const rawLec = item.lecId || (item.scopedKey ? (typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(item.scopedKey) : item.scopedKey) : null);
-                            if (!rawLec) return;
+                        itemsByLec.forEach(lecEntry => {
+                            const rawLec = lecEntry.rawLec;
                             const scopedKey = toScopedKey(rawLec, uid);
                             const getReq = annoStore.get(scopedKey);
                             getReq.onsuccess = () => {
@@ -19825,13 +19872,11 @@
                                 if (existing && existing.pages) {
                                     mergedPages = (typeof existing.pages === 'object' && !Array.isArray(existing.pages)) ? JSON.parse(JSON.stringify(existing.pages)) : {};
                                 }
-                                const incomingPages = (item.pagesData && typeof item.pagesData === 'object' && !Array.isArray(item.pagesData))
-                                    ? item.pagesData
-                                    : ((item.data && item.data.pages && typeof item.data.pages === 'object' && !Array.isArray(item.data.pages)) ? item.data.pages : {});
-                                Object.keys(incomingPages).forEach(pNum => {
-                                    const incStrokes = Array.isArray(incomingPages[pNum]) ? incomingPages[pNum] : (incomingPages[pNum]?.strokes || []);
+                                const consolidatedIncoming = lecEntry.pages;
+                                Object.keys(consolidatedIncoming).forEach(pNum => {
+                                    const incStrokes = Array.isArray(consolidatedIncoming[pNum]) ? consolidatedIncoming[pNum] : (consolidatedIncoming[pNum]?.strokes || []);
                                     if (!mergedPages[pNum]) {
-                                        mergedPages[pNum] = incomingPages[pNum];
+                                        mergedPages[pNum] = consolidatedIncoming[pNum];
                                     } else {
                                         const exStrokes = Array.isArray(mergedPages[pNum]) ? mergedPages[pNum] : (mergedPages[pNum]?.strokes || []);
                                         const exKeys = new Set(exStrokes.map(getStrokeDedupeKey));
@@ -19869,22 +19914,19 @@
             } else if (dbInstance && dbInstance.stores && dbInstance.stores.annotations) {
                 // In-memory test store mock support without objectStoreNames
                 try {
-                    items.forEach(item => {
-                        const rawLec = item.lecId || (item.scopedKey ? (typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(item.scopedKey) : item.scopedKey) : null);
-                        if (!rawLec) return;
+                    itemsByLec.forEach(lecEntry => {
+                        const rawLec = lecEntry.rawLec;
                         const scopedKey = toScopedKey(rawLec, uid);
                         const existing = dbInstance.stores.annotations.get(scopedKey);
                         let mergedPages = {};
                         if (existing && existing.pages) {
                             mergedPages = (typeof existing.pages === 'object' && !Array.isArray(existing.pages)) ? JSON.parse(JSON.stringify(existing.pages)) : {};
                         }
-                        const incomingPages = (item.pagesData && typeof item.pagesData === 'object' && !Array.isArray(item.pagesData))
-                            ? item.pagesData
-                            : ((item.data && item.data.pages && typeof item.data.pages === 'object' && !Array.isArray(item.data.pages)) ? item.data.pages : {});
-                        Object.keys(incomingPages).forEach(pNum => {
-                            const incStrokes = Array.isArray(incomingPages[pNum]) ? incomingPages[pNum] : (incomingPages[pNum]?.strokes || []);
+                        const consolidatedIncoming = lecEntry.pages;
+                        Object.keys(consolidatedIncoming).forEach(pNum => {
+                            const incStrokes = Array.isArray(consolidatedIncoming[pNum]) ? consolidatedIncoming[pNum] : (consolidatedIncoming[pNum]?.strokes || []);
                             if (!mergedPages[pNum]) {
-                                mergedPages[pNum] = incomingPages[pNum];
+                                mergedPages[pNum] = consolidatedIncoming[pNum];
                             } else {
                                 const exStrokes = Array.isArray(mergedPages[pNum]) ? mergedPages[pNum] : (mergedPages[pNum]?.strokes || []);
                                 const exKeys = new Set(exStrokes.map(getStrokeDedupeKey));
@@ -19916,8 +19958,36 @@
 
             // Only remove LocalStorage fallback and in-memory queue if the atomic commit succeeded!
             if (applySucceeded) {
-                queuedAnnotationWritesDuringImportByAccount.delete(uid);
-                try { localStorage.removeItem(lsKey); } catch (e) {}
+                const appliedKeys = new Set(items.map(i => i.id || i.scopedKey || (i.lecId + '_' + i.timestamp)));
+                if (queuedAnnotationWritesDuringImportByAccount.has(uid)) {
+                    const currentMemQ = queuedAnnotationWritesDuringImportByAccount.get(uid);
+                    if (Array.isArray(currentMemQ)) {
+                        const remainingMem = currentMemQ.filter(q => !appliedKeys.has(q.id || q.scopedKey || (q.lecId + '_' + q.timestamp)));
+                        if (remainingMem.length > 0) {
+                            queuedAnnotationWritesDuringImportByAccount.set(uid, remainingMem);
+                        } else {
+                            queuedAnnotationWritesDuringImportByAccount.delete(uid);
+                        }
+                    } else {
+                        queuedAnnotationWritesDuringImportByAccount.delete(uid);
+                    }
+                }
+                try {
+                    const currentRaw = localStorage.getItem(lsKey);
+                    if (currentRaw) {
+                        const parsed = JSON.parse(currentRaw);
+                        if (Array.isArray(parsed)) {
+                            const remaining = parsed.filter(q => !appliedKeys.has(q.id || q.scopedKey || (q.lecId + '_' + q.timestamp)));
+                            if (remaining.length > 0) {
+                                localStorage.setItem(lsKey, JSON.stringify(remaining));
+                            } else {
+                                localStorage.removeItem(lsKey);
+                            }
+                        } else {
+                            localStorage.removeItem(lsKey);
+                        }
+                    }
+                } catch (e) {}
             } else {
                 console.warn('Queue apply transaction failed or aborted; preserving queued annotations for retry');
                 return { ok: false, reason: 'transaction_failed', error: applyError };
@@ -19971,50 +20041,49 @@
             const curUid = (typeof getCanonicalUserId === 'function') ? getCanonicalUserId() : null;
             let flushedCount = 0;
 
-            // 1. Audit and extract subjects payload
+            function extractDomainPayload(item, expectedUid, domainName) {
+                if (!item || typeof item !== 'object') {
+                    console.warn(`Rejecting ${domainName} queue item: not a structured object (no global fallback permitted)`);
+                    return { valid: false, error: 'invalid_queue_item_structure' };
+                }
+                if (!item.userId || String(item.userId) !== String(expectedUid)) {
+                    console.warn(`Rejecting ${domainName} queue item: missing or mismatched userId:`, item.userId, 'expected:', expectedUid);
+                    return { valid: false, error: 'mismatched_or_missing_userId', actualUid: item.userId };
+                }
+                if (item.payload === undefined) {
+                    console.warn(`Rejecting ${domainName} queue item: missing explicit payload (no reconstruction from mutable globals permitted)`);
+                    return { valid: false, error: 'missing_payload' };
+                }
+                return { valid: true, payload: item.payload };
+            }
+
+            // 1. Audit and extract subjects payload with strict ownership
             let subPayload = null;
             if (pending.subjects) {
-                const subItem = pending.subjects;
-                // Strict userId check: reject or skip mismatched payloads
-                if (!subItem.userId || String(subItem.userId) === String(uid)) {
-                    subPayload = (subItem && subItem.payload !== undefined) ? subItem.payload : (subItem === true ? subjects : subItem);
+                const extracted = extractDomainPayload(pending.subjects, uid, 'subjects');
+                if (extracted.valid) {
+                    subPayload = extracted.payload;
                     flushedCount++;
-                } else {
-                    console.warn('Skipping subjects queue item due to mismatched userId:', subItem.userId, 'expected:', uid);
                 }
             }
 
-            // 2. Audit and extract schedule payload
+            // 2. Audit and extract schedule payload with strict ownership
             let schedPayload = null;
             if (pending.schedule) {
-                const schedItem = pending.schedule;
-                if (!schedItem.userId || String(schedItem.userId) === String(uid)) {
-                    schedPayload = (schedItem && schedItem.payload !== undefined)
-                        ? schedItem.payload
-                        : (schedItem === true ? {
-                            version: 3,
-                            events: scheduleEvents,
-                            backlog: scheduleBacklog,
-                            plannerPrefs,
-                            weeklyReports,
-                            academy_progress: completedAcademyModules,
-                            cloudMediaRegistry
-                        } : schedItem);
+                const extracted = extractDomainPayload(pending.schedule, uid, 'schedule');
+                if (extracted.valid) {
+                    schedPayload = extracted.payload;
                     flushedCount++;
-                } else {
-                    console.warn('Skipping schedule queue item due to mismatched userId:', schedItem.userId, 'expected:', uid);
                 }
             }
 
-            // 3. Audit and extract logs payload
+            // 3. Audit and extract logs payload with strict ownership
             let logsPayload = null;
             if (pending.logs) {
-                const logsItem = pending.logs;
-                if (!logsItem.userId || String(logsItem.userId) === String(uid)) {
-                    logsPayload = (logsItem && logsItem.payload !== undefined) ? logsItem.payload : (logsItem === true ? logs : logsItem);
+                const extracted = extractDomainPayload(pending.logs, uid, 'logs');
+                if (extracted.valid) {
+                    logsPayload = extracted.payload;
                     flushedCount++;
-                } else {
-                    console.warn('Skipping logs queue item due to mismatched userId:', logsItem.userId, 'expected:', uid);
                 }
             }
 
@@ -20073,8 +20142,12 @@
                     if (schedPayload !== null) existingSnap.schedule = schedPayload;
                     if (logsPayload !== null) existingSnap.logs = logsPayload;
                     existingSnap.annotationsStoredInIndexedDB = true;
-                    localStorage.setItem(accountKey, JSON.stringify(existingSnap));
-                } catch (e) {}
+                    const snapSerialized = JSON.stringify(existingSnap);
+                    localStorage.setItem(accountKey, snapSerialized);
+                    if (localStorage.getItem(accountKey) !== snapSerialized) allPersisted = false;
+                } catch (e) {
+                    allPersisted = false;
+                }
 
                 // Mark workspace dirty so changes are saved to account snapshot and cloud
                 try {
@@ -20086,9 +20159,11 @@
                 if (allPersisted) {
                     pendingDomainWritesDuringImportByAccount.delete(uid);
                     try { localStorage.removeItem(key); } catch (e) {}
+                    return { ok: true, applied: 'active_workspace', uid, count: flushedCount };
+                } else {
+                    console.error('Active workspace domain flush persistence failed; retaining pending queue');
+                    return { ok: false, reason: 'active_workspace_persist_failed' };
                 }
-
-                return { ok: true, applied: 'active_workspace', uid, count: flushedCount };
             } else {
                 // Case B: The active account in this tab is DIFFERENT (or none)
                 // A queued mutation for Account A must NEVER overwrite Account B's active global state!
@@ -20112,11 +20187,22 @@
                 if (logsPayload !== null) accountSnapshot.logs = logsPayload;
                 accountSnapshot.annotationsStoredInIndexedDB = true;
 
+                let snapshotPersisted = false;
                 try {
-                    localStorage.setItem(accountKey, JSON.stringify(accountSnapshot));
+                    const snapSerialized = JSON.stringify(accountSnapshot);
+                    localStorage.setItem(accountKey, snapSerialized);
                     localStorage.setItem('pharmaWorkspaceDirty_' + uid, '1');
+                    if (localStorage.getItem(accountKey) === snapSerialized) {
+                        snapshotPersisted = true;
+                    }
                 } catch (e) {
                     console.error('Failed to write account-scoped snapshot for inactive account:', uid, e);
+                    snapshotPersisted = false;
+                }
+
+                if (!snapshotPersisted) {
+                    console.error('Failed to durably persist inactive account snapshot; retaining pending queue in memory and storage');
+                    return { ok: false, reason: 'snapshot_persist_failed', error: new Error('Failed to durably persist inactive account snapshot') };
                 }
 
                 // Remove from in-memory map so it won't contaminate this tab's memory,
@@ -20163,7 +20249,6 @@
             }
 
             if (barrierRaw) {
-                let isLive = true;
                 if (typeof barrierRaw === 'string' && barrierRaw.startsWith(String.fromCharCode(123))) {
                     try {
                         const parsedB = JSON.parse(barrierRaw);
@@ -20171,20 +20256,10 @@
                             return { blocked: false };
                         }
                         const lastActivity = parsedB.heartbeatAt || parsedB.startedAt || 0;
-                        // Requirement 3: Distinguish abandoned imports from live delayed/suspended imports using durable lock/journal ownership state.
-                        // Do NOT treat elapsed time alone (>30s) as proof that an import has ended.
                         if (lastActivity && (Date.now() - lastActivity > 30000)) {
                             const txRaw = (typeof localStorage !== 'undefined' && localStorage.getItem) ? localStorage.getItem('pharmaImportTxState_' + uid) : null;
-                            const hasPointer = Boolean(txRaw);
-                            let hasLiveLockOrJournal = hasPointer;
-
-                            // If pointer or journal exists, or if a lock exists, do NOT clear barrier — fail closed!
-                            if (hasLiveLockOrJournal) {
-                                isLive = true;
-                            } else {
-                                // Ownership verification confirmed: no lock, no journal, no pointer. Confirm abandoned barrier.
-                                isLive = false;
-                                console.warn('Clearing verified abandoned import barrier lease (no active lock or journal) for user:', uid);
+                            if (!txRaw) {
+                                console.warn('Clearing verified abandoned import barrier lease (no active pointer) for user:', uid);
                                 if (typeof localStorage !== 'undefined' && localStorage.removeItem) {
                                     localStorage.removeItem('pharmaImportBarrier_' + uid);
                                 }
@@ -20193,17 +20268,13 @@
                                 return { blocked: false };
                             }
                         }
-                    } catch (e) {
-                        isLive = true;
-                    }
+                    } catch (e) {}
                 }
-                if (isLive) {
-                    return {
-                        blocked: true,
-                        reason: 'import_in_progress',
-                        error: 'Workspace import is currently in progress for this account. Competing operations are blocked.'
-                    };
-                }
+                return {
+                    blocked: true,
+                    reason: 'import_in_progress',
+                    error: 'Workspace import is currently in progress for this account. Competing operations are blocked.'
+                };
             }
             return { blocked: false };
         }
@@ -21071,7 +21142,7 @@
                 });
             } catch (idbErr) {
                 console.error('IDB apply failure during backup restore:', idbErr);
-                await rollbackImportFromJournal(uid, journalRecord);
+                await rollbackImportFromJournal(uid, journalRecord, fencingToken, passedTxId);
                 return { ok: false, status: 'error', reason: 'IDB_APPLY_FAILED', error: 'Failed to apply annotations to IndexedDB: ' + idbErr?.message };
             }
 
@@ -21080,13 +21151,14 @@
             }
 
             if (!opCtx.isCurrent()) {
-                await rollbackImportFromJournal(uid, journalRecord);
+                await rollbackImportFromJournal(uid, journalRecord, fencingToken, passedTxId);
                 return { ok: false, status: 'aborted', reason: 'account_switched' };
             }
 
             // --- PHASE 3: APPLY_LOCALSTORAGE ---
             try {
                 await persistPhase('APPLY_LOCALSTORAGE');
+                await assertFencingTokenValid();
 
                 // Test hook for LocalStorage apply failure
                 if (testHooks && testHooks.failLsApply) {
@@ -21194,7 +21266,7 @@
                 }
             } catch (lsErr) {
                 console.error('LocalStorage apply failure during backup restore:', lsErr);
-                await rollbackImportFromJournal(uid, journalRecord);
+                await rollbackImportFromJournal(uid, journalRecord, fencingToken, passedTxId);
                 return { ok: false, status: 'error', reason: 'LOCALSTORAGE_APPLY_FAILED', error: 'Failed to update local workspace data: ' + lsErr?.message };
             }
 
@@ -21205,7 +21277,7 @@
             // --- PHASE 4: COMMITTED (CRITICAL FIX 1: Durable Before Finalization) ---
             if (!opCtx.isCurrent()) {
                 console.error('Account context switched before COMMITTED phase; executing verified rollback');
-                await rollbackImportFromJournal(uid, journalRecord);
+                await rollbackImportFromJournal(uid, journalRecord, fencingToken, passedTxId);
                 return { ok: false, status: 'aborted', reason: 'account_switched' };
             }
 
@@ -21213,9 +21285,12 @@
                 await persistPhase('COMMITTED');
             } catch (commErr) {
                 console.error('CRITICAL: Failed to durably persist COMMITTED phase to IndexedDB vault:', commErr);
+                if (commErr && String(commErr.message || commErr).includes('STALE_FENCING_TOKEN')) {
+                    return { ok: false, status: 'error', reason: 'STALE_FENCING_TOKEN', error: commErr };
+                }
                 // Retain journal and active barrier! Do NOT delete journal!
                 // Execute verified rollback:
-                const rbRes = await rollbackImportFromJournal(uid, journalRecord);
+                const rbRes = await rollbackImportFromJournal(uid, journalRecord, fencingToken, passedTxId);
                 if (!rbRes || !rbRes.ok) {
                     return { ok: false, status: 'error', reason: 'COMMITTED_PERSIST_AND_ROLLBACK_FAILED', error: commErr };
                 }
@@ -21316,13 +21391,13 @@
             const drainAnnoRes = await applyQueuedAnnotationWritesAfterImport(uid, chosenMode);
             const drainDomRes = flushQueuedDomainWritesAfterImport(uid);
 
-            if (drainAnnoRes && drainAnnoRes.ok === false) {
-                console.warn('Queue drain failed during import finalization; retaining barrier for recovery:', drainAnnoRes);
+            if ((drainAnnoRes && drainAnnoRes.ok === false) || (drainDomRes && drainDomRes.ok === false)) {
+                console.warn('Queue drain failed during import finalization; retaining barrier for recovery:', { drainAnnoRes, drainDomRes });
                 return {
                     ok: false,
                     status: 'committed_finalization_pending',
                     reason: 'QUEUE_DRAIN_FAILED',
-                    error: drainAnnoRes?.error || drainAnnoRes?.reason
+                    error: (drainAnnoRes && drainAnnoRes.ok === false) ? (drainAnnoRes?.error || drainAnnoRes?.reason) : (drainDomRes?.reason || 'DOMAIN_DRAIN_FAILED')
                 };
             }
 
@@ -21351,12 +21426,31 @@
         }
 
         // Rollback helper for interrupted/failed import transactions
-        async function rollbackImportFromJournal(uid, journal) {
+        async function rollbackImportFromJournal(uid, journal, fencingToken = null, passedTxId = null) {
             if (!journal) return { ok: false, error: 'NO_JOURNAL' };
+            const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
+
+            // Fencing token verification before attempting any rollback mutation
+            if (fencingToken !== null && dbInstance && dbInstance.objectStoreNames && dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
+                const lockKey = toScopedKey('__import_lock_v1__', uid);
+                const curLock = await new Promise(res => {
+                    try {
+                        const tx = dbInstance.transaction('annotation_recovery_vault', 'readonly');
+                        const req = tx.objectStore('annotation_recovery_vault').get(lockKey);
+                        req.onsuccess = () => res(req.result || null);
+                        req.onerror = () => res(null);
+                    } catch (e) {
+                        res(null);
+                    }
+                });
+                if (!curLock || (passedTxId && curLock.txId !== passedTxId) || curLock.fencingToken !== fencingToken) {
+                    console.error('STALE_FENCING_TOKEN: IDB import lock was preempted by another tab; aborting stale rollback');
+                    return { ok: false, status: 'error', reason: 'STALE_FENCING_TOKEN', error: new Error('STALE_FENCING_TOKEN: import lock preempted') };
+                }
+            }
+
             const snapshot = journal.preImportSnapshot || journal;
             console.warn('Executing emergency rollback of interrupted import transaction for user:', uid);
-
-            const testHooks = (typeof window !== 'undefined' && window.__exoImportTestHooks) || (typeof globalThis !== 'undefined' && globalThis.__exoImportTestHooks) || null;
 
             try {
                 // Hook for testing rollback LocalStorage failure
@@ -21548,12 +21642,20 @@
 
                 // Step 3f: Drain queued writes BEFORE removing barrier, keeping barrier until drain succeeds
                 const drainAnnoRes = await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
-                if (drainAnnoRes && !drainAnnoRes.ok) {
-                    console.warn('Queue drain during rollback had errors:', drainAnnoRes);
-                }
-                flushQueuedDomainWritesAfterImport(uid);
+                const drainDomRes = flushQueuedDomainWritesAfterImport(uid);
 
-                // Now remove barrier & stop heartbeat
+                if ((drainAnnoRes && drainAnnoRes.ok === false) || (drainDomRes && drainDomRes.ok === false)) {
+                    console.warn('Queue drain during rollback failed; retaining barrier for safety:', { drainAnnoRes, drainDomRes });
+                    return {
+                        ok: false,
+                        rolledBack: true,
+                        reason: 'DRAIN_FAILED_BARRIER_RETAINED',
+                        drainAnnoRes,
+                        drainDomRes
+                    };
+                }
+
+                // Now remove barrier & stop heartbeat ONLY after verified drain success
                 try { localStorage.removeItem('pharmaImportBarrier_' + uid); } catch (e) {}
                 activeImportBarriersByAccount.delete(uid);
                 stopBarrierHeartbeat(uid);
@@ -21568,7 +21670,7 @@
                     console.warn('UI re-render warning after rollback:', uiErr);
                 }
 
-                return { ok: true, rolledBack: true, drainedQueues: drainAnnoRes?.ok !== false };
+                return { ok: true, rolledBack: true, drainedQueues: true };
             } catch (rbErr) {
                 // If fault injection test intentionally caused crash, rethrow for the test harness
                 if (testHooks && (testHooks.crashDuringRollback || testHooks.crashDuringRollbackCleanup || testHooks.crashAfterRolledBackPersisted || testHooks.crashAfterRolledBackJournal || testHooks.crashAfterRolledBackPointer || testHooks.crashBeforeRollbackBarrierCleanup || testHooks.failRollbackPointerWrite || testHooks.failRollbackJournalDelete)) {
@@ -21686,8 +21788,12 @@
                 // It means finalization or rollback completed step 1 (journal deleted from IDB) and crashed before clearing the pointer!
                 if (parsedTx.phase === 'FINALIZE' || parsedTx.phase === 'ROLLED_BACK') {
                     // Drain queues BEFORE removing barrier
-                    await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
-                    flushQueuedDomainWritesAfterImport(uid);
+                    const drainAnnoRes = await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
+                    const drainDomRes = flushQueuedDomainWritesAfterImport(uid);
+                    if ((drainAnnoRes && drainAnnoRes.ok === false) || (drainDomRes && drainDomRes.ok === false)) {
+                        console.warn('Queue drain failed during pointer cleanup recovery; retaining barrier:', { drainAnnoRes, drainDomRes });
+                        return { recovered: false, quarantine: false, reason: 'QUEUE_DRAIN_FAILED', retainedBarrier: true };
+                    }
 
                     try { localStorage.removeItem(txStateKey); } catch (e) {}
                     try { localStorage.removeItem(barrierKey); } catch (e) {}
@@ -21764,8 +21870,12 @@
                     // If NO live lock, NO journal, and NO pointer exists: the barrier is an abandoned barrier from a prior crashed tab or crash before barrier cleanup!
                     if (!hasLiveLock) {
                         // Drain queued writes BEFORE removing barrier
-                        await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
-                        flushQueuedDomainWritesAfterImport(uid);
+                        const drainAnnoRes = await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
+                        const drainDomRes = flushQueuedDomainWritesAfterImport(uid);
+                        if ((drainAnnoRes && drainAnnoRes.ok === false) || (drainDomRes && drainDomRes.ok === false)) {
+                            console.warn('Queue drain failed during abandoned barrier recovery; retaining barrier:', { drainAnnoRes, drainDomRes });
+                            return { recovered: false, quarantine: false, reason: 'QUEUE_DRAIN_FAILED', retainedBarrier: true };
+                        }
 
                         try { localStorage.removeItem(barrierKey); } catch (e) {}
                         activeImportBarriersByAccount.delete(uid);
@@ -21855,8 +21965,12 @@
                 }
 
                 // Step 6d: Drain queued writes BEFORE removing barrier
-                await applyQueuedAnnotationWritesAfterImport(uid, journalRecord.mode || 'replace');
-                flushQueuedDomainWritesAfterImport(uid);
+                const drainAnnoRes = await applyQueuedAnnotationWritesAfterImport(uid, journalRecord.mode || 'replace');
+                const drainDomRes = flushQueuedDomainWritesAfterImport(uid);
+                if ((drainAnnoRes && drainAnnoRes.ok === false) || (drainDomRes && drainDomRes.ok === false)) {
+                    console.warn('Queue drain failed during COMMITTED recovery; retaining barrier:', { drainAnnoRes, drainDomRes });
+                    return { recovered: false, quarantine: false, reason: 'QUEUE_DRAIN_FAILED', retainedBarrier: true };
+                }
 
                 try { localStorage.removeItem(barrierKey); } catch (e) {}
                 activeImportBarriersByAccount.delete(uid);
@@ -21928,15 +22042,51 @@
                 }
 
                 // Step 6d: Drain queued writes BEFORE removing barrier
-                await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
-                flushQueuedDomainWritesAfterImport(uid);
+                const drainAnnoRes = await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
+                const drainDomRes = flushQueuedDomainWritesAfterImport(uid);
+                if ((drainAnnoRes && drainAnnoRes.ok === false) || (drainDomRes && drainDomRes.ok === false)) {
+                    console.warn('Queue drain failed during ROLLED_BACK recovery; retaining barrier:', { drainAnnoRes, drainDomRes });
+                    return { recovered: false, quarantine: false, reason: 'QUEUE_DRAIN_FAILED', retainedBarrier: true };
+                }
 
                 try { localStorage.removeItem(barrierKey); } catch (e) {}
                 activeImportBarriersByAccount.delete(uid);
                 stopBarrierHeartbeat(uid);
                 return { recovered: true, action: 'rolled_back' };
             } else {
-                // Pre-COMMITTED phase (PREPARE, APPLY_IDB, APPLY_LOCALSTORAGE): roll back safely!
+                // Pre-COMMITTED phase (PREPARE, APPLY_IDB, APPLY_LOCALSTORAGE):
+                // Verify whether an active lock is currently held by another live tab!
+                let hasLiveLock = false;
+                if (typeof navigator !== 'undefined' && navigator.locks && typeof navigator.locks.query === 'function') {
+                    try {
+                        const lq = await navigator.locks.query();
+                        if (lq && Array.isArray(lq.held) && lq.held.some(l => l && l.name === 'exo_import_lock_' + uid)) {
+                            hasLiveLock = true;
+                        }
+                    } catch (e) {}
+                }
+                if (!hasLiveLock && dbInstance && dbInstance.objectStoreNames && dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
+                    try {
+                        const lockKey = toScopedKey('__import_lock_v1__', uid);
+                        const idbLock = await new Promise((res) => {
+                            const tx = dbInstance.transaction('annotation_recovery_vault', 'readonly');
+                            const req = tx.objectStore('annotation_recovery_vault').get(lockKey);
+                            req.onsuccess = () => res(req.result || null);
+                            req.onerror = () => res(null);
+                        });
+                        if (idbLock && idbLock.heartbeatAt && (Date.now() - idbLock.heartbeatAt < 15000)) {
+                            hasLiveLock = true;
+                        }
+                    } catch (e) {}
+                }
+                if (activeImportBarriersByAccount.get(uid)) {
+                    hasLiveLock = true;
+                }
+                if (hasLiveLock) {
+                    return { recovered: false, inProgress: true, reason: 'import_in_progress' };
+                }
+
+                // No live owner: safe to roll back uncommitted transaction
                 const rbRes = await rollbackImportFromJournal(uid, journalRecord);
                 if (rbRes && rbRes.ok) {
                     if (typeof showToast === 'function') showToast('تم التراجع عن عملية استرجاع غير مكتملة لحماية سلامة بياناتك 🛡️', 'error');

@@ -2658,9 +2658,10 @@ async function main() {
       scheduleBacklog = [
         { id: 9903, title: 'Guest Task W' }
       ];
-      plannerPrefs = { weekStartDay: 6, dayStartHour: 7, dayEndHour: 22, autoCompletePct: 80, currentWeekStartIso: '2026-11-01' };
+      const targetWeekIso = getLocalIsoDate(getWeekStartDateForDate(new Date(), 6));
+      plannerPrefs = { weekStartDay: 6, dayStartHour: 7, dayEndHour: 22, autoCompletePct: 80, currentWeekStartIso: targetWeekIso };
       weeklyReports = [
-        { id: 'rep_w_1', weekStartIso: '2026-11-01', score: 95 }
+        { id: 'rep_w_1', weekStartIso: targetWeekIso, score: 95 }
       ];
       logs = [
         { id: 'log_w_1', text: 'Guest Study Log W', timestamp: 1730000000000 }
@@ -2824,8 +2825,9 @@ async function main() {
       const expectedSubjects = [{ id: 9901, name: 'Guest Pharmacotherapy W', _updatedAt: 1000, groups: [] }];
       const expectedEvents = [{ id: 9902, title: 'Guest Clinical Session W', day: 1, startHour: 8, duration: 2, subjectId: 9901 }];
       const expectedBacklog = [{ id: 9903, title: 'Guest Task W' }];
-      const expectedPlannerPrefs = { weekStartDay: 6, dayStartHour: 7, dayEndHour: 22, autoCompletePct: 80, currentWeekStartIso: '2026-11-01' };
-      const expectedReports = [{ id: 'rep_w_1', weekStartIso: '2026-11-01', score: 95 }];
+      const targetWeekIso = getLocalIsoDate(getWeekStartDateForDate(new Date(), 6));
+      const expectedPlannerPrefs = { weekStartDay: 6, dayStartHour: 7, dayEndHour: 22, autoCompletePct: 80, currentWeekStartIso: targetWeekIso };
+      const expectedReports = [{ id: 'rep_w_1', weekStartIso: targetWeekIso, score: 95 }];
       const expectedLogs = [{ id: 'log_w_1', text: 'Guest Study Log W', timestamp: 1730000000000 }];
       const expectedAcademy = ['mod_w1', 'mod_w2'];
       const expectedMediaReg = { 'lec_w_1': { pdfUploaded: true, ownerUid: 'local' } };
@@ -2911,7 +2913,8 @@ async function main() {
       const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
       const expectedSubjects = [{ id: 9901, name: 'Guest Pharmacotherapy W', _updatedAt: 1000, groups: [] }];
-      const expectedPlannerPrefs = { weekStartDay: 6, dayStartHour: 7, dayEndHour: 22, autoCompletePct: 80, currentWeekStartIso: '2026-11-01' };
+      const targetWeekIso = getLocalIsoDate(getWeekStartDateForDate(new Date(), 6));
+      const expectedPlannerPrefs = { weekStartDay: 6, dayStartHour: 7, dayEndHour: 22, autoCompletePct: 80, currentWeekStartIso: targetWeekIso };
       const expectedAcademy = ['mod_w1', 'mod_w2'];
       const expectedMediaReg = { 'lec_w_1': { pdfUploaded: true, ownerUid: 'local' } };
 
@@ -2920,7 +2923,7 @@ async function main() {
         matchEvents: sched.events?.[0]?.id === 9902 && sched.events?.[0]?.title === 'Guest Clinical Session W' && sched.events?.[0]?.subjectId === 9901,
         matchBacklog: backlog?.[0]?.id === 9903 && backlog?.[0]?.title === 'Guest Task W',
         matchPrefs: eq(prefs, expectedPlannerPrefs),
-        matchReports: reports?.[0]?.id === 'rep_w_1' && reports?.[0]?.weekStartIso === '2026-11-01' && reports?.[0]?.score === 95,
+        matchReports: reports?.[0]?.id === 'rep_w_1' && reports?.[0]?.weekStartIso === targetWeekIso && reports?.[0]?.score === 95,
         matchLogs: logsStorage?.some(l => l.id === 'log_w_1' && l.text === 'Guest Study Log W' && l.timestamp === 1730000000000),
         matchAcademy: eq(academy, expectedAcademy),
         matchMediaReg: eq(mediaReg, expectedMediaReg),

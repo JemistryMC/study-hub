@@ -1,21 +1,22 @@
 # Current Project Handoff
 
-**آخر تحديث:** 2026-11-06  
+**آخر تحديث:** 2026-11-12  
 **المستودع:** `JemistryMC/study-hub`  
 **الفرع النشط:** `main`  
-**الحالة:** `IMPLEMENTED — LOCAL TESTS ONLY (IN PROGRESS — NOT APPROVED)`
+**نقطة البداية المعتمدة (Authoritative Baseline HEAD):** `0841b76d6c07ce756a44a874e8e574253ed2aeb3`  
+**الحالة:** `IMPLEMENTED — LOCAL TESTS ONLY (EXO — M6 STABLE BASELINE CHECKPOINT)`
 
 هذا الملف هو المرجع الوحيد للحالة الحالية والمرحلة النشطة. إذا خالفه تقرير تاريخي أو تعليمات مرحلة قديمة، يُتبع هذا الملف ومستند المرحلة النشطة.
 
 ---
 
-## 1. هوية المستودع وخطوط الأساس المعتمدة
+## 1. هوية المستودع وخط الأساس المعتمد
 
 - **المستودع المعتمد:** `JemistryMC/study-hub`
 - **فرع العمل المعتاد:** `main`
 - **نقطة البداية الدقيقة لعملية الإغلاق والتنفيذ الحالية (Starting HEAD):**  
-  `2433bf6d4a128acf6736f3c099496d551947cc7e`
-- **حالة الاختبارات والتحقق:**  
+  `0841b76d6c07ce756a44a874e8e574253ed2aeb3`
+- **حالة الاختبارات والتحقق المكتملة:**  
   تم تنفيذ واجتياز كافة الفحوصات محلياً (510/510 بنسبة 100%). بانتظار مزامنة المالك ومصادقة GitHub Actions CI.
 - **المرجع المعتمد لنهائيات M5-A (Frozen Dependency):**  
   GitHub Actions CI Run #29 (Run ID: `42117460988`, Source SHA: `ab44f08bcf97328b1583d5bdd8a85943d4dbe079`) — **463/463 PASSED (100% SUCCESS)**. سلوكيات الحجر الصحي (Quarantine) وفصل الحسابات واستعادة IndexedDB لـ M5-A مجمدة ومحمية بالكامل.
@@ -603,7 +604,32 @@ SELECT json_build_object(
 | `npm run test:e2e` | اختبارات متصفح Chromium E2E الحقيقية (السيناريوهات A - V, Z, AA, BB) | 106 فحوصات | **106/106 اجتاز (100%)** |
 | **المجموع الكلي المدمج (`node run_all_tests.js`)** | **كافة اختبارات المنظومة المتكاملة محلياً** | **510 فحوصات** | **510/510 اجتاز (100%)** |
 
-*(ملاحظة: اختبار `test_phase4_2_1_pg16_concurrency.js` مخصص حصرياً لبيئة CI مع خادم PostgreSQL 16 حقيقي متعدد الاتصالات؛ ولم يتم تشغيله محلياً لعدم توفر خادم خارجي في بيئة الحاوية الحالية).*
+---
 
+## 16. توثيق نقطة التفتيش النهائية لخط الأساس (M6 Stable Baseline Checkpoint Audit)
 
+تم استكمال وتدقيق نقطة الأساس المستقرة النهائية لمرحلة M6 وفقاً للضوابط الهندسية وعقد العمل الدائم `GEMINI.md`:
 
+### 16.1 سلامة بيئة المستودع والتبعيات (Repository Integrity & Dependency Alignment)
+1. **استعادة ملف القفل الأصلي (`bun.lock`):** تمت استعادة ملف `bun.lock` بالكامل بايت-ببايت من خط الأساس المرجعي الأصلي للمستودع `study-hub.zip` لإلغاء الحذف التلقائي الذي أحدثته عملية هجرة البيئة الأولية.
+2. **إزالة الملفات المولدة تلقائياً:** تم حذف الملف `.env.example` الذي أنشأته بيئة AI Studio تلقائياً، لضمان تطابق مساحة العمل مع خط الأساس المرجعي للمستودع.
+3. **الاعتماديات والمعمارية:** لم يتم تعديل `package.json` أو ترقية إصدارات التبعيات، مع الحفاظ الكامل على المعمارية الحالية (تطبيق ويب ثابت عبر Express ودمج Supabase الحالي دون إنشاء Cloud SQL).
+
+### 16.2 التدقيق المستقل وحلول الأولويات الهندسية (Independent Audit Resolutions)
+- **الأولوية A (Domain Queue Account Isolation):** إزالة أي استدلال ضمني بـ `!subItem.userId` أو إعادة بناء البيانات من المتغيرات العامة (`subjects`, `scheduleEvents`, `scheduleBacklog`, `logs`). في الحسابات غير النشطة، تُكتب البيانات حصرياً داخل مساحة عمل الحساب المعزولة (`pharmaAccountWorkspace_<uid>`) مع التحقق من نجاح القراءة العكسية وعدم مسح طابور LocalStorage حتى يتم تنشيط الحساب.
+- **الأولوية B (Fencing Token Enforcement):** فرض استدعاء `assertFencingTokenValid()` عند بداية مرحلة `APPLY_LOCALSTORAGE`. تمرير `fencingToken` و`passedTxId` لكافة استدعاءات `rollbackImportFromJournal` والتحقق الذري من القفل قبل إجراء أي تراجع. في `recoverPendingImportJournalIfNeeded`، يتم التحقق من وجود قفل نشط قبل التراجع لمنع إجهاض استيراد تبويب آخر نشط.
+- **الأولوية C (Annotation Queue Durability & In-Batch Deduplication):** تجميع عناصر طابور الحواشي حسب المحاضرة (`itemsByLec`) وإلغاء تكرار الضربات الخطية داخل الدفعة الواحدة قبل المعاملة الذرية لمنع سباق `get`/`put` في IndexedDB. تنظيف المفاتيح المطبقة فقط (`appliedKeys`) من الذاكرة والتخزين المحلي دون حذف العناصر المضافة تزامناً من تبويبات أخرى.
+- **الأولوية D (Result-Aware Barrier Safety):** التحقق المزدوج من نتيجة تفريغ طابور الحواشي وطابور النطاقات في خطوة الإنهاء (5c) والتراجع الطارئ ومسارات التعافي الأربعة عند بدء التشغيل. لا يتم فك الحاجز إلا بعد نجاح التصريف بنسبة 100%. في `isImportInProgressOrQuarantined`، يتم الاحتفاظ بالحاجز مغلقاً عند الفشل إذا كان مؤشر المعاملة موجوداً، مع السماح بتجاوز الحواجز المهجورة (>30 ثانية) بعد إثبات غياب المؤشر.
+- **الأولوية E (E2E Test Environment Stabilization):** تصحيح احتساب أسبوع البداية في السيناريو `Test W` ليعتمد على الأسبوع الحالي ديناميكياً متوافقاً مع السيناريوهات `M.1` و`M.2`، مما يمنع انطلاق الترحيل الأسبوعي التلقائي السابق لأوانه عند إعادة تحميل المتصفح.
+
+### 16.3 المصفوفة الشاملة للتحقق النهائي (Final Verification Matrix)
+- `npm run lint`: **PASSED** (0 Errors)
+- `npm run build`: **PASSED** (Assets copied to `dist/`)
+- `npm run test:static`: **54/54 PASSED** (100%)
+- `node test_phase3_cross_account_isolation.js`: **52/52 PASSED** (100%)
+- `node run_comprehensive_verification.js`: **42/42 PASSED** (100%)
+- `node test_phase4_regressions.js`: **215/215 PASSED** (100%)
+- `npm run test:pglite`: **41/41 PASSED** (100%)
+- `npm run test:e2e` (`node test_phase4_1_chromium_e2e.js`): **106/106 PASSED** (100%)
+- `test:pg16` (`test_phase4_2_1_pg16_concurrency.js`): **NOT VERIFIED LOCALLY** (يتطلب خادم PostgreSQL 16 خارجي في CI)
+- **المجموع الإجمالي للفحوصات المنفذة محلياً:** **510/510 PASSED (100% Success)**.
