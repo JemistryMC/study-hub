@@ -5436,8 +5436,10 @@ async function main() {
   );
   prod.localStorage.removeItem('pharmaImportQuarantine_' + cfcUid);
 
-  // CFC-3: Barrier liveness: abandoned barrier with no heartbeat > 30s and NO lock/journal is safely cleared
+  // CFC-3: Barrier liveness: synchronous gate strictly fails closed on stale barrier (>30s), requiring authoritative async recovery
   const cfc3Uid = 'user_cfc3_stale';
+  prod.setSessionUser(cfc3Uid);
+  const cfc3Ctx = prod.createAccountOperationContext();
   prod.localStorage.setItem('pharmaImportBarrier_' + cfc3Uid, JSON.stringify({
     txId: 'tx_old',
     startedAt: Date.now() - 60000,
@@ -5445,8 +5447,15 @@ async function main() {
   }));
   const gateCheckStale = prod.isImportInProgressOrQuarantined(cfc3Uid);
   assert(
-    gateCheckStale && gateCheckStale.blocked === false,
-    'T-5.1-M6-CFC-3: Stale import barrier with heartbeat older than 30s in another tab is safely bypassed'
+    gateCheckStale && gateCheckStale.blocked === true &&
+    gateCheckStale.reason === 'import_in_progress',
+    'T-5.1-M6-CFC-3: Synchronous gate strictly fails closed on stale barrier with heartbeat older than 30s'
+  );
+  await prod.recoverPendingImportJournalIfNeeded(cfc3Uid, cfc3Ctx);
+  const gateCheckRecovered = prod.isImportInProgressOrQuarantined(cfc3Uid);
+  assert(
+    gateCheckRecovered && gateCheckRecovered.blocked === false,
+    'T-5.1-M6-CFC-3b: Authoritative asynchronous recovery safely drains and clears abandoned barrier'
   );
 
   // CFC-3b: Barrier liveness: delayed import (>30s) where pointer or journal exists NEVER clears barrier (fail-closed)
@@ -5759,6 +5768,210 @@ async function main() {
   // When both succeed with no live lock: abandoned barrier is cleanly recovered
   const recClean = await prod.recoverPendingImportJournalIfNeeded(user_pE);
   assert(prod.localStorage.getItem(barrierKey_pE) === null, 'Priority E.3: Legitimate abandoned barrier with verified no live lock is cleanly cleared');
+
+  // --------------------------------------------------------------------------
+  // PRIORITY F: Annotation Queue Fail-Closed on Vault Read Error & Ownership Safety
+  // --------------------------------------------------------------------------
+  console.log('\n--- M6 FINAL: Priority F - Annotation Queue Fail-Closed & Ownership Safety ---');
+  const user_pF = 'user_pF_anno_safety';
+  prod.setSessionUser(user_pF);
+
+  // F.1: Vault read failure fails closed and preserves queue entries
+  const qItem_pF = {
+    id: 'q_fail_vault_read',
+    scopedKey: prod.toScopedKey('lec_pF', user_pF),
+    userId: user_pF,
+    data: { id: prod.toScopedKey('lec_pF', user_pF), userId: user_pF, pages: { 1: ['Valid stroke'] } }
+  };
+  prod.localStorage.setItem('pharmaImportQueuedAnnos_' + user_pF, JSON.stringify([qItem_pF]));
+  prod.queuedAnnotationWritesDuringImportByAccount.set(user_pF, [qItem_pF]);
+
+  globalThis.__exoImportTestHooks = { failAnnotationVaultRead: true };
+  const drainVaultFailRes = await prod.applyQueuedAnnotationWritesAfterImport(user_pF, 'merge');
+  globalThis.__exoImportTestHooks = null;
+
+  assert(
+    drainVaultFailRes && drainVaultFailRes.ok === false && drainVaultFailRes.reason === 'vault_read_failed',
+    'Priority F.1: failAnnotationVaultRead returns explicit structured failure'
+  );
+  assert(
+    prod.localStorage.getItem('pharmaImportQueuedAnnos_' + user_pF) !== null,
+    'Priority F.2: LocalStorage queue preserved on vault read failure'
+  );
+  assert(
+    (prod.queuedAnnotationWritesDuringImportByAccount.get(user_pF) || []).length > 0,
+    'Priority F.3: In-memory queue preserved on vault read failure'
+  );
+
+  // F.2: Ownership validation: items with foreign userId or foreign scopedKey are quarantined
+  const foreignItem1 = {
+    id: 'q_foreign_user',
+    scopedKey: prod.toScopedKey('lec_foreign_1', 'other_user_x'),
+    userId: 'other_user_x',
+    data: { id: prod.toScopedKey('lec_foreign_1', 'other_user_x'), userId: 'other_user_x', pages: { 1: ['Foreign stroke'] } }
+  };
+  const foreignItem2 = {
+    id: 'q_foreign_key',
+    scopedKey: prod.toScopedKey('lec_foreign_2', 'other_user_y'),
+    userId: user_pF, // Inconsistent: userId is target user but scopedKey belongs to other_user_y!
+    data: { id: prod.toScopedKey('lec_foreign_2', 'other_user_y'), userId: user_pF, pages: { 1: ['Mismatched stroke'] } }
+  };
+  const validItem_pF = {
+    id: 'q_valid_pF',
+    scopedKey: prod.toScopedKey('lec_pF_valid', user_pF),
+    userId: user_pF,
+    data: { id: prod.toScopedKey('lec_pF_valid', user_pF), userId: user_pF, pages: { 1: ['Genuine target stroke'] } }
+  };
+
+  prod.localStorage.setItem('pharmaImportQueuedAnnos_' + user_pF, JSON.stringify([foreignItem1, foreignItem2, validItem_pF]));
+  prod.queuedAnnotationWritesDuringImportByAccount.set(user_pF, [foreignItem1, foreignItem2, validItem_pF]);
+
+  const drainOwnershipRes = await prod.applyQueuedAnnotationWritesAfterImport(user_pF, 'merge');
+  assert(
+    drainOwnershipRes && drainOwnershipRes.ok === true && drainOwnershipRes.count === 1 && drainOwnershipRes.quarantinedCount === 2,
+    'Priority F.4: Ownership validation separates valid items from foreign items and reports quarantine count'
+  );
+
+  // Verify valid item written to target user's store
+  const validPersisted = idb.stores['annotations'].get(prod.toScopedKey('lec_pF_valid', user_pF));
+  assert(
+    validPersisted && validPersisted.userId === user_pF,
+    'Priority F.5: Valid item written to target user store'
+  );
+
+  // Verify foreign items NOT written to target store
+  const foreignPersisted = idb.stores['annotations'].get(prod.toScopedKey('lec_foreign_1', 'other_user_x'));
+  assert(!foreignPersisted, 'Priority F.6: Foreign items NOT written to store');
+
+  // Verify quarantined entries exist in LocalStorage
+  const quarantinedRaw = prod.localStorage.getItem('pharmaQuarantinedAnnoWrites_' + user_pF);
+  assert(
+    quarantinedRaw && JSON.parse(quarantinedRaw).length === 2,
+    'Priority F.7: Foreign items quarantined into pharmaQuarantinedAnnoWrites in LocalStorage'
+  );
+
+  // --------------------------------------------------------------------------
+  // PRIORITY G: Domain Queue Partial Results & Quarantine
+  // --------------------------------------------------------------------------
+  console.log('\n--- M6 FINAL: Priority G - Domain Queue Partial Results & Quarantine ---');
+  const user_pG = 'user_pG_domain_safety';
+  prod.setSessionUser(user_pG);
+
+  const mixedDomainQueue = {
+    subjects: { userId: user_pG, payload: [{ id: 'sub_g1', name: 'Valid Subject G' }] },
+    schedule: { userId: 'foreign_hacker', payload: { events: [{ id: 'ev_malicious' }] } },
+    logs: { userId: null, payload: null } // Corrupt item
+  };
+  prod.localStorage.setItem('pharmaPendingDomainWrites_' + user_pG, JSON.stringify(mixedDomainQueue));
+  prod.pendingDomainWritesDuringImportByAccount.set(user_pG, { ...mixedDomainQueue });
+
+  const domainFlushRes = prod.flushQueuedDomainWritesAfterImport(user_pG);
+  assert(
+    domainFlushRes && domainFlushRes.ok === false && domainFlushRes.partial === true &&
+    domainFlushRes.appliedCount === 1 && domainFlushRes.invalidCount === 2,
+    'Priority G.1: Mixed domain queue flushes valid entries, quarantines invalid, and returns partial status'
+  );
+
+  // Verify valid subject applied to canonical LocalStorage
+  const subjectsAfterG = JSON.parse(prod.localStorage.getItem('pharmaSubjectsV4') || '[]');
+  assert(
+    subjectsAfterG.some(s => s && s.id === 'sub_g1'),
+    'Priority G.2: Valid domain write was successfully applied to active store'
+  );
+
+  // Verify invalid domain writes quarantined in LocalStorage
+  const quarantinedDomRaw = prod.localStorage.getItem('pharmaQuarantinedDomainWrites_' + user_pG);
+  const quarantinedObj = JSON.parse(quarantinedDomRaw || '{}');
+  assert(
+    quarantinedDomRaw && Object.keys(quarantinedObj).length === 2,
+    'Priority G.3: Invalid domain writes quarantined in pharmaQuarantinedDomainWrites'
+  );
+
+  // Verify remaining queue in LocalStorage retains invalid entries for inspection
+  const remainingPendingDom = JSON.parse(prod.localStorage.getItem('pharmaPendingDomainWrites_' + user_pG) || '{}');
+  assert(
+    Object.keys(remainingPendingDom).length === 2 &&
+    remainingPendingDom.schedule !== undefined &&
+    remainingPendingDom.logs !== undefined,
+    'Priority G.4: Unapplied invalid entries preserved in pending queue for inspection'
+  );
+
+  // --------------------------------------------------------------------------
+  // PRIORITY H: Stale Fencing Token Aborts Rollback Without Quarantine
+  // --------------------------------------------------------------------------
+  console.log('\n--- M6 FINAL: Priority H - Stale Fencing Token Aborts Without Quarantine ---');
+  const user_pH = 'user_pH_fencing';
+  prod.setSessionUser(user_pH);
+  const lockKey_pH = prod.toScopedKey('__import_lock_v1__', user_pH);
+
+  // Setup an active lock held with fencingToken 5 by tx_current
+  idb.stores['annotation_recovery_vault'].set(lockKey_pH, {
+    id: lockKey_pH,
+    userId: user_pH,
+    txId: 'tx_current',
+    fencingToken: 5,
+    heartbeatAt: Date.now()
+  });
+
+  const journal_pH = {
+    txId: 'tx_stale_tab',
+    userId: user_pH,
+    phase: 'APPLY_IDB',
+    preImportSnapshot: {
+      localStorage: { pharmaSubjectsV4: { existed: true, value: '[]' } },
+      annotations: {}
+    }
+  };
+
+  // Attempt rollback with stale fencingToken 4
+  const staleRbRes = await prod.rollbackImportFromJournal(user_pH, journal_pH, 4, 'tx_stale_tab');
+  assert(
+    staleRbRes && staleRbRes.ok === false && staleRbRes.reason === 'STALE_FENCING_TOKEN',
+    'Priority H.1: Stale fencing token explicitly returns STALE_FENCING_TOKEN error'
+  );
+  assert(
+    prod.localStorage.getItem('pharmaImportQuarantine_' + user_pH) === null,
+    'Priority H.2: Stale fencing token does NOT place account in quarantine'
+  );
+
+  // --------------------------------------------------------------------------
+  // PRIORITY I: Pre-COMMITTED Recovery Authoritative Lock Acquisition
+  // --------------------------------------------------------------------------
+  console.log('\n--- M6 FINAL: Priority I - Pre-COMMITTED Recovery Authoritative Ownership ---');
+  const user_pI = 'user_pI_rec_lock';
+  prod.setSessionUser(user_pI);
+  const ctx_pI = prod.createAccountOperationContext();
+  const journalKey_pI = prod.toScopedKey('__import_journal_v1__', user_pI);
+
+  const uncommittedJournal = {
+    id: journalKey_pI,
+    userId: user_pI,
+    txId: 'tx_uncommitted_crash',
+    phase: 'APPLY_LOCALSTORAGE',
+    preImportSnapshot: {
+      localStorage: {
+        pharmaSubjectsV4: { existed: true, value: JSON.stringify([{ id: 'sub_pre_crash', name: 'Safe Pre-Crash' }]) }
+      },
+      annotations: {}
+    }
+  };
+  idb.stores['annotation_recovery_vault'].set(journalKey_pI, uncommittedJournal);
+  prod.localStorage.setItem('pharmaImportBarrier_' + user_pI, JSON.stringify({ txId: 'tx_uncommitted_crash', startedAt: Date.now() - 40000 }));
+  prod.localStorage.setItem('pharmaImportTxState_' + user_pI, JSON.stringify({ txId: 'tx_uncommitted_crash', phase: 'APPLY_LOCALSTORAGE' }));
+
+  const recLockRes = await prod.recoverPendingImportJournalIfNeeded(user_pI, ctx_pI);
+  assert(
+    recLockRes && recLockRes.recovered === true && recLockRes.action === 'rolled_back',
+    'Priority I.1: Pre-COMMITTED recovery acquires lock, rolls back cleanly, and restores baseline'
+  );
+  assert(
+    JSON.parse(prod.localStorage.getItem('pharmaSubjectsV4') || '[]')[0]?.id === 'sub_pre_crash',
+    'Priority I.2: Baseline state restored accurately after recovery rollback'
+  );
+  assert(
+    prod.localStorage.getItem('pharmaImportBarrier_' + user_pI) === null,
+    'Priority I.3: Barrier safely cleaned up after verified rollback drain'
+  );
 
 
   console.log('\n======================================================================');

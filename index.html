@@ -19729,129 +19729,43 @@
                 console.warn('Simulated annotation queue drain failure via test hook');
                 return { ok: false, reason: 'drain_fault_injected', error: new Error('TEST_FAULT_INJECTION: fail_annotation_queue_drain') };
             }
-
-            // Load queued items from all tiers: in-memory, LocalStorage, and IndexedDB vault
-            const items = [];
-            const seenIds = new Set();
-
-            if (queuedAnnotationWritesDuringImportByAccount.has(uid)) {
-                const memQueue = queuedAnnotationWritesDuringImportByAccount.get(uid);
-                if (Array.isArray(memQueue)) {
-                    memQueue.forEach(q => {
-                        const qId = q.id || q.scopedKey || (q.lecId + '_' + q.timestamp) || Math.random().toString();
-                        if (!seenIds.has(qId)) { seenIds.add(qId); items.push(q); }
-                    });
-                }
-            }
-
-            const lsKey = 'pharmaImportQueuedAnnos_' + uid;
-            let rawLs = null;
-            try {
-                rawLs = localStorage.getItem(lsKey);
-                if (rawLs) {
-                    const parsedLs = JSON.parse(rawLs);
-                    if (Array.isArray(parsedLs)) {
-                        parsedLs.forEach(q => {
-                            const qId = q.id || q.scopedKey || (q.lecId + '_' + q.timestamp) || Math.random().toString();
-                            if (!seenIds.has(qId)) { seenIds.add(qId); items.push(q); }
-                        });
-                    }
-                }
-            } catch (e) {}
-
-            const vaultKey = toScopedKey('__import_queued_annos_v1__', uid);
-            let vaultItems = [];
-            if (dbInstance && dbInstance.objectStoreNames && dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
-                try {
-                    const vaultRec = await new Promise(resolve => {
-                        const tx = dbInstance.transaction('annotation_recovery_vault', 'readonly');
-                        const store = tx.objectStore('annotation_recovery_vault');
-                        const req = store.get(vaultKey);
-                        req.onsuccess = () => resolve(req.result || null);
-                        req.onerror = () => resolve(null);
-                    });
-                    if (vaultRec && Array.isArray(vaultRec.queue)) {
-                        vaultItems = vaultRec.queue;
-                        vaultItems.forEach(q => {
-                            const qId = q.id || (q.lecId + '_' + q.timestamp);
-                            if (!seenIds.has(qId)) { seenIds.add(qId); items.push(q); }
-                        });
-                    }
-                } catch (e) {}
-            } else if (dbInstance && dbInstance.stores && dbInstance.stores.annotation_recovery_vault) {
-                const vaultRec = dbInstance.stores.annotation_recovery_vault.get(vaultKey);
-                if (vaultRec && Array.isArray(vaultRec.queue)) {
-                    vaultItems = vaultRec.queue;
-                    vaultItems.forEach(q => {
-                        const qId = q.id || (q.lecId + '_' + q.timestamp);
-                        if (!seenIds.has(qId)) { seenIds.add(qId); items.push(q); }
-                    });
-                }
-            }
-
-            if (items.length === 0) {
-                queuedAnnotationWritesDuringImportByAccount.delete(uid);
-                try { localStorage.removeItem(lsKey); } catch (e) {}
-                return { ok: true, count: 0 };
+            if (testHooks && testHooks.failAnnotationVaultRead) {
+                console.warn('Simulated annotation vault read failure via test hook');
+                return { ok: false, reason: 'vault_read_failed', error: new Error('TEST_FAULT_INJECTION: fail_annotation_vault_read') };
             }
 
             // Stroke deduplication helper: handles both explicit IDs and geometric serialization
             const getStrokeDedupeKey = (s) => (s && (s.id || s.strokeId)) || JSON.stringify(s);
+            const getItemKey = (i) => i.id || i.scopedKey || (i.lecId ? (i.lecId + '_' + (i.timestamp || '')) : null) || JSON.stringify(i);
 
-            // Consolidate queued items by lecture rawId first to prevent concurrent gets/puts
-            // on the same record in IndexedDB and to deduplicate strokes within the incoming batch.
-            const itemsByLec = new Map();
-            items.forEach(item => {
-                const rawLec = item.lecId || (item.scopedKey ? (typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(item.scopedKey) : item.scopedKey) : null);
-                if (!rawLec) return;
-                if (!itemsByLec.has(rawLec)) {
-                    itemsByLec.set(rawLec, { rawLec, pages: {} });
+            // 1. Read fallback in-memory and LocalStorage queues
+            const memItems = queuedAnnotationWritesDuringImportByAccount.has(uid)
+                ? (queuedAnnotationWritesDuringImportByAccount.get(uid) || [])
+                : [];
+
+            const lsKey = 'pharmaImportQueuedAnnos_' + uid;
+            let lsItems = [];
+            try {
+                const rawLs = (typeof localStorage !== 'undefined' && localStorage.getItem) ? localStorage.getItem(lsKey) : null;
+                if (rawLs) {
+                    const parsedLs = JSON.parse(rawLs);
+                    if (Array.isArray(parsedLs)) lsItems = parsedLs;
                 }
-                const lecEntry = itemsByLec.get(rawLec);
-                const incomingPages = (item.pagesData && typeof item.pagesData === 'object' && !Array.isArray(item.pagesData))
-                    ? item.pagesData
-                    : ((item.data && item.data.pages && typeof item.data.pages === 'object' && !Array.isArray(item.data.pages)) ? item.data.pages : {});
+            } catch (e) {
+                console.error('Failed to read LocalStorage annotation queue; failing closed:', e);
+                return { ok: false, reason: 'ls_read_failed', error: e };
+            }
 
-                Object.keys(incomingPages).forEach(pNum => {
-                    const incStrokes = Array.isArray(incomingPages[pNum]) ? incomingPages[pNum] : (incomingPages[pNum]?.strokes || []);
-                    if (!lecEntry.pages[pNum]) {
-                        // In-batch deduplication for fresh page
-                        const batchKeys = new Set();
-                        const dedupedInc = [];
-                        incStrokes.forEach(s => {
-                            const k = getStrokeDedupeKey(s);
-                            if (!batchKeys.has(k)) {
-                                batchKeys.add(k);
-                                dedupedInc.push(s);
-                            }
-                        });
-                        lecEntry.pages[pNum] = Array.isArray(incomingPages[pNum]) ? dedupedInc : { strokes: dedupedInc };
-                    } else {
-                        const exStrokes = Array.isArray(lecEntry.pages[pNum]) ? lecEntry.pages[pNum] : (lecEntry.pages[pNum]?.strokes || []);
-                        const exKeys = new Set(exStrokes.map(getStrokeDedupeKey));
-                        const toAdd = [];
-                        incStrokes.forEach(s => {
-                            const k = getStrokeDedupeKey(s);
-                            if (!exKeys.has(k)) {
-                                exKeys.add(k);
-                                toAdd.push(s);
-                            }
-                        });
-                        if (Array.isArray(lecEntry.pages[pNum])) {
-                            lecEntry.pages[pNum] = lecEntry.pages[pNum].concat(toAdd);
-                        } else if (lecEntry.pages[pNum]?.strokes) {
-                            lecEntry.pages[pNum].strokes = lecEntry.pages[pNum].strokes.concat(toAdd);
-                        }
-                    }
-                });
-            });
-
-            // Apply directly into IndexedDB annotations store with strict ownership
+            const vaultKey = toScopedKey('__import_queued_annos_v1__', uid);
             let applySucceeded = false;
             let applyError = null;
+            let appliedKeys = new Set();
+            let validItemsCount = 0;
+            let quarantinedEntries = [];
+            let appliedLecturePages = {};
 
+            // 2. ATOMIC MULTI-STORE TRANSACTION: Read vault queue & apply updates in ONE readwrite transaction
             if (dbInstance && dbInstance.objectStoreNames && dbInstance.objectStoreNames.contains('annotations')) {
-                // ATOMIC MULTI-STORE TRANSACTION: ['annotations', 'annotation_recovery_vault']
                 const storeNames = dbInstance.objectStoreNames.contains('annotation_recovery_vault')
                     ? ['annotations', 'annotation_recovery_vault']
                     : ['annotations'];
@@ -19862,49 +19776,169 @@
                         const annoStore = tx.objectStore('annotations');
                         const vaultStore = storeNames.includes('annotation_recovery_vault') ? tx.objectStore('annotation_recovery_vault') : null;
 
-                        itemsByLec.forEach(lecEntry => {
-                            const rawLec = lecEntry.rawLec;
-                            const scopedKey = toScopedKey(rawLec, uid);
-                            const getReq = annoStore.get(scopedKey);
-                            getReq.onsuccess = () => {
-                                const existing = getReq.result;
-                                let mergedPages = {};
-                                if (existing && existing.pages) {
-                                    mergedPages = (typeof existing.pages === 'object' && !Array.isArray(existing.pages)) ? JSON.parse(JSON.stringify(existing.pages)) : {};
+                        if (vaultStore) {
+                            const vaultReq = vaultStore.get(vaultKey);
+                            vaultReq.onerror = () => {
+                                applyError = vaultReq.error || new Error('Vault queue read error');
+                                tx.abort();
+                                resolve(false);
+                            };
+                            vaultReq.onsuccess = () => {
+                                const vaultRec = vaultReq.result;
+                                const vaultQueue = (vaultRec && Array.isArray(vaultRec.queue)) ? vaultRec.queue : [];
+
+                                processQueueItemsInTransaction(vaultQueue, vaultStore, vaultRec);
+                            };
+                        } else {
+                            processQueueItemsInTransaction([], null, null);
+                        }
+
+                        function processQueueItemsInTransaction(vaultQueue, vaultStore, vaultRec) {
+                            // Merge candidate items from all tiers
+                            const candidateMap = new Map();
+                            [...memItems, ...lsItems, ...vaultQueue].forEach(c => {
+                                if (c && typeof c === 'object') {
+                                    const k = getItemKey(c);
+                                    if (!candidateMap.has(k)) candidateMap.set(k, c);
                                 }
-                                const consolidatedIncoming = lecEntry.pages;
-                                Object.keys(consolidatedIncoming).forEach(pNum => {
-                                    const incStrokes = Array.isArray(consolidatedIncoming[pNum]) ? consolidatedIncoming[pNum] : (consolidatedIncoming[pNum]?.strokes || []);
-                                    if (!mergedPages[pNum]) {
-                                        mergedPages[pNum] = consolidatedIncoming[pNum];
+                            });
+
+                            if (candidateMap.size === 0) {
+                                tx.oncomplete = () => resolve(true);
+                                return;
+                            }
+
+                            // Strict ownership verification and validation (Section 2.C)
+                            const validItems = [];
+                            candidateMap.forEach((item, k) => {
+                                // Must have valid target userId matching uid exactly
+                                if (!item.userId || String(item.userId) !== String(uid)) {
+                                    console.warn('Rejecting queued annotation write: missing or foreign userId:', item.userId, 'expected:', uid);
+                                    quarantinedEntries.push({ item, reason: 'foreign_or_missing_userId', actual: item.userId, expected: uid });
+                                    return;
+                                }
+                                // Verify scopedKey if present
+                                if (item.scopedKey) {
+                                    const keyOwner = (typeof extractUserIdFromScopedKey === 'function') ? extractUserIdFromScopedKey(item.scopedKey) : null;
+                                    if (keyOwner && String(keyOwner) !== String(uid)) {
+                                        console.warn('Rejecting queued annotation write: foreign scopedKey detected:', item.scopedKey, 'expected owner:', uid);
+                                        quarantinedEntries.push({ item, reason: 'foreign_scoped_key', actual: item.scopedKey, expectedOwner: uid });
+                                        return;
+                                    }
+                                }
+                                const rawLec = item.lecId || (item.scopedKey ? (typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(item.scopedKey) : item.scopedKey) : null);
+                                if (!rawLec) {
+                                    quarantinedEntries.push({ item, reason: 'missing_lecture_id' });
+                                    return;
+                                }
+                                validItems.push(item);
+                                appliedKeys.add(k);
+                            });
+
+                            validItemsCount = validItems.length;
+
+                            // Group valid items by lecture rawId and deduplicate strokes inside the batch
+                            const itemsByLec = new Map();
+                            validItems.forEach(item => {
+                                const rawLec = item.lecId || (item.scopedKey ? (typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(item.scopedKey) : item.scopedKey) : null);
+                                if (!itemsByLec.has(rawLec)) {
+                                    itemsByLec.set(rawLec, { rawLec, pages: {} });
+                                }
+                                const lecEntry = itemsByLec.get(rawLec);
+                                const incomingPages = (item.pagesData && typeof item.pagesData === 'object' && !Array.isArray(item.pagesData))
+                                    ? item.pagesData
+                                    : ((item.data && item.data.pages && typeof item.data.pages === 'object' && !Array.isArray(item.data.pages)) ? item.data.pages : {});
+
+                                Object.keys(incomingPages).forEach(pNum => {
+                                    const incStrokes = Array.isArray(incomingPages[pNum]) ? incomingPages[pNum] : (incomingPages[pNum]?.strokes || []);
+                                    if (!lecEntry.pages[pNum]) {
+                                        // In-batch stroke deduplication
+                                        const batchKeys = new Set();
+                                        const dedupedInc = [];
+                                        incStrokes.forEach(s => {
+                                            const sk = getStrokeDedupeKey(s);
+                                            if (!batchKeys.has(sk)) {
+                                                batchKeys.add(sk);
+                                                dedupedInc.push(s);
+                                            }
+                                        });
+                                        lecEntry.pages[pNum] = Array.isArray(incomingPages[pNum]) ? dedupedInc : { strokes: dedupedInc };
                                     } else {
-                                        const exStrokes = Array.isArray(mergedPages[pNum]) ? mergedPages[pNum] : (mergedPages[pNum]?.strokes || []);
+                                        const exStrokes = Array.isArray(lecEntry.pages[pNum]) ? lecEntry.pages[pNum] : (lecEntry.pages[pNum]?.strokes || []);
                                         const exKeys = new Set(exStrokes.map(getStrokeDedupeKey));
-                                        const toAdd = incStrokes.filter(s => !exKeys.has(getStrokeDedupeKey(s)));
-                                        if (Array.isArray(mergedPages[pNum])) {
-                                            mergedPages[pNum] = mergedPages[pNum].concat(toAdd);
-                                        } else if (mergedPages[pNum]?.strokes) {
-                                            mergedPages[pNum].strokes = mergedPages[pNum].strokes.concat(toAdd);
+                                        const toAdd = [];
+                                        incStrokes.forEach(s => {
+                                            const sk = getStrokeDedupeKey(s);
+                                            if (!exKeys.has(sk)) {
+                                                exKeys.add(sk);
+                                                toAdd.push(s);
+                                            }
+                                        });
+                                        if (Array.isArray(lecEntry.pages[pNum])) {
+                                            lecEntry.pages[pNum] = lecEntry.pages[pNum].concat(toAdd);
+                                        } else if (lecEntry.pages[pNum]?.strokes) {
+                                            lecEntry.pages[pNum].strokes = lecEntry.pages[pNum].strokes.concat(toAdd);
                                         }
                                     }
                                 });
-                                annoStore.put({
-                                    id: scopedKey,
-                                    rawId: rawLec,
-                                    userId: uid,
-                                    pages: mergedPages,
-                                    updatedAt: new Date().toISOString()
-                                });
-                            };
-                        });
+                            });
 
-                        // Delete queued records from vault within the EXACT SAME committed transaction
-                        if (vaultStore) {
-                            vaultStore.delete(vaultKey);
+                            // Apply each consolidated lecture entry to annotations store
+                            itemsByLec.forEach(lecEntry => {
+                                const rawLec = lecEntry.rawLec;
+                                const scopedKey = toScopedKey(rawLec, uid);
+                                const getReq = annoStore.get(scopedKey);
+                                getReq.onsuccess = () => {
+                                    const existing = getReq.result;
+                                    let mergedPages = {};
+                                    if (existing && existing.pages) {
+                                        mergedPages = (typeof existing.pages === 'object' && !Array.isArray(existing.pages)) ? JSON.parse(JSON.stringify(existing.pages)) : {};
+                                    }
+                                    const consolidatedIncoming = lecEntry.pages;
+                                    Object.keys(consolidatedIncoming).forEach(pNum => {
+                                        const incStrokes = Array.isArray(consolidatedIncoming[pNum]) ? consolidatedIncoming[pNum] : (consolidatedIncoming[pNum]?.strokes || []);
+                                        if (!mergedPages[pNum]) {
+                                            mergedPages[pNum] = consolidatedIncoming[pNum];
+                                        } else {
+                                            const exStrokes = Array.isArray(mergedPages[pNum]) ? mergedPages[pNum] : (mergedPages[pNum]?.strokes || []);
+                                            const exKeys = new Set(exStrokes.map(getStrokeDedupeKey));
+                                            const toAdd = incStrokes.filter(s => !exKeys.has(getStrokeDedupeKey(s)));
+                                            if (Array.isArray(mergedPages[pNum])) {
+                                                mergedPages[pNum] = mergedPages[pNum].concat(toAdd);
+                                            } else if (mergedPages[pNum]?.strokes) {
+                                                mergedPages[pNum].strokes = mergedPages[pNum].strokes.concat(toAdd);
+                                            }
+                                        }
+                                    });
+                                    annoStore.put({
+                                        id: scopedKey,
+                                        rawId: rawLec,
+                                        userId: uid,
+                                        pages: mergedPages,
+                                        updatedAt: new Date().toISOString()
+                                    });
+                                    appliedLecturePages[scopedKey] = mergedPages;
+                                };
+                            });
+
+                            // Update vault store queue: remove ONLY confirmed applied entries (Section 2.B)
+                            if (vaultStore) {
+                                const remainingVaultQueue = vaultQueue.filter(q => !appliedKeys.has(getItemKey(q)));
+                                if (remainingVaultQueue.length > 0) {
+                                    vaultStore.put({
+                                        id: vaultKey,
+                                        userId: uid,
+                                        queue: remainingVaultQueue,
+                                        updatedAt: Date.now()
+                                    });
+                                } else {
+                                    vaultStore.delete(vaultKey);
+                                }
+                            }
                         }
 
                         tx.oncomplete = () => resolve(true);
-                        tx.onerror = () => { applyError = tx.error; resolve(false); };
+                        tx.onerror = () => { applyError = tx.error || new Error('Transaction error'); resolve(false); };
                         tx.onabort = () => { applyError = tx.error || new Error('Transaction aborted'); resolve(false); };
                     } catch (e) {
                         applyError = e;
@@ -19912,21 +19946,57 @@
                     }
                 });
             } else if (dbInstance && dbInstance.stores && dbInstance.stores.annotations) {
-                // In-memory test store mock support without objectStoreNames
+                // In-memory test store mock support
                 try {
-                    itemsByLec.forEach(lecEntry => {
-                        const rawLec = lecEntry.rawLec;
+                    const vaultStore = dbInstance.stores.annotation_recovery_vault || null;
+                    const vaultRec = vaultStore ? vaultStore.get(vaultKey) : null;
+                    const vaultQueue = (vaultRec && Array.isArray(vaultRec.queue)) ? vaultRec.queue : [];
+
+                    const candidateMap = new Map();
+                    [...memItems, ...lsItems, ...vaultQueue].forEach(c => {
+                        if (c && typeof c === 'object') {
+                            const k = getItemKey(c);
+                            if (!candidateMap.has(k)) candidateMap.set(k, c);
+                        }
+                    });
+
+                    const validItems = [];
+                    candidateMap.forEach((item, k) => {
+                        if (!item.userId || String(item.userId) !== String(uid)) {
+                            quarantinedEntries.push({ item, reason: 'foreign_or_missing_userId' });
+                            return;
+                        }
+                        if (item.scopedKey) {
+                            const keyOwner = (typeof extractUserIdFromScopedKey === 'function') ? extractUserIdFromScopedKey(item.scopedKey) : null;
+                            if (keyOwner && String(keyOwner) !== String(uid)) {
+                                quarantinedEntries.push({ item, reason: 'foreign_scoped_key' });
+                                return;
+                            }
+                        }
+                        const rawLec = item.lecId || (item.scopedKey ? (typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(item.scopedKey) : item.scopedKey) : null);
+                        if (!rawLec) {
+                            quarantinedEntries.push({ item, reason: 'missing_lecture_id' });
+                            return;
+                        }
+                        validItems.push(item);
+                        appliedKeys.add(k);
+                    });
+
+                    validItemsCount = validItems.length;
+
+                    validItems.forEach(item => {
+                        const rawLec = item.lecId || (item.scopedKey ? (typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(item.scopedKey) : item.scopedKey) : null);
                         const scopedKey = toScopedKey(rawLec, uid);
                         const existing = dbInstance.stores.annotations.get(scopedKey);
-                        let mergedPages = {};
-                        if (existing && existing.pages) {
-                            mergedPages = (typeof existing.pages === 'object' && !Array.isArray(existing.pages)) ? JSON.parse(JSON.stringify(existing.pages)) : {};
-                        }
-                        const consolidatedIncoming = lecEntry.pages;
-                        Object.keys(consolidatedIncoming).forEach(pNum => {
-                            const incStrokes = Array.isArray(consolidatedIncoming[pNum]) ? consolidatedIncoming[pNum] : (consolidatedIncoming[pNum]?.strokes || []);
+                        let mergedPages = (existing && existing.pages && typeof existing.pages === 'object' && !Array.isArray(existing.pages)) ? JSON.parse(JSON.stringify(existing.pages)) : {};
+                        const incomingPages = (item.pagesData && typeof item.pagesData === 'object' && !Array.isArray(item.pagesData))
+                            ? item.pagesData
+                            : ((item.data && item.data.pages && typeof item.data.pages === 'object' && !Array.isArray(item.data.pages)) ? item.data.pages : {});
+
+                        Object.keys(incomingPages).forEach(pNum => {
+                            const incStrokes = Array.isArray(incomingPages[pNum]) ? incomingPages[pNum] : (incomingPages[pNum]?.strokes || []);
                             if (!mergedPages[pNum]) {
-                                mergedPages[pNum] = consolidatedIncoming[pNum];
+                                mergedPages[pNum] = incomingPages[pNum];
                             } else {
                                 const exStrokes = Array.isArray(mergedPages[pNum]) ? mergedPages[pNum] : (mergedPages[pNum]?.strokes || []);
                                 const exKeys = new Set(exStrokes.map(getStrokeDedupeKey));
@@ -19945,9 +20015,16 @@
                             pages: mergedPages,
                             updatedAt: new Date().toISOString()
                         });
+                        appliedLecturePages[scopedKey] = mergedPages;
                     });
-                    if (dbInstance.stores.annotation_recovery_vault) {
-                        dbInstance.stores.annotation_recovery_vault.delete(vaultKey);
+
+                    if (vaultStore) {
+                        const remainingVaultQueue = vaultQueue.filter(q => !appliedKeys.has(getItemKey(q)));
+                        if (remainingVaultQueue.length > 0) {
+                            vaultStore.set(vaultKey, { id: vaultKey, userId: uid, queue: remainingVaultQueue, updatedAt: Date.now() });
+                        } else {
+                            vaultStore.delete(vaultKey);
+                        }
                     }
                     applySucceeded = true;
                 } catch (mockErr) {
@@ -19956,13 +20033,21 @@
                 }
             }
 
-            // Only remove LocalStorage fallback and in-memory queue if the atomic commit succeeded!
+            // 3. Preserve quarantined rejected items in a safe recoverable location (Section 2.C)
+            if (quarantinedEntries.length > 0) {
+                try {
+                    const qKey = 'pharmaQuarantinedAnnoWrites_' + uid;
+                    const existingQ = JSON.parse(localStorage.getItem(qKey) || '[]');
+                    localStorage.setItem(qKey, JSON.stringify(existingQ.concat(quarantinedEntries)));
+                } catch (e) {}
+            }
+
+            // 4. Update memory & LocalStorage queues ONLY on successful atomic transaction commit
             if (applySucceeded) {
-                const appliedKeys = new Set(items.map(i => i.id || i.scopedKey || (i.lecId + '_' + i.timestamp)));
                 if (queuedAnnotationWritesDuringImportByAccount.has(uid)) {
                     const currentMemQ = queuedAnnotationWritesDuringImportByAccount.get(uid);
                     if (Array.isArray(currentMemQ)) {
-                        const remainingMem = currentMemQ.filter(q => !appliedKeys.has(q.id || q.scopedKey || (q.lecId + '_' + q.timestamp)));
+                        const remainingMem = currentMemQ.filter(q => !appliedKeys.has(getItemKey(q)));
                         if (remainingMem.length > 0) {
                             queuedAnnotationWritesDuringImportByAccount.set(uid, remainingMem);
                         } else {
@@ -19977,7 +20062,7 @@
                     if (currentRaw) {
                         const parsed = JSON.parse(currentRaw);
                         if (Array.isArray(parsed)) {
-                            const remaining = parsed.filter(q => !appliedKeys.has(q.id || q.scopedKey || (q.lecId + '_' + q.timestamp)));
+                            const remaining = parsed.filter(q => !appliedKeys.has(getItemKey(q)));
                             if (remaining.length > 0) {
                                 localStorage.setItem(lsKey, JSON.stringify(remaining));
                             } else {
@@ -19989,32 +20074,24 @@
                     }
                 } catch (e) {}
             } else {
-                console.warn('Queue apply transaction failed or aborted; preserving queued annotations for retry');
+                console.warn('Queue apply transaction failed or aborted; strictly preserving queued annotations for retry');
                 return { ok: false, reason: 'transaction_failed', error: applyError };
             }
 
-            // If this tab's active session is currently uid, also update in-memory caches and schedule flush
+            // 5. Update active session caches if currently on account uid
             const activeUid = (typeof getCanonicalUserId === 'function') ? getCanonicalUserId() : null;
             if (activeUid === uid) {
                 const ctx = (typeof resolveAccountOperationContext === 'function') ? resolveAccountOperationContext(uid) : null;
-                items.forEach(item => {
-                    try {
-                        const rawLec = item.lecId || (item.scopedKey ? (typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(item.scopedKey) : item.scopedKey) : null);
-                        if (!rawLec) return;
-                        const scopedKey = toScopedKey(rawLec, uid);
-                        const incomingPages = (item.pagesData && typeof item.pagesData === 'object' && !Array.isArray(item.pagesData))
-                            ? item.pagesData
-                            : ((item.data && item.data.pages && typeof item.data.pages === 'object' && !Array.isArray(item.data.pages)) ? item.data.pages : {});
-                        inMemoryAnnotationsCache[scopedKey] = incomingPages;
-                        pendingAnnoSaveMap[scopedKey] = incomingPages;
-                    } catch (e) {}
+                Object.keys(appliedLecturePages).forEach(scopedKey => {
+                    inMemoryAnnotationsCache[scopedKey] = appliedLecturePages[scopedKey];
+                    pendingAnnoSaveMap[scopedKey] = appliedLecturePages[scopedKey];
                 });
                 if (typeof flushPendingAnnotationsSave === 'function' && ctx && ctx.isCurrent()) {
                     flushPendingAnnotationsSave(false, ctx);
                 }
             }
 
-            return { ok: true, count: items.length };
+            return { ok: true, count: validItemsCount, quarantinedCount: quarantinedEntries.length };
         }
 
         // Flush queued domain mutations (subjects, schedule, logs) after import barrier clears
@@ -20030,16 +20107,15 @@
             const key = 'pharmaPendingDomainWrites_' + uid;
             let pending = null;
             try {
-                const raw = localStorage.getItem(key);
+                const raw = (typeof localStorage !== 'undefined' && localStorage.getItem) ? localStorage.getItem(key) : null;
                 if (raw) pending = JSON.parse(raw);
             } catch (e) {}
             if (pendingDomainWritesDuringImportByAccount.has(uid)) {
                 pending = Object.assign({}, pending || {}, pendingDomainWritesDuringImportByAccount.get(uid));
             }
-            if (!pending) return { ok: true, count: 0 };
+            if (!pending || Object.keys(pending).length === 0) return { ok: true, count: 0 };
 
             const curUid = (typeof getCanonicalUserId === 'function') ? getCanonicalUserId() : null;
-            let flushedCount = 0;
 
             function extractDomainPayload(item, expectedUid, domainName) {
                 if (!item || typeof item !== 'object') {
@@ -20050,65 +20126,85 @@
                     console.warn(`Rejecting ${domainName} queue item: missing or mismatched userId:`, item.userId, 'expected:', expectedUid);
                     return { valid: false, error: 'mismatched_or_missing_userId', actualUid: item.userId };
                 }
-                if (item.payload === undefined) {
+                if (item.payload === undefined || item.payload === null) {
                     console.warn(`Rejecting ${domainName} queue item: missing explicit payload (no reconstruction from mutable globals permitted)`);
                     return { valid: false, error: 'missing_payload' };
                 }
                 return { valid: true, payload: item.payload };
             }
 
-            // 1. Audit and extract subjects payload with strict ownership
-            let subPayload = null;
-            if (pending.subjects) {
-                const extracted = extractDomainPayload(pending.subjects, uid, 'subjects');
-                if (extracted.valid) {
-                    subPayload = extracted.payload;
-                    flushedCount++;
+            // 1. Audit and categorize valid vs invalid domain queue items separately (Section 3)
+            const validDomains = {};
+            const invalidDomains = [];
+            const candidateDomains = ['subjects', 'schedule', 'logs'];
+
+            candidateDomains.forEach(domainName => {
+                if (pending[domainName]) {
+                    const extracted = extractDomainPayload(pending[domainName], uid, domainName);
+                    if (extracted.valid) {
+                        validDomains[domainName] = extracted.payload;
+                    } else {
+                        invalidDomains.push({ domain: domainName, item: pending[domainName], error: extracted.error });
+                    }
                 }
+            });
+
+            // Check any non-standard domain entries in pending
+            Object.keys(pending).forEach(k => {
+                if (!candidateDomains.includes(k)) {
+                    const extracted = extractDomainPayload(pending[k], uid, k);
+                    if (extracted.valid) {
+                        validDomains[k] = extracted.payload;
+                    } else {
+                        invalidDomains.push({ domain: k, item: pending[k], error: extracted.error });
+                    }
+                }
+            });
+
+            // 2. Preserve invalid or unprocessed entries in an account-scoped quarantine location (Section 3)
+            if (invalidDomains.length > 0) {
+                try {
+                    const qKey = 'pharmaQuarantinedDomainWrites_' + uid;
+                    const existingQ = JSON.parse(localStorage.getItem(qKey) || '{}');
+                    invalidDomains.forEach(inv => { existingQ[inv.domain] = inv; });
+                    localStorage.setItem(qKey, JSON.stringify(existingQ));
+                } catch (e) {}
             }
 
-            // 2. Audit and extract schedule payload with strict ownership
-            let schedPayload = null;
-            if (pending.schedule) {
-                const extracted = extractDomainPayload(pending.schedule, uid, 'schedule');
-                if (extracted.valid) {
-                    schedPayload = extracted.payload;
-                    flushedCount++;
-                }
-            }
+            const persistedDomains = [];
 
-            // 3. Audit and extract logs payload with strict ownership
-            let logsPayload = null;
-            if (pending.logs) {
-                const extracted = extractDomainPayload(pending.logs, uid, 'logs');
-                if (extracted.valid) {
-                    logsPayload = extracted.payload;
-                    flushedCount++;
-                }
-            }
-
-            // ACCOUNT ISOLATION ENFORCEMENT:
+            // 3. Apply valid domains with strict account isolation
             if (curUid === uid) {
                 // Case A: The active account in this tab IS the target account
                 let allPersisted = true;
 
-                if (subPayload !== null) {
+                if (validDomains.subjects !== undefined) {
+                    const subPayload = validDomains.subjects;
                     try {
                         const serialized = JSON.stringify(subPayload);
                         localStorage.setItem('pharmaSubjectsV4', serialized);
-                        if (localStorage.getItem('pharmaSubjectsV4') !== serialized) allPersisted = false;
+                        if (localStorage.getItem('pharmaSubjectsV4') === serialized) {
+                            persistedDomains.push('subjects');
+                        } else {
+                            allPersisted = false;
+                        }
                     } catch (e) { allPersisted = false; }
                     subjects = Array.isArray(subPayload) ? subPayload : (subjects || []);
                     if (typeof renderSubjectsList === 'function') renderSubjectsList();
                 }
 
-                if (schedPayload !== null && typeof schedPayload === 'object') {
+                if (validDomains.schedule !== undefined && typeof validDomains.schedule === 'object') {
+                    const schedPayload = validDomains.schedule;
                     try {
                         const serialized = JSON.stringify(schedPayload);
                         localStorage.setItem('pharmaScheduleV4', serialized);
-                        if (localStorage.getItem('pharmaScheduleV4') !== serialized) allPersisted = false;
                         if (schedPayload.plannerPrefs) {
                             localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(schedPayload.plannerPrefs));
+                        }
+                        if (localStorage.getItem('pharmaScheduleV4') === serialized) {
+                            persistedDomains.push('schedule');
+                        } else {
+                            allPersisted = false;
                         }
                     } catch (e) { allPersisted = false; }
 
@@ -20121,11 +20217,16 @@
                     if (typeof renderSchedule === 'function') renderSchedule();
                 }
 
-                if (logsPayload !== null) {
+                if (validDomains.logs !== undefined) {
+                    const logsPayload = validDomains.logs;
                     try {
                         const serialized = JSON.stringify(logsPayload);
                         localStorage.setItem('pharmaLogsV4', serialized);
-                        if (localStorage.getItem('pharmaLogsV4') !== serialized) allPersisted = false;
+                        if (localStorage.getItem('pharmaLogsV4') === serialized) {
+                            persistedDomains.push('logs');
+                        } else {
+                            allPersisted = false;
+                        }
                     } catch (e) { allPersisted = false; }
                     logs = Array.isArray(logsPayload) ? logsPayload : (logs || []);
                     if (typeof updateTracker === 'function') updateTracker();
@@ -20138,9 +20239,9 @@
                     : ('pharmaAccountWorkspace_' + uid);
                 try {
                     const existingSnap = JSON.parse(localStorage.getItem(accountKey) || 'null') || { user_id: uid };
-                    if (subPayload !== null) existingSnap.subjects = subPayload;
-                    if (schedPayload !== null) existingSnap.schedule = schedPayload;
-                    if (logsPayload !== null) existingSnap.logs = logsPayload;
+                    if (validDomains.subjects !== undefined) existingSnap.subjects = validDomains.subjects;
+                    if (validDomains.schedule !== undefined) existingSnap.schedule = validDomains.schedule;
+                    if (validDomains.logs !== undefined) existingSnap.logs = validDomains.logs;
                     existingSnap.annotationsStoredInIndexedDB = true;
                     const snapSerialized = JSON.stringify(existingSnap);
                     localStorage.setItem(accountKey, snapSerialized);
@@ -20149,28 +20250,52 @@
                     allPersisted = false;
                 }
 
-                // Mark workspace dirty so changes are saved to account snapshot and cloud
+                // Mark workspace dirty
                 try {
                     localStorage.setItem('pharmaWorkspaceDirty', '1');
                     localStorage.setItem('pharmaWorkspaceDirty_' + uid, '1');
                 } catch (e) {}
 
-                // Delete pending queue records ONLY after active workspace application commits cleanly
-                if (allPersisted) {
-                    pendingDomainWritesDuringImportByAccount.delete(uid);
-                    try { localStorage.removeItem(key); } catch (e) {}
-                    return { ok: true, applied: 'active_workspace', uid, count: flushedCount };
-                } else {
+                if (!allPersisted) {
                     console.error('Active workspace domain flush persistence failed; retaining pending queue');
                     return { ok: false, reason: 'active_workspace_persist_failed' };
                 }
+
+                // 4. Remove ONLY confirmed persisted domains from the queues (Section 3)
+                if (pendingDomainWritesDuringImportByAccount.has(uid)) {
+                    const mem = pendingDomainWritesDuringImportByAccount.get(uid);
+                    persistedDomains.forEach(d => delete mem[d]);
+                    if (Object.keys(mem).length === 0) pendingDomainWritesDuringImportByAccount.delete(uid);
+                }
+                try {
+                    const curRaw = localStorage.getItem(key);
+                    if (curRaw) {
+                        const curP = JSON.parse(curRaw);
+                        persistedDomains.forEach(d => delete curP[d]);
+                        if (Object.keys(curP).length > 0) {
+                            localStorage.setItem(key, JSON.stringify(curP));
+                        } else {
+                            localStorage.removeItem(key);
+                        }
+                    }
+                } catch (e) {}
+
+                if (invalidDomains.length > 0) {
+                    return {
+                        ok: false,
+                        partial: true,
+                        applied: 'active_workspace',
+                        uid,
+                        appliedCount: persistedDomains.length,
+                        invalidCount: invalidDomains.length,
+                        invalidDomains,
+                        reason: 'invalid_queue_items_quarantined'
+                    };
+                }
+
+                return { ok: true, applied: 'active_workspace', uid, count: persistedDomains.length };
             } else {
                 // Case B: The active account in this tab is DIFFERENT (or none)
-                // A queued mutation for Account A must NEVER overwrite Account B's active global state!
-                // DO NOT TOUCH pharmaSubjectsV4, pharmaScheduleV4, pharmaPlannerPrefsV1, pharmaLogsV4!
-                // DO NOT TOUCH in-memory subjects, scheduleEvents, logs!
-                // DO NOT TOUCH global pharmaWorkspaceDirty!
-                // Safely persist Account A's queued payload into Account A's account-scoped snapshot:
                 const accountKey = (typeof getAccountBackupStorageKey === 'function')
                     ? getAccountBackupStorageKey(uid)
                     : ('pharmaAccountWorkspace_' + uid);
@@ -20182,9 +20307,9 @@
                     accountSnapshot = { user_id: uid };
                 }
 
-                if (subPayload !== null) accountSnapshot.subjects = subPayload;
-                if (schedPayload !== null) accountSnapshot.schedule = schedPayload;
-                if (logsPayload !== null) accountSnapshot.logs = logsPayload;
+                if (validDomains.subjects !== undefined) { accountSnapshot.subjects = validDomains.subjects; persistedDomains.push('subjects'); }
+                if (validDomains.schedule !== undefined) { accountSnapshot.schedule = validDomains.schedule; persistedDomains.push('schedule'); }
+                if (validDomains.logs !== undefined) { accountSnapshot.logs = validDomains.logs; persistedDomains.push('logs'); }
                 accountSnapshot.annotationsStoredInIndexedDB = true;
 
                 let snapshotPersisted = false;
@@ -20205,12 +20330,36 @@
                     return { ok: false, reason: 'snapshot_persist_failed', error: new Error('Failed to durably persist inactive account snapshot') };
                 }
 
-                // Remove from in-memory map so it won't contaminate this tab's memory,
-                // but RETAIN pharmaPendingDomainWrites_<uid> in localStorage so it remains fully recoverable
-                // and will be applied to active global keys when Account A becomes active!
-                pendingDomainWritesDuringImportByAccount.delete(uid);
+                // Remove ONLY persisted domains from in-memory map
+                if (pendingDomainWritesDuringImportByAccount.has(uid)) {
+                    const mem = pendingDomainWritesDuringImportByAccount.get(uid);
+                    persistedDomains.forEach(d => delete mem[d]);
+                    if (Object.keys(mem).length === 0) pendingDomainWritesDuringImportByAccount.delete(uid);
+                }
 
-                return { ok: true, applied: 'account_scoped_only', inactiveUser: uid, count: flushedCount };
+                // If invalid domains exist, preserve them in pharmaPendingDomainWrites_<uid> as well as quarantine
+                if (invalidDomains.length > 0) {
+                    try {
+                        const curRaw = localStorage.getItem(key);
+                        if (curRaw) {
+                            const curP = JSON.parse(curRaw);
+                            persistedDomains.forEach(d => delete curP[d]);
+                            localStorage.setItem(key, JSON.stringify(curP));
+                        }
+                    } catch (e) {}
+                    return {
+                        ok: false,
+                        partial: true,
+                        applied: 'account_scoped_only',
+                        inactiveUser: uid,
+                        appliedCount: persistedDomains.length,
+                        invalidCount: invalidDomains.length,
+                        invalidDomains,
+                        reason: 'invalid_queue_items_quarantined'
+                    };
+                }
+
+                return { ok: true, applied: 'account_scoped_only', inactiveUser: uid, count: persistedDomains.length };
             }
         }
 
@@ -20255,21 +20404,9 @@
                         if (ignoreTxId && parsedB && parsedB.txId === ignoreTxId) {
                             return { blocked: false };
                         }
-                        const lastActivity = parsedB.heartbeatAt || parsedB.startedAt || 0;
-                        if (lastActivity && (Date.now() - lastActivity > 30000)) {
-                            const txRaw = (typeof localStorage !== 'undefined' && localStorage.getItem) ? localStorage.getItem('pharmaImportTxState_' + uid) : null;
-                            if (!txRaw) {
-                                console.warn('Clearing verified abandoned import barrier lease (no active pointer) for user:', uid);
-                                if (typeof localStorage !== 'undefined' && localStorage.removeItem) {
-                                    localStorage.removeItem('pharmaImportBarrier_' + uid);
-                                }
-                                activeImportBarriersByAccount.delete(uid);
-                                stopBarrierHeartbeat(uid);
-                                return { blocked: false };
-                            }
-                        }
                     } catch (e) {}
                 }
+                // Strictly fail closed synchronously: never clear barrier based on elapsed time or missing pointer (Section 6)
                 return {
                     blocked: true,
                     reason: 'import_in_progress',
@@ -21041,7 +21178,7 @@
             }
 
             if (!opCtx.isCurrent()) {
-                await rollbackImportFromJournal(uid, journalRecord);
+                await rollbackImportFromJournal(uid, journalRecord, fencingToken, passedTxId);
                 return { ok: false, status: 'aborted', reason: 'account_switched' };
             }
 
@@ -21492,35 +21629,61 @@
                 // 2. Restore IndexedDB annotations
                 if (dbInstance && snapshot.annotations) {
                     await new Promise((resolve, reject) => {
-                        const tx = dbInstance.transaction('annotations', 'readwrite');
+                        const storeNames = (fencingToken !== null && dbInstance.objectStoreNames.contains('annotation_recovery_vault'))
+                            ? ['annotations', 'annotation_recovery_vault']
+                            : ['annotations'];
+                        const tx = dbInstance.transaction(storeNames, 'readwrite');
                         const store = tx.objectStore('annotations');
                         const originalMap = snapshot.annotations;
 
-                        // Delete newly introduced target records that were not originally present
-                        if (Array.isArray(journal.targetRecordManifest)) {
-                            journal.targetRecordManifest.forEach(scopedKey => {
-                                const rawId = typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(scopedKey) : scopedKey;
-                                if (!originalMap[rawId] && !originalMap[scopedKey]) {
-                                    store.delete(toScopedKey(rawId, uid));
-                                }
-                            });
-                        }
-
-                        // Restore original records
-                        Object.keys(originalMap).forEach(rawLec => {
-                            const pages = originalMap[rawLec];
-                            if (pages) {
-                                const scopedKey = toScopedKey(rawLec, uid);
-                                const pagesVal = (pages.pages && typeof pages.pages === 'object' && !Array.isArray(pages.pages)) ? pages.pages : pages;
-                                store.put({
-                                    id: scopedKey,
-                                    rawId: rawLec,
-                                    userId: uid,
-                                    pages: pagesVal,
-                                    updatedAt: new Date().toISOString()
+                        const executeRestoreOperations = () => {
+                            // Delete newly introduced target records that were not originally present
+                            if (Array.isArray(journal.targetRecordManifest)) {
+                                journal.targetRecordManifest.forEach(scopedKey => {
+                                    const rawId = typeof extractRawIdFromScopedKey === 'function' ? extractRawIdFromScopedKey(scopedKey) : scopedKey;
+                                    if (!originalMap[rawId] && !originalMap[scopedKey]) {
+                                        store.delete(toScopedKey(rawId, uid));
+                                    }
                                 });
                             }
-                        });
+
+                            // Restore original records
+                            Object.keys(originalMap).forEach(rawLec => {
+                                const pages = originalMap[rawLec];
+                                if (pages) {
+                                    const scopedKey = toScopedKey(rawLec, uid);
+                                    const pagesVal = (pages.pages && typeof pages.pages === 'object' && !Array.isArray(pages.pages)) ? pages.pages : pages;
+                                    store.put({
+                                        id: scopedKey,
+                                        rawId: rawLec,
+                                        userId: uid,
+                                        pages: pagesVal,
+                                        updatedAt: new Date().toISOString()
+                                    });
+                                }
+                            });
+                        };
+
+                        if (fencingToken !== null && dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
+                            const vaultStore = tx.objectStore('annotation_recovery_vault');
+                            const lockKey = toScopedKey('__import_lock_v1__', uid);
+                            const lockReq = vaultStore.get(lockKey);
+                            lockReq.onsuccess = () => {
+                                const curLock = lockReq.result;
+                                if (!curLock || (passedTxId && curLock.txId !== passedTxId) || curLock.fencingToken !== fencingToken) {
+                                    try { tx.abort(); } catch (e) {}
+                                    reject(new Error('STALE_FENCING_TOKEN'));
+                                    return;
+                                }
+                                executeRestoreOperations();
+                            };
+                            lockReq.onerror = () => {
+                                try { tx.abort(); } catch (e) {}
+                                reject(new Error('STALE_FENCING_TOKEN'));
+                            };
+                        } else {
+                            executeRestoreOperations();
+                        }
 
                         tx.oncomplete = () => resolve();
                         tx.onerror = () => reject(tx.error || new Error('IDB rollback aborted'));
@@ -21547,7 +21710,28 @@
                 if (dbInstance) {
                     await new Promise((resolve, reject) => {
                         const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
-                        tx.objectStore('annotation_recovery_vault').put(journal);
+                        const vaultStore = tx.objectStore('annotation_recovery_vault');
+
+                        if (fencingToken !== null) {
+                            const lockKey = toScopedKey('__import_lock_v1__', uid);
+                            const lockReq = vaultStore.get(lockKey);
+                            lockReq.onsuccess = () => {
+                                const curLock = lockReq.result;
+                                if (!curLock || (passedTxId && curLock.txId !== passedTxId) || curLock.fencingToken !== fencingToken) {
+                                    try { tx.abort(); } catch (e) {}
+                                    reject(new Error('STALE_FENCING_TOKEN'));
+                                    return;
+                                }
+                                vaultStore.put(journal);
+                            };
+                            lockReq.onerror = () => {
+                                try { tx.abort(); } catch (e) {}
+                                reject(new Error('STALE_FENCING_TOKEN'));
+                            };
+                        } else {
+                            vaultStore.put(journal);
+                        }
+
                         tx.oncomplete = () => resolve();
                         tx.onerror = () => reject(tx.error || new Error('Failed to persist ROLLED_BACK phase'));
                         tx.onabort = () => reject(tx.error || new Error('Failed to persist ROLLED_BACK phase'));
@@ -21612,7 +21796,28 @@
                     if (dbInstance) {
                         await new Promise((resolve, reject) => {
                             const tx = dbInstance.transaction('annotation_recovery_vault', 'readwrite');
-                            tx.objectStore('annotation_recovery_vault').delete(journalScopedKey);
+                            const vaultStore = tx.objectStore('annotation_recovery_vault');
+
+                            if (fencingToken !== null) {
+                                const lockKey = toScopedKey('__import_lock_v1__', uid);
+                                const lockReq = vaultStore.get(lockKey);
+                                lockReq.onsuccess = () => {
+                                    const curLock = lockReq.result;
+                                    if (!curLock || (passedTxId && curLock.txId !== passedTxId) || curLock.fencingToken !== fencingToken) {
+                                        try { tx.abort(); } catch (e) {}
+                                        reject(new Error('STALE_FENCING_TOKEN'));
+                                        return;
+                                    }
+                                    vaultStore.delete(journalScopedKey);
+                                };
+                                lockReq.onerror = () => {
+                                    try { tx.abort(); } catch (e) {}
+                                    reject(new Error('STALE_FENCING_TOKEN'));
+                                };
+                            } else {
+                                vaultStore.delete(journalScopedKey);
+                            }
+
                             tx.oncomplete = () => resolve();
                             tx.onerror = () => reject(tx.error);
                             tx.onabort = () => reject(tx.error);
@@ -21620,6 +21825,9 @@
                         journalDeleted = true;
                     }
                 } catch (delErr) {
+                    if (delErr?.message === 'STALE_FENCING_TOKEN' || String(delErr).includes('STALE_FENCING_TOKEN')) {
+                        throw delErr;
+                    }
                     console.warn('Failed to delete journal after rollback:', delErr);
                     if (testHooks && testHooks.failRollbackJournalDelete) {
                         throw delErr;
@@ -21672,6 +21880,10 @@
 
                 return { ok: true, rolledBack: true, drainedQueues: true };
             } catch (rbErr) {
+                if (rbErr?.message === 'STALE_FENCING_TOKEN' || String(rbErr).includes('STALE_FENCING_TOKEN')) {
+                    console.warn('Rollback aborted due to STALE_FENCING_TOKEN; newer tab owns the lock');
+                    return { ok: false, status: 'error', reason: 'STALE_FENCING_TOKEN', error: rbErr };
+                }
                 // If fault injection test intentionally caused crash, rethrow for the test harness
                 if (testHooks && (testHooks.crashDuringRollback || testHooks.crashDuringRollbackCleanup || testHooks.crashAfterRolledBackPersisted || testHooks.crashAfterRolledBackJournal || testHooks.crashAfterRolledBackPointer || testHooks.crashBeforeRollbackBarrierCleanup || testHooks.failRollbackPointerWrite || testHooks.failRollbackJournalDelete)) {
                     throw rbErr;
@@ -22063,21 +22275,27 @@
                         if (lq && Array.isArray(lq.held) && lq.held.some(l => l && l.name === 'exo_import_lock_' + uid)) {
                             hasLiveLock = true;
                         }
-                    } catch (e) {}
+                    } catch (e) {
+                        console.warn('Failed to query Web Locks during recovery; failing closed to assume live lock:', e);
+                        hasLiveLock = true;
+                    }
                 }
                 if (!hasLiveLock && dbInstance && dbInstance.objectStoreNames && dbInstance.objectStoreNames.contains('annotation_recovery_vault')) {
                     try {
                         const lockKey = toScopedKey('__import_lock_v1__', uid);
-                        const idbLock = await new Promise((res) => {
+                        const idbLock = await new Promise((res, rej) => {
                             const tx = dbInstance.transaction('annotation_recovery_vault', 'readonly');
                             const req = tx.objectStore('annotation_recovery_vault').get(lockKey);
                             req.onsuccess = () => res(req.result || null);
-                            req.onerror = () => res(null);
+                            req.onerror = () => rej(req.error || new Error('IDB lock read error'));
                         });
                         if (idbLock && idbLock.heartbeatAt && (Date.now() - idbLock.heartbeatAt < 15000)) {
                             hasLiveLock = true;
                         }
-                    } catch (e) {}
+                    } catch (e) {
+                        console.warn('Failed to query IDB fallback lock during recovery; failing closed to assume live lock:', e);
+                        hasLiveLock = true;
+                    }
                 }
                 if (activeImportBarriersByAccount.get(uid)) {
                     hasLiveLock = true;
@@ -22086,11 +22304,17 @@
                     return { recovered: false, inProgress: true, reason: 'import_in_progress' };
                 }
 
-                // No live owner: safe to roll back uncommitted transaction
-                const rbRes = await rollbackImportFromJournal(uid, journalRecord);
-                if (rbRes && rbRes.ok) {
+                // Authoritative recovery ownership: acquire lock before executing rollback
+                const recoveryTxId = 'recovery_' + (journalRecord.txId || ('tx_' + Date.now()));
+                const lockRes = await runWithImportLock(uid, recoveryTxId, async (recoveryFencingToken) => {
+                    return await rollbackImportFromJournal(uid, journalRecord, recoveryFencingToken, recoveryTxId);
+                });
+
+                if (lockRes && lockRes.ok) {
                     if (typeof showToast === 'function') showToast('تم التراجع عن عملية استرجاع غير مكتملة لحماية سلامة بياناتك 🛡️', 'error');
                     return { recovered: true, action: 'rolled_back' };
+                } else if (lockRes && (lockRes.reason === 'import_in_progress' || lockRes.reason === 'STALE_FENCING_TOKEN')) {
+                    return { recovered: false, inProgress: true, reason: 'import_in_progress' };
                 } else {
                     return { recovered: false, quarantine: true, reason: 'ROLLBACK_FAILED_QUARANTINE' };
                 }

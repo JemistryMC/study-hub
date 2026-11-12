@@ -4182,6 +4182,185 @@ async function main() {
       'Test BB.5: Persisted queued annotations survive tab close and page restart, while User B remains strictly isolated'
     );
 
+    // ========================================================================
+    // TEST CC: Real Two-Tab IDB Fallback-Lock Competition & Fencing Token
+    // ========================================================================
+    console.log('\n--- Test CC: Real Chromium Two-Tab IDB Fallback-Lock & Fencing Token ---');
+    const tabCC1 = await context.newPage();
+    const tabCC2 = await context.newPage();
+    await tabCC1.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+    await tabCC2.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+    await tabCC1.waitForFunction(() => typeof initPdfDB === 'function');
+    await tabCC2.waitForFunction(() => typeof initPdfDB === 'function');
+
+    const uidCC = 'user_cc_idb_race_' + Date.now();
+
+    // Tab 1 acquires fallback IDB lock and holds it
+    const tabCC1Acquire = await tabCC1.evaluate(async (uid) => {
+      await initPdfDB();
+      window.__exoImportTestHooks = { forceIdbLockFallback: true };
+      let acquiredToken = null;
+      let holdingPromiseResolve = null;
+      window.__holdIdbLock = new Promise(r => { holdingPromiseResolve = r; });
+      window.__releaseIdbLock = holdingPromiseResolve;
+
+      window.__idbLockPromise = runWithImportLock(uid, 'tx_cc1', async (token) => {
+        acquiredToken = token;
+        await window.__holdIdbLock;
+        return { ok: true, token };
+      });
+      await new Promise(r => setTimeout(r, 200));
+      return { token: acquiredToken };
+    }, uidCC);
+
+    // Tab 2 attempts to acquire while Tab 1 holds it
+    const tabCC2TryAcquire = await tabCC2.evaluate(async (uid) => {
+      await initPdfDB();
+      window.__exoImportTestHooks = { forceIdbLockFallback: true };
+      const res = await runWithImportLock(uid, 'tx_cc2', async (token) => {
+        return { ok: true, token };
+      });
+      return res;
+    }, uidCC);
+
+    // Release Tab 1 lock
+    await tabCC1.evaluate(async () => {
+      if (typeof window.__releaseIdbLock === 'function') window.__releaseIdbLock();
+      return await window.__idbLockPromise;
+    });
+
+    await tabCC1.close();
+    await tabCC2.close();
+
+    assert(
+      tabCC2TryAcquire && tabCC2TryAcquire.ok === false && tabCC2TryAcquire.reason === 'import_in_progress',
+      'Test CC.1: Tab 2 is blocked by active IDB fallback lock held by Tab 1'
+    );
+
+    // ========================================================================
+    // TEST DD: Real Two-Tab Concurrent Queue Drain & Stroke Deduplication
+    // ========================================================================
+    console.log('\n--- Test DD: Real Chromium Two-Tab Concurrent Queue Drain ---');
+    const tabDD1 = await context.newPage();
+    const tabDD2 = await context.newPage();
+    await tabDD1.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+    await tabDD2.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+    await tabDD1.waitForFunction(() => typeof initPdfDB === 'function');
+    await tabDD2.waitForFunction(() => typeof initPdfDB === 'function');
+
+    const uidDD = 'user_dd_drain_' + Date.now();
+
+    // Tab 1 sets import barrier
+    await tabDD1.evaluate(async (uid) => {
+      await initPdfDB();
+      await handleAuthSessionChange({ id: uid, email: `${uid}@exo.edu`, name: 'User DD' }, false);
+      localStorage.setItem('pharmaImportBarrier_' + uid, JSON.stringify({ txId: 'tx_dd1', startedAt: Date.now(), heartbeatAt: Date.now() }));
+    }, uidDD);
+
+    // Tab 2 writes duplicate strokes and domain edits while barrier is active
+    const tabDD2Writes = await tabDD2.evaluate(async (uid) => {
+      await initPdfDB();
+      await handleAuthSessionChange({ id: uid, email: `${uid}@exo.edu`, name: 'User DD' }, false);
+      const ctx = createAccountOperationContext(uid);
+
+      // 1. Queued annotations with duplicate strokes (null as 3rd param specificPageKey)
+      const strA = { id: 'str_dd_1', points: [10, 20, 30, 40], color: '#ff0000' };
+      const qRes1 = await saveAnnotationsToDB('lec_dd_1', { 1: [strA] }, null, ctx);
+      const qRes2 = await saveAnnotationsToDB('lec_dd_1', { 1: [strA, { id: 'str_dd_2', points: [50, 60], color: '#00ff00' }] }, null, ctx);
+
+      // 2. Queued domain edit
+      subjects = [{ id: 'sub_dd_queued', name: 'Queued Subject DD' }];
+      const subRes = saveSubjects();
+
+      return {
+        qRes1Queued: qRes1?.queued === true,
+        qRes2Queued: qRes2?.queued === true,
+        subResQueued: subRes?.queued === true
+      };
+    }, uidDD);
+
+    // Tab 1 removes barrier and drains queues
+    const tabDD1Drain = await tabDD1.evaluate(async (uid) => {
+      localStorage.removeItem('pharmaImportBarrier_' + uid);
+      const annoDrainRes = await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
+      const domDrainRes = flushQueuedDomainWritesAfterImport(uid);
+
+      // Check persisted annotations in IDB
+      const persistedRec = await new Promise(res => {
+        const tx = dbInstance.transaction('annotations', 'readonly');
+        const req = tx.objectStore('annotations').get(toScopedKey('lec_dd_1', uid));
+        req.onsuccess = () => res(req.result || null);
+        req.onerror = () => res(null);
+      });
+
+      return {
+        annoDrainRes,
+        domDrainRes,
+        persistedRec
+      };
+    }, uidDD);
+
+    await tabDD1.close();
+    await tabDD2.close();
+
+    assert(
+      tabDD2Writes.qRes1Queued === true && tabDD2Writes.qRes2Queued === true && tabDD2Writes.subResQueued === true,
+      'Test DD.1: Tab 2 writes queued during active barrier'
+    );
+    assert(
+      tabDD1Drain.annoDrainRes && tabDD1Drain.annoDrainRes.ok === true &&
+      tabDD1Drain.persistedRec && Array.isArray(tabDD1Drain.persistedRec.pages?.[1]) &&
+      tabDD1Drain.persistedRec.pages[1].length === 2,
+      'Test DD.2: Queued annotations drained cleanly with in-batch stroke deduplication in real Chromium'
+    );
+    assert(
+      tabDD1Drain.domDrainRes && tabDD1Drain.domDrainRes.ok === true,
+      'Test DD.3: Queued domain edits flushed cleanly in real Chromium'
+    );
+
+    // ========================================================================
+    // TEST EE: Real Chromium Recovery Fault Injection Hooks
+    // ========================================================================
+    console.log('\n--- Test EE: Real Chromium Recovery Fault Injection Hooks ---');
+    const tabEE = await context.newPage();
+    await tabEE.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+    await tabEE.waitForFunction(() => typeof initPdfDB === 'function');
+
+    const uidEE = 'user_ee_fault_' + Date.now();
+
+    const faultRes = await tabEE.evaluate(async (uid) => {
+      await initPdfDB();
+      await handleAuthSessionChange({ id: uid, email: `${uid}@exo.edu`, name: 'User EE' }, false);
+      const ctx = createAccountOperationContext(uid);
+      const barrierKey = 'pharmaImportBarrier_' + uid;
+      localStorage.setItem(barrierKey, JSON.stringify({ txId: 'tx_ee', startedAt: Date.now() }));
+
+      // 1. failLockQuery test hook
+      window.__exoImportTestHooks = { failLockQuery: true };
+      const recLockFail = await recoverPendingImportJournalIfNeeded(uid, ctx);
+      window.__exoImportTestHooks = null;
+      const barrierRetained1 = localStorage.getItem(barrierKey) !== null;
+
+      // 2. failIdbLockQuery test hook
+      window.__exoImportTestHooks = { failIdbLockQuery: true };
+      const recIdbFail = await recoverPendingImportJournalIfNeeded(uid, ctx);
+      window.__exoImportTestHooks = null;
+      const barrierRetained2 = localStorage.getItem(barrierKey) !== null;
+
+      // 3. Clean recovery clears barrier
+      const recClean = await recoverPendingImportJournalIfNeeded(uid, ctx);
+      const barrierCleaned = localStorage.getItem(barrierKey) === null;
+
+      return { barrierRetained1, barrierRetained2, barrierCleaned };
+    }, uidEE);
+
+    await tabEE.close();
+
+    assert(
+      faultRes.barrierRetained1 === true && faultRes.barrierRetained2 === true && faultRes.barrierCleaned === true,
+      'Test EE.1: Chromium recovery fault injection hooks verify fail-closed barrier retention on query failures'
+    );
+
     await context.close();
   } finally {
     await browser.close();
