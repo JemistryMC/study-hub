@@ -4250,12 +4250,31 @@ async function main() {
 
     const uidDD = 'user_dd_drain_' + Date.now();
 
-    // Tab 1 sets import barrier
+    // Tab 1 starts import and holds the active lock
     await tabDD1.evaluate(async (uid) => {
       await initPdfDB();
       await handleAuthSessionChange({ id: uid, email: `${uid}@exo.edu`, name: 'User DD' }, false);
-      localStorage.setItem('pharmaImportBarrier_' + uid, JSON.stringify({ txId: 'tx_dd1', startedAt: Date.now(), heartbeatAt: Date.now() }));
+      const ctx = createAccountOperationContext(uid);
+      const targetBackup = {
+        schema: 'exo_workspace_backup_v4',
+        version: 4,
+        data: { subjects: [{ id: 'sub_dd_orig', name: 'Original DD' }], schedule: { events: [] }, logs: [], annotations: {} }
+      };
+      const canon = canonicalizeJson(targetBackup.data);
+      targetBackup.integrity = {
+        algorithm: 'SHA-256',
+        canonicalScope: 'data',
+        sha256: await computeCanonicalSha256(canon),
+        byteLength: new TextEncoder().encode(canon).length
+      };
+      let releaseLock;
+      window.__holdLockPromise = new Promise(resolve => { releaseLock = resolve; });
+      window.__releaseImportLock = releaseLock;
+      window.__exoImportTestHooks = { holdImportAfterLock: window.__holdLockPromise };
+      window.__importPromise = importWorkspaceBackupV4(targetBackup, 'replace', uid, ctx);
     }, uidDD);
+
+    await tabDD1.waitForTimeout(300);
 
     // Tab 2 writes duplicate strokes and domain edits while barrier is active
     const tabDD2Writes = await tabDD2.evaluate(async (uid) => {
@@ -4263,7 +4282,7 @@ async function main() {
       await handleAuthSessionChange({ id: uid, email: `${uid}@exo.edu`, name: 'User DD' }, false);
       const ctx = createAccountOperationContext(uid);
 
-      // 1. Queued annotations with duplicate strokes (null as 3rd param specificPageKey)
+      // 1. Queued annotations with duplicate strokes
       const strA = { id: 'str_dd_1', points: [10, 20, 30, 40], color: '#ff0000' };
       const qRes1 = await saveAnnotationsToDB('lec_dd_1', { 1: [strA] }, null, ctx);
       const qRes2 = await saveAnnotationsToDB('lec_dd_1', { 1: [strA, { id: 'str_dd_2', points: [50, 60], color: '#00ff00' }] }, null, ctx);
@@ -4279,11 +4298,10 @@ async function main() {
       };
     }, uidDD);
 
-    // Tab 1 removes barrier and drains queues
+    // Tab 1 releases lock, completing import and draining queues
     const tabDD1Drain = await tabDD1.evaluate(async (uid) => {
-      localStorage.removeItem('pharmaImportBarrier_' + uid);
-      const annoDrainRes = await applyQueuedAnnotationWritesAfterImport(uid, 'merge');
-      const domDrainRes = flushQueuedDomainWritesAfterImport(uid);
+      if (typeof window.__releaseImportLock === 'function') window.__releaseImportLock();
+      await window.__importPromise;
 
       // Check persisted annotations in IDB
       const persistedRec = await new Promise(res => {
@@ -4294,9 +4312,8 @@ async function main() {
       });
 
       return {
-        annoDrainRes,
-        domDrainRes,
-        persistedRec
+        persistedRec,
+        subjects: JSON.parse(localStorage.getItem('pharmaSubjectsV4') || '[]')
       };
     }, uidDD);
 
@@ -4308,14 +4325,13 @@ async function main() {
       'Test DD.1: Tab 2 writes queued during active barrier'
     );
     assert(
-      tabDD1Drain.annoDrainRes && tabDD1Drain.annoDrainRes.ok === true &&
       tabDD1Drain.persistedRec && Array.isArray(tabDD1Drain.persistedRec.pages?.[1]) &&
       tabDD1Drain.persistedRec.pages[1].length === 2,
       'Test DD.2: Queued annotations drained cleanly with in-batch stroke deduplication in real Chromium'
     );
     assert(
-      tabDD1Drain.domDrainRes && tabDD1Drain.domDrainRes.ok === true,
-      'Test DD.3: Queued domain edits flushed cleanly in real Chromium'
+      Array.isArray(tabDD1Drain.subjects) && tabDD1Drain.subjects.some(s => s && s.id === 'sub_dd_queued'),
+      'Test DD.3: Queued domain edits flushed cleanly into canonical state in real Chromium'
     );
 
     // ========================================================================
