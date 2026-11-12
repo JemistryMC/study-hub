@@ -11344,6 +11344,125 @@
         }
 
         // --- Glass Modals Logic ---
+        let lastStorageWriteFailureDiagnostics = null;
+
+        function getLastStorageFailureDiagnostics() {
+            return lastStorageWriteFailureDiagnostics;
+        }
+
+        function diagnoseStorageWriteFailure(err, failedKey = '', serializedPayload = null, partialWritesSucceeded = []) {
+            const errorName = String(err && err.name ? err.name : (err && err.constructor && err.constructor.name ? err.constructor.name : 'Error'));
+            const errorMessage = String(err && err.message ? err.message : err);
+            const errorCode = (err && typeof err.code === 'number') ? err.code : null;
+            const lowerName = errorName.toLowerCase();
+            const lowerMsg = errorMessage.toLowerCase();
+
+            const isGenuineQuota = Boolean(
+                errorName === 'QuotaExceededError' ||
+                errorName === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+                errorCode === 22 ||
+                errorCode === 1014 ||
+                lowerName.includes('quota') ||
+                lowerMsg.includes('quota') ||
+                lowerMsg.includes('exceeded the quota')
+            );
+            const isSerializationError = Boolean(
+                !isGenuineQuota && (
+                    errorName === 'TypeError' && (
+                        lowerMsg.includes('circular') ||
+                        lowerMsg.includes('bigint') ||
+                        lowerMsg.includes('json') ||
+                        lowerMsg.includes('serialize')
+                    )
+                )
+            );
+            const isSecurityOrUnavailable = Boolean(
+                !isGenuineQuota && !isSerializationError && (
+                    errorName === 'SecurityError' ||
+                    errorName === 'InvalidAccessError' ||
+                    lowerMsg.includes('access is denied') ||
+                    lowerMsg.includes('storage is disabled') ||
+                    lowerMsg.includes('insecure')
+                )
+            );
+
+            let approxBytes = 0;
+            if (typeof serializedPayload === 'string') {
+                approxBytes = serializedPayload.length * 2;
+            } else if (serializedPayload !== null && serializedPayload !== undefined) {
+                try {
+                    const str = JSON.stringify(serializedPayload);
+                    approxBytes = str ? str.length * 2 : 0;
+                } catch (serErr) {
+                    approxBytes = -1;
+                }
+            }
+
+            let storageAvailable = true;
+            try {
+                if (typeof localStorage === 'undefined' || !localStorage) {
+                    storageAvailable = false;
+                }
+            } catch (availErr) {
+                storageAvailable = false;
+            }
+
+            const reason = isGenuineQuota
+                ? 'storage_quota_exceeded'
+                : (isSerializationError
+                    ? 'serialization_failed'
+                    : (isSecurityOrUnavailable || !storageAvailable ? 'storage_unavailable' : 'storage_write_failed'));
+
+            const diag = {
+                timestamp: new Date().toISOString(),
+                failedKey: String(failedKey || ''),
+                errorName,
+                errorMessage,
+                errorCode,
+                isQuotaExceeded: isGenuineQuota,
+                serializationFailed: isSerializationError,
+                storageAvailable,
+                approxBytes,
+                partialWritesSucceeded: Array.isArray(partialWritesSucceeded) ? partialWritesSucceeded.slice() : [],
+                quotaEstimate: null,
+                reason
+            };
+
+            if (typeof navigator !== 'undefined' && navigator.storage && typeof navigator.storage.estimate === 'function') {
+                try {
+                    const estRes = navigator.storage.estimate();
+                    if (estRes && typeof estRes.then === 'function') {
+                        estRes.then((est) => {
+                            if (est && typeof est === 'object') {
+                                diag.quotaEstimate = {
+                                    usage: typeof est.usage === 'number' ? est.usage : null,
+                                    quota: typeof est.quota === 'number' ? est.quota : null
+                                };
+                            }
+                        }).catch(() => {});
+                    }
+                } catch (estErr) {}
+            }
+
+            lastStorageWriteFailureDiagnostics = diag;
+            return diag;
+        }
+
+        function saveSingleInputModal() {
+            const btn = document.getElementById('siModalSaveBtn');
+            if (btn && typeof btn.onclick === 'function') {
+                const res = btn.onclick();
+                const modalClosed = Boolean(!res || (res.ok !== false && res.persisted !== false));
+                return {
+                    ok: modalClosed,
+                    persisted: modalClosed,
+                    modalClosed,
+                    result: res
+                };
+            }
+            return null;
+        }
+
         function openSingleInputModal(title, placeholder, initialValue, onSave) {
             document.getElementById('siModalTitle').innerHTML = title;
             const input = document.getElementById('siModalInput');
@@ -11354,10 +11473,22 @@
             btn.onclick = function() {
                 const cleanVal = sanitizeUserText(input.value, 250);
                 if(cleanVal !== '') {
-                    onSave(cleanVal);
-                    closeModal('singleInputModalOverlay');
+                    const saveRes = onSave(cleanVal);
+                    if (saveRes && typeof saveRes.then === 'function') {
+                        return saveRes.then((resolvedRes) => {
+                            if (!resolvedRes || (resolvedRes.ok !== false && resolvedRes.persisted !== false)) {
+                                closeModal('singleInputModalOverlay');
+                            }
+                            return resolvedRes;
+                        });
+                    }
+                    if (!saveRes || (saveRes.ok !== false && saveRes.persisted !== false)) {
+                        closeModal('singleInputModalOverlay');
+                    }
+                    return saveRes;
                 } else {
                     input.focus();
+                    return { ok: false, persisted: false, reason: 'empty_input' };
                 }
             };
             document.getElementById('singleInputModalOverlay').classList.add('active');
@@ -11375,8 +11506,19 @@
                 const cleanTitle = sanitizeUserText(in1.value, 250);
                 const cleanPath = sanitizeUserText(in2.value, 600);
                 if(cleanTitle !== '' && cleanPath !== '') {
-                    onSave(cleanTitle, cleanPath);
-                    closeModal('doubleInputModalOverlay');
+                    const saveRes = onSave(cleanTitle, cleanPath);
+                    if (saveRes && typeof saveRes.then === 'function') {
+                        return saveRes.then((resolvedRes) => {
+                            if (!resolvedRes || (resolvedRes.ok !== false && resolvedRes.persisted !== false)) {
+                                closeModal('doubleInputModalOverlay');
+                            }
+                            return resolvedRes;
+                        });
+                    }
+                    if (!saveRes || (saveRes.ok !== false && saveRes.persisted !== false)) {
+                        closeModal('doubleInputModalOverlay');
+                    }
+                    return saveRes;
                 }
             };
             document.getElementById('doubleInputModalOverlay').classList.add('active');
@@ -11387,8 +11529,9 @@
             document.getElementById('confirmModalText').innerText = message;
             const btn = document.getElementById('confirmModalBtn');
             btn.onclick = function() {
-                onConfirm();
+                const res = onConfirm();
                 closeModal('confirmModalOverlay');
+                return res;
             };
             document.getElementById('confirmModalOverlay').classList.add('active');
         }
@@ -11441,27 +11584,64 @@
                     };
                 }
             }
+            let serializedSubjects = null;
             try {
-                localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+                serializedSubjects = JSON.stringify(subjects);
+                localStorage.setItem('pharmaSubjectsV4', serializedSubjects);
             } catch (storageErr) {
-                console.error('saveSubjects localStorage write failed (QuotaExceededError or storage error):', storageErr);
+                const diag = diagnoseStorageWriteFailure(storageErr, 'pharmaSubjectsV4', serializedSubjects || subjects, []);
+                console.error('saveSubjects localStorage write failed:', {
+                    failedKey: diag.failedKey,
+                    errorName: diag.errorName,
+                    errorMessage: diag.errorMessage,
+                    approxBytes: diag.approxBytes,
+                    reason: diag.reason
+                });
+                let idbPromise = null;
+                if (typeof persistWorkspaceDomainToIDB === 'function') {
+                    try {
+                        idbPromise = persistWorkspaceDomainToIDB('subjects', subjects, currentUid, null, false);
+                    } catch (idbErr) {}
+                }
+                if (typeof recordDurableWorkspaceDirtyJournal === 'function') {
+                    try {
+                        recordDurableWorkspaceDirtyJournal(currentUid, true, false, 'subjects');
+                    } catch (jErr) {}
+                }
+                if (typeof updateCloudNavUI === 'function' && currentCloudUser) {
+                    updateCloudNavUI('error');
+                }
                 if (typeof showToast === 'function') {
-                    showToast('تعذر حفظ المواد محلياً بسبب امتلاء مساحة التخزين في المتصفح. تعديلاتك لا تزال في الذاكرة؛ يرجى تصدير نسخة احتياطية ⚠️', 'error');
+                    const msgAr = diag.isQuotaExceeded
+                        ? 'تعذر حفظ المواد في LocalStorage بسبب امتلاء مساحة التخزين (QuotaExceededError). تم الاحتفاظ بالتعديل في الذاكرة وسجل الاسترداد ⚠️'
+                        : (diag.serializationFailed
+                            ? 'تعذر حفظ المواد بسبب خطأ في تسلسل البيانات (Serialization Error) ⚠️'
+                            : 'تعذر حفظ المواد في المتصفح بسبب خطأ في التخزين المحلي ⚠️');
+                    showToast(msgAr, 'error');
                 }
                 return {
                     ok: false,
                     persisted: false,
+                    idbPersisted: Boolean(dbInstance),
+                    idbPersistPromise: idbPromise,
                     domain: 'subjects',
-                    reason: 'storage_quota_exceeded',
-                    error: String(storageErr && storageErr.message ? storageErr.message : storageErr),
-                    errorName: String(storageErr && storageErr.name ? storageErr.name : 'QuotaExceededError'),
+                    reason: diag.reason,
+                    failedKey: 'pharmaSubjectsV4',
+                    diagnostics: diag,
+                    error: diag.errorMessage,
+                    errorName: diag.errorName,
                     stampedCount: stampResult.stampedCount || 0,
                     unchangedCount: stampResult.unchangedCount || 0,
                     failedCount: (stampResult.failedCount || 0) + 1,
-                    errors: [...(Array.isArray(stampResult.errors) ? stampResult.errors : []), { entityType: 'subjects', entityId: 'storage', code: 'STORAGE_QUOTA_EXCEEDED', message: String(storageErr && storageErr.message ? storageErr.message : storageErr) }]
+                    errors: [...(Array.isArray(stampResult.errors) ? stampResult.errors : []), { entityType: 'subjects', entityId: 'storage', code: diag.isQuotaExceeded ? 'STORAGE_QUOTA_EXCEEDED' : 'STORAGE_WRITE_FAILED', message: diag.errorMessage }]
                 };
             }
             stampResult.persisted = true;
+            if (typeof persistWorkspaceDomainToIDB === 'function') {
+                try {
+                    stampResult.idbPersistPromise = persistWorkspaceDomainToIDB('subjects', subjects, currentUid, null, true);
+                } catch (idbErr) {}
+            }
             markLocalWorkspaceModified();
             if (!stampResult.ok || stampResult.failedCount > 0) {
                 if (typeof notifyCausalStampingFailure === 'function') {
@@ -12615,9 +12795,18 @@
         function triggerAddGroup() {
             openSingleInputModal('<i class="fa-solid fa-layer-group"></i> إضافة قسم/شابتر جديد', 'مثال: Chapter 1', '', (name) => {
                 const sub = subjects.find(s => s.id === activeSubjectId);
-                if(!sub) return;
-                sub.groups.push({ id: Date.now(), name: name, lectures: [] });
-                saveSubjects(); renderGroups(); showToast('تمت إضافة القسم');
+                if(!sub) return { ok: false, persisted: false, reason: 'subject_not_found' };
+                const newGrp = { id: Date.now(), name: name, lectures: [] };
+                newGrp._needsCausalStamp = true;
+                sub._needsCausalStamp = true;
+                sub.groups.push(newGrp);
+                const saveRes = saveSubjects();
+                renderGroups();
+                if (!saveRes || saveRes.ok === false || (saveRes.persisted === false && !saveRes.queued)) {
+                    return saveRes || { ok: false, persisted: false, reason: 'save_failed' };
+                }
+                showToast('تمت إضافة القسم');
+                return saveRes;
             });
         }
 
@@ -12627,7 +12816,16 @@
             const group = sub.groups.find(g => g.id === groupId);
             if(!group) return;
             openSingleInputModal('<i class="fa-solid fa-pen"></i> تعديل اسم القسم', 'الاسم الجديد', group.name, (newName) => {
-                group.name = newName; saveSubjects(); renderGroups(); showToast('تم التعديل بنجاح');
+                group.name = newName;
+                group._needsCausalStamp = true;
+                sub._needsCausalStamp = true;
+                const saveRes = saveSubjects();
+                renderGroups();
+                if (!saveRes || saveRes.ok === false || (saveRes.persisted === false && !saveRes.queued)) {
+                    return saveRes || { ok: false, persisted: false, reason: 'save_failed' };
+                }
+                showToast('تم التعديل بنجاح');
+                return saveRes;
             });
         }
 
@@ -12655,7 +12853,7 @@
                     : null;
                 if (!batchRes || !batchRes.ok) {
                     showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف القسم حفاظاً على سلامة البيانات ⚠️', 'error');
-                    return;
+                    return { ok: false, persisted: false, reason: 'tombstone_write_failed' };
                 }
                 sub.groups = sub.groups.filter(g => String(g.id) !== String(groupId));
                 if (Array.isArray(sub.examLectureIds) && deletedLecIds.length > 0) {
@@ -12669,12 +12867,18 @@
                 if (deletedLecIds.length > 0 && typeof detachDeletedHierarchyReferences === 'function') {
                     detachDeletedHierarchyReferences({ subjectIds: [], lectureIds: deletedLecIds });
                 }
-                saveSubjects();
+                const saveRes = saveSubjects();
+                if (saveRes && saveRes.idbPersistPromise) {
+                    try { await saveRes.idbPersistPromise; } catch (e) {}
+                }
                 renderGroups();
                 if (deletedLecIds.length > 0 && typeof cleanupDeletedLectureLocalArtifacts === 'function') {
                     await cleanupDeletedLectureLocalArtifacts(deletedLecIds);
                 }
-                showToast('تم حذف القسم', 'error');
+                if (saveRes && saveRes.ok !== false) {
+                    showToast('تم حذف القسم', 'error');
+                }
+                return saveRes;
             });
         }
 
@@ -13133,7 +13337,7 @@
         let draggedLectureState = null;
 
         function moveLectureInGroup(groupId, lecId, delta, event) {
-            if (event) event.stopPropagation();
+            if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
             const sub = subjects.find(s => s.id === activeSubjectId);
             if (!sub) return;
             const grp = sub.groups.find(g => g.id === groupId);
@@ -13145,13 +13349,17 @@
             const [moved] = grp.lectures.splice(idx, 1);
             grp.lectures.splice(targetIdx, 0, moved);
             grp._needsCausalStamp = true;
-            saveSubjects();
+            sub._needsCausalStamp = true;
+            const saveRes = saveSubjects();
             renderGroups();
-            showToast(`↕️ تم نقل «${moved.title}» إلى الترتيب رقم ${targetIdx + 1}`);
+            if (!saveRes || saveRes.ok !== false) {
+                showToast(`↕️ تم نقل «${moved.title}» إلى الترتيب رقم ${targetIdx + 1}`);
+            }
+            return saveRes;
         }
 
         function autoSortLecturesInGroup(groupId, event) {
-            if (event) event.stopPropagation();
+            if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
             const sub = subjects.find(s => s.id === activeSubjectId);
             if (!sub) return;
             const grp = sub.groups.find(g => g.id === groupId);
@@ -13163,15 +13371,19 @@
                 return ta.localeCompare(tb, 'ar', { numeric: true, sensitivity: 'base' });
             });
             grp._needsCausalStamp = true;
-            saveSubjects();
+            sub._needsCausalStamp = true;
+            const saveRes = saveSubjects();
             renderGroups();
-            showToast(`🔢 تم ترتيب محاضرات «${grp.name}» تصاعدياً بنجاح!`);
+            if (!saveRes || saveRes.ok !== false) {
+                showToast(`🔢 تم ترتيب محاضرات «${grp.name}» تصاعدياً بنجاح!`);
+            }
+            return saveRes;
         }
 
         function handleLectureDragStart(event, groupId, lecId) {
             draggedLectureState = { groupId, lecId };
-            if (event.currentTarget) event.currentTarget.classList.add('dragging-lecture');
-            if (event.dataTransfer) {
+            if (event && event.currentTarget && event.currentTarget.classList) event.currentTarget.classList.add('dragging-lecture');
+            if (event && event.dataTransfer) {
                 event.dataTransfer.effectAllowed = 'move';
                 try { event.dataTransfer.setData('text/plain', String(lecId)); } catch (e) {}
             }
@@ -13179,19 +13391,19 @@
 
         function handleLectureDragOver(event) {
             if (!draggedLectureState) return;
-            event.preventDefault();
-            if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-            if (event.currentTarget) event.currentTarget.classList.add('drag-over-lecture');
+            if (event && typeof event.preventDefault === 'function') event.preventDefault();
+            if (event && event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+            if (event && event.currentTarget && event.currentTarget.classList) event.currentTarget.classList.add('drag-over-lecture');
         }
 
         function handleLectureDragLeave(event) {
-            if (event.currentTarget) event.currentTarget.classList.remove('drag-over-lecture');
+            if (event && event.currentTarget && event.currentTarget.classList) event.currentTarget.classList.remove('drag-over-lecture');
         }
 
         function handleLectureDrop(event, targetGroupId, targetLecId) {
-            event.preventDefault();
-            event.stopPropagation();
-            if (event.currentTarget) event.currentTarget.classList.remove('drag-over-lecture');
+            if (event && typeof event.preventDefault === 'function') event.preventDefault();
+            if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
+            if (event && event.currentTarget && event.currentTarget.classList) event.currentTarget.classList.remove('drag-over-lecture');
             if (!draggedLectureState || draggedLectureState.groupId !== targetGroupId || draggedLectureState.lecId === targetLecId) {
                 draggedLectureState = null;
                 return;
@@ -13207,16 +13419,22 @@
             const [moved] = grp.lectures.splice(fromIdx, 1);
             grp.lectures.splice(toIdx, 0, moved);
             grp._needsCausalStamp = true;
-            saveSubjects();
+            sub._needsCausalStamp = true;
+            const saveRes = saveSubjects();
             renderGroups();
-            showToast(`↕️ تم تحديث ترتيب «${moved.title}» إلى رقم ${toIdx + 1}`);
+            if (!saveRes || saveRes.ok !== false) {
+                showToast(`↕️ تم تحديث ترتيب «${moved.title}» إلى رقم ${toIdx + 1}`);
+            }
+            return saveRes;
         }
 
         function handleLectureDragEnd(event) {
             draggedLectureState = null;
-            document.querySelectorAll('.lecture-item.dragging-lecture, .lecture-item.drag-over-lecture').forEach(el => {
-                el.classList.remove('dragging-lecture', 'drag-over-lecture');
-            });
+            if (typeof document !== 'undefined' && document.querySelectorAll) {
+                document.querySelectorAll('.lecture-item.dragging-lecture, .lecture-item.drag-over-lecture').forEach(el => {
+                    el.classList.remove('dragging-lecture', 'drag-over-lecture');
+                });
+            }
         }
     </script>
 
@@ -13401,30 +13619,120 @@
             if (typeof getLocalDeviceRegistry === 'function') {
                 schedulePayload._deviceRegistry = getLocalDeviceRegistry();
             }
+
+            // Snapshot prior values of all 4 schedule localStorage keys so a mid-sequence write failure never leaves a split/partial schedule state
+            const scheduleKeysOrder = [
+                'pharmaPlannerPrefsV1',
+                'pharmaWeeklyReportsV1',
+                'pharmaScheduleV4',
+                'pharmaScheduleBacklogV1'
+            ];
+            const priorValuesByKey = {};
+            scheduleKeysOrder.forEach(k => {
+                try {
+                    priorValuesByKey[k] = localStorage.getItem(k);
+                } catch (e) {
+                    priorValuesByKey[k] = null;
+                }
+            });
+
+            const partialWritesSucceeded = [];
+            let currentWriteKey = 'pharmaPlannerPrefsV1';
+            let currentSerializedVal = null;
+
             try {
-                localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
-                localStorage.setItem('pharmaWeeklyReportsV1', JSON.stringify(weeklyReports));
-                localStorage.setItem('pharmaScheduleV4', JSON.stringify(schedulePayload));
-                localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));
+                currentWriteKey = 'pharmaPlannerPrefsV1';
+                currentSerializedVal = JSON.stringify(plannerPrefs);
+                localStorage.setItem('pharmaPlannerPrefsV1', currentSerializedVal);
+                partialWritesSucceeded.push('pharmaPlannerPrefsV1');
+
+                currentWriteKey = 'pharmaWeeklyReportsV1';
+                currentSerializedVal = JSON.stringify(weeklyReports);
+                localStorage.setItem('pharmaWeeklyReportsV1', currentSerializedVal);
+                partialWritesSucceeded.push('pharmaWeeklyReportsV1');
+
+                currentWriteKey = 'pharmaScheduleV4';
+                currentSerializedVal = JSON.stringify(schedulePayload);
+                localStorage.setItem('pharmaScheduleV4', currentSerializedVal);
+                partialWritesSucceeded.push('pharmaScheduleV4');
+
+                currentWriteKey = 'pharmaScheduleBacklogV1';
+                currentSerializedVal = JSON.stringify(scheduleBacklog);
+                localStorage.setItem('pharmaScheduleBacklogV1', currentSerializedVal);
+                partialWritesSucceeded.push('pharmaScheduleBacklogV1');
             } catch (storageErr) {
-                console.error('saveScheduleData localStorage write failed (QuotaExceededError or storage error):', storageErr);
+                // Roll back any partial writes that succeeded before the failing key so localStorage is never left in a split state
+                const rolledBackKeys = [];
+                for (const writtenKey of partialWritesSucceeded) {
+                    try {
+                        const priorVal = priorValuesByKey[writtenKey];
+                        if (priorVal === null || priorVal === undefined) {
+                            localStorage.removeItem(writtenKey);
+                        } else {
+                            localStorage.setItem(writtenKey, priorVal);
+                        }
+                        rolledBackKeys.push(writtenKey);
+                    } catch (rbErr) {}
+                }
+
+                const diag = diagnoseStorageWriteFailure(storageErr, currentWriteKey, currentSerializedVal || schedulePayload, partialWritesSucceeded);
+                diag.rolledBackKeys = rolledBackKeys;
+                console.error('saveScheduleData localStorage write failed:', {
+                    failedKey: diag.failedKey,
+                    errorName: diag.errorName,
+                    errorMessage: diag.errorMessage,
+                    partialWritesSucceeded,
+                    rolledBackKeys,
+                    reason: diag.reason
+                });
+
+                let idbPromise = null;
+                if (typeof persistWorkspaceDomainToIDB === 'function') {
+                    try {
+                        idbPromise = persistWorkspaceDomainToIDB('schedule', schedulePayload, currentUid, null, false);
+                    } catch (idbErr) {}
+                }
+                if (typeof recordDurableWorkspaceDirtyJournal === 'function') {
+                    try {
+                        recordDurableWorkspaceDirtyJournal(currentUid, true, false, 'schedule');
+                    } catch (jErr) {}
+                }
+                if (typeof updateCloudNavUI === 'function' && currentCloudUser) {
+                    updateCloudNavUI('error');
+                }
                 if (typeof showToast === 'function') {
-                    showToast('تعذر حفظ الجدول محلياً بسبب امتلاء مساحة التخزين في المتصفح. تعديلاتك لا تزال في الذاكرة؛ يرجى تصدير نسخة احتياطية ⚠️', 'error');
+                    const msgAr = diag.isQuotaExceeded
+                        ? 'تعذر حفظ الجدول في LocalStorage بسبب امتلاء مساحة التخزين. تم التراجع عن الكتابة الجزئية وحفظ التعديل في سجل الاسترداد ⚠️'
+                        : 'تعذر حفظ الجدول محلياً بسبب خطأ في التخزين المحلي. لم يتم اعتماد كتابة جزئية ⚠️';
+                    showToast(msgAr, 'error');
                 }
                 return {
                     ok: false,
                     persisted: false,
+                    partialWritePrevented: true,
+                    rolledBackPartialLocalStorage: rolledBackKeys.length > 0,
+                    failedKey: currentWriteKey,
+                    partialWritesSucceeded,
+                    rolledBackKeys,
+                    idbPersisted: Boolean(dbInstance),
+                    idbPersistPromise: idbPromise,
                     domain: 'schedule',
-                    reason: 'storage_quota_exceeded',
-                    error: String(storageErr && storageErr.message ? storageErr.message : storageErr),
-                    errorName: String(storageErr && storageErr.name ? storageErr.name : 'QuotaExceededError'),
+                    reason: diag.reason,
+                    diagnostics: diag,
+                    error: diag.errorMessage,
+                    errorName: diag.errorName,
                     stampedCount: stampResult.stampedCount || 0,
                     unchangedCount: stampResult.unchangedCount || 0,
                     failedCount: (stampResult.failedCount || 0) + 1,
-                    errors: [...(Array.isArray(stampResult.errors) ? stampResult.errors : []), { entityType: 'schedule', entityId: 'storage', code: 'STORAGE_QUOTA_EXCEEDED', message: String(storageErr && storageErr.message ? storageErr.message : storageErr) }]
+                    errors: [...(Array.isArray(stampResult.errors) ? stampResult.errors : []), { entityType: 'schedule', entityId: 'storage', code: diag.isQuotaExceeded ? 'STORAGE_QUOTA_EXCEEDED' : 'STORAGE_WRITE_FAILED', failedKey: currentWriteKey, message: diag.errorMessage }]
                 };
             }
             stampResult.persisted = true;
+            if (typeof persistWorkspaceDomainToIDB === 'function') {
+                try {
+                    stampResult.idbPersistPromise = persistWorkspaceDomainToIDB('schedule', schedulePayload, currentUid, null, true);
+                } catch (idbErr) {}
+            }
             if (syncToCloud || !stampResult.ok || stampResult.failedCount > 0) {
                 markLocalWorkspaceModified(false);
             }
@@ -16324,27 +16632,62 @@
                     };
                 }
             }
+            let serializedLogs = null;
             try {
-                localStorage.setItem('pharmaLogsV4', JSON.stringify(logs));
+                serializedLogs = JSON.stringify(logs);
+                localStorage.setItem('pharmaLogsV4', serializedLogs);
             } catch (storageErr) {
-                console.error('saveLogs localStorage write failed (QuotaExceededError or storage error):', storageErr);
+                const diag = diagnoseStorageWriteFailure(storageErr, 'pharmaLogsV4', serializedLogs || logs, []);
+                console.error('saveLogs localStorage write failed:', {
+                    failedKey: diag.failedKey,
+                    errorName: diag.errorName,
+                    errorMessage: diag.errorMessage,
+                    approxBytes: diag.approxBytes,
+                    reason: diag.reason
+                });
+                let idbPromise = null;
+                if (typeof persistWorkspaceDomainToIDB === 'function') {
+                    try {
+                        idbPromise = persistWorkspaceDomainToIDB('logs', logs, currentUid, null, false);
+                    } catch (idbErr) {}
+                }
+                if (typeof recordDurableWorkspaceDirtyJournal === 'function') {
+                    try {
+                        recordDurableWorkspaceDirtyJournal(currentUid, true, false, 'logs');
+                    } catch (jErr) {}
+                }
+                if (typeof updateCloudNavUI === 'function' && currentCloudUser) {
+                    updateCloudNavUI('error');
+                }
                 if (typeof showToast === 'function') {
-                    showToast('تعذر حفظ السجل محلياً بسبب امتلاء مساحة التخزين في المتصفح. تعديلاتك لا تزال في الذاكرة؛ يرجى تصدير نسخة احتياطية ⚠️', 'error');
+                    const msgAr = diag.isQuotaExceeded
+                        ? 'تعذر حفظ السجل في LocalStorage بسبب امتلاء مساحة التخزين (QuotaExceededError). تم الاحتفاظ بالتعديل في سجل الاسترداد ⚠️'
+                        : 'تعذر حفظ السجل محلياً بسبب خطأ في التخزين المحلي ⚠️';
+                    showToast(msgAr, 'error');
                 }
                 return {
                     ok: false,
                     persisted: false,
+                    idbPersisted: Boolean(dbInstance),
+                    idbPersistPromise: idbPromise,
                     domain: 'logs',
-                    reason: 'storage_quota_exceeded',
-                    error: String(storageErr && storageErr.message ? storageErr.message : storageErr),
-                    errorName: String(storageErr && storageErr.name ? storageErr.name : 'QuotaExceededError'),
+                    reason: diag.reason,
+                    failedKey: 'pharmaLogsV4',
+                    diagnostics: diag,
+                    error: diag.errorMessage,
+                    errorName: diag.errorName,
                     stampedCount: stampResult.stampedCount || 0,
                     unchangedCount: stampResult.unchangedCount || 0,
                     failedCount: (stampResult.failedCount || 0) + 1,
-                    errors: [...(Array.isArray(stampResult.errors) ? stampResult.errors : []), { entityType: 'logs', entityId: 'storage', code: 'STORAGE_QUOTA_EXCEEDED', message: String(storageErr && storageErr.message ? storageErr.message : storageErr) }]
+                    errors: [...(Array.isArray(stampResult.errors) ? stampResult.errors : []), { entityType: 'logs', entityId: 'storage', code: diag.isQuotaExceeded ? 'STORAGE_QUOTA_EXCEEDED' : 'STORAGE_WRITE_FAILED', message: diag.errorMessage }]
                 };
             }
             stampResult.persisted = true;
+            if (typeof persistWorkspaceDomainToIDB === 'function') {
+                try {
+                    stampResult.idbPersistPromise = persistWorkspaceDomainToIDB('logs', logs, currentUid, null, true);
+                } catch (idbErr) {}
+            }
             markLocalWorkspaceModified();
             if (!stampResult.ok || stampResult.failedCount > 0) {
                 if (typeof notifyCausalStampingFailure === 'function') {
@@ -23288,8 +23631,8 @@
             dbReadyPromise = new Promise((resolve) => {
                 let req;
                 try {
-                    // Version 4 Upgrade: Guarantees annotation_recovery_vault is created for all users
-                    req = indexedDB.open('WorkspaceMediaStore', 4);
+                    // Version 5 Upgrade: Guarantees annotation_recovery_vault, workspace_state, and cloud_sync_journal are created for all users
+                    req = indexedDB.open('WorkspaceMediaStore', 5);
                 } catch (openErr) {
                     console.error('Exception opening WorkspaceMediaStore IndexedDB:', openErr);
                     dbReadyPromise = null;
@@ -23298,7 +23641,7 @@
 
                 req.onupgradeneeded = (e) => {
                     const db = e.target.result;
-                    // Preserve all existing object stores from v1, v2, v3
+                    // Preserve all existing object stores from v1, v2, v3, v4
                     if (!db.objectStoreNames.contains('pdfs')) {
                         db.createObjectStore('pdfs', { keyPath: 'id' });
                     }
@@ -23311,6 +23654,13 @@
                     // Version 4 store:
                     if (!db.objectStoreNames.contains('annotation_recovery_vault')) {
                         db.createObjectStore('annotation_recovery_vault', { keyPath: 'id' });
+                    }
+                    // Version 5 stores: account-scoped durable workspace_state and cloud_sync_journal
+                    if (!db.objectStoreNames.contains('workspace_state')) {
+                        db.createObjectStore('workspace_state', { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains('cloud_sync_journal')) {
+                        db.createObjectStore('cloud_sync_journal', { keyPath: 'id' });
                     }
                 };
 
@@ -23355,6 +23705,15 @@
                         console.warn('Import journal recovery warning:', impRecErr);
                     }
 
+                    // Recover or migrate workspace domains between localStorage and IndexedDB workspace_state
+                    try {
+                        if (typeof migrateAndHydrateWorkspaceFromIDB === 'function') {
+                            await migrateAndHydrateWorkspaceFromIDB();
+                        }
+                    } catch (wsMigErr) {
+                        console.warn('Workspace IDB migration/hydration warning:', wsMigErr);
+                    }
+
                     // Await local media cache population before resolving
                     try {
                         await refreshLocalMediaCache();
@@ -23375,13 +23734,830 @@
                 };
 
                 req.onerror = (e) => {
-                    console.error('Failed to open WorkspaceMediaStore IndexedDB v4:', e);
+                    console.error('Failed to open WorkspaceMediaStore IndexedDB v5:', e);
                     dbInstance = null;
                     dbReadyPromise = null;
                     resolve(null);
                 };
             });
             return dbReadyPromise;
+        }
+
+        // --- M6 Phase A Gap 1 & Additional P0: Durable Account-Scoped Cloud Sync Journal & Workspace State Store in IndexedDB ---
+        function getAnnotationDirtyJournalKey(uid) {
+            const targetUid = uid ? String(uid) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local');
+            return toScopedKey('__anno_cloud_dirty_journal_v1__', targetUid);
+        }
+
+        function getWorkspaceDirtyJournalKey(uid) {
+            const targetUid = uid ? String(uid) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local');
+            return toScopedKey('__ws_cloud_dirty_journal_v1__', targetUid);
+        }
+
+        function getWorkspaceDomainStateKey(domain, uid) {
+            const targetUid = uid ? String(uid) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local');
+            return toScopedKey(`__ws_domain_${String(domain)}_v1__`, targetUid);
+        }
+
+        function getWorkspaceMigrationJournalKey(uid) {
+            const targetUid = uid ? String(uid) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local');
+            return toScopedKey('__ws_migration_journal_v1__', targetUid);
+        }
+
+        async function recordDurableWorkspaceDirtyJournal(uid = null, isDirty = true, includeAnnotations = false, domain = 'workspace') {
+            const targetUid = uid ? String(uid) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local');
+            if (!dbInstance && typeof initPdfDB === 'function') {
+                try { await initPdfDB(); } catch (e) {}
+            }
+            if (!dbInstance || !dbInstance.objectStoreNames || !dbInstance.objectStoreNames.contains('cloud_sync_journal')) {
+                return { ok: false, persisted: false, reason: 'idb_journal_unavailable' };
+            }
+            const wsKey = getWorkspaceDirtyJournalKey(targetUid);
+            const annoKey = getAnnotationDirtyJournalKey(targetUid);
+            const nowMs = Date.now();
+            const currentWsSeq = typeof localWorkspaceMutationSeq !== 'undefined' ? localWorkspaceMutationSeq : 0;
+            const currentAnnoSeq = typeof annotationMutationSeq !== 'undefined' ? annotationMutationSeq : 0;
+
+            return new Promise((resolve) => {
+                try {
+                    const tx = dbInstance.transaction('cloud_sync_journal', 'readwrite');
+                    const store = tx.objectStore('cloud_sync_journal');
+                    if (isDirty) {
+                        store.put({
+                            id: wsKey,
+                            rawId: '__ws_cloud_dirty_journal_v1__',
+                            userId: targetUid,
+                            type: 'workspace_dirty_journal',
+                            dirty: true,
+                            domain: String(domain || 'workspace'),
+                            workspaceMutationSeq: currentWsSeq,
+                            updatedAt: nowMs
+                        });
+                        if (includeAnnotations) {
+                            const getReq = store.get(annoKey);
+                            getReq.onsuccess = () => {
+                                const existing = getReq.result;
+                                const existingLecIds = (existing && Array.isArray(existing.dirtyLectureIds)) ? existing.dirtyLectureIds : [];
+                                store.put({
+                                    id: annoKey,
+                                    rawId: '__anno_cloud_dirty_journal_v1__',
+                                    userId: targetUid,
+                                    type: 'annotation_dirty_journal',
+                                    dirty: true,
+                                    dirtyLectureIds: existingLecIds,
+                                    lectureIds: existingLecIds,
+                                    mutationSeq: Math.max(currentAnnoSeq, Number(existing?.mutationSeq || 0)),
+                                    updatedAt: nowMs
+                                });
+                            };
+                        }
+                    } else {
+                        store.delete(wsKey);
+                        if (includeAnnotations) {
+                            store.delete(annoKey);
+                        }
+                    }
+                    tx.oncomplete = () => resolve({ ok: true, persisted: true });
+                    tx.onerror = (e) => resolve({ ok: false, persisted: false, reason: 'idb_tx_error', error: tx.error || e });
+                    tx.onabort = (e) => resolve({ ok: false, persisted: false, reason: 'idb_tx_aborted', error: tx.error || e });
+                } catch (err) {
+                    resolve({ ok: false, persisted: false, reason: 'idb_exception', error: err });
+                }
+            });
+        }
+
+        async function readDurableCloudSyncJournal(uid = null, opCtx = null) {
+            const ctx = opCtx || resolveAccountOperationContext(uid);
+            const targetUid = (ctx && ctx.uid) ? String(ctx.uid) : (uid ? String(uid) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local'));
+            if (!dbInstance && typeof initPdfDB === 'function') {
+                try { await initPdfDB(); } catch (e) {}
+            }
+            if (!dbInstance || !dbInstance.objectStoreNames || !dbInstance.objectStoreNames.contains('cloud_sync_journal')) {
+                return {
+                    ok: false,
+                    available: false,
+                    hasDirtyAnnotations: false,
+                    hasDirtyWorkspace: false,
+                    annotationJournal: null,
+                    workspaceJournal: null
+                };
+            }
+            const annoKey = getAnnotationDirtyJournalKey(targetUid);
+            const wsKey = getWorkspaceDirtyJournalKey(targetUid);
+            return new Promise((resolve) => {
+                try {
+                    const tx = dbInstance.transaction('cloud_sync_journal', 'readonly');
+                    const store = tx.objectStore('cloud_sync_journal');
+                    let annoRec = null;
+                    let wsRec = null;
+                    const reqAnno = store.get(annoKey);
+                    const reqWs = store.get(wsKey);
+                    reqAnno.onsuccess = () => {
+                        const r = reqAnno.result;
+                        if (r && String(r.userId) === targetUid && r.dirty === true) {
+                            annoRec = r;
+                            if (typeof annotationMutationSeq !== 'undefined' && Number(r.mutationSeq || 0) > annotationMutationSeq) {
+                                annotationMutationSeq = Number(r.mutationSeq);
+                            }
+                        }
+                    };
+                    reqWs.onsuccess = () => {
+                        const r = reqWs.result;
+                        if (r && String(r.userId) === targetUid && r.dirty === true) {
+                            wsRec = r;
+                            if (typeof localWorkspaceMutationSeq !== 'undefined' && Number(r.workspaceMutationSeq || 0) > localWorkspaceMutationSeq) {
+                                localWorkspaceMutationSeq = Number(r.workspaceMutationSeq);
+                            }
+                        }
+                    };
+                    tx.oncomplete = () => {
+                        resolve({
+                            ok: true,
+                            available: true,
+                            hasDirtyAnnotations: Boolean(annoRec && annoRec.dirty === true),
+                            hasDirtyWorkspace: Boolean((wsRec && wsRec.dirty === true) || (annoRec && annoRec.dirty === true)),
+                            annotationJournal: annoRec,
+                            annoJournal: annoRec,
+                            workspaceJournal: wsRec
+                        });
+                    };
+                    tx.onerror = () => resolve({ ok: false, available: false, hasDirtyAnnotations: false, hasDirtyWorkspace: false, annotationJournal: null, annoJournal: null, workspaceJournal: null });
+                    tx.onabort = () => resolve({ ok: false, available: false, hasDirtyAnnotations: false, hasDirtyWorkspace: false, annotationJournal: null, annoJournal: null, workspaceJournal: null });
+                } catch (e) {
+                    resolve({ ok: false, available: false, hasDirtyAnnotations: false, hasDirtyWorkspace: false, annotationJournal: null, annoJournal: null, workspaceJournal: null });
+                }
+            });
+        }
+
+        async function clearDurableAnnotationDirtyJournal(uid = null, confirmedMutationSeq = null, opCtx = null) {
+            const ctx = opCtx || resolveAccountOperationContext(uid);
+            const targetUid = (ctx && ctx.uid) ? String(ctx.uid) : (uid ? String(uid) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local'));
+            if (!dbInstance || !dbInstance.objectStoreNames || !dbInstance.objectStoreNames.contains('cloud_sync_journal')) {
+                return { ok: false, cleared: false, reason: 'idb_unavailable' };
+            }
+            const annoKey = getAnnotationDirtyJournalKey(targetUid);
+            return new Promise((resolve) => {
+                try {
+                    const tx = dbInstance.transaction('cloud_sync_journal', 'readwrite');
+                    const store = tx.objectStore('cloud_sync_journal');
+                    const getReq = store.get(annoKey);
+                    let cleared = false;
+                    let keptBecauseNewer = false;
+                    getReq.onsuccess = () => {
+                        const rec = getReq.result;
+                        if (!rec) {
+                            cleared = true;
+                            return;
+                        }
+                        if (String(rec.userId) !== targetUid) return;
+                        const recSeq = Number(rec.mutationSeq || 0);
+                        const currentAnnoSeq = typeof annotationMutationSeq !== 'undefined' ? annotationMutationSeq : 0;
+                        if (confirmedMutationSeq !== null && confirmedMutationSeq !== undefined) {
+                            if (recSeq > Number(confirmedMutationSeq) || currentAnnoSeq > Number(confirmedMutationSeq)) {
+                                keptBecauseNewer = true;
+                                return;
+                            }
+                        }
+                        store.delete(annoKey);
+                        cleared = true;
+                    };
+                    tx.oncomplete = () => resolve({ ok: true, cleared, keptBecauseNewer, reason: keptBecauseNewer ? 'newer_mutation_exists' : null });
+                    tx.onerror = () => resolve({ ok: false, cleared: false, reason: 'tx_error' });
+                    tx.onabort = () => resolve({ ok: false, cleared: false, reason: 'tx_abort' });
+                } catch (e) {
+                    resolve({ ok: false, cleared: false, reason: 'exception' });
+                }
+            });
+        }
+
+        async function clearDurableWorkspaceDirtyJournal(uid = null, confirmedWorkspaceSeq = null, opCtx = null) {
+            const ctx = opCtx || resolveAccountOperationContext(uid);
+            const targetUid = (ctx && ctx.uid) ? String(ctx.uid) : (uid ? String(uid) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local'));
+            if (!dbInstance || !dbInstance.objectStoreNames || !dbInstance.objectStoreNames.contains('cloud_sync_journal')) {
+                return { ok: false, cleared: false, reason: 'idb_unavailable' };
+            }
+            const wsKey = getWorkspaceDirtyJournalKey(targetUid);
+            return new Promise((resolve) => {
+                try {
+                    const tx = dbInstance.transaction('cloud_sync_journal', 'readwrite');
+                    const store = tx.objectStore('cloud_sync_journal');
+                    const getReq = store.get(wsKey);
+                    let cleared = false;
+                    let keptBecauseNewer = false;
+                    getReq.onsuccess = () => {
+                        const rec = getReq.result;
+                        if (!rec) {
+                            cleared = true;
+                            return;
+                        }
+                        if (String(rec.userId) !== targetUid) return;
+                        const recSeq = Number(rec.workspaceMutationSeq || 0);
+                        const currentWsSeq = typeof localWorkspaceMutationSeq !== 'undefined' ? localWorkspaceMutationSeq : 0;
+                        if (confirmedWorkspaceSeq !== null && confirmedWorkspaceSeq !== undefined) {
+                            if (recSeq > Number(confirmedWorkspaceSeq) || currentWsSeq > Number(confirmedWorkspaceSeq)) {
+                                keptBecauseNewer = true;
+                                return;
+                            }
+                        }
+                        store.delete(wsKey);
+                        cleared = true;
+                    };
+                    tx.oncomplete = () => resolve({ ok: true, cleared, keptBecauseNewer });
+                    tx.onerror = () => resolve({ ok: false, cleared: false, reason: 'tx_error' });
+                    tx.onabort = () => resolve({ ok: false, cleared: false, reason: 'tx_abort' });
+                } catch (e) {
+                    resolve({ ok: false, cleared: false, reason: 'exception' });
+                }
+            });
+        }
+
+        async function persistWorkspaceDomainToIDB(domain, payload, uid = null, opCtx = null, lsPersisted = true) {
+            const targetUid = uid ? String(uid) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local');
+            if (!dbInstance && typeof initPdfDB === 'function') {
+                try { await initPdfDB(); } catch (e) {}
+            }
+            if (!dbInstance || !dbInstance.objectStoreNames || !dbInstance.objectStoreNames.contains('workspace_state')) {
+                return { ok: false, persisted: false, reason: 'idb_workspace_state_unavailable' };
+            }
+            const stateKey = getWorkspaceDomainStateKey(domain, targetUid);
+            const wsKey = getWorkspaceDirtyJournalKey(targetUid);
+            const nowMs = Date.now();
+            const currentWsSeq = typeof localWorkspaceMutationSeq !== 'undefined' ? localWorkspaceMutationSeq : 0;
+            let clonedPayload = payload;
+            try {
+                clonedPayload = JSON.parse(JSON.stringify(payload));
+            } catch (e) {}
+
+            const shouldWriteJournal = !lsPersisted && dbInstance.objectStoreNames.contains('cloud_sync_journal');
+            const storeNames = shouldWriteJournal ? ['workspace_state', 'cloud_sync_journal'] : ['workspace_state'];
+
+            return new Promise((resolve) => {
+                try {
+                    const tx = dbInstance.transaction(storeNames, 'readwrite');
+                    const wsStore = tx.objectStore('workspace_state');
+                    wsStore.put({
+                        id: stateKey,
+                        rawId: `__ws_domain_${String(domain)}_v1__`,
+                        userId: targetUid,
+                        domain: String(domain),
+                        payload: clonedPayload,
+                        lsPersisted: Boolean(lsPersisted),
+                        workspaceMutationSeq: currentWsSeq,
+                        updatedAt: nowMs
+                    });
+                    if (shouldWriteJournal) {
+                        const jStore = tx.objectStore('cloud_sync_journal');
+                        jStore.put({
+                            id: wsKey,
+                            rawId: '__ws_cloud_dirty_journal_v1__',
+                            userId: targetUid,
+                            type: 'workspace_dirty_journal',
+                            dirty: true,
+                            domain: String(domain),
+                            workspaceMutationSeq: currentWsSeq,
+                            updatedAt: nowMs
+                        });
+                    }
+                    tx.oncomplete = () => resolve({ ok: true, persisted: true, key: stateKey, updatedAt: nowMs });
+                    tx.onerror = (err) => resolve({ ok: false, persisted: false, reason: 'idb_tx_error', error: tx.error || err });
+                    tx.onabort = (err) => resolve({ ok: false, persisted: false, reason: 'idb_tx_aborted', error: tx.error || err });
+                } catch (err) {
+                    resolve({ ok: false, persisted: false, reason: 'idb_exception', error: err });
+                }
+            });
+        }
+
+        async function readWorkspaceDomainFromIDB(domain, uid = null, opCtx = null) {
+            const targetUid = uid ? String(uid) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local');
+            if (!dbInstance && typeof initPdfDB === 'function') {
+                try { await initPdfDB(); } catch (e) {}
+            }
+            if (!dbInstance || !dbInstance.objectStoreNames || !dbInstance.objectStoreNames.contains('workspace_state')) {
+                return { ok: false, found: false, record: null };
+            }
+            const stateKey = getWorkspaceDomainStateKey(domain, targetUid);
+            return new Promise((resolve) => {
+                try {
+                    const tx = dbInstance.transaction('workspace_state', 'readonly');
+                    const store = tx.objectStore('workspace_state');
+                    const req = store.get(stateKey);
+                    req.onsuccess = () => {
+                        const rec = req.result;
+                        if (rec && String(rec.userId) === targetUid) {
+                            resolve({ ok: true, found: true, record: rec });
+                        } else {
+                            resolve({ ok: true, found: false, record: null });
+                        }
+                    };
+                    req.onerror = () => resolve({ ok: false, found: false, record: null });
+                    tx.onabort = () => resolve({ ok: false, found: false, record: null });
+                } catch (e) {
+                    resolve({ ok: false, found: false, record: null });
+                }
+            });
+        }
+
+        async function migrateAndHydrateWorkspaceFromIDB(uid = null, opCtx = null) {
+            const targetUid = uid ? String(uid) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local');
+            if (!dbInstance || !dbInstance.objectStoreNames || !dbInstance.objectStoreNames.contains('workspace_state')) {
+                return { ok: false, migrated: false, hydrated: false, reason: 'idb_workspace_state_unavailable' };
+            }
+            if (typeof isImportInProgressOrQuarantined === 'function') {
+                const gate = isImportInProgressOrQuarantined(targetUid);
+                if (gate && gate.blocked) {
+                    return { ok: false, migrated: false, hydrated: false, reason: gate.reason };
+                }
+            }
+            if (targetUid === 'local') {
+                try {
+                    const hasAnyImportArtifact = (typeof localStorage.length === 'number') && (() => {
+                        for (let i = 0; i < localStorage.length; i++) {
+                            const k = String(localStorage.key(i) || '');
+                            if (k.startsWith('pharmaImportTxState_') || k.startsWith('pharmaImportBarrier_') || k.startsWith('pharmaImportQuarantine_')) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    })();
+                    if (hasAnyImportArtifact) {
+                        return { ok: false, migrated: false, hydrated: false, reason: 'import_recovery_pending' };
+                    }
+                } catch (e) {}
+            }
+
+            const migKey = getWorkspaceMigrationJournalKey(targetUid);
+            const subKey = getWorkspaceDomainStateKey('subjects', targetUid);
+            const schKey = getWorkspaceDomainStateKey('schedule', targetUid);
+            const logKey = getWorkspaceDomainStateKey('logs', targetUid);
+
+            // 1. Read existing IndexedDB workspace_state records + migration journal for this account
+            const idbState = await new Promise((resolve) => {
+                try {
+                    const tx = dbInstance.transaction('workspace_state', 'readonly');
+                    const store = tx.objectStore('workspace_state');
+                    const rMig = store.get(migKey);
+                    const rSub = store.get(subKey);
+                    const rSch = store.get(schKey);
+                    const rLog = store.get(logKey);
+                    tx.oncomplete = () => {
+                        resolve({
+                            ok: true,
+                            mig: (rMig.result && String(rMig.result.userId) === targetUid) ? rMig.result : null,
+                            sub: (rSub.result && String(rSub.result.userId) === targetUid) ? rSub.result : null,
+                            sch: (rSch.result && String(rSch.result.userId) === targetUid) ? rSch.result : null,
+                            log: (rLog.result && String(rLog.result.userId) === targetUid) ? rLog.result : null
+                        });
+                    };
+                    tx.onerror = () => resolve({ ok: false });
+                    tx.onabort = () => resolve({ ok: false });
+                } catch (e) {
+                    resolve({ ok: false });
+                }
+            });
+
+            if (!idbState || !idbState.ok) {
+                return { ok: false, migrated: false, hydrated: false, reason: 'idb_read_failed' };
+            }
+
+            const lastActiveUid = localStorage.getItem('pharmaLastActiveCloudUid')
+                || localStorage.getItem('pharmaLastActiveUserIdV1')
+                || 'local';
+            const isMatchingGlobalLsOwner = Boolean(
+                targetUid === 'local'
+                    ? (!lastActiveUid || lastActiveUid === 'local')
+                    : (String(lastActiveUid) === targetUid)
+            );
+
+            let lsSubjects = null;
+            let lsSchedule = null;
+            let lsLogs = null;
+            if (isMatchingGlobalLsOwner) {
+                try {
+                    const rawS = localStorage.getItem('pharmaSubjectsV4');
+                    if (rawS) lsSubjects = JSON.parse(rawS);
+                } catch (e) {}
+                try {
+                    const rawSch = localStorage.getItem('pharmaScheduleV4');
+                    if (rawSch) lsSchedule = JSON.parse(rawSch);
+                } catch (e) {}
+                try {
+                    const rawL = localStorage.getItem('pharmaLogsV4');
+                    if (rawL) lsLogs = JSON.parse(rawL);
+                } catch (e) {}
+            } else {
+                try {
+                    const snapRaw = localStorage.getItem(getAccountBackupStorageKey(targetUid));
+                    if (snapRaw) {
+                        const snap = JSON.parse(snapRaw);
+                        if (snap && typeof snap === 'object' && (!snap.user_id || String(snap.user_id) === targetUid)) {
+                            if (Array.isArray(snap.subjects)) lsSubjects = snap.subjects;
+                            if (snap.schedule && typeof snap.schedule === 'object') lsSchedule = snap.schedule;
+                            if (Array.isArray(snap.logs)) lsLogs = snap.logs;
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            const tombstones = typeof getLocalTombstones === 'function' ? getLocalTombstones(targetUid) : {};
+            let hydratedDomains = [];
+            let migratedDomains = [];
+            const hadInterruptedMigration = Boolean(idbState.mig && idbState.mig.phase && idbState.mig.phase !== 'COMMITTED');
+
+            // Reconcile subjects between IndexedDB workspace_state and localStorage:
+            // Only hydrate from IndexedDB over existing localStorage when idbState.sub.lsPersisted === false (meaning a localStorage write failed and IndexedDB caught the newer mutation) or when localStorage has no subjects.
+            let reconciledSubjects = null;
+            const idbSubjects = (idbState.sub && Array.isArray(idbState.sub.payload)) ? idbState.sub.payload : null;
+            const subHadLsFailure = Boolean(idbState.sub && idbState.sub.lsPersisted === false);
+            if (idbSubjects && Array.isArray(lsSubjects) && lsSubjects.length > 0) {
+                if (subHadLsFailure) {
+                    if (typeof mergeSubjectsHierarchyWithCausalEngine === 'function') {
+                        const merged = mergeSubjectsHierarchyWithCausalEngine(idbSubjects, lsSubjects, tombstones, targetUid);
+                        reconciledSubjects = merged.subjects;
+                    } else {
+                        reconciledSubjects = idbSubjects;
+                    }
+                    hydratedDomains.push('subjects');
+                } else {
+                    reconciledSubjects = lsSubjects;
+                    if (!idbState.mig || hadInterruptedMigration) {
+                        migratedDomains.push('subjects');
+                    }
+                }
+            } else if (idbSubjects && subHadLsFailure) {
+                reconciledSubjects = idbSubjects;
+                hydratedDomains.push('subjects');
+            } else if (Array.isArray(lsSubjects) && lsSubjects.length > 0) {
+                reconciledSubjects = lsSubjects;
+                migratedDomains.push('subjects');
+            } else if (idbSubjects && lsSubjects === null) {
+                reconciledSubjects = idbSubjects;
+                hydratedDomains.push('subjects');
+            }
+
+            // Reconcile schedule between IndexedDB workspace_state and localStorage
+            let reconciledSchedule = null;
+            const idbSchedule = (idbState.sch && idbState.sch.payload && typeof idbState.sch.payload === 'object') ? idbState.sch.payload : null;
+            const schHadLsFailure = Boolean(idbState.sch && idbState.sch.lsPersisted === false);
+            if (idbSchedule && lsSchedule && typeof lsSchedule === 'object') {
+                if (schHadLsFailure) {
+                    const idbEvents = Array.isArray(idbSchedule.events) ? idbSchedule.events : [];
+                    const lsEvents = Array.isArray(lsSchedule.events) ? lsSchedule.events : (Array.isArray(lsSchedule) ? lsSchedule : []);
+                    const idbBacklog = Array.isArray(idbSchedule.backlog) ? idbSchedule.backlog : [];
+                    const lsBacklog = Array.isArray(lsSchedule.backlog) ? lsSchedule.backlog : [];
+                    const idbReports = Array.isArray(idbSchedule.weeklyReports) ? idbSchedule.weeklyReports : [];
+                    const lsReports = Array.isArray(lsSchedule.weeklyReports) ? lsSchedule.weeklyReports : [];
+                    const mergedEvents = (typeof mergeFlatEntityCollectionWithCausalEngine === 'function')
+                        ? mergeFlatEntityCollectionWithCausalEngine(idbEvents, lsEvents, 'events', tombstones, targetUid, (e) => String(e.id))
+                        : idbEvents;
+                    const mergedBacklog = (typeof mergeFlatEntityCollectionWithCausalEngine === 'function')
+                        ? mergeFlatEntityCollectionWithCausalEngine(idbBacklog, lsBacklog, 'backlog', tombstones, targetUid, (b) => String(b.id))
+                        : idbBacklog;
+                    const mergedReports = (typeof mergeFlatEntityCollectionWithCausalEngine === 'function')
+                        ? mergeFlatEntityCollectionWithCausalEngine(idbReports, lsReports, 'weekly_reports', tombstones, targetUid, (r) => String(r.weekStartIso || r.id))
+                        : idbReports;
+                    reconciledSchedule = Object.assign({}, lsSchedule, idbSchedule, {
+                        version: 3,
+                        events: mergedEvents,
+                        backlog: mergedBacklog,
+                        plannerPrefs: Object.assign({}, lsSchedule.plannerPrefs || {}, idbSchedule.plannerPrefs || {}),
+                        weeklyReports: mergedReports
+                    });
+                    hydratedDomains.push('schedule');
+                } else {
+                    reconciledSchedule = lsSchedule;
+                    if (!idbState.mig || hadInterruptedMigration) {
+                        migratedDomains.push('schedule');
+                    }
+                }
+            } else if (idbSchedule && schHadLsFailure) {
+                reconciledSchedule = idbSchedule;
+                hydratedDomains.push('schedule');
+            } else if (lsSchedule && typeof lsSchedule === 'object' && !Array.isArray(lsSchedule)) {
+                reconciledSchedule = lsSchedule;
+                migratedDomains.push('schedule');
+            } else if (idbSchedule && lsSchedule === null) {
+                reconciledSchedule = idbSchedule;
+                hydratedDomains.push('schedule');
+            }
+
+            // Reconcile logs between IndexedDB workspace_state and localStorage
+            let reconciledLogs = null;
+            const idbLogs = (idbState.log && Array.isArray(idbState.log.payload)) ? idbState.log.payload : null;
+            const logHadLsFailure = Boolean(idbState.log && idbState.log.lsPersisted === false);
+            if (idbLogs && Array.isArray(lsLogs) && lsLogs.length > 0) {
+                if (logHadLsFailure) {
+                    reconciledLogs = (typeof mergeFlatEntityCollectionWithCausalEngine === 'function')
+                        ? mergeFlatEntityCollectionWithCausalEngine(idbLogs, lsLogs, 'logs', tombstones, targetUid, (l) => String(l.id ?? l.timestamp))
+                        : (idbLogs.length >= lsLogs.length ? idbLogs : lsLogs);
+                    hydratedDomains.push('logs');
+                } else {
+                    reconciledLogs = lsLogs;
+                    if (!idbState.mig || hadInterruptedMigration) {
+                        migratedDomains.push('logs');
+                    }
+                }
+            } else if (idbLogs && logHadLsFailure) {
+                reconciledLogs = idbLogs;
+                hydratedDomains.push('logs');
+            } else if (Array.isArray(lsLogs) && lsLogs.length > 0) {
+                reconciledLogs = lsLogs;
+                migratedDomains.push('logs');
+            } else if (idbLogs && lsLogs === null) {
+                reconciledLogs = idbLogs;
+                hydratedDomains.push('logs');
+            }
+
+            const needsMigrationWrite = Boolean(migratedDomains.length > 0 || hydratedDomains.length > 0 || hadInterruptedMigration);
+            if (needsMigrationWrite) {
+                const txId = 'ws_mig_' + Date.now();
+                // Step 1: Write durable migration journal in STAGED phase
+                const stageOk = await new Promise((resolve) => {
+                    try {
+                        const tx = dbInstance.transaction('workspace_state', 'readwrite');
+                        const store = tx.objectStore('workspace_state');
+                        store.put({
+                            id: migKey,
+                            rawId: '__ws_migration_journal_v1__',
+                            userId: targetUid,
+                            txId,
+                            phase: 'STAGED',
+                            migratedDomains,
+                            hydratedDomains,
+                            recoveredFromInterrupted: hadInterruptedMigration,
+                            updatedAt: Date.now()
+                        });
+                        if (reconciledSubjects !== null) {
+                            store.put({
+                                id: subKey,
+                                rawId: '__ws_domain_subjects_v1__',
+                                userId: targetUid,
+                                domain: 'subjects',
+                                payload: JSON.parse(JSON.stringify(reconciledSubjects)),
+                                lsPersisted: subHadLsFailure ? false : true,
+                                updatedAt: Date.now()
+                            });
+                        }
+                        if (reconciledSchedule !== null) {
+                            store.put({
+                                id: schKey,
+                                rawId: '__ws_domain_schedule_v1__',
+                                userId: targetUid,
+                                domain: 'schedule',
+                                payload: JSON.parse(JSON.stringify(reconciledSchedule)),
+                                lsPersisted: schHadLsFailure ? false : true,
+                                updatedAt: Date.now()
+                            });
+                        }
+                        if (reconciledLogs !== null) {
+                            store.put({
+                                id: logKey,
+                                rawId: '__ws_domain_logs_v1__',
+                                userId: targetUid,
+                                domain: 'logs',
+                                payload: JSON.parse(JSON.stringify(reconciledLogs)),
+                                lsPersisted: logHadLsFailure ? false : true,
+                                updatedAt: Date.now()
+                            });
+                        }
+                        tx.oncomplete = () => resolve(true);
+                        tx.onerror = () => resolve(false);
+                        tx.onabort = () => resolve(false);
+                    } catch (e) {
+                        resolve(false);
+                    }
+                });
+
+                if (!stageOk) {
+                    return { ok: false, migrated: false, hydrated: false, reason: 'migration_stage_failed' };
+                }
+
+                // Fault injection hook for interrupted migration testing
+                if (typeof window !== 'undefined' && window.__exoMigrationTestHooks && typeof window.__exoMigrationTestHooks.afterStage === 'function') {
+                    window.__exoMigrationTestHooks.afterStage({ uid: targetUid, txId });
+                }
+
+                // Step 2: Verify read-back of migrated records before marking COMMITTED
+                const verifyOk = await new Promise((resolve) => {
+                    try {
+                        const tx = dbInstance.transaction('workspace_state', 'readonly');
+                        const store = tx.objectStore('workspace_state');
+                        const checkSub = reconciledSubjects !== null ? store.get(subKey) : null;
+                        const checkSch = reconciledSchedule !== null ? store.get(schKey) : null;
+                        const checkLog = reconciledLogs !== null ? store.get(logKey) : null;
+                        tx.oncomplete = () => {
+                            if (checkSub && (!checkSub.result || !Array.isArray(checkSub.result.payload) || checkSub.result.payload.length !== reconciledSubjects.length)) {
+                                return resolve(false);
+                            }
+                            if (checkSch && (!checkSch.result || !checkSch.result.payload || typeof checkSch.result.payload !== 'object')) {
+                                return resolve(false);
+                            }
+                            if (checkLog && (!checkLog.result || !Array.isArray(checkLog.result.payload) || checkLog.result.payload.length !== reconciledLogs.length)) {
+                                return resolve(false);
+                            }
+                            resolve(true);
+                        };
+                        tx.onerror = () => resolve(false);
+                        tx.onabort = () => resolve(false);
+                    } catch (e) {
+                        resolve(false);
+                    }
+                });
+
+                if (!verifyOk) {
+                    return { ok: false, migrated: false, hydrated: false, reason: 'migration_verification_failed' };
+                }
+
+                // Step 3: Commit migration journal
+                await new Promise((resolve) => {
+                    try {
+                        const tx = dbInstance.transaction('workspace_state', 'readwrite');
+                        const store = tx.objectStore('workspace_state');
+                        store.put({
+                            id: migKey,
+                            rawId: '__ws_migration_journal_v1__',
+                            userId: targetUid,
+                            txId,
+                            phase: 'COMMITTED',
+                            migratedDomains,
+                            hydratedDomains,
+                            recoveredFromInterrupted: hadInterruptedMigration,
+                            committedAt: Date.now(),
+                            updatedAt: Date.now()
+                        });
+                        tx.oncomplete = () => resolve(true);
+                        tx.onerror = () => resolve(false);
+                        tx.onabort = () => resolve(false);
+                    } catch (e) {
+                        resolve(false);
+                    }
+                });
+            }
+
+            // Hydrate in-memory workspace state if targetUid is the active account AND IndexedDB had newer/hydrated state
+            const activeCanonicalUid = typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local';
+            if (targetUid === activeCanonicalUid && hydratedDomains.length > 0) {
+                let uiNeedsRefresh = false;
+                if (hydratedDomains.includes('subjects') && Array.isArray(reconciledSubjects)) {
+                    subjects = JSON.parse(JSON.stringify(reconciledSubjects));
+                    try { localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects)); } catch (e) {}
+                    uiNeedsRefresh = true;
+                }
+                if (hydratedDomains.includes('schedule') && reconciledSchedule && typeof reconciledSchedule === 'object') {
+                    if (Array.isArray(reconciledSchedule.events)) scheduleEvents = JSON.parse(JSON.stringify(reconciledSchedule.events));
+                    if (Array.isArray(reconciledSchedule.backlog)) scheduleBacklog = JSON.parse(JSON.stringify(reconciledSchedule.backlog));
+                    if (reconciledSchedule.plannerPrefs && typeof reconciledSchedule.plannerPrefs === 'object') {
+                        plannerPrefs = Object.assign({}, plannerPrefs, reconciledSchedule.plannerPrefs);
+                    }
+                    if (Array.isArray(reconciledSchedule.weeklyReports)) weeklyReports = JSON.parse(JSON.stringify(reconciledSchedule.weeklyReports));
+                    try {
+                        localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
+                        localStorage.setItem('pharmaWeeklyReportsV1', JSON.stringify(weeklyReports));
+                        localStorage.setItem('pharmaScheduleV4', JSON.stringify(reconciledSchedule));
+                        localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));
+                    } catch (e) {}
+                    uiNeedsRefresh = true;
+                }
+                if (hydratedDomains.includes('logs') && Array.isArray(reconciledLogs)) {
+                    logs = JSON.parse(JSON.stringify(reconciledLogs));
+                    try { localStorage.setItem('pharmaLogsV4', JSON.stringify(logs)); } catch (e) {}
+                    uiNeedsRefresh = true;
+                }
+                if (uiNeedsRefresh) {
+                    if (typeof renderSubjectsList === 'function') {
+                        try { renderSubjectsList(); } catch (e) {}
+                    }
+                    if (activeSubjectId && typeof renderGroups === 'function') {
+                        try { renderGroups(); } catch (e) {}
+                    }
+                    if (typeof renderSchedule === 'function') {
+                        try { renderSchedule(); } catch (e) {}
+                    }
+                    if (typeof updateTracker === 'function') {
+                        try { updateTracker(); } catch (e) {}
+                    }
+                }
+            }
+
+            // Also inspect durable cloud sync journal and restore dirty flags in memory if pending
+            const journalState = await readDurableCloudSyncJournal(targetUid);
+            if (journalState && journalState.ok && targetUid === activeCanonicalUid) {
+                if (journalState.hasDirtyAnnotations) {
+                    dirtyAnnotationsForCloud = true;
+                }
+            }
+
+            return {
+                ok: true,
+                migrated: migratedDomains.length > 0,
+                hydrated: hydratedDomains.length > 0,
+                recoveredFromInterrupted: hadInterruptedMigration,
+                recoveredInterruptedMigration: hadInterruptedMigration,
+                migratedDomains,
+                hydratedDomains
+            };
+        }
+
+        // --- M6 Phase A Gap 5: Safe Owner-Accessible Recovery Path for Archived Local Fallback Workspaces ---
+        function inspectArchivedLocalFallbackWorkspaces() {
+            const found = [];
+            try {
+                const prevSessRaw = localStorage.getItem('pharmaPreviousLocalAccountSessionV1');
+                if (prevSessRaw) {
+                    const parsedSess = JSON.parse(prevSessRaw);
+                    if (parsedSess && parsedSess.id) {
+                        const uid = String(parsedSess.id);
+                        const snapRaw = localStorage.getItem(getAccountBackupStorageKey(uid));
+                        let snap = null;
+                        try { snap = snapRaw ? JSON.parse(snapRaw) : null; } catch (e) {}
+                        const subjectsCount = Array.isArray(snap?.subjects) ? snap.subjects.length : 0;
+                        const eventsCount = Array.isArray(snap?.schedule?.events) ? snap.schedule.events.length : 0;
+                        const logsCount = Array.isArray(snap?.logs) ? snap.logs.length : 0;
+                        found.push({
+                            uid,
+                            email: String(parsedSess.email || snap?.user_email || ''),
+                            name: String(parsedSess.name || parsedSess.user_metadata?.full_name || ''),
+                            hasSnapshot: Boolean(snap && typeof snap === 'object'),
+                            subjectsCount,
+                            eventsCount,
+                            logsCount,
+                            counts: {
+                                subjects: subjectsCount,
+                                events: eventsCount,
+                                logs: logsCount
+                            }
+                        });
+                    }
+                }
+            } catch (e) {}
+            found.ok = true;
+            found.count = found.length;
+            found.sessions = found;
+            return found;
+        }
+
+        async function recoverArchivedLocalFallbackWorkspace(targetLocalUid = null, options = { mode: 'switch_to_archived' }) {
+            try {
+                let targetSession = null;
+                const prevSessRaw = localStorage.getItem('pharmaPreviousLocalAccountSessionV1');
+                if (prevSessRaw) {
+                    try {
+                        const parsed = JSON.parse(prevSessRaw);
+                        if (parsed && parsed.id && (!targetLocalUid || String(parsed.id) === String(targetLocalUid))) {
+                            targetSession = parsed;
+                        }
+                    } catch (e) {}
+                }
+                const resolvedUid = targetLocalUid ? String(targetLocalUid) : (targetSession && targetSession.id ? String(targetSession.id) : null);
+                if (!resolvedUid) {
+                    return { ok: false, recovered: false, reason: 'archived_local_session_not_found' };
+                }
+
+                const snapKey = getAccountBackupStorageKey(resolvedUid);
+                const snapRaw = localStorage.getItem(snapKey);
+                let snapData = null;
+                if (snapRaw) {
+                    try { snapData = JSON.parse(snapRaw); } catch (e) {
+                        return { ok: false, recovered: false, reason: 'corrupted_archived_snapshot', error: e };
+                    }
+                }
+                if (!snapData || typeof snapData !== 'object') {
+                    return { ok: false, recovered: false, reason: 'archived_snapshot_not_found', uid: resolvedUid };
+                }
+                if (snapData.user_id && String(snapData.user_id) !== resolvedUid) {
+                    return { ok: false, recovered: false, reason: 'snapshot_uid_mismatch', uid: resolvedUid };
+                }
+
+                const sessionToRestore = targetSession || {
+                    id: resolvedUid,
+                    email: String(snapData.user_email || 'local@exo.hub'),
+                    name: String(snapData.user_email ? snapData.user_email.split('@')[0] : 'حساب محلي'),
+                    isLocalFallback: true
+                };
+
+                localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify(sessionToRestore));
+                await handleAuthSessionChange(Object.assign({}, sessionToRestore, { isLocalFallback: true }), false);
+
+                const activeCtx = createAccountOperationContext(resolvedUid, currentSessionGeneration);
+                const applyRes = await applyCloudWorkspacePayload(snapData, false, activeCtx);
+                if (!applyRes || !applyRes.ok) {
+                    return { ok: false, recovered: false, reason: applyRes?.reason || 'apply_failed', uid: resolvedUid };
+                }
+
+                const restoredAnnos = await getAllAnnotationsMapFromDB(resolvedUid, activeCtx);
+                return {
+                    ok: true,
+                    recovered: true,
+                    uid: resolvedUid,
+                    counts: {
+                        subjects: Array.isArray(subjects) ? subjects.length : 0,
+                        scheduleEvents: Array.isArray(scheduleEvents) ? scheduleEvents.length : 0,
+                        logs: Array.isArray(logs) ? logs.length : 0,
+                        annotations: (restoredAnnos && restoredAnnos.ok && restoredAnnos.verifiedMap) ? Object.keys(restoredAnnos.verifiedMap).length : 0
+                    }
+                };
+            } catch (err) {
+                return { ok: false, recovered: false, reason: 'recovery_exception', error: err };
+            }
         }
 
         async function recoverUncommittedAnnotations(dbOrCtx = null, opCtx = null) {
@@ -23837,16 +25013,23 @@
 
         function markUserWorkspaceDirtyState(uid = null, isDirty = true, includeAnnotations = false) {
             const targetUid = uid ? String(uid) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local');
+            let lsPersisted = true;
+            let lsDiag = null;
+            let currentKey = 'pharmaWorkspaceDirty';
             try {
                 if (isDirty) {
+                    currentKey = 'pharmaWorkspaceUpdatedAt';
                     localStorage.setItem('pharmaWorkspaceUpdatedAt', String(Date.now()));
+                    currentKey = 'pharmaWorkspaceDirty';
                     localStorage.setItem('pharmaWorkspaceDirty', '1');
                     if (targetUid) {
+                        currentKey = 'pharmaWorkspaceDirty_' + targetUid;
                         localStorage.setItem('pharmaWorkspaceDirty_' + targetUid, '1');
                     }
                     if (includeAnnotations) {
                         dirtyAnnotationsForCloud = true;
                         if (targetUid) {
+                            currentKey = 'pharmaAnnotationsDirty_' + targetUid;
                             localStorage.setItem('pharmaAnnotationsDirty_' + targetUid, '1');
                         }
                     }
@@ -23862,7 +25045,24 @@
                         }
                     }
                 }
-            } catch (e) {}
+            } catch (e) {
+                lsPersisted = false;
+                if (typeof diagnoseStorageWriteFailure === 'function') {
+                    lsDiag = diagnoseStorageWriteFailure(e, currentKey, '1', []);
+                }
+                console.warn('markUserWorkspaceDirtyState localStorage write failed (falling back to IndexedDB cloud_sync_journal):', {
+                    failedKey: currentKey,
+                    errorName: lsDiag ? lsDiag.errorName : (e && e.name),
+                    reason: lsDiag ? lsDiag.reason : 'storage_write_failed'
+                });
+            }
+            const idbPromise = recordDurableWorkspaceDirtyJournal(targetUid, isDirty, includeAnnotations, includeAnnotations ? 'annotations' : 'workspace');
+            return {
+                ok: Boolean(lsPersisted || dbInstance),
+                lsPersisted,
+                idbPromise,
+                diagnostics: lsDiag
+            };
         }
 
         async function flushPendingAnnotationsSave(triggerCloudImmediately = false, opCtx = null) {
@@ -23878,9 +25078,17 @@
             const lecIds = Object.keys(pendingAnnoSaveMap);
             // If no pending annotations in pendingAnnoSaveMap, still ensure any already-flushed dirty annotations are pushed when requested
             if (lecIds.length === 0) {
-                const hasAccountDurableDirtyAnnos = Boolean(
+                let hasAccountDurableDirtyAnnos = Boolean(
                     canonicalUid && localStorage.getItem('pharmaAnnotationsDirty_' + canonicalUid) === '1'
                 );
+                if (!hasAccountDurableDirtyAnnos && canonicalUid && typeof readDurableCloudSyncJournal === 'function') {
+                    try {
+                        const jState = await readDurableCloudSyncJournal(canonicalUid, ctx);
+                        if (jState && jState.hasDirtyAnnotations) {
+                            hasAccountDurableDirtyAnnos = true;
+                        }
+                    } catch (jErr) {}
+                }
                 const hasFlushedDirtyAnnos = Boolean(
                     hasAccountDurableDirtyAnnos || (triggerCloudImmediately && dirtyAnnotationsForCloud)
                 );
@@ -23976,12 +25184,45 @@
                 return false;
             }
 
-            // Step 2: Commit to primary annotations objectStore and await tx.oncomplete!
+            // Step 2: Commit to primary annotations objectStore AND durable cloud_sync_journal in the SAME IndexedDB transaction!
+            const hasJournalStore = Boolean(dbInstance.objectStoreNames && dbInstance.objectStoreNames.contains('cloud_sync_journal'));
+            const annoJournalKey = getAnnotationDirtyJournalKey(canonicalUid);
+            const wsJournalKey = getWorkspaceDirtyJournalKey(canonicalUid);
+            const nextAnnoSeq = (typeof annotationMutationSeq !== 'undefined' ? annotationMutationSeq : 0) + 1;
+            const currentWsSeq = typeof localWorkspaceMutationSeq !== 'undefined' ? localWorkspaceMutationSeq : 0;
+
             const mainCommitted = await new Promise((resolveMain) => {
                 try {
-                    const tx = dbInstance.transaction('annotations', 'readwrite');
+                    const txStores = hasJournalStore ? ['annotations', 'cloud_sync_journal'] : 'annotations';
+                    const tx = dbInstance.transaction(txStores, 'readwrite');
                     const store = tx.objectStore('annotations');
                     entriesToSave.forEach(entry => store.put(entry));
+
+                    if (hasJournalStore) {
+                        const jStore = tx.objectStore('cloud_sync_journal');
+                        const touchedRawIds = entriesToSave.map(e => String(e.rawId));
+                        jStore.put({
+                            id: annoJournalKey,
+                            rawId: '__anno_cloud_dirty_journal_v1__',
+                            userId: canonicalUid,
+                            type: 'annotation_dirty_journal',
+                            dirty: true,
+                            dirtyLectureIds: touchedRawIds,
+                            lectureIds: touchedRawIds,
+                            mutationSeq: nextAnnoSeq,
+                            updatedAt: Date.now()
+                        });
+                        jStore.put({
+                            id: wsJournalKey,
+                            rawId: '__ws_cloud_dirty_journal_v1__',
+                            userId: canonicalUid,
+                            type: 'workspace_dirty_journal',
+                            dirty: true,
+                            domain: 'annotations',
+                            workspaceMutationSeq: currentWsSeq,
+                            updatedAt: Date.now()
+                        });
+                    }
 
                     tx.oncomplete = () => {
                         resolveMain(true);
@@ -24003,6 +25244,10 @@
             // [Exo Phase 4.1 — Section 7] If primary annotations transaction fails, keep recovery vault entries intact for crash recovery and return false!
             if (!mainCommitted) {
                 return false;
+            }
+
+            if (typeof annotationMutationSeq !== 'undefined') {
+                annotationMutationSeq = Math.max(annotationMutationSeq, nextAnnoSeq);
             }
 
             // Step 3: Primary transaction succeeded durably! Update RAM cache and pendingAnnoSaveMap
@@ -24032,20 +25277,38 @@
             });
 
             dirtyAnnotationsForCloud = true;
+            let lsMarkerFailed = false;
+            let failingMarkerKey = 'pharmaWorkspaceUpdatedAt';
             try {
+                failingMarkerKey = 'pharmaWorkspaceUpdatedAt';
                 localStorage.setItem('pharmaWorkspaceUpdatedAt', String(Date.now()));
+                failingMarkerKey = 'pharmaWorkspaceDirty';
                 localStorage.setItem('pharmaWorkspaceDirty', '1');
                 if (canonicalUid) {
+                    failingMarkerKey = 'pharmaWorkspaceDirty_' + canonicalUid;
                     localStorage.setItem('pharmaWorkspaceDirty_' + canonicalUid, '1');
+                    failingMarkerKey = 'pharmaAnnotationsDirty_' + canonicalUid;
                     localStorage.setItem('pharmaAnnotationsDirty_' + canonicalUid, '1');
                 }
-            } catch (e) {}
+            } catch (markerErr) {
+                lsMarkerFailed = true;
+                if (typeof diagnoseStorageWriteFailure === 'function') {
+                    diagnoseStorageWriteFailure(markerErr, failingMarkerKey, '1', []);
+                }
+            }
             if (typeof markUserWorkspaceDirtyState === 'function') {
-                markUserWorkspaceDirtyState(canonicalUid, true, true);
+                const mRes = markUserWorkspaceDirtyState(canonicalUid, true, true);
+                if (mRes && mRes.lsPersisted === false) {
+                    lsMarkerFailed = true;
+                }
+            }
+            if (lsMarkerFailed && currentCloudUser && typeof updateCloudNavUI === 'function') {
+                const isLocalFallback = Boolean(currentCloudUser.isLocalFallback || (!supabaseClient && String(currentCloudUser.id || '').startsWith('usr_')));
+                updateCloudNavUI(isLocalFallback ? 'local_only' : 'pending');
             }
 
             if (triggerCloudImmediately && ctx.isCurrent()) {
-                localStorage.setItem('pharmaWorkspaceDirty', '1');
+                try { localStorage.setItem('pharmaWorkspaceDirty', '1'); } catch (e) {}
                 if (annoCloudSyncTimer) clearTimeout(annoCloudSyncTimer);
                 await pushWorkspaceToCloud(false, true, ctx);
             }
@@ -30110,6 +31373,16 @@ function togglePdfAudioPlayerBar(forceState) {
             return Boolean(SUPABASE_PROJECT_URL && SUPABASE_PROJECT_URL.startsWith('http') && SUPABASE_ANON_PUBLIC_KEY && SUPABASE_ANON_PUBLIC_KEY.length > 20 && window.supabase);
         }
 
+        window.__exoSupabaseStartupState = window.__exoSupabaseStartupState || {
+            createClientCalled: false,
+            getSessionCalled: false,
+            onAuthStateChangeRegistered: false,
+            handleAuthSessionChangeCalled: false,
+            syncWorkspaceOnLoginCalled: false,
+            settled: false,
+            lastPromise: null
+        };
+
         function initSupabaseCloudEngine() {
             const restoreEligibleLocalFallbackSession = () => {
                 try {
@@ -30125,27 +31398,33 @@ function togglePdfAudioPlayerBar(forceState) {
 
             if (isSupabaseConfigured()) {
                 try {
+                    window.__exoSupabaseStartupState.createClientCalled = true;
                     supabaseClient = window.supabase.createClient(SUPABASE_PROJECT_URL.trim(), SUPABASE_ANON_PUBLIC_KEY.trim(), {
                         auth: { persistSession: true, autoRefreshToken: true }
                     });
 
                     let initialSessionHandled = false;
-                    supabaseClient.auth.getSession().then(({ data, error }) => {
+                    window.__exoSupabaseStartupState.getSessionCalled = true;
+                    const startupPromise = supabaseClient.auth.getSession().then(async ({ data, error }) => {
                         initialSessionHandled = true;
                         const cloudUser = (!error && data?.session?.user) ? data.session.user : null;
                         if (cloudUser) {
-                            handleAuthSessionChange(cloudUser, true);
+                            await handleAuthSessionChange(cloudUser, true);
                         } else if (!restoreEligibleLocalFallbackSession()) {
-                            handleAuthSessionChange(null, false);
+                            await handleAuthSessionChange(null, false);
                         }
+                        window.__exoSupabaseStartupState.settled = true;
                     }).catch((sessionErr) => {
                         console.warn('Supabase getSession warning:', sessionErr);
                         initialSessionHandled = true;
                         if (!restoreEligibleLocalFallbackSession()) {
                             updateCloudNavUI(navigator.onLine ? 'logged_out' : 'offline');
                         }
+                        window.__exoSupabaseStartupState.settled = true;
                     });
+                    window.__exoSupabaseStartupState.lastPromise = startupPromise;
 
+                    window.__exoSupabaseStartupState.onAuthStateChangeRegistered = true;
                     supabaseClient.auth.onAuthStateChange((event, session) => {
                         if (event === 'INITIAL_SESSION') return;
                         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
@@ -30164,6 +31443,7 @@ function togglePdfAudioPlayerBar(forceState) {
             if (!restoreEligibleLocalFallbackSession()) {
                 updateCloudNavUI('logged_out');
             }
+            window.__exoSupabaseStartupState.settled = true;
         }
 
         function updateCloudNavUI(state) {
@@ -30224,6 +31504,9 @@ function togglePdfAudioPlayerBar(forceState) {
         }
 
         async function handleAuthSessionChange(userObj, shouldInitialSync = false) {
+            if (typeof window !== 'undefined' && window.__exoSupabaseStartupState) {
+                window.__exoSupabaseStartupState.handleAuthSessionChangeCalled = true;
+            }
             const prevUser = currentCloudUser;
             const lastRecordedUid = localStorage.getItem('pharmaLastActiveCloudUid')
                 || localStorage.getItem('pharmaLastActiveUserIdV1')
@@ -30692,6 +31975,13 @@ function togglePdfAudioPlayerBar(forceState) {
 
                 if (shouldInitialSync) {
                     return await syncWorkspaceOnLogin(activeCtx);
+                }
+
+                // Hydrate durable IndexedDB workspace_state for this account if present
+                if (typeof migrateAndHydrateWorkspaceFromIDB === 'function') {
+                    try {
+                        await migrateAndHydrateWorkspaceFromIDB(activeCtx.uid, activeCtx);
+                    } catch (e) {}
                 }
 
                 // If restoring a local fallback session on reload and active workspace is empty while an account snapshot exists, hydrate it
@@ -37404,8 +38694,18 @@ function togglePdfAudioPlayerBar(forceState) {
                     const annoSeqAtStart = typeof annotationMutationSeq !== 'undefined' ? annotationMutationSeq : 0;
 
                     const isPdfModalOpenNow = Boolean(document.getElementById('pdfViewerModalOverlay')?.classList.contains('active'));
+                    let durableSyncJournal = { hasDirtyAnnotations: false, hasDirtyWorkspace: false };
+                    if (typeof readDurableCloudSyncJournal === 'function' && syncUserId) {
+                        try {
+                            durableSyncJournal = await readDurableCloudSyncJournal(syncUserId, opCtx);
+                            if (!opCtx.isCurrent()) {
+                                return { status: 'aborted', reason: 'account_switched' };
+                            }
+                        } catch (e) {}
+                    }
                     const hasPersistentDirtyAnnos = Boolean(
-                        syncUserId && localStorage.getItem('pharmaAnnotationsDirty_' + syncUserId) === '1'
+                        (syncUserId && localStorage.getItem('pharmaAnnotationsDirty_' + syncUserId) === '1') ||
+                        durableSyncJournal.hasDirtyAnnotations
                     );
                     const shouldSendAnnotations = Boolean(
                         forceIncludeAnnotations ||
@@ -37479,6 +38779,7 @@ function togglePdfAudioPlayerBar(forceState) {
 
                     // Per-account local vault backup (metadata-only, decoupled from annotations)
                     let accountSnapshotPersisted = false;
+                    let lightweightVaultCopy = null;
                     try {
                         const accountKey = getAccountBackupStorageKey(syncUserId);
                         let idbVerified = false;
@@ -37491,11 +38792,21 @@ function togglePdfAudioPlayerBar(forceState) {
                             }
                         }
                         if (idbVerified && opCtx.isCurrent()) {
-                            const lightweightVaultCopy = Object.assign({}, payload);
+                            lightweightVaultCopy = Object.assign({}, payload);
                             delete lightweightVaultCopy.annotations;
                             lightweightVaultCopy.annotationsStoredInIndexedDB = true;
-                            localStorage.setItem(accountKey, JSON.stringify(lightweightVaultCopy));
-                            accountSnapshotPersisted = true;
+                            try {
+                                localStorage.setItem(accountKey, JSON.stringify(lightweightVaultCopy));
+                                accountSnapshotPersisted = true;
+                            } catch (lsVaultErr) {
+                                console.warn('Per-account localStorage vault backup warning in pushWorkspaceToCloud:', lsVaultErr);
+                            }
+                            if (typeof persistWorkspaceDomainToIDB === 'function') {
+                                const idbVaultRes = await persistWorkspaceDomainToIDB('account_snapshot', lightweightVaultCopy, syncUserId, opCtx);
+                                if (idbVaultRes && idbVaultRes.ok) {
+                                    accountSnapshotPersisted = true;
+                                }
+                            }
                         }
                     } catch (quotaErr) {
                         console.warn('Per-account vault backup warning in pushWorkspaceToCloud:', quotaErr);
@@ -37579,6 +38890,12 @@ function togglePdfAudioPlayerBar(forceState) {
                             try {
                                 localStorage.removeItem('pharmaAnnotationsDirty_' + syncUserId);
                             } catch (e) {}
+                            if (typeof clearDurableAnnotationDirtyJournal === 'function') {
+                                await clearDurableAnnotationDirtyJournal(syncUserId, annoSeqAtStart, opCtx);
+                                if (!opCtx.isCurrent()) {
+                                    return { status: 'aborted', reason: 'account_switched' };
+                                }
+                            }
                         } else if (!noNewAnnotationMutations) {
                             dirtyAnnotationsForCloud = true;
                             try {
@@ -37586,7 +38903,16 @@ function togglePdfAudioPlayerBar(forceState) {
                             } catch (e) {}
                         }
 
-                        localStorage.setItem('pharmaLastCloudSyncIso', nowIso);
+                        try {
+                            localStorage.setItem('pharmaLastCloudSyncIso', nowIso);
+                        } catch (e) {}
+
+                        let postPushJournal = { hasDirtyAnnotations: false, hasDirtyWorkspace: false };
+                        if (typeof readDurableCloudSyncJournal === 'function' && syncUserId) {
+                            try {
+                                postPushJournal = await readDurableCloudSyncJournal(syncUserId, opCtx);
+                            } catch (e) {}
+                        }
 
                         // Only clear pharmaWorkspaceDirty if no newer local modifications occurred while sync was in-flight
                         const noNewWorkspaceMutations = (localWorkspaceMutationSeq === mutationSeqAtStart);
@@ -37595,15 +38921,26 @@ function togglePdfAudioPlayerBar(forceState) {
                             : false;
                         const hasRemainingDirtyAnnos = Boolean(
                             dirtyAnnotationsForCloud ||
-                            localStorage.getItem('pharmaAnnotationsDirty_' + syncUserId) === '1'
+                            localStorage.getItem('pharmaAnnotationsDirty_' + syncUserId) === '1' ||
+                            postPushJournal.hasDirtyAnnotations
                         );
                         const isCleanNow = Boolean(noNewWorkspaceMutations && !hasRemainingDirtyAnnos && !hasRemainingUncommittedOps && accountSnapshotPersisted);
                         if (isCleanNow) {
-                            localStorage.removeItem('pharmaWorkspaceDirty');
-                            localStorage.removeItem('pharmaWorkspaceDirty_' + syncUserId);
+                            try {
+                                localStorage.removeItem('pharmaWorkspaceDirty');
+                                localStorage.removeItem('pharmaWorkspaceDirty_' + syncUserId);
+                            } catch (e) {}
+                            if (typeof clearDurableWorkspaceDirtyJournal === 'function') {
+                                await clearDurableWorkspaceDirtyJournal(syncUserId, mutationSeqAtStart, opCtx);
+                                if (!opCtx.isCurrent()) {
+                                    return { status: 'aborted', reason: 'account_switched' };
+                                }
+                            }
                         } else {
-                            localStorage.setItem('pharmaWorkspaceDirty', '1');
-                            localStorage.setItem('pharmaWorkspaceDirty_' + syncUserId, '1');
+                            try {
+                                localStorage.setItem('pharmaWorkspaceDirty', '1');
+                                localStorage.setItem('pharmaWorkspaceDirty_' + syncUserId, '1');
+                            } catch (e) {}
                         }
                         try {
                             const accountKey = getAccountBackupStorageKey(syncUserId);
@@ -37671,8 +39008,19 @@ function togglePdfAudioPlayerBar(forceState) {
                     }
                     console.error('Cloud synchronization failure:', err);
                     const diag = typeof classifySupabaseError === 'function' ? classifySupabaseError(err) : null;
-                    localStorage.setItem('pharmaWorkspaceDirty', '1');
-                    localStorage.setItem('pharmaWorkspaceDirty_' + syncUserId, '1');
+                    try {
+                        localStorage.setItem('pharmaWorkspaceDirty', '1');
+                        localStorage.setItem('pharmaWorkspaceDirty_' + syncUserId, '1');
+                    } catch (e) {}
+                    if (typeof recordDurableWorkspaceDirtyJournal === 'function' && syncUserId) {
+                        try {
+                            const hasDirtyAnnosNow = Boolean(
+                                dirtyAnnotationsForCloud ||
+                                localStorage.getItem('pharmaAnnotationsDirty_' + syncUserId) === '1'
+                            );
+                            await recordDurableWorkspaceDirtyJournal(syncUserId, true, hasDirtyAnnosNow, 'rpc_sync_failed');
+                        } catch (e) {}
+                    }
                     updateCloudNavUI('error');
                     const timeEl = document.getElementById('cloudLastSyncedTime');
                     if (timeEl) {
@@ -37768,6 +39116,16 @@ function togglePdfAudioPlayerBar(forceState) {
                 } catch (e) {}
             }
 
+            let durableApplyJournal = { hasDirtyAnnotations: false, hasDirtyWorkspace: false };
+            if (typeof readDurableCloudSyncJournal === 'function' && targetUid) {
+                try {
+                    durableApplyJournal = await readDurableCloudSyncJournal(targetUid, opCtx);
+                    if (!opCtx.isCurrent()) {
+                        return { ok: false, status: 'aborted', reason: 'account_switched' };
+                    }
+                } catch (e) {}
+            }
+
             // If annotations are present, restore them to IndexedDB FIRST under explicit targetUid & opCtx
             // before mutating global workspace state, and verify context after await!
             // Guard: Prevent stale remote annotations from overwriting uncommitted local annotations!
@@ -37784,6 +39142,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 const hasUncommittedLocalAnnotations = Boolean(
                     dirtyAnnotationsForCloud ||
                     localStorage.getItem('pharmaAnnotationsDirty_' + targetUid) === '1' ||
+                    durableApplyJournal.hasDirtyAnnotations ||
                     (typeof pendingAnnoSaveMap !== 'undefined' && pendingAnnoSaveMap && Object.keys(pendingAnnoSaveMap).length > 0)
                 );
                 if (hasUncommittedLocalAnnotations) {
@@ -37870,7 +39229,21 @@ function togglePdfAudioPlayerBar(forceState) {
                 saveCloudMediaRegistry();
             }
             const rawCloudSubjects = Array.isArray(cloudRow.subjects) ? cloudRow.subjects : [];
-            const subFilterResult = _mergeSubjects([], rawCloudSubjects, unifiedTombstones, targetUid);
+            let localSubjectsForMerge = [];
+            if (durableApplyJournal.hasDirtyWorkspace || localStorage.getItem('pharmaWorkspaceDirty_' + targetUid) === '1') {
+                if (typeof readWorkspaceDomainFromIDB === 'function') {
+                    try {
+                        const idbSubRes = await readWorkspaceDomainFromIDB('subjects', targetUid, opCtx);
+                        if (idbSubRes && idbSubRes.found && idbSubRes.record && Array.isArray(idbSubRes.record.payload)) {
+                            localSubjectsForMerge = idbSubRes.record.payload;
+                        }
+                    } catch (e) {}
+                }
+                if (localSubjectsForMerge.length === 0 && (!lastActiveUidBeforeApply || String(lastActiveUidBeforeApply) === targetUid) && Array.isArray(subjects) && subjects.length > 0) {
+                    localSubjectsForMerge = subjects;
+                }
+            }
+            const subFilterResult = _mergeSubjects(localSubjectsForMerge, rawCloudSubjects, unifiedTombstones, targetUid);
             subjects = subFilterResult.subjects;
             if (cloudRow.annotations && typeof cloudRow.annotations === 'object' && typeof syncExcludedPagesToLectureRecords === 'function') {
                 Object.keys(cloudRow.annotations).forEach(lecId => {
@@ -37881,7 +39254,14 @@ function togglePdfAudioPlayerBar(forceState) {
             }
             snapshotCurrentSubjectsMediaToRegistry(subjects, targetUid);
             healSubjectsFromCloudRegistry(targetUid);
-            localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+            try {
+                localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+            } catch (e) {}
+            if (typeof persistWorkspaceDomainToIDB === 'function') {
+                try {
+                    await persistWorkspaceDomainToIDB('subjects', subjects, targetUid, opCtx);
+                } catch (e) {}
+            }
 
             // Drain any pending or tombstoned lecture local artifacts safely
             if (subFilterResult.deletedLectureIds && subFilterResult.deletedLectureIds.length > 0 && typeof cleanupDeletedLectureLocalArtifacts === 'function') {
@@ -38035,21 +39415,30 @@ function togglePdfAudioPlayerBar(forceState) {
             if (cloudRow.updated_at) {
                 localStorage.setItem('pharmaLastCloudSyncIso', cloudRow.updated_at);
             }
-            if (cloudRow.dirty || localStorage.getItem('pharmaWorkspaceDirty_' + targetUid) === '1') {
-                localStorage.setItem('pharmaWorkspaceDirty', '1');
+            if (cloudRow.dirty || localStorage.getItem('pharmaWorkspaceDirty_' + targetUid) === '1' || durableApplyJournal.hasDirtyWorkspace || durableApplyJournal.hasDirtyAnnotations) {
+                try { localStorage.setItem('pharmaWorkspaceDirty', '1'); } catch (e) {}
             } else {
-                localStorage.removeItem('pharmaWorkspaceDirty');
+                try { localStorage.removeItem('pharmaWorkspaceDirty'); } catch (e) {}
             }
             if (targetUid && targetUid !== 'local') {
-                localStorage.setItem('pharmaLastActiveUserIdV1', targetUid);
-                localStorage.setItem('pharmaLastActiveCloudUid', targetUid);
+                try {
+                    localStorage.setItem('pharmaLastActiveUserIdV1', targetUid);
+                    localStorage.setItem('pharmaLastActiveCloudUid', targetUid);
+                } catch (e) {}
             }
 
             renderSubjectsList();
             if (activeSubjectId) renderGroups();
             renderSchedule();
             updateTracker();
-            updateCloudNavUI('synced');
+            const hasRemainingDirty = Boolean(
+                cloudRow.dirty ||
+                localStorage.getItem('pharmaWorkspaceDirty_' + targetUid) === '1' ||
+                localStorage.getItem('pharmaAnnotationsDirty_' + targetUid) === '1' ||
+                durableApplyJournal.hasDirtyWorkspace ||
+                durableApplyJournal.hasDirtyAnnotations
+            );
+            updateCloudNavUI(hasRemainingDirty ? 'pending' : 'synced');
 
             const timeEl = document.getElementById('cloudLastSyncedTime');
             if (timeEl && cloudRow.updated_at) {
@@ -38145,7 +39534,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     if (!db && typeof indexedDB !== 'undefined') {
                         try {
                             db = await new Promise((res) => {
-                                const req = indexedDB.open('WorkspaceMediaStore', 4);
+                                const req = indexedDB.open('WorkspaceMediaStore', 5);
                                 req.onsuccess = () => res(req.result || null);
                                 req.onerror = () => res(null);
                                 req.onblocked = () => res(null);
@@ -39037,14 +40426,34 @@ function togglePdfAudioPlayerBar(forceState) {
                     return await pushWorkspaceToCloud(isManual, false, opCtx);
                 }
 
+                let durablePullJournal = { hasDirtyAnnotations: false, hasDirtyWorkspace: false };
+                if (typeof readDurableCloudSyncJournal === 'function' && opCtx.uid) {
+                    try {
+                        durablePullJournal = await readDurableCloudSyncJournal(opCtx.uid, opCtx);
+                        if (!opCtx.isCurrent()) {
+                            return { status: 'aborted', reason: 'account_switched' };
+                        }
+                    } catch (e) {}
+                }
+                if ((durablePullJournal.hasDirtyWorkspace || durablePullJournal.hasDirtyAnnotations) && typeof migrateAndHydrateWorkspaceFromIDB === 'function') {
+                    try {
+                        await migrateAndHydrateWorkspaceFromIDB(opCtx.uid, opCtx);
+                        if (!opCtx.isCurrent()) {
+                            return { status: 'aborted', reason: 'account_switched' };
+                        }
+                    } catch (e) {}
+                }
+
                 // Check local dirty & provenance state (F-03)
                 const hasDirtyWorkspace = Boolean(
                     localStorage.getItem('pharmaWorkspaceDirty') === '1' ||
-                    localStorage.getItem('pharmaWorkspaceDirty_' + opCtx.uid) === '1'
+                    localStorage.getItem('pharmaWorkspaceDirty_' + opCtx.uid) === '1' ||
+                    durablePullJournal.hasDirtyWorkspace
                 );
                 const hasDirtyAnnotations = Boolean(
                     dirtyAnnotationsForCloud ||
                     localStorage.getItem('pharmaAnnotationsDirty_' + opCtx.uid) === '1' ||
+                    durablePullJournal.hasDirtyAnnotations ||
                     (typeof pendingAnnoSaveMap !== 'undefined' && pendingAnnoSaveMap && Object.keys(pendingAnnoSaveMap).length > 0)
                 );
                 const hasUncommittedOps = typeof hasAnyUncommittedOperationsInMemory === 'function'
@@ -39063,7 +40472,16 @@ function togglePdfAudioPlayerBar(forceState) {
                             isDirty: isLocalDirty
                         };
                     }
-                    const provenance = verifyLocalWorkspaceProvenance(opCtx.uid, opCtx);
+                    const hasAccountScopedDurableJournal = Boolean(
+                        (durablePullJournal.hasDirtyAnnotations || durablePullJournal.hasDirtyWorkspace) &&
+                        localStorage.getItem('pharmaAnnotationsDirty_local') !== '1' &&
+                        localStorage.getItem('pharmaWorkspaceDirty_local') !== '1'
+                    );
+                    const provenance = verifyLocalWorkspaceProvenance(
+                        opCtx.uid,
+                        opCtx,
+                        hasAccountScopedDurableJournal ? opCtx.uid : null
+                    );
                     if (provenance.ok) {
                         if (typeof reconcileDirtyWorkspaceWithRemote === 'function') {
                             return await reconcileDirtyWorkspaceWithRemote(data, opCtx, isManual, provenance);
@@ -39108,6 +40526,9 @@ function togglePdfAudioPlayerBar(forceState) {
         }
 
         async function syncWorkspaceOnLogin(ctx = null) {
+            if (typeof window !== 'undefined' && window.__exoSupabaseStartupState) {
+                window.__exoSupabaseStartupState.syncWorkspaceOnLoginCalled = true;
+            }
             if (!currentCloudUser) return { status: 'aborted', reason: 'not_logged_in' };
             const opCtx = resolveAccountOperationContext(ctx?.uid || currentCloudUser.id, ctx);
             if (!opCtx.ok || !opCtx.isCurrent()) {
@@ -39552,16 +40973,48 @@ function togglePdfAudioPlayerBar(forceState) {
                 currentUserCanUploadMedia = Boolean(data && data.can_upload_media);
                 updateCloudMediaStatsUI();
 
+                let durableLoginJournal = { hasDirtyAnnotations: false, hasDirtyWorkspace: false };
+                if (typeof readDurableCloudSyncJournal === 'function' && opCtx.uid) {
+                    try {
+                        durableLoginJournal = await readDurableCloudSyncJournal(opCtx.uid, opCtx);
+                        if (!opCtx.isCurrent()) {
+                            return { status: 'aborted', reason: 'account_switched' };
+                        }
+                    } catch (e) {}
+                }
+                const isSameOrNewDurableOwner = Boolean(
+                    !isSwitchingDifferentUser && (
+                        (lastLoggedUserId && String(lastLoggedUserId) === opCtx.uid) ||
+                        ((durableLoginJournal.hasDirtyAnnotations || durableLoginJournal.hasDirtyWorkspace) &&
+                         localStorage.getItem('pharmaAnnotationsDirty_local') !== '1' &&
+                         localStorage.getItem('pharmaWorkspaceDirty_local') !== '1' &&
+                         (!lastLoggedUserId || lastLoggedUserId !== 'local'))
+                    )
+                );
+                if (isSameOrNewDurableOwner && typeof migrateAndHydrateWorkspaceFromIDB === 'function') {
+                    try {
+                        await migrateAndHydrateWorkspaceFromIDB(opCtx.uid, opCtx);
+                        if (!opCtx.isCurrent()) {
+                            return { status: 'aborted', reason: 'account_switched' };
+                        }
+                    } catch (e) {}
+                }
+
                 if (data) {
                     // Check local dirty & provenance state (F-03)
-                    const isSameAccountReturning = Boolean(lastLoggedUserId && String(lastLoggedUserId) === opCtx.uid);
+                    const isSameAccountReturning = Boolean(
+                        (lastLoggedUserId && String(lastLoggedUserId) === opCtx.uid) ||
+                        isSameOrNewDurableOwner
+                    );
                     const hasDirtyWorkspace = Boolean(
                         localStorage.getItem('pharmaWorkspaceDirty') === '1' ||
-                        (isSameAccountReturning && localStorage.getItem('pharmaWorkspaceDirty_' + opCtx.uid) === '1')
+                        (isSameAccountReturning && localStorage.getItem('pharmaWorkspaceDirty_' + opCtx.uid) === '1') ||
+                        durableLoginJournal.hasDirtyWorkspace
                     );
                     const hasDirtyAnnotations = Boolean(
                         dirtyAnnotationsForCloud ||
                         (isSameAccountReturning && localStorage.getItem('pharmaAnnotationsDirty_' + opCtx.uid) === '1') ||
+                        durableLoginJournal.hasDirtyAnnotations ||
                         ((!lastLoggedUserId || lastLoggedUserId === 'local') && localStorage.getItem('pharmaAnnotationsDirty_local') === '1') ||
                         (typeof pendingAnnoSaveMap !== 'undefined' && pendingAnnoSaveMap && Object.keys(pendingAnnoSaveMap).length > 0)
                     );
@@ -39581,7 +41034,8 @@ function togglePdfAudioPlayerBar(forceState) {
                                 isDirty: isLocalDirty
                             };
                         }
-                        const provenance = verifyLocalWorkspaceProvenance(opCtx.uid, opCtx, lastLoggedUserId);
+                        const effectivePriorUid = isSameOrNewDurableOwner ? opCtx.uid : lastLoggedUserId;
+                        const provenance = verifyLocalWorkspaceProvenance(opCtx.uid, opCtx, effectivePriorUid);
 
                         if (provenance.ok && !isSwitchingDifferentUser) {
                             if (typeof reconcileDirtyWorkspaceWithRemote === 'function') {
@@ -39621,11 +41075,13 @@ function togglePdfAudioPlayerBar(forceState) {
                     if (!opCtx.isCurrent()) {
                         return { status: 'aborted', reason: 'account_switched' };
                     }
-                    localStorage.setItem('pharmaLastActiveUserIdV1', opCtx.uid);
-                    localStorage.setItem('pharmaLastActiveCloudUid', opCtx.uid);
+                    try {
+                        localStorage.setItem('pharmaLastActiveUserIdV1', opCtx.uid);
+                        localStorage.setItem('pharmaLastActiveCloudUid', opCtx.uid);
+                    } catch (e) {}
                     const needsCloudPush = Boolean(
                         (!data.user_email && currentCloudUser?.email) ||
-                        (loadedFromLocalAccountSnapshot && (data.dirty || localStorage.getItem('pharmaWorkspaceDirty_' + opCtx.uid) === '1' || localStorage.getItem('pharmaAnnotationsDirty_' + opCtx.uid) === '1'))
+                        (loadedFromLocalAccountSnapshot && (data.dirty || localStorage.getItem('pharmaWorkspaceDirty_' + opCtx.uid) === '1' || localStorage.getItem('pharmaAnnotationsDirty_' + opCtx.uid) === '1' || durableLoginJournal.hasDirtyAnnotations || durableLoginJournal.hasDirtyWorkspace))
                     );
                     if (needsCloudPush && supabaseClient && navigator.onLine && opCtx.isCurrent()) {
                         // [Exo Phase 4.2 — Section 3] Never bypass sync_workspace_with_concurrency with a direct .update()

@@ -74,6 +74,8 @@ class InMemoryIDBDatabase {
     this.stores = {
       annotations: new Map(),
       annotation_recovery_vault: new Map(),
+      workspace_state: new Map(),
+      cloud_sync_journal: new Map(),
       pdfs: new Map(),
       audios: new Map()
     };
@@ -96,6 +98,7 @@ class InMemoryIDBDatabase {
 
     const stagedOps = [];
     let aborted = false;
+    const txCreatedAfterFailFlag = Boolean(db.failNextTransaction);
     const tx = {
       mode,
       error: null,
@@ -136,7 +139,7 @@ class InMemoryIDBDatabase {
               }
               req.result = Array.from(targetMap.values());
               if (req.onsuccess) req.onsuccess();
-              if (mode === 'readonly' && tx.oncomplete) tx.oncomplete();
+              if (mode === 'readonly' && pendingRequests === 0 && tx.oncomplete) tx.oncomplete();
             });
             return req;
           },
@@ -148,7 +151,7 @@ class InMemoryIDBDatabase {
               if (aborted) return;
               req.result = targetMap.get(String(key));
               if (req.onsuccess) req.onsuccess();
-              if (mode === 'readonly' && tx.oncomplete) tx.oncomplete();
+              if (mode === 'readonly' && pendingRequests === 0 && tx.oncomplete) tx.oncomplete();
             });
             return req;
           },
@@ -171,7 +174,7 @@ class InMemoryIDBDatabase {
         setImmediate(processCommit);
         return;
       }
-      const shouldFailWrite = db.failNextTransaction && (!db.failOnStore || storeNames.includes(db.failOnStore)) && (!db.failOnMode || db.failOnMode === mode);
+      const shouldFailWrite = txCreatedAfterFailFlag && db.failNextTransaction && (!db.failOnStore || storeNames.includes(db.failOnStore)) && (!db.failOnMode || db.failOnMode === mode);
       if (shouldFailWrite) {
         db.failNextTransaction = false;
         db.failOnStore = null;
@@ -206,6 +209,7 @@ const queuedAnnotationWritesDuringImportByAccount = new Map();
 const barrierHeartbeatTimersByAccount = new Map();
 const pendingDomainWritesDuringImportByAccount = new Map();
 let failNextAccountSnapshotKey = null;
+let failNextStorageKeyMatch = null;
 let simulateStorageQuotaExceeded = false;
 const localStorage = {
   getItem: (k) => (storageBacking.has(String(k)) ? storageBacking.get(String(k)) : null),
@@ -215,9 +219,16 @@ const localStorage = {
       qErr.name = 'QuotaExceededError';
       throw qErr;
     }
+    if (failNextStorageKeyMatch && String(k).includes(String(failNextStorageKeyMatch))) {
+      const qErr = new Error('QuotaExceededError: Simulated targeted quota failure writing ' + k);
+      qErr.name = 'QuotaExceededError';
+      throw qErr;
+    }
     if (failNextAccountSnapshotKey && String(k) === String(failNextAccountSnapshotKey)) {
       failNextAccountSnapshotKey = null;
-      throw new Error('QuotaExceededError: Simulated failure writing ' + k);
+      const qErr = new Error('QuotaExceededError: Simulated failure writing ' + k);
+      qErr.name = 'QuotaExceededError';
+      throw qErr;
     }
     storageBacking.set(String(k), String(v));
   },
@@ -227,13 +238,43 @@ const localStorage = {
 const scheduledTimers = [];
 const toastHistory = [];
 const cloudNavUiHistory = [];
+const modalCloseHistory = [];
 const setTimeout = (fn, delay) => {
   scheduledTimers.push({ fn, delay });
   return scheduledTimers.length;
 };
 const clearTimeout = () => {};
 const navigator = { onLine: true };
-const document = { getElementById: () => null };
+const window = {};
+const domElements = {
+  siModalInput: { value: '', placeholder: '', focus: () => {}, select: () => {}, onkeydown: null },
+  siModalTitle: { innerHTML: '' },
+  siModalSaveBtn: { onclick: null },
+  singleInputField: { value: '', placeholder: '', focus: () => {}, select: () => {}, onkeydown: null },
+  singleInputModalTitle: { innerHTML: '' },
+  singleInputSaveBtn: { onclick: null },
+  singleInputModalOverlay: { classList: { add: () => {}, remove: () => {} } },
+  diModalInput1: { value: '', placeholder: '', focus: () => {}, onkeydown: null },
+  diModalInput2: { value: '', placeholder: '', focus: () => {}, onkeydown: null },
+  diModalTitle: { innerHTML: '' },
+  diModalSaveBtn: { onclick: null },
+  doubleInputField1: { value: '', placeholder: '', focus: () => {}, onkeydown: null },
+  doubleInputField2: { value: '', placeholder: '', focus: () => {}, onkeydown: null },
+  doubleInputModalTitle: { innerHTML: '' },
+  doubleInputLabel1: { innerText: '' },
+  doubleInputLabel2: { innerText: '' },
+  doubleInputSaveBtn: { onclick: null },
+  doubleInputModalOverlay: { classList: { add: () => {}, remove: () => {} } }
+};
+const document = {
+  getElementById: (id) => domElements[id] || null
+};
+function sanitizeUserText(val, maxLen = 250) {
+  return String(val || '').trim().slice(0, maxLen);
+}
+let lastStorageFailureDiagnostics = null;
+let activeSingleInputCallback = null;
+let activeDoubleInputCallback = null;
 let currentCloudUser = null;
 let currentUserCanUploadMedia = false;
 let currentSessionGeneration = 1;
@@ -297,7 +338,9 @@ function renderTasksView() {}
 function renderPdfInlineTaskAdjusterList() {}
 function refreshSchedulePdfPreview() {}
 function renderWeeklyEvaluationsHub() {}
-function closeModal() {}
+function closeModal(id) {
+  modalCloseHistory.push(String(id || ''));
+}
 function openConfirmModal(msg, onConfirm) {
   if (typeof onConfirm === 'function') return onConfirm();
 }
@@ -463,6 +506,26 @@ ${extractFunctionSource(indexHtmlContent, 'stopBarrierHeartbeat')}
 ${extractFunctionSource(indexHtmlContent, 'recordQueuedAnnotationWriteDurably')}
 ${extractFunctionSource(indexHtmlContent, 'applyQueuedAnnotationWritesAfterImport')}
 ${extractFunctionSource(indexHtmlContent, 'flushQueuedDomainWritesAfterImport')}
+${extractFunctionSource(indexHtmlContent, 'diagnoseStorageWriteFailure')}
+${extractFunctionSource(indexHtmlContent, 'getLastStorageFailureDiagnostics')}
+${extractFunctionSource(indexHtmlContent, 'openSingleInputModal')}
+${extractFunctionSource(indexHtmlContent, 'saveSingleInputModal')}
+${extractFunctionSource(indexHtmlContent, 'openDoubleInputModal')}
+${extractFunctionSource(indexHtmlContent, 'triggerAddGroup')}
+${extractFunctionSource(indexHtmlContent, 'triggerEditGroup')}
+${extractFunctionSource(indexHtmlContent, 'getAnnotationDirtyJournalKey')}
+${extractFunctionSource(indexHtmlContent, 'getWorkspaceDirtyJournalKey')}
+${extractFunctionSource(indexHtmlContent, 'getWorkspaceDomainStateKey')}
+${extractFunctionSource(indexHtmlContent, 'getWorkspaceMigrationJournalKey')}
+${extractFunctionSource(indexHtmlContent, 'recordDurableWorkspaceDirtyJournal')}
+${extractFunctionSource(indexHtmlContent, 'readDurableCloudSyncJournal')}
+${extractFunctionSource(indexHtmlContent, 'clearDurableAnnotationDirtyJournal')}
+${extractFunctionSource(indexHtmlContent, 'clearDurableWorkspaceDirtyJournal')}
+${extractFunctionSource(indexHtmlContent, 'persistWorkspaceDomainToIDB')}
+${extractFunctionSource(indexHtmlContent, 'readWorkspaceDomainFromIDB')}
+${extractFunctionSource(indexHtmlContent, 'migrateAndHydrateWorkspaceFromIDB')}
+${extractFunctionSource(indexHtmlContent, 'inspectArchivedLocalFallbackWorkspaces')}
+${extractFunctionSource(indexHtmlContent, 'recoverArchivedLocalFallbackWorkspace')}
 ${extractFunctionSource(indexHtmlContent, 'markUserWorkspaceDirtyState')}
 ${extractFunctionSource(indexHtmlContent, 'moveLectureInGroup')}
 ${extractFunctionSource(indexHtmlContent, 'autoSortLecturesInGroup')}
@@ -470,17 +533,17 @@ ${extractFunctionSource(indexHtmlContent, 'handleLectureDragStart')}
 ${extractFunctionSource(indexHtmlContent, 'handleLectureDrop')}
 ${extractFunctionSource(indexHtmlContent, 'handleAuthSessionChange')}
 ${extractFunctionSource(indexHtmlContent, 'isImportInProgressOrQuarantined')}
-${extractFunctionSource(indexHtmlContent, 'saveSubjects')}
-${extractFunctionSource(indexHtmlContent, 'saveScheduleData')}
-${extractFunctionSource(indexHtmlContent, 'saveLogs')}
 ${extractFunctionSource(indexHtmlContent, 'runWithImportLock')}
 module.exports = {
   localStorage,
   scheduledTimers,
   toastHistory,
   cloudNavUiHistory,
+  modalCloseHistory,
+  domElements,
   setDbInstance: (db) => { dbInstance = db; },
   setFailNextAccountSnapshotKey: (key) => { failNextAccountSnapshotKey = key ? String(key) : null; },
+  setFailNextStorageKeyMatch: (pattern) => { failNextStorageKeyMatch = pattern ? String(pattern) : null; },
   setSimulateStorageQuotaExceeded: (val) => { simulateStorageQuotaExceeded = Boolean(val); },
   setSupabaseClient: (client) => { supabaseClient = client; },
   setNavigatorOnline: (online) => { navigator.onLine = Boolean(online); },
@@ -657,7 +720,27 @@ module.exports = {
   autoSortLecturesInGroup,
   handleLectureDragStart,
   handleLectureDrop,
-  handleAuthSessionChange
+  handleAuthSessionChange,
+  diagnoseStorageWriteFailure,
+  getLastStorageFailureDiagnostics,
+  openSingleInputModal,
+  saveSingleInputModal,
+  openDoubleInputModal,
+  triggerAddGroup,
+  triggerEditGroup,
+  getAnnotationDirtyJournalKey,
+  getWorkspaceDirtyJournalKey,
+  getWorkspaceDomainStateKey,
+  getWorkspaceMigrationJournalKey,
+  recordDurableWorkspaceDirtyJournal,
+  readDurableCloudSyncJournal,
+  clearDurableAnnotationDirtyJournal,
+  clearDurableWorkspaceDirtyJournal,
+  persistWorkspaceDomainToIDB,
+  readWorkspaceDomainFromIDB,
+  migrateAndHydrateWorkspaceFromIDB,
+  inspectArchivedLocalFallbackWorkspaces,
+  recoverArchivedLocalFallbackWorkspace
 };
 `;
 
@@ -6553,6 +6636,540 @@ async function main() {
     );
   }
 
+  // --------------------------------------------------------------------------
+  // P0-R11 & P0-R12 (Gap 1 & Gap 4): Durable Annotation Dirty Journal in IndexedDB
+  // (`cloud_sync_journal`) written atomically with `annotations`, survives
+  // QuotaExceededError on localStorage dirty markers, protects annotations on
+  // reload/login against stale remote `annotations: {}`, and clears only after
+  // server-confirmed RPC when no newer annotation mutation exists.
+  // --------------------------------------------------------------------------
+  {
+    const uidG1 = 'b0110000-1111-4222-8333-444455550011';
+    prod.localStorage.clear();
+    idb.stores['annotations'].clear();
+    idb.stores['cloud_sync_journal'].clear();
+    idb.stores['workspace_state'].clear();
+    prod.resetAnnotationMutationSeq();
+    prod.setRuntimeState({
+      subjects: [{ id: 7101, name: 'Clinical Pharmacy', groups: [{ id: 7201, name: 'Ch 1', lectures: [{ id: 7301, title: 'Lec 1' }] }] }],
+      scheduleEvents: [],
+      logs: [],
+      inMemoryAnnotationsCache: {},
+      pendingAnnoSaveMap: {},
+      dirtyAnnotationsForCloud: false
+    });
+    prod.setSessionUser(uidG1);
+    prod.localStorage.setItem('pharmaLastActiveCloudUid', uidG1);
+    prod.localStorage.setItem('pharmaLastActiveUserIdV1', uidG1);
+    prod.localStorage.setItem('pharmaWorkspaceRevision_' + uidG1, '4');
+
+    // Simulate QuotaExceededError specifically when writing localStorage dirty markers!
+    prod.setFailNextStorageKeyMatch('Dirty');
+
+    const strokeG1 = prod.stampAnnotationItemCausalMetadata(
+      { id: 'stroke_gap1_durable', tool: 'pen', color: '#10b981', size: 2, points: [{ x: 0.12, y: 0.34 }, { x: 0.56, y: 0.78 }] },
+      'stroke', '7301', '1', uidG1
+    );
+    const textG1 = prod.stampAnnotationItemCausalMetadata(
+      { id: 'text_gap1_durable', tool: 'text', text: 'Durable Note Without LS Marker', x: 0.2, y: 0.3, color: '#ffffff' },
+      'stroke', '7301', '1', uidG1
+    );
+    const pagesG1 = {
+      '1': [strokeG1, textG1],
+      _extraNotes: { '1': true, '2': true },
+      'note_1': [prod.stampAnnotationItemCausalMetadata({ id: 'extra_s1', tool: 'pen', points: [{ x: 0.1, y: 0.1 }, { x: 0.2, y: 0.2 }] }, 'stroke', '7301', 'note_1', uidG1)],
+      'note_2': [prod.stampAnnotationItemCausalMetadata({ id: 'extra_s2', tool: 'pen', points: [{ x: 0.3, y: 0.3 }, { x: 0.4, y: 0.4 }] }, 'stroke', '7301', 'note_2', uidG1)]
+    };
+
+    prod.saveAnnotationsToDB('7301', pagesG1, null);
+    const flushG1 = await prod.flushPendingAnnotationsSave(false);
+    prod.setFailNextStorageKeyMatch(null);
+
+    assert(
+      flushG1 === true,
+      'P0-R11.1: flushPendingAnnotationsSave succeeds via IndexedDB even when localStorage dirty marker throws QuotaExceededError'
+    );
+    assert(
+      prod.localStorage.getItem('pharmaAnnotationsDirty_' + uidG1) === null &&
+      prod.localStorage.getItem('pharmaWorkspaceDirty_' + uidG1) === null,
+      'P0-R11.2: localStorage dirty markers are absent due to simulated QuotaExceededError'
+    );
+
+    const journalAfterWrite = await prod.readDurableCloudSyncJournal(uidG1);
+    assert(
+      journalAfterWrite &&
+      journalAfterWrite.ok === true &&
+      journalAfterWrite.hasDirtyAnnotations === true &&
+      journalAfterWrite.annoJournal &&
+      journalAfterWrite.annoJournal.userId === uidG1 &&
+      Array.isArray(journalAfterWrite.annoJournal.lectureIds) &&
+      journalAfterWrite.annoJournal.lectureIds.includes('7301'),
+      'P0-R11.3: IndexedDB cloud_sync_journal durably records pending annotation mutation in the same transaction as annotations'
+    );
+
+    // Simulate page reload (clear in-memory dirty flags & caches) and login where remote row has older revision and annotations: {}
+    prod.setRuntimeState({
+      inMemoryAnnotationsCache: {},
+      pendingAnnoSaveMap: {},
+      dirtyAnnotationsForCloud: false
+    });
+    prod.setNavigatorOnline(true);
+
+    let rpcAttemptCount = 0;
+    let lastPushedPayload = null;
+    prod.setSupabaseClient({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({
+              data: {
+                user_id: uidG1,
+                user_email: uidG1 + '@test.edu',
+                can_upload_media: false,
+                subjects: [{ id: 7101, name: 'Clinical Pharmacy', groups: [{ id: 7201, name: 'Ch 1', lectures: [{ id: 7301, title: 'Lec 1' }] }] }],
+                schedule: { version: 3, events: [], backlog: [], weeklyReports: [] },
+                logs: [],
+                annotations: {},
+                revision: 4
+              },
+              error: null
+            })
+          })
+        })
+      }),
+      rpc: async (fnName, args) => {
+        rpcAttemptCount++;
+        lastPushedPayload = args.p_payload;
+        if (rpcAttemptCount === 1) {
+          return { data: null, error: { code: '503', message: 'Temporary RPC failure on first attempt' } };
+        }
+        return {
+          data: { status: 'success', revision: Number(args.p_expected_revision || 4) + 1 },
+          error: null
+        };
+      }
+    });
+
+    // First login sync: RPC fails on attempt 1 -> local annotations must still be preserved and journal must remain pending!
+    prod.cloudNavUiHistory.length = 0;
+    const loginSync1 = await prod.syncWorkspaceOnLogin();
+    const annosAfterFailedRpc = await prod.getAnnotationsFromDB('7301', uidG1);
+    const journalAfterFailedRpc = await prod.readDurableCloudSyncJournal(uidG1);
+
+    assert(
+      loginSync1 && loginSync1.reconciled === true &&
+      annosAfterFailedRpc &&
+      Array.isArray(annosAfterFailedRpc['1']) && annosAfterFailedRpc['1'].length === 2 &&
+      annosAfterFailedRpc._extraNotes?.['1'] === true &&
+      annosAfterFailedRpc._extraNotes?.['2'] === true &&
+      Array.isArray(annosAfterFailedRpc['note_1']) && annosAfterFailedRpc['note_1'].length === 1 &&
+      Array.isArray(annosAfterFailedRpc['note_2']) && annosAfterFailedRpc['note_2'].length === 1,
+      'P0-R11.4: When localStorage dirty marker failed with QuotaExceededError, syncWorkspaceOnLogin still consults IndexedDB cloud_sync_journal and preserves all local strokes, text notes, and multiple Extra Note Sheets against remote annotations: {}'
+    );
+    assert(
+      journalAfterFailedRpc.hasDirtyAnnotations === true &&
+      prod.cloudNavUiHistory[prod.cloudNavUiHistory.length - 1] === 'error',
+      'P0-R11.5: When RPC fails during reconciliation, durable annotation dirty journal remains pending and UI shows error (no false synced status)'
+    );
+
+    // Second attempt: RPC succeeds -> durable annotation dirty journal clears and UI shows synced
+    const pushRetryRes = await prod.pushWorkspaceToCloud(false, false);
+    const journalAfterSuccessRpc = await prod.readDurableCloudSyncJournal(uidG1);
+    assert(
+      pushRetryRes && pushRetryRes.status === 'success' && pushRetryRes.revision === 5 &&
+      lastPushedPayload && lastPushedPayload.annotations && lastPushedPayload.annotations['7301'] &&
+      journalAfterSuccessRpc.hasDirtyAnnotations === false &&
+      journalAfterSuccessRpc.hasDirtyWorkspace === false &&
+      prod.cloudNavUiHistory[prod.cloudNavUiHistory.length - 1] === 'synced',
+      'P0-R11.6: Subsequent successful RPC pushes the preserved annotations, confirms revision 5, clears the durable IndexedDB journal, and sets UI to synced'
+    );
+
+    // P0-R12: Verify that if a newer annotation mutation exists (higher sequence), clearDurableAnnotationDirtyJournal does NOT delete the journal
+    prod.saveAnnotationsToDB('7301', pagesG1, null);
+    await prod.flushPendingAnnotationsSave(false);
+    const seqAfterFlush = prod.getAnnotationMutationSeq();
+    const clearStaleRes = await prod.clearDurableAnnotationDirtyJournal(uidG1, seqAfterFlush - 1);
+    const journalStillPresent = await prod.readDurableCloudSyncJournal(uidG1);
+    assert(
+      clearStaleRes && clearStaleRes.cleared === false && clearStaleRes.reason === 'newer_mutation_exists' &&
+      journalStillPresent.hasDirtyAnnotations === true,
+      'P0-R12.1: clearDurableAnnotationDirtyJournal refuses to clear the durable journal when a newer annotation mutation sequence exists'
+    );
+    const clearExactRes = await prod.clearDurableAnnotationDirtyJournal(uidG1, seqAfterFlush);
+    const journalNowCleared = await prod.readDurableCloudSyncJournal(uidG1);
+    assert(
+      clearExactRes && clearExactRes.cleared === true && journalNowCleared.hasDirtyAnnotations === false,
+      'P0-R12.2: clearDurableAnnotationDirtyJournal clears the durable journal when confirmedSeq matches current annotationMutationSeq'
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // P0-R13 & P0-R14 & P0-R15 (Gap 5): Independent tests for autoSortLecturesInGroup(),
+  // handleLectureDrop(), and archived local fallback workspace recovery
+  // --------------------------------------------------------------------------
+  {
+    const uidG5 = 'b0130000-1111-4222-8333-444455550013';
+    prod.localStorage.clear();
+    idb.stores['workspace_state'].clear();
+    idb.stores['cloud_sync_journal'].clear();
+    prod.setSessionUser(uidG5);
+    prod.localStorage.setItem('pharmaLastActiveCloudUid', uidG5);
+
+    // P0-R13: Independent test for autoSortLecturesInGroup() with Arabic numerals + causal reconciliation
+    prod.setRuntimeState({
+      activeSubjectId: 8100,
+      subjects: [{
+        id: 8100,
+        name: 'Pharmacology III',
+        groups: [{
+          id: 8110,
+          name: 'Autonomic Chapter',
+          lectures: [
+            { id: 8113, title: 'المحاضرة ٣ - Receptors' },
+            { id: 8111, title: 'المحاضرة ١ - Intro' },
+            { id: 8112, title: 'المحاضرة ٢ - Neurotransmitters' }
+          ]
+        }]
+      }]
+    });
+    prod.saveSubjects();
+    const remoteUnsortedSnapshot = JSON.parse(JSON.stringify(prod.getSubjects()));
+    const digestBeforeSort = prod.getSubjects()[0].groups[0]._causalDigest;
+
+    prod.autoSortLecturesInGroup(8110, null);
+    const sortedGroup = prod.getSubjects()[0].groups[0];
+    const sortedIds = sortedGroup.lectures.map(l => l.id).join(',');
+    const mergedAfterAutoSort = prod.mergeSubjectsHierarchyWithCausalEngine(
+      prod.getSubjects(),
+      remoteUnsortedSnapshot,
+      prod.getLocalTombstones(uidG5),
+      uidG5
+    );
+    assert(
+      sortedIds === '8111,8112,8113' &&
+      sortedGroup._causalDigest !== digestBeforeSort &&
+      mergedAfterAutoSort.subjects[0].groups[0].lectures.map(l => l.id).join(',') === '8111,8112,8113',
+      'P0-R13: autoSortLecturesInGroup normalizes Arabic numerals, updates group _causalDigest, and wins causal reconciliation over stale remote order'
+    );
+
+    // P0-R14: Independent test for handleLectureDragStart() + handleLectureDrop()
+    const digestBeforeDrop = prod.getSubjects()[0].groups[0]._causalDigest;
+    const preDropRemoteSnapshot = JSON.parse(JSON.stringify(prod.getSubjects()));
+    const mockDragStartEvent = {
+      stopPropagation: () => {},
+      dataTransfer: { effectAllowed: '', setData: () => {} },
+      currentTarget: { classList: { add: () => {} } }
+    };
+    const mockDropEvent = {
+      preventDefault: () => {},
+      stopPropagation: () => {},
+      currentTarget: { classList: { remove: () => {} } }
+    };
+    prod.handleLectureDragStart(mockDragStartEvent, 8110, 8113);
+    prod.handleLectureDrop(mockDropEvent, 8110, 8111); // drop 8113 onto 8111 (index 0)
+    const droppedGroup = prod.getSubjects()[0].groups[0];
+    const droppedIds = droppedGroup.lectures.map(l => l.id).join(',');
+    const mergedAfterDrop = prod.mergeSubjectsHierarchyWithCausalEngine(
+      prod.getSubjects(),
+      preDropRemoteSnapshot,
+      prod.getLocalTombstones(uidG5),
+      uidG5
+    );
+    assert(
+      droppedIds === '8113,8111,8112' &&
+      droppedGroup._causalDigest !== digestBeforeDrop &&
+      mergedAfterDrop.subjects[0].groups[0].lectures.map(l => l.id).join(',') === '8113,8111,8112',
+      'P0-R14: handleLectureDragStart + handleLectureDrop reorders lectures, stamps parent group _causalDigest, and wins causal reconciliation against older remote order'
+    );
+
+    // P0-R15: Independent test for archived local fallback workspace inspection and recovery
+    const localFallbackUid = 'usr_student_fallback_777';
+    prod.localStorage.setItem('pharmaPreviousLocalAccountSessionV1', JSON.stringify({
+      id: localFallbackUid,
+      email: 'student777@local.exo',
+      name: 'Student 777',
+      isLocalFallback: true
+    }));
+    prod.localStorage.setItem(prod.getAccountBackupStorageKey(localFallbackUid), JSON.stringify({
+      user_id: localFallbackUid,
+      user_email: 'student777@local.exo',
+      subjects: [{
+        id: 8501,
+        name: 'Archived Local Medicinal Chemistry',
+        groups: [{ id: 8511, name: 'Archived Ch 1', lectures: [{ id: 8521, title: 'Archived Lec 1' }] }]
+      }],
+      schedule: {
+        version: 3,
+        events: [{ id: 8601, title: 'Archived Study Block', day: 2, startHour: 14, duration: 2 }],
+        backlog: [],
+        weeklyReports: []
+      },
+      logs: [{ id: 8701, text: 'Archived Study Log', date: '2026-11-10' }],
+      revision: 3
+    }));
+
+    const inspectedFallbacks = prod.inspectArchivedLocalFallbackWorkspaces();
+    assert(
+      inspectedFallbacks &&
+      inspectedFallbacks.ok === true &&
+      inspectedFallbacks.count >= 1 &&
+      inspectedFallbacks.sessions.some(s => s.uid === localFallbackUid && s.hasSnapshot === true && s.counts.subjects === 1),
+      'P0-R15.1: inspectArchivedLocalFallbackWorkspaces discovers archived local fallback session and counts its preserved entities'
+    );
+
+    const recoverFallbackRes = await prod.recoverArchivedLocalFallbackWorkspace(localFallbackUid, 'merge');
+    assert(
+      recoverFallbackRes &&
+      recoverFallbackRes.ok === true &&
+      recoverFallbackRes.recovered === true &&
+      prod.getSubjects().some(s => s.id === 8501 && s.name === 'Archived Local Medicinal Chemistry') &&
+      prod.getScheduleEvents().some(e => e.id === 8601) &&
+      prod.getLogs().some(l => l.id === 8701),
+      'P0-R15.2: recoverArchivedLocalFallbackWorkspace merges archived local fallback subjects, schedule events, and logs into the active workspace without data loss'
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // P0-R16 (Gap 5 & Critical P0 #4): Multi-key partial failure in saveScheduleData()
+  // -> rolls back earlier localStorage keys to prior snapshot, reports partialWritesSucceeded: false,
+  // and persists full schedule atomically to IndexedDB workspace_state
+  // --------------------------------------------------------------------------
+  {
+    const uidP16 = 'b0160000-1111-4222-8333-444455550016';
+    prod.localStorage.clear();
+    idb.stores['workspace_state'].clear();
+    idb.stores['cloud_sync_journal'].clear();
+    prod.setSessionUser(uidP16);
+    prod.localStorage.setItem('pharmaLastActiveCloudUid', uidP16);
+
+    // Establish initial consistent schedule state across all 4 keys
+    const initialPrefs = { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75, currentWeekStartIso: '2026-10-31' };
+    prod.setRuntimeState({
+      plannerPrefs: initialPrefs,
+      weeklyReports: [{ id: 'rep_init', weekStartIso: '2026-10-31', score: 80 }],
+      scheduleEvents: [{ id: 'ev_init', title: 'Initial Event', day: 0, startHour: 8, duration: 1 }],
+      scheduleBacklog: [{ id: 'bl_init', title: 'Initial Backlog' }]
+    });
+    const initSchSave = prod.saveScheduleData(false);
+    assert(initSchSave && initSchSave.ok === true, 'P0-R16.1: Baseline 4-key schedule save succeeds');
+
+    // Mutate all 4 schedule components and inject failure specifically on the 3rd key (`pharmaScheduleV4`)
+    prod.setRuntimeState({
+      plannerPrefs: Object.assign({}, initialPrefs, { autoCompletePct: 90 }),
+      weeklyReports: [{ id: 'rep_init', weekStartIso: '2026-10-31', score: 80 }, { id: 'rep_new', weekStartIso: '2026-11-07', score: 95 }],
+      scheduleEvents: [{ id: 'ev_init', title: 'Initial Event', day: 0, startHour: 8, duration: 1 }, { id: 'ev_new', title: 'New Event', day: 1, startHour: 10, duration: 2 }],
+      scheduleBacklog: [{ id: 'bl_init', title: 'Initial Backlog' }, { id: 'bl_new', title: 'New Backlog' }]
+    });
+    prod.setFailNextStorageKeyMatch('pharmaScheduleV4');
+    const partialFailRes = prod.saveScheduleData(false);
+    prod.setFailNextStorageKeyMatch(null);
+    if (partialFailRes && partialFailRes.idbPersistPromise) {
+      await partialFailRes.idbPersistPromise;
+    }
+
+    const prefsInLsAfterRollback = JSON.parse(prod.localStorage.getItem('pharmaPlannerPrefsV1') || '{}');
+    const reportsInLsAfterRollback = JSON.parse(prod.localStorage.getItem('pharmaWeeklyReportsV1') || '[]');
+    const schInLsAfterRollback = JSON.parse(prod.localStorage.getItem('pharmaScheduleV4') || '{}');
+    const idbScheduleAfterFail = await prod.readWorkspaceDomainFromIDB('schedule', uidP16);
+
+    assert(
+      partialFailRes &&
+      partialFailRes.ok === false &&
+      partialFailRes.persisted === false &&
+      partialFailRes.rolledBackPartialLocalStorage === true &&
+      Array.isArray(partialFailRes.rolledBackKeys) &&
+      partialFailRes.rolledBackKeys.includes('pharmaPlannerPrefsV1') &&
+      partialFailRes.rolledBackKeys.includes('pharmaWeeklyReportsV1') &&
+      partialFailRes.diagnostics &&
+      partialFailRes.diagnostics.failedKey === 'pharmaScheduleV4',
+      'P0-R16.2: When pharmaScheduleV4 fails mid-save, saveScheduleData reports ok:false, persisted:false, and rolls back earlier keys so no partial localStorage state remains'
+    );
+    assert(
+      prefsInLsAfterRollback.autoCompletePct === 75 &&
+      reportsInLsAfterRollback.length === 1 &&
+      schInLsAfterRollback.events.length === 1,
+      'P0-R16.3: pharmaPlannerPrefsV1 and pharmaWeeklyReportsV1 are restored to their exact pre-save values matching pharmaScheduleV4'
+    );
+    assert(
+      idbScheduleAfterFail &&
+      idbScheduleAfterFail.found === true &&
+      idbScheduleAfterFail.record.payload.events.length === 2 &&
+      idbScheduleAfterFail.record.payload.backlog.length === 2 &&
+      idbScheduleAfterFail.record.payload.weeklyReports.length === 2 &&
+      idbScheduleAfterFail.record.payload.plannerPrefs.autoCompletePct === 90,
+      'P0-R16.4: Full updated schedule is atomically persisted in IndexedDB workspace_state even when localStorage fails mid-save'
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // P0-R17 & P0-R18 & P0-R19 & P0-R20 (Additional Critical P0):
+  // - Chapter add (`triggerAddGroup` + `saveSingleInputModal`) under localStorage failure:
+  //   does not close modal on failure, surfaces diagnostics, persists to IndexedDB, survives refresh.
+  // - Chapter delete (`triggerDeleteGroup`) under localStorage failure:
+  //   no false success toast on complete failure, persists deletion + tombstone to IndexedDB,
+  //   and deleted Chapter does NOT reappear after refresh or cloud reconciliation.
+  // - Recoverable migration from existing localStorage keys to IndexedDB (`migrateAndHydrateWorkspaceFromIDB`).
+  // --------------------------------------------------------------------------
+  {
+    const uidP17 = 'b0170000-1111-4222-8333-444455550017';
+    prod.localStorage.clear();
+    idb.stores['workspace_state'].clear();
+    idb.stores['cloud_sync_journal'].clear();
+    prod.toastHistory.length = 0;
+    prod.modalCloseHistory.length = 0;
+    prod.setSessionUser(uidP17);
+    prod.localStorage.setItem('pharmaLastActiveCloudUid', uidP17);
+
+    prod.setRuntimeState({
+      activeSubjectId: 9500,
+      subjects: [{
+        id: 9500,
+        name: 'Pharmaceutics IV',
+        groups: [{ id: 9510, name: 'Chapter 1: Preformulation', lectures: [] }]
+      }]
+    });
+    prod.saveSubjects();
+
+    // P0-R17: Add a new Chapter via triggerAddGroup + saveSingleInputModal while pharmaSubjectsV4 throws QuotaExceededError
+    prod.setFailNextStorageKeyMatch('pharmaSubjectsV4');
+    prod.modalCloseHistory.length = 0;
+    prod.toastHistory.length = 0;
+    prod.triggerAddGroup();
+    prod.domElements.siModalInput.value = 'Chapter 2: Controlled Release';
+    const modalSaveRes = prod.saveSingleInputModal();
+    prod.setFailNextStorageKeyMatch(null);
+
+    const lastDiag = prod.getLastStorageFailureDiagnostics();
+    assert(
+      modalSaveRes &&
+      modalSaveRes.modalClosed === false &&
+      !prod.modalCloseHistory.includes('singleInputModalOverlay') &&
+      !prod.toastHistory.some(t => t.msg.includes('تم إنشاء الشابتر')) &&
+      lastDiag &&
+      lastDiag.failedKey === 'pharmaSubjectsV4' &&
+      lastDiag.errorName === 'QuotaExceededError' &&
+      lastDiag.approxBytes > 0,
+      'P0-R17.1: When pharmaSubjectsV4 throws QuotaExceededError during Chapter creation, the modal stays open, no false success toast is shown, and exact storage failure diagnostics are recorded'
+    );
+
+    if (modalSaveRes && modalSaveRes.result && modalSaveRes.result.idbPersistPromise) {
+      await modalSaveRes.result.idbPersistPromise;
+    }
+
+    // Simulate page refresh where in-memory subjects are reset to the stale localStorage copy (only Chapter 1)
+    prod.setRuntimeState({
+      subjects: JSON.parse(prod.localStorage.getItem('pharmaSubjectsV4') || '[]')
+    });
+    assert(prod.getSubjects()[0].groups.length === 1, 'P0-R17.2: Before IDB hydration, stale localStorage only has 1 chapter');
+
+    const hydrateRes1 = await prod.migrateAndHydrateWorkspaceFromIDB(uidP17);
+    assert(
+      hydrateRes1 &&
+      hydrateRes1.ok === true &&
+      hydrateRes1.hydrated === true &&
+      prod.getSubjects()[0].groups.length === 2 &&
+      prod.getSubjects()[0].groups.some(g => g.name === 'Chapter 2: Controlled Release'),
+      'P0-R17.3: After page refresh, migrateAndHydrateWorkspaceFromIDB restores the newly created Chapter 2 from IndexedDB workspace_state'
+    );
+
+    // P0-R18: Delete Chapter 1 via triggerDeleteGroup while pharmaSubjectsV4 throws QuotaExceededError
+    const chapter2Id = prod.getSubjects()[0].groups.find(g => g.name === 'Chapter 2: Controlled Release').id;
+    const staleRemoteWithBothChapters = JSON.parse(JSON.stringify(prod.getSubjects()));
+    prod.setFailNextStorageKeyMatch('pharmaSubjectsV4');
+    prod.toastHistory.length = 0;
+    const delGroupRes = await prod.triggerDeleteGroup(9510);
+    prod.setFailNextStorageKeyMatch(null);
+
+    assert(
+      delGroupRes &&
+      delGroupRes.ok === false &&
+      delGroupRes.idbPersisted === true,
+      'P0-R18.1: triggerDeleteGroup under localStorage QuotaExceededError durably persists the deletion to IndexedDB workspace_state'
+    );
+
+    // Simulate page refresh (localStorage still has stale Chapter 1, or both chapters)
+    prod.setRuntimeState({
+      subjects: JSON.parse(JSON.stringify(staleRemoteWithBothChapters))
+    });
+    await prod.migrateAndHydrateWorkspaceFromIDB(uidP17);
+    assert(
+      prod.getSubjects()[0].groups.length === 1 &&
+      prod.getSubjects()[0].groups[0].id === chapter2Id,
+      'P0-R18.2: Deleted Chapter 1 does NOT reappear after page refresh even though localStorage write had failed'
+    );
+
+    // P0-R20: Authenticated cloud sync after localStorage failure preserves Chapter additions and deletions
+    prod.setSessionUser(uidP17);
+    prod.localStorage.setItem('pharmaLastActiveCloudUid', uidP17);
+    let pushedAfterLsFailure = null;
+    prod.setSupabaseClient({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({
+              data: {
+                user_id: uidP17,
+                user_email: uidP17 + '@test.edu',
+                can_upload_media: false,
+                subjects: staleRemoteWithBothChapters,
+                schedule: { version: 3, events: [], backlog: [], weeklyReports: [] },
+                logs: [],
+                annotations: {},
+                revision: 2
+              },
+              error: null
+            })
+          })
+        })
+      }),
+      rpc: async (fnName, args) => {
+        pushedAfterLsFailure = args.p_payload;
+        return { data: { status: 'success', revision: 3 }, error: null };
+      }
+    });
+
+    const loginSyncAfterLsFail = await prod.syncWorkspaceOnLogin();
+    const journalAfterP20 = await prod.readDurableCloudSyncJournal(uidP17);
+    assert(
+      loginSyncAfterLsFail &&
+      loginSyncAfterLsFail.reconciled === true &&
+      pushedAfterLsFailure &&
+      pushedAfterLsFailure.subjects[0].groups.length === 1 &&
+      pushedAfterLsFailure.subjects[0].groups[0].name === 'Chapter 2: Controlled Release' &&
+      journalAfterP20.hasDirtyWorkspace === false,
+      'P0-R20: syncWorkspaceOnLogin after localStorage failure reconciles durable IndexedDB workspace_state against stale remote data, preserves Chapter 2 and deletion of Chapter 1, pushes to cloud, and clears durable journal'
+    );
+
+    // P0-R19: Test interrupted migration recovery in migrateAndHydrateWorkspaceFromIDB
+    const uidP19 = 'b0190000-1111-4222-8333-444455550019';
+    prod.localStorage.clear();
+    idb.stores['workspace_state'].clear();
+    prod.setSessionUser(uidP19);
+    prod.localStorage.setItem('pharmaLastActiveCloudUid', uidP19);
+    prod.localStorage.setItem('pharmaSubjectsV4', JSON.stringify([{ id: 9900, name: 'Legacy LS Subject', groups: [] }]));
+    // Seed an interrupted MIGRATING journal record in workspace_state
+    const migKey19 = prod.getWorkspaceMigrationJournalKey(uidP19);
+    idb.stores['workspace_state'].set(migKey19, {
+      id: migKey19,
+      userId: uidP19,
+      phase: 'MIGRATING',
+      domains: ['subjects'],
+      startedAt: Date.now() - 5000
+    });
+    const migRecoveryRes = await prod.migrateAndHydrateWorkspaceFromIDB(uidP19);
+    const migRecordAfter = idb.stores['workspace_state'].get(migKey19);
+    const subRecordAfter = await prod.readWorkspaceDomainFromIDB('subjects', uidP19);
+    assert(
+      migRecoveryRes &&
+      migRecoveryRes.ok === true &&
+      migRecoveryRes.recoveredInterruptedMigration === true &&
+      migRecordAfter && migRecordAfter.phase === 'COMMITTED' &&
+      subRecordAfter && subRecordAfter.found === true &&
+      subRecordAfter.record.payload.length === 1 &&
+      subRecordAfter.record.payload[0].name === 'Legacy LS Subject',
+      'P0-R19: migrateAndHydrateWorkspaceFromIDB safely recovers an interrupted MIGRATING journal and commits legacy localStorage data into IndexedDB workspace_state'
+    );
+  }
 
   console.log('\n======================================================================');
   console.log(`TOTAL PHASE 4/4.1 REGRESSION CHECKS: ${testsPassed + testsFailed} | PASSED: ${testsPassed} | FAILED: ${testsFailed}`);

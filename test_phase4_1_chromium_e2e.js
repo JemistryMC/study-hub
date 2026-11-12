@@ -355,7 +355,8 @@ async function main() {
       let failAnnotationsOnce = true;
       dbInstance.transaction = function(storeNames, mode) {
         const tx = origTx(storeNames, mode);
-        if (failAnnotationsOnce && storeNames === 'annotations' && mode === 'readwrite') {
+        const isAnnotationsWriteTx = (storeNames === 'annotations' || (Array.isArray(storeNames) && storeNames.includes('annotations'))) && mode === 'readwrite';
+        if (failAnnotationsOnce && isAnnotationsWriteTx) {
           failAnnotationsOnce = false;
           const origObjectStore = tx.objectStore.bind(tx);
           tx.objectStore = function(name) {
@@ -4378,23 +4379,173 @@ async function main() {
     );
 
     // ------------------------------------------------------------------------
-    // TEST FF: Phase A P0 Data Persistence, Reload Survival & Cloud Sync States
+    // TEST FF: Phase A Acceptance Gap Closure — Real Supabase Startup Session
+    // Restoration, Durable IDB Dirty Journal, RPC Failure/Confirmation Across
+    // Reloads, Dirty-Marker Quota Failure, and Chapter Add/Delete Durability
     // ------------------------------------------------------------------------
-    console.log('\n--- TEST FF: Phase A P0 Data Persistence, Reload Survival & Cloud Sync States in Real Chromium ---');
-    const tabFF = await context.newPage();
-    await tabFF.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
-    await tabFF.waitForFunction(() => typeof initPdfDB === 'function');
-
+    console.log('\n--- TEST FF: Real Supabase Session Restoration, Durable Dirty Journal & Reload Survival in Chromium ---');
     const uidFF = 'ff001122-3344-4556-8778-99aabbccddee';
-    const ffPreReload = await tabFF.evaluate(async (uid) => {
-      await initPdfDB();
-      localStorage.clear();
-      currentCloudUser = { id: uid, email: 'ff@exo.edu' };
-      localStorage.setItem('pharmaLastActiveCloudUid', uid);
-      localStorage.setItem('pharmaLastActiveUserIdV1', uid);
-      bumpAccountSessionGeneration();
+    const contextFF = await browser.newContext();
 
-      // 1. Write handwritten strokes, text note, audio pin, and multiple Extra Note Sheets, then run idle flush (false)
+    // Block CDN @supabase/supabase-js from overwriting our pre-startup mocked window.supabase
+    await contextFF.route('**/*supabase*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: '/* Mocked Supabase CDN for E2E */'
+      });
+    });
+
+    // Install mocked window.supabase.createClient BEFORE application startup in the fresh context
+    await contextFF.addInitScript((syntheticUid) => {
+      if (!localStorage.getItem('__exo_ff_initialized')) {
+        localStorage.setItem('__exo_ff_initialized', '1');
+        localStorage.setItem('pharmaLastActiveCloudUid', syntheticUid);
+        localStorage.setItem('pharmaLastActiveUserIdV1', syntheticUid);
+        localStorage.setItem('pharmaWorkspaceRevision_' + syntheticUid, '2');
+        localStorage.setItem('__exo_mock_rpc_mode', 'fail');
+        localStorage.setItem('__exo_mock_remote_row', JSON.stringify({
+          user_id: syntheticUid,
+          user_email: 'ff@exo.edu',
+          can_upload_media: false,
+          revision: 2,
+          subjects: [{
+            id: 8801,
+            name: 'Pharmacology FF',
+            groups: [{
+              id: 8810,
+              name: 'Autonomic',
+              lectures: [
+                { id: 7701, title: 'Lec B', completed: false },
+                { id: 7702, title: 'Lec A', completed: false }
+              ]
+            }]
+          }],
+          schedule: { version: 3, events: [], backlog: [], weeklyReports: [] },
+          logs: [],
+          academy_progress: [],
+          annotations: {},
+          updated_at: '2026-11-01T10:00:00.000Z'
+        }));
+      }
+
+      const syntheticSession = {
+        access_token: 'synthetic-jwt-token-ff',
+        refresh_token: 'synthetic-refresh-token-ff',
+        expires_in: 3600,
+        token_type: 'bearer',
+        user: {
+          id: syntheticUid,
+          email: 'ff@exo.edu',
+          user_metadata: { full_name: 'Student FF' }
+        }
+      };
+
+      window.__exoMockSupabaseStats = {
+        createClientCalls: 0,
+        getSessionCalls: 0,
+        onAuthStateChangeCalls: 0,
+        selectCalls: 0,
+        rpcCalls: 0,
+        lastRpcPayload: null
+      };
+
+      window.supabase = {
+        createClient: function () {
+          window.__exoMockSupabaseStats.createClientCalls++;
+          const authListeners = [];
+          return {
+            auth: {
+              getSession: async function () {
+                window.__exoMockSupabaseStats.getSessionCalls++;
+                return { data: { session: syntheticSession }, error: null };
+              },
+              onAuthStateChange: function (cb) {
+                window.__exoMockSupabaseStats.onAuthStateChangeCalls++;
+                if (typeof cb === 'function') {
+                  authListeners.push(cb);
+                  setTimeout(() => {
+                    try { cb('INITIAL_SESSION', syntheticSession); } catch (e) {}
+                    try { cb('SIGNED_IN', syntheticSession); } catch (e) {}
+                  }, 5);
+                }
+                return { data: { subscription: { unsubscribe: () => {} } } };
+              }
+            },
+            channel: function () {
+              const ch = {
+                on: () => ch,
+                subscribe: () => ch
+              };
+              return ch;
+            },
+            removeChannel: function () {},
+            from: function (tableName) {
+              return {
+                select: function () {
+                  return {
+                    eq: function () {
+                      return {
+                        maybeSingle: async function () {
+                          window.__exoMockSupabaseStats.selectCalls++;
+                          const mode = localStorage.getItem('__exo_mock_select_mode') || 'ok';
+                          if (mode === 'error') {
+                            return { data: null, error: { code: '503', status: 503, message: 'Service Unavailable' } };
+                          }
+                          const rawRow = localStorage.getItem('__exo_mock_remote_row');
+                          return { data: rawRow ? JSON.parse(rawRow) : null, error: null };
+                        }
+                      };
+                    }
+                  };
+                }
+              };
+            },
+            rpc: async function (fnName, args) {
+              window.__exoMockSupabaseStats.rpcCalls++;
+              window.__exoMockSupabaseStats.lastRpcPayload = args?.p_payload || null;
+              const rpcMode = localStorage.getItem('__exo_mock_rpc_mode') || 'success';
+              if (rpcMode === 'fail') {
+                return {
+                  data: null,
+                  error: { code: '503', status: 503, message: 'Simulated RPC Failure' }
+                };
+              }
+              const nextRev = Number(args?.p_expected_revision || 2) + 1;
+              if (args?.p_payload) {
+                const updatedRemote = Object.assign({}, args.p_payload, {
+                  user_id: syntheticUid,
+                  revision: nextRev,
+                  annotations: args.p_payload.annotations || {}
+                });
+                try {
+                  localStorage.setItem('__exo_mock_remote_row', JSON.stringify(updatedRemote));
+                } catch (e) {}
+              }
+              return {
+                data: { status: 'success', revision: nextRev },
+                error: null
+              };
+            }
+          };
+        }
+      };
+    }, uidFF);
+
+    const tabFF = await contextFF.newPage();
+    await tabFF.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+    await tabFF.waitForFunction(() => Boolean(
+      window.__exoSupabaseStartupState &&
+      window.__exoSupabaseStartupState.settled === true &&
+      typeof currentCloudUser === 'object' &&
+      currentCloudUser &&
+      currentCloudUser.id === 'ff001122-3344-4556-8778-99aabbccddee'
+    ));
+
+    // Step 1: Verify real startup path ran automatically without manual currentCloudUser assignment
+    const ffStartupCheck = await tabFF.evaluate(async (uid) => {
+      await initPdfDB();
+      // Write handwritten strokes, text note, audio pin, and multiple Extra Note Sheets, then run idle flush (false)
       const scopedLecKey = toScopedKey('7701', uid);
       pendingAnnoSaveMap[scopedLecKey] = {
         '1': [
@@ -4409,118 +4560,300 @@ async function main() {
         'note_1__s2': [stampAnnotationItemCausalMetadata({ id: 'ff_sheet2_s', tool: 'pen', color: '#10b981', size: 3, points: [{ x: 0.3, y: 0.3 }, { x: 0.6, y: 0.6 }] }, 'stroke', '7701', 'note_1__s2', uid)]
       };
       const idleFlushOk = await flushPendingAnnotationsSave(false);
+      const durableJournal = await readDurableCloudSyncJournal(uid);
       const annoDirtyAfterIdle = localStorage.getItem('pharmaAnnotationsDirty_' + uid) === '1';
-      const wsDirtyAfterIdle = localStorage.getItem('pharmaWorkspaceDirty_' + uid) === '1';
 
-      // 2. Test lecture reordering causal digest update
+      // Reorder lectures via moveLectureInGroup
       activeSubjectId = 8801;
-      subjects = [{
-        id: 8801,
-        name: 'Pharmacology FF',
-        groups: [{
-          id: 8810,
-          name: 'Autonomic',
-          lectures: [
-            { id: 7701, title: 'Lec B', completed: false },
-            { id: 7702, title: 'Lec A', completed: false }
-          ]
-        }]
-      }];
       saveSubjects();
       const digestBeforeReorder = subjects[0].groups[0]._causalDigest;
       moveLectureInGroup(8810, 7702, -1, null);
       const digestAfterReorder = subjects[0].groups[0]._causalDigest;
 
       return {
+        startupState: window.__exoSupabaseStartupState,
+        restoredUid: currentCloudUser?.id || null,
         idleFlushOk,
         annoDirtyAfterIdle,
-        wsDirtyAfterIdle,
+        durableHasDirtyAnnos: Boolean(durableJournal && durableJournal.hasDirtyAnnotations),
+        durableLectureIds: durableJournal?.annoJournal?.lectureIds || [],
         digestChanged: Boolean(digestBeforeReorder && digestAfterReorder && digestBeforeReorder !== digestAfterReorder),
         orderAfterMove: subjects[0].groups[0].lectures.map(l => l.id).join(',')
       };
     }, uidFF);
 
     assert(
-      ffPreReload.idleFlushOk === true && ffPreReload.annoDirtyAfterIdle === true && ffPreReload.wsDirtyAfterIdle === true,
-      'Test FF.1: Real Chromium idle annotation flush writes to IndexedDB and sets persistent pharmaAnnotationsDirty_<uid>'
+      ffStartupCheck.startupState.createClientCalled === true &&
+      ffStartupCheck.startupState.getSessionCalled === true &&
+      ffStartupCheck.startupState.onAuthStateChangeRegistered === true &&
+      ffStartupCheck.startupState.handleAuthSessionChangeCalled === true &&
+      ffStartupCheck.startupState.syncWorkspaceOnLoginCalled === true &&
+      ffStartupCheck.restoredUid === uidFF,
+      'Test FF.1 (Gap 2): Fresh browser context runs real initSupabaseCloudEngine -> getSession -> handleAuthSessionChange -> syncWorkspaceOnLogin startup flow'
     );
     assert(
-      ffPreReload.digestChanged === true && ffPreReload.orderAfterMove === '7702,7701',
-      'Test FF.2: Real Chromium lecture reorder updates group _causalDigest and persists reordered lectures'
+      ffStartupCheck.idleFlushOk === true &&
+      ffStartupCheck.annoDirtyAfterIdle === true &&
+      ffStartupCheck.durableHasDirtyAnnos === true &&
+      ffStartupCheck.durableLectureIds.includes('7701') &&
+      ffStartupCheck.digestChanged === true &&
+      ffStartupCheck.orderAfterMove === '7702,7701',
+      'Test FF.2 (Gap 1): Idle annotation flush commits annotations and durable IndexedDB cloud_sync_journal entry in the same transaction',
+      JSON.stringify(ffStartupCheck)
     );
 
-    // Real browser reload (tabFF.reload)
+    // Step 2 (Gap 2 & Gap 3): Reload #1 where mocked remote row has older revision (2) and annotations: {},
+    // and first RPC attempt FAILS (__exo_mock_rpc_mode === 'fail').
+    // Do NOT assign currentCloudUser manually after reload!
     await tabFF.reload({ waitUntil: 'domcontentloaded' });
-    await tabFF.waitForFunction(() => typeof initPdfDB === 'function');
+    await tabFF.waitForFunction(() => Boolean(
+      window.__exoSupabaseStartupState &&
+      window.__exoSupabaseStartupState.settled === true &&
+      window.__exoSupabaseStartupState.syncWorkspaceOnLoginCalled === true
+    ));
 
-    const ffPostReload = await tabFF.evaluate(async (uid) => {
-      await initPdfDB();
-      currentCloudUser = { id: uid, email: 'ff@exo.edu' };
-      localStorage.setItem('pharmaLastActiveCloudUid', uid);
-      localStorage.setItem('pharmaLastActiveUserIdV1', uid);
-      bumpAccountSessionGeneration();
-
+    const ffAfterReload1FailedRpc = await tabFF.evaluate(async (uid) => {
       const reloadedAnnos = await getAnnotationsFromDB('7701', uid);
-      const reloadedSubjects = JSON.parse(localStorage.getItem('pharmaSubjectsV4') || '[]');
-      const reorderedIds = reloadedSubjects[0]?.groups?.[0]?.lectures?.map(l => l.id).join(',') || '';
-
-      // Verify closing PDF (flushPendingAnnotationsSave(true)) when pendingAnnoSaveMap is already empty triggers cloud push
-      let rpcTriggeredOnClose = false;
-      supabaseClient = {
-        rpc: async (fnName, args) => {
-          if (fnName === 'sync_workspace_with_concurrency' && args.p_payload?.annotations?.['7701']) {
-            rpcTriggeredOnClose = true;
-          }
-          return { data: { status: 'success', revision: 10 }, error: null };
-        }
-      };
-      await flushPendingAnnotationsSave(true);
-      const dirtyClearedAfterConfirm = localStorage.getItem('pharmaAnnotationsDirty_' + uid) === null;
-
-      // Verify SELECT error fail-closed behavior and UI error state
-      supabaseClient = {
-        from: () => ({
-          select: () => ({
-            eq: () => ({
-              maybeSingle: async () => ({
-                data: null,
-                error: { code: '503', status: 503, message: 'Service Unavailable' }
-              })
-            })
-          })
-        })
-      };
-      const pullErr = await pullWorkspaceFromCloud(false);
-      const navBtnHasErrorClass = document.getElementById('cloudNavBtn')?.classList.contains('error') || false;
-
+      const durableJournal = await readDurableCloudSyncJournal(uid);
+      const navBtn = document.getElementById('cloudNavBtn');
       return {
+        currentUidWithoutManualAssign: currentCloudUser?.id || null,
+        startupState: window.__exoSupabaseStartupState,
+        rpcCalls: window.__exoMockSupabaseStats?.rpcCalls || 0,
         hasStroke: Boolean(reloadedAnnos?.['1']?.some(s => s.id === 'ff_pen_1')),
         hasText: Boolean(reloadedAnnos?.['1']?.some(s => s.id === 'ff_txt_1')),
         hasPin: Boolean(reloadedAnnos?._audioPins?.['1']?.some(p => p.id === 'ff_pin_1')),
-        hasExtraSheets: Boolean(reloadedAnnos?._extraNotes?.['1'] && reloadedAnnos?._extraNotes?.['1__s2'] && reloadedAnnos?.['note_1']?.length === 1 && reloadedAnnos?.['note_1__s2']?.length === 1),
-        reorderedIds,
-        rpcTriggeredOnClose,
-        dirtyClearedAfterConfirm,
-        pullFailedClosed: Boolean(pullErr && pullErr.ok === false && pullErr.reason === 'remote_read_failed'),
-        navBtnHasErrorClass
+        hasExtraSheets: Boolean(
+          reloadedAnnos?._extraNotes?.['1'] &&
+          reloadedAnnos?._extraNotes?.['1__s2'] &&
+          reloadedAnnos?.['note_1']?.length === 1 &&
+          reloadedAnnos?.['note_1__s2']?.length === 1
+        ),
+        reorderedIds: subjects[0]?.groups?.[0]?.lectures?.map(l => l.id).join(',') || '',
+        durableJournalStillDirty: Boolean(durableJournal.hasDirtyAnnotations),
+        lsDirtyStillPending: localStorage.getItem('pharmaWorkspaceDirty_' + uid) === '1',
+        uiHasErrorClass: Boolean(navBtn && navBtn.classList.contains('error')),
+        uiHasSyncedClass: Boolean(navBtn && navBtn.classList.contains('synced'))
       };
     }, uidFF);
 
+    assert(
+      ffAfterReload1FailedRpc.currentUidWithoutManualAssign === uidFF &&
+      ffAfterReload1FailedRpc.startupState.syncWorkspaceOnLoginCalled === true &&
+      ffAfterReload1FailedRpc.hasStroke === true &&
+      ffAfterReload1FailedRpc.hasText === true &&
+      ffAfterReload1FailedRpc.hasPin === true &&
+      ffAfterReload1FailedRpc.hasExtraSheets === true &&
+      ffAfterReload1FailedRpc.reorderedIds === '7702,7701',
+      'Test FF.3 (Gap 2): Real Chromium reload restores Supabase session automatically without manual currentCloudUser assignment and preserves strokes, text notes, audio pins, multiple Extra Note Sheets, and lecture order against remote annotations: {}'
+    );
+    assert(
+      ffAfterReload1FailedRpc.rpcCalls >= 1 &&
+      ffAfterReload1FailedRpc.durableJournalStillDirty === true &&
+      ffAfterReload1FailedRpc.lsDirtyStillPending === true &&
+      ffAfterReload1FailedRpc.uiHasErrorClass === true &&
+      ffAfterReload1FailedRpc.uiHasSyncedClass === false,
+      'Test FF.4 (Gap 3): When first RPC attempt fails during reload reconciliation, durable annotation dirty journal and workspace dirty state remain pending and UI shows error'
+    );
+
+    // Step 3 (Gap 3): Switch RPC mode to 'success', trigger retry push, verify revision confirmation & journal clear,
+    // then perform a SECOND full reload and verify zero duplication/corruption/deletion.
+    const ffAfterRpcSuccess = await tabFF.evaluate(async (uid) => {
+      localStorage.setItem('__exo_mock_rpc_mode', 'success');
+      const pushRes = await pushWorkspaceToCloud(false, false);
+      const durableJournal = await readDurableCloudSyncJournal(uid);
+      const navBtn = document.getElementById('cloudNavBtn');
+      return {
+        pushStatus: pushRes?.status || null,
+        confirmedRevision: pushRes?.revision || null,
+        durableJournalCleared: durableJournal.hasDirtyAnnotations === false && durableJournal.hasDirtyWorkspace === false,
+        lsDirtyCleared: localStorage.getItem('pharmaAnnotationsDirty_' + uid) === null && localStorage.getItem('pharmaWorkspaceDirty_' + uid) === null,
+        uiHasSyncedClass: Boolean(navBtn && navBtn.classList.contains('synced'))
+      };
+    }, uidFF);
+
+    assert(
+      ffAfterRpcSuccess.pushStatus === 'success' &&
+      ffAfterRpcSuccess.confirmedRevision === 3 &&
+      ffAfterRpcSuccess.durableJournalCleared === true &&
+      ffAfterRpcSuccess.lsDirtyCleared === true &&
+      ffAfterRpcSuccess.uiHasSyncedClass === true,
+      'Test FF.5 (Gap 3): Subsequent successful RPC confirms revision 3, clears durable IndexedDB journal and localStorage dirty markers, and sets UI to synced'
+    );
+
+    // Second full reload after RPC confirmation
+    await tabFF.reload({ waitUntil: 'domcontentloaded' });
+    await tabFF.waitForFunction(() => Boolean(
+      window.__exoSupabaseStartupState &&
+      window.__exoSupabaseStartupState.settled === true &&
+      window.__exoSupabaseStartupState.syncWorkspaceOnLoginCalled === true
+    ));
+
+    const ffAfterSecondReload = await tabFF.evaluate(async (uid) => {
+      const reloadedAnnos = await getAnnotationsFromDB('7701', uid);
+      const p1Items = Array.isArray(reloadedAnnos?.['1']) ? reloadedAnnos['1'] : [];
+      const pins1 = Array.isArray(reloadedAnnos?._audioPins?.['1']) ? reloadedAnnos._audioPins['1'] : [];
+      return {
+        p1Count: p1Items.length,
+        penCount: p1Items.filter(i => i.id === 'ff_pen_1').length,
+        txtCount: p1Items.filter(i => i.id === 'ff_txt_1').length,
+        pinCount: pins1.filter(p => p.id === 'ff_pin_1').length,
+        sheet1Count: (reloadedAnnos?.['note_1'] || []).length,
+        sheet2Count: (reloadedAnnos?.['note_1__s2'] || []).length
+      };
+    }, uidFF);
+
+    assert(
+      ffAfterSecondReload.p1Count === 2 &&
+      ffAfterSecondReload.penCount === 1 &&
+      ffAfterSecondReload.txtCount === 1 &&
+      ffAfterSecondReload.pinCount === 1 &&
+      ffAfterSecondReload.sheet1Count === 1 &&
+      ffAfterSecondReload.sheet2Count === 1,
+      'Test FF.6 (Gap 3): Second full reload after RPC confirmation does not duplicate, corrupt, or delete any annotations or Extra Note Sheets'
+    );
+
+    // Step 4 (Gap 4): QuotaExceededError on localStorage dirty markers (`pharmaAnnotationsDirty_<uid>`)
+    // while IndexedDB annotation write succeeds -> reload with stale remote `annotations: {}` and failing RPC
+    await tabFF.evaluate(async (uid) => {
+      // Reset mocked remote row to empty annotations and failing RPC so reload tests reconciliation under quota-failed dirty marker
+      const rawRemote = JSON.parse(localStorage.getItem('__exo_mock_remote_row') || '{}');
+      rawRemote.annotations = {};
+      rawRemote.revision = 3;
+      localStorage.setItem('__exo_mock_remote_row', JSON.stringify(rawRemote));
+      localStorage.setItem('__exo_mock_rpc_mode', 'fail');
+      localStorage.removeItem('pharmaAnnotationsDirty_' + uid);
+      localStorage.removeItem('pharmaWorkspaceDirty_' + uid);
+      localStorage.removeItem('pharmaWorkspaceDirty');
+
+      const origSetItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (k, v) {
+        if (String(k).includes('Dirty')) {
+          const err = new DOMException('QuotaExceededError: Simulated dirty marker quota failure', 'QuotaExceededError');
+          throw err;
+        }
+        return origSetItem.call(this, k, v);
+      };
+      try {
+        const scopedKey = toScopedKey('7702', uid);
+        pendingAnnoSaveMap[scopedKey] = {
+          '1': [stampAnnotationItemCausalMetadata({ id: 'ff_quota_survivor_stroke', tool: 'pen', color: '#38bdf8', size: 2, points: [{ x: 0.15, y: 0.25 }, { x: 0.45, y: 0.55 }] }, 'stroke', '7702', '1', uid)]
+        };
+        await flushPendingAnnotationsSave(false);
+      } finally {
+        Storage.prototype.setItem = origSetItem;
+      }
+    }, uidFF);
+
+    await tabFF.reload({ waitUntil: 'domcontentloaded' });
+    await tabFF.waitForFunction(() => Boolean(
+      window.__exoSupabaseStartupState &&
+      window.__exoSupabaseStartupState.settled === true &&
+      window.__exoSupabaseStartupState.syncWorkspaceOnLoginCalled === true
+    ));
+
+    const ffGap4AfterReload = await tabFF.evaluate(async (uid) => {
+      const annos7702 = await getAnnotationsFromDB('7702', uid);
+      const durableJournal = await readDurableCloudSyncJournal(uid);
+      const navBtn = document.getElementById('cloudNavBtn');
+      return {
+        survivedQuotaReload: Boolean(annos7702?.['1']?.some(s => s.id === 'ff_quota_survivor_stroke')),
+        journalHasPendingAnno: Boolean(durableJournal.hasDirtyAnnotations),
+        noFalseSyncedUi: !Boolean(navBtn && navBtn.classList.contains('synced'))
+      };
+    }, uidFF);
+
+    assert(
+      ffGap4AfterReload.survivedQuotaReload === true &&
+      ffGap4AfterReload.journalHasPendingAnno === true &&
+      ffGap4AfterReload.noFalseSyncedUi === true,
+      'Test FF.7 (Gap 4): When localStorage dirty marker throws QuotaExceededError, IndexedDB cloud_sync_journal preserves the local annotation across reload and mocked Supabase login without displaying a false synced status'
+    );
+
+    // Step 5 (Additional Critical P0): Chapter Add (`triggerAddGroup` + `saveSingleInputModal`) and
+    // Chapter Delete (`triggerDeleteGroup`) when `pharmaSubjectsV4` throws QuotaExceededError in real Chromium
+    const ffChapterBeforeReload = await tabFF.evaluate(async (uid) => {
+      // Allow RPC to succeed again after we test local refresh
+      localStorage.setItem('__exo_mock_rpc_mode', 'success');
+      await pushWorkspaceToCloud(false, false);
+
+      activeSubjectId = 8801;
+      const origSetItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (k, v) {
+        if (String(k) === 'pharmaSubjectsV4') {
+          throw new DOMException('QuotaExceededError: Simulated pharmaSubjectsV4 quota failure', 'QuotaExceededError');
+        }
+        return origSetItem.call(this, k, v);
+      };
+      let modalSaveRes = null;
+      let diagAfterAdd = null;
+      let modalStillActiveOnFailure = false;
+      let delGroupRes = null;
+      try {
+        triggerAddGroup();
+        const inputEl = document.getElementById('siModalInput');
+        if (inputEl) inputEl.value = 'Durable IDB Chapter 99';
+        modalSaveRes = saveSingleInputModal();
+        diagAfterAdd = getLastStorageFailureDiagnostics();
+        const overlay = document.getElementById('singleInputModalOverlay');
+        modalStillActiveOnFailure = Boolean(overlay && overlay.classList.contains('active'));
+        if (modalSaveRes && modalSaveRes.result && modalSaveRes.result.idbPersistPromise) {
+          await modalSaveRes.result.idbPersistPromise;
+        }
+        // Also delete the older chapter 8810 while pharmaSubjectsV4 throws QuotaExceededError
+        triggerDeleteGroup(8810);
+        const confirmBtn = document.getElementById('confirmModalBtn');
+        if (confirmBtn && typeof confirmBtn.onclick === 'function') {
+          delGroupRes = await confirmBtn.onclick();
+        }
+      } finally {
+        Storage.prototype.setItem = origSetItem;
+      }
+      return {
+        modalClosed: modalSaveRes?.modalClosed,
+        modalStillActiveOnFailure,
+        failedKey: diagAfterAdd?.failedKey || null,
+        errorName: diagAfterAdd?.errorName || null,
+        delIdbPersisted: Boolean(delGroupRes && delGroupRes.idbPersisted === true)
+      };
+    }, uidFF);
+
+    assert(
+      ffChapterBeforeReload.modalClosed === false &&
+      ffChapterBeforeReload.modalStillActiveOnFailure === true &&
+      ffChapterBeforeReload.failedKey === 'pharmaSubjectsV4' &&
+      ffChapterBeforeReload.errorName === 'QuotaExceededError' &&
+      ffChapterBeforeReload.delIdbPersisted === true,
+      'Test FF.8 (Critical P0): In real Chromium, Chapter add/delete under pharmaSubjectsV4 QuotaExceededError keeps modal open on failure, records exact diagnostics, and persists to IndexedDB workspace_state'
+    );
+
+    // Reload page in Chromium and verify added Chapter 99 is present and deleted Chapter 8810 does NOT reappear!
+    await tabFF.reload({ waitUntil: 'domcontentloaded' });
+    await tabFF.waitForFunction(() => Boolean(
+      window.__exoSupabaseStartupState &&
+      window.__exoSupabaseStartupState.settled === true &&
+      window.__exoSupabaseStartupState.syncWorkspaceOnLoginCalled === true
+    ));
+
+    const ffChapterAfterReload = await tabFF.evaluate(async () => {
+      const sub8801 = subjects.find(s => s && Number(s.id) === 8801);
+      const groupNames = (sub8801?.groups || []).map(g => g.name);
+      const hasOldDeletedGroup = (sub8801?.groups || []).some(g => Number(g.id) === 8810);
+      return {
+        groupNames,
+        hasNewChapter99: groupNames.includes('Durable IDB Chapter 99'),
+        hasOldDeletedGroup
+      };
+    });
+
+    assert(
+      ffChapterAfterReload.hasNewChapter99 === true &&
+      ffChapterAfterReload.hasOldDeletedGroup === false,
+      'Test FF.9 (Critical P0): After real Chromium reload and Supabase login sync, the newly added Chapter survives and the deleted Chapter does not reappear even though pharmaSubjectsV4 localStorage writes failed'
+    );
+
     await tabFF.close();
-
-    assert(
-      ffPostReload.hasStroke && ffPostReload.hasText && ffPostReload.hasPin && ffPostReload.hasExtraSheets && ffPostReload.reorderedIds === '7702,7701',
-      'Test FF.3: Real Chromium page reload preserves handwritten strokes, text notes, audio pins, multiple Extra Note Sheets, and lecture order'
-    );
-    assert(
-      ffPostReload.rpcTriggeredOnClose === true && ffPostReload.dirtyClearedAfterConfirm === true,
-      'Test FF.4: Real Chromium flushPendingAnnotationsSave(true) pushes already-flushed annotations and clears dirty markers only after RPC confirmation'
-    );
-    assert(
-      ffPostReload.pullFailedClosed === true && ffPostReload.navBtnHasErrorClass === true,
-      'Test FF.5: Real Chromium Supabase SELECT error fails closed and sets #cloudNavBtn.error without wiping local data'
-    );
-
+    await contextFF.close();
     await context.close();
   } finally {
     await browser.close();
