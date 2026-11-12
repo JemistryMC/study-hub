@@ -11452,10 +11452,47 @@
             const btn = document.getElementById('siModalSaveBtn');
             if (btn && typeof btn.onclick === 'function') {
                 const res = btn.onclick();
-                const modalClosed = Boolean(!res || (res.ok !== false && res.persisted !== false));
+                if (res && typeof res.then === 'function') {
+                    const overlayNow = document.getElementById('singleInputModalOverlay');
+                    const syncClosed = (overlayNow && overlayNow.classList && typeof overlayNow.classList.contains === 'function') ? !overlayNow.classList.contains('active') : false;
+                    const pendingState = {
+                        ok: false,
+                        persisted: false,
+                        idbPersisted: false,
+                        durablePersisted: false,
+                        modalClosed: syncClosed,
+                        result: null,
+                        then: function(onFulfilled, onRejected) {
+                            return res.then((resolvedRes) => {
+                                const durableSuccess = Boolean(
+                                    !resolvedRes ||
+                                    resolvedRes.ok === true ||
+                                    resolvedRes.persisted === true ||
+                                    resolvedRes.idbPersisted === true ||
+                                    resolvedRes.queued === true
+                                );
+                                const finalObj = {
+                                    ok: Boolean(resolvedRes ? (resolvedRes.ok === true) : true),
+                                    persisted: Boolean(resolvedRes ? (resolvedRes.persisted === true) : true),
+                                    idbPersisted: Boolean(resolvedRes && resolvedRes.idbPersisted === true),
+                                    durablePersisted: durableSuccess,
+                                    modalClosed: durableSuccess,
+                                    result: resolvedRes
+                                };
+                                Object.assign(pendingState, finalObj);
+                                delete pendingState.then;
+                                return finalObj;
+                            }).then(onFulfilled, onRejected);
+                        }
+                    };
+                    return pendingState;
+                }
+                const modalClosed = Boolean(!res || res.ok === true || res.persisted === true || res.idbPersisted === true || res.queued === true);
                 return {
-                    ok: modalClosed,
-                    persisted: modalClosed,
+                    ok: Boolean(!res || res.ok !== false),
+                    persisted: Boolean(!res || res.persisted !== false),
+                    idbPersisted: Boolean(res && res.idbPersisted === true),
+                    durablePersisted: modalClosed,
                     modalClosed,
                     result: res
                 };
@@ -11476,19 +11513,21 @@
                     const saveRes = onSave(cleanVal);
                     if (saveRes && typeof saveRes.then === 'function') {
                         return saveRes.then((resolvedRes) => {
-                            if (!resolvedRes || (resolvedRes.ok !== false && resolvedRes.persisted !== false)) {
+                            const durableSuccess = !resolvedRes || resolvedRes.ok === true || resolvedRes.persisted === true || resolvedRes.idbPersisted === true || resolvedRes.queued === true;
+                            if (durableSuccess) {
                                 closeModal('singleInputModalOverlay');
                             }
                             return resolvedRes;
                         });
                     }
-                    if (!saveRes || (saveRes.ok !== false && saveRes.persisted !== false)) {
+                    const durableSuccess = !saveRes || saveRes.ok === true || saveRes.persisted === true || saveRes.idbPersisted === true || saveRes.queued === true;
+                    if (durableSuccess) {
                         closeModal('singleInputModalOverlay');
                     }
                     return saveRes;
                 } else {
                     input.focus();
-                    return { ok: false, persisted: false, reason: 'empty_input' };
+                    return { ok: false, persisted: false, idbPersisted: false, reason: 'empty_input' };
                 }
             };
             document.getElementById('singleInputModalOverlay').classList.add('active');
@@ -11509,13 +11548,15 @@
                     const saveRes = onSave(cleanTitle, cleanPath);
                     if (saveRes && typeof saveRes.then === 'function') {
                         return saveRes.then((resolvedRes) => {
-                            if (!resolvedRes || (resolvedRes.ok !== false && resolvedRes.persisted !== false)) {
+                            const durableSuccess = !resolvedRes || resolvedRes.ok === true || resolvedRes.persisted === true || resolvedRes.idbPersisted === true || resolvedRes.queued === true;
+                            if (durableSuccess) {
                                 closeModal('doubleInputModalOverlay');
                             }
                             return resolvedRes;
                         });
                     }
-                    if (!saveRes || (saveRes.ok !== false && saveRes.persisted !== false)) {
+                    const durableSuccess = !saveRes || saveRes.ok === true || saveRes.persisted === true || saveRes.idbPersisted === true || saveRes.queued === true;
+                    if (durableSuccess) {
                         closeModal('doubleInputModalOverlay');
                     }
                     return saveRes;
@@ -11530,7 +11571,19 @@
             const btn = document.getElementById('confirmModalBtn');
             btn.onclick = function() {
                 const res = onConfirm();
-                closeModal('confirmModalOverlay');
+                if (res && typeof res.then === 'function') {
+                    return res.then((resolvedRes) => {
+                        const durableSuccess = !resolvedRes || resolvedRes.ok === true || resolvedRes.persisted === true || resolvedRes.idbPersisted === true || resolvedRes.queued === true;
+                        if (durableSuccess) {
+                            closeModal('confirmModalOverlay');
+                        }
+                        return resolvedRes;
+                    });
+                }
+                const durableSuccess = !res || res.ok === true || res.persisted === true || res.idbPersisted === true || res.queued === true;
+                if (durableSuccess) {
+                    closeModal('confirmModalOverlay');
+                }
                 return res;
             };
             document.getElementById('confirmModalOverlay').classList.add('active');
@@ -11597,33 +11650,24 @@
                     approxBytes: diag.approxBytes,
                     reason: diag.reason
                 });
-                let idbPromise = null;
-                if (typeof persistWorkspaceDomainToIDB === 'function') {
-                    try {
-                        idbPromise = persistWorkspaceDomainToIDB('subjects', subjects, currentUid, null, false);
-                    } catch (idbErr) {}
-                }
-                if (typeof recordDurableWorkspaceDirtyJournal === 'function') {
-                    try {
-                        recordDurableWorkspaceDirtyJournal(currentUid, true, false, 'subjects');
-                    } catch (jErr) {}
-                }
                 if (typeof updateCloudNavUI === 'function' && currentCloudUser) {
                     updateCloudNavUI('error');
                 }
                 if (typeof showToast === 'function') {
                     const msgAr = diag.isQuotaExceeded
-                        ? 'تعذر حفظ المواد في LocalStorage بسبب امتلاء مساحة التخزين (QuotaExceededError). تم الاحتفاظ بالتعديل في الذاكرة وسجل الاسترداد ⚠️'
+                        ? 'تعذر حفظ المواد في LocalStorage بسبب امتلاء مساحة التخزين (QuotaExceededError). جاري التحقق من الحفظ في مخزن الاسترداد ⚠️'
                         : (diag.serializationFailed
                             ? 'تعذر حفظ المواد بسبب خطأ في تسلسل البيانات (Serialization Error) ⚠️'
                             : 'تعذر حفظ المواد في المتصفح بسبب خطأ في التخزين المحلي ⚠️');
                     showToast(msgAr, 'error');
                 }
-                return {
+                const failureRes = {
                     ok: false,
                     persisted: false,
-                    idbPersisted: Boolean(dbInstance),
-                    idbPersistPromise: idbPromise,
+                    localStoragePersisted: false,
+                    idbPersisted: false,
+                    durablePersisted: false,
+                    idbPersistPromise: null,
                     domain: 'subjects',
                     reason: diag.reason,
                     failedKey: 'pharmaSubjectsV4',
@@ -11635,11 +11679,48 @@
                     failedCount: (stampResult.failedCount || 0) + 1,
                     errors: [...(Array.isArray(stampResult.errors) ? stampResult.errors : []), { entityType: 'subjects', entityId: 'storage', code: diag.isQuotaExceeded ? 'STORAGE_QUOTA_EXCEEDED' : 'STORAGE_WRITE_FAILED', message: diag.errorMessage }]
                 };
+                if (typeof persistWorkspaceDomainToIDB === 'function') {
+                    try {
+                        const rawIdbPromise = persistWorkspaceDomainToIDB('subjects', subjects, currentUid, null, false);
+                        const rawJournalPromise = (typeof recordDurableWorkspaceDirtyJournal === 'function')
+                            ? Promise.resolve(recordDurableWorkspaceDirtyJournal(currentUid, true, false, 'subjects')).catch(() => null)
+                            : Promise.resolve(null);
+                        failureRes.idbPersistPromise = Promise.all([rawIdbPromise, rawJournalPromise]).then(([idbRes]) => {
+                            const idbOk = Boolean(idbRes && idbRes.ok === true && idbRes.persisted === true);
+                            failureRes.idbPersisted = idbOk;
+                            failureRes.durablePersisted = idbOk;
+                            failureRes.idbResult = idbRes || { ok: false, persisted: false };
+                            if (!idbOk) {
+                                failureRes.idbError = (idbRes && (idbRes.reason || idbRes.error)) || 'idb_persist_failed';
+                            }
+                            return failureRes;
+                        }).catch((idbErr) => {
+                            failureRes.idbPersisted = false;
+                            failureRes.durablePersisted = false;
+                            failureRes.idbError = String(idbErr && idbErr.message ? idbErr.message : idbErr);
+                            return failureRes;
+                        });
+                    } catch (idbErr) {
+                        failureRes.idbPersisted = false;
+                        failureRes.durablePersisted = false;
+                    }
+                }
+                return failureRes;
             }
             stampResult.persisted = true;
+            stampResult.localStoragePersisted = true;
+            stampResult.idbPersisted = false;
             if (typeof persistWorkspaceDomainToIDB === 'function') {
                 try {
-                    stampResult.idbPersistPromise = persistWorkspaceDomainToIDB('subjects', subjects, currentUid, null, true);
+                    stampResult.idbPersistPromise = persistWorkspaceDomainToIDB('subjects', subjects, currentUid, null, true).then((idbRes) => {
+                        const idbOk = Boolean(idbRes && idbRes.ok === true && idbRes.persisted === true);
+                        stampResult.idbPersisted = idbOk;
+                        stampResult.idbResult = idbRes || { ok: false, persisted: false };
+                        return stampResult;
+                    }).catch(() => {
+                        stampResult.idbPersisted = false;
+                        return stampResult;
+                    });
                 } catch (idbErr) {}
             }
             markLocalWorkspaceModified();
@@ -12793,20 +12874,63 @@
         }
 
         function triggerAddGroup() {
-            openSingleInputModal('<i class="fa-solid fa-layer-group"></i> إضافة قسم/شابتر جديد', 'مثال: Chapter 1', '', (name) => {
+            let draftGrp = null;
+            openSingleInputModal('<i class="fa-solid fa-layer-group"></i> إضافة قسم/شابتر جديد', 'مثال: Chapter 1', '', async (name) => {
                 const sub = subjects.find(s => s.id === activeSubjectId);
-                if(!sub) return { ok: false, persisted: false, reason: 'subject_not_found' };
-                const newGrp = { id: Date.now(), name: name, lectures: [] };
-                newGrp._needsCausalStamp = true;
+                if(!sub) return { ok: false, persisted: false, idbPersisted: false, reason: 'subject_not_found' };
+                if (!Array.isArray(sub.groups)) sub.groups = [];
+                if (draftGrp && sub.groups.some(g => g === draftGrp || String(g.id) === String(draftGrp.id))) {
+                    draftGrp.name = name;
+                    draftGrp._needsCausalStamp = true;
+                } else {
+                    draftGrp = { id: Date.now(), name: name, lectures: [] };
+                    draftGrp._needsCausalStamp = true;
+                    sub.groups.push(draftGrp);
+                }
                 sub._needsCausalStamp = true;
-                sub.groups.push(newGrp);
                 const saveRes = saveSubjects();
                 renderGroups();
-                if (!saveRes || saveRes.ok === false || (saveRes.persisted === false && !saveRes.queued)) {
-                    return saveRes || { ok: false, persisted: false, reason: 'save_failed' };
+                if (saveRes && saveRes.queued) {
+                    showToast('تمت جدولة إضافة القسم وسيُحفظ فور اكتمال الاستيراد');
+                    return Object.assign({}, saveRes, { ok: true, persisted: true, idbPersisted: false, durablePersisted: true });
                 }
-                showToast('تمت إضافة القسم');
-                return saveRes;
+                if (saveRes && saveRes.persisted === true) {
+                    showToast('تمت إضافة القسم');
+                    return saveRes;
+                }
+                let idbPersisted = false;
+                if (saveRes && saveRes.idbPersistPromise) {
+                    try {
+                        const idbFinal = await saveRes.idbPersistPromise;
+                        idbPersisted = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
+                        saveRes.idbPersisted = idbPersisted;
+                        saveRes.durablePersisted = idbPersisted;
+                    } catch (e) {
+                        saveRes.idbPersisted = false;
+                        saveRes.durablePersisted = false;
+                    }
+                }
+                if (!idbPersisted) {
+                    if (typeof showToast === 'function') {
+                        showToast('تعذر حفظ القسم في LocalStorage وIndexedDB. البيانات محفوظة في الذاكرة ويمكنك إعادة المحاولة ⚠️', 'error');
+                    }
+                    return Object.assign({}, saveRes || {}, {
+                        ok: false,
+                        persisted: false,
+                        idbPersisted: false,
+                        durablePersisted: false,
+                        reason: (saveRes && saveRes.idbError) || (saveRes && saveRes.reason) || 'storage_and_idb_write_failed'
+                    });
+                }
+                if (typeof showToast === 'function') {
+                    showToast('تم حفظ القسم في مخزن الاسترداد المتين (IndexedDB) بعد تعذر LocalStorage ✓');
+                }
+                return Object.assign({}, saveRes || {}, {
+                    ok: false,
+                    persisted: false,
+                    idbPersisted: true,
+                    durablePersisted: true
+                });
             });
         }
 
@@ -12815,47 +12939,95 @@
             if(!sub) return;
             const group = sub.groups.find(g => g.id === groupId);
             if(!group) return;
-            openSingleInputModal('<i class="fa-solid fa-pen"></i> تعديل اسم القسم', 'الاسم الجديد', group.name, (newName) => {
+            openSingleInputModal('<i class="fa-solid fa-pen"></i> تعديل اسم القسم', 'الاسم الجديد', group.name, async (newName) => {
                 group.name = newName;
                 group._needsCausalStamp = true;
                 sub._needsCausalStamp = true;
                 const saveRes = saveSubjects();
                 renderGroups();
-                if (!saveRes || saveRes.ok === false || (saveRes.persisted === false && !saveRes.queued)) {
-                    return saveRes || { ok: false, persisted: false, reason: 'save_failed' };
+                if (saveRes && saveRes.queued) {
+                    showToast('تمت جدولة تعديل القسم وسيُحفظ فور اكتمال الاستيراد');
+                    return Object.assign({}, saveRes, { ok: true, persisted: true, idbPersisted: false, durablePersisted: true });
                 }
-                showToast('تم التعديل بنجاح');
-                return saveRes;
+                if (saveRes && saveRes.persisted === true) {
+                    showToast('تم التعديل بنجاح');
+                    return saveRes;
+                }
+                let idbPersisted = false;
+                if (saveRes && saveRes.idbPersistPromise) {
+                    try {
+                        const idbFinal = await saveRes.idbPersistPromise;
+                        idbPersisted = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
+                        saveRes.idbPersisted = idbPersisted;
+                        saveRes.durablePersisted = idbPersisted;
+                    } catch (e) {
+                        saveRes.idbPersisted = false;
+                        saveRes.durablePersisted = false;
+                    }
+                }
+                if (!idbPersisted) {
+                    if (typeof showToast === 'function') {
+                        showToast('تعذر حفظ تعديل القسم في LocalStorage وIndexedDB. التعديل محفوظ في الذاكرة ويمكنك إعادة المحاولة ⚠️', 'error');
+                    }
+                    return Object.assign({}, saveRes || {}, {
+                        ok: false,
+                        persisted: false,
+                        idbPersisted: false,
+                        durablePersisted: false,
+                        reason: (saveRes && saveRes.idbError) || (saveRes && saveRes.reason) || 'storage_and_idb_write_failed'
+                    });
+                }
+                if (typeof showToast === 'function') {
+                    showToast('تم حفظ تعديل القسم في مخزن الاسترداد المتين (IndexedDB) ✓');
+                }
+                return Object.assign({}, saveRes || {}, {
+                    ok: false,
+                    persisted: false,
+                    idbPersisted: true,
+                    durablePersisted: true
+                });
             });
         }
 
         function triggerDeleteGroup(groupId) {
+            let cachedSub = null;
+            let cachedTargetGroup = null;
+            let cachedDeletedLecIds = null;
+            let tombstonesRecorded = false;
             return openConfirmModal('سيتم حذف هذا القسم ومحتوياته بالكامل.', async () => {
                 if (currentCloudUser && typeof resolveAccountOperationContext === 'function') {
                     const opCtx = resolveAccountOperationContext(currentCloudUser.id);
-                    if (!opCtx || !opCtx.ok || !opCtx.authorized) return;
+                    if (!opCtx || !opCtx.ok || !opCtx.authorized) return { ok: false, persisted: false, idbPersisted: false, reason: 'unauthorized_context' };
                 }
-                const sub = subjects.find(s => String(s.id) === String(activeSubjectId))
+                const sub = cachedSub
+                    || subjects.find(s => String(s.id) === String(activeSubjectId))
                     || subjects.find(s => Array.isArray(s.groups) && s.groups.some(g => String(g.id) === String(groupId)));
-                if(!sub) return;
-                const targetGroup = (sub.groups || []).find(g => String(g.id) === String(groupId));
-                if (!targetGroup) return;
-                const batchItems = [{ entityType: 'groups', id: targetGroup.id, priorEntity: targetGroup }];
-                const deletedLecIds = [];
-                (targetGroup.lectures || []).forEach(l => {
-                    if (l && l.id !== undefined) {
-                        batchItems.push({ entityType: 'lectures', id: l.id, priorEntity: l });
-                        deletedLecIds.push(l.id);
+                if(!sub) return { ok: false, persisted: false, idbPersisted: false, reason: 'subject_not_found' };
+                cachedSub = sub;
+                const targetGroup = cachedTargetGroup || (sub.groups || []).find(g => String(g.id) === String(groupId));
+                if (!targetGroup) return { ok: false, persisted: false, idbPersisted: false, reason: 'group_not_found' };
+                cachedTargetGroup = targetGroup;
+                if (!tombstonesRecorded) {
+                    const batchItems = [{ entityType: 'groups', id: targetGroup.id, priorEntity: targetGroup }];
+                    const deletedLecIds = [];
+                    (targetGroup.lectures || []).forEach(l => {
+                        if (l && l.id !== undefined) {
+                            batchItems.push({ entityType: 'lectures', id: l.id, priorEntity: l });
+                            deletedLecIds.push(l.id);
+                        }
+                    });
+                    const batchRes = (typeof recordTombstonesAtomicBatch === 'function')
+                        ? recordTombstonesAtomicBatch(batchItems)
+                        : null;
+                    if (!batchRes || !batchRes.ok) {
+                        showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف القسم حفاظاً على سلامة البيانات ⚠️', 'error');
+                        return { ok: false, persisted: false, idbPersisted: false, reason: 'tombstone_write_failed' };
                     }
-                });
-                const batchRes = (typeof recordTombstonesAtomicBatch === 'function')
-                    ? recordTombstonesAtomicBatch(batchItems)
-                    : null;
-                if (!batchRes || !batchRes.ok) {
-                    showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف القسم حفاظاً على سلامة البيانات ⚠️', 'error');
-                    return { ok: false, persisted: false, reason: 'tombstone_write_failed' };
+                    cachedDeletedLecIds = deletedLecIds;
+                    tombstonesRecorded = true;
                 }
-                sub.groups = sub.groups.filter(g => String(g.id) !== String(groupId));
+                const deletedLecIds = cachedDeletedLecIds || [];
+                sub.groups = (sub.groups || []).filter(g => String(g.id) !== String(groupId));
                 if (Array.isArray(sub.examLectureIds) && deletedLecIds.length > 0) {
                     const delSet = new Set(deletedLecIds.map(String));
                     sub.examLectureIds = sub.examLectureIds.filter(lid => !delSet.has(String(lid)));
@@ -12868,10 +13040,32 @@
                     detachDeletedHierarchyReferences({ subjectIds: [], lectureIds: deletedLecIds });
                 }
                 const saveRes = saveSubjects();
+                let idbPersisted = false;
                 if (saveRes && saveRes.idbPersistPromise) {
-                    try { await saveRes.idbPersistPromise; } catch (e) {}
+                    try {
+                        const idbFinal = await saveRes.idbPersistPromise;
+                        idbPersisted = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
+                        saveRes.idbPersisted = idbPersisted;
+                        saveRes.durablePersisted = idbPersisted;
+                    } catch (e) {
+                        saveRes.idbPersisted = false;
+                        saveRes.durablePersisted = false;
+                    }
                 }
                 renderGroups();
+                const durableDeleteConfirmed = Boolean(saveRes && (saveRes.persisted === true || saveRes.idbPersisted === true || saveRes.queued === true));
+                if (!durableDeleteConfirmed) {
+                    if (typeof showToast === 'function') {
+                        showToast('تعذر حفظ حذف القسم في LocalStorage وIndexedDB. يمكنك إعادة المحاولة ⚠️', 'error');
+                    }
+                    return Object.assign({}, saveRes || {}, {
+                        ok: false,
+                        persisted: false,
+                        idbPersisted: false,
+                        durablePersisted: false,
+                        reason: (saveRes && saveRes.idbError) || (saveRes && saveRes.reason) || 'storage_and_idb_write_failed'
+                    });
+                }
                 if (deletedLecIds.length > 0 && typeof cleanupDeletedLectureLocalArtifacts === 'function') {
                     await cleanupDeletedLectureLocalArtifacts(deletedLecIds);
                 }
@@ -13686,36 +13880,27 @@
                     reason: diag.reason
                 });
 
-                let idbPromise = null;
-                if (typeof persistWorkspaceDomainToIDB === 'function') {
-                    try {
-                        idbPromise = persistWorkspaceDomainToIDB('schedule', schedulePayload, currentUid, null, false);
-                    } catch (idbErr) {}
-                }
-                if (typeof recordDurableWorkspaceDirtyJournal === 'function') {
-                    try {
-                        recordDurableWorkspaceDirtyJournal(currentUid, true, false, 'schedule');
-                    } catch (jErr) {}
-                }
                 if (typeof updateCloudNavUI === 'function' && currentCloudUser) {
                     updateCloudNavUI('error');
                 }
                 if (typeof showToast === 'function') {
                     const msgAr = diag.isQuotaExceeded
-                        ? 'تعذر حفظ الجدول في LocalStorage بسبب امتلاء مساحة التخزين. تم التراجع عن الكتابة الجزئية وحفظ التعديل في سجل الاسترداد ⚠️'
+                        ? 'تعذر حفظ الجدول في LocalStorage بسبب امتلاء مساحة التخزين. تم التراجع عن الكتابة الجزئية وجاري الحفظ في مخزن الاسترداد ⚠️'
                         : 'تعذر حفظ الجدول محلياً بسبب خطأ في التخزين المحلي. لم يتم اعتماد كتابة جزئية ⚠️';
                     showToast(msgAr, 'error');
                 }
-                return {
+                const failureRes = {
                     ok: false,
                     persisted: false,
+                    localStoragePersisted: false,
                     partialWritePrevented: true,
                     rolledBackPartialLocalStorage: rolledBackKeys.length > 0,
                     failedKey: currentWriteKey,
                     partialWritesSucceeded,
                     rolledBackKeys,
-                    idbPersisted: Boolean(dbInstance),
-                    idbPersistPromise: idbPromise,
+                    idbPersisted: false,
+                    durablePersisted: false,
+                    idbPersistPromise: null,
                     domain: 'schedule',
                     reason: diag.reason,
                     diagnostics: diag,
@@ -13726,11 +13911,48 @@
                     failedCount: (stampResult.failedCount || 0) + 1,
                     errors: [...(Array.isArray(stampResult.errors) ? stampResult.errors : []), { entityType: 'schedule', entityId: 'storage', code: diag.isQuotaExceeded ? 'STORAGE_QUOTA_EXCEEDED' : 'STORAGE_WRITE_FAILED', failedKey: currentWriteKey, message: diag.errorMessage }]
                 };
+                if (typeof persistWorkspaceDomainToIDB === 'function') {
+                    try {
+                        const rawIdbPromise = persistWorkspaceDomainToIDB('schedule', schedulePayload, currentUid, null, false);
+                        const rawJournalPromise = (typeof recordDurableWorkspaceDirtyJournal === 'function')
+                            ? Promise.resolve(recordDurableWorkspaceDirtyJournal(currentUid, true, false, 'schedule')).catch(() => null)
+                            : Promise.resolve(null);
+                        failureRes.idbPersistPromise = Promise.all([rawIdbPromise, rawJournalPromise]).then(([idbRes]) => {
+                            const idbOk = Boolean(idbRes && idbRes.ok === true && idbRes.persisted === true);
+                            failureRes.idbPersisted = idbOk;
+                            failureRes.durablePersisted = idbOk;
+                            failureRes.idbResult = idbRes || { ok: false, persisted: false };
+                            if (!idbOk) {
+                                failureRes.idbError = (idbRes && (idbRes.reason || idbRes.error)) || 'idb_persist_failed';
+                            }
+                            return failureRes;
+                        }).catch((idbErr) => {
+                            failureRes.idbPersisted = false;
+                            failureRes.durablePersisted = false;
+                            failureRes.idbError = String(idbErr && idbErr.message ? idbErr.message : idbErr);
+                            return failureRes;
+                        });
+                    } catch (idbErr) {
+                        failureRes.idbPersisted = false;
+                        failureRes.durablePersisted = false;
+                    }
+                }
+                return failureRes;
             }
             stampResult.persisted = true;
+            stampResult.localStoragePersisted = true;
+            stampResult.idbPersisted = false;
             if (typeof persistWorkspaceDomainToIDB === 'function') {
                 try {
-                    stampResult.idbPersistPromise = persistWorkspaceDomainToIDB('schedule', schedulePayload, currentUid, null, true);
+                    stampResult.idbPersistPromise = persistWorkspaceDomainToIDB('schedule', schedulePayload, currentUid, null, true).then((idbRes) => {
+                        const idbOk = Boolean(idbRes && idbRes.ok === true && idbRes.persisted === true);
+                        stampResult.idbPersisted = idbOk;
+                        stampResult.idbResult = idbRes || { ok: false, persisted: false };
+                        return stampResult;
+                    }).catch(() => {
+                        stampResult.idbPersisted = false;
+                        return stampResult;
+                    });
                 } catch (idbErr) {}
             }
             if (syncToCloud || !stampResult.ok || stampResult.failedCount > 0) {
@@ -16645,31 +16867,22 @@
                     approxBytes: diag.approxBytes,
                     reason: diag.reason
                 });
-                let idbPromise = null;
-                if (typeof persistWorkspaceDomainToIDB === 'function') {
-                    try {
-                        idbPromise = persistWorkspaceDomainToIDB('logs', logs, currentUid, null, false);
-                    } catch (idbErr) {}
-                }
-                if (typeof recordDurableWorkspaceDirtyJournal === 'function') {
-                    try {
-                        recordDurableWorkspaceDirtyJournal(currentUid, true, false, 'logs');
-                    } catch (jErr) {}
-                }
                 if (typeof updateCloudNavUI === 'function' && currentCloudUser) {
                     updateCloudNavUI('error');
                 }
                 if (typeof showToast === 'function') {
                     const msgAr = diag.isQuotaExceeded
-                        ? 'تعذر حفظ السجل في LocalStorage بسبب امتلاء مساحة التخزين (QuotaExceededError). تم الاحتفاظ بالتعديل في سجل الاسترداد ⚠️'
+                        ? 'تعذر حفظ السجل في LocalStorage بسبب امتلاء مساحة التخزين (QuotaExceededError). جاري التحقق من الحفظ في مخزن الاسترداد ⚠️'
                         : 'تعذر حفظ السجل محلياً بسبب خطأ في التخزين المحلي ⚠️';
                     showToast(msgAr, 'error');
                 }
-                return {
+                const failureRes = {
                     ok: false,
                     persisted: false,
-                    idbPersisted: Boolean(dbInstance),
-                    idbPersistPromise: idbPromise,
+                    localStoragePersisted: false,
+                    idbPersisted: false,
+                    durablePersisted: false,
+                    idbPersistPromise: null,
                     domain: 'logs',
                     reason: diag.reason,
                     failedKey: 'pharmaLogsV4',
@@ -16681,11 +16894,48 @@
                     failedCount: (stampResult.failedCount || 0) + 1,
                     errors: [...(Array.isArray(stampResult.errors) ? stampResult.errors : []), { entityType: 'logs', entityId: 'storage', code: diag.isQuotaExceeded ? 'STORAGE_QUOTA_EXCEEDED' : 'STORAGE_WRITE_FAILED', message: diag.errorMessage }]
                 };
+                if (typeof persistWorkspaceDomainToIDB === 'function') {
+                    try {
+                        const rawIdbPromise = persistWorkspaceDomainToIDB('logs', logs, currentUid, null, false);
+                        const rawJournalPromise = (typeof recordDurableWorkspaceDirtyJournal === 'function')
+                            ? Promise.resolve(recordDurableWorkspaceDirtyJournal(currentUid, true, false, 'logs')).catch(() => null)
+                            : Promise.resolve(null);
+                        failureRes.idbPersistPromise = Promise.all([rawIdbPromise, rawJournalPromise]).then(([idbRes]) => {
+                            const idbOk = Boolean(idbRes && idbRes.ok === true && idbRes.persisted === true);
+                            failureRes.idbPersisted = idbOk;
+                            failureRes.durablePersisted = idbOk;
+                            failureRes.idbResult = idbRes || { ok: false, persisted: false };
+                            if (!idbOk) {
+                                failureRes.idbError = (idbRes && (idbRes.reason || idbRes.error)) || 'idb_persist_failed';
+                            }
+                            return failureRes;
+                        }).catch((idbErr) => {
+                            failureRes.idbPersisted = false;
+                            failureRes.durablePersisted = false;
+                            failureRes.idbError = String(idbErr && idbErr.message ? idbErr.message : idbErr);
+                            return failureRes;
+                        });
+                    } catch (idbErr) {
+                        failureRes.idbPersisted = false;
+                        failureRes.durablePersisted = false;
+                    }
+                }
+                return failureRes;
             }
             stampResult.persisted = true;
+            stampResult.localStoragePersisted = true;
+            stampResult.idbPersisted = false;
             if (typeof persistWorkspaceDomainToIDB === 'function') {
                 try {
-                    stampResult.idbPersistPromise = persistWorkspaceDomainToIDB('logs', logs, currentUid, null, true);
+                    stampResult.idbPersistPromise = persistWorkspaceDomainToIDB('logs', logs, currentUid, null, true).then((idbRes) => {
+                        const idbOk = Boolean(idbRes && idbRes.ok === true && idbRes.persisted === true);
+                        stampResult.idbPersisted = idbOk;
+                        stampResult.idbResult = idbRes || { ok: false, persisted: false };
+                        return stampResult;
+                    }).catch(() => {
+                        stampResult.idbPersisted = false;
+                        return stampResult;
+                    });
                 } catch (idbErr) {}
             }
             markLocalWorkspaceModified();
@@ -23836,15 +24086,34 @@
                 return {
                     ok: false,
                     available: false,
+                    reason: 'journal_store_unavailable',
                     hasDirtyAnnotations: false,
                     hasDirtyWorkspace: false,
                     annotationJournal: null,
+                    annoJournal: null,
                     workspaceJournal: null
                 };
             }
             const annoKey = getAnnotationDirtyJournalKey(targetUid);
             const wsKey = getWorkspaceDirtyJournalKey(targetUid);
             return new Promise((resolve) => {
+                let settled = false;
+                let readFailed = false;
+                const finishFail = (reason, errObj) => {
+                    if (settled) return;
+                    settled = true;
+                    resolve({
+                        ok: false,
+                        available: false,
+                        reason: reason || 'journal_tx_error',
+                        error: errObj || null,
+                        hasDirtyAnnotations: false,
+                        hasDirtyWorkspace: false,
+                        annotationJournal: null,
+                        annoJournal: null,
+                        workspaceJournal: null
+                    });
+                };
                 try {
                     const tx = dbInstance.transaction('cloud_sync_journal', 'readonly');
                     const store = tx.objectStore('cloud_sync_journal');
@@ -23853,6 +24122,7 @@
                     const reqAnno = store.get(annoKey);
                     const reqWs = store.get(wsKey);
                     reqAnno.onsuccess = () => {
+                        if (settled || readFailed) return;
                         const r = reqAnno.result;
                         if (r && String(r.userId) === targetUid && r.dirty === true) {
                             annoRec = r;
@@ -23861,7 +24131,12 @@
                             }
                         }
                     };
+                    reqAnno.onerror = (e) => {
+                        readFailed = true;
+                        finishFail('journal_tx_error', (reqAnno && reqAnno.error) || (tx && tx.error) || e);
+                    };
                     reqWs.onsuccess = () => {
+                        if (settled || readFailed) return;
                         const r = reqWs.result;
                         if (r && String(r.userId) === targetUid && r.dirty === true) {
                             wsRec = r;
@@ -23870,7 +24145,13 @@
                             }
                         }
                     };
+                    reqWs.onerror = (e) => {
+                        readFailed = true;
+                        finishFail('journal_tx_error', (reqWs && reqWs.error) || (tx && tx.error) || e);
+                    };
                     tx.oncomplete = () => {
+                        if (settled || readFailed) return;
+                        settled = true;
                         resolve({
                             ok: true,
                             available: true,
@@ -23881,10 +24162,16 @@
                             workspaceJournal: wsRec
                         });
                     };
-                    tx.onerror = () => resolve({ ok: false, available: false, hasDirtyAnnotations: false, hasDirtyWorkspace: false, annotationJournal: null, annoJournal: null, workspaceJournal: null });
-                    tx.onabort = () => resolve({ ok: false, available: false, hasDirtyAnnotations: false, hasDirtyWorkspace: false, annotationJournal: null, annoJournal: null, workspaceJournal: null });
+                    tx.onerror = (e) => {
+                        readFailed = true;
+                        finishFail('journal_tx_error', (tx && tx.error) || e);
+                    };
+                    tx.onabort = (e) => {
+                        readFailed = true;
+                        finishFail('journal_tx_aborted', (tx && tx.error) || e);
+                    };
                 } catch (e) {
-                    resolve({ ok: false, available: false, hasDirtyAnnotations: false, hasDirtyWorkspace: false, annotationJournal: null, annoJournal: null, workspaceJournal: null });
+                    finishFail('journal_exception', e);
                 }
             });
         }
@@ -23992,10 +24279,16 @@
             const storeNames = shouldWriteJournal ? ['workspace_state', 'cloud_sync_journal'] : ['workspace_state'];
 
             return new Promise((resolve) => {
+                let settled = false;
+                const finishFail = (reason, errObj) => {
+                    if (settled) return;
+                    settled = true;
+                    resolve({ ok: false, persisted: false, reason: reason || 'idb_tx_error', error: errObj });
+                };
                 try {
                     const tx = dbInstance.transaction(storeNames, 'readwrite');
                     const wsStore = tx.objectStore('workspace_state');
-                    wsStore.put({
+                    const putWsReq = wsStore.put({
                         id: stateKey,
                         rawId: `__ws_domain_${String(domain)}_v1__`,
                         userId: targetUid,
@@ -24005,9 +24298,12 @@
                         workspaceMutationSeq: currentWsSeq,
                         updatedAt: nowMs
                     });
+                    if (putWsReq) {
+                        putWsReq.onerror = (err) => finishFail('idb_tx_error', (putWsReq && putWsReq.error) || (tx && tx.error) || err);
+                    }
                     if (shouldWriteJournal) {
                         const jStore = tx.objectStore('cloud_sync_journal');
-                        jStore.put({
+                        const putJReq = jStore.put({
                             id: wsKey,
                             rawId: '__ws_cloud_dirty_journal_v1__',
                             userId: targetUid,
@@ -24017,12 +24313,19 @@
                             workspaceMutationSeq: currentWsSeq,
                             updatedAt: nowMs
                         });
+                        if (putJReq) {
+                            putJReq.onerror = (err) => finishFail('idb_tx_error', (putJReq && putJReq.error) || (tx && tx.error) || err);
+                        }
                     }
-                    tx.oncomplete = () => resolve({ ok: true, persisted: true, key: stateKey, updatedAt: nowMs });
-                    tx.onerror = (err) => resolve({ ok: false, persisted: false, reason: 'idb_tx_error', error: tx.error || err });
-                    tx.onabort = (err) => resolve({ ok: false, persisted: false, reason: 'idb_tx_aborted', error: tx.error || err });
+                    tx.oncomplete = () => {
+                        if (settled) return;
+                        settled = true;
+                        resolve({ ok: true, persisted: true, key: stateKey, updatedAt: nowMs });
+                    };
+                    tx.onerror = (err) => finishFail('idb_tx_error', (tx && tx.error) || err);
+                    tx.onabort = (err) => finishFail('idb_tx_aborted', (tx && tx.error) || err);
                 } catch (err) {
-                    resolve({ ok: false, persisted: false, reason: 'idb_exception', error: err });
+                    finishFail('idb_exception', err);
                 }
             });
         }
@@ -25081,13 +25384,32 @@
                 let hasAccountDurableDirtyAnnos = Boolean(
                     canonicalUid && localStorage.getItem('pharmaAnnotationsDirty_' + canonicalUid) === '1'
                 );
+                let journalReadFailed = false;
                 if (!hasAccountDurableDirtyAnnos && canonicalUid && typeof readDurableCloudSyncJournal === 'function') {
                     try {
                         const jState = await readDurableCloudSyncJournal(canonicalUid, ctx);
-                        if (jState && jState.hasDirtyAnnotations) {
+                        if (!jState || !jState.ok) {
+                            journalReadFailed = true;
+                        } else if (jState.hasDirtyAnnotations) {
                             hasAccountDurableDirtyAnnos = true;
                         }
-                    } catch (jErr) {}
+                    } catch (jErr) {
+                        journalReadFailed = true;
+                    }
+                }
+                if (journalReadFailed) {
+                    dirtyAnnotationsForCloud = true;
+                    try {
+                        localStorage.setItem('pharmaWorkspaceDirty', '1');
+                        if (canonicalUid) {
+                            localStorage.setItem('pharmaWorkspaceDirty_' + canonicalUid, '1');
+                            localStorage.setItem('pharmaAnnotationsDirty_' + canonicalUid, '1');
+                        }
+                    } catch (e) {}
+                    if (typeof updateCloudNavUI === 'function' && currentCloudUser) {
+                        updateCloudNavUI('error');
+                    }
+                    return false;
                 }
                 const hasFlushedDirtyAnnos = Boolean(
                     hasAccountDurableDirtyAnnos || (triggerCloudImmediately && dirtyAnnotationsForCloud)
@@ -38694,14 +39016,31 @@ function togglePdfAudioPlayerBar(forceState) {
                     const annoSeqAtStart = typeof annotationMutationSeq !== 'undefined' ? annotationMutationSeq : 0;
 
                     const isPdfModalOpenNow = Boolean(document.getElementById('pdfViewerModalOverlay')?.classList.contains('active'));
-                    let durableSyncJournal = { hasDirtyAnnotations: false, hasDirtyWorkspace: false };
+                    let durableSyncJournal = { ok: true, available: true, hasDirtyAnnotations: false, hasDirtyWorkspace: false };
                     if (typeof readDurableCloudSyncJournal === 'function' && syncUserId) {
                         try {
                             durableSyncJournal = await readDurableCloudSyncJournal(syncUserId, opCtx);
                             if (!opCtx.isCurrent()) {
                                 return { status: 'aborted', reason: 'account_switched' };
                             }
-                        } catch (e) {}
+                        } catch (e) {
+                            durableSyncJournal = { ok: false, available: false, reason: 'journal_exception', error: e, hasDirtyAnnotations: false, hasDirtyWorkspace: false };
+                        }
+                        if (!durableSyncJournal || !durableSyncJournal.ok) {
+                            console.error('Aborting cloud sync: durable cloud sync journal could not be read safely (fail-closed):', durableSyncJournal?.reason || durableSyncJournal?.error);
+                            try {
+                                localStorage.setItem('pharmaWorkspaceDirty', '1');
+                                localStorage.setItem('pharmaWorkspaceDirty_' + syncUserId, '1');
+                            } catch (e) {}
+                            updateCloudNavUI('error');
+                            return {
+                                ok: false,
+                                status: 'error',
+                                reason: 'durable_journal_read_failed',
+                                journalReason: durableSyncJournal?.reason || 'journal_read_failed',
+                                error: String(durableSyncJournal?.error?.message || durableSyncJournal?.error || durableSyncJournal?.reason || 'DURABLE_JOURNAL_READ_ERROR')
+                            };
+                        }
                     }
                     const hasPersistentDirtyAnnos = Boolean(
                         (syncUserId && localStorage.getItem('pharmaAnnotationsDirty_' + syncUserId) === '1') ||
@@ -38881,20 +39220,31 @@ function togglePdfAudioPlayerBar(forceState) {
 
                         const currentAnnoSeqNow = typeof annotationMutationSeq !== 'undefined' ? annotationMutationSeq : 0;
                         const noNewAnnotationMutations = (currentAnnoSeqNow === annoSeqAtStart);
+                        let annoJournalClearedOk = true;
                         if (annotationsActuallyIncluded && noNewAnnotationMutations) {
-                            lastUploadedAnnotationsSignature = currentSig;
-                            if (typeof lastUploadedAnnotationVersion !== 'undefined') {
-                                lastUploadedAnnotationVersion = annoSeqAtStart;
-                            }
-                            dirtyAnnotationsForCloud = false;
-                            try {
-                                localStorage.removeItem('pharmaAnnotationsDirty_' + syncUserId);
-                            } catch (e) {}
                             if (typeof clearDurableAnnotationDirtyJournal === 'function') {
-                                await clearDurableAnnotationDirtyJournal(syncUserId, annoSeqAtStart, opCtx);
+                                const clearAnnoRes = await clearDurableAnnotationDirtyJournal(syncUserId, annoSeqAtStart, opCtx);
                                 if (!opCtx.isCurrent()) {
                                     return { status: 'aborted', reason: 'account_switched' };
                                 }
+                                if (!clearAnnoRes || !clearAnnoRes.ok || clearAnnoRes.keptBecauseNewer) {
+                                    annoJournalClearedOk = false;
+                                }
+                            }
+                            if (annoJournalClearedOk) {
+                                lastUploadedAnnotationsSignature = currentSig;
+                                if (typeof lastUploadedAnnotationVersion !== 'undefined') {
+                                    lastUploadedAnnotationVersion = annoSeqAtStart;
+                                }
+                                dirtyAnnotationsForCloud = false;
+                                try {
+                                    localStorage.removeItem('pharmaAnnotationsDirty_' + syncUserId);
+                                } catch (e) {}
+                            } else {
+                                dirtyAnnotationsForCloud = true;
+                                try {
+                                    localStorage.setItem('pharmaAnnotationsDirty_' + syncUserId, '1');
+                                } catch (e) {}
                             }
                         } else if (!noNewAnnotationMutations) {
                             dirtyAnnotationsForCloud = true;
@@ -38907,35 +39257,51 @@ function togglePdfAudioPlayerBar(forceState) {
                             localStorage.setItem('pharmaLastCloudSyncIso', nowIso);
                         } catch (e) {}
 
-                        let postPushJournal = { hasDirtyAnnotations: false, hasDirtyWorkspace: false };
+                        let postPushJournal = { ok: true, available: true, hasDirtyAnnotations: false, hasDirtyWorkspace: false };
                         if (typeof readDurableCloudSyncJournal === 'function' && syncUserId) {
                             try {
                                 postPushJournal = await readDurableCloudSyncJournal(syncUserId, opCtx);
-                            } catch (e) {}
+                            } catch (e) {
+                                postPushJournal = { ok: false, available: false, hasDirtyAnnotations: false, hasDirtyWorkspace: false };
+                            }
                         }
+                        const postPushJournalReadFailed = Boolean(!postPushJournal || !postPushJournal.ok);
 
-                        // Only clear pharmaWorkspaceDirty if no newer local modifications occurred while sync was in-flight
+                        // Only clear pharmaWorkspaceDirty if no newer local modifications occurred while sync was in-flight and durable journal read succeeded
                         const noNewWorkspaceMutations = (localWorkspaceMutationSeq === mutationSeqAtStart);
                         const hasRemainingUncommittedOps = typeof hasAnyUncommittedOperationsInMemory === 'function'
                             ? hasAnyUncommittedOperationsInMemory(syncUserId)
                             : false;
                         const hasRemainingDirtyAnnos = Boolean(
                             dirtyAnnotationsForCloud ||
+                            !annoJournalClearedOk ||
+                            postPushJournalReadFailed ||
                             localStorage.getItem('pharmaAnnotationsDirty_' + syncUserId) === '1' ||
                             postPushJournal.hasDirtyAnnotations
                         );
-                        const isCleanNow = Boolean(noNewWorkspaceMutations && !hasRemainingDirtyAnnos && !hasRemainingUncommittedOps && accountSnapshotPersisted);
+                        let isCleanNow = Boolean(
+                            !postPushJournalReadFailed &&
+                            noNewWorkspaceMutations &&
+                            !hasRemainingDirtyAnnos &&
+                            !hasRemainingUncommittedOps &&
+                            accountSnapshotPersisted
+                        );
+                        if (isCleanNow) {
+                            if (typeof clearDurableWorkspaceDirtyJournal === 'function') {
+                                const clearWsRes = await clearDurableWorkspaceDirtyJournal(syncUserId, mutationSeqAtStart, opCtx);
+                                if (!opCtx.isCurrent()) {
+                                    return { status: 'aborted', reason: 'account_switched' };
+                                }
+                                if (!clearWsRes || !clearWsRes.ok || clearWsRes.keptBecauseNewer) {
+                                    isCleanNow = false;
+                                }
+                            }
+                        }
                         if (isCleanNow) {
                             try {
                                 localStorage.removeItem('pharmaWorkspaceDirty');
                                 localStorage.removeItem('pharmaWorkspaceDirty_' + syncUserId);
                             } catch (e) {}
-                            if (typeof clearDurableWorkspaceDirtyJournal === 'function') {
-                                await clearDurableWorkspaceDirtyJournal(syncUserId, mutationSeqAtStart, opCtx);
-                                if (!opCtx.isCurrent()) {
-                                    return { status: 'aborted', reason: 'account_switched' };
-                                }
-                            }
                         } else {
                             try {
                                 localStorage.setItem('pharmaWorkspaceDirty', '1');
@@ -38970,7 +39336,7 @@ function togglePdfAudioPlayerBar(forceState) {
                             } catch (e) {}
                         }
 
-                        updateCloudNavUI(isCleanNow ? 'synced' : 'pending');
+                        updateCloudNavUI(postPushJournalReadFailed ? 'error' : (isCleanNow ? 'synced' : 'pending'));
                         const timeEl = document.getElementById('cloudLastSyncedTime');
                         if (timeEl) {
                             timeEl.innerText = `آخر مزامنة مؤكدة (v${currentCloudWorkspaceRevision}): ${new Date().toLocaleTimeString('ar-EG')}`;
@@ -39099,6 +39465,36 @@ function togglePdfAudioPlayerBar(forceState) {
                 });
             };
 
+            // Fail-closed check: verify durable cloud sync journal BEFORE mutating any local tombstones, annotations, or workspace state
+            let durableApplyJournal = { ok: true, available: true, hasDirtyAnnotations: false, hasDirtyWorkspace: false };
+            if (typeof readDurableCloudSyncJournal === 'function' && targetUid) {
+                try {
+                    durableApplyJournal = await readDurableCloudSyncJournal(targetUid, opCtx);
+                    if (!opCtx.isCurrent()) {
+                        return { ok: false, status: 'aborted', reason: 'account_switched' };
+                    }
+                } catch (e) {
+                    durableApplyJournal = { ok: false, available: false, reason: 'journal_exception', error: e, hasDirtyAnnotations: false, hasDirtyWorkspace: false };
+                }
+                if (!durableApplyJournal || !durableApplyJournal.ok) {
+                    console.error('applyCloudWorkspacePayload aborted: durable cloud sync journal could not be read safely (fail-closed):', durableApplyJournal?.reason || durableApplyJournal?.error);
+                    try {
+                        localStorage.setItem('pharmaWorkspaceDirty', '1');
+                        localStorage.setItem('pharmaWorkspaceDirty_' + targetUid, '1');
+                    } catch (e) {}
+                    if (typeof updateCloudNavUI === 'function') {
+                        updateCloudNavUI('error');
+                    }
+                    return {
+                        ok: false,
+                        status: 'error',
+                        reason: 'durable_journal_read_failed',
+                        journalReason: durableApplyJournal?.reason || 'journal_read_failed',
+                        error: String(durableApplyJournal?.error?.message || durableApplyJournal?.error || durableApplyJournal?.reason || 'Failed to read durable cloud sync journal')
+                    };
+                }
+            }
+
             // Merge incoming tombstones with local tombstones for this account
             const incomingTombstones = (cloudRow.schedule && cloudRow.schedule._tombstones) || {};
             const unifiedTombstones = _mergeTombstones(getLocalTombstones(targetUid), incomingTombstones, targetUid);
@@ -39113,16 +39509,6 @@ function togglePdfAudioPlayerBar(forceState) {
                     : [...existingRec, ...cloudRow.schedule._conflictRecovery];
                 try {
                     localStorage.setItem('pharmaConflictRecovery_' + targetUid, JSON.stringify(mergedRec));
-                } catch (e) {}
-            }
-
-            let durableApplyJournal = { hasDirtyAnnotations: false, hasDirtyWorkspace: false };
-            if (typeof readDurableCloudSyncJournal === 'function' && targetUid) {
-                try {
-                    durableApplyJournal = await readDurableCloudSyncJournal(targetUid, opCtx);
-                    if (!opCtx.isCurrent()) {
-                        return { ok: false, status: 'aborted', reason: 'account_switched' };
-                    }
                 } catch (e) {}
             }
 
@@ -40426,14 +40812,34 @@ function togglePdfAudioPlayerBar(forceState) {
                     return await pushWorkspaceToCloud(isManual, false, opCtx);
                 }
 
-                let durablePullJournal = { hasDirtyAnnotations: false, hasDirtyWorkspace: false };
+                let durablePullJournal = { ok: true, available: true, hasDirtyAnnotations: false, hasDirtyWorkspace: false };
                 if (typeof readDurableCloudSyncJournal === 'function' && opCtx.uid) {
                     try {
                         durablePullJournal = await readDurableCloudSyncJournal(opCtx.uid, opCtx);
                         if (!opCtx.isCurrent()) {
                             return { status: 'aborted', reason: 'account_switched' };
                         }
-                    } catch (e) {}
+                    } catch (e) {
+                        durablePullJournal = { ok: false, available: false, reason: 'journal_exception', error: e, hasDirtyAnnotations: false, hasDirtyWorkspace: false };
+                    }
+                    if (!durablePullJournal || !durablePullJournal.ok) {
+                        console.error('pullWorkspaceFromCloud aborted: durable cloud sync journal could not be read safely (fail-closed):', durablePullJournal?.reason || durablePullJournal?.error);
+                        try {
+                            localStorage.setItem('pharmaWorkspaceDirty', '1');
+                            localStorage.setItem('pharmaWorkspaceDirty_' + opCtx.uid, '1');
+                        } catch (e) {}
+                        updateCloudNavUI('error');
+                        if (isManual && typeof showToast === 'function') {
+                            showToast('تعذر قراءة سجل المزامنة المحلي بأمان. تم إيقاف السحب السحابي لحماية بياناتك المحلية ⚠️', 'error');
+                        }
+                        return {
+                            ok: false,
+                            status: 'error',
+                            reason: 'durable_journal_read_failed',
+                            journalReason: durablePullJournal?.reason || 'journal_read_failed',
+                            error: String(durablePullJournal?.error?.message || durablePullJournal?.error || durablePullJournal?.reason || 'Failed to read durable cloud sync journal')
+                        };
+                    }
                 }
                 if ((durablePullJournal.hasDirtyWorkspace || durablePullJournal.hasDirtyAnnotations) && typeof migrateAndHydrateWorkspaceFromIDB === 'function') {
                     try {
@@ -40973,14 +41379,31 @@ function togglePdfAudioPlayerBar(forceState) {
                 currentUserCanUploadMedia = Boolean(data && data.can_upload_media);
                 updateCloudMediaStatsUI();
 
-                let durableLoginJournal = { hasDirtyAnnotations: false, hasDirtyWorkspace: false };
+                let durableLoginJournal = { ok: true, available: true, hasDirtyAnnotations: false, hasDirtyWorkspace: false };
                 if (typeof readDurableCloudSyncJournal === 'function' && opCtx.uid) {
                     try {
                         durableLoginJournal = await readDurableCloudSyncJournal(opCtx.uid, opCtx);
                         if (!opCtx.isCurrent()) {
                             return { status: 'aborted', reason: 'account_switched' };
                         }
-                    } catch (e) {}
+                    } catch (e) {
+                        durableLoginJournal = { ok: false, available: false, reason: 'journal_exception', error: e, hasDirtyAnnotations: false, hasDirtyWorkspace: false };
+                    }
+                    if (!durableLoginJournal || !durableLoginJournal.ok) {
+                        console.error('syncWorkspaceOnLogin aborted: durable cloud sync journal could not be read safely (fail-closed):', durableLoginJournal?.reason || durableLoginJournal?.error);
+                        try {
+                            localStorage.setItem('pharmaWorkspaceDirty', '1');
+                            localStorage.setItem('pharmaWorkspaceDirty_' + opCtx.uid, '1');
+                        } catch (e) {}
+                        updateCloudNavUI('error');
+                        return {
+                            ok: false,
+                            status: 'error',
+                            reason: 'durable_journal_read_failed',
+                            journalReason: durableLoginJournal?.reason || 'journal_read_failed',
+                            error: String(durableLoginJournal?.error?.message || durableLoginJournal?.error || durableLoginJournal?.reason || 'Failed to read durable cloud sync journal')
+                        };
+                    }
                 }
                 const isSameOrNewDurableOwner = Boolean(
                     !isSwitchingDifferentUser && (

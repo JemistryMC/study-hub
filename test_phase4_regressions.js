@@ -85,6 +85,8 @@ class InMemoryIDBDatabase {
     this.failNextTransaction = false;
     this.failOnStore = null;
     this.failOnMode = null;
+    this.failWithError = false;
+    this.failWithAbort = false;
     this.getAllCount = 0;
     this.onGetAllHook = null;
   }
@@ -149,6 +151,25 @@ class InMemoryIDBDatabase {
             setImmediate(() => {
               pendingRequests--;
               if (aborted) return;
+              const shouldFailGet = txCreatedAfterFailFlag && db.failNextTransaction && db.failOnStore && storeNames.includes(db.failOnStore) && (!db.failOnMode || db.failOnMode === mode);
+              if (shouldFailGet) {
+                const useAbort = Boolean(db.failWithAbort);
+                db.failNextTransaction = false;
+                db.failOnStore = null;
+                db.failOnMode = null;
+                db.failWithAbort = false;
+                db.failWithError = false;
+                aborted = true;
+                req.error = new Error(useAbort ? 'Simulated IDB get transaction abort' : 'Simulated IDB get failure');
+                tx.error = req.error;
+                if (useAbort) {
+                  if (tx.onabort) tx.onabort(req.error);
+                } else {
+                  if (req.onerror) req.onerror(req.error);
+                  if (tx.onerror) tx.onerror(req.error);
+                }
+                return;
+              }
               req.result = targetMap.get(String(key));
               if (req.onsuccess) req.onsuccess();
               if (mode === 'readonly' && pendingRequests === 0 && tx.oncomplete) tx.oncomplete();
@@ -176,11 +197,18 @@ class InMemoryIDBDatabase {
       }
       const shouldFailWrite = txCreatedAfterFailFlag && db.failNextTransaction && (!db.failOnStore || storeNames.includes(db.failOnStore)) && (!db.failOnMode || db.failOnMode === mode);
       if (shouldFailWrite) {
+        const useError = Boolean(db.failWithError);
         db.failNextTransaction = false;
         db.failOnStore = null;
         db.failOnMode = null;
-        tx.error = new Error('Simulated IDB write transaction abort');
-        if (tx.onabort) tx.onabort();
+        db.failWithError = false;
+        db.failWithAbort = false;
+        tx.error = new Error(useError ? 'Simulated IDB write transaction error' : 'Simulated IDB write transaction abort');
+        if (useError) {
+          if (tx.onerror) tx.onerror(tx.error);
+        } else {
+          if (tx.onabort) tx.onabort(tx.error);
+        }
         return;
       }
       for (const op of stagedOps) {
@@ -253,7 +281,14 @@ const domElements = {
   singleInputField: { value: '', placeholder: '', focus: () => {}, select: () => {}, onkeydown: null },
   singleInputModalTitle: { innerHTML: '' },
   singleInputSaveBtn: { onclick: null },
-  singleInputModalOverlay: { classList: { add: () => {}, remove: () => {} } },
+  singleInputModalOverlay: {
+    _classes: new Set(),
+    classList: {
+      add(c) { domElements.singleInputModalOverlay._classes.add(c); },
+      remove(c) { domElements.singleInputModalOverlay._classes.delete(c); },
+      contains(c) { return domElements.singleInputModalOverlay._classes.has(c); }
+    }
+  },
   diModalInput1: { value: '', placeholder: '', focus: () => {}, onkeydown: null },
   diModalInput2: { value: '', placeholder: '', focus: () => {}, onkeydown: null },
   diModalTitle: { innerHTML: '' },
@@ -264,7 +299,24 @@ const domElements = {
   doubleInputLabel1: { innerText: '' },
   doubleInputLabel2: { innerText: '' },
   doubleInputSaveBtn: { onclick: null },
-  doubleInputModalOverlay: { classList: { add: () => {}, remove: () => {} } }
+  doubleInputModalOverlay: {
+    _classes: new Set(),
+    classList: {
+      add(c) { domElements.doubleInputModalOverlay._classes.add(c); },
+      remove(c) { domElements.doubleInputModalOverlay._classes.delete(c); },
+      contains(c) { return domElements.doubleInputModalOverlay._classes.has(c); }
+    }
+  },
+  confirmModalText: { innerText: '' },
+  confirmModalBtn: { onclick: null },
+  confirmModalOverlay: {
+    _classes: new Set(),
+    classList: {
+      add(c) { domElements.confirmModalOverlay._classes.add(c); },
+      remove(c) { domElements.confirmModalOverlay._classes.delete(c); },
+      contains(c) { return domElements.confirmModalOverlay._classes.has(c); }
+    }
+  }
 };
 const document = {
   getElementById: (id) => domElements[id] || null
@@ -340,6 +392,10 @@ function refreshSchedulePdfPreview() {}
 function renderWeeklyEvaluationsHub() {}
 function closeModal(id) {
   modalCloseHistory.push(String(id || ''));
+  const el = document.getElementById(id);
+  if (el && el.classList && typeof el.classList.remove === 'function') {
+    el.classList.remove('active');
+  }
 }
 function openConfirmModal(msg, onConfirm) {
   if (typeof onConfirm === 'function') return onConfirm();
@@ -7043,18 +7099,23 @@ async function main() {
     assert(
       modalSaveRes &&
       modalSaveRes.modalClosed === false &&
+      modalSaveRes.idbPersisted === false &&
       !prod.modalCloseHistory.includes('singleInputModalOverlay') &&
-      !prod.toastHistory.some(t => t.msg.includes('تم إنشاء الشابتر')) &&
+      !prod.toastHistory.some(t => t.msg.includes('تمت إضافة القسم')) &&
       lastDiag &&
       lastDiag.failedKey === 'pharmaSubjectsV4' &&
       lastDiag.errorName === 'QuotaExceededError' &&
       lastDiag.approxBytes > 0,
-      'P0-R17.1: When pharmaSubjectsV4 throws QuotaExceededError during Chapter creation, the modal stays open, no false success toast is shown, and exact storage failure diagnostics are recorded'
+      'P0-R17.1: When pharmaSubjectsV4 throws QuotaExceededError during Chapter creation, the modal stays open while IDB transaction is pending, idbPersisted is false until IDB completes, no false success toast is shown, and exact storage failure diagnostics are recorded'
     );
 
-    if (modalSaveRes && modalSaveRes.result && modalSaveRes.result.idbPersistPromise) {
-      await modalSaveRes.result.idbPersistPromise;
-    }
+    const resolvedModalSave = await modalSaveRes;
+    assert(
+      resolvedModalSave &&
+      resolvedModalSave.idbPersisted === true &&
+      resolvedModalSave.modalClosed === true,
+      'P0-R17.1b: Real UI saveSingleInputModal flow awaits the durable IndexedDB workspace_state transaction and acknowledges idbPersisted=true only after transaction completion'
+    );
 
     // Simulate page refresh where in-memory subjects are reset to the stale localStorage copy (only Chapter 1)
     prod.setRuntimeState({
@@ -7168,6 +7229,211 @@ async function main() {
       subRecordAfter.record.payload.length === 1 &&
       subRecordAfter.record.payload[0].name === 'Legacy LS Subject',
       'P0-R19: migrateAndHydrateWorkspaceFromIDB safely recovers an interrupted MIGRATING journal and commits legacy localStorage data into IndexedDB workspace_state'
+    );
+
+    // ------------------------------------------------------------------------
+    // P0-R21: Durable Journal Read Must Fail Closed Across All Cloud Callers
+    // (Missing journal store, transaction onerror, transaction onabort, combined
+    //  with failed localStorage dirty-marker writes and stale remote annotations:{})
+    // ------------------------------------------------------------------------
+    const uidP21 = 'b0210000-1111-4222-8333-444455550021';
+    prod.localStorage.clear();
+    idb.stores['annotations'].clear();
+    idb.stores['cloud_sync_journal'].clear();
+    idb.stores['workspace_state'].clear();
+    prod.setSessionUser(uidP21);
+    prod.localStorage.setItem('pharmaLastActiveCloudUid', uidP21);
+    prod.localStorage.setItem('pharmaLastActiveUserIdV1', uidP21);
+
+    // Save local annotation while localStorage dirty markers fail with QuotaExceededError
+    prod.setFailNextStorageKeyMatch('Dirty');
+    prod.saveAnnotationsToDB('lec_p21_failclosed', {
+      1: [{ id: 'stroke_p21_must_survive', tool: 'pen', color: '#10b981', points: [[1, 1], [5, 5]] }]
+    }, null);
+    const flushP21 = await prod.flushPendingAnnotationsSave(false);
+    prod.setFailNextStorageKeyMatch(null);
+    assert(
+      flushP21 === true &&
+      prod.localStorage.getItem('pharmaAnnotationsDirty_' + uidP21) === null &&
+      prod.localStorage.getItem('pharmaWorkspaceDirty_' + uidP21) === null,
+      'P0-R21.1: Local annotation committed to IndexedDB while localStorage dirty markers failed with QuotaExceededError'
+    );
+
+    // Reset transient in-memory flag as if page reloaded, and configure stale remote row with annotations: {}
+    prod.setRuntimeState({ dirtyAnnotationsForCloud: false, cloudNavUiState: 'logged_out' });
+    const staleRemoteRowP21 = {
+      user_id: uidP21,
+      user_email: uidP21 + '@test.edu',
+      can_upload_media: false,
+      subjects: [],
+      schedule: { version: 3, events: [], backlog: [], weeklyReports: [] },
+      logs: [],
+      annotations: {},
+      revision: 1
+    };
+    prod.setSupabaseClient({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({ data: staleRemoteRowP21, error: null })
+          })
+        })
+      }),
+      rpc: async () => ({ data: { status: 'success', revision: 2 }, error: null })
+    });
+
+    // Case A: Missing cloud_sync_journal store
+    const savedJournalMap = idb.stores['cloud_sync_journal'];
+    delete idb.stores['cloud_sync_journal'];
+    const loginMissingStoreRes = await prod.syncWorkspaceOnLogin();
+    const pullMissingStoreRes = await prod.pullWorkspaceFromCloud(false);
+    const applyMissingStoreRes = await prod.applyCloudWorkspacePayload(staleRemoteRowP21, false);
+    const pushMissingStoreRes = await prod.pushWorkspaceToCloud(false, false);
+    idb.stores['cloud_sync_journal'] = savedJournalMap;
+
+    const annosAfterMissingStore = await prod.getAnnotationsFromDB('lec_p21_failclosed', uidP21);
+    assert(
+      loginMissingStoreRes && loginMissingStoreRes.status === 'error' && loginMissingStoreRes.reason === 'durable_journal_read_failed' &&
+      pullMissingStoreRes && pullMissingStoreRes.status === 'error' && pullMissingStoreRes.reason === 'durable_journal_read_failed' &&
+      applyMissingStoreRes && applyMissingStoreRes.status === 'error' && applyMissingStoreRes.reason === 'durable_journal_read_failed' &&
+      pushMissingStoreRes && pushMissingStoreRes.status === 'error' && pushMissingStoreRes.reason === 'durable_journal_read_failed' &&
+      Array.isArray(annosAfterMissingStore[1]) && annosAfterMissingStore[1][0]?.id === 'stroke_p21_must_survive' &&
+      prod.cloudNavUiHistory[prod.cloudNavUiHistory.length - 1] === 'error',
+      'P0-R21.2: Missing cloud_sync_journal store fails closed across syncWorkspaceOnLogin, pullWorkspaceFromCloud, applyCloudWorkspacePayload, and pushWorkspaceToCloud, preserving local annotations against stale remote annotations:{}'
+    );
+
+    // Case B: cloud_sync_journal readonly transaction onerror
+    prod.localStorage.removeItem('pharmaWorkspaceDirty');
+    prod.localStorage.removeItem('pharmaWorkspaceDirty_' + uidP21);
+    idb.failNextTransaction = true;
+    idb.failOnStore = 'cloud_sync_journal';
+    idb.failOnMode = 'readonly';
+    idb.failWithError = true;
+    const loginTxErrorRes = await prod.syncWorkspaceOnLogin();
+
+    prod.localStorage.removeItem('pharmaWorkspaceDirty');
+    prod.localStorage.removeItem('pharmaWorkspaceDirty_' + uidP21);
+    idb.failNextTransaction = true;
+    idb.failOnStore = 'cloud_sync_journal';
+    idb.failOnMode = 'readonly';
+    idb.failWithError = true;
+    const pullTxErrorRes = await prod.pullWorkspaceFromCloud(false);
+
+    const annosAfterTxError = await prod.getAnnotationsFromDB('lec_p21_failclosed', uidP21);
+    assert(
+      loginTxErrorRes && loginTxErrorRes.status === 'error' && loginTxErrorRes.journalReason === 'journal_tx_error' &&
+      pullTxErrorRes && pullTxErrorRes.status === 'error' && pullTxErrorRes.journalReason === 'journal_tx_error' &&
+      Array.isArray(annosAfterTxError[1]) && annosAfterTxError[1][0]?.id === 'stroke_p21_must_survive' &&
+      prod.cloudNavUiHistory[prod.cloudNavUiHistory.length - 1] === 'error',
+      'P0-R21.3: cloud_sync_journal transaction onerror fails closed and preserves local annotations against stale remote annotations:{}'
+    );
+
+    // Case C: cloud_sync_journal readonly transaction onabort
+    prod.localStorage.removeItem('pharmaWorkspaceDirty');
+    prod.localStorage.removeItem('pharmaWorkspaceDirty_' + uidP21);
+    idb.failNextTransaction = true;
+    idb.failOnStore = 'cloud_sync_journal';
+    idb.failOnMode = 'readonly';
+    idb.failWithAbort = true;
+    const loginTxAbortRes = await prod.syncWorkspaceOnLogin();
+
+    prod.localStorage.removeItem('pharmaWorkspaceDirty');
+    prod.localStorage.removeItem('pharmaWorkspaceDirty_' + uidP21);
+    idb.failNextTransaction = true;
+    idb.failOnStore = 'cloud_sync_journal';
+    idb.failOnMode = 'readonly';
+    idb.failWithAbort = true;
+    const applyTxAbortRes = await prod.applyCloudWorkspacePayload(staleRemoteRowP21, false);
+
+    const annosAfterTxAbort = await prod.getAnnotationsFromDB('lec_p21_failclosed', uidP21);
+    assert(
+      loginTxAbortRes && loginTxAbortRes.status === 'error' && loginTxAbortRes.journalReason === 'journal_tx_aborted' &&
+      applyTxAbortRes && applyTxAbortRes.status === 'error' && applyTxAbortRes.journalReason === 'journal_tx_aborted' &&
+      Array.isArray(annosAfterTxAbort[1]) && annosAfterTxAbort[1][0]?.id === 'stroke_p21_must_survive' &&
+      prod.cloudNavUiHistory[prod.cloudNavUiHistory.length - 1] === 'error',
+      'P0-R21.4: cloud_sync_journal transaction onabort fails closed and preserves local annotations against stale remote annotations:{}'
+    );
+
+    // ------------------------------------------------------------------------
+    // P0-R22: Truthful IDB Persistence Acknowledgement & Duplicate Chapter
+    // Prevention on Retry When workspace_state IDB Transaction Fails/Aborts
+    // ------------------------------------------------------------------------
+    const uidP22 = 'b0220000-1111-4222-8333-444455550022';
+    prod.localStorage.clear();
+    idb.stores['workspace_state'].clear();
+    idb.stores['cloud_sync_journal'].clear();
+    prod.toastHistory.length = 0;
+    prod.modalCloseHistory.length = 0;
+    prod.setSessionUser(uidP22);
+    prod.localStorage.setItem('pharmaLastActiveCloudUid', uidP22);
+    prod.setRuntimeState({
+      activeSubjectId: 9600,
+      subjects: [{
+        id: 9600,
+        name: 'Biopharmaceutics',
+        groups: [{ id: 9610, name: 'Chapter 1: Absorption', lectures: [] }]
+      }]
+    });
+    const initSave22 = prod.saveSubjects();
+    await initSave22.idbPersistPromise;
+
+    // 1. Both localStorage AND workspace_state IDB transaction fail (onerror) during Chapter add
+    prod.setFailNextStorageKeyMatch('pharmaSubjectsV4');
+    idb.failNextTransaction = true;
+    idb.failOnStore = 'workspace_state';
+    idb.failOnMode = 'readwrite';
+    idb.failWithError = true;
+
+    prod.triggerAddGroup();
+    prod.domElements.siModalInput.value = 'Chapter 2: Distribution';
+    const failErrorSaveRes = await prod.saveSingleInputModal();
+    prod.setFailNextStorageKeyMatch(null);
+
+    assert(
+      failErrorSaveRes &&
+      failErrorSaveRes.ok === false &&
+      failErrorSaveRes.persisted === false &&
+      failErrorSaveRes.idbPersisted === false &&
+      failErrorSaveRes.modalClosed === false &&
+      prod.domElements.singleInputModalOverlay.classList.contains('active') === true &&
+      prod.getSubjects()[0].groups.length === 2,
+      'P0-R22.1: When both localStorage and workspace_state IDB transaction fail (onerror), idbPersisted is false, modal remains open, and in-memory Chapter is preserved'
+    );
+
+    // 2. Retry clicking Save while localStorage fails AND workspace_state IDB transaction aborts (onabort)
+    prod.setFailNextStorageKeyMatch('pharmaSubjectsV4');
+    idb.failNextTransaction = true;
+    idb.failOnStore = 'workspace_state';
+    idb.failOnMode = 'readwrite';
+    idb.failWithAbort = true;
+
+    const failAbortSaveRes = await prod.saveSingleInputModal();
+    prod.setFailNextStorageKeyMatch(null);
+
+    assert(
+      failAbortSaveRes &&
+      failAbortSaveRes.ok === false &&
+      failAbortSaveRes.persisted === false &&
+      failAbortSaveRes.idbPersisted === false &&
+      failAbortSaveRes.modalClosed === false &&
+      prod.domElements.singleInputModalOverlay.classList.contains('active') === true &&
+      prod.getSubjects()[0].groups.length === 2,
+      'P0-R22.2: On retry when workspace_state IDB transaction aborts (onabort), idbPersisted is false, modal stays open, and no duplicate Chapter is created in memory'
+    );
+
+    // 3. Third retry succeeds in IndexedDB (even with localStorage quota failure) -> modal closes and Chapter count is still 2 (no duplicates!)
+    prod.setFailNextStorageKeyMatch('pharmaSubjectsV4');
+    const retrySuccessRes = await prod.saveSingleInputModal();
+    prod.setFailNextStorageKeyMatch(null);
+
+    assert(
+      retrySuccessRes &&
+      retrySuccessRes.idbPersisted === true &&
+      retrySuccessRes.modalClosed === true &&
+      prod.domElements.singleInputModalOverlay.classList.contains('active') === false &&
+      prod.getSubjects()[0].groups.length === 2 &&
+      prod.getSubjects()[0].groups.filter(g => g.name === 'Chapter 2: Distribution').length === 1,
+      'P0-R22.3: When retry succeeds in IndexedDB workspace_state, idbPersisted becomes true, modal closes, and exactly 1 Chapter 2 exists without duplicates'
     );
   }
 

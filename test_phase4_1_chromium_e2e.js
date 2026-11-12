@@ -4770,64 +4770,291 @@ async function main() {
       'Test FF.7 (Gap 4): When localStorage dirty marker throws QuotaExceededError, IndexedDB cloud_sync_journal preserves the local annotation across reload and mocked Supabase login without displaying a false synced status'
     );
 
-    // Step 5 (Additional Critical P0): Chapter Add (`triggerAddGroup` + `saveSingleInputModal`) and
-    // Chapter Delete (`triggerDeleteGroup`) when `pharmaSubjectsV4` throws QuotaExceededError in real Chromium
-    const ffChapterBeforeReload = await tabFF.evaluate(async (uid) => {
-      // Allow RPC to succeed again after we test local refresh
+    // Step 4b (Finding 1): Missing cloud_sync_journal store, transaction onerror, and transaction onabort
+    // combined with failed localStorage dirty-marker writes and stale remote annotations: {} in real Chromium
+    const ffJournalFailClosed = await tabFF.evaluate(async (uid) => {
+      // Simulate lost localStorage dirty markers (as if QuotaExceededError prevented their write) and reset in-memory dirty flag
+      localStorage.removeItem('pharmaAnnotationsDirty_' + uid);
+      localStorage.removeItem('pharmaWorkspaceDirty_' + uid);
+      localStorage.removeItem('pharmaWorkspaceDirty');
+      dirtyAnnotationsForCloud = false;
+
+      const staleRemoteRow = {
+        user_id: uid,
+        user_email: 'ff.session.user@exo-test.edu',
+        can_upload_media: false,
+        subjects: [],
+        schedule: { version: 3, events: [], backlog: [], weeklyReports: [] },
+        logs: [],
+        annotations: {},
+        revision: 1
+      };
+
+      // 1. Missing cloud_sync_journal store
+      const origContains = dbInstance.objectStoreNames.contains.bind(dbInstance.objectStoreNames);
+      dbInstance.objectStoreNames.contains = function (name) {
+        if (String(name) === 'cloud_sync_journal') return false;
+        return origContains(name);
+      };
+      let missingStoreRes = null;
+      try {
+        const loginRes = await syncWorkspaceOnLogin();
+        const pullRes = await pullWorkspaceFromCloud(false);
+        const applyRes = await applyCloudWorkspacePayload(staleRemoteRow, false);
+        const pushRes = await pushWorkspaceToCloud(false, false);
+        const annosAfter = await getAnnotationsFromDB('7702', uid);
+        const navBtn = document.getElementById('cloudNavBtn');
+        missingStoreRes = {
+          allAbortedFailClosed: Boolean(
+            loginRes?.status === 'error' && loginRes?.reason === 'durable_journal_read_failed' &&
+            pullRes?.status === 'error' && pullRes?.reason === 'durable_journal_read_failed' &&
+            applyRes?.status === 'error' && applyRes?.reason === 'durable_journal_read_failed' &&
+            pushRes?.status === 'error' && pushRes?.reason === 'durable_journal_read_failed'
+          ),
+          survived: Boolean(annosAfter?.['1']?.some(s => s.id === 'ff_quota_survivor_stroke')),
+          uiError: Boolean(navBtn && navBtn.classList.contains('error'))
+        };
+      } finally {
+        dbInstance.objectStoreNames.contains = origContains;
+      }
+
+      // 2. cloud_sync_journal readonly transaction onerror
+      localStorage.removeItem('pharmaAnnotationsDirty_' + uid);
+      localStorage.removeItem('pharmaWorkspaceDirty_' + uid);
+      localStorage.removeItem('pharmaWorkspaceDirty');
+      dirtyAnnotationsForCloud = false;
+      const origTx = dbInstance.transaction.bind(dbInstance);
+      dbInstance.transaction = function (storeNames, mode) {
+        const names = Array.isArray(storeNames) ? storeNames : [storeNames];
+        if (names.includes('cloud_sync_journal') && (!mode || mode === 'readonly')) {
+          const fakeTx = {
+            mode: 'readonly',
+            error: new DOMException('Simulated journal readonly tx error', 'UnknownError'),
+            oncomplete: null,
+            onerror: null,
+            onabort: null,
+            objectStore() {
+              return {
+                get() {
+                  const req = { result: null, error: fakeTx.error, onsuccess: null, onerror: null };
+                  setTimeout(() => {
+                    if (typeof req.onerror === 'function') req.onerror({ target: req });
+                    if (typeof fakeTx.onerror === 'function') fakeTx.onerror({ target: fakeTx });
+                  }, 0);
+                  return req;
+                }
+              };
+            }
+          };
+          return fakeTx;
+        }
+        return origTx(storeNames, mode);
+      };
+      let txErrorRes = null;
+      try {
+        const loginRes = await syncWorkspaceOnLogin();
+        const pullRes = await pullWorkspaceFromCloud(false);
+        const annosAfter = await getAnnotationsFromDB('7702', uid);
+        const navBtn = document.getElementById('cloudNavBtn');
+        txErrorRes = {
+          abortedFailClosed: Boolean(
+            loginRes?.status === 'error' && loginRes?.journalReason === 'journal_tx_error' &&
+            pullRes?.status === 'error' && pullRes?.journalReason === 'journal_tx_error'
+          ),
+          survived: Boolean(annosAfter?.['1']?.some(s => s.id === 'ff_quota_survivor_stroke')),
+          uiError: Boolean(navBtn && navBtn.classList.contains('error'))
+        };
+      } finally {
+        dbInstance.transaction = origTx;
+      }
+
+      // 3. cloud_sync_journal readonly transaction onabort (using real IDBTransaction.abort())
+      localStorage.removeItem('pharmaAnnotationsDirty_' + uid);
+      localStorage.removeItem('pharmaWorkspaceDirty_' + uid);
+      localStorage.removeItem('pharmaWorkspaceDirty');
+      dirtyAnnotationsForCloud = false;
+      dbInstance.transaction = function (storeNames, mode) {
+        const tx = origTx(storeNames, mode);
+        const names = Array.isArray(storeNames) ? storeNames : [storeNames];
+        if (names.includes('cloud_sync_journal') && (!mode || mode === 'readonly')) {
+          setTimeout(() => {
+            try { tx.abort(); } catch (e) {}
+          }, 0);
+        }
+        return tx;
+      };
+      let txAbortRes = null;
+      try {
+        const loginRes = await syncWorkspaceOnLogin();
+        const applyRes = await applyCloudWorkspacePayload(staleRemoteRow, false);
+        const annosAfter = await getAnnotationsFromDB('7702', uid);
+        const navBtn = document.getElementById('cloudNavBtn');
+        txAbortRes = {
+          abortedFailClosed: Boolean(
+            loginRes?.status === 'error' && loginRes?.journalReason === 'journal_tx_aborted' &&
+            applyRes?.status === 'error' && applyRes?.journalReason === 'journal_tx_aborted'
+          ),
+          survived: Boolean(annosAfter?.['1']?.some(s => s.id === 'ff_quota_survivor_stroke')),
+          uiError: Boolean(navBtn && navBtn.classList.contains('error'))
+        };
+      } finally {
+        dbInstance.transaction = origTx;
+      }
+
+      return { missingStoreRes, txErrorRes, txAbortRes };
+    }, uidFF);
+
+    assert(
+      ffJournalFailClosed.missingStoreRes.allAbortedFailClosed === true &&
+      ffJournalFailClosed.missingStoreRes.survived === true &&
+      ffJournalFailClosed.missingStoreRes.uiError === true,
+      'Test FF.7b (Finding 1): Missing cloud_sync_journal store fails closed across syncWorkspaceOnLogin, pullWorkspaceFromCloud, applyCloudWorkspacePayload, and pushWorkspaceToCloud in real Chromium'
+    );
+    assert(
+      ffJournalFailClosed.txErrorRes.abortedFailClosed === true &&
+      ffJournalFailClosed.txErrorRes.survived === true &&
+      ffJournalFailClosed.txErrorRes.uiError === true,
+      'Test FF.7c (Finding 1): cloud_sync_journal transaction onerror fails closed and preserves local annotations against stale remote annotations:{} in real Chromium'
+    );
+    assert(
+      ffJournalFailClosed.txAbortRes.abortedFailClosed === true &&
+      ffJournalFailClosed.txAbortRes.survived === true &&
+      ffJournalFailClosed.txAbortRes.uiError === true,
+      'Test FF.7d (Finding 1): cloud_sync_journal transaction onabort fails closed and preserves local annotations against stale remote annotations:{} in real Chromium'
+    );
+
+    // Step 5 (Finding 2): Inject workspace_state IDB transaction failure (onerror) and abort (onabort)
+    // under pharmaSubjectsV4 QuotaExceededError, verify truthful idbPersisted=false, open modal retention,
+    // no duplicate Chapter on retry, and real UI click + reload without manually awaiting idbPersistPromise
+    const ffChapterErrorAndAbort = await tabFF.evaluate(async (uid) => {
       localStorage.setItem('__exo_mock_rpc_mode', 'success');
       await pushWorkspaceToCloud(false, false);
 
       activeSubjectId = 8801;
-      const origSetItem = Storage.prototype.setItem;
+      window.__origSetItemFF = Storage.prototype.setItem;
+      window.__origDbTxFF = dbInstance.transaction.bind(dbInstance);
+      window.__wsTxFaultMode = 'onerror'; // 'onerror' -> 'onabort' -> 'none'
+
       Storage.prototype.setItem = function (k, v) {
         if (String(k) === 'pharmaSubjectsV4') {
           throw new DOMException('QuotaExceededError: Simulated pharmaSubjectsV4 quota failure', 'QuotaExceededError');
         }
-        return origSetItem.call(this, k, v);
+        return window.__origSetItemFF.call(this, k, v);
       };
-      let modalSaveRes = null;
-      let diagAfterAdd = null;
-      let modalStillActiveOnFailure = false;
-      let delGroupRes = null;
-      try {
-        triggerAddGroup();
-        const inputEl = document.getElementById('siModalInput');
-        if (inputEl) inputEl.value = 'Durable IDB Chapter 99';
-        modalSaveRes = saveSingleInputModal();
-        diagAfterAdd = getLastStorageFailureDiagnostics();
-        const overlay = document.getElementById('singleInputModalOverlay');
-        modalStillActiveOnFailure = Boolean(overlay && overlay.classList.contains('active'));
-        if (modalSaveRes && modalSaveRes.result && modalSaveRes.result.idbPersistPromise) {
-          await modalSaveRes.result.idbPersistPromise;
+
+      dbInstance.transaction = function (storeNames, mode) {
+        const names = Array.isArray(storeNames) ? storeNames : [storeNames];
+        if (names.includes('workspace_state') && mode === 'readwrite') {
+          if (window.__wsTxFaultMode === 'onerror') {
+            const fakeTx = {
+              mode: 'readwrite',
+              error: new DOMException('Simulated workspace_state write error', 'UnknownError'),
+              oncomplete: null,
+              onerror: null,
+              onabort: null,
+              objectStore() {
+                return {
+                  put() {
+                    const req = { result: null, error: fakeTx.error, onsuccess: null, onerror: null };
+                    setTimeout(() => {
+                      if (typeof req.onerror === 'function') req.onerror({ target: req });
+                      if (typeof fakeTx.onerror === 'function') fakeTx.onerror({ target: fakeTx });
+                    }, 0);
+                    return req;
+                  }
+                };
+              }
+            };
+            return fakeTx;
+          }
+          if (window.__wsTxFaultMode === 'onabort') {
+            const realTx = window.__origDbTxFF(storeNames, mode);
+            setTimeout(() => {
+              try { realTx.abort(); } catch (e) {}
+            }, 0);
+            return realTx;
+          }
         }
-        // Also delete the older chapter 8810 while pharmaSubjectsV4 throws QuotaExceededError
-        triggerDeleteGroup(8810);
-        const confirmBtn = document.getElementById('confirmModalBtn');
-        if (confirmBtn && typeof confirmBtn.onclick === 'function') {
-          delGroupRes = await confirmBtn.onclick();
-        }
-      } finally {
-        Storage.prototype.setItem = origSetItem;
-      }
+        return window.__origDbTxFF(storeNames, mode);
+      };
+
+      // Open Add Chapter dialog via production triggerAddGroup()
+      triggerAddGroup();
+      const inputEl = document.getElementById('siModalInput');
+      if (inputEl) inputEl.value = 'Durable IDB Chapter 99';
+
+      // Attempt 1: pharmaSubjectsV4 throws QuotaExceededError AND workspace_state IDB tx fires onerror
+      const attempt1Res = await saveSingleInputModal();
+      const diagAfterAttempt1 = getLastStorageFailureDiagnostics();
+      const overlayAfterAttempt1 = document.getElementById('singleInputModalOverlay')?.classList.contains('active');
+      const countAfterAttempt1 = (subjects.find(s => Number(s.id) === 8801)?.groups || []).filter(g => g.name === 'Durable IDB Chapter 99').length;
+
+      // Attempt 2 (Retry on still-open modal): pharmaSubjectsV4 throws QuotaExceededError AND workspace_state IDB tx aborts (onabort)
+      window.__wsTxFaultMode = 'onabort';
+      const attempt2Res = await saveSingleInputModal();
+      const overlayAfterAttempt2 = document.getElementById('singleInputModalOverlay')?.classList.contains('active');
+      const countAfterAttempt2 = (subjects.find(s => Number(s.id) === 8801)?.groups || []).filter(g => g.name === 'Durable IDB Chapter 99').length;
+
+      // Prepare Attempt 3: allow workspace_state IDB transaction to succeed while pharmaSubjectsV4 STILL throws QuotaExceededError
+      window.__wsTxFaultMode = 'none';
+
       return {
-        modalClosed: modalSaveRes?.modalClosed,
-        modalStillActiveOnFailure,
-        failedKey: diagAfterAdd?.failedKey || null,
-        errorName: diagAfterAdd?.errorName || null,
-        delIdbPersisted: Boolean(delGroupRes && delGroupRes.idbPersisted === true)
+        attempt1IdbPersisted: attempt1Res?.idbPersisted,
+        attempt1ModalClosed: attempt1Res?.modalClosed,
+        overlayAfterAttempt1: Boolean(overlayAfterAttempt1),
+        countAfterAttempt1,
+        failedKey: diagAfterAttempt1?.failedKey || null,
+        errorName: diagAfterAttempt1?.errorName || null,
+        attempt2IdbPersisted: attempt2Res?.idbPersisted,
+        attempt2ModalClosed: attempt2Res?.modalClosed,
+        overlayAfterAttempt2: Boolean(overlayAfterAttempt2),
+        countAfterAttempt2
       };
     }, uidFF);
 
     assert(
-      ffChapterBeforeReload.modalClosed === false &&
-      ffChapterBeforeReload.modalStillActiveOnFailure === true &&
-      ffChapterBeforeReload.failedKey === 'pharmaSubjectsV4' &&
-      ffChapterBeforeReload.errorName === 'QuotaExceededError' &&
-      ffChapterBeforeReload.delIdbPersisted === true,
-      'Test FF.8 (Critical P0): In real Chromium, Chapter add/delete under pharmaSubjectsV4 QuotaExceededError keeps modal open on failure, records exact diagnostics, and persists to IndexedDB workspace_state'
+      ffChapterErrorAndAbort.attempt1IdbPersisted === false &&
+      ffChapterErrorAndAbort.attempt1ModalClosed === false &&
+      ffChapterErrorAndAbort.overlayAfterAttempt1 === true &&
+      ffChapterErrorAndAbort.countAfterAttempt1 === 1 &&
+      ffChapterErrorAndAbort.failedKey === 'pharmaSubjectsV4' &&
+      ffChapterErrorAndAbort.errorName === 'QuotaExceededError',
+      'Test FF.8 (Finding 2): When pharmaSubjectsV4 fails and workspace_state IDB transaction fires onerror, idbPersisted is false, modal remains open, and in-memory Chapter is preserved'
     );
 
-    // Reload page in Chromium and verify added Chapter 99 is present and deleted Chapter 8810 does NOT reappear!
+    assert(
+      ffChapterErrorAndAbort.attempt2IdbPersisted === false &&
+      ffChapterErrorAndAbort.attempt2ModalClosed === false &&
+      ffChapterErrorAndAbort.overlayAfterAttempt2 === true &&
+      ffChapterErrorAndAbort.countAfterAttempt2 === 1,
+      'Test FF.8b (Finding 2): When retry aborts in workspace_state IDB transaction (onabort), idbPersisted is false, modal stays open, and duplicate Chapter creation is prevented'
+    );
+
+    // Attempt 3: Actual Playwright UI click on #siModalSaveBtn while pharmaSubjectsV4 still fails,
+    // waiting ONLY for the modal UI to close (without manually awaiting idbPersistPromise inside the test!),
+    // then deleting Chapter 8810 via actual UI click on #confirmModalBtn, and reloading immediately!
+    await tabFF.click('#siModalSaveBtn');
+    await tabFF.waitForFunction(() => {
+      const el = document.getElementById('singleInputModalOverlay');
+      return Boolean(el && !el.classList.contains('active'));
+    });
+
+    await tabFF.evaluate(() => {
+      triggerDeleteGroup(8810);
+    });
+    await tabFF.click('#confirmModalBtn');
+    await tabFF.waitForFunction(() => {
+      const el = document.getElementById('confirmModalOverlay');
+      return Boolean(el && !el.classList.contains('active'));
+    });
+
+    // Restore Storage.prototype.setItem before reload
+    await tabFF.evaluate(() => {
+      if (window.__origSetItemFF) Storage.prototype.setItem = window.__origSetItemFF;
+      if (window.__origDbTxFF && dbInstance) dbInstance.transaction = window.__origDbTxFF;
+    });
+
+    // Reload page in Chromium and verify added Chapter 99 is present (exactly once!) and deleted Chapter 8810 does NOT reappear!
     await tabFF.reload({ waitUntil: 'domcontentloaded' });
     await tabFF.waitForFunction(() => Boolean(
       window.__exoSupabaseStartupState &&
@@ -4838,18 +5065,21 @@ async function main() {
     const ffChapterAfterReload = await tabFF.evaluate(async () => {
       const sub8801 = subjects.find(s => s && Number(s.id) === 8801);
       const groupNames = (sub8801?.groups || []).map(g => g.name);
+      const chapter99Count = groupNames.filter(n => n === 'Durable IDB Chapter 99').length;
       const hasOldDeletedGroup = (sub8801?.groups || []).some(g => Number(g.id) === 8810);
       return {
         groupNames,
-        hasNewChapter99: groupNames.includes('Durable IDB Chapter 99'),
+        hasNewChapter99: chapter99Count === 1,
+        chapter99Count,
         hasOldDeletedGroup
       };
     });
 
     assert(
       ffChapterAfterReload.hasNewChapter99 === true &&
+      ffChapterAfterReload.chapter99Count === 1 &&
       ffChapterAfterReload.hasOldDeletedGroup === false,
-      'Test FF.9 (Critical P0): After real Chromium reload and Supabase login sync, the newly added Chapter survives and the deleted Chapter does not reappear even though pharmaSubjectsV4 localStorage writes failed'
+      'Test FF.9 (Finding 2): After actual UI click on #siModalSaveBtn and #confirmModalBtn followed by immediate Chromium reload (without manually awaiting idbPersistPromise), Chapter 99 survives without duplicates and deleted Chapter 8810 does not reappear'
     );
 
     await tabFF.close();
