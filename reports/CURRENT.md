@@ -3,9 +3,11 @@
 **آخر تحديث:** 2026-11-12  
 **المستودع:** `JemistryMC/study-hub`  
 **الفرع النشط:** `main`  
-**آخر HEAD معتمد للتحقق (Latest Verified HEAD):** `94259b543a021d4f06fdc0a9aa44d3f346d63037`  
+**آخر HEAD توثيقي على GitHub (Documentation HEAD):** `b66d72e359e7d2e8531f88f797d4d296d41206a3`  
+**آخر HEAD مصدري معتمد في CI (Latest CI-Verified Source HEAD):** `94259b543a021d4f06fdc0a9aa44d3f346d63037` (CI Run #43 — `43241683581`)  
 **نقاط الأساس التاريخية السابقة (Previous Baseline Checkpoints):** `0841b76d6c07ce756a44a874e8e574253ed2aeb3` ← `2433bf6d4a128acf6736f3c099496d551947cc7e` ← `9362085a32c173766800e416bd47d17301c837a6` ← `ecedff6069c5d1691812b3427f83e159cc6eed16`  
-**الحالة:** `CI VERIFIED (PENDING OWNER APPROVAL — NOT APPROVED)`
+**المرحلة الفرعية النشطة:** `EXO — M6 P0 DATA INTEGRITY REMEDIATION — PHASE A`  
+**الحالة:** `IMPLEMENTED — LOCAL TESTS ONLY` (تعديلات Phase A P0 منفذة ومختبرة محلياً بنسبة 100% فوق خط الأساس `94259b5` / `b66d72e`؛ بانتظار مراجعة المالك ومزامنة GitHub وتشغيل CI، وليست `CI VERIFIED` أو `APPROVED` بعد)
 
 هذا الملف هو المرجع الوحيد للحالة الحالية والمرحلة النشطة. إذا خالفه تقرير تاريخي أو تعليمات مرحلة قديمة، يُتبع هذا الملف ومستند المرحلة النشطة.
 
@@ -715,7 +717,51 @@ SELECT json_build_object(
      ALL TEST DD CHECKS PASSED (100%).
      ```
 
-### 17.4 حالة المرحلة والقرار النهائي (Phase Status & Governance Gate)
-- **الحالة الهندسية الحالية:** `CI VERIFIED` (بموجب نجاح CI Run #43 برقم `43241683581` على Commit `94259b543a021d4f06fdc0a9aa44d3f346d63037` بنتيجة `628/628`، واجتياز `npm run test:dd` محلياً بنتيجة `3/3` وExit Code `0`).
+### 17.4 حالة المرحلة والقرار النهائي عند Commit `94259b5` (Phase Status & Governance Gate)
+- **الحالة الهندسية لخط الأساس `94259b5`:** `CI VERIFIED` (بموجب نجاح CI Run #43 برقم `43241683581` على Commit `94259b543a021d4f06fdc0a9aa44d3f346d63037` بنتيجة `628/628`، واجتياز `npm run test:dd` محلياً بنتيجة `3/3` وExit Code `0`).
 - **حالة الاعتماد الرسمي (`APPROVED`):** **غير معلنة من قِبل Gemini (Pending Owner Decision)**؛ وفقاً للبند 10 من عقد العمل الهندسي الدائم `GEMINI.md`، فإن `CI VERIFIED` لا يساوي `APPROVED` تلقائياً، وقرار إعلان `APPROVED` النهائي لمرحلة M6 حصري للمالك بعد مراجعته المستقلة.
+
+---
+
+## 18. معالجة سلامة البيانات واستمرارية الحفظ (M6 P0 Data Integrity Remediation — Phase A)
+
+بناءً على التدقيق الجنائي المعتمد لأعطال حفظ البيانات (`P0`) والأداء (`P1`)، وبموجب تفويض المالك لتنفيذ **Phase A: P0 Data Safety and Persistence only** فوق خط الأساس المصدري `94259b543a021d4f06fdc0a9aa44d3f346d63037` (وآخر HEAD توثيقي `b66d72e359e7d2e8531f88f797d4d296d41206a3`)، تم تنفيذ وإغلاق البنود الستة الحرجة (`P0-1` إلى `P0-6`) دون خلط أي تعديلات أداء من Phase B:
+
+### 18.1 ربط الأسباب الجذرية بالإصلاحات الهندسية المنفذة (Root-Cause → Fix Mapping)
+
+| المعرف | المشكلة والسبب الجذري (Root Cause) | الإصلاح الهندسي المنفذ (Implemented Fix) |
+| :--- | :--- | :--- |
+| **P0-1** | **فقدان علامة الاتساخ الدائمة للحواشي بعد التفريغ الخامل (`350ms`):** كانت `flushPendingAnnotationsSave(false)` و`saveAnnotationsToDB()` تكتبان الحواشي في IndexedDB وتحدثان المتغير العابر في الذاكرة `dirtyAnnotationsForCloud = true` دون وضع علامة اتساخ دائمة في `localStorage`. وعند إعادة تحميل الصفحة قبل انقضاء مؤقت الكلاود (`3500ms`)، يُعاد تعيين `dirtyAnnotationsForCloud = false` وتكون `pharmaWorkspaceDirty_<uid>` غير مفعلة، فيقوم `syncWorkspaceOnLogin()` بسحب النسخة السحابية القديمة والكتابة فوق حواشي IndexedDB الحديثة. كما أن إغلاق الـ PDF (`flushPendingAnnotationsSave(true)`) كان يعود مبكراً دون رفع الحواشي إذا كانت `pendingAnnoSaveMap` قد أفرغت للتو بواسطة المؤقت الخامل (`350ms`). | 1. إنشاء وتحديث علامات اتساخ دائمة مرتبطة بالحساب (`pharmaAnnotationsDirty_<uid> = '1'`, `pharmaWorkspaceDirty_<uid> = '1'`, `pharmaWorkspaceDirty = '1'`) عبر `markUserWorkspaceDirtyState()` فور نجاح أي كتابة متينة للحواشي في `saveAnnotationsToDB()` و`flushPendingAnnotationsSave()`.<br>2. تضمين `pharmaAnnotationsDirty_<uid> === '1'` في كافة قرارات المصالحة عند تسجيل الدخول أو إعادة التحميل (`syncWorkspaceOnLogin` و`pullWorkspaceFromCloud`).<br>3. تحديث `flushPendingAnnotationsSave(true)` بحيث إذا كانت `pendingAnnoSaveMap` فارغة ولكن توجد حواشٍ مفرغة غير مرفوعة (`hasFlushedDirtyAnnos`)، يتم استدعاء `pushWorkspaceToCloud(false, true, ctx)` فوراً بدلاً من التخطي الصامت.<br>4. عدم مسح `pharmaAnnotationsDirty_<uid>` إلا بعد تأكيد الخادم السحابي لنجاح عملية الرفع (`status === 'success'`) وعدم حدوث تعديل أحدث أثناء الطلب.<br>5. في `applyCloudWorkspacePayload()`، دمج الحواشي المحلية غير المرفوعة (`pharmaAnnotationsDirty_<uid> === '1'`) سببياً عبر `mergeAnnotationsMapsWithCausalEngine(existingAnnos, incomingAnnos, ...)` مع جعل الحالة المحلية هي القاعدة الأساسية حتى لا تطمس النسخة السحابية القديمة الضربات الخطية أو الملاحظات النصية أو الدبابيس الصوتية أو أوراق الملاحظات الإضافية المتعددة (`Extra Note Sheets`). |
+| **P0-2 & P0-4** | **تلوث هوية الحساب وعزل الجلسة المحلية البديلة عن حساب Supabase:** عند استخدام جلسة محلية بديلة (`pharmaActiveAccountSessionV1`) كانت `currentCloudUser` تصبح `null` عند بداية إعادة التحميل فتعود `getCanonicalUserId()` إلى `'local'` مؤقتاً. وفي المقابل، إذا بقيت `pharmaActiveAccountSessionV1` قديمة من جلسة محلية سابقة بعد تسجيل دخول حساب Supabase وانتهاء جلسة Supabase أو فشل استعادتها مؤقتاً، كانت الجلسة المحلية القديمة تختطف الهوية أو تُمسح بيانات الحساب المحلي السابق بصمت عند الانتقال إلى حساب Supabase. | 1. تحديث `getCanonicalUserId()` و`initSupabaseCloudEngine()` لاستعادة جلسة الحساب المحلي البديل (`pharmaActiveAccountSessionV1`) بأمان عندما لا تكون هناك جلسة Supabase نشطة متعارضة (`!lastCloudUid || lastCloudUid === 'local' || lastCloudUid === activeSession.id`).<br>2. منع أي `pharmaActiveAccountSessionV1` قديمة من اختطاف `getCanonicalUserId()` عندما يكون `pharmaLastActiveCloudUid` مسجلاً لحساب Supabase مختلف.<br>3. في `handleAuthSessionChange()`، حفظ نسخة كاملة من مساحة عمل الحساب المحلي السابق في `pharmaAccountWorkspace_<prevUid>` وأرشفة مؤشر جلسته في `pharmaPreviousLocalAccountSessionV1` عند الانتقال إلى حساب Supabase مختلف، مع عدم حذف `pharmaActiveAccountSessionV1` إذا كانت تخص نفس الحساب الوارد (`parsedPrevLocal.id === nextUid`). |
+| **P0-3** | **التعامل مع أخطاء قراءة Supabase (`SELECT res.error`) على أنها مساحة عمل فارغة أو الرجوع للقطة قديمة:** في `pullWorkspaceFromCloud()` و`syncWorkspaceOnLogin()`، لم يكن يتم فحص `res.error` بشكل مستقل عن `!remoteRow`، مما كان يسمح عند فشل الشبكة أو انتهاء صلاحية الرمز الأمني بالوقوع في مسار اللقطة القديمة أو تصفير المراجعة المتوقعة (`currentCloudWorkspaceRevision = 0`). | فحص `if (res && res.error)` صراحةً وبشكل مغلق عند الفشل (`Fail-Closed`) في كلٍ من `pullWorkspaceFromCloud()` و`syncWorkspaceOnLogin()`:<br>- عدم اعتبار الاستعلام الفاشل مساحة عمل فارغة.<br>- عدم التراجع إلى لقطة حساب قديمة (`pharmaAccountWorkspace_<uid>`) وكأنها بيانات مؤكدة حديثة.<br>- عدم تصفير `currentCloudWorkspaceRevision` إلى `0` (الحفاظ على المراجعة المحفوظة).<br>- الحفاظ الكامل على البيانات المحلية وعلامات الاتساخ، وتحديث واجهة المزامنة إلى `'error'`، وإرجاع `{ ok: false, status: 'error', reason: 'remote_read_failed', error: res.error, diagnostic }`. |
+| **P0-5** | **غياب الحماية من امتلاء مساحة التخزين المحلية (`QuotaExceededError`):** كانت الدوال `saveSubjects()` و`saveScheduleData()` و`saveLogs()` تستدعي `localStorage.setItem` دون تغليف `try/catch`، مما يعرض التطبيق لانهيار التنفيذ أو الإبلاغ الكاذب عن نجاح الحفظ عند امتلاء حصة المتصفح. | تغليف عمليات `localStorage.setItem` في `saveSubjects()` و`saveScheduleData()` و`saveLogs()` بـ `try/catch` صارم:<br>- التقاط `QuotaExceededError` وأي أخطاء تخزين أخرى.<br>- إرجاع `{ ok: false, persisted: false, reason: 'storage_quota_exceeded', error }` دون الإبلاغ عن نجاح الحفظ.<br>- الحفاظ على التعديلات في الذاكرة (`subjects`, `scheduleEvents`, `logs`) وتعيين حالة المزامنة إلى `'error'` دون حذف أي بيانات أو حواشٍ أو نسخ احتياطية للمستخدم.<br>- إظهار تنبيه عربي واضح وقابل للتنفيذ للمستخدم عبر `showToast`. |
+| **P0-6** | **إغفال ترتيب المحاضرات داخل الفصل/المجموعة في البصمة السببية (`_causalDigest`):** كانت `computeEntityContentDigest('group', group)` تحسب بصمة اسم المجموعة ولونها فقط دون ترتيب معرفات المحاضرات، وكانت `moveLectureInGroup()` و`autoSortLecturesInGroup()` و`handleLectureDrop()` تعيد ترتيب المصفوفة دون ختم تغيير سببي على المجموعة، فيضيع الترتيب الجديد عند الدمج السببي. | 1. تضمين `_lectureOrder: group.lectures.map(l => String(l.id))` في `computeEntityContentDigest('group', group)`.<br>2. ختم تغيير سببي جديد (`stampEntityCausalMutation`) وتحديث `_causalDigest` للمجموعة والمادة الأب في `moveLectureInGroup()` و`autoSortLecturesInGroup()` و`handleLectureDrop()`.<br>3. تحديث `mergeSubjectsHierarchyWithCausalEngine()` لترتيب المحاضرات المدمجة وفق ترتيب المجموعة الفائزة سببياً (`winningGroup.lectures`). |
+| **Cloud UI** | **دقة حالات مؤشر المزامنة السحابية (`updateCloudNavUI`):** الحاجة لتمثيل صادق لكافة حالات المزامنة وعدم إظهار `'synced'` بعد أي خطأ في `SELECT` أو `RPC` أو التخزين. | تحديث `updateCloudNavUI(state)` لدعم الحالات السبع بدقة (`'logged_out'`, `'local_only'`, `'pending'`, `'syncing'`, `'synced'`, `'offline'`, `'error'`)، وضمان عدم إظهار `'synced'` أو مسح علامات الاتساخ إلا بعد تأكيد الخادم السحابي للمراجعة والحمولة المتوقعة. |
+
+### 18.2 قائمة الملفات المعدلة في Phase A (Modified Files)
+1. `index.html` — تطبيق إصلاحات `P0-1` إلى `P0-6` ودقة حالات واجهة المزامنة السحابية فقط (دون أي تعديل من Phase B).
+2. `test_phase4_regressions.js` — إضافة جناح اختبارات انحدار Phase A P0 (`P0-R1` إلى `P0-R10` بإجمالي **34 فحصاً جديداً**، ليصبح المجموع **266/266**).
+3. `test_phase4_1_chromium_e2e.js` — إضافة سيناريو المتصفح الحقيقي `Test FF` (`Test FF.1` إلى `Test FF.5` بإجمالي **5 فحوصات E2E جديدة**، ليصبح المجموع **116/116**).
+4. `reports/CURRENT.md` — توثيق تنفيذ Phase A ونتائج الاختبارات المحلية الفعلية.
+
+### 18.3 نتائج الاختبارات المحلية الفعلية لـ Phase A (Actual Local Test Execution Summary)
+
+| أمر الاختبار المنفذ | البيئة ونطاق الفحص | النتيجة الفعلية | كود الخروج |
+| :--- | :--- | :--- | :--- |
+| `npm run lint` | فحص الصياغة الاستاتيكي لملفات الخادم والبناء والاختبارات | **PASSED (0 Errors)** | `0` |
+| `npm run build` | بناء وتجهيز حزمة الإنتاج (`dist/`) | **PASSED** | `0` |
+| `npm run test:static` (`node run_verification_tests.js`) | فحوصات التشفير PBKDF2 والأمان الثابت و`sw.js` | **54/54 PASSED (100%)** | `0` |
+| `node run_comprehensive_verification.js` | التحقق الشامل من المنطق الأكاديمي | **42/42 PASSED (100%)** | `0` |
+| `node test_phase3_cross_account_isolation.js` | عزل الحسابات وسلامة السجلات | **52/52 PASSED (100%)** | `0` |
+| `node test_phase4_regressions.js` | اختبارات الانحدار الشاملة + فحوصات Phase A (`P0-R1`..`P0-R10`) | **266/266 PASSED (100%)** | `0` |
+| `npm run test:pglite` (`node test_phase4_2_postgres_integration.js`) | توافق PostgreSQL المدمج وRLS والـ OCC | **41/41 PASSED (100%)** | `0` |
+| `npm run test:e2e` (`node test_phase4_1_chromium_e2e.js`) | متصفح Chromium الحقيقي (السيناريوهات A–FF شاملة `Test Z` و`Test FF`) | **116/116 PASSED (100%)** | `0` |
+| `npm run test:pg16` (`node test_phase4_2_1_pg16_concurrency.js`) | خادم PostgreSQL 16 الحقيقي متعدد الاتصالات | **NOT RUN LOCALLY** (`ECONNREFUSED 127.0.0.1:5432` — يتطلب خادم PostgreSQL 16 المخصص في GitHub Actions CI؛ لم يتم إجراء أي تعديل SQL/DB في Phase A) | — |
+| **إجمالي الفحوصات المنفذة محلياً** | **مجموع الفحوصات الفعلية المجتازة محلياً في Phase A** | **571/571 PASSED (100%)** | `0` |
+
+### 18.4 حالة الاعتماد والحوكمة لـ Phase A
+- **حالة Phase A الحالية:** `IMPLEMENTED — LOCAL TESTS ONLY`.
+- **تأكيد عدم الخلط:** لم يتم خلط أي تعديلات أداء أو إعادة هيكلة من Phase B (`P1`) داخل هذه التمريرة؛ النطاق مقصور حصراً على سلامة واستمرارية البيانات (`P0`).
+- **تأكيد السياسة الأمنية:** لم يتم إجراء أي commit أو push أو تعديل على قاعدة بيانات الإنتاج أو ملفات migrations.
+
 

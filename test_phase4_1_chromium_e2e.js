@@ -4377,6 +4377,150 @@ async function main() {
       'Test EE.1: Chromium recovery fault injection hooks verify fail-closed barrier retention on query failures'
     );
 
+    // ------------------------------------------------------------------------
+    // TEST FF: Phase A P0 Data Persistence, Reload Survival & Cloud Sync States
+    // ------------------------------------------------------------------------
+    console.log('\n--- TEST FF: Phase A P0 Data Persistence, Reload Survival & Cloud Sync States in Real Chromium ---');
+    const tabFF = await context.newPage();
+    await tabFF.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+    await tabFF.waitForFunction(() => typeof initPdfDB === 'function');
+
+    const uidFF = 'ff001122-3344-4556-8778-99aabbccddee';
+    const ffPreReload = await tabFF.evaluate(async (uid) => {
+      await initPdfDB();
+      localStorage.clear();
+      currentCloudUser = { id: uid, email: 'ff@exo.edu' };
+      localStorage.setItem('pharmaLastActiveCloudUid', uid);
+      localStorage.setItem('pharmaLastActiveUserIdV1', uid);
+      bumpAccountSessionGeneration();
+
+      // 1. Write handwritten strokes, text note, audio pin, and multiple Extra Note Sheets, then run idle flush (false)
+      const scopedLecKey = toScopedKey('7701', uid);
+      pendingAnnoSaveMap[scopedLecKey] = {
+        '1': [
+          stampAnnotationItemCausalMetadata({ id: 'ff_pen_1', tool: 'pen', color: '#2dd4bf', size: 2, points: [{ x: 0.1, y: 0.2 }, { x: 0.3, y: 0.4 }] }, 'stroke', '7701', '1', uid),
+          stampAnnotationItemCausalMetadata({ id: 'ff_txt_1', tool: 'text', text: 'Chromium text note', x: 0.4, y: 0.5, color: '#ffffff', fontSize: 15 }, 'note', '7701', '1', uid)
+        ],
+        _audioPins: {
+          '1': [stampAnnotationItemCausalMetadata({ id: 'ff_pin_1', page: 1, audioTime: 18.2, label: 'Pin 18s', x: 0.2, y: 0.2 }, 'pin', '7701', '1', uid)]
+        },
+        _extraNotes: { '1': true, '1__s2': true },
+        'note_1': [stampAnnotationItemCausalMetadata({ id: 'ff_sheet1_s', tool: 'pen', color: '#f43f5e', size: 2, points: [{ x: 0.2, y: 0.2 }, { x: 0.5, y: 0.5 }] }, 'stroke', '7701', 'note_1', uid)],
+        'note_1__s2': [stampAnnotationItemCausalMetadata({ id: 'ff_sheet2_s', tool: 'pen', color: '#10b981', size: 3, points: [{ x: 0.3, y: 0.3 }, { x: 0.6, y: 0.6 }] }, 'stroke', '7701', 'note_1__s2', uid)]
+      };
+      const idleFlushOk = await flushPendingAnnotationsSave(false);
+      const annoDirtyAfterIdle = localStorage.getItem('pharmaAnnotationsDirty_' + uid) === '1';
+      const wsDirtyAfterIdle = localStorage.getItem('pharmaWorkspaceDirty_' + uid) === '1';
+
+      // 2. Test lecture reordering causal digest update
+      activeSubjectId = 8801;
+      subjects = [{
+        id: 8801,
+        name: 'Pharmacology FF',
+        groups: [{
+          id: 8810,
+          name: 'Autonomic',
+          lectures: [
+            { id: 7701, title: 'Lec B', completed: false },
+            { id: 7702, title: 'Lec A', completed: false }
+          ]
+        }]
+      }];
+      saveSubjects();
+      const digestBeforeReorder = subjects[0].groups[0]._causalDigest;
+      moveLectureInGroup(8810, 7702, -1, null);
+      const digestAfterReorder = subjects[0].groups[0]._causalDigest;
+
+      return {
+        idleFlushOk,
+        annoDirtyAfterIdle,
+        wsDirtyAfterIdle,
+        digestChanged: Boolean(digestBeforeReorder && digestAfterReorder && digestBeforeReorder !== digestAfterReorder),
+        orderAfterMove: subjects[0].groups[0].lectures.map(l => l.id).join(',')
+      };
+    }, uidFF);
+
+    assert(
+      ffPreReload.idleFlushOk === true && ffPreReload.annoDirtyAfterIdle === true && ffPreReload.wsDirtyAfterIdle === true,
+      'Test FF.1: Real Chromium idle annotation flush writes to IndexedDB and sets persistent pharmaAnnotationsDirty_<uid>'
+    );
+    assert(
+      ffPreReload.digestChanged === true && ffPreReload.orderAfterMove === '7702,7701',
+      'Test FF.2: Real Chromium lecture reorder updates group _causalDigest and persists reordered lectures'
+    );
+
+    // Real browser reload (tabFF.reload)
+    await tabFF.reload({ waitUntil: 'domcontentloaded' });
+    await tabFF.waitForFunction(() => typeof initPdfDB === 'function');
+
+    const ffPostReload = await tabFF.evaluate(async (uid) => {
+      await initPdfDB();
+      currentCloudUser = { id: uid, email: 'ff@exo.edu' };
+      localStorage.setItem('pharmaLastActiveCloudUid', uid);
+      localStorage.setItem('pharmaLastActiveUserIdV1', uid);
+      bumpAccountSessionGeneration();
+
+      const reloadedAnnos = await getAnnotationsFromDB('7701', uid);
+      const reloadedSubjects = JSON.parse(localStorage.getItem('pharmaSubjectsV4') || '[]');
+      const reorderedIds = reloadedSubjects[0]?.groups?.[0]?.lectures?.map(l => l.id).join(',') || '';
+
+      // Verify closing PDF (flushPendingAnnotationsSave(true)) when pendingAnnoSaveMap is already empty triggers cloud push
+      let rpcTriggeredOnClose = false;
+      supabaseClient = {
+        rpc: async (fnName, args) => {
+          if (fnName === 'sync_workspace_with_concurrency' && args.p_payload?.annotations?.['7701']) {
+            rpcTriggeredOnClose = true;
+          }
+          return { data: { status: 'success', revision: 10 }, error: null };
+        }
+      };
+      await flushPendingAnnotationsSave(true);
+      const dirtyClearedAfterConfirm = localStorage.getItem('pharmaAnnotationsDirty_' + uid) === null;
+
+      // Verify SELECT error fail-closed behavior and UI error state
+      supabaseClient = {
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({
+                data: null,
+                error: { code: '503', status: 503, message: 'Service Unavailable' }
+              })
+            })
+          })
+        })
+      };
+      const pullErr = await pullWorkspaceFromCloud(false);
+      const navBtnHasErrorClass = document.getElementById('cloudNavBtn')?.classList.contains('error') || false;
+
+      return {
+        hasStroke: Boolean(reloadedAnnos?.['1']?.some(s => s.id === 'ff_pen_1')),
+        hasText: Boolean(reloadedAnnos?.['1']?.some(s => s.id === 'ff_txt_1')),
+        hasPin: Boolean(reloadedAnnos?._audioPins?.['1']?.some(p => p.id === 'ff_pin_1')),
+        hasExtraSheets: Boolean(reloadedAnnos?._extraNotes?.['1'] && reloadedAnnos?._extraNotes?.['1__s2'] && reloadedAnnos?.['note_1']?.length === 1 && reloadedAnnos?.['note_1__s2']?.length === 1),
+        reorderedIds,
+        rpcTriggeredOnClose,
+        dirtyClearedAfterConfirm,
+        pullFailedClosed: Boolean(pullErr && pullErr.ok === false && pullErr.reason === 'remote_read_failed'),
+        navBtnHasErrorClass
+      };
+    }, uidFF);
+
+    await tabFF.close();
+
+    assert(
+      ffPostReload.hasStroke && ffPostReload.hasText && ffPostReload.hasPin && ffPostReload.hasExtraSheets && ffPostReload.reorderedIds === '7702,7701',
+      'Test FF.3: Real Chromium page reload preserves handwritten strokes, text notes, audio pins, multiple Extra Note Sheets, and lecture order'
+    );
+    assert(
+      ffPostReload.rpcTriggeredOnClose === true && ffPostReload.dirtyClearedAfterConfirm === true,
+      'Test FF.4: Real Chromium flushPendingAnnotationsSave(true) pushes already-flushed annotations and clears dirty markers only after RPC confirmation'
+    );
+    assert(
+      ffPostReload.pullFailedClosed === true && ffPostReload.navBtnHasErrorClass === true,
+      'Test FF.5: Real Chromium Supabase SELECT error fails closed and sets #cloudNavBtn.error without wiping local data'
+    );
+
     await context.close();
   } finally {
     await browser.close();

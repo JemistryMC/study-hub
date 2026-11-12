@@ -206,9 +206,15 @@ const queuedAnnotationWritesDuringImportByAccount = new Map();
 const barrierHeartbeatTimersByAccount = new Map();
 const pendingDomainWritesDuringImportByAccount = new Map();
 let failNextAccountSnapshotKey = null;
+let simulateStorageQuotaExceeded = false;
 const localStorage = {
   getItem: (k) => (storageBacking.has(String(k)) ? storageBacking.get(String(k)) : null),
   setItem: (k, v) => {
+    if (simulateStorageQuotaExceeded) {
+      const qErr = new Error('QuotaExceededError: Simulated full storage quota writing ' + k);
+      qErr.name = 'QuotaExceededError';
+      throw qErr;
+    }
     if (failNextAccountSnapshotKey && String(k) === String(failNextAccountSnapshotKey)) {
       failNextAccountSnapshotKey = null;
       throw new Error('QuotaExceededError: Simulated failure writing ' + k);
@@ -220,6 +226,7 @@ const localStorage = {
 };
 const scheduledTimers = [];
 const toastHistory = [];
+const cloudNavUiHistory = [];
 const setTimeout = (fn, delay) => {
   scheduledTimers.push({ fn, delay });
   return scheduledTimers.length;
@@ -252,6 +259,7 @@ let activeCloudSyncPromise = null;
 let isCloudSyncing = false;
 let isBulkMediaUploading = false;
 let cloudAutoSaveTimer = null;
+let annoCloudSyncTimer = null;
 let annotationMutationSeq = 0;
 let lastUploadedAnnotationVersion = 0;
 let localWorkspaceMutationSeq = 0;
@@ -295,8 +303,14 @@ function openConfirmModal(msg, onConfirm) {
 }
 function updateCloudMediaStatsUI() {}
 function updateAcademyXpUI() {}
-function updateCloudNavUI() {}
+function updateCloudNavUI(state) {
+  cloudNavUiHistory.push(String(state || ''));
+}
 function updateGoogleDriveUI() {}
+function setupRealtimeWorkspaceSubscription() {}
+let draggedLectureState = null;
+let realtimeChannel = null;
+const isolatedPendingAnnotationsByUser = {};
 async function refreshLocalMediaCache() {}
 async function reconcileCloudMediaWithStorageBucket() {}
 async function initPdfDB() { return dbInstance; }
@@ -449,6 +463,12 @@ ${extractFunctionSource(indexHtmlContent, 'stopBarrierHeartbeat')}
 ${extractFunctionSource(indexHtmlContent, 'recordQueuedAnnotationWriteDurably')}
 ${extractFunctionSource(indexHtmlContent, 'applyQueuedAnnotationWritesAfterImport')}
 ${extractFunctionSource(indexHtmlContent, 'flushQueuedDomainWritesAfterImport')}
+${extractFunctionSource(indexHtmlContent, 'markUserWorkspaceDirtyState')}
+${extractFunctionSource(indexHtmlContent, 'moveLectureInGroup')}
+${extractFunctionSource(indexHtmlContent, 'autoSortLecturesInGroup')}
+${extractFunctionSource(indexHtmlContent, 'handleLectureDragStart')}
+${extractFunctionSource(indexHtmlContent, 'handleLectureDrop')}
+${extractFunctionSource(indexHtmlContent, 'handleAuthSessionChange')}
 ${extractFunctionSource(indexHtmlContent, 'isImportInProgressOrQuarantined')}
 ${extractFunctionSource(indexHtmlContent, 'saveSubjects')}
 ${extractFunctionSource(indexHtmlContent, 'saveScheduleData')}
@@ -458,8 +478,10 @@ module.exports = {
   localStorage,
   scheduledTimers,
   toastHistory,
+  cloudNavUiHistory,
   setDbInstance: (db) => { dbInstance = db; },
   setFailNextAccountSnapshotKey: (key) => { failNextAccountSnapshotKey = key ? String(key) : null; },
+  setSimulateStorageQuotaExceeded: (val) => { simulateStorageQuotaExceeded = Boolean(val); },
   setSupabaseClient: (client) => { supabaseClient = client; },
   setNavigatorOnline: (online) => { navigator.onLine = Boolean(online); },
   setSessionUser: (uid) => {
@@ -629,7 +651,13 @@ module.exports = {
   getPlannerPrefs: () => plannerPrefs,
   setPlannerPrefs: (p) => { plannerPrefs = p; },
   getAnnotationMutationSeq: () => annotationMutationSeq,
-  resetAnnotationMutationSeq: () => { annotationMutationSeq = 0; lastUploadedAnnotationVersion = 0; localAnnotationsMutationSeq = 0; }
+  resetAnnotationMutationSeq: () => { annotationMutationSeq = 0; lastUploadedAnnotationVersion = 0; localAnnotationsMutationSeq = 0; },
+  markUserWorkspaceDirtyState,
+  moveLectureInGroup,
+  autoSortLecturesInGroup,
+  handleLectureDragStart,
+  handleLectureDrop,
+  handleAuthSessionChange
 };
 `;
 
@@ -5972,6 +6000,558 @@ async function main() {
     prod.localStorage.getItem('pharmaImportBarrier_' + user_pI) === null,
     'Priority I.3: Barrier safely cleaned up after verified rollback drain'
   );
+
+  // ==========================================================================
+  // PHASE A: P0 DATA INTEGRITY REMEDIATION REGRESSION SUITE (P0-R1 .. P0-R10)
+  // ==========================================================================
+  console.log('\n--- PHASE A P0 REGRESSION SUITE (P0-R1 .. P0-R10): Data Persistence & Safety ---');
+
+  // --------------------------------------------------------------------------
+  // P0-R1: Annotation write (strokes, text notes, audio pins) -> idle flush ->
+  // refresh -> annotation survives and persistent dirty marker remains until cloud confirms
+  // --------------------------------------------------------------------------
+  {
+    const uidP01 = 'a0010000-1111-4222-8333-444455550001';
+    prod.localStorage.clear();
+    idb.stores['annotations'].clear();
+    idb.stores['annotation_recovery_vault'].clear();
+    prod.setSessionUser(uidP01);
+    prod.localStorage.setItem('pharmaLastActiveCloudUid', uidP01);
+    prod.localStorage.setItem('pharmaLastActiveUserIdV1', uidP01);
+    prod.setRuntimeState({
+      subjects: [{ id: 701, name: 'Clinical Pharmacology', groups: [{ id: 801, name: 'Unit 1', lectures: [{ id: 901, title: 'Lec 1' }] }] }],
+      scheduleEvents: [],
+      scheduleBacklog: [],
+      weeklyReports: [],
+      logs: [],
+      pendingAnnoSaveMap: {},
+      inMemoryAnnotationsCache: {},
+      dirtyAnnotationsForCloud: false
+    });
+
+    const scopedKey901 = prod.toScopedKey('901', uidP01);
+    const richAnnotationPages = {
+      '1': [
+        { id: 'strk_p01_pen', tool: 'pen', color: '#2dd4bf', size: 3, points: [{ x: 0.12, y: 0.22 }, { x: 0.34, y: 0.45 }] },
+        { id: 'strk_p01_txt', tool: 'text', text: 'Important mechanism note', x: 0.25, y: 0.30, color: '#ffffff', fontSize: 16 }
+      ],
+      _audioPins: {
+        '1': [{ id: 'pin_p01_1', page: 1, audioTime: 42.5, label: 'Key Concept @ 0:42', x: 0.15, y: 0.18 }]
+      },
+      _extraNotes: {}
+    };
+
+    // Simulate 350ms idle flush via flushPendingAnnotationsSave(false)
+    prod.setRuntimeState({
+      pendingAnnoSaveMap: { [scopedKey901]: richAnnotationPages }
+    });
+    const idleFlushOk = await prod.flushPendingAnnotationsSave(false);
+    assert(idleFlushOk === true, 'P0-R1.1: Idle flushPendingAnnotationsSave(false) succeeds and writes to IndexedDB');
+    assert(
+      prod.localStorage.getItem('pharmaAnnotationsDirty_' + uidP01) === '1' &&
+      prod.localStorage.getItem('pharmaWorkspaceDirty_' + uidP01) === '1' &&
+      prod.localStorage.getItem('pharmaWorkspaceDirty') === '1',
+      'P0-R1.2: Idle annotation flush establishes persistent account-scoped dirty markers (pharmaAnnotationsDirty_<uid>, pharmaWorkspaceDirty_<uid>, pharmaWorkspaceDirty)'
+    );
+
+    // Simulate browser page refresh before cloud push completes (in-memory state reset, pendingAnnoSaveMap empty)
+    prod.setRuntimeState({
+      pendingAnnoSaveMap: {},
+      inMemoryAnnotationsCache: {},
+      dirtyAnnotationsForCloud: false
+    });
+
+    const reloadedAnnos = await prod.getAnnotationsFromDB('901', uidP01);
+    assert(
+      reloadedAnnos &&
+      Array.isArray(reloadedAnnos['1']) &&
+      reloadedAnnos['1'].some(s => s.id === 'strk_p01_pen') &&
+      reloadedAnnos['1'].some(s => s.id === 'strk_p01_txt' && s.text === 'Important mechanism note') &&
+      Array.isArray(reloadedAnnos._audioPins?.['1']) &&
+      reloadedAnnos._audioPins['1'].some(p => p.id === 'pin_p01_1'),
+      'P0-R1.3: Handwritten strokes, text notes, and audio pins all survive page refresh in IndexedDB'
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // P0-R2: Multiple Extra Note Sheets write -> refresh -> all sheets survive
+  // --------------------------------------------------------------------------
+  {
+    const uidP02 = 'a0020000-1111-4222-8333-444455550002';
+    prod.localStorage.clear();
+    idb.stores['annotations'].clear();
+    prod.setRuntimeState({ inMemoryAnnotationsCache: {}, pendingAnnoSaveMap: {}, dirtyAnnotationsForCloud: false });
+    prod.setSessionUser(uidP02);
+    prod.localStorage.setItem('pharmaLastActiveCloudUid', uidP02);
+    prod.localStorage.setItem('pharmaLastActiveUserIdV1', uidP02);
+
+    const multiExtraSheetsPayload = {
+      '1': [{ id: 'slide1_stroke', tool: 'pen', color: '#38bdf8', size: 2, points: [{ x: 0.1, y: 0.1 }, { x: 0.2, y: 0.2 }] }],
+      _extraNotes: {
+        '1': true,
+        '1__s2': true,
+        '1__s3': true
+      },
+      'note_1': [
+        { id: 'sheet1_stroke', tool: 'pen', color: '#f43f5e', size: 2.5, points: [{ x: 0.15, y: 0.25 }, { x: 0.45, y: 0.55 }] }
+      ],
+      'note_1__s2': [
+        { id: 'sheet2_stroke', tool: 'pen', color: '#10b981', size: 3, points: [{ x: 0.2, y: 0.3 }, { x: 0.6, y: 0.7 }] },
+        { id: 'sheet2_text', tool: 'text', text: 'Extra sheet #2 summary', x: 0.3, y: 0.4, color: '#ffffff', fontSize: 15 }
+      ],
+      'note_1__s3': [
+        { id: 'sheet3_stroke', tool: 'pen', color: '#fbbf24', size: 2, points: [{ x: 0.05, y: 0.05 }, { x: 0.85, y: 0.85 }] }
+      ]
+    };
+
+    const saveRes = prod.saveAnnotationsToDB('902', multiExtraSheetsPayload, null);
+    assert(saveRes === true, 'P0-R2.1: saveAnnotationsToDB succeeds for lecture with multiple Extra Note Sheets');
+    assert(
+      prod.localStorage.getItem('pharmaAnnotationsDirty_' + uidP02) === '1',
+      'P0-R2.2: Direct saveAnnotationsToDB sets persistent pharmaAnnotationsDirty_<uid> marker'
+    );
+    await prod.flushPendingAnnotationsSave(false);
+
+    // Clear in-memory cache to simulate page refresh
+    prod.setRuntimeState({ inMemoryAnnotationsCache: {}, pendingAnnoSaveMap: {} });
+    const loadedMulti = await prod.getAnnotationsFromDB('902', uidP02);
+    assert(
+      loadedMulti &&
+      loadedMulti._extraNotes?.['1'] === true &&
+      loadedMulti._extraNotes?.['1__s2'] === true &&
+      loadedMulti._extraNotes?.['1__s3'] === true &&
+      Array.isArray(loadedMulti['note_1']) && loadedMulti['note_1'].length === 1 &&
+      Array.isArray(loadedMulti['note_1__s2']) && loadedMulti['note_1__s2'].length === 2 &&
+      Array.isArray(loadedMulti['note_1__s3']) && loadedMulti['note_1__s3'].length === 1,
+      'P0-R2.3: All multiple Extra Note Sheets (1, 1__s2, 1__s3) and their strokes/text notes survive refresh intact'
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // P0-R3: Closing PDF after idle flush (pendingAnnoSaveMap already empty)
+  // does not skip cloud dirty-state propagation or cloud push
+  // --------------------------------------------------------------------------
+  {
+    const uidP03 = 'a0030000-1111-4222-8333-444455550003';
+    prod.localStorage.clear();
+    idb.stores['annotations'].clear();
+    prod.setSessionUser(uidP03);
+    prod.localStorage.setItem('pharmaLastActiveCloudUid', uidP03);
+    prod.localStorage.setItem('pharmaLastActiveUserIdV1', uidP03);
+    prod.localStorage.setItem('pharmaWorkspaceRevision_' + uidP03, '4');
+
+    const scopedKey903 = prod.toScopedKey('903', uidP03);
+    prod.setRuntimeState({
+      subjects: [{ id: 703, name: 'Med Chem', groups: [{ id: 803, name: 'G1', lectures: [{ id: 903, title: 'Lec 903' }] }] }],
+      pendingAnnoSaveMap: {
+        [scopedKey903]: {
+          '1': [{ id: 'stroke_before_close', tool: 'pen', color: '#2dd4bf', size: 2, points: [{ x: 0.1, y: 0.2 }, { x: 0.3, y: 0.4 }] }]
+        }
+      },
+      dirtyAnnotationsForCloud: false
+    });
+
+    // Step 1: 350ms idle flush runs while user is still viewing the PDF, emptying pendingAnnoSaveMap
+    await prod.flushPendingAnnotationsSave(false);
+    assert(
+      Object.keys(prod.getRuntimeState().pendingAnnoSaveMap).length === 0,
+      'P0-R3.1: Idle flush empties pendingAnnoSaveMap while user is still inside PDF studio'
+    );
+
+    // Step 2: User closes PDF viewer -> calls flushPendingAnnotationsSave(true) with empty pendingAnnoSaveMap
+    let rpcPushCalled = 0;
+    let pushedAnnotationsPayload = null;
+    prod.setNavigatorOnline(true);
+    prod.setSupabaseClient({
+      rpc: async (fnName, args) => {
+        if (fnName === 'sync_workspace_with_concurrency') {
+          rpcPushCalled++;
+          pushedAnnotationsPayload = args.p_payload?.annotations || null;
+          return { data: { status: 'success', revision: 5 }, error: null };
+        }
+        return { data: null, error: null };
+      }
+    });
+
+    const closeFlushOk = await prod.flushPendingAnnotationsSave(true);
+    assert(closeFlushOk === true, 'P0-R3.2: flushPendingAnnotationsSave(true) succeeds when pendingAnnoSaveMap is already empty');
+    assert(
+      rpcPushCalled === 1 && pushedAnnotationsPayload && pushedAnnotationsPayload['903'],
+      'P0-R3.3: Closing PDF after idle flush triggers immediate cloud push including already-flushed IndexedDB annotations'
+    );
+    assert(
+      prod.localStorage.getItem('pharmaAnnotationsDirty_' + uidP03) === null &&
+      prod.localStorage.getItem('pharmaWorkspaceDirty_' + uidP03) === null,
+      'P0-R3.4: Annotation and workspace dirty markers are cleared ONLY after server confirms the push'
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // P0-R4 & P0-R5: Local fallback session survives refresh; stale local session
+  // does NOT hijack Supabase user; Local/Guest -> Supabase login preserves outgoing workspace
+  // --------------------------------------------------------------------------
+  {
+    const localUid = 'usr_1762000000111';
+    const cloudUid = 'a0040000-1111-4222-8333-444455550004';
+    prod.localStorage.clear();
+    idb.stores['annotations'].clear();
+
+    // 4A: Active local fallback account with saved session and snapshot
+    const localUserObj = { id: localUid, email: 'localstudent@exo.edu', name: 'Local Student', isLocalFallback: true };
+    prod.localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify(localUserObj));
+    prod.localStorage.setItem('pharmaLastActiveCloudUid', localUid);
+    prod.localStorage.setItem('pharmaLastActiveUserIdV1', localUid);
+    prod.localStorage.setItem(prod.getAccountBackupStorageKey(localUid), JSON.stringify({
+      user_id: localUid,
+      user_email: 'localstudent@exo.edu',
+      subjects: [{ id: 5501, name: 'Local Pharmacology Subject', groups: [] }],
+      schedule: { version: 3, events: [], backlog: [], weeklyReports: [] },
+      logs: [{ id: 6601, date: '2026-11-12', text: 'Local study log', mood: 'fire' }],
+      revision: 2
+    }));
+
+    prod.setSessionUser(null);
+    prod.setRuntimeState({ subjects: [], scheduleEvents: [], logs: [] });
+    assert(
+      prod.getCanonicalUserId() === localUid,
+      'P0-R4.1: getCanonicalUserId resolves active local fallback account when currentCloudUser is not yet hydrated'
+    );
+
+    await prod.handleAuthSessionChange(localUserObj, false);
+    assert(
+      prod.getSubjects().length === 1 && prod.getSubjects()[0].id === 5501,
+      'P0-R4.2: Reloading local fallback account hydrates its saved workspace snapshot into memory'
+    );
+
+    // 4B: Transition from local fallback account to Supabase cloud account
+    prod.setSupabaseClient({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({
+              data: {
+                user_id: cloudUid,
+                subjects: [{ id: 7701, name: 'Cloud Subject', groups: [] }],
+                schedule: { version: 3, events: [], backlog: [], weeklyReports: [] },
+                logs: [],
+                annotations: {},
+                revision: 3,
+                can_upload_media: false
+              },
+              error: null
+            })
+          })
+        })
+      }),
+      rpc: async () => ({ data: { status: 'success', revision: 4 }, error: null })
+    });
+
+    await prod.handleAuthSessionChange({ id: cloudUid, email: 'cloudstudent@exo.edu' }, true);
+    const archivedLocalSnap = JSON.parse(prod.localStorage.getItem(prod.getAccountBackupStorageKey(localUid)) || 'null');
+    assert(
+      archivedLocalSnap && Array.isArray(archivedLocalSnap.subjects) && archivedLocalSnap.subjects.some(s => s.id === 5501),
+      'P0-R5.1: Outgoing local fallback account workspace is preserved in pharmaAccountWorkspace_<localUid> upon Supabase login'
+    );
+    assert(
+      prod.localStorage.getItem('pharmaActiveAccountSessionV1') === null &&
+      prod.localStorage.getItem('pharmaPreviousLocalAccountSessionV1') !== null,
+      'P0-R5.2: Stale pharmaActiveAccountSessionV1 is archived to pharmaPreviousLocalAccountSessionV1 when Supabase user signs in'
+    );
+
+    // 4C: Even if stale pharmaActiveAccountSessionV1 is manually present while pharmaLastActiveCloudUid is cloudUid,
+    // getCanonicalUserId() must NOT be hijacked by the stale local session
+    prod.localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify(localUserObj));
+    prod.localStorage.setItem('pharmaLastActiveCloudUid', cloudUid);
+    prod.setSessionUser(null);
+    assert(
+      prod.getCanonicalUserId() === 'local',
+      'P0-R4.3: Stale pharmaActiveAccountSessionV1 never hijacks getCanonicalUserId() when pharmaLastActiveCloudUid belongs to a Supabase account'
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // P0-R6 & P0-R7: Supabase SELECT error & RPC error fail closed, preserve
+  // local workspace + revision + dirty state, do NOT load stale snapshot, and report 'error'
+  // --------------------------------------------------------------------------
+  {
+    const uidP06 = 'a0060000-1111-4222-8333-444455550006';
+    prod.localStorage.clear();
+    idb.stores['annotations'].clear();
+    prod.cloudNavUiHistory.length = 0;
+    prod.setSessionUser(uidP06);
+    prod.setNavigatorOnline(true);
+    prod.localStorage.setItem('pharmaLastActiveCloudUid', uidP06);
+    prod.localStorage.setItem('pharmaLastActiveUserIdV1', uidP06);
+    prod.localStorage.setItem('pharmaWorkspaceRevision_' + uidP06, '9');
+    prod.localStorage.setItem('pharmaWorkspaceDirty_' + uidP06, '1');
+    prod.localStorage.setItem('pharmaAnnotationsDirty_' + uidP06, '1');
+
+    // Plant an older stale snapshot in localStorage to prove SELECT failure does NOT fall back to it
+    prod.localStorage.setItem(prod.getAccountBackupStorageKey(uidP06), JSON.stringify({
+      user_id: uidP06,
+      subjects: [{ id: 1111, name: 'Stale Old Snapshot Subject', groups: [] }],
+      schedule: { version: 3, events: [], backlog: [], weeklyReports: [] },
+      logs: [],
+      revision: 2
+    }));
+
+    prod.setRuntimeState({
+      subjects: [{ id: 9999, name: 'Fresh Unsynced In-Memory Subject', groups: [] }],
+      scheduleEvents: [],
+      logs: [],
+      dirtyAnnotationsForCloud: true
+    });
+    prod.localStorage.setItem('pharmaSubjectsV4', JSON.stringify(prod.getSubjects()));
+
+    // Simulate Supabase SELECT error (e.g., JWT expired / 503 / network error)
+    prod.setSupabaseClient({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({
+              data: null,
+              error: { code: 'PGRST301', status: 401, message: 'JWT expired' }
+            })
+          })
+        })
+      }),
+      rpc: async () => ({
+        data: null,
+        error: { code: '500', status: 500, message: 'Internal Server Error during RPC' }
+      })
+    });
+
+    const pullErrRes = await prod.pullWorkspaceFromCloud(false);
+    assert(
+      pullErrRes && pullErrRes.ok === false && pullErrRes.status === 'error' && pullErrRes.reason === 'remote_read_failed',
+      'P0-R6.1: pullWorkspaceFromCloud returns explicit remote_read_failed error when Supabase SELECT fails'
+    );
+    assert(
+      prod.getSubjects().length === 1 && prod.getSubjects()[0].id === 9999,
+      'P0-R6.2: pullWorkspaceFromCloud does NOT overwrite local subjects with stale snapshot or empty state on SELECT error'
+    );
+    assert(
+      prod.cloudNavUiHistory[prod.cloudNavUiHistory.length - 1] === 'error',
+      'P0-R6.3: pullWorkspaceFromCloud sets cloudNavUI to error (never synced) on SELECT error'
+    );
+
+    const loginErrRes = await prod.syncWorkspaceOnLogin();
+    assert(
+      loginErrRes && loginErrRes.ok === false && loginErrRes.status === 'error' && loginErrRes.reason === 'remote_read_failed',
+      'P0-R6.4: syncWorkspaceOnLogin returns explicit remote_read_failed error when Supabase SELECT fails'
+    );
+    assert(
+      prod.getSubjects().length === 1 && prod.getSubjects()[0].id === 9999 &&
+      prod.localStorage.getItem('pharmaWorkspaceRevision_' + uidP06) === '9',
+      'P0-R6.5: syncWorkspaceOnLogin preserves local workspace and expected revision (9) on SELECT error without resetting revision to 0'
+    );
+
+    // P0-R7: Supabase RPC failure keeps dirty markers pending and sets UI to 'error'
+    prod.cloudNavUiHistory.length = 0;
+    const rpcErrRes = await prod.pushWorkspaceToCloud(false, true);
+    assert(
+      rpcErrRes && rpcErrRes.status === 'error',
+      'P0-R7.1: pushWorkspaceToCloud returns status: error when Supabase RPC fails'
+    );
+    assert(
+      prod.localStorage.getItem('pharmaWorkspaceDirty_' + uidP06) === '1' &&
+      prod.localStorage.getItem('pharmaAnnotationsDirty_' + uidP06) === '1' &&
+      prod.cloudNavUiHistory[prod.cloudNavUiHistory.length - 1] === 'error',
+      'P0-R7.2: Workspace and annotation dirty markers remain pending and UI is set to error after RPC failure'
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // P0-R8: QuotaExceededError in saveSubjects(), saveScheduleData(), saveLogs()
+  // -> no false success, no destructive cleanup, in-memory changes preserved, error toast shown
+  // --------------------------------------------------------------------------
+  {
+    const uidP08 = 'a0080000-1111-4222-8333-444455550008';
+    prod.localStorage.clear();
+    prod.toastHistory.length = 0;
+    prod.setSessionUser(uidP08);
+    prod.localStorage.setItem('pharmaLastActiveCloudUid', uidP08);
+    prod.localStorage.setItem('pharmaSubjectsV4', JSON.stringify([{ id: 1, name: 'Existing Durable Subject', groups: [] }]));
+    prod.localStorage.setItem(prod.getAccountBackupStorageKey(uidP08), JSON.stringify({ user_id: uidP08, subjects: [{ id: 1 }] }));
+
+    prod.setRuntimeState({
+      subjects: [{ id: 1, name: 'Existing Durable Subject', groups: [] }, { id: 2, name: 'New In-Memory Subject', groups: [] }],
+      scheduleEvents: [{ id: 301, title: 'New Study Session', day: 1, startHour: 10, duration: 2 }],
+      logs: [{ id: 401, date: '2026-11-12', text: 'Completed study block', mood: 'fire' }]
+    });
+
+    prod.setSimulateStorageQuotaExceeded(true);
+    try {
+      const subRes = prod.saveSubjects();
+      const schRes = prod.saveScheduleData();
+      const logRes = prod.saveLogs();
+
+      assert(
+        subRes && subRes.ok === false && subRes.persisted === false && subRes.reason === 'storage_quota_exceeded',
+        'P0-R8.1: saveSubjects catches QuotaExceededError and returns { ok: false, persisted: false, reason: storage_quota_exceeded }'
+      );
+      assert(
+        schRes && schRes.ok === false && schRes.persisted === false && schRes.reason === 'storage_quota_exceeded',
+        'P0-R8.2: saveScheduleData catches QuotaExceededError and returns { ok: false, persisted: false, reason: storage_quota_exceeded }'
+      );
+      assert(
+        logRes && logRes.ok === false && logRes.persisted === false && logRes.reason === 'storage_quota_exceeded',
+        'P0-R8.3: saveLogs catches QuotaExceededError and returns { ok: false, persisted: false, reason: storage_quota_exceeded }'
+      );
+      assert(
+        prod.getSubjects().length === 2 && prod.getScheduleEvents().length === 1 && prod.getLogs().length === 1,
+        'P0-R8.4: In-memory changes are preserved on QuotaExceededError without crashing'
+      );
+      assert(
+        prod.localStorage.getItem(prod.getAccountBackupStorageKey(uidP08)) !== null &&
+        JSON.parse(prod.localStorage.getItem('pharmaSubjectsV4') || '[]').length === 1,
+        'P0-R8.5: Existing localStorage snapshots and durable data are never destructively deleted on QuotaExceededError'
+      );
+      assert(
+        prod.toastHistory.some(t => t.type === 'error' && t.msg.includes('امتلاء مساحة التخزين')),
+        'P0-R8.6: Actionable Arabic error toast is surfaced on QuotaExceededError'
+      );
+    } finally {
+      prod.setSimulateStorageQuotaExceeded(false);
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // P0-R9: Lecture reorder -> causal mutation is recorded on parent group and
+  // new order survives persistence and causal reconciliation against older remote state
+  // --------------------------------------------------------------------------
+  {
+    const uidP09 = 'a0090000-1111-4222-8333-444455550009';
+    prod.localStorage.clear();
+    prod.setSessionUser(uidP09);
+    prod.localStorage.setItem('pharmaLastActiveCloudUid', uidP09);
+
+    const initialSubject = {
+      id: 9001,
+      name: 'Biopharmaceutics',
+      groups: [
+        {
+          id: 9101,
+          name: 'Chapter 1',
+          lectures: [
+            { id: 9201, title: 'Lecture 2 - Absorption', completed: false },
+            { id: 9202, title: 'Lecture 1 - Introduction', completed: false },
+            { id: 9203, title: 'Lecture 3 - Distribution', completed: false }
+          ]
+        }
+      ]
+    };
+
+    prod.setRuntimeState({
+      activeSubjectId: 9001,
+      subjects: JSON.parse(JSON.stringify([initialSubject]))
+    });
+    const baselineSave = prod.saveSubjects();
+    assert(baselineSave && baselineSave.ok === true && baselineSave.persisted === true, 'P0-R9.1: Baseline subjects saved with causal stamps');
+
+    const remoteOlderCopy = JSON.parse(JSON.stringify(prod.getSubjects()));
+    const groupDigestBefore = prod.getSubjects()[0].groups[0]._causalDigest;
+
+    // Reorder lectures via moveLectureInGroup (move 9202 from index 1 to index 0)
+    prod.moveLectureInGroup(9101, 9202, -1, null);
+    const groupAfterMove = prod.getSubjects()[0].groups[0];
+    assert(
+      groupAfterMove.lectures.map(l => l.id).join(',') === '9202,9201,9203' &&
+      groupAfterMove._causalDigest !== groupDigestBefore,
+      'P0-R9.2: moveLectureInGroup updates group _causalDigest and stamps a new causal mutation when lecture order changes'
+    );
+
+    // Reconcile local reordered hierarchy against older remote hierarchy where lectures had old order [9201, 9202, 9203]
+    const mergedHierarchy = prod.mergeSubjectsHierarchyWithCausalEngine(
+      prod.getSubjects(),
+      remoteOlderCopy,
+      prod.getLocalTombstones(uidP09),
+      uidP09
+    );
+    const mergedOrder = mergedHierarchy.subjects[0].groups[0].lectures.map(l => l.id).join(',');
+    assert(
+      mergedOrder === '9202,9201,9203',
+      'P0-R9.3: mergeSubjectsHierarchyWithCausalEngine preserves the causally newer group lecture order over stale remote lecture order'
+    );
+
+    // Also test autoSortLecturesInGroup causal stamping
+    prod.moveLectureInGroup(9101, 9203, -2, null); // now 9203, 9202, 9201
+    const digestBeforeAutoSort = prod.getSubjects()[0].groups[0]._causalDigest;
+    prod.autoSortLecturesInGroup(9101, null); // sorts by title -> Lecture 1 (9202), Lecture 2 (9201), Lecture 3 (9203)
+    const groupAfterSort = prod.getSubjects()[0].groups[0];
+    assert(
+      groupAfterSort.lectures.map(l => l.id).join(',') === '9202,9201,9203' &&
+      groupAfterSort._causalDigest !== digestBeforeAutoSort,
+      'P0-R9.4: autoSortLecturesInGroup stamps causal mutation and updates group _causalDigest'
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // P0-R10: Repeated reload/retry and applyCloudWorkspacePayload with uncommitted
+  // local annotations -> does NOT duplicate or corrupt annotations and prevents
+  // stale remote annotations from overwriting uncommitted local annotations
+  // --------------------------------------------------------------------------
+  {
+    const uidP10 = 'a0100000-1111-4222-8333-444455550010';
+    prod.localStorage.clear();
+    idb.stores['annotations'].clear();
+    prod.setRuntimeState({ inMemoryAnnotationsCache: {}, pendingAnnoSaveMap: {}, dirtyAnnotationsForCloud: false });
+    prod.setSessionUser(uidP10);
+    prod.localStorage.setItem('pharmaLastActiveCloudUid', uidP10);
+    prod.localStorage.setItem('pharmaLastActiveUserIdV1', uidP10);
+
+    // Write local uncommitted annotation to lecture 9901 with modern causal stamps
+    const localStroke1 = prod.stampAnnotationItemCausalMetadata(
+      { id: 'local_uncommitted_stroke', tool: 'pen', color: '#2dd4bf', size: 2, points: [{ x: 0.11, y: 0.22 }, { x: 0.33, y: 0.44 }] },
+      'stroke', '9901', '1', uidP10
+    );
+    const localExtraStroke1 = prod.stampAnnotationItemCausalMetadata(
+      { id: 'local_extra_stroke', tool: 'pen', color: '#f43f5e', size: 3, points: [{ x: 0.5, y: 0.5 }, { x: 0.7, y: 0.7 }] },
+      'stroke', '9901', 'note_1', uidP10
+    );
+    const localUncommittedPages = {
+      '1': [localStroke1],
+      _extraNotes: { '1': true },
+      'note_1': [localExtraStroke1]
+    };
+    prod.saveAnnotationsToDB('9901', localUncommittedPages, null);
+    await prod.flushPendingAnnotationsSave(false);
+
+    // Remote payload has stale/older annotations for 9901 (missing local_uncommitted_stroke and note_1)
+    const remoteStroke1 = prod.stampAnnotationItemCausalMetadata(
+      { id: 'remote_existing_stroke', tool: 'pen', color: '#38bdf8', size: 2, points: [{ x: 0.01, y: 0.02 }, { x: 0.03, y: 0.04 }] },
+      'stroke', '9901', '1', uidP10
+    );
+    const incomingCloudPayload = {
+      user_id: uidP10,
+      subjects: [{ id: 9801, name: 'Toxicology', groups: [{ id: 9851, name: 'G1', lectures: [{ id: 9901, title: 'Tox Lec 1' }] }] }],
+      schedule: { version: 3, events: [], backlog: [], weeklyReports: [] },
+      logs: [],
+      annotations: {
+        '9901': {
+          '1': [remoteStroke1]
+        }
+      },
+      revision: 6
+    };
+
+    // Apply incoming cloud payload twice (simulating repeated reload/retry)
+    const applyRes1 = await prod.applyCloudWorkspacePayload(incomingCloudPayload, false);
+    const applyRes2 = await prod.applyCloudWorkspacePayload(incomingCloudPayload, false);
+    assert(applyRes1 && applyRes1.ok === true && applyRes2 && applyRes2.ok === true, 'P0-R10.1: Repeated applyCloudWorkspacePayload succeeds cleanly');
+
+    const mergedAnnos = await prod.getAnnotationsFromDB('9901', uidP10);
+    const page1StrokeIds = (mergedAnnos['1'] || []).map(s => s.id);
+    assert(
+      page1StrokeIds.includes('local_uncommitted_stroke') &&
+      page1StrokeIds.includes('remote_existing_stroke') &&
+      page1StrokeIds.filter(id => id === 'local_uncommitted_stroke').length === 1 &&
+      page1StrokeIds.filter(id => id === 'remote_existing_stroke').length === 1 &&
+      mergedAnnos._extraNotes?.['1'] === true &&
+      Array.isArray(mergedAnnos['note_1']) && mergedAnnos['note_1'].length === 1,
+      'P0-R10.2: Uncommitted local strokes and Extra Note Sheets are preserved (never overwritten by stale remote annotations) and never duplicated across repeated reloads/merges'
+    );
+  }
 
 
   console.log('\n======================================================================');
