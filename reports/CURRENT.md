@@ -3,11 +3,11 @@
 **آخر تحديث:** 2026-11-12  
 **المستودع:** `JemistryMC/study-hub`  
 **الفرع النشط:** `main`  
-**آخر HEAD على GitHub (Current Base HEAD):** `03c0737e857c95099d416b0fbf22eff581d97d86`  
-**آخر HEAD مصدري معتمد في CI لـ M6 الأساسي (Latest CI-Verified Source HEAD):** `94259b543a021d4f06fdc0a9aa44d3f346d63037` (CI Run #43 — `43241683581`)  
-**نقاط الأساس التاريخية السابقة (Previous Baseline Checkpoints):** `b66d72e359e7d2e8531f88f797d4d296d41206a3` ← `0841b76d6c07ce756a44a874e8e574253ed2aeb3` ← `2433bf6d4a128acf6736f3c099496d551947cc7e` ← `9362085a32c173766800e416bd47d17301c837a6` ← `ecedff6069c5d1691812b3427f83e159cc6eed16`  
-**المرحلة الفرعية النشطة:** `EXO — M6 PHASE A ACCEPTANCE GAP CLOSURE & CRITICAL P0 STORAGE SAFETY`  
-**الحالة:** `IMPLEMENTED — LOCAL TESTS ONLY` (تعديلات إغلاق فجوات القبول لـ Phase A ومعالجة أعطال التخزين المحلي P0 منفذة ومختبرة محلياً بنسبة 100% — `598/598 PASSED` — فوق خط الأساس `03c0737e857c95099d416b0fbf22eff581d97d86`؛ بانتظار مراجعة المالك ومزامنة GitHub وتشغيل CI، وليست `CI VERIFIED` أو `APPROVED` بعد)
+**آخر HEAD على GitHub (Current Base HEAD):** `531811772626dbd0d66729e344efc6afb659b6e1`  
+**آخر HEAD مصدري معتمد بالكامل في CI لـ M6 الأساسي (Latest Fully Green CI Source HEAD):** `94259b543a021d4f06fdc0a9aa44d3f346d63037` (CI Run #43 — `43241683581`)  
+**نقاط الأساس التاريخية السابقة (Previous Baseline Checkpoints):** `531811772626dbd0d66729e344efc6afb659b6e1` ← `e0b2fb0a180d33fb8d98da1715db9842c8ab275f` ← `03c0737e857c95099d416b0fbf22eff581d97d86` ← `b66d72e359e7d2e8531f88f797d4d296d41206a3` ← `94259b543a021d4f06fdc0a9aa44d3f346d63037`  
+**المرحلة الفرعية النشطة:** `EXO — Phase A Final CI Failure Resolution`  
+**الحالة:** `IMPLEMENTED — LOCAL TESTS ONLY` (تمت معالجة الفحوصات الثلاثة التي فشلت في CI Run `43305785869` — `Test J.2` و`Test FF.7b` و`Test FF.7d` — فوق خط الأساس `531811772626dbd0d66729e344efc6afb659b6e1`، واجتازت كافة الاختبارات المحلية القابلة للتشغيل بنسبة 100% — `610/610 PASSED` شاملة `124/124` في Chromium E2E و`297/297` في Phase 4 Regressions؛ بانتظار رفع المالك إلى GitHub وتشغيل CI، وليست `CI VERIFIED` أو `APPROVED` بعد)
 
 هذا الملف هو المرجع الوحيد للحالة الحالية والمرحلة النشطة. إذا خالفه تقرير تاريخي أو تعليمات مرحلة قديمة، يُتبع هذا الملف ومستند المرحلة النشطة.
 
@@ -834,5 +834,58 @@ SELECT json_build_object(
 | `npm run test:pg16` (`node test_phase4_2_1_pg16_concurrency.js`) | خادم PostgreSQL 16 الحقيقي متعدد الاتصالات | **NOT RUN LOCALLY** (يتطلب خادم PostgreSQL 16 المخصص في GitHub Actions CI؛ لا توجد أي تعديلات SQL/DB في Phase A) | — |
 | **إجمالي الفحوصات المدمجة المنفذة محلياً** | **مجموع الفحوصات الفعلية المجتازة محلياً في Phase A** | **598/598 PASSED (100%)** | `0` |
 
+---
 
+## 20. معالجة فشل CI النهائي لـ Phase A (Phase A Final CI Failure Resolution — Above Base `5318117`)
 
+### 20.1 خط الأساس ونتيجة تشغيل GitHub Actions CI (`43305785869`)
+- **المستودع والفرع:** `JemistryMC/study-hub` (`main`)
+- **خط الأساس الحالي (Current Base HEAD):** `531811772626dbd0d66729e344efc6afb659b6e1` *(ملاحظة بيئية: مجلد `.git` غير متاح داخل حاوية AI Studio المحلية، وتم الاعتماد على ملفات المستودع المحدثة مباشرةً من المالك عند هذا الـ SHA).*
+- **سجل تشغيل GitHub Actions CI على `531811772626dbd0d66729e344efc6afb659b6e1` (Run ID: `43305785869`):**
+  - Lint & Build: **PASSED**
+  - Static Security (`run_verification_tests.js`): **54/54 PASSED**
+  - Comprehensive Verification (`run_comprehensive_verification.js`): **42/42 PASSED**
+  - Cross-Account Isolation (`test_phase3_cross_account_isolation.js`): **52/52 PASSED**
+  - Phase 4 Regressions (`test_phase4_regressions.js`): **297/297 PASSED**
+  - Embedded PGlite (`test_phase4_2_postgres_integration.js`): **41/41 PASSED**
+  - Real PostgreSQL 16 (`test_phase4_2_1_pg16_concurrency.js`): **96/96 PASSED**
+  - Real Chromium E2E (`test_phase4_1_chromium_e2e.js`): **121/124 PASSED** (فشلت 3 فحوصات فقط: `Test J.2`، `Test FF.7b`، `Test FF.7d`).
+
+### 20.2 التحليل الجذري والإصلاحات المنفذة للفحوصات الثلاثة
+
+| الفحص | السبب الجذري للفشل في CI Run `43305785869` | الإصلاح الهندسي المنفذ |
+| :--- | :--- | :--- |
+| **`Test J.2`** | كان الاختبار القديم يضبط `dbInstance = null` فقط لاختبار `getAllAnnotationsMapFromDB()` و`pushWorkspaceToCloud(true, true)`. ومع إضافة `readDurableCloudSyncJournal()` في بداية `pushWorkspaceToCloud()`، يحاول القارئ المتين إعادة فتح IndexedDB تلقائياً عبر `initPdfDB()`. كما أن `initPdfDB()` كانت تحتفظ بـ `dbReadyPromise` المحلولة من بدء التشغيل الأول دون تصفيرها بعد `req.onsuccess`، مما كان يُعيد الوعد القديم دون إعادة ربط `dbInstance` أو يسمح لـ `readDurableCloudSyncJournal()` بالإجهاض المبكر قبل الوصول إلى `getAllAnnotationsMapFromDB()`. | 1. في `initPdfDB()` (`index.html`): تصفير `dbReadyPromise = null` فور اكتمال `req.onsuccess` وتعيين `dbInstance = openedDb`، بحيث إذا فُقدت `dbInstance` لاحقاً، تعيد `initPdfDB()` فتح اتصال IndexedDB فعلياً وتستعيد `dbInstance` تلقائياً.<br>2. في `pushWorkspaceToCloud()` (`index.html`): تحديث مؤشر الواجهة إلى `updateCloudNavUI('error')` عند حدوث `LOCAL_ANNOTATIONS_READ_ERROR`.<br>3. في `Test J.1` و`Test J.2` (`test_phase4_1_chromium_e2e.js`): الحفاظ على سلوك إعادة التهيئة التلقائية في الإنتاج (`reopenedAutomatically === true` عبر `initPdfDB()` داخل `readDurableCloudSyncJournal()`)، مع حقن فشل قراءة IndexedDB حقيقي على مخزن `'annotations'` (`IDB_READ_ERROR`) لإثبات أن فشل قراءة الحواشي المحلية في `getAllAnnotationsMapFromDB()` يجهض `pushWorkspaceToCloud()` فوراً بـ `error: 'LOCAL_ANNOTATIONS_READ_ERROR'` ويمنع استدعاء Supabase RPC (`rpcCalled === false`). |
+| **`Test FF.7b`** | في متصفح Chromium (Blink IDL)، الخاصية `dbInstance.objectStoreNames` هي `getter` على `IDBDatabase.prototype` تُعيد غلاف `DOMStringList` جديداً في كل مرة تُقرأ فيها. لذلك فإن تعديل `dbInstance.objectStoreNames.contains = ...` كان يعدل كائناً مؤقتاً يُهمل فوراً، بينما تظل استدعاءات `dbInstance.objectStoreNames.contains('cloud_sync_journal')` داخل الدوال الإنتاجية تُعيد `true`. | في `Test FF.7b` (`test_phase4_1_chromium_e2e.js`): اعتراض `DOMStringList.prototype.contains` مع التحقق الصريح من أن `dbInstance.objectStoreNames.contains('cloud_sync_journal') === false` داخل المتصفح، وإثبات أن المسارات الأربعة (`syncWorkspaceOnLogin()`، `pullWorkspaceFromCloud()`، `applyCloudWorkspacePayload()`، `pushWorkspaceToCloud()`) تفشل بشكل مغلق (`ok: false`, `status: 'error'`, `reason: 'durable_journal_read_failed'`)، مع بقاء الحواشي المحلية سليمة وبقاء واجهة السحابة في حالة `'error'` دون أي حالة `'synced'` كاذبة. |
+| **`Test FF.7d`** | كان الاختبار يجدول `setTimeout(() => tx.abort(), 0)` لإجهاض معاملة `readonly` على `cloud_sync_journal`. في Chromium، تكتمل معاملة القراءة المحلية السريعة (`tx.oncomplete`) قبل تنفيذ مؤقت الماكرو (`setTimeout`). علاوةً على ذلك، عند استدعاء `tx.abort()` أثناء وجود طلبات `store.get()` معلقة في IndexedDB، يطلق المتصفح `req.onerror` و`tx.onerror` بـ `AbortError` قبل إطلاق `tx.onabort`، مما كان يجعل `readDurableCloudSyncJournal()` يحسم النتيجة مبكراً بـ `'journal_tx_error'` بدلاً من انتظار `tx.onabort` (`'journal_tx_aborted'`). | 1. في `readDurableCloudSyncJournal()` و`persistWorkspaceDomainToIDB()` (`index.html`): عند استقبال حدث خطأ يحمل `errObj.name === 'AbortError'` على الطلب أو المعاملة، عدم الحسم المبكر بـ `*_tx_error` وترك حدث `tx.onabort` يحسم المعاملة بدقة بـ `'journal_tx_aborted'` / `'idb_tx_aborted'`.<br>2. في `Test FF.7d` و`Test FF.8b` (`test_phase4_1_chromium_e2e.js`): استبدال `setTimeout(..., 0)` بـ `queueMicrotask(() => { try { tx.abort(); } catch (e) {} })` لإجهاض المعاملة الحقيقية حتمياً وهي نشطة قبل اكتمالها، مع عداد تحقق `onabortFiredCount >= 5` يثبت انطلاق `tx.onabort` الفعلي في المتصفح وإرجاع `reason: 'journal_tx_aborted'` عبر القارئ المباشر والمسارات الإنتاجية الأربعة. |
+
+### 20.3 التحقق من صدق متانة IndexedDB في مسارات الفصول والنوافذ المنبثقة (Section 5 Verification)
+تمت مراجعة والتحقق من:
+- `saveSubjects()`، `saveScheduleData()`، `saveLogs()`، و`persistWorkspaceDomainToIDB()`
+- `saveSingleInputModal()`، `openSingleInputModal()`، `openConfirmModal()`
+- `triggerAddGroup()`، `triggerEditGroup()`، و`triggerDeleteGroup()`
+وتم التأكد من أن `idbPersisted` لا تصبح `true` إلا بعد اكتمال `tx.oncomplete` فعلياً، وأن النوافذ المنبثقة لا تُغلق ولا تُظهر نجاحاً قبل التأكد من الحفظ المتين، واجتازت الفحوصات `Test FF.8` و`Test FF.8b` و`Test FF.9` في Chromium E2E بالإضافة إلى `297/297` في `test_phase4_regressions.js`.
+
+### 20.4 قائمة الملفات المعدلة في هذه التمريرة
+1. `index.html` — تصفير `dbReadyPromise` بعد اكتمال `initPdfDB()`، معالجة `AbortError` في `readDurableCloudSyncJournal()` و`persistWorkspaceDomainToIDB()` لضمان حسم `tx.onabort` بـ `journal_tx_aborted` / `idb_tx_aborted`، وتعيين `updateCloudNavUI('error')` عند `LOCAL_ANNOTATIONS_READ_ERROR` في `pushWorkspaceToCloud()`.
+2. `test_phase4_1_chromium_e2e.js` — تحديث حقن الأعطال الحتمي في `Test J.2` و`Test FF.7b` و`Test FF.7d` و`Test FF.8b` في متصفح Chromium الحقيقي.
+3. `reports/CURRENT.md` — توثيق خط الأساس `531811772626dbd0d66729e344efc6afb659b6e1` ونتائج CI Run `43305785869` ونتائج الاختبارات المحلية (`610/610 PASSED`).
+
+### 20.5 مصفوفة نتائج الاختبارات المحلية الفعلية فوق `531811772626dbd0d66729e344efc6afb659b6e1`
+
+| أمر الاختبار المنفذ | البيئة ونطاق الفحص | النتيجة الفعلية | كود الخروج |
+| :--- | :--- | :--- | :--- |
+| `npm run lint` | فحص الصياغة الاستاتيكي لملفات الخادم والبناء والاختبارات | **PASSED (0 Errors)** | `0` |
+| `npm run build` | بناء وتجهيز حزمة الإنتاج (`dist/`) | **PASSED** | `0` |
+| `npm run test:static` (`node run_verification_tests.js`) | فحوصات التشفير PBKDF2 والأمان الثابت و`sw.js` | **54/54 PASSED (100%)** | `0` |
+| `node run_comprehensive_verification.js` | التحقق الشامل من المنطق الأكاديمي | **42/42 PASSED (100%)** | `0` |
+| `node test_phase3_cross_account_isolation.js` | عزل الحسابات وسلامة السجلات | **52/52 PASSED (100%)** | `0` |
+| `node test_phase4_regressions.js` | اختبارات الانحدار الشاملة + فحوصات Phase A | **297/297 PASSED (100%)** | `0` |
+| `npm run test:pglite` (`node test_phase4_2_postgres_integration.js`) | توافق PostgreSQL المدمج وRLS والـ OCC | **41/41 PASSED (100%)** | `0` |
+| `npm run test:e2e` (`node test_phase4_1_chromium_e2e.js`) | متصفح Chromium الحقيقي (شاملة `Test J.2` و`Test FF.7b` و`Test FF.7d` و`Test FF.8`–`FF.9`) | **124/124 PASSED (100%)** | `0` |
+| `npm run test:pg16` (`node test_phase4_2_1_pg16_concurrency.js`) | خادم PostgreSQL 16 الحقيقي متعدد الاتصالات | **NOT RUN LOCALLY** (`0/0` محلياً لعدم وجود خادم PostgreSQL 16 محلي على `127.0.0.1:5432` في حاوية AI Studio؛ اجتاز **96/96 PASSED** في GitHub Actions CI Run `43305785869`) | — |
+| **إجمالي الفحوصات المنفذة محلياً (`npm test`)** | **مجموع الفحوصات الفعلية المجتازة محلياً** | **610/610 PASSED (100%)** | `0` |
+
+### 20.6 القيود المتبقية وحالة الاعتماد
+- **حالة المرحلة الحالية:** `IMPLEMENTED — LOCAL TESTS ONLY`.
+- **القيود المتبقية:** يلزم رفع الملفات الثلاثة المعدلة (`index.html`, `test_phase4_1_chromium_e2e.js`, `reports/CURRENT.md`) يدوياً من قِبل المالك إلى فرع `main` على GitHub والتحقق من نجاح تشغيل GitHub Actions CI الكامل (`706/706` شاملة `96/96` في PostgreSQL 16 و`124/124` في Chromium E2E) قبل انتقال الحالة إلى `CI VERIFIED` ثم قرار المالك بشأن `APPROVED`.

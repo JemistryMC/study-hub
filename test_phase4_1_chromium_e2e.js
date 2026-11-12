@@ -712,25 +712,67 @@ async function main() {
         }
       };
 
-      // Temporarily simulate dbInstance = null to trigger DB_NOT_INITIALIZED error in getAllAnnotationsMapFromDB
+      // 1. Temporarily set dbInstance = null to verify direct getAllAnnotationsMapFromDB DB_NOT_INITIALIZED (Test J.1)
       const savedDb = dbInstance;
+      const origProtoTx = IDBDatabase.prototype.transaction;
       dbInstance = null;
 
       const directReadRes = await getAllAnnotationsMapFromDB(uidA);
-      const pushRes = await pushWorkspaceToCloud(true, true);
 
-      dbInstance = savedDb;
-      supabaseClient = origClient;
+      // 2. Inject a genuine IndexedDB read failure on the 'annotations' store while allowing
+      // readDurableCloudSyncJournal() inside pushWorkspaceToCloud() to automatically reopen IndexedDB via initPdfDB() (Test J.2)
+      let reopenedAutomatically = false;
+      let pushRes = null;
+      try {
+        IDBDatabase.prototype.transaction = function (storeNames, mode) {
+          const names = Array.isArray(storeNames) ? storeNames : [storeNames];
+          if (names.length === 1 && names[0] === 'annotations' && (!mode || mode === 'readonly')) {
+            const fakeErr = new DOMException('Simulated IndexedDB annotations read failure', 'NotReadableError');
+            const fakeTx = {
+              mode: 'readonly',
+              error: fakeErr,
+              oncomplete: null,
+              onerror: null,
+              onabort: null,
+              objectStore() {
+                return {
+                  getAll() {
+                    const req = { result: null, error: fakeErr, onsuccess: null, onerror: null };
+                    queueMicrotask(() => {
+                      if (typeof req.onerror === 'function') req.onerror({ target: req });
+                      if (typeof fakeTx.onerror === 'function') fakeTx.onerror({ target: fakeTx });
+                    });
+                    return req;
+                  }
+                };
+              }
+            };
+            return fakeTx;
+          }
+          return origProtoTx.apply(this, arguments);
+        };
+
+        pushRes = await pushWorkspaceToCloud(true, true);
+        reopenedAutomatically = Boolean(dbInstance !== null);
+      } finally {
+        IDBDatabase.prototype.transaction = origProtoTx;
+        if (dbInstance && dbInstance !== savedDb) {
+          try { dbInstance.close(); } catch (e) {}
+        }
+        dbInstance = savedDb;
+        supabaseClient = origClient;
+      }
 
       return {
         directReadRes,
+        reopenedAutomatically,
         pushRes,
         rpcCalled
       };
     });
     assert(resJ.directReadRes.ok === false && resJ.directReadRes.error?.code === 'DB_NOT_INITIALIZED',
            'Test J.1: getAllAnnotationsMapFromDB returns { ok: false, error } when DB read cannot be performed');
-    assert(resJ.pushRes.status === 'error' && resJ.pushRes.error === 'LOCAL_ANNOTATIONS_READ_ERROR' && resJ.rpcCalled === false,
+    assert(resJ.reopenedAutomatically === true && resJ.pushRes.status === 'error' && resJ.pushRes.error === 'LOCAL_ANNOTATIONS_READ_ERROR' && resJ.pushRes.details?.code === 'IDB_READ_ERROR' && resJ.rpcCalled === false,
            'Test J.2: pushWorkspaceToCloud immediately aborts and never calls Supabase RPC when local annotation read fails');
 
     // ========================================================================
@@ -4790,14 +4832,15 @@ async function main() {
         revision: 1
       };
 
-      // 1. Missing cloud_sync_journal store
-      const origContains = dbInstance.objectStoreNames.contains.bind(dbInstance.objectStoreNames);
-      dbInstance.objectStoreNames.contains = function (name) {
+      // 1. Missing cloud_sync_journal store (override DOMStringList.prototype.contains so IDBDatabase.objectStoreNames getter returns false in Chromium)
+      const origProtoContains = DOMStringList.prototype.contains;
+      DOMStringList.prototype.contains = function (name) {
         if (String(name) === 'cloud_sync_journal') return false;
-        return origContains(name);
+        return origProtoContains.call(this, name);
       };
       let missingStoreRes = null;
       try {
+        const containsReturnsFalse = dbInstance.objectStoreNames.contains('cloud_sync_journal') === false;
         const loginRes = await syncWorkspaceOnLogin();
         const pullRes = await pullWorkspaceFromCloud(false);
         const applyRes = await applyCloudWorkspacePayload(staleRemoteRow, false);
@@ -4805,17 +4848,19 @@ async function main() {
         const annosAfter = await getAnnotationsFromDB('7702', uid);
         const navBtn = document.getElementById('cloudNavBtn');
         missingStoreRes = {
+          containsReturnsFalse,
           allAbortedFailClosed: Boolean(
-            loginRes?.status === 'error' && loginRes?.reason === 'durable_journal_read_failed' &&
-            pullRes?.status === 'error' && pullRes?.reason === 'durable_journal_read_failed' &&
-            applyRes?.status === 'error' && applyRes?.reason === 'durable_journal_read_failed' &&
-            pushRes?.status === 'error' && pushRes?.reason === 'durable_journal_read_failed'
+            containsReturnsFalse &&
+            loginRes?.ok === false && loginRes?.status === 'error' && loginRes?.reason === 'durable_journal_read_failed' &&
+            pullRes?.ok === false && pullRes?.status === 'error' && pullRes?.reason === 'durable_journal_read_failed' &&
+            applyRes?.ok === false && applyRes?.status === 'error' && applyRes?.reason === 'durable_journal_read_failed' &&
+            pushRes?.ok === false && pushRes?.status === 'error' && pushRes?.reason === 'durable_journal_read_failed'
           ),
           survived: Boolean(annosAfter?.['1']?.some(s => s.id === 'ff_quota_survivor_stroke')),
-          uiError: Boolean(navBtn && navBtn.classList.contains('error'))
+          uiError: Boolean(navBtn && navBtn.classList.contains('error') && !navBtn.classList.contains('synced'))
         };
       } finally {
-        dbInstance.objectStoreNames.contains = origContains;
+        DOMStringList.prototype.contains = origProtoContains;
       }
 
       // 2. cloud_sync_journal readonly transaction onerror
@@ -4868,34 +4913,48 @@ async function main() {
         dbInstance.transaction = origTx;
       }
 
-      // 3. cloud_sync_journal readonly transaction onabort (using real IDBTransaction.abort())
+      // 3. cloud_sync_journal readonly transaction onabort (deterministic abort on real IDBTransaction before completion)
       localStorage.removeItem('pharmaAnnotationsDirty_' + uid);
       localStorage.removeItem('pharmaWorkspaceDirty_' + uid);
       localStorage.removeItem('pharmaWorkspaceDirty');
       dirtyAnnotationsForCloud = false;
+      let onabortFiredCount = 0;
       dbInstance.transaction = function (storeNames, mode) {
         const tx = origTx(storeNames, mode);
         const names = Array.isArray(storeNames) ? storeNames : [storeNames];
         if (names.includes('cloud_sync_journal') && (!mode || mode === 'readonly')) {
-          setTimeout(() => {
+          tx.addEventListener('abort', () => {
+            onabortFiredCount++;
+          });
+          queueMicrotask(() => {
             try { tx.abort(); } catch (e) {}
-          }, 0);
+          });
         }
         return tx;
       };
       let txAbortRes = null;
       try {
+        const directJournalRes = await readDurableCloudSyncJournal(uid);
         const loginRes = await syncWorkspaceOnLogin();
+        const pullRes = await pullWorkspaceFromCloud(false);
         const applyRes = await applyCloudWorkspacePayload(staleRemoteRow, false);
+        const pushRes = await pushWorkspaceToCloud(false, false);
         const annosAfter = await getAnnotationsFromDB('7702', uid);
         const navBtn = document.getElementById('cloudNavBtn');
         txAbortRes = {
+          onabortFiredCount,
+          directJournalOk: directJournalRes?.ok,
+          directJournalReason: directJournalRes?.reason,
           abortedFailClosed: Boolean(
+            onabortFiredCount >= 5 &&
+            directJournalRes?.ok === false && directJournalRes?.reason === 'journal_tx_aborted' &&
             loginRes?.status === 'error' && loginRes?.journalReason === 'journal_tx_aborted' &&
-            applyRes?.status === 'error' && applyRes?.journalReason === 'journal_tx_aborted'
+            pullRes?.status === 'error' && pullRes?.journalReason === 'journal_tx_aborted' &&
+            applyRes?.status === 'error' && applyRes?.journalReason === 'journal_tx_aborted' &&
+            pushRes?.status === 'error' && pushRes?.journalReason === 'journal_tx_aborted'
           ),
           survived: Boolean(annosAfter?.['1']?.some(s => s.id === 'ff_quota_survivor_stroke')),
-          uiError: Boolean(navBtn && navBtn.classList.contains('error'))
+          uiError: Boolean(navBtn && navBtn.classList.contains('error') && !navBtn.classList.contains('synced'))
         };
       } finally {
         dbInstance.transaction = origTx;
@@ -4969,9 +5028,9 @@ async function main() {
           }
           if (window.__wsTxFaultMode === 'onabort') {
             const realTx = window.__origDbTxFF(storeNames, mode);
-            setTimeout(() => {
+            queueMicrotask(() => {
               try { realTx.abort(); } catch (e) {}
-            }, 0);
+            });
             return realTx;
           }
         }

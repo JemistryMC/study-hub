@@ -23980,6 +23980,7 @@
                         console.warn('Drain pending local artifact cleanup warning:', drainErr);
                     }
 
+                    dbReadyPromise = null;
                     resolve(dbInstance);
                 };
 
@@ -24133,7 +24134,9 @@
                     };
                     reqAnno.onerror = (e) => {
                         readFailed = true;
-                        finishFail('journal_tx_error', (reqAnno && reqAnno.error) || (tx && tx.error) || e);
+                        const errObj = (reqAnno && reqAnno.error) || (tx && tx.error) || (e && e.target && e.target.error) || e;
+                        if (errObj && errObj.name === 'AbortError') return;
+                        finishFail('journal_tx_error', errObj);
                     };
                     reqWs.onsuccess = () => {
                         if (settled || readFailed) return;
@@ -24147,7 +24150,9 @@
                     };
                     reqWs.onerror = (e) => {
                         readFailed = true;
-                        finishFail('journal_tx_error', (reqWs && reqWs.error) || (tx && tx.error) || e);
+                        const errObj = (reqWs && reqWs.error) || (tx && tx.error) || (e && e.target && e.target.error) || e;
+                        if (errObj && errObj.name === 'AbortError') return;
+                        finishFail('journal_tx_error', errObj);
                     };
                     tx.oncomplete = () => {
                         if (settled || readFailed) return;
@@ -24164,11 +24169,13 @@
                     };
                     tx.onerror = (e) => {
                         readFailed = true;
-                        finishFail('journal_tx_error', (tx && tx.error) || e);
+                        const errObj = (tx && tx.error) || (e && e.target && e.target.error) || e;
+                        if (errObj && errObj.name === 'AbortError') return;
+                        finishFail('journal_tx_error', errObj);
                     };
                     tx.onabort = (e) => {
                         readFailed = true;
-                        finishFail('journal_tx_aborted', (tx && tx.error) || e);
+                        finishFail('journal_tx_aborted', (tx && tx.error) || (e && e.target && e.target.error) || e);
                     };
                 } catch (e) {
                     finishFail('journal_exception', e);
@@ -24299,7 +24306,11 @@
                         updatedAt: nowMs
                     });
                     if (putWsReq) {
-                        putWsReq.onerror = (err) => finishFail('idb_tx_error', (putWsReq && putWsReq.error) || (tx && tx.error) || err);
+                        putWsReq.onerror = (err) => {
+                            const errObj = (putWsReq && putWsReq.error) || (tx && tx.error) || (err && err.target && err.target.error) || err;
+                            if (errObj && errObj.name === 'AbortError') return;
+                            finishFail('idb_tx_error', errObj);
+                        };
                     }
                     if (shouldWriteJournal) {
                         const jStore = tx.objectStore('cloud_sync_journal');
@@ -24314,7 +24325,11 @@
                             updatedAt: nowMs
                         });
                         if (putJReq) {
-                            putJReq.onerror = (err) => finishFail('idb_tx_error', (putJReq && putJReq.error) || (tx && tx.error) || err);
+                            putJReq.onerror = (err) => {
+                                const errObj = (putJReq && putJReq.error) || (tx && tx.error) || (err && err.target && err.target.error) || err;
+                                if (errObj && errObj.name === 'AbortError') return;
+                                finishFail('idb_tx_error', errObj);
+                            };
                         }
                     }
                     tx.oncomplete = () => {
@@ -24322,8 +24337,12 @@
                         settled = true;
                         resolve({ ok: true, persisted: true, key: stateKey, updatedAt: nowMs });
                     };
-                    tx.onerror = (err) => finishFail('idb_tx_error', (tx && tx.error) || err);
-                    tx.onabort = (err) => finishFail('idb_tx_aborted', (tx && tx.error) || err);
+                    tx.onerror = (err) => {
+                        const errObj = (tx && tx.error) || (err && err.target && err.target.error) || err;
+                        if (errObj && errObj.name === 'AbortError') return;
+                        finishFail('idb_tx_error', errObj);
+                    };
+                    tx.onabort = (err) => finishFail('idb_tx_aborted', (tx && tx.error) || (err && err.target && err.target.error) || err);
                 } catch (err) {
                     finishFail('idb_exception', err);
                 }
@@ -39094,6 +39113,7 @@ function togglePdfAudioPlayerBar(forceState) {
                         // Never send an empty payload when DB read failed, as it would wipe cloud annotations!
                         if (!annoResult || !annoResult.ok || annoResult.error) {
                             console.error('Aborting cloud sync: local annotations could not be read safely:', annoResult?.error);
+                            updateCloudNavUI('error');
                             return { status: 'error', error: 'LOCAL_ANNOTATIONS_READ_ERROR', details: annoResult?.error };
                         }
                         const verifiedAnnotations = annoResult.verifiedMap || {};
