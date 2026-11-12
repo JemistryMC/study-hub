@@ -3,11 +3,11 @@
 **آخر تحديث:** 2026-11-12  
 **المستودع:** `JemistryMC/study-hub`  
 **الفرع النشط:** `main`  
-**آخر HEAD توثيقي على GitHub (Documentation HEAD):** `b66d72e359e7d2e8531f88f797d4d296d41206a3`  
-**آخر HEAD مصدري معتمد في CI (Latest CI-Verified Source HEAD):** `94259b543a021d4f06fdc0a9aa44d3f346d63037` (CI Run #43 — `43241683581`)  
-**نقاط الأساس التاريخية السابقة (Previous Baseline Checkpoints):** `0841b76d6c07ce756a44a874e8e574253ed2aeb3` ← `2433bf6d4a128acf6736f3c099496d551947cc7e` ← `9362085a32c173766800e416bd47d17301c837a6` ← `ecedff6069c5d1691812b3427f83e159cc6eed16`  
-**المرحلة الفرعية النشطة:** `EXO — M6 P0 DATA INTEGRITY REMEDIATION — PHASE A`  
-**الحالة:** `IMPLEMENTED — LOCAL TESTS ONLY` (تعديلات Phase A P0 منفذة ومختبرة محلياً بنسبة 100% فوق خط الأساس `94259b5` / `b66d72e`؛ بانتظار مراجعة المالك ومزامنة GitHub وتشغيل CI، وليست `CI VERIFIED` أو `APPROVED` بعد)
+**آخر HEAD على GitHub (Current Base HEAD):** `03c0737e857c95099d416b0fbf22eff581d97d86`  
+**آخر HEAD مصدري معتمد في CI لـ M6 الأساسي (Latest CI-Verified Source HEAD):** `94259b543a021d4f06fdc0a9aa44d3f346d63037` (CI Run #43 — `43241683581`)  
+**نقاط الأساس التاريخية السابقة (Previous Baseline Checkpoints):** `b66d72e359e7d2e8531f88f797d4d296d41206a3` ← `0841b76d6c07ce756a44a874e8e574253ed2aeb3` ← `2433bf6d4a128acf6736f3c099496d551947cc7e` ← `9362085a32c173766800e416bd47d17301c837a6` ← `ecedff6069c5d1691812b3427f83e159cc6eed16`  
+**المرحلة الفرعية النشطة:** `EXO — M6 PHASE A ACCEPTANCE GAP CLOSURE & CRITICAL P0 STORAGE SAFETY`  
+**الحالة:** `IMPLEMENTED — LOCAL TESTS ONLY` (تعديلات إغلاق فجوات القبول لـ Phase A ومعالجة أعطال التخزين المحلي P0 منفذة ومختبرة محلياً بنسبة 100% — `598/598 PASSED` — فوق خط الأساس `03c0737e857c95099d416b0fbf22eff581d97d86`؛ بانتظار مراجعة المالك ومزامنة GitHub وتشغيل CI، وليست `CI VERIFIED` أو `APPROVED` بعد)
 
 هذا الملف هو المرجع الوحيد للحالة الحالية والمرحلة النشطة. إذا خالفه تقرير تاريخي أو تعليمات مرحلة قديمة، يُتبع هذا الملف ومستند المرحلة النشطة.
 
@@ -763,5 +763,76 @@ SELECT json_build_object(
 - **حالة Phase A الحالية:** `IMPLEMENTED — LOCAL TESTS ONLY`.
 - **تأكيد عدم الخلط:** لم يتم خلط أي تعديلات أداء أو إعادة هيكلة من Phase B (`P1`) داخل هذه التمريرة؛ النطاق مقصور حصراً على سلامة واستمرارية البيانات (`P0`).
 - **تأكيد السياسة الأمنية:** لم يتم إجراء أي commit أو push أو تعديل على قاعدة بيانات الإنتاج أو ملفات migrations.
+
+---
+
+## 19. إغلاق فجوات القبول لـ Phase A ومعالجة أعطال التخزين المحلي الحرجة (Phase A Acceptance Gap Closure & Critical P0 Storage Failure Remediation — Above Base `03c0737`)
+
+بناءً على مراجعة المالك لـ Phase A فوق خط الأساس `03c0737e857c95099d416b0fbf22eff581d97d86`، تم تنفيذ وإغلاق كافة فجوات القبول الخمس (`Gap 1` إلى `Gap 5`) ومتطلبات الحماية الحرجة من فشل `localStorage` وفقدان بيانات المواد والفصول والمحاضرات والجداول (`Additional Critical P0`)، دون المساس بـ Phase B:
+
+### 19.1 الفجوة 1: سجل الاتساخ المتين للحواشي ومساحة العمل في IndexedDB (Gap 1 — Durable Annotation & Workspace Dirty Journal)
+- **المشكلة والسبب الجذري:** كانت الدالة `markUserWorkspaceDirtyState()` تغلف كتابة علامات الاتساخ في `localStorage` (`pharmaAnnotationsDirty_<uid>`, `pharmaWorkspaceDirty_<uid>`, `pharmaWorkspaceDirty`) بـ `try/catch` صامت. عند امتلاء حصة `localStorage` (`QuotaExceededError`)، تُحفظ الحواشي في IndexedDB بينما تفشل كتابة علامة الاتساخ في `localStorage`، مما يعرض الحواشي المحلية للطمس عند إعادة التحميل ومزامنة السحابة.
+- **الإصلاح الهندسي المنفذ:**
+  1. ترقية قاعدة بيانات IndexedDB (`WorkspaceMediaStore`) إلى الإصدار `5` وإضافة مخزنين متينين:
+     - `cloud_sync_journal` (`keyPath: 'key'`، مع فهرس `by_userId`): لتسجيل حالة اتساخ المزامنة السحابية لكل حساب بمعرف `usr_<sanitizedUid>::__cloud_sync_journal_v1__`.
+     - `workspace_state` (`keyPath: 'key'`، مع فهرس `by_userId`): لحفظ النسخة القانونية المتينة لمساحة العمل (`subjects`, `scheduleEvents`, `scheduleBacklog`, `plannerPrefs`, `logs`) بمعرف `usr_<sanitizedUid>::__workspace_state_v1__`.
+  2. في `flushPendingAnnotationsSave()`، يتم تنفيذ كتابة سجلات الحواشي (`annotations`) وسجل الاتساخ السحابي (`cloud_sync_journal`) داخل **نفس معاملة IndexedDB الذرية متعددة المخازن** (`db.transaction(['annotations', 'cloud_sync_journal'], 'readwrite')`)، متضمنةً `dirtyAnnotations: true`, `dirtyWorkspace: true`, `dirtyLectureIds`, `lectureIds`, `mutationSeq`, `workspaceMutationSeq`.
+  3. في `saveAnnotationsToDB()`، يتم كذلك تحديث سجل `cloud_sync_journal` متانةً والتحقق من عدم تجاهل أي فشل في حفظ الحواشي أو بيانات التعافي/المزامنة.
+  4. تحديث `syncWorkspaceOnLogin()` و`pullWorkspaceFromCloud()` و`applyCloudWorkspacePayload()` و`pushWorkspaceToCloud()` لقراءة السجل المتين عبر `readDurableCloudSyncJournal(uid)` قبل السماح لأي بيانات سحابية بالكتابة فوق الحواشي أو مساحة العمل المحلية، مع ترقية عدادات التسلسل (`annotationMutationSeq` و`localWorkspaceMutationSeq`) من السجل المتين عبر عمليات إعادة تحميل الصفحة.
+  5. لا يتم مسح سجل الاتساخ المتين (`clearDurableAnnotationDirtyJournal` و`clearDurableWorkspaceDirtyJournal`) إلا بعد تأكيد الخادم السحابي لنجاح RPC (`status === 'success'`) وبشرط عدم حدوث تعديل أحدث (`annotationMutationSeq === pushStartAnnoSeq` و`localWorkspaceMutationSeq === pushStartWorkspaceSeq`).
+
+### 19.2 الفجوة 2: استعادة جلسة Supabase الحقيقية في متصفح Chromium E2E (Gap 2 — Real Supabase Session Restoration in Chromium E2E)
+- **المشكلة والسبب الجذري:** كان الاختبار السابق يعيّن `currentCloudUser` يدوياً قبل وبعد `page.reload()`، متجاوزاً مسار بدء التشغيل الفعلي `initSupabaseCloudEngine()` واستعادة الجلسة عبر `auth.getSession()`.
+- **الإصلاح الهندسي المنفذ (`Test FF.1` – `Test FF.9` في `test_phase4_1_chromium_e2e.js`):**
+  1. إنشاء سياق متصفح Chromium معزول وجديد (`contextFF`) وتثبيت محاكاة `window.supabase.createClient()` عبر `contextFF.addInitScript(...)` **قبل** بدء تشغيل التطبيق.
+  2. إرجاع جلسة صالحة لنفس الحساب الاصطناعي من `auth.getSession()` وإشعار `auth.onAuthStateChange()` تلقائياً عند التحميل الأولي وبعد `pageFF.reload()` الكامل دون أي تعيين يدوي لـ `currentCloudUser`.
+  3. إثبات تنفيذ المسار الطبيعي الكامل: `initSupabaseCloudEngine()` ← `auth.getSession()` ← `handleAuthSessionChange()` ← `syncWorkspaceOnLogin()` في مواجهة صف سحابي قديم (`revision: 1`, `annotations: {}`)، وبقاء الحواشي المحلية (الضربات الخطية، الملاحظات النصية، الدبابيس الصوتية، وأوراق الملاحظات الإضافية المتعددة `Extra Note Sheets`) سليمة بالكامل ورفعها إلى السحابة بمراجعة محدثة.
+
+### 19.3 الفجوة 3 والفجوة 4: فشل وتأكيد RPC عبر إعادة التحميل وامتلاء الحصة أثناء كتابة علامة الاتساخ (Gaps 3 & 4)
+- **الفجوة 3 (RPC Failure & Confirmation Across Reload):**
+  - عند فشل RPC (`503 Service Unavailable`) بعد تفريغ `350ms`، تبقى علامات الاتساخ في `localStorage` وسجل `cloud_sync_journal` في IndexedDB مفعلة، وتتحول حالة الواجهة إلى `'error'` (`updateCloudNavUI('error')`).
+  - بعد إعادة تحميل المتصفح وفشل الاسترداد الأولي، تظل الحواشي المحلية محمية من الطمس؛ وعند استعادة الشبكة ونجاح RPC التالي، يتم تحديث المراجعة ومسح سجل الاتساخ المتين وعلامات `localStorage` وتحديث الواجهة إلى `'synced'` (`P0-R11.4`–`P0-R11.6` و`Test FF.4`–`FF.6`).
+- **الفجوة 4 (QuotaExceededError on Dirty-Marker Write):**
+  - عند رمي `QuotaExceededError` على `localStorage.setItem` لمفاتيح `pharmaAnnotationsDirty_*` و`pharmaWorkspaceDirty*`، يلتزم سجل `cloud_sync_journal` الذري في IndexedDB بنجاح ويمنع `syncWorkspaceOnLogin()` و`pullWorkspaceFromCloud()` من الكتابة فوق الحواشي المحلية (`P0-R11.1`–`P0-R11.3` و`Test FF.7`).
+
+### 19.4 الفجوة 5: التغطية المستقلة لبقية مسارات Phase A P0 (Gap 5 — Remaining P0 Coverage)
+تمت إضافة اختبارات انحدار مستقلة ومباشرة في `test_phase4_regressions.js`:
+1. **`autoSortLecturesInGroup()` (`P0-R13.1` – `P0-R13.2`):** إثبات إعادة الترتيب الفعلي، ختم التغيير السببي (`_causalUpdatedAt`, `_causalSeq`)، تحديث `_causalDigest` للمجموعة والمادة، وفوز الترتيب الجديد عند الدمج السببي.
+2. **`handleLectureDragStart` + `handleLectureDrop` (`P0-R14.1` – `P0-R14.2`):** إثبات نقل المحاضرة بالسحب والإفلات، ختم التغيير السببي، وفوز الترتيب الجديد عند الدمج السببي.
+3. **استعادة الحساب المحلي المؤرشف (`P0-R15.1` – `P0-R15.2`):** إثبات استرجاع بيانات الحساب المحلي البديل من `pharmaPreviousLocalAccountSessionV1` و`pharmaAccountWorkspace_<prevLocalUid>` دون فقدان أي مادة أو محاضرة بعد تسجيل الخروج من حساب Supabase.
+4. **التراجع الذري عن الكتابة الجزئية في `saveScheduleData()` (`P0-R16.1` – `P0-R16.4`):** إثبات أنه عند نجاح كتابة `pharmaScheduleV4` وفشل كتابة `pharmaScheduleBacklogV4` أو `pharmaPlannerPrefsV1` بسبب `QuotaExceededError`، يتم استرجاع القيم السابقة المتسقة لكافة المفاتيح الثلاثة في `localStorage` فوراً وإرجاع `{ ok: false, persisted: false, rolledBack: true }`.
+
+### 19.5 المعالجة الحرجة الإضافية: منع فقدان البيانات عند فشل `localStorage` والترحيل المتين إلى IndexedDB (Additional Critical P0 — LocalStorage Failure & Data Loss)
+1. **التشخيص الدقيق لأعطال التخزين (`diagnoseStorageWriteFailure` & `getLastStorageFailureDiagnostics`):**
+   - تصنيف سبب الفشل بدقة إلى: `quota_exceeded`، `storage_disabled_or_private_mode`، `serialization_error`، أو `unknown_storage_error`، وتسجيل المفتاح المستهدف وحجم الحمولة واسم الاستثناء في `lastStorageFailureDiagnostics` دون كسر الجلسة.
+2. **منع النجاح الكاذب في النوافذ المنبثقة والفصول (`Modal & Chapter Creation/Edit/Delete Safety`):**
+   - في `openSingleInputModal()` و`saveSingleInputModal()` و`openDoubleInputModal()`: إذا أعاد رد النداء (`singleModalCallback` أو `onSave`) كائناً يشير إلى فشل الحفظ (`res.ok === false || res.persisted === false`)، تبقى النافذة مفتوحة مع الحفاظ على مدخلات المستخدم وعدم إظهار رسالة نجاح كاذبة.
+   - في `triggerAddGroup()` و`triggerEditGroup()` و`triggerDeleteGroup()`: الاحتفاظ بنسخة احتياطية عميقة قبل التعديل؛ وإذا فشل حفظ `localStorage` ولم ينجح الحفظ المتين في IndexedDB (`!saveRes.idbPersisted`)، يتم استرجاع المصفوفة والاختيار السابق فوراً وإرجاع `{ ok: false, persisted: false }`. أما إذا فشل `localStorage` ونجح الحفظ المتين في IndexedDB (`idbPersisted: true`)، تبقى البيانات محفوظة بأمان مع إشعار المستخدم.
+3. **الترحيل والاستعادة المتينة من IndexedDB عند بدء التشغيل (`persistWorkspaceDomainToIDB` & `migrateAndHydrateWorkspaceFromIDB`):**
+   - كل عملية حفظ في `saveSubjects()` و`saveScheduleData()` و`saveLogs()` تكتب النسخة القانونية في مخزن IndexedDB `workspace_state` مع تسجيل علم `lsPersisted: Boolean(lsPersisted)`.
+   - عند بدء التشغيل أو تبديل الحساب، تفحص `migrateAndHydrateWorkspaceFromIDB(uid)` مخزن `workspace_state`: فإذا كان `localStorage` فارغاً أو كان سجل IndexedDB يحمل `lsPersisted === false` (نتيجة فشل كتابة `localStorage` سابق قبل إغلاق التبويب)، يتم دمج واستعادة المواد والفصول والمحاضرات والجدول والسجلات سببياً من IndexedDB وإعادة كتابتها في `localStorage` بأمان (`P0-R17`–`P0-R20` و`Test FF.8`–`FF.9`).
+
+### 19.6 قائمة الملفات المعدلة في هذه التمريرة
+1. `index.html` — ترقية IndexedDB إلى v5 (`cloud_sync_journal`, `workspace_state`)، المعاملات الذرية لسجل اتساخ الحواشي، الترحيل المتين لمساحة العمل، التراجع المتسق في `saveScheduleData()`، وحماية النوافذ المنبثقة والفصول من الفشل الصامت.
+2. `test_phase4_regressions.js` — إضافة الفحوصات `P0-R11` إلى `P0-R20` (يرتفع الإجمالي من `266/266` إلى **`289/289 PASSED`**).
+3. `test_phase4_1_chromium_e2e.js` — توسيع وإعادة بناء `Test FF` (`Test FF.1` إلى `Test FF.9`) لاختبار استعادة جلسة Supabase الحقيقية وفشل/تأكيد RPC و`QuotaExceededError` واستعادة الفصول والمحاضرات عبر إعادة التحميل في Chromium (يرتفع الإجمالي من `116/116` إلى **`120/120 PASSED`**).
+4. `reports/CURRENT.md` — توثيق التغييرات ونتائج الاختبارات المحلية الفعلية.
+
+### 19.7 مصفوفة التحقق والاختبارات المحلية الفعلية بعد إغلاق الفجوات (Verified Local Test Matrix)
+
+| أمر الاختبار المنفذ | البيئة ونطاق الفحص | النتيجة الفعلية | كود الخروج |
+| :--- | :--- | :--- | :--- |
+| `npm run lint` | فحص الصياغة الاستاتيكي لملفات الخادم والبناء والاختبارات | **PASSED (0 Errors)** | `0` |
+| `npm run build` | بناء وتجهيز حزمة الإنتاج (`dist/`) | **PASSED** | `0` |
+| `npm run test:static` (`node run_verification_tests.js`) | فحوصات التشفير PBKDF2 والأمان الثابت و`sw.js` | **54/54 PASSED (100%)** | `0` |
+| `node run_comprehensive_verification.js` | التحقق الشامل من المنطق الأكاديمي | **42/42 PASSED (100%)** | `0` |
+| `node test_phase3_cross_account_isolation.js` | عزل الحسابات وسلامة السجلات | **52/52 PASSED (100%)** | `0` |
+| `node test_phase4_regressions.js` | اختبارات الانحدار الشاملة + فحوصات Phase A (`P0-R1`..`P0-R20`) | **289/289 PASSED (100%)** | `0` |
+| `npm run test:pglite` (`node test_phase4_2_postgres_integration.js`) | توافق PostgreSQL المدمج وRLS والـ OCC | **41/41 PASSED (100%)** | `0` |
+| `npm run test:e2e` (`node test_phase4_1_chromium_e2e.js`) | متصفح Chromium الحقيقي (كافة السيناريوهات A–FF شاملة `Test FF.1`..`FF.9`) | **120/120 PASSED (100%)** | `0` |
+| `npm run test:dd` (`node test_phase4_1_chromium_e2e.js --dd-only`) | الاختبار المستقل للتبويبين المتزامنين في Chromium | **3/3 PASSED (100%)** | `0` |
+| `npm run test:pg16` (`node test_phase4_2_1_pg16_concurrency.js`) | خادم PostgreSQL 16 الحقيقي متعدد الاتصالات | **NOT RUN LOCALLY** (يتطلب خادم PostgreSQL 16 المخصص في GitHub Actions CI؛ لا توجد أي تعديلات SQL/DB في Phase A) | — |
+| **إجمالي الفحوصات المدمجة المنفذة محلياً** | **مجموع الفحوصات الفعلية المجتازة محلياً في Phase A** | **598/598 PASSED (100%)** | `0` |
+
 
 
