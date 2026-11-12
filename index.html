@@ -19652,10 +19652,6 @@
                     memQ.push(item);
                 }
             }
-// LocalStorage already durably persisted the queue; don't block on the IndexedDB mirror.
-if (lsSucceeded) {
-    return true;
-}
             // 2. Durable IndexedDB annotation_recovery_vault write (primary/secondary durable store)
             let idbSucceeded = false;
             if (!testHooks || !testHooks.failIdbQueuePersist) {
