@@ -3,16 +3,17 @@
 **آخر تحديث:** 2026-11-13  
 **المستودع:** JemistryMC/study-hub  
 **فرع العمل:** main  
-**آخر Source SHA اجتاز GitHub Actions CI:** `86fda9824880c00268db117f1ab8780b106f6fe0`  
-**دليل CI:** GitHub Actions CI Run #53 — Run ID `43450226930` — SUCCESS على Source SHA أعلاه (WP 6.1)، بإجمالي موحد `755/755`، بما في ذلك PostgreSQL 16 الحقيقي `96/96` وChromium E2E `148/148`.  
-**دليل النشر:** GitHub Pages Run #146 — Run ID `43450226479` — SUCCESS على Source SHA نفسه.  
-**نقطة أساس المستودع عند بدء WP 6.2:** `c0f8e1d4e944fa8ecd7cdfa0c6da68cc76e4a8c1` (commits توثيقية فوق Source SHA `86fda9824880c00268db117f1ab8780b106f6fe0`).  
-**التغيير بعد التحقق:** التغييرات المحلية الحالية الخاصة بـ **WP 6.2** مسجلة كمسودة عمل محلية بانتظار مزامنة المالك مع GitHub ونجاح GitHub Actions CI، ولا تغيّر Source SHA المعتمد في CI حتى الآن.  
-**حالة Phase 6:** IN PROGRESS — WP 6.1 CI VERIFIED; WP 6.2 IMPLEMENTED — LOCAL TESTS ONLY; WP 6.3 INACTIVE UNTIL WP 6.2 CI PASSES; FINAL OWNER REVIEW DEFERRED TO PHASE 6 COMPLETION.  
+**آخر Application Source SHA اجتاز GitHub Actions CI:** `70d1a8446cf9bf2a84af2035788bf7db56e4d589`  
+**دليل CI:** GitHub Actions CI Run #54 — Run ID `43458938490` — SUCCESS على SHA أعلاه؛ إجمالي موحّد `766/766`، Chromium E2E `155/155`، PostgreSQL 16 الحقيقي `96/96`، وPGlite `41/41`.  
+**دليل النشر:** GitHub Pages Run #149 — Run ID `43458937476` — SUCCESS على SHA نفسه.  
+**نقطة الأساس عند بدء WP 6.2:** `c0f8e1d4e944fa8ecd7cdfa0c6da68cc76e4a8c1`.  
+**Commit تنفيذ WP 6.2:** `70d1a8446cf9bf2a84af2035788bf7db56e4d589` — [عرض commit](https://github.com/JemistryMC/study-hub/commit/70d1a8446cf9bf2a84af2035788bf7db56e4d589).  
+**حالة Phase 6:** IN PROGRESS — WP 6.1 CI VERIFIED; WP 6.2 CI VERIFIED — TECHNICALLY COMPLETE; WP 6.3 ACTIVE; FINAL OWNER PRODUCT REVIEW DEFERRED TO PHASE 6 COMPLETION.  
 **حالة WP 6.0:** READ-ONLY BASELINE AUDIT — ACCEPTED.  
 **حالة WP 6.1:** CI VERIFIED — COMPLETE.  
-**حالة WP 6.2:** `IMPLEMENTED — LOCAL TESTS ONLY` (`670/670` محلياً شاملة `54/54` static و`420/420` unit و`41/41` PGlite و`155/155` Chromium E2E شاملة `Test LL.1–LL.5`، و`5/5` Node Tier A benchmark؛ `npm run test:pg16` غير مشغّل محلياً لعدم توفر خادم PostgreSQL 16 محلي `ECONNREFUSED 127.0.0.1:5432`).  
-**حزمة العمل التالية (غير مفعّلة بعد):** WP 6.3 — Unified Chapter Workspace & PDF Studio Integration (تظل غير مفعّلة حتى مزامنة مصدر WP 6.2 واجتياز GitHub Actions CI بالكامل).  
+**حالة WP 6.2:** `CI VERIFIED — COMPLETE (TECHNICAL GATE ONLY; FINAL PHASE 6 PRODUCT APPROVAL DEFERRED)`. CI #54 passed `766/766`; Pages #149 succeeded. Includes Digital Bookshelf, actual search/filter/sort and persisted view modes, numbered TOC with search/status filters, collapse/expand, reorder and CRUD interactions, bilingual live switching, responsive checks, and PDF Studio open/close regression.  
+**حزمة العمل النشطة:** WP 6.3 — Unified Chapter Workspace & PDF Studio Integration. Its purpose is to change the actual study workflow and resource organization, not just re-skin the existing PDF modal.  
+**ملاحظة المالك — معيار تجربة المنتج:** بتاريخ 2026-11-13 أوضح المالك أن التجربة الحالية ما زالت تبدو له أقرب إلى `skin` من إعادة تصميم حقيقية. هذه ملاحظة مفتوحة على مستوى Phase 6 وليست رفضًا لـWP 6.2؛ من WP 6.3 فصاعدًا يجب إثبات تغييرات واضحة في رحلات المستخدم والتفاعلات وحالة العمل، لا الاكتفاء بتغيير CSS أو ترتيب البطاقات.  
 **نموذج المراجعة:** يستمر العمل في Work Packages بالتسلسل بعد اكتمال التنفيذ والتحقق التقني ونجاح GitHub Actions CI للحزمة السابقة. لا يُطلب اعتماد منفصل من المالك بعد كل حزمة. للمالك حق إرسال ملاحظات أو طلب تعديلات أو إيقاف العمل في أي وقت، ويحتفظ بالاعتماد النهائي بعد مراجعة Phase 6 كاملة.  
 **حدود لا يتضمنها هذا التفويض:** لا تغييرات في Production Supabase أو SQL/Migrations/RLS/RPC/Auth/OAuth/Google Drive permissions أو عقود المزامنة أو مخططات التخزين أو عزل الحسابات أو سياسة Free/VIP أو العمليات الأكاديمية المغلقة دون تفويض صريح مستقل.  
 **مراجع المصدر الحالية:** `reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md`, `reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md`, `reports/PHASE_6_BASELINE_AUDIT.md`, `reports/PHASE_6_WP_6_1_REPORT.md`, `reports/PHASE_6_WP_6_2_REPORT.md`.
@@ -24,7 +25,7 @@
 4. الفهرس والتسليم بين Gemini وChatGPT: `reports/README.md`.
 5. تقرير WP 6.0 المكتمل: `reports/PHASE_6_BASELINE_AUDIT.md`.
 6. تقرير WP 6.1 ونتائج GitHub Actions CI: `reports/PHASE_6_WP_6_1_REPORT.md`.
-7. تقرير WP 6.2 ونتائج الاختبارات المحلية: `reports/PHASE_6_WP_6_2_REPORT.md`.
+7. تقرير WP 6.2 ونتائج CI والتحقق التقني: `reports/PHASE_6_WP_6_2_REPORT.md`.
 
 ## قرارات التصميم المثبتة
 

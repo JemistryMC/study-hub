@@ -1,7 +1,7 @@
 # Phase 6 — EXO Personal Study Journal Experience Redesign
 ## Incremental Implementation Plan and Acceptance Gates
 
-**Status:** IN PROGRESS — WP 6.1 CI VERIFIED; WP 6.2 IMPLEMENTED — LOCAL TESTS ONLY; WP 6.3 INACTIVE UNTIL WP 6.2 CI PASSES; FINAL OWNER REVIEW AT PHASE 6 COMPLETION  
+**Status:** IN PROGRESS — WP 6.1 CI VERIFIED; WP 6.2 CI VERIFIED — TECHNICALLY COMPLETE (Run #54, 766/766); WP 6.3 ACTIVE; FINAL OWNER PRODUCT REVIEW AT PHASE 6 COMPLETION  
 **Design authority:** reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md  
 **Engineering authority:** GEMINI.md  
 **Initial app-source baseline:** c74315a4580d68c61da8a0f49ec2b2f5946301e4 (verify current GitHub HEAD before every task)  
@@ -21,6 +21,24 @@ The owner has directed that there will be **no separate owner-approval checkpoin
 5. Make save/sync/error states understandable and actionable.
 6. Preserve every existing feature, data contract, account boundary, and closed-loop operation.
 7. Improve usability without adding avoidable latency.
+
+## Owner feedback and experience-redesign acceptance standard (2026-11-13)
+
+The owner explicitly noted that the application still feels more like a visual skin than a substantive experience redesign. This is an open Phase 6 product-quality concern, not a rejection of WP 6.2 and not permission to discard the approved visual identity.
+
+From WP 6.3 onward, **visual changes alone do not satisfy a Work Package**. Before implementation, Gemini must document:
+- The current user journey and the target user journey, step by step.
+- The user friction being removed and the decisions/actions becoming easier.
+- The actual interaction and state transitions being changed.
+- The existing data entities and persistence paths involved, plus the exact contracts that must remain untouched.
+
+After implementation, demonstrate:
+- A real end-to-end user task through the UI, not only screenshots or isolated helper tests.
+- The expected state/data outcome after the action and, where applicable, after reload/session resume.
+- Keyboard/touch, bilingual RTL/LTR and responsive behavior.
+- A before/after workflow comparison and evidence that steps, context switching, duplicate work, or recovery burden materially improve.
+
+Clearly label each change as **visual**, **interaction**, or **workflow/data behavior**. Do not claim a full experience redesign from CSS, labels, cards, or mock data alone. If a package cannot change a real workflow within its authorized scope, state that limitation and propose a scoped technical adjustment rather than disguising a skin pass as a functional redesign. Preserve existing business rules and persistence/security contracts; protected changes still require separate explicit authorization.
 
 ---
 
@@ -72,13 +90,13 @@ Preserve every current destination, permission, event contract, and data behavio
 
 ## WP 6.2 — Library, Subjects, and Table of Contents
 
-**Status:** `IMPLEMENTED — LOCAL TESTS ONLY` — implemented locally on baseline `c0f8e1d4e944fa8ecd7cdfa0c6da68cc76e4a8c1` (verified source `86fda9824880c00268db117f1ab8780b106f6fe0`). Local verification passed (`670/670` across static, unit, PGlite, and Chromium E2E + `5/5` Node benchmark tiers); `test:pg16` requires CI PostgreSQL 16. WP 6.3 remains **inactive** until pushed WP 6.2 source passes GitHub Actions CI (`reports/PHASE_6_WP_6_2_REPORT.md`).
+**Status:** `CI VERIFIED — TECHNICALLY COMPLETE` on source SHA `70d1a8446cf9bf2a84af2035788bf7db56e4d589`. GitHub Actions CI Run #54 (`43458938490`) passed `766/766`, including PostgreSQL 16 `96/96`, Chromium E2E `155/155`, and PGlite `41/41`; Pages Run #149 (`43458937476`) succeeded. The final Phase 6 product approval remains deferred.
 
 Implement the restrained Digital Bookshelf presentation; preserve the existing subject/group/chapter hierarchy; make Table of Contents the default chapter view; show chapter number, name, real status/progress, and contextual actions. Add practical search/sort/filter and optional Grid View only when it fits the current architecture.
 
 Do not create duplicate domain entities for decorative covers. Keep chapter create/edit/reorder/delete efficient.
 
-**Gate 6.2:** subject/resource CRUD, chapter navigation, keyboard/touch, RTL/LTR, responsive tests (`Test LL.1–LL.5` + `test_wp6_2_unit.js` passing locally; awaiting GitHub Actions CI verification).
+**Gate 6.2:** PASSED — GitHub Actions CI Run #54 (`43458938490`) on `70d1a8446cf9bf2a84af2035788bf7db56e4d589`; unified `766/766`, real PostgreSQL 16 `96/96`, Chromium E2E `155/155`; Pages Run #149 (`43458937476`) SUCCESS.
 
 ---
 

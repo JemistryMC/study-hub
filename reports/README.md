@@ -14,11 +14,13 @@
 
 **Phase 6 — EXO Personal Study Journal Experience Redesign**
 
-الحالة: **Phase 6 IN PROGRESS — WP 6.1 CI VERIFIED; WP 6.2 IMPLEMENTED — LOCAL TESTS ONLY; WP 6.3 INACTIVE UNTIL WP 6.2 CI PASSES; FINAL OWNER REVIEW DEFERRED TO PHASE 6 COMPLETION**.
+الحالة: **Phase 6 IN PROGRESS — WP 6.1 CI VERIFIED; WP 6.2 CI VERIFIED — TECHNICALLY COMPLETE; WP 6.3 ACTIVE; FINAL OWNER PRODUCT REVIEW DEFERRED TO PHASE 6 COMPLETION**.
 
-**تقرير WP 6.0:** [PHASE_6_BASELINE_AUDIT.md](PHASE_6_BASELINE_AUDIT.md) تم رفعه إلى GitHub في commit `0a6100439a6d98fee9aaa84683ad4bf7d1247c5f` بعد جولة reconciliation مع قرارات المالك، واعتمده المالك بتاريخ 2026-11-13.  
-**تقرير WP 6.1:** [PHASE_6_WP_6_1_REPORT.md](PHASE_6_WP_6_1_REPORT.md) — CI Run #53 (`43450226930`) SUCCESS على SHA `86fda9824880c00268db117f1ab8780b106f6fe0`، بإجمالي `755/755` في `npm test` وPostgreSQL 16 `96/96` وChromium E2E `148/148`؛ وGitHub Pages Run #146 (`43450226479`) SUCCESS على SHA نفسه.  
-**تقرير WP 6.2:** [PHASE_6_WP_6_2_REPORT.md](PHASE_6_WP_6_2_REPORT.md) — الحالة: **`IMPLEMENTED — LOCAL TESTS ONLY`** (`670/670` محلياً شاملة `Test LL.1–LL.5` و`test_wp6_2_unit.js`؛ بانتظار مزامنة المالك مع `main` واجتياز GitHub Actions CI قبل بدء WP 6.3). تظل WP 6.3 غير مفعّلة حتى يجتاز مصدر WP 6.2 المرفوع اختبارات CI، ويحتفظ المالك بالاعتماد النهائي لـ Phase 6 عند اكتمالها.
+**تقرير WP 6.0:** [PHASE_6_BASELINE_AUDIT.md](PHASE_6_BASELINE_AUDIT.md) تم رفعه إلى GitHub واعتمده المالك بتاريخ 2026-11-13.  
+**تقرير WP 6.1:** [PHASE_6_WP_6_1_REPORT.md](PHASE_6_WP_6_1_REPORT.md) — CI Run #53 (`43450226930`) SUCCESS على SHA `86fda9824880c00268db117f1ab8780b106f6fe0`، وPages Run #146 (`43450226479`) SUCCESS.  
+**تقرير WP 6.2:** [PHASE_6_WP_6_2_REPORT.md](PHASE_6_WP_6_2_REPORT.md) — CI Run #54 (`43458938490`) SUCCESS على SHA `70d1a8446cf9bf2a84af2035788bf7db56e4d589` بإجمالي `766/766`؛ Chromium E2E `155/155`؛ PostgreSQL 16 `96/96`؛ PGlite `41/41`. Pages Run #149 (`43458937476`) SUCCESS. WP 6.2 اجتازت البوابة التقنية، والاعتماد النهائي لتجربة Phase 6 مؤجل لنهاية المرحلة.  
+**الحزمة النشطة:** WP 6.3 — Unified Chapter Workspace & PDF Studio Integration.  
+**ملاحظة المالك (2026-11-13):** لا يكفي أن يبدو التطبيق كـskin جديد. الحزم القادمة مطالبة بإظهار إعادة تصميم فعلية لرحلات المستخدم والتفاعلات وسير العمل؛ يجب توثيق Before/After user journeys واختبار آثار التفاعلات على حالة التطبيق والبيانات، مع الحفاظ على عقود البيانات والمنطق الحالي.
 
 ## حالة Phase 5.2 السابقة
 

@@ -1,4 +1,4 @@
-# EXO — Phase 6 (WP 6.2) Implementation & Local Verification Report
+# EXO — Phase 6 (WP 6.2) Implementation & CI Verification Report
 ## Digital Bookshelf, Library, Subjects & Table of Contents
 
 **Work Package:** WP 6.2 — Digital Bookshelf, Library, Subjects & Table of Contents  
@@ -6,8 +6,8 @@
 **Target Branch:** `main`  
 **Starting Repository HEAD (at WP 6.2 Handoff):** `c0f8e1d4e944fa8ecd7cdfa0c6da68cc76e4a8c1` (documentation commits on top of verified source SHA)  
 **Last CI-Verified Application Source SHA:** `86fda9824880c00268db117f1ab8780b106f6fe0` (WP 6.1 CI Run `#53` [`43450226930`] — `755/755 PASSED`, Pages Run `#146` [`43450226479`] — `SUCCESS`)  
-**WP 6.2 Status:** `IMPLEMENTED — LOCAL TESTS ONLY`  
-**Phase 6 Status:** `IN PROGRESS — WP 6.2 AWAITING OWNER GITHUB SYNC & CI VERIFICATION; WP 6.3 INACTIVE UNTIL WP 6.2 SOURCE SHA PASSES CI; FINAL OWNER REVIEW DEFERRED TO PHASE 6 COMPLETION`
+**WP 6.2 Status:** `CI VERIFIED — TECHNICALLY COMPLETE`  
+**Phase 6 Status:** `IN PROGRESS — WP 6.2 CI VERIFIED ON 70d1a8446cf9bf2a84af2035788bf7db56e4d589; WP 6.3 ACTIVE; FINAL OWNER PRODUCT REVIEW DEFERRED TO PHASE 6 COMPLETION`
 
 ---
 
@@ -125,7 +125,8 @@ All required selectors, handlers, and closed-loop integrations inside `#subjects
 
 - **Local Verified Assertion Total (excluding `test:pg16`):** **670 / 670 PASSED (100%)** (`54` static + `420` unit + `41` PGlite + `155` Chromium E2E).
 - **Secret Scan Verification:** `grep` scan across `/index.html`, `/test_wp6_2_unit.js`, `/test_phase4_1_chromium_e2e.js`, `/package.json`, and `/run_all_tests.js` returned `NO_SECRETS_FOUND` (zero API keys, JWTs, OAuth tokens, service-role secrets, or private keys).
-- **GitHub Actions CI Status:** **NOT YET RUN ON WP 6.2 SOURCE** — WP 6.2 remains strictly **`IMPLEMENTED — LOCAL TESTS ONLY`** until the owner syncs to `JemistryMC/study-hub` (`main`) and GitHub Actions CI passes on the pushed WP 6.2 source SHA.
+- **GitHub Actions CI Status:** **PASSED** — Run #54 (`43458938490`) on source SHA `70d1a8446cf9bf2a84af2035788bf7db56e4d589`; unified `npm test` reported `766/766` assertions passed, including static `54/54`, comprehensive `42/42`, cross-account isolation `52/52`, phase regressions `317/317`, WP 6.1 unit `5/5`, WP 6.2 unit `4/4`, PGlite `41/41`, real PostgreSQL 16 `96/96`, and Chromium E2E `155/155`. All CI workflow steps completed successfully.
+- **GitHub Pages Status:** **SUCCESS** — Run #149 (`43458937476`) on the same source SHA `70d1a8446cf9bf2a84af2035788bf7db56e4d589`.
 
 ---
 
@@ -187,13 +188,15 @@ All 10 screenshots below were captured from headless Chromium against `http://lo
 
 ---
 
-## 9. Owner GitHub Sync Checklist (`GEMINI.md` Section 11)
+## 9. GitHub Sync, CI & Deployment Completion Evidence
 
 - **Repository / Branch:** `JemistryMC/study-hub` (`main`)
-- **Base Repository HEAD:** `c0f8e1d4e944fa8ecd7cdfa0c6da68cc76e4a8c1` (Last CI-Verified Source SHA: `86fda9824880c00268db117f1ab8780b106f6fe0`)
-- **Files Changed:** `/index.html`, `/package.json`, `/run_all_tests.js`, `/test_phase4_1_chromium_e2e.js`, `/reports/CURRENT.md`, `/reports/README.md`, `/reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md`
-- **Files Added:** `/test_wp6_2_unit.js`, `/reports/PHASE_6_WP_6_2_REPORT.md`, `/reports/screenshots/wp6-2/*.png` (`10` PNG screenshots)
-- **Local Checks Passed Post-Final-Edit:** `670 / 670` (`npm run lint`, `npm run build`, `test:static` `54/54`, `test:unit` `420/420`, `test:pglite` `41/41`, `test:e2e` `155/155`) + `benchmark:node` `5/5` tiers
-- **Checks Not Run Locally:** `npm run test:pg16` (`ECONNREFUSED 127.0.0.1:5432`) and GitHub Actions CI (`ci.yml`)
-- **Secrets Scan:** Confirmed `0` secrets, tokens, keys, or personal data included
-- **Next Step:** Owner reviews diff and syncs cleanly to `main` (avoiding routine Force Push). WP 6.3 remains **inactive** until pushed WP 6.2 source passes GitHub Actions CI (`npm test` including `test:pg16`).
+- **WP 6.2 Source Commit:** `70d1a8446cf9bf2a84af2035788bf7db56e4d589` — [commit link](https://github.com/JemistryMC/study-hub/commit/70d1a8446cf9bf2a84af2035788bf7db56e4d589)
+- **Starting Repository HEAD:** `c0f8e1d4e944fa8ecd7cdfa0c6da68cc76e4a8c1`
+- **Changed Application Source:** `index.html`, `package.json`, `run_all_tests.js`, `test_phase4_1_chromium_e2e.js`; added `test_wp6_2_unit.js`.
+- **Evidence Screenshots:** 10 tracked PNGs under `reports/screenshots/wp6-2/`; the same commit also tracks the WP6.1 screenshot gallery under `reports/screenshots/wp6-1/`.
+- **Local Checks Passed Post-Final-Edit:** `670/670` plus `5/5` Node Tier A benchmark tiers; local PostgreSQL 16 was not available and correctly ran in CI instead.
+- **GitHub Actions CI:** [Run #54](https://github.com/JemistryMC/study-hub/actions/runs/43458938490) — **SUCCESS**, exact source SHA `70d1a8446cf9bf2a84af2035788bf7db56e4d589`, unified `766/766`; Chromium E2E `155/155`; PostgreSQL 16 `96/96`; PGlite `41/41`.
+- **GitHub Pages:** [Run #149](https://github.com/JemistryMC/study-hub/actions/runs/43458937476) — **SUCCESS** on the same SHA.
+- **Secrets Scan:** Gemini reported `0` secrets/tokens/keys/personal data; this is a recorded local scan result, not a substitute for automated CI checks.
+- **Status:** WP 6.2 is **CI VERIFIED — TECHNICALLY COMPLETE**. WP 6.3 is now the next active package under the existing sequential progression policy. Final Phase 6 product approval remains with the owner at the end of the complete phase.
