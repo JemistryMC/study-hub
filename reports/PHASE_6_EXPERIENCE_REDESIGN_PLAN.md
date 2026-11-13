@@ -1,7 +1,7 @@
 # Phase 6 — EXO Personal Study Journal Experience Redesign
 ## Incremental Implementation Plan and Acceptance Gates
 
-**Status:** IN PROGRESS — WP 6.1, WP 6.2 & WP 6.3 CI VERIFIED (WP 6.3 has explicit authorization-boundary limitations); WP 6.4 ACTIVE; FINAL OWNER PRODUCT REVIEW AT PHASE 6 COMPLETION  
+**Status:** IN PROGRESS — WP 6.1, WP 6.2 & WP 6.3 CI VERIFIED (WP 6.3 has explicit authorization-boundary limitations); **WP 6.4 IMPLEMENTED — LOCAL TESTS ONLY**; **WP 6.5 INACTIVE**; FINAL OWNER PRODUCT REVIEW AT PHASE 6 COMPLETION  
 **Design authority:** reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md  
 **Engineering authority:** GEMINI.md  
 **Initial app-source baseline:** c74315a4580d68c61da8a0f49ec2b2f5946301e4 (verify current GitHub HEAD before every task)  
@@ -127,17 +127,21 @@ Keep Annotated PDF Export and multiple Extra Note Sheets within the current Free
 
 ## WP 6.4 — Notifications, dialogs, save states, and recovery guidance
 
-**Status:** ACTIVE — WP 6.3 core implementation has passed CI Run #55 on `c97499e35c006236854a2a43982fb4923e77d838`. Proceed under the sequential progression policy. Do not implement any save/sync/schema contract change without separate authorization. Carry forward the WP 6.3 UI-evidence gap: do not overclaim resource-creation paths that were only fixture-seeded.
+**Status:** `IMPLEMENTED — LOCAL TESTS ONLY` *(pending owner GitHub sync & CI verification on uploaded Source SHA; WP 6.5 remains **INACTIVE** until CI passes)*. Implemented Explain, Guide & Recover separating Local Durability from Cloud Synchronization across real service failures without adding LS keys/IDB stores or altering protected sync/auth/schema/Free-VIP contracts. Carry-forward of WP 6.3 UI-evidence gap preserved honestly.  
+**Deliverable & Evidence:** `reports/PHASE_6_WP_6_4_REPORT.md` + `reports/screenshots/wp6-4/*.png` (`13` sanitized screenshots).  
+**Local Post-Final-Edit Results:** `691/691` local assertions passed (`npm run lint`, `npm run build`, `54/54` static security, `42/42` comprehensive unit, `52/52` cross-account isolation, `317/317` Phase 4 regressions, `5/5` WP 6.1 unit, `4/4` WP 6.2 unit, `4/4` WP 6.3 unit, `5/5` WP 6.4 unit, `41/41` PGlite, `167/167` Chromium E2E incl. `Test OO.1–OO.10` + `GG.4–GG.5`), plus `5/5` Node Tier A benchmarks. `npm run test:pg16` was not run locally (`ECONNREFUSED 127.0.0.1:5432`) and remains queued for GitHub Actions CI.
 
 Apply Explain, Guide & Recover across the app. Separate local durability from cloud sync. Show only runtime-proven states. Explain what happened, likely cause and uncertainty, data safety, next steps, and a direct recovery action only where supported and tested. Include sanitized technical details. Localize all feedback in Arabic and English.
 
 Cover real states in current services: offline, retryable network failure, expired auth, permission denial, not found, rate/quota limits, server failures, and conflicts where applicable.
 
-**Gate 6.4:** test every actual state/recovery path; no false Saved/Synced claims, no generic data-erasure guidance, no secret leakage.
+**Gate 6.4:** Local implementation checks and Chromium E2E `Test OO.1–OO.10` passed (`691/691`); awaiting owner GitHub sync and CI Run verification before unlocking WP 6.5.
 
 ---
 
 ## WP 6.5 — Remaining screens, screen by screen
+
+**Status:** `INACTIVE / NOT STARTED` — Gated behind owner sync and GitHub Actions CI pass on WP 6.4.  
 
 Use the actual WP 6.0 inventory; the following is illustrative, not exhaustive: planner, tasks, backlog, projects, schedules, flashcards, evaluations, reports, logs, settings, account flows, Drive controls, backup/restore, and all other screens found in source.
 

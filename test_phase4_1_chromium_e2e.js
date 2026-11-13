@@ -5470,15 +5470,25 @@ async function main() {
       'Test GG.4: Add Subject and Add Log modals stay open and preserve user input text when both LocalStorage and IndexedDB writes fail'
     );
 
-    // GG.5: Offline Save Indicator -> Online Reconnect Sync + Cross-Account Isolation
+    // GG.5: Offline Save Indicator (EN + AR) -> Online Reconnect Sync + Cross-Account Isolation
     const gg5OfflineAndIsolation = await tabGG.evaluate(async ({ uid1, uid2 }) => {
-      // Simulate offline save for uid1
+      // Simulate offline/pending save for uid1 under default English UI first
+      if (typeof applyExoLanguage === 'function') applyExoLanguage('en', false);
       updateCloudNavUI('offline');
-      const offlineNavText = document.getElementById('cloudNavText')?.innerText || '';
-      const offlineBadgeText = document.getElementById('cloudLiveSyncBadge')?.innerText || '';
+      const enOfflineNavText = document.getElementById('cloudNavText')?.innerText || '';
+      const enOfflineBadgeText = document.getElementById('cloudLiveSyncBadge')?.innerText || '';
 
       updateCloudNavUI('pending');
-      const pendingNavText = document.getElementById('cloudNavText')?.innerText || '';
+      const enPendingNavText = document.getElementById('cloudNavText')?.innerText || '';
+
+      // Switch to Arabic and confirm Arabic offline/pending text remains exact
+      if (typeof applyExoLanguage === 'function') applyExoLanguage('ar', false);
+      updateCloudNavUI('offline');
+      const arOfflineNavText = document.getElementById('cloudNavText')?.innerText || '';
+      const arOfflineBadgeText = document.getElementById('cloudLiveSyncBadge')?.innerText || '';
+
+      updateCloudNavUI('pending');
+      const arPendingNavText = document.getElementById('cloudNavText')?.innerText || '';
 
       // Switch to Account 2 (uid2) and verify zero data leakage from uid1
       await handleAuthSessionChange({ id: uid2, email: 'gg2@exo.edu', name: 'GG2 Isolated User' }, false);
@@ -5491,19 +5501,24 @@ async function main() {
       const uid1RestoredSub = subjects.some(s => s.name === 'Clinical Pharmacokinetics GG');
 
       return {
-        offlineShowsSavedLocally: offlineNavText.includes('تم الحفظ محليًا — المزامنة معلقة') && offlineBadgeText.includes('تم الحفظ محليًا — المزامنة معلقة'),
-        pendingShowsSavedLocally: pendingNavText.includes('تم الحفظ محليًا — المزامنة معلقة'),
+        enOfflineShowsSavedLocally: enOfflineNavText.includes('Saved on device — Sync pending') && enOfflineBadgeText.includes('Saved on device — Sync pending'),
+        enPendingShowsSavedLocally: enPendingNavText.includes('Saved on device — Sync pending'),
+        arOfflineShowsSavedLocally: arOfflineNavText.includes('تم الحفظ محليًا — المزامنة معلقة') && arOfflineBadgeText.includes('تم الحفظ محليًا — المزامنة معلقة'),
+        arPendingShowsSavedLocally: arPendingNavText.includes('تم الحفظ محليًا — المزامنة معلقة'),
         uid2Isolated: uid2SubjectsCount === 0 && uid2EventsCount === 0 && uid2LogsCount === 0,
         uid1RestoredSub
       };
     }, { uid1: uidGG1, uid2: uidGG2 });
 
     assert(
-      gg5OfflineAndIsolation.offlineShowsSavedLocally === true &&
-      gg5OfflineAndIsolation.pendingShowsSavedLocally === true &&
+      gg5OfflineAndIsolation.enOfflineShowsSavedLocally === true &&
+      gg5OfflineAndIsolation.enPendingShowsSavedLocally === true &&
+      gg5OfflineAndIsolation.arOfflineShowsSavedLocally === true &&
+      gg5OfflineAndIsolation.arPendingShowsSavedLocally === true &&
       gg5OfflineAndIsolation.uid2Isolated === true &&
       gg5OfflineAndIsolation.uid1RestoredSub === true,
-      'Test GG.5: Offline/pending states display clear Arabic local-save indicator, and switching accounts enforces strict isolation while preserving each account workspace'
+      'Test GG.5: Offline/pending states display clear EN and AR local-save indicators, and switching accounts enforces strict isolation while preserving each account workspace',
+      JSON.stringify(gg5OfflineAndIsolation)
     );
 
     await tabGG.close();
@@ -8029,6 +8044,333 @@ async function main() {
 
     await pageMM.close();
     await contextMM.close();
+
+    // =========================================================================
+    // TEST OO: WP 6.4 Explain, Guide & Recover (Save/Sync Dual Truth, Error
+    // Classification, 429 Cooldown, IDB/LS Honesty, Redaction, A11y & Studio Badge)
+    // =========================================================================
+    console.log('\n--- TEST OO: WP 6.4 Explain, Guide & Recover Experience ---');
+    const contextOO = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const pageOO = await contextOO.newPage();
+    const ooErrors = [];
+    pageOO.on('pageerror', (err) => ooErrors.push(String(err)));
+
+    await pageOO.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+    await pageOO.waitForFunction(() => typeof window.exoWp64Diagnostics === 'object' && typeof window.openExoRecoveryModal === 'function');
+
+    const uidOO = 'oo111111-1111-4222-8333-444455550001';
+
+    // OO.1 & OO.2: Signed-in EN & AR Dual Status Cards + Offline Dirty Banner (never lies about Synced)
+    const oo12 = await pageOO.evaluate(async ({ uid }) => {
+      await handleAuthSessionChange({ id: uid, email: 'oo1@exo.edu', name: 'OO Student' }, false);
+      supabaseClient = {
+        rpc: async () => ({ error: new Error('TypeError: Failed to fetch') }),
+        from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ error: { message: 'Failed to fetch' } }) }) }) })
+      };
+      subjects = [{ id: 9101, name: 'Pharmacokinetics OO', color: '#899982', isDivided: true, groups: [{ id: 9111, name: 'Ch 1', lectures: [] }] }];
+      const saveRes = saveSubjects();
+      if (saveRes && saveRes.idbPersistPromise) await saveRes.idbPersistPromise;
+
+      const pushRes = await pushWorkspaceToCloud(false, true);
+      openCloudAuthModal();
+      const cardsEn = document.getElementById('cloudDualStatusSummary')?.innerText || '';
+      const liveBadgeEn = document.getElementById('cloudLiveSyncBadge')?.innerText || '';
+      const bannerVisibleEn = getComputedStyle(document.getElementById('exoPersistentIncidentBanner')).display !== 'none';
+      const bannerTextEn = document.getElementById('exoPersistentIncidentBanner')?.innerText || '';
+      const langEn = document.documentElement.lang;
+      const dirEn = document.documentElement.dir;
+
+      applyExoLanguage('ar', false);
+      const cardsAr = document.getElementById('cloudDualStatusSummary')?.innerText || '';
+      const bannerTextAr = document.getElementById('exoPersistentIncidentBanner')?.innerText || '';
+      const langAr = document.documentElement.lang;
+      const dirAr = document.documentElement.dir;
+
+      closeModal('cloudAuthModalOverlay');
+      applyExoLanguage('en', false);
+
+      return {
+        pushStatus: pushRes?.status,
+        cardsEn,
+        liveBadgeEn,
+        cardsAr,
+        bannerVisibleEn,
+        bannerTextEn,
+        bannerTextAr,
+        langEn,
+        dirEn,
+        langAr,
+        dirAr,
+        diag: window.exoWp64Diagnostics.getState()
+      };
+    }, { uid: uidOO });
+
+    assert(
+      oo12.pushStatus === 'error' &&
+      oo12.diag.cloudAckConfirmed === false &&
+      oo12.cardsEn.includes('Saved on this device') &&
+      !oo12.cardsEn.includes('Synced with server') &&
+      !oo12.liveBadgeEn.includes('Synced with server') &&
+      oo12.bannerVisibleEn === true &&
+      (oo12.bannerTextEn.includes('Offline') || oo12.bannerTextEn.includes('Sync')) &&
+      oo12.cardsAr.includes('محفوظ') &&
+      oo12.dirEn === 'ltr' && oo12.dirAr === 'rtl',
+      'Test OO.1 & OO.2: Dual status distinguishes local save from failed cloud push across EN/AR RTL and never fakes Synced state',
+      JSON.stringify(oo12)
+    );
+
+    // OO.3: HTTP 401, 403, 404 Drive + HTTP 429 Retry-After Cooldown Lock & Countdown Unlock
+    const oo3Cooldown = await pageOO.evaluate(async () => {
+      exoWp64Diagnostics.recordIncident('drive_401', { status: 401, message: 'Invalid Credentials' }, { domain: 'drive_media' });
+      const top401 = exoWp64Diagnostics.getActiveIncidents().find(i => i.key === 'drive_401');
+      exoWp64Diagnostics.resolveIncident('drive_401');
+
+      exoWp64Diagnostics.recordIncident('cloud_403', { status: 403, code: '42501', message: 'row-level security policy violation' }, { domain: 'cloud_sync' });
+      const top403 = exoWp64Diagnostics.getActiveIncidents().find(i => i.key === 'cloud_403');
+      exoWp64Diagnostics.resolveIncident('cloud_403');
+
+      exoWp64Diagnostics.recordIncident('drive_404', { status: 404, message: 'File not found' }, { domain: 'drive_media' });
+      const top404 = exoWp64Diagnostics.getActiveIncidents().find(i => i.key === 'drive_404');
+      exoWp64Diagnostics.resolveIncident('drive_404');
+
+      // 429 with short Retry-After: 2s
+      exoWp64Diagnostics.recordIncident('cloud_sync', { status: 429, retryAfterSec: 2, message: 'Too Many Requests' }, { domain: 'cloud_sync' });
+      openExoRecoveryModal('cloud_sync');
+      const retryBtn = document.querySelector('#exoRecoveryModalActions button[data-exo-recovery-action="retry_sync"]');
+      const disabledDuringCooldown = Boolean(retryBtn && retryBtn.disabled);
+      const labelDuringCooldown = retryBtn ? retryBtn.innerText : '';
+      return {
+        cat401: top401?.incident?.category,
+        actions401: top401?.incident?.recoveryActionIds,
+        cat403: top403?.incident?.category,
+        cat404: top404?.incident?.category,
+        disabledDuringCooldown,
+        labelDuringCooldown
+      };
+    });
+
+    await pageOO.waitForFunction(() => {
+      const btn = document.querySelector('#exoRecoveryModalActions button[data-exo-recovery-action="retry_sync"]');
+      return Boolean(btn && !btn.disabled);
+    }, { timeout: 6000 });
+    await pageOO.click('#exoRecoveryCloseBtn');
+
+    assert(
+      oo3Cooldown.cat401 === 'unauthorized' &&
+      oo3Cooldown.actions401.includes('activate_drive') &&
+      oo3Cooldown.cat403 === 'permission_denied' &&
+      oo3Cooldown.cat404 === 'not_found' &&
+      oo3Cooldown.disabledDuringCooldown === true &&
+      oo3Cooldown.labelDuringCooldown.includes('Retry available in'),
+      'Test OO.3: 401/403/404 Drive/Cloud classes resolve accurately and HTTP 429 locks Retry Sync until Retry-After countdown finishes',
+      JSON.stringify(oo3Cooldown)
+    );
+
+    // OO.4: Storage Honesty (LS fails + IDB succeeds => IndexedDB backup saved; Both fail => critical incident & no Saved lie)
+    const oo4Storage = await pageOO.evaluate(async () => {
+      exoWp64Diagnostics.resolveIncident('cloud_sync');
+      const origSetItem = Storage.prototype.setItem;
+      const origTx = dbInstance.transaction.bind(dbInstance);
+
+      let caseALocalState = '';
+      let caseBHasIncident = false;
+      let caseBLocalVerified = true;
+
+      try {
+        // Case A: LocalStorage fails, IndexedDB succeeds
+        Storage.prototype.setItem = function(k, v) {
+          if (String(k) === 'pharmaSubjectsV4') {
+            const e = new Error('QuotaExceededError');
+            e.name = 'QuotaExceededError';
+            throw e;
+          }
+          return origSetItem.call(this, k, v);
+        };
+        const rA = saveSubjects();
+        if (rA && rA.idbPersistPromise) await rA.idbPersistPromise;
+        openCloudAuthModal();
+        caseALocalState = document.getElementById('cloudDualStatusSummary')?.innerText || '';
+        const caseALiveBadge = document.getElementById('cloudLiveSyncBadge')?.innerText || '';
+        closeModal('cloudAuthModalOverlay');
+
+        // Case B: Both LS & IDB fail
+        dbInstance.transaction = function(storeNames, mode) {
+          const names = Array.isArray(storeNames) ? storeNames : [storeNames];
+          if (mode === 'readwrite' && names.includes('workspace_state')) {
+            const tx = origTx(storeNames, mode);
+            queueMicrotask(() => { try { tx.abort(); } catch (e) {} });
+            return tx;
+          }
+          return origTx(storeNames, mode);
+        };
+        const rB = saveSubjects();
+        if (rB && rB.idbPersistPromise) await rB.idbPersistPromise;
+        const diagB = window.exoWp64Diagnostics.getState();
+        openCloudAuthModal();
+        const caseBLiveBadge = document.getElementById('cloudLiveSyncBadge')?.innerText || '';
+        closeModal('cloudAuthModalOverlay');
+        caseBHasIncident = diagB.activeIncidentKeys.includes('local_subjects') &&
+          getComputedStyle(document.getElementById('exoPersistentIncidentBanner')).display !== 'none';
+        caseBLocalVerified = diagB.localVerified;
+        return { caseALocalState, caseALiveBadge, caseBLiveBadge, caseBHasIncident, caseBLocalVerified };
+      } finally {
+        Storage.prototype.setItem = origSetItem;
+        dbInstance.transaction = origTx;
+        exoWp64Diagnostics.resolveIncident('local_subjects');
+      }
+    });
+
+    assert(
+      oo4Storage.caseALocalState.includes('IndexedDB') &&
+      !oo4Storage.caseALiveBadge.includes('Synced with server') &&
+      !oo4Storage.caseBLiveBadge.includes('Synced with server') &&
+      oo4Storage.caseBLiveBadge.includes('Local save failed') &&
+      oo4Storage.caseBHasIncident === true &&
+      oo4Storage.caseBLocalVerified === false,
+      'Test OO.4: LS overflow saved in IDB surfaces honest IndexedDB status, while dual LS+IDB failure raises persistent incident and clears localVerified',
+      JSON.stringify(oo4Storage)
+    );
+
+    // OO.5 & OO.6: Toast Dismiss Keeps Banner + Details Opens Modal + Conflict/Quarantine Recovery + Secret Redaction
+    const oo569 = await pageOO.evaluate(async () => {
+      // Simulate OCC conflict + secret strings inside diagnostic payload
+      exoWp64Diagnostics.recordIncident('cloud_conflict', {
+        status: 409,
+        message: 'OCC conflict Bearer eyJhbGciOiJIUzI1NiJ9.payload123.sig123 ya29.SecretDriveTok99 user@domain.edu https://x.test/p?token=secretQ at fn (/Users/owner/secret.js:12)'
+      }, { domain: 'cloud_sync', rpcResponse: { status: 'conflict' } });
+
+      const toast = showToast('Sync paused because Bearer eyJhbGciOiJIUzI1NiJ9.payload123.sig123 failed', 'error', { incidentKey: 'cloud_conflict', durationMs: 0 });
+      const toastHasDetails = Boolean(toast && toast.querySelector('[data-exo-toast-details="1"]'));
+      const closeBtn = toast ? toast.querySelector('.exo-toast-close') : null;
+      if (closeBtn) closeBtn.click();
+      await new Promise(r => setTimeout(r, 260));
+
+      const bannerStillUpAfterToastDismiss = getComputedStyle(document.getElementById('exoPersistentIncidentBanner')).display !== 'none';
+      // Click Details & Recover from banner
+      const detailsBtn = document.querySelector('#exoPersistentIncidentBanner button');
+      if (detailsBtn) detailsBtn.click();
+      const recoveryOpen = document.getElementById('exoRecoveryModalOverlay')?.classList.contains('active');
+      const modalText = document.getElementById('exoRecoveryModalOverlay')?.innerText || '';
+      const toastContainerText = document.getElementById('toastContainer')?.innerText || '';
+      const bannerText = document.getElementById('exoPersistentIncidentBanner')?.innerText || '';
+      const combinedDom = [modalText, toastContainerText, bannerText].join('\n');
+
+      const hasLeakedSecrets = /eyJhbGci|ya29\.SecretDriveTok99|user@domain\.edu|secretQ|\/Users\/owner/i.test(combinedDom);
+      closeModal('exoRecoveryModalOverlay');
+      exoWp64Diagnostics.resolveIncident('cloud_conflict');
+
+      return {
+        toastHasDetails,
+        bannerStillUpAfterToastDismiss,
+        recoveryOpen,
+        hasExplanation: modalText.includes('What happened') && modalText.includes('Safe next steps'),
+        hasLeakedSecrets
+      };
+    });
+
+    assert(
+      oo569.toastHasDetails === true &&
+      oo569.bannerStillUpAfterToastDismiss === true &&
+      oo569.recoveryOpen === true &&
+      oo569.hasExplanation === true &&
+      oo569.hasLeakedSecrets === false,
+      'Test OO.5, OO.6 & OO.9: Toast dismissal preserves persistent banner, Details opens recovery modal, and zero JWT/Drive/email/query/path secrets leak in UI',
+      JSON.stringify(oo569)
+    );
+
+    // OO.7: Confirmation Modal Impact Preview + Escape Cancel + Focus Restoration
+    const oo7Confirm = await pageOO.evaluate(() => {
+      const opener = document.createElement('button');
+      opener.id = 'ooFocusTriggerBtn';
+      opener.textContent = 'Trigger';
+      document.body.appendChild(opener);
+      opener.focus();
+
+      window.__oo7State = { confirmed: false, cancelled: false };
+      openConfirmModal(
+        { en: 'Delete this chapter permanently from schedule?', ar: 'حذف الفصل؟' },
+        () => { window.__oo7State.confirmed = true; return true; },
+        {
+          titleEn: 'Delete Chapter Plan',
+          scopeEn: '1 study chapter',
+          reversibilityEn: 'Creates local recovery tombstone',
+          localImpactEn: 'Removes local card',
+          cloudImpactEn: 'Marks item deleted on next sync',
+          onCancel: () => { window.__oo7State.cancelled = true; }
+        }
+      );
+
+      const impactVisible = getComputedStyle(document.getElementById('confirmModalImpactBox')).display !== 'none';
+      const impactText = document.getElementById('confirmModalImpactBox')?.innerText || '';
+      return { impactVisible, impactText };
+    });
+    await pageOO.keyboard.press('Escape');
+    await pageOO.waitForTimeout(60);
+    const oo7AfterEsc = await pageOO.evaluate(() => {
+      const el = document.getElementById('ooFocusTriggerBtn');
+      const restored = document.activeElement === el;
+      const modalClosed = !document.getElementById('confirmModalOverlay')?.classList.contains('active');
+      const st = Object.assign({}, window.__oo7State);
+      delete window.__oo7State;
+      if (el) el.remove();
+      return { restored, modalClosed, confirmed: st.confirmed, cancelled: st.cancelled };
+    });
+
+    assert(
+      oo7Confirm.impactVisible === true &&
+      oo7Confirm.impactText.includes('Scope:') &&
+      oo7Confirm.impactText.includes('Cloud:') &&
+      oo7AfterEsc.modalClosed === true &&
+      oo7AfterEsc.cancelled === true &&
+      oo7AfterEsc.confirmed === false &&
+      oo7AfterEsc.restored === true,
+      'Test OO.7: Confirm dialog displays impact preview, closes on Escape without confirming, and restores keyboard focus',
+      JSON.stringify({ oo7Confirm, oo7AfterEsc })
+    );
+
+    // OO.8 & OO.10: Mobile 390x844 Studio Badge Visibility, Reduced Motion, RTL/LTR & Zero Overflow
+    await pageOO.emulateMedia({ reducedMotion: 'reduce' });
+    await pageOO.setViewportSize({ width: 390, height: 844 });
+    const oo8Mobile = await pageOO.evaluate(async () => {
+      activeSubjectId = 9101;
+      if (!Array.isArray(subjects) || !subjects[0]) {
+        subjects = [{ id: 9101, name: 'Pharmacokinetics OO', color: '#899982', isDivided: true, groups: [{ id: 9111, name: 'Ch 1', lectures: [] }] }];
+      }
+      if (!Array.isArray(subjects[0].groups[0].lectures) || subjects[0].groups[0].lectures.length === 0) {
+        subjects[0].groups[0].lectures = [{ id: 99101, title: 'OO Studio Check', path: '' }];
+      }
+      await openLectureDocument(subjects[0].groups[0].id, subjects[0].groups[0].lectures[0].id);
+      exoWp64Diagnostics.recordIncident('cloud_sync', { status: 401, message: 'Unauthorized' }, { domain: 'cloud_sync' });
+      const overlayActive = Boolean(document.getElementById('pdfViewerModalOverlay')?.classList.contains('active'));
+      const badge = document.getElementById('pdfAutoSaveStatus');
+      const badgeStyle = badge ? getComputedStyle(badge) : null;
+      const badgeVisibleMobile = Boolean(overlayActive && badgeStyle && badgeStyle.display !== 'none' && badge.getBoundingClientRect().width > 20);
+      const badgeNotTruncatedMobile = Boolean(badge && badge.scrollWidth <= (badge.clientWidth + 2));
+      const overflowEn = document.documentElement.scrollWidth > window.innerWidth;
+
+      applyExoLanguage('ar', false);
+      const overflowAr = document.documentElement.scrollWidth > window.innerWidth;
+      const dirAr = document.documentElement.dir;
+
+      await closePdfViewer();
+      exoWp64Diagnostics.resolveIncident('cloud_sync');
+      await handleAuthSessionChange(null, false);
+      return { overlayActive, badgeVisibleMobile, badgeNotTruncatedMobile, overflowEn, overflowAr, dirAr };
+    });
+
+    assert(
+      oo8Mobile.badgeVisibleMobile === true &&
+      oo8Mobile.badgeNotTruncatedMobile === true &&
+      oo8Mobile.overflowEn === false &&
+      oo8Mobile.overflowAr === false &&
+      oo8Mobile.dirAr === 'rtl' &&
+      ooErrors.length === 0,
+      'Test OO.8 & OO.10: Mobile 390x844 keeps #pdfAutoSaveStatus visible and unclipped, zero horizontal overflow in EN/AR RTL under reduced-motion, and zero page errors',
+      JSON.stringify({ oo8Mobile, ooErrors })
+    );
+
+    await pageOO.close();
+    await contextOO.close();
     await context.close();
   } finally {
     await browser.close();
@@ -8044,7 +8386,7 @@ async function main() {
   if (testsFailed > 0) {
     process.exit(1);
   } else {
-    console.log('ALL 23 MANDATORY CHROMIUM + INDEXEDDB E2E SCENARIOS (A - V, AA - MM) PASSED (100%).');
+    console.log('ALL 24 MANDATORY CHROMIUM + INDEXEDDB E2E SCENARIOS (A - V, AA - MM, OO) PASSED (100%).');
     process.exit(0);
   }
 }

@@ -43,6 +43,11 @@ const SUITES = [
     useNodeTest: true
   },
   {
+    category: '2. Unit & Asynchronous Logic Isolation Tests',
+    file: 'test_wp6_4_unit.js',
+    useNodeTest: true
+  },
+  {
     category: '3. Embedded PostgreSQL Compatibility Tests (PGlite WASM Single-Connection)',
     file: 'test_phase4_2_postgres_integration.js'
   },
