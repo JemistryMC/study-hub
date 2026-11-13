@@ -5314,7 +5314,6 @@
             z-index: 9995;
             box-shadow: 0 18px 45px rgba(0, 0, 0, 0.85);
             display: none;
-            direction: rtl;
         }
         .spotlight-tour-floating-card.active { display: block; animation: subFade 0.18s ease; }
         .showcase-modal-box {
@@ -11130,6 +11129,64 @@
             border-inline-start: 3px solid var(--sage-green, #899982);
             border-radius: 9px;
             padding: 11px 12px;
+            cursor: pointer;
+            transition: border-color 0.16s ease, transform 0.16s ease, background 0.16s ease;
+        }
+        .wp65-loop-station:hover,
+        .wp65-loop-station:focus-visible {
+            border-color: rgba(137, 153, 130, 0.55);
+            background: rgba(41, 43, 45, 0.98);
+            transform: translateY(-1px);
+            outline: none;
+        }
+        .wp65-summary-cell[role="button"] {
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.16s ease;
+        }
+        .wp65-summary-cell[role="button"]:hover,
+        .wp65-summary-cell[role="button"]:focus-visible {
+            background: rgba(137, 153, 130, 0.1);
+            outline: none;
+        }
+        .wp65-compass-card .smart-rec-action-btn {
+            background: rgba(137, 153, 130, 0.16) !important;
+            border: 1px solid rgba(137, 153, 130, 0.4) !important;
+            color: var(--warm-paper, #F0E6D4) !important;
+            border-radius: 8px !important;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-top: auto;
+        }
+        .wp65-compass-card .smart-rec-action-btn:hover {
+            background: rgba(137, 153, 130, 0.28) !important;
+            border-color: var(--sage-green, #899982) !important;
+        }
+        .wp65-compass-card.tone-danger .smart-rec-action-btn {
+            background: rgba(196, 125, 96, 0.18) !important;
+            border-color: rgba(196, 125, 96, 0.45) !important;
+        }
+        .wp65-compass-card.tone-warning .smart-rec-action-btn {
+            background: rgba(215, 185, 111, 0.16) !important;
+            border-color: rgba(215, 185, 111, 0.45) !important;
+        }
+        .wp65-compass-card.tone-info .smart-rec-action-btn {
+            background: rgba(120, 152, 172, 0.18) !important;
+            border-color: rgba(120, 152, 172, 0.45) !important;
+        }
+        #tracker .subject-prog-row,
+        #tracker .log-day-group,
+        #tracker .log-item-actionable {
+            background: rgba(25, 27, 29, 0.82) !important;
+            border: 1px solid rgba(240, 230, 212, 0.1) !important;
+            border-radius: 10px !important;
+        }
+        #tracker .subject-prog-row:hover,
+        #tracker .log-item-actionable:hover {
+            border-color: rgba(137, 153, 130, 0.38) !important;
         }
         #spotlightTourFloatingCard {
             background: var(--charcoal, #292B2D) !important;
@@ -11900,11 +11957,11 @@
                             <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-main); margin: 0;">البوصلة الذكية — ماذا تفعل الآن حسب أولوياتك؟</h3>
                         </div>
                     </div>
-                    <span class="studio-pill" id="smartAdvisorSummaryBadge" style="font-size: 0.72rem; color: var(--primary);">
+                    <span class="studio-pill" id="smartAdvisorSummaryBadge" data-exo-no-i18n="1" style="font-size: 0.72rem; color: var(--sage-green, #899982);">
                         توصيات اليوم
                     </span>
                 </div>
-                <div class="smart-recs-grid" id="smartRecommendationsList"></div>
+                <div class="smart-recs-grid" id="smartRecommendationsList" data-exo-no-i18n="1"></div>
             </div>
 
             <!-- SECTION 2: 4 COHESIVE TOP KPI CARDS -->
@@ -11912,19 +11969,19 @@
                 <div class="tracker-kpi-box">
                     <span id="kpiLblStreak" style="font-size: 0.76rem; color: var(--text-muted); font-weight: 700;">سلسلة الاستمرارية</span>
                     <div style="display: flex; align-items: baseline; justify-content: space-between; margin: 4px 0;">
-                        <span style="font-size: 1.45rem; font-weight: 900; color: var(--warm-paper, #F0E6D4);" id="statStreak">0 يوم</span>
+                        <span style="font-size: 1.45rem; font-weight: 900; color: var(--warm-paper, #F0E6D4);" id="statStreak" data-exo-no-i18n="1">0 يوم</span>
                         <i class="fa-solid fa-fire" style="color: var(--terracotta, #C47D60); font-size: 1rem;"></i>
                     </div>
-                    <span style="font-size: 0.72rem; color: var(--text-muted);" id="statStreakMsg">سجّل إنجازاً اليوم</span>
+                    <span style="font-size: 0.72rem; color: var(--text-muted);" id="statStreakMsg" data-exo-no-i18n="1">سجّل إنجازاً اليوم</span>
                 </div>
 
                 <div class="tracker-kpi-box">
                     <span id="kpiLblDoneHours" style="font-size: 0.76rem; color: var(--text-muted); font-weight: 700;">ساعات المذاكرة الفعّالة</span>
                     <div style="display: flex; align-items: baseline; gap: 6px; margin: 4px 0;">
-                        <span style="font-size: 1.45rem; font-weight: 900; color: #cde0c5;" id="statDoneHours">0 س</span>
-                        <span style="font-size: 0.78rem; color: var(--text-muted);"><span id="kpiLblOfTotal">من</span> <b id="statPlannedHours" style="color: var(--warm-paper, #F0E6D4);">0</b> <span id="kpiLblHoursUnit">س</span></span>
+                        <span style="font-size: 1.45rem; font-weight: 900; color: #cde0c5;" id="statDoneHours" data-exo-no-i18n="1">0 س</span>
+                        <span style="font-size: 0.78rem; color: var(--text-muted);"><span id="kpiLblOfTotal">من</span> <b id="statPlannedHours" style="color: var(--warm-paper, #F0E6D4);">0</b> <span id="kpiLblHoursUnit" data-exo-no-i18n="1">س</span></span>
                     </div>
-                    <span style="font-size: 0.72rem; color: var(--text-muted);" id="weekRemainingStudyTxt">خطة الأسبوع</span>
+                    <span style="font-size: 0.72rem; color: var(--text-muted);" id="weekRemainingStudyTxt" data-exo-no-i18n="1">خطة الأسبوع</span>
                 </div>
 
                 <div class="tracker-kpi-box" style="cursor: pointer;" onclick="switchView('schedule', document.querySelector('.sidebar-nav-item[data-tab=&quot;schedule&quot;]') || document.querySelectorAll('.nav-item')[1]); switchScheduleSubView('tasks', document.getElementById('schPillTasks'));">
@@ -11934,9 +11991,9 @@
                     </div>
                     <div style="display: flex; align-items: baseline; gap: 6px; margin: 4px 0;">
                         <span style="font-size: 1.45rem; font-weight: 900; color: #b7cad6;" id="statGoalsCompletedRatio">0/0</span>
-                        <span style="font-size: 0.76rem; color: var(--text-muted);" id="statGoalsLinkedBadge">0 مرتبط</span>
+                        <span style="font-size: 0.76rem; color: var(--text-muted);" id="statGoalsLinkedBadge" data-exo-no-i18n="1">0 مرتبط</span>
                     </div>
-                    <span style="font-size: 0.72rem; color: var(--text-muted);" id="statGoalsTimeSub">الوقت المسجل للأهداف: 0 س</span>
+                    <span style="font-size: 0.72rem; color: var(--text-muted);" id="statGoalsTimeSub" data-exo-no-i18n="1">الوقت المسجل للأهداف: 0 س</span>
                 </div>
 
                 <div class="tracker-kpi-box">
@@ -11947,7 +12004,7 @@
                     <div class="progress-bar-bg" style="height: 6px; margin: 8px 0 6px 0;">
                         <div class="progress-bar-fill" id="weekProgressBar" style="width: 0%;"></div>
                     </div>
-                    <span style="font-size: 0.72rem; color: var(--text-muted);" id="statEfficiencyLabel">في المسار</span>
+                    <span style="font-size: 0.72rem; color: var(--text-muted);" id="statEfficiencyLabel" data-exo-no-i18n="1">في المسار</span>
                 </div>
             </div>
 
@@ -11962,11 +12019,11 @@
                                 <h3 style="font-size: 1.04rem; font-weight: 800; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
                                     <i class="fa-solid fa-layer-group" style="color: var(--primary);"></i> تقرير إتقان المواد والمحاضرات
                                 </h3>
-                                <span style="font-size: 0.75rem; color: var(--text-muted);" id="statReviewAlertSub"></span>
+                                <span style="font-size: 0.75rem; color: var(--text-muted);" id="statReviewAlertSub" data-exo-no-i18n="1"></span>
                             </div>
-                            <span class="studio-pill" style="font-size: 0.75rem; color: var(--primary);" id="statLecturesSummaryPill">0/0 محاضرة</span>
+                            <span class="studio-pill" style="font-size: 0.75rem; color: var(--sage-green, #899982);" id="statLecturesSummaryPill" data-exo-no-i18n="1">0/0 محاضرة</span>
                         </div>
-                        <div class="subject-progress-list" id="subjectProgressList"></div>
+                        <div class="subject-progress-list" id="subjectProgressList" data-exo-no-i18n="1"></div>
                     </div>
                 </div>
 
@@ -11975,37 +12032,37 @@
                     <div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
                             <h3 style="font-size: 1.04rem; font-weight: 800; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
-                                <i class="fa-solid fa-chart-column" style="color: #38bdf8;"></i> تحليل توزيع الوقت وحمل أيام الأسبوع
+                                <i class="fa-solid fa-chart-column" style="color: var(--dusty-blue, #7898AC);"></i> تحليل توزيع الوقت وحمل أيام الأسبوع
                             </h3>
-                            <span class="studio-pill" style="font-size: 0.74rem; color: #cbd5e1;">إجمالي الجدول: <b id="analyticsTotalHours" style="color: var(--primary);">0</b> س</span>
+                            <span class="studio-pill" style="font-size: 0.74rem; color: var(--warm-paper, #F0E6D4);">إجمالي الجدول: <b id="analyticsTotalHours" style="color: var(--sage-green, #899982);">0</b> <span data-exo-no-i18n="1" id="analyticsTotalHoursUnit">س</span></span>
                         </div>
 
                         <!-- 3 Smart Time Mini-KPIs -->
                         <div class="smart-time-kpis">
                             <div class="smart-mini-kpi">
                                 <div style="font-size: 0.7rem; color: var(--text-muted);">صافي ساعات المذاكرة</div>
-                                <div style="font-size: 1.05rem; font-weight: 900; color: #6ee7b7; margin: 2px 0;" id="smartNetStudyHours">0 س</div>
-                                <div style="font-size: 0.66rem; color: var(--text-muted);" id="smartNetStudyPct">0% مقابل الكلية</div>
+                                <div style="font-size: 1.05rem; font-weight: 900; color: #cde0c5; margin: 2px 0;" id="smartNetStudyHours" data-exo-no-i18n="1">0 س</div>
+                                <div style="font-size: 0.66rem; color: var(--text-muted);" id="smartNetStudyPct" data-exo-no-i18n="1">0% مقابل الكلية</div>
                             </div>
                             <div class="smart-mini-kpi">
                                 <div style="font-size: 0.7rem; color: var(--text-muted);">المتوسط اليومي</div>
-                                <div style="font-size: 1.05rem; font-weight: 900; color: var(--primary); margin: 2px 0;" id="smartDailyAvgStudy">0 س/يوم</div>
-                                <div style="font-size: 0.66rem; color: var(--text-muted);" id="smartBestDayLabel">يوم الذروة</div>
+                                <div style="font-size: 1.05rem; font-weight: 900; color: var(--warm-paper, #F0E6D4); margin: 2px 0;" id="smartDailyAvgStudy" data-exo-no-i18n="1">0 س/يوم</div>
+                                <div style="font-size: 0.66rem; color: var(--text-muted);" id="smartBestDayLabel" data-exo-no-i18n="1">يوم الذروة</div>
                             </div>
                             <div class="smart-mini-kpi">
                                 <div style="font-size: 0.7rem; color: var(--text-muted);">حصة المراجعة</div>
-                                <div style="font-size: 1.05rem; font-weight: 900; color: #c4b5fd; margin: 2px 0;" id="smartReviewRatio">0%</div>
-                                <div style="font-size: 0.66rem; color: var(--text-muted);" id="smartReviewAdvice">توازن المراجعة</div>
+                                <div style="font-size: 1.05rem; font-weight: 900; color: #b7cad6; margin: 2px 0;" id="smartReviewRatio">0%</div>
+                                <div style="font-size: 0.66rem; color: var(--text-muted);" id="smartReviewAdvice" data-exo-no-i18n="1">توازن المراجعة</div>
                             </div>
                         </div>
 
                         <!-- Clean 4-Category Breakdown Bar -->
                         <div style="display: flex; justify-content: space-between; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 5px; flex-wrap: wrap; gap: 8px;">
-                            <span>🟢 مذاكرة وتحصيل: <b id="distImportantTxt" style="color:#6ee7b7;">0 س</b></span>
-                            <span>🟣 مراجعة وكويزات: <b id="distReviewTxt" style="color:#c4b5fd;">0 س</b></span>
-                            <span>🏛️ الكلية: <b id="distMandatoryTxt" style="color:#fda4af;">0 س</b></span>
-                            <span id="distAbsentWrap" style="display:none;">🏠 غياب كلية: <b id="distAbsentTxt" style="color:#fdba74;">0 س</b></span>
-                            <span id="distWastedWrap" style="display:none;">🎮 وقت ضائع: <b id="distWastedTxt" style="color:#fb7185;">0 س</b></span>
+                            <span>🟢 مذاكرة وتحصيل: <b id="distImportantTxt" data-exo-no-i18n="1" style="color:#cde0c5;">0 س</b></span>
+                            <span>🟣 مراجعة وكويزات: <b id="distReviewTxt" data-exo-no-i18n="1" style="color:#b7cad6;">0 س</b></span>
+                            <span>🏛️ الكلية: <b id="distMandatoryTxt" data-exo-no-i18n="1" style="color:#e6a88f;">0 س</b></span>
+                            <span id="distAbsentWrap" style="display:none;">🏠 غياب كلية: <b id="distAbsentTxt" data-exo-no-i18n="1" style="color:#f3e1b3;">0 س</b></span>
+                            <span id="distWastedWrap" style="display:none;">🎮 وقت ضائع: <b id="distWastedTxt" data-exo-no-i18n="1" style="color:#f4d3c5;">0 س</b></span>
                             <span style="display:none;"><b id="distPracticeTxt"></b><b id="distCatchupTxt"></b><b id="distUrgentTxt"></b></span>
                         </div>
                         <div class="distribution-bar" id="distributionBar" style="height: 8px; margin: 4px 0 14px 0;">
@@ -12021,9 +12078,9 @@
                         <!-- 7-Day Load Bars -->
                         <div style="display: flex; justify-content: space-between; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 4px;">
                             <span>توزيع المذاكرة الفعّالة على أيام الأسبوع:</span>
-                            <span id="smartPeakDayInsight" style="color: var(--primary); font-weight: 700;"></span>
+                            <span id="smartPeakDayInsight" data-exo-no-i18n="1" style="color: var(--sage-green, #899982); font-weight: 700;"></span>
                         </div>
-                        <div class="daily-bars-chart" id="dailyStudyBarsChart" style="height: 86px;"></div>
+                        <div class="daily-bars-chart" id="dailyStudyBarsChart" data-exo-no-i18n="1" style="height: 86px;"></div>
 
                         <!-- Hidden compatibility nodes -->
                         <div style="display:none;">
@@ -12048,7 +12105,7 @@
             <div class="weekly-eval-section" id="weeklyEvaluationsHubSection">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(45, 212, 191, 0.14); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.05rem;">
+                        <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(137, 153, 130, 0.16); color: var(--sage-green, #899982); display: flex; align-items: center; justify-content: center; font-size: 1.05rem;">
                             <i class="fa-solid fa-award"></i>
                         </div>
                         <div>
@@ -12065,7 +12122,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="weekly-eval-grid" id="weeklyEvaluationsListContainer"></div>
+                <div class="weekly-eval-grid" id="weeklyEvaluationsListContainer" data-exo-no-i18n="1"></div>
             </div>
 
             <!-- SECTION 5: DAILY ACHIEVEMENTS FEED (ACTIONABLE HUB) -->
@@ -12077,14 +12134,14 @@
                                 <i class="fa-solid fa-bolt-lightning" style="color:var(--primary); margin-left:5px;"></i>
                                 سجل الإنجازات والمتابعة الذكي
                             </h3>
-                            <span id="logsSummaryCountPill" class="studio-pill" style="font-size:0.72rem; color:var(--primary);"></span>
+                            <span id="logsSummaryCountPill" data-exo-no-i18n="1" class="studio-pill" style="font-size:0.72rem; color:var(--sage-green, #899982);"></span>
                         </div>
                         <p style="font-size: 0.75rem; color: var(--text-muted); margin: 4px 0 0 0;">
                             حوّل أي إنجاز سابق إلى جلسة مراجعة بضغطة زر، أو عوّض المهام الفائتة مباشرة في جدولك.
                         </p>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                        <button type="button" class="btn btn-outline" style="padding: 6px 11px; font-size: 0.75rem; border-color: rgba(45,212,191,0.3); color: var(--primary);" onclick="deduplicateAndCompactLogs()" title="دمج السجلات المكررة وتنظيف السجل">
+                        <button type="button" class="btn btn-outline" style="padding: 6px 11px; font-size: 0.75rem; border-color: rgba(137,153,130,0.38); color: var(--sage-green, #899982);" onclick="deduplicateAndCompactLogs()" title="دمج السجلات المكررة وتنظيف السجل">
                             <i class="fa-solid fa-wand-magic-sparkles"></i> تنظيف ودمج المكرر
                         </button>
                         <select id="logFilterMoodSelect" onchange="syncQuickCategoryFromSelect(); renderLogs()" style="padding: 6px 10px; font-size: 0.78rem; max-width: 165px;">
@@ -12118,10 +12175,10 @@
                             <i class="fa-solid fa-house-laptop" style="color:#fdba74;"></i> غياب مستثمر والتقارير
                         </button>
                     </div>
-                    <div id="logsQuickInsightStrip" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;"></div>
+                    <div id="logsQuickInsightStrip" data-exo-no-i18n="1" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;"></div>
                 </div>
 
-                <div id="logsContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                <div id="logsContainer" data-exo-no-i18n="1" style="display: flex; flex-direction: column; gap: 8px;"></div>
             </div>
 
         </div>
@@ -12143,7 +12200,7 @@
                         <span style="font-size: 0.76rem; color: #cbd5e1;">مساحتك الأكاديمية المشفرة • حفظ ومزامنة فورية عبر أجهزتك</span>
                     </div>
                 </div>
-                <button type="button" class="icon-btn" style="width: 32px; height: 32px;" onclick="closeModal('cloudAuthModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
+                <button type="button" class="icon-btn" id="cloudAuthModalCloseBtn" aria-label="Close account modal" style="width: 32px; height: 32px;" onclick="closeModal('cloudAuthModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
             <!-- VIEW A: LOGGED OUT (LUXURY LOGIN / SIGNUP STUDIO) -->
@@ -12968,18 +13025,18 @@
 
     <!-- ================= COMPREHENSIVE EXPERT STUDIO GUIDE MODAL (NO XP, FULL CASES & EXAMPLES) ================= -->
     <!-- Live Spotlight Coach Tour Floating Card (Guides User on the Real Interface) -->
-    <div class="spotlight-tour-floating-card" id="spotlightTourFloatingCard">
+    <div class="spotlight-tour-floating-card" id="spotlightTourFloatingCard" data-exo-no-i18n="1">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
-            <span class="studio-pill" style="background:var(--primary); color:#061318; font-weight:900;" id="spotlightTourStepBadge">خطوة 1 من 4</span>
-            <button type="button" class="icon-btn" style="width:26px; height:26px;" onclick="stopInteractiveSpotlightTour()"><i class="fa-solid fa-xmark"></i></button>
+            <span class="studio-pill" style="background:var(--sage-green, #899982); color:#191B1D; font-weight:900;" id="spotlightTourStepBadge">Step 1 of 5</span>
+            <button type="button" class="icon-btn" id="spotlightCloseBtn" aria-label="Close tour" style="width:26px; height:26px;" onclick="stopInteractiveSpotlightTour()"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <h4 id="spotlightTourTitle" style="font-size:0.98rem; font-weight:900; color:var(--text-main); margin:0 0 4px 0;"></h4>
-        <p id="spotlightTourDesc" style="font-size:0.8rem; color:#cbd5e1; line-height:1.55; margin:0 0 12px 0;"></p>
+        <h4 id="spotlightTourTitle" style="font-size:0.98rem; font-weight:900; color:var(--warm-paper, #F0E6D4); margin:0 0 4px 0;"></h4>
+        <p id="spotlightTourDesc" style="font-size:0.8rem; color:var(--stone, #ABA69D); line-height:1.55; margin:0 0 12px 0;"></p>
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-            <button type="button" class="btn btn-outline" style="padding:5px 12px; font-size:0.76rem;" onclick="stopInteractiveSpotlightTour()">إنهاء الجولة</button>
+            <button type="button" class="btn btn-outline" id="spotlightEndBtn" style="padding:5px 12px; font-size:0.76rem;" onclick="stopInteractiveSpotlightTour()">End Tour</button>
             <div style="display:flex; gap:6px;">
-                <button type="button" class="btn btn-outline" id="spotlightPrevBtn" style="padding:5px 11px; font-size:0.76rem;" onclick="stepInteractiveSpotlightTour(-1)"><i class="fa-solid fa-arrow-right"></i> السابق</button>
-                <button type="button" class="btn btn-primary" id="spotlightNextBtn" style="padding:5px 14px; font-size:0.76rem;" onclick="stepInteractiveSpotlightTour(1)">التالي <i class="fa-solid fa-arrow-left"></i></button>
+                <button type="button" class="btn btn-outline" id="spotlightPrevBtn" style="padding:5px 11px; font-size:0.76rem;" onclick="stepInteractiveSpotlightTour(-1)"><i class="fa-solid fa-arrow-left"></i> Previous</button>
+                <button type="button" class="btn btn-primary" id="spotlightNextBtn" style="padding:5px 14px; font-size:0.76rem;" onclick="stepInteractiveSpotlightTour(1)">Next <i class="fa-solid fa-arrow-right"></i></button>
             </div>
         </div>
     </div>
@@ -12991,57 +13048,57 @@
             <div class="eg-studio-header">
                 <div class="eg-header-top-row">
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 42px; height: 42px; border-radius: 13px; background: var(--primary-gradient); color: #041316; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 900; flex-shrink: 0;">
+                        <div style="width: 42px; height: 42px; border-radius: 13px; background: var(--sage-green, #899982); color: #191B1D; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 900; flex-shrink: 0;">
                             <i class="fa-solid fa-circle-info"></i>
                         </div>
                         <div>
-                            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 900; color: var(--text-main);">مركز المساعدة ودليل الاستخدام</h3>
-                            <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: var(--text-muted);">دليل منظم ومرتب لشرح كافة أقسام وأدوات المنصة خطوة بخطوة</p>
+                            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 900; color: var(--warm-paper, #F0E6D4);">مركز المساعدة ودليل الاستخدام</h3>
+                            <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: var(--stone, #ABA69D);">دليل منظم ومرتب لشرح كافة أقسام وأدوات المنصة خطوة بخطوة</p>
                         </div>
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        <button class="btn btn-primary" style="padding: 7px 14px; font-size: 0.79rem;" onclick="startInteractiveSpotlightTour()">
+                        <button class="btn btn-primary" id="helpStartSpotlightTourBtn" style="padding: 7px 14px; font-size: 0.79rem;" onclick="startInteractiveSpotlightTour()">
                             <i class="fa-solid fa-location-crosshairs"></i> جولة تعريفية تفاعلية
                         </button>
-                        <button class="btn btn-outline" style="padding: 7px 12px; font-size: 0.78rem;" onclick="loadDemoData()">
+                        <button class="btn btn-outline" id="helpLoadDemoDataBtn" style="padding: 7px 12px; font-size: 0.78rem;" onclick="loadDemoData()">
                             <i class="fa-solid fa-wand-magic-sparkles"></i> تحميل بيانات تجريبية
                         </button>
-                        <button class="icon-btn" onclick="closeModal('helpModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
+                        <button class="icon-btn" id="helpModalCloseBtn" aria-label="Close help modal" onclick="closeModal('helpModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 </div>
 
                 <!-- Organized 6-Section Navigation Dock -->
                 <div class="eg-dock-wrapper">
-                    <button type="button" class="eg-dock-arrow-btn" onclick="stepOrScrollEgDock(-1)" title="السابق">
+                    <button type="button" class="eg-dock-arrow-btn" id="egDockPrevBtn" onclick="stepOrScrollEgDock(-1)" title="Previous" aria-label="Previous section">
                         <i class="fa-solid fa-chevron-right"></i>
                     </button>
                     <div class="eg-floating-dock" id="egFloatingDockScroll">
-                        <button type="button" class="eg-dock-pill active" id="acadNav_1" onclick="switchAcademyModule(1)">
-                            <i class="fa-solid fa-compass"></i> <span>1. نظرة عامة</span>
+                        <button type="button" class="eg-dock-pill active" id="acadNav_1" data-exo-no-i18n="1" onclick="switchAcademyModule(1)">
+                            <i class="fa-solid fa-compass"></i> <span id="acadNavLabel_1">1. نظرة عامة</span>
                         </button>
-                        <button type="button" class="eg-dock-pill" id="acadNav_2" onclick="switchAcademyModule(2)">
-                            <i class="fa-solid fa-layer-group"></i> <span>2. المركز والمواد</span>
+                        <button type="button" class="eg-dock-pill" id="acadNav_2" data-exo-no-i18n="1" onclick="switchAcademyModule(2)">
+                            <i class="fa-solid fa-layer-group"></i> <span id="acadNavLabel_2">2. المركز والمواد</span>
                         </button>
-                        <button type="button" class="eg-dock-pill" id="acadNav_3" onclick="switchAcademyModule(3)">
-                            <i class="fa-solid fa-file-pdf"></i> <span>3. استوديو PDF والصوت</span>
+                        <button type="button" class="eg-dock-pill" id="acadNav_3" data-exo-no-i18n="1" onclick="switchAcademyModule(3)">
+                            <i class="fa-solid fa-file-pdf"></i> <span id="acadNavLabel_3">3. استوديو PDF والصوت</span>
                         </button>
-                        <button type="button" class="eg-dock-pill" id="acadNav_4" onclick="switchAcademyModule(4)">
-                            <i class="fa-solid fa-calendar-check"></i> <span>4. التخطيط والأهداف</span>
+                        <button type="button" class="eg-dock-pill" id="acadNav_4" data-exo-no-i18n="1" onclick="switchAcademyModule(4)">
+                            <i class="fa-solid fa-calendar-check"></i> <span id="acadNavLabel_4">4. التخطيط والأهداف</span>
                         </button>
-                        <button type="button" class="eg-dock-pill" id="acadNav_5" onclick="switchAcademyModule(5)">
-                            <i class="fa-solid fa-keyboard"></i> <span>5. السجل والاختصارات</span>
+                        <button type="button" class="eg-dock-pill" id="acadNav_5" data-exo-no-i18n="1" onclick="switchAcademyModule(5)">
+                            <i class="fa-solid fa-keyboard"></i> <span id="acadNavLabel_5">5. السجل والاختصارات</span>
                         </button>
-                        <button type="button" class="eg-dock-pill vip-pill" id="acadNav_6" onclick="switchAcademyModule(6)">
-                            <i class="fa-solid fa-user-astronaut"></i> <span>6. المطور و VIP Pro</span>
+                        <button type="button" class="eg-dock-pill vip-pill" id="acadNav_6" data-exo-no-i18n="1" onclick="switchAcademyModule(6)">
+                            <i class="fa-solid fa-user-astronaut"></i> <span id="acadNavLabel_6">6. المطور و VIP Pro</span>
                         </button>
                     </div>
-                    <button type="button" class="eg-dock-arrow-btn" onclick="stepOrScrollEgDock(1)" title="التالي">
+                    <button type="button" class="eg-dock-arrow-btn" id="egDockNextBtn" onclick="stepOrScrollEgDock(1)" title="Next" aria-label="Next section">
                         <i class="fa-solid fa-chevron-left"></i>
                     </button>
                 </div>
                 <div class="eg-Segmented-progress-row">
-                    <span style="font-size:0.73rem; color:var(--primary); font-weight:900; white-space:nowrap; min-width:85px;" id="egTopSliderLabel">القسم 1 من 6</span>
+                    <span style="font-size:0.73rem; color:var(--sage-green, #899982); font-weight:900; white-space:nowrap; min-width:95px;" id="egTopSliderLabel" data-exo-no-i18n="1">القسم 1 من 6</span>
                     <div class="eg-seg-bars" id="egSegmentedProgressBar" style="grid-template-columns: repeat(6, 1fr);">
                         <div class="eg-seg-bar-item active" onclick="switchAcademyModule(1)" title="1. نظرة عامة"></div>
                         <div class="eg-seg-bar-item" onclick="switchAcademyModule(2)" title="2. المركز والمواد"></div>
@@ -13444,25 +13501,23 @@
     </div>
 
     <!-- Backup Import Preflight Modal (Tier A Inspection, Merge vs Replace, SHA-256 Check) -->
-    <div class="glass-overlay" id="backupImportPreflightModalOverlay" style="z-index: 4000;">
-        <div class="glass-modal" style="max-width: 540px; border-color: rgba(56, 189, 248, 0.35);">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                <h3 style="color: var(--primary); font-size: 1.2rem; margin: 0; display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-file-shield"></i> معاينة واسترجاع النسخة الاحتياطية
+    <div class="glass-overlay" id="backupImportPreflightModalOverlay" style="z-index: 4000;" data-exo-no-i18n="1">
+        <div class="glass-modal">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px;">
+                <h3 id="backupImportPreflightModalTitle" style="color: var(--warm-paper, #F0E6D4); font-size: 1.15rem; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-file-shield" style="color: var(--sage-green, #899982);"></i> <span id="backupPreflightTitleText">Backup Inspection & Recovery</span>
                 </h3>
-                <span id="backupFormatBadge" class="studio-pill" style="font-size: 0.72rem; padding: 2px 8px; color: var(--primary);">v4</span>
+                <span id="backupFormatBadge" class="studio-pill" style="font-size: 0.72rem; padding: 2px 8px; color: var(--sage-green, #899982);">v4</span>
             </div>
-            <div id="backupPreflightDetails" style="font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); margin-bottom: 14px;"></div>
-            <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.22); border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 0.8rem; color: #bae6fd; line-height: 1.5;">
-                <i class="fa-solid fa-circle-info"></i> <strong>فئات الحفظ الأكاديمي (Tier A):</strong> تشمل هذه النسخة كافة البيانات الأكاديمية والملاحظات والكتابات اليدوية. لا تتضمن ملفات الـPDF أو التسجيلات الصوتية (المحفوظة عبر Google Drive أو محلياً).
-            </div>
+            <div id="backupPreflightDetails" style="font-size: 0.85rem; line-height: 1.6; color: var(--stone, #ABA69D); margin-bottom: 14px;"></div>
+            <div id="backupTierANoteBox" style="background: rgba(120, 152, 172, 0.12); border: 1px solid rgba(120, 152, 172, 0.32); border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 0.79rem; color: #c9dfec; line-height: 1.5;"></div>
             <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;">
-                <button class="btn btn-outline" onclick="closeModal('backupImportPreflightModalOverlay')" style="border-color: rgba(255,255,255,0.15); color: white;">إلغاء</button>
-                <button class="btn btn-outline" id="backupMergeBtn" style="color: var(--primary); border-color: rgba(56, 189, 248, 0.45);">
-                    <i class="fa-solid fa-code-merge"></i> دمج ذكي (Merge)
+                <button type="button" class="btn btn-outline" id="backupCancelBtn" onclick="closeModal('backupImportPreflightModalOverlay')">Cancel</button>
+                <button type="button" class="btn btn-outline" id="backupMergeBtn" style="color: #cde0c5; border-color: rgba(137, 153, 130, 0.55); background: rgba(137, 153, 130, 0.12);">
+                    <i class="fa-solid fa-code-merge"></i> <span id="backupMergeBtnText">Smart Merge</span>
                 </button>
-                <button class="btn btn-primary" id="backupReplaceBtn" style="background: #e11d48; border-color: #f43f5e;">
-                    <i class="fa-solid fa-arrows-rotate"></i> استبدال كامل (Replace)
+                <button type="button" class="btn btn-primary" id="backupReplaceBtn" style="background: var(--terracotta, #C47D60); border-color: rgba(196, 125, 96, 0.7); color: #191B1D;">
+                    <i class="fa-solid fa-arrows-rotate"></i> <span id="backupReplaceBtnText">Full Replace</span>
                 </button>
             </div>
         </div>
@@ -13705,7 +13760,7 @@
                         </p>
                     </div>
                 </div>
-                <button type="button" class="icon-btn" style="width: 32px; height: 32px;" onclick="closeModal('shareSchedulePdfModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
+                <button type="button" class="icon-btn" id="shareSchedulePdfCloseBtn" aria-label="Close schedule PDF modal" style="width: 32px; height: 32px;" onclick="closeModal('shareSchedulePdfModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
             <!-- 1. Simple 2-Mode Purpose Selector (No Parentheses) -->
@@ -13760,7 +13815,7 @@
                         <span style="font-size: 0.78rem; font-weight: 900; color: var(--text-main);">
                             <i class="fa-solid fa-calendar-check" style="color: var(--primary); margin-left: 4px;"></i> اختر الصفحات والأيام المطلوبة في الملف:
                         </span>
-                        <span id="pdfPreviewPageCounterLabel" class="studio-pill" style="font-size: 0.7rem; color: var(--primary);">معاينة الصفحة</span>
+                        <span id="pdfPreviewPageCounterLabel" data-exo-no-i18n="1" class="studio-pill" style="font-size: 0.7rem; color: var(--primary);">معاينة الصفحة</span>
                     </div>
                     <div class="pdf-preset-pills">
                         <button type="button" class="pdf-preset-btn active" id="pdfPresetBtn_all" onclick="applySchedulePdfDayPreset('all')">تحديد كل الأسبوع</button>
@@ -13768,7 +13823,7 @@
                         <button type="button" class="pdf-preset-btn" id="pdfPresetBtn_overview" onclick="applySchedulePdfDayPreset('overview')">تجميعة الأسبوع فقط</button>
                     </div>
                 </div>
-                <div class="pdf-interactive-pages-strip" id="pdfPreviewPageTabs"></div>
+                <div class="pdf-interactive-pages-strip" id="pdfPreviewPageTabs" data-exo-no-i18n="1"></div>
             </div>
 
             <!-- Hidden Compatibility Controls -->
@@ -13820,7 +13875,7 @@
             <div class="modal-actions" style="justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; gap: 10px;">
                 <div style="font-size: 0.74rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
                     <i class="fa-solid fa-check-double" style="color: var(--primary);"></i>
-                    <span id="pdfModeHintFooterText">نسخة الطباعة مجهزة بمربعات شطب يدوية ومساحات تدوين لتعلّم بالقلم طوال الأسبوع.</span>
+                    <span id="pdfModeHintFooterText" data-exo-no-i18n="1">نسخة الطباعة مجهزة بمربعات شطب يدوية ومساحات تدوين لتعلّم بالقلم طوال الأسبوع.</span>
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <button type="button" class="btn btn-outline" onclick="closeModal('shareSchedulePdfModalOverlay')" style="border-color: rgba(255,255,255,0.1); color: var(--text-muted); padding: 8px 14px; font-size: 0.82rem;">إغلاق</button>
@@ -15553,6 +15608,78 @@
             ];
         }
 
+        async function exoHandleManualPushClick() {
+            const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
+            if (!currentCloudUser) {
+                if (typeof showToast === 'function') {
+                    showToast({ en: 'Sign in first to push changes to the cloud.', ar: 'سجّل الدخول أولاً لرفع التغييرات إلى السحابة.' }, 'error');
+                }
+                return { status: 'offline', reason: 'not_logged_in' };
+            }
+            if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+                if (typeof showToast === 'function') {
+                    showToast({ en: 'You are offline — edits remain safely saved on this device.', ar: 'أنت غير متصل — التعديلات محفوظة بأمان على جهازك.' }, 'warning');
+                }
+                return { status: 'offline', reason: 'network_offline' };
+            }
+            if (typeof isCloudSyncing !== 'undefined' && isCloudSyncing) {
+                if (typeof showToast === 'function') {
+                    showToast({ en: 'Cloud sync is already running.', ar: 'المزامنة السحابية قيد التنفيذ بالفعل.' }, 'info');
+                }
+                return { status: 'busy', reason: 'sync_in_progress' };
+            }
+            const pushBtn = document.getElementById('btnManualCloudPush');
+            const pullBtn = document.getElementById('btnManualCloudPull');
+            if (pushBtn) pushBtn.disabled = true;
+            if (pullBtn) pullBtn.disabled = true;
+            try {
+                const res = await pushWorkspaceToCloud(true);
+                return res;
+            } finally {
+                if (pushBtn) pushBtn.disabled = false;
+                if (pullBtn) pullBtn.disabled = false;
+                if (typeof refreshWp64StatusSurfaces === 'function') refreshWp64StatusSurfaces();
+                if (typeof updateStudentProfileStatsInModal === 'function') updateStudentProfileStatsInModal();
+                if (typeof updateGoogleDriveUI === 'function') updateGoogleDriveUI();
+            }
+        }
+
+        async function exoHandleManualPullClick() {
+            const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
+            if (!currentCloudUser) {
+                if (typeof showToast === 'function') {
+                    showToast({ en: 'Sign in first to pull your cloud workspace.', ar: 'سجّل الدخول أولاً لسحب نسختك السحابية.' }, 'error');
+                }
+                return { status: 'aborted', reason: 'not_logged_in' };
+            }
+            if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+                if (typeof showToast === 'function') {
+                    showToast({ en: 'You are offline — keeping local workspace intact.', ar: 'أنت غير متصل — تم الإبقاء على بيانات جهازك كما هي.' }, 'warning');
+                }
+                return { status: 'aborted', reason: 'network_offline' };
+            }
+            if (typeof isCloudSyncing !== 'undefined' && isCloudSyncing) {
+                if (typeof showToast === 'function') {
+                    showToast({ en: 'Cloud sync is already running.', ar: 'المزامنة السحابية قيد التنفيذ بالفعل.' }, 'info');
+                }
+                return { status: 'busy', reason: 'sync_in_progress' };
+            }
+            const pushBtn = document.getElementById('btnManualCloudPush');
+            const pullBtn = document.getElementById('btnManualCloudPull');
+            if (pushBtn) pushBtn.disabled = true;
+            if (pullBtn) pullBtn.disabled = true;
+            try {
+                const res = await pullWorkspaceFromCloud(true);
+                return res;
+            } finally {
+                if (pushBtn) pushBtn.disabled = false;
+                if (pullBtn) pullBtn.disabled = false;
+                if (typeof refreshWp64StatusSurfaces === 'function') refreshWp64StatusSurfaces();
+                if (typeof updateStudentProfileStatsInModal === 'function') updateStudentProfileStatsInModal();
+                if (typeof updateGoogleDriveUI === 'function') updateGoogleDriveUI();
+            }
+        }
+
         if (typeof window !== 'undefined') {
             window.derivePlannerTodaySummary = derivePlannerTodaySummary;
             window.deriveCompassPriorityMeta = deriveCompassPriorityMeta;
@@ -15561,6 +15688,8 @@
             window.deriveSchedulePdfExportSummary = deriveSchedulePdfExportSummary;
             window.deriveAcademyGuideMetrics = deriveAcademyGuideMetrics;
             window.exoResolveSpotlightTourSteps = exoResolveSpotlightTourSteps;
+            window.exoHandleManualPushClick = exoHandleManualPushClick;
+            window.exoHandleManualPullClick = exoHandleManualPullClick;
         }
 
         function showToast(message, type = 'success', extraOpts = null) {
@@ -22013,17 +22142,17 @@
             const safeNext = typeof escapeHtml === 'function' ? escapeHtml(summary.nextStepLabel) : summary.nextStepLabel;
 
             strip.innerHTML = `
-                <div class="wp65-summary-cell">
+                <div class="wp65-summary-cell" role="button" tabindex="0" onclick="switchScheduleSubView('today', document.getElementById('schPillToday'))" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
                     <span class="wp65-summary-lbl">${isEn ? `${dayTitle} Focus` : `تركيز ${dayTitle}`}</span>
                     <span class="wp65-summary-val">${summary.completedSessionsCount}/${summary.totalSessionsCount}</span>
                     <span class="wp65-summary-sub">${safeHeadline}</span>
                 </div>
-                <div class="wp65-summary-cell">
+                <div class="wp65-summary-cell" role="button" tabindex="0" onclick="openAddSessionModal(${targetDay}, null)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
                     <span class="wp65-summary-lbl">${isEn ? 'Remaining Hours' : 'الساعات المتبقية'}</span>
                     <span class="wp65-summary-val">${summary.remainingHours} ${isEn ? 'hrs' : 'س'}</span>
                     <span class="wp65-summary-sub">${safeNext}</span>
                 </div>
-                <div class="wp65-summary-cell">
+                <div class="wp65-summary-cell" role="button" tabindex="0" onclick="switchScheduleSubView('tasks', document.getElementById('schPillTasks'))" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
                     <span class="wp65-summary-lbl">${isEn ? 'Weekly Goals' : 'الأهداف الأسبوعية'}</span>
                     <span class="wp65-summary-val">${completedGoals}/${totalGoals}</span>
                     <span class="wp65-summary-sub">${summary.unlinkedGoalsCount > 0 ? (isEn ? `${summary.unlinkedGoalsCount} unlinked to schedule` : `${summary.unlinkedGoalsCount} غير مربوطة بالجدول`) : (isEn ? 'All goals linked or settled' : 'كل الأهداف مربوطة أو منجزة')}</span>
@@ -25397,12 +25526,24 @@
             });
             
             // 1. Update Top 4 KPI Cards
+            const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
+            const hrUnit = isEn ? 'h' : 'س';
             const streak = calculateStreak();
-            if (document.getElementById('statStreak')) document.getElementById('statStreak').innerText = `${streak} ${streak === 1 ? 'يوم' : 'أيام'}`;
-            if (document.getElementById('statStreakMsg')) document.getElementById('statStreakMsg').innerText = streak > 0 ? 'سلسلة رائعة! حافظ على شعلتك اليوم 🔥' : 'سجّل أول إنجاز اليوم لبدء السلسلة!';
+            if (document.getElementById('statStreak')) {
+                document.getElementById('statStreak').innerText = isEn
+                    ? `${streak} ${streak === 1 ? 'day' : 'days'}`
+                    : `${streak} ${streak === 1 ? 'يوم' : 'أيام'}`;
+            }
+            if (document.getElementById('statStreakMsg')) {
+                document.getElementById('statStreakMsg').innerText = isEn
+                    ? (streak > 0 ? 'Steady streak — keep your rhythm today' : 'Log your first session today to start a streak')
+                    : (streak > 0 ? 'سلسلة رائعة! حافظ على إيقاعك اليوم' : 'سجّل أول إنجاز اليوم لبدء السلسلة');
+            }
             
-            if (document.getElementById('statDoneHours')) document.getElementById('statDoneHours').innerText = `${Number(netDoneStudyHours.toFixed(1))} س`;
+            if (document.getElementById('statDoneHours')) document.getElementById('statDoneHours').innerText = `${Number(netDoneStudyHours.toFixed(1))} ${hrUnit}`;
             if (document.getElementById('statPlannedHours')) document.getElementById('statPlannedHours').innerText = Number(netPlannedStudyHours.toFixed(1));
+            if (document.getElementById('kpiLblHoursUnit')) document.getElementById('kpiLblHoursUnit').innerText = hrUnit;
+            if (document.getElementById('analyticsTotalHoursUnit')) document.getElementById('analyticsTotalHoursUnit').innerText = hrUnit;
             
             // Weekly Goals KPI Card
             const totalGoals = scheduleBacklog.length;
@@ -25417,50 +25558,60 @@
                 document.getElementById('statGoalsCompletedRatio').innerText = `${doneGoals}/${totalGoals}`;
             }
             if (document.getElementById('statGoalsLinkedBadge')) {
-                document.getElementById('statGoalsLinkedBadge').innerText = `${linkedGoals} مرتبط بالجدول`;
+                document.getElementById('statGoalsLinkedBadge').innerText = isEn ? `${linkedGoals} linked` : `${linkedGoals} مرتبط بالجدول`;
             }
             if (document.getElementById('statGoalsTimeSub')) {
                 document.getElementById('statGoalsTimeSub').innerText = goalsTotalMins > 0
-                    ? `الوقت المسجل للأهداف: ${formatMinutesHumanReadable(goalsTotalMins)}`
-                    : (totalGoals > 0 ? 'اضغط على أهدافك لربطها بالمهام' : 'أضف أهدافك من صفحة التخطيط');
+                    ? (isEn ? `Scheduled for goals: ${formatMinutesHumanReadable(goalsTotalMins)}` : `الوقت المسجل للأهداف: ${formatMinutesHumanReadable(goalsTotalMins)}`)
+                    : (totalGoals > 0
+                        ? (isEn ? 'Link goals to schedule blocks' : 'اضغط على أهدافك لربطها بالمهام')
+                        : (isEn ? 'Add weekly goals in Planner' : 'أضف أهدافك من صفحة التخطيط'));
             }
 
             const efficiency = netPlannedStudyHours > 0 ? Math.round((netDoneStudyHours / netPlannedStudyHours) * 100) : 0;
             if (document.getElementById('statEfficiencyRate')) document.getElementById('statEfficiencyRate').innerText = `${efficiency}%`;
             if (document.getElementById('statEfficiencyLabel')) {
-                document.getElementById('statEfficiencyLabel').innerText = efficiency >= 80 ? 'إنتاجية استثنائية 🔥' : (efficiency >= 50 ? 'أداء متوازن وجيد ⚡' : (netPlannedStudyHours > 0 ? 'فرصة لرفع التركيز اليوم 🎯' : 'لم تُجدول جلسات مذاكرة بعد'));
+                document.getElementById('statEfficiencyLabel').innerText = isEn
+                    ? (efficiency >= 80 ? 'Strong adherence' : (efficiency >= 50 ? 'Balanced weekly pace' : (netPlannedStudyHours > 0 ? 'Room to catch up today' : 'No study blocks scheduled yet')))
+                    : (efficiency >= 80 ? 'إنتاجية استثنائية' : (efficiency >= 50 ? 'أداء متوازن وجيد' : (netPlannedStudyHours > 0 ? 'فرصة لرفع التركيز اليوم' : 'لم تُجدول جلسات مذاكرة بعد')));
             }
             
             if (document.getElementById('statTotalLogs')) document.getElementById('statTotalLogs').innerText = logs.length;
             const lecCompletionPct = totalLecturesCount > 0 ? Math.round((completedLecturesCount / totalLecturesCount) * 100) : 0;
             if (document.getElementById('statLecturesSummaryPill')) {
-                document.getElementById('statLecturesSummaryPill').innerText = `${completedLecturesCount}/${totalLecturesCount} محاضرة (${lecCompletionPct}%)`;
+                document.getElementById('statLecturesSummaryPill').innerText = isEn
+                    ? `${completedLecturesCount}/${totalLecturesCount} chapters (${lecCompletionPct}%)`
+                    : `${completedLecturesCount}/${totalLecturesCount} محاضرة (${lecCompletionPct}%)`;
             }
             if (document.getElementById('statReviewAlertSub')) {
                 document.getElementById('statReviewAlertSub').innerText = dueSpacedRepLectures.length > 0
-                    ? `⚠️ لديك ${dueSpacedRepLectures.length} محاضرات تحتاج مراجعة متباعدة`
-                    : 'جميع المحاضرات المدروسة محدّثة بالذاكرة ✓';
+                    ? (isEn ? `${dueSpacedRepLectures.length} chapters due for spaced review` : `لديك ${dueSpacedRepLectures.length} محاضرات تحتاج مراجعة متباعدة`)
+                    : (isEn ? 'All studied chapters are up to date' : 'جميع المحاضرات المدروسة محدّثة بالذاكرة ✓');
             }
             
             // 2. Update Smarter Time Analytics
             if (document.getElementById('analyticsTotalHours')) document.getElementById('analyticsTotalHours').innerText = Number(totalAllHours.toFixed(1));
             const mergedStudyHrs = importantHours + practiceHours;
             const mergedReviewQuizHrs = reviewHours + catchupHours + urgentHours;
-            if (document.getElementById('distMandatoryTxt')) document.getElementById('distMandatoryTxt').innerText = `${Number(mandatoryHours.toFixed(1))} س`;
-            if (document.getElementById('distImportantTxt')) document.getElementById('distImportantTxt').innerText = `${Number(mergedStudyHrs.toFixed(1))} س`;
-            if (document.getElementById('distPracticeTxt')) document.getElementById('distPracticeTxt').innerText = `${Number(practiceHours.toFixed(1))} س`;
-            if (document.getElementById('distReviewTxt')) document.getElementById('distReviewTxt').innerText = `${Number(mergedReviewQuizHrs.toFixed(1))} س`;
-            if (document.getElementById('distCatchupTxt')) document.getElementById('distCatchupTxt').innerText = `${Number(catchupHours.toFixed(1))} س`;
-            if (document.getElementById('distUrgentTxt')) document.getElementById('distUrgentTxt').innerText = `${Number(urgentHours.toFixed(1))} س`;
+            if (document.getElementById('distMandatoryTxt')) document.getElementById('distMandatoryTxt').innerText = `${Number(mandatoryHours.toFixed(1))} ${hrUnit}`;
+            if (document.getElementById('distImportantTxt')) document.getElementById('distImportantTxt').innerText = `${Number(mergedStudyHrs.toFixed(1))} ${hrUnit}`;
+            if (document.getElementById('distPracticeTxt')) document.getElementById('distPracticeTxt').innerText = `${Number(practiceHours.toFixed(1))} ${hrUnit}`;
+            if (document.getElementById('distReviewTxt')) document.getElementById('distReviewTxt').innerText = `${Number(mergedReviewQuizHrs.toFixed(1))} ${hrUnit}`;
+            if (document.getElementById('distCatchupTxt')) document.getElementById('distCatchupTxt').innerText = `${Number(catchupHours.toFixed(1))} ${hrUnit}`;
+            if (document.getElementById('distUrgentTxt')) document.getElementById('distUrgentTxt').innerText = `${Number(urgentHours.toFixed(1))} ${hrUnit}`;
             const absentCollegeDaysCount = getAbsentCollegeDaysCount(scheduleEvents);
             if (document.getElementById('distAbsentWrap')) {
                 document.getElementById('distAbsentWrap').style.display = absentCollegeDaysCount > 0 ? 'inline' : 'none';
             }
-            if (document.getElementById('distAbsentTxt')) document.getElementById('distAbsentTxt').innerText = formatArabicDaysShort(absentCollegeDaysCount);
+            if (document.getElementById('distAbsentTxt')) {
+                document.getElementById('distAbsentTxt').innerText = isEn
+                    ? `${absentCollegeDaysCount} day${absentCollegeDaysCount === 1 ? '' : 's'}`
+                    : formatArabicDaysShort(absentCollegeDaysCount);
+            }
             if (document.getElementById('distWastedWrap')) {
                 document.getElementById('distWastedWrap').style.display = wastedHours > 0 ? 'inline' : 'none';
             }
-            if (document.getElementById('distWastedTxt')) document.getElementById('distWastedTxt').innerText = `${Number(wastedHours.toFixed(1))} س`;
+            if (document.getElementById('distWastedTxt')) document.getElementById('distWastedTxt').innerText = `${Number(wastedHours.toFixed(1))} ${hrUnit}`;
             
             const mPct = totalAllHours > 0 ? (mandatoryHours / totalAllHours) * 100 : 20;
             const iPct = totalAllHours > 0 ? (importantHours / totalAllHours) * 100 : 35;
@@ -25482,12 +25633,20 @@
             const dailyAvg = Number((netPlannedStudyHours / 7).toFixed(1));
             const reviewSharePct = netPlannedStudyHours > 0 ? Math.round((reviewHours / netPlannedStudyHours) * 100) : 0;
 
-            if (document.getElementById('smartNetStudyHours')) document.getElementById('smartNetStudyHours').innerText = `${Number(netPlannedStudyHours.toFixed(1))} س`;
-            if (document.getElementById('smartNetStudyPct')) document.getElementById('smartNetStudyPct').innerText = `${netStudySharePct}% صافي مذاكرة مقابل الكلية`;
-            if (document.getElementById('smartDailyAvgStudy')) document.getElementById('smartDailyAvgStudy').innerText = `${dailyAvg} س/يوم`;
+            if (document.getElementById('smartNetStudyHours')) document.getElementById('smartNetStudyHours').innerText = `${Number(netPlannedStudyHours.toFixed(1))} ${hrUnit}`;
+            if (document.getElementById('smartNetStudyPct')) {
+                document.getElementById('smartNetStudyPct').innerText = isEn
+                    ? `${netStudySharePct}% net study vs fixed classes`
+                    : `${netStudySharePct}% صافي مذاكرة مقابل الكلية`;
+            }
+            if (document.getElementById('smartDailyAvgStudy')) {
+                document.getElementById('smartDailyAvgStudy').innerText = isEn ? `${dailyAvg} h/day` : `${dailyAvg} س/يوم`;
+            }
             if (document.getElementById('smartReviewRatio')) document.getElementById('smartReviewRatio').innerText = `${reviewSharePct}%`;
             if (document.getElementById('smartReviewAdvice')) {
-                document.getElementById('smartReviewAdvice').innerText = reviewSharePct >= 20 ? 'نسبة مراجعة مثالية ✓' : 'يُنصح برفعها إلى 20%+';
+                document.getElementById('smartReviewAdvice').innerText = isEn
+                    ? (reviewSharePct >= 20 ? 'Balanced review share ✓' : 'Aim for 20%+ active review')
+                    : (reviewSharePct >= 20 ? 'نسبة مراجعة مثالية ✓' : 'يُنصح برفعها إلى 20%+');
             }
 
             // 3. Render 7-Day Study Load & Completion Chart (ordered by user's weekStartDay)
@@ -25499,7 +25658,8 @@
                 let bestDayObj = null;
                 orderedDays.forEach((dObj) => {
                     const d = dayStats[dObj.dayIdx];
-                    if (!bestDayObj || d.done > bestDayObj.done) bestDayObj = d;
+                    const dispName = dObj.dayName || d.name;
+                    if (!bestDayObj || d.done > bestDayObj.done) bestDayObj = { name: dispName, done: d.done };
                     const plannedH = Math.min(100, Math.round((d.planned / maxDayHrs) * 100));
                     const doneH = Math.min(100, Math.round((d.done / maxDayHrs) * 100));
                     const isToday = dObj.isToday;
@@ -25507,17 +25667,19 @@
                     const dispPlan = Number(d.planned.toFixed(1));
                     barParts.push(`
                         <div class="day-bar-col">
-                            <span style="font-size: 0.65rem; color: ${dispDone > 0 ? '#6ee7b7' : 'var(--text-muted)'}; font-weight: 800;">${dispDone > 0 ? dispDone + 'س' : (dispPlan > 0 ? dispPlan + 'س' : '-')}</span>
-                            <div class="day-bar-track" style="${isToday ? 'border: 1px solid var(--primary);' : ''}">
+                            <span style="font-size: 0.65rem; color: ${dispDone > 0 ? '#cde0c5' : 'var(--text-muted)'}; font-weight: 800;">${dispDone > 0 ? dispDone + hrUnit : (dispPlan > 0 ? dispPlan + hrUnit : '-')}</span>
+                            <div class="day-bar-track" style="${isToday ? 'border: 1px solid var(--sage-green, #899982);' : ''}">
                                 <div class="day-bar-fill-planned" style="height: ${plannedH}%;"></div>
                                 <div class="day-bar-fill-done" style="height: ${doneH}%;"></div>
                             </div>
-                            <span style="font-size: 0.7rem; font-weight: ${isToday ? '900' : '700'}; color: ${isToday ? 'var(--primary)' : 'var(--text-muted)'};">${d.name}</span>
+                            <span style="font-size: 0.7rem; font-weight: ${isToday ? '900' : '700'}; color: ${isToday ? 'var(--sage-green, #899982)' : 'var(--text-muted)'};">${escapeHtml(dispName)}</span>
                         </div>
                     `);
                 });
                 barsContainer.innerHTML = barParts.join('');
-                const bestDayTxt = (bestDayObj && bestDayObj.done > 0) ? `الأعلى إنجازاً: ${bestDayObj.name} (${Number(bestDayObj.done.toFixed(1))} س)` : 'أتمم جلساتك لاكتشاف يوم ذروتك';
+                const bestDayTxt = (bestDayObj && bestDayObj.done > 0)
+                    ? (isEn ? `Peak day: ${bestDayObj.name} (${Number(bestDayObj.done.toFixed(1))}h)` : `الأعلى إنجازاً: ${bestDayObj.name} (${Number(bestDayObj.done.toFixed(1))} س)`)
+                    : (isEn ? 'Complete sessions to reveal your peak day' : 'أتمم جلساتك لاكتشاف يوم ذروتك');
                 if (document.getElementById('smartBestDayLabel')) document.getElementById('smartBestDayLabel').innerText = bestDayTxt;
                 if (document.getElementById('smartPeakDayInsight')) document.getElementById('smartPeakDayInsight').innerText = bestDayTxt;
             }
@@ -25528,7 +25690,7 @@
                 subList.innerHTML = '';
                 const subKeys = Object.keys(subjectHoursMap);
                 if (subKeys.length === 0) {
-                    subList.innerHTML = `<div style="color:var(--text-muted); font-size:0.85rem; padding:12px 0;">لم تسجل مواد دراسية في «المركز» بعد.</div>`;
+                    subList.innerHTML = `<div style="color:var(--text-muted); font-size:0.85rem; padding:12px 0;">${isEn ? 'No courses added in your Study Library yet.' : 'لم تسجل مواد دراسية في «المركز» بعد.'}</div>`;
                 } else {
                     const subParts = [];
                     subKeys.forEach(k => {
@@ -25539,21 +25701,21 @@
 
                         let statusBadge = '';
                         if (item.hours === 0 && item.doneLec === 0) {
-                            statusBadge = `<span class="subject-mastery-badge" style="background:rgba(244,63,94,0.15); color:#fda4af;">⚠️ تحتاج جدولة</span>`;
+                            statusBadge = `<span class="subject-mastery-badge" style="background:rgba(196,125,96,0.16); color:#f4d3c5;">${isEn ? 'Needs Schedule' : 'تحتاج جدولة'}</span>`;
                         } else if (combinedScore >= 75) {
-                            statusBadge = `<span class="subject-mastery-badge" style="background:rgba(16,185,129,0.18); color:#6ee7b7;">🏆 متقدم (${combinedScore}%)</span>`;
+                            statusBadge = `<span class="subject-mastery-badge" style="background:rgba(137,153,130,0.2); color:#cde0c5;">${isEn ? `On Track (${combinedScore}%)` : `متقدم (${combinedScore}%)`}</span>`;
                         } else if (combinedScore >= 40) {
-                            statusBadge = `<span class="subject-mastery-badge" style="background:rgba(45, 212, 191,0.18); color:var(--primary);">⚡ متوازن (${combinedScore}%)</span>`;
+                            statusBadge = `<span class="subject-mastery-badge" style="background:rgba(120,152,172,0.2); color:#b7cad6;">${isEn ? `Steady (${combinedScore}%)` : `متوازن (${combinedScore}%)`}</span>`;
                         } else {
-                            statusBadge = `<span class="subject-mastery-badge" style="background:rgba(245,158,11,0.18); color:#fcd34d;">🎯 يحتاج تركيز</span>`;
+                            statusBadge = `<span class="subject-mastery-badge" style="background:rgba(215,185,111,0.18); color:#f3e1b3;">${isEn ? 'Needs Focus' : 'يحتاج تركيز'}</span>`;
                         }
 
                         subParts.push(`
-                            <div class="subject-prog-row" onclick="jumpToSubjectFromRec(${item.id})" style="cursor: pointer; background: rgba(12, 14, 20, 0.55); padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); transition: border-color 0.15s ease;">
+                            <div class="subject-prog-row" onclick="jumpToSubjectFromRec(${item.id})" style="cursor: pointer; padding: 10px 12px; transition: border-color 0.15s ease;">
                                 <div class="prog-label" style="align-items: center;">
-                                    <span style="color:var(--text-main); font-weight:800;">${item.name}</span>
+                                    <span style="color:var(--warm-paper, #F0E6D4); font-weight:800;">${escapeHtml(item.name)}</span>
                                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                                        <span style="color:var(--text-muted); font-size:0.76rem;">⏱️ ${Number(item.doneHours.toFixed(1))}/${Number(item.hours.toFixed(1))}س • 📄 ${item.doneLec}/${item.totalLec} محاضرة</span>
+                                        <span style="color:var(--stone, #ABA69D); font-size:0.76rem;">⏱️ ${Number(item.doneHours.toFixed(1))}/${Number(item.hours.toFixed(1))}${hrUnit} • 📄 ${item.doneLec}/${item.totalLec} ${isEn ? 'ch' : 'محاضرة'}</span>
                                         ${statusBadge}
                                     </div>
                                 </div>
@@ -25589,23 +25751,20 @@
         function renderSmartRecommendations(ctx) {
             const container = document.getElementById('smartRecommendationsList');
             if (!container) return;
+            const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
             const recs = [];
 
             // Recommendation 0: Wasted Time Recovery & Rescue Plan
             if ((ctx.wastedHours || 0) > 0) {
+                const meta = deriveCompassPriorityMeta('wasted_time', { hours: ctx.wastedHours }, isEn);
                 recs.push({
-                    priority: 'priority-high',
-                    icon: 'fa-gamepad',
-                    iconBg: 'rgba(225, 29, 72, 0.18)',
-                    iconColor: '#fda4af',
-                    title: `خطة إنقاذ الوقت الضائع (${Number(ctx.wastedHours.toFixed(1))} س في اللعب/التشتت)`,
-                    desc: `سجّلت ضياع ${Number(ctx.wastedHours.toFixed(1))} ساعة في (${ctx.wastedSessionsCount || 1} جلسة). الاعتراف بالوقت الضائع أول خطوة للسيطرة — لا تجلد ذاتك وعوّضها الآن بجلسة إنقاذ مركزة!`,
-                    btnText: '⚡ جدولة جلسة تعويض الآن',
+                    meta,
+                    btnText: isEn ? 'Schedule Recovery Block' : 'جدولة جلسة تعويض الآن',
                     onClick: `openQuickCatchupFromWastedTime()`
                 });
             }
 
-            // Recommendation 0 (Top Priority): Upcoming Exam / Quiz Radar within 14 days
+            // Recommendation 0b: Upcoming Exam / Quiz Radar within 14 days
             const upcomingExams = subjects
                 .filter(s => isSubjectDivided(s))
                 .map(s => ({ sub: s, info: getSubjectExamRadarInfo(s) }))
@@ -25614,15 +25773,10 @@
 
             if (upcomingExams.length > 0) {
                 const topExam = upcomingExams[0];
-                const exPct = topExam.info.totalExamLec > 0 ? Math.round((topExam.info.doneExamLec / topExam.info.totalExamLec) * 100) : 0;
+                const meta = deriveCompassPriorityMeta('upcoming_exam', { subjectName: topExam.sub.name, daysLeft: topExam.info.diffDays }, isEn);
                 recs.push({
-                    priority: 'priority-high',
-                    icon: 'fa-bullseye',
-                    iconBg: 'rgba(244, 63, 94, 0.2)',
-                    iconColor: '#fda4af',
-                    title: `رادار الامتحانات: ${topExam.info.examTitle} في «${topExam.sub.name}» (${topExam.info.urgencyLabel})`,
-                    desc: `أنجزت ${topExam.info.doneExamLec} من ${topExam.info.totalExamLec} محاضرات داخلة في الامتحان (${exPct}%). افتح وضع الطوارئ للمراجعة المدمجة فوراً!`,
-                    btnText: '⚡ فتح وضع طوارئ الامتحان',
+                    meta,
+                    btnText: isEn ? 'Open Exam Mode' : 'فتح وضع طوارئ الامتحان',
                     onClick: `launchSubjectExamCramMode(${topExam.sub.id})`
                 });
             }
@@ -25630,14 +25784,13 @@
             // Recommendation 1: Spaced Repetition Due Lectures (Dynamic Ebbinghaus Curve)
             if (ctx.dueSpacedRepLectures.length > 0) {
                 const topDue = ctx.dueSpacedRepLectures.sort((a, b) => b.days - a.days)[0];
+                const meta = deriveCompassPriorityMeta('spaced_repetition', {
+                    subjectName: topDue.subject.name,
+                    count: ctx.dueSpacedRepLectures.length
+                }, isEn);
                 recs.push({
-                    priority: 'priority-high',
-                    icon: 'fa-rotate',
-                    iconBg: 'rgba(244, 63, 94, 0.16)',
-                    iconColor: '#fda4af',
-                    title: `مراجعة متباعدة مستحقة (${ctx.dueSpacedRepLectures.length} محاضرة)`,
-                    desc: `حان موعد المراجعة #${(topDue.revCount || 1) + 1} لمحاضرة «${topDue.lecture.title}» (${topDue.subject.name}) بعد مرور ${topDue.days} يوم (فاصل النسيان: ${topDue.intervalDays || 7} أيام).`,
-                    btnText: '📅 جدولة المراجعة بأقرب وقت متاح',
+                    meta,
+                    btnText: isEn ? 'Schedule Spaced Review' : 'جدولة المراجعة بأقرب وقت متاح',
                     onClick: `quickScheduleReviewForLecture(${topDue.subject.id}, ${topDue.group.id}, ${topDue.lecture.id})`
                 });
             }
@@ -25647,15 +25800,11 @@
             const neglectedSubs = subArray.filter(s => s.hours === 0);
             if (neglectedSubs.length > 0) {
                 const targetSub = neglectedSubs[0];
+                const meta = deriveCompassPriorityMeta('neglected_subject', { subjectName: targetSub.name }, isEn);
                 recs.push({
-                    priority: 'priority-high',
-                    icon: 'fa-triangle-exclamation',
-                    iconBg: 'rgba(245, 158, 11, 0.16)',
-                    iconColor: '#fcd34d',
-                    title: `مادة بدون ساعات مذاكرة هذا الأسبوع`,
-                    desc: `مادة «${targetSub.name}» ليس لها أي جلسة مذاكرة مجدولة في تقويم الأسبوع${neglectedSubs.length > 1 ? ` (و${neglectedSubs.length - 1} مواد أخرى)` : ''}.`,
-                    btnText: `🧭 جدولة بأقرب وقت متاح`,
-                    onClick: `quickScheduleForSubject(${targetSub.id}, 'مذاكرة محاضرة - ${targetSub.name.replace(/'/g, '')}', 'important')`
+                    meta,
+                    btnText: isEn ? 'Schedule First Block' : 'جدولة بأقرب وقت متاح',
+                    onClick: `quickScheduleForSubject(${targetSub.id}, '${isEn ? 'Study session' : 'مذاكرة محاضرة'} - ${targetSub.name.replace(/'/g, '')}', 'important')`
                 });
             } else if (subArray.length > 0) {
                 const laggingSub = subArray.slice().sort((a, b) => {
@@ -25664,14 +25813,14 @@
                     return pctA - pctB;
                 })[0];
                 if (laggingSub && laggingSub.totalLec > 0 && laggingSub.doneLec < laggingSub.totalLec) {
+                    const ratioPct = Math.round((laggingSub.doneLec / laggingSub.totalLec) * 100);
+                    const meta = deriveCompassPriorityMeta('lagging_subject', {
+                        subjectName: laggingSub.name,
+                        ratioPct
+                    }, isEn);
                     recs.push({
-                        priority: 'priority-medium',
-                        icon: 'fa-book-open-reader',
-                        iconBg: 'rgba(45, 212, 191, 0.16)',
-                        iconColor: 'var(--primary)',
-                        title: `فرصة للتقدم في «${laggingSub.name}»`,
-                        desc: `أنهيت ${laggingSub.doneLec} من ${laggingSub.totalLec} محاضرات في هذه المادة. ابدأ المحاضرة التالية مباشرة في استوديو الـ PDF مع التتبع الذكي.`,
-                        btnText: `🚀 بدء المحاضرة التالية الآن`,
+                        meta,
+                        btnText: isEn ? 'Open Next Chapter' : 'بدء المحاضرة التالية الآن',
                         onClick: `startQuickPomodoroForSubject(${laggingSub.id})`
                     });
                 }
@@ -25680,17 +25829,15 @@
             // Recommendation 3: Today's Remaining Sessions
             const todayPendingEvents = scheduleEvents.filter(e => e.day === getCurrentDayIdx() && !e.isFixed && !e.completed);
             if (todayPendingEvents.length > 0) {
-                const nextEv = todayPendingEvents.sort((a, b) => a.startHour - b.startHour)[0];
-                const timing = getSessionDisplayTiming(nextEv);
+                const pendingHours = todayPendingEvents.reduce((sum, ev) => sum + getSessionDisplayTiming(ev).effectiveDurationHours, 0);
+                const meta = deriveCompassPriorityMeta('today_pending', {
+                    count: todayPendingEvents.length,
+                    hours: pendingHours
+                }, isEn);
                 recs.push({
-                    priority: 'priority-medium',
-                    icon: 'fa-calendar-check',
-                    iconBg: 'rgba(59, 130, 246, 0.16)',
-                    iconColor: '#93c5fd',
-                    title: `لديك ${todayPendingEvents.length} مهام مجدولة لليوم قيد التنفيذ`,
-                    desc: `جلستك التالية اليوم: «${nextEv.title}» (${timing.durationBadgeText}) الساعة ${formatHourText(nextEv.startHour)}.`,
-                    btnText: 'الانتقال لجدول اليوم',
-                    onClick: `switchView('schedule', document.querySelectorAll('.nav-item')[1]); switchScheduleSubView('today', document.getElementById('schPillToday'));`
+                    meta,
+                    btnText: isEn ? 'Go to Today Planner' : 'الانتقال لجدول اليوم',
+                    onClick: `switchView('schedule', document.querySelector('.sidebar-nav-item[data-tab="schedule"]') || document.querySelectorAll('.nav-item')[1]); switchScheduleSubView('today', document.getElementById('schPillToday'));`
                 });
             }
 
@@ -25698,61 +25845,62 @@
             const unlinkedGoals = scheduleBacklog.filter(t => !t.done && getGoalLinkedEventsList(t).length === 0);
             if (unlinkedGoals.length > 0) {
                 const topGoal = unlinkedGoals[0];
+                const meta = deriveCompassPriorityMeta('unlinked_goals', { count: unlinkedGoals.length }, isEn);
                 recs.push({
-                    priority: 'priority-good',
-                    icon: 'fa-bullseye',
-                    iconBg: 'rgba(168, 85, 247, 0.18)',
-                    iconColor: '#d8b4fe',
-                    title: `${unlinkedGoals.length} أهداف أسبوعية غير مربوطة بجدولك بعد`,
-                    desc: `الهدف «${topGoal.title}»${unlinkedGoals.length > 1 ? ` و${unlinkedGoals.length - 1} أهداف أخرى` : ''} غير مربوطة بوقت محدد في الجدول؛ اربطها بجلسة دراسية لضمان إنجازها هذا الأسبوع.`,
-                    btnText: 'ربط الهدف بمهمة الآن',
-                    onClick: `switchView('schedule', document.querySelectorAll('.nav-item')[1]); switchScheduleSubView('tasks', document.getElementById('schPillTasks')); openGoalTaskLinkerModal(${topGoal.id})`
+                    meta,
+                    btnText: isEn ? 'Link Goal to Slot' : 'ربط الهدف بمهمة الآن',
+                    onClick: `switchView('schedule', document.querySelector('.sidebar-nav-item[data-tab="schedule"]') || document.querySelectorAll('.nav-item')[1]); switchScheduleSubView('tasks', document.getElementById('schPillTasks')); openGoalTaskLinkerModal(${topGoal.id})`
                 });
             } else if (ctx.netPlannedStudyHours > 0 && (ctx.reviewHours / ctx.netPlannedStudyHours) < 0.15) {
+                const ratioPct = Math.round((ctx.reviewHours / ctx.netPlannedStudyHours) * 100);
+                const meta = deriveCompassPriorityMeta('review_balance', { ratioPct }, isEn);
                 recs.push({
-                    priority: 'priority-good',
-                    icon: 'fa-brain',
-                    iconBg: 'rgba(139, 92, 246, 0.16)',
-                    iconColor: '#c4b5fd',
-                    title: `تعزيز حصة المراجعة وحل الأسئلة`,
-                    desc: `ساعات المراجعة تشكل ${Math.round((ctx.reviewHours / ctx.netPlannedStudyHours) * 100)}% فقط من مذاكرتك. تخصيص جلسة مراجعة يضاعف تثبيت المعلومات.`,
-                    btnText: 'إضافة جلسة مراجعة',
-                    onClick: `quickScheduleForSubject('', 'مراجعة وحل أسئلة شاملة', 'review')`
+                    meta,
+                    btnText: isEn ? 'Add Review Block' : 'إضافة جلسة مراجعة',
+                    onClick: `quickScheduleForSubject('', '${isEn ? 'Active review & practice' : 'مراجعة وحل أسئلة شاملة'}', 'review')`
                 });
             }
 
             if (recs.length === 0) {
                 recs.push({
-                    priority: 'priority-good',
-                    icon: 'fa-medal',
-                    iconBg: 'rgba(16, 185, 129, 0.18)',
-                    iconColor: '#6ee7b7',
-                    title: 'أداؤك متوازن ومنظم بامتياز! 🌟',
-                    desc: 'جميع موادك مجدولة ومحاضراتك محدّثة وأهدافك مرتبطة. استمر بنفس الوتيرة أو دوّن إنجازاتك الجديدة.',
-                    btnText: 'تدوين إنجاز جديد',
+                    meta: deriveCompassPriorityMeta('all_balanced', {}, isEn),
+                    btnText: isEn ? 'Log New Study Entry' : 'تدوين إنجاز جديد',
                     onClick: `triggerAddLogPro()`
                 });
             }
 
-            const badge = document.getElementById('smartAdvisorSummaryBadge');
-            if (badge) badge.innerHTML = `<i class="fa-solid fa-sparkles"></i> ${recs.length} توصيات ذكية مخصصة لك`;
+            const shownRecs = recs.slice(0, 4);
+            container.classList.remove('wp65-compass-1', 'wp65-compass-3');
+            if (shownRecs.length === 1) container.classList.add('wp65-compass-1');
+            else if (shownRecs.length === 3) container.classList.add('wp65-compass-3');
 
-            container.innerHTML = recs.slice(0, 4).map(r => `
-                <div class="smart-rec-card ${r.priority}">
-                    <div class="smart-rec-top">
-                        <div class="smart-rec-icon" style="background: ${r.iconBg}; color: ${r.iconColor};">
-                            <i class="fa-solid ${r.icon}"></i>
+            const badge = document.getElementById('smartAdvisorSummaryBadge');
+            if (badge) {
+                badge.innerHTML = isEn
+                    ? `<i class="fa-solid fa-compass"></i> ${shownRecs.length} active signal${shownRecs.length === 1 ? '' : 's'}`
+                    : `<i class="fa-solid fa-compass"></i> ${shownRecs.length} توصيات ذكية مخصصة لك`;
+            }
+
+            const dirArrow = isEn ? 'fa-arrow-right' : 'fa-arrow-left';
+            const whyLabel = isEn ? 'Why it matters:' : 'لماذا يهم الآن:';
+            const nextLabel = isEn ? 'Next step:' : 'الخطوة التالية:';
+
+            container.innerHTML = shownRecs.map(r => {
+                const m = r.meta;
+                return `
+                    <div class="wp65-compass-card tone-${m.tone}">
+                        <div class="wp65-compass-top">
+                            <span class="wp65-compass-badge"><i class="fa-solid ${m.icon}"></i> ${escapeHtml(m.badge)}</span>
                         </div>
-                        <div>
-                            <div style="font-weight: 800; font-size: 0.92rem; color: var(--text-main); margin-bottom: 3px;">${r.title}</div>
-                            <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">${r.desc}</p>
-                        </div>
+                        <h4 class="wp65-compass-title">${escapeHtml(m.title)}</h4>
+                        <div class="wp65-compass-why"><strong>${whyLabel}</strong> ${escapeHtml(m.why)}</div>
+                        <div class="wp65-compass-action"><strong>${nextLabel}</strong> ${escapeHtml(m.nextAction)}</div>
+                        <button type="button" class="smart-rec-action-btn" onclick="${r.onClick}">
+                            <span>${escapeHtml(r.btnText)}</span> <i class="fa-solid ${dirArrow}" style="font-size: 0.7rem;"></i>
+                        </button>
                     </div>
-                    <button class="smart-rec-action-btn" onclick="${r.onClick}">
-                        <span>${r.btnText}</span> <i class="fa-solid fa-arrow-left" style="font-size: 0.7rem;"></i>
-                    </button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function triggerAddLogPro() {
@@ -26316,25 +26464,45 @@
                 if (cnt > topSubMax) { topSubMax = cnt; topSubjectName = sName; }
             });
 
+            const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
+            const hrUnit = isEn ? 'h' : 'س';
+
             const countPill = document.getElementById('logsSummaryCountPill');
             if (countPill) {
-                const uniqueDaysCount = new Set(filteredLogs.map(l => l.date || 'اليوم')).size;
-                countPill.innerText = `${filteredLogs.length} سجل في ${uniqueDaysCount} ${uniqueDaysCount === 1 ? 'يوم' : 'أيام'}`;
+                const uniqueDaysCount = new Set(filteredLogs.map(l => l.date || (isEn ? 'Today' : 'اليوم'))).size;
+                countPill.innerText = isEn
+                    ? `${filteredLogs.length} entr${filteredLogs.length === 1 ? 'y' : 'ies'} across ${uniqueDaysCount} day${uniqueDaysCount === 1 ? '' : 's'}`
+                    : `${filteredLogs.length} سجل في ${uniqueDaysCount} ${uniqueDaysCount === 1 ? 'يوم' : 'أيام'}`;
             }
 
             const insightStrip = document.getElementById('logsQuickInsightStrip');
             if (insightStrip) {
-                const hrsTxt = totalLoggedHours > 0 ? `⏱️ مكتسب مسجل: ${Number(totalLoggedHours.toFixed(1))} س` : '';
-                const topSubTxt = topSubjectName ? `🏆 الأكثر تركيزاً: ${topSubjectName}` : '';
+                const hrsTxt = totalLoggedHours > 0
+                    ? (isEn ? `⏱️ Logged study: ${Number(totalLoggedHours.toFixed(1))}h` : `⏱️ مكتسب مسجل: ${Number(totalLoggedHours.toFixed(1))} س`)
+                    : '';
+                const topSubTxt = topSubjectName
+                    ? (isEn ? `🏆 Top focus: ${escapeHtml(topSubjectName)}` : `🏆 الأكثر تركيزاً: ${escapeHtml(topSubjectName)}`)
+                    : '';
                 insightStrip.innerHTML = [hrsTxt, topSubTxt].filter(Boolean).join(' &nbsp;•&nbsp; ');
             }
             
             if (filteredLogs.length === 0) { 
-                container.innerHTML = `<div class="empty-state" style="padding: 28px 16px;"><i class="fa-solid fa-clipboard-list"></i><h3>لا توجد سجلات مطابقة لهذا التصنيف</h3><p>قم بتدوين إنجازاتك اليومية أو إتمام جلسات المذاكرة لتظهر هنا بشكل منظم وقابل للمراجعة.</p></div>`; 
+                container.innerHTML = isEn
+                    ? `<div class="empty-state" style="padding: 28px 16px;"><i class="fa-solid fa-clipboard-list"></i><h3>No matching study logs yet</h3><p>Record your daily milestones or complete study sessions to build an organized review feed here.</p></div>`
+                    : `<div class="empty-state" style="padding: 28px 16px;"><i class="fa-solid fa-clipboard-list"></i><h3>لا توجد سجلات مطابقة لهذا التصنيف</h3><p>قم بتدوين إنجازاتك اليومية أو إتمام جلسات المذاكرة لتظهر هنا بشكل منظم وقابل للمراجعة.</p></div>`; 
                 return; 
             }
             
-            const moodIcons = {
+            const moodIcons = isEn ? {
+                fire: '<span class="log-tag-badge" style="background:rgba(196, 125, 96, 0.16); color:#f4d3c5;">🔥 Peak Focus</span>',
+                bolt: '<span class="log-tag-badge" style="background:rgba(137, 153, 130, 0.18); color:#cde0c5;">⚡ Solid Done</span>',
+                lightbulb: '<span class="log-tag-badge" style="background:rgba(137, 153, 130, 0.16); color:#d7e5d0;">💡 Key Insight</span>',
+                book: '<span class="log-tag-badge" style="background:rgba(120, 152, 172, 0.18); color:#b7cad6;">📚 Chapters Finished</span>',
+                college_absent: '<span class="log-tag-badge" style="background:rgba(215, 185, 111, 0.16); color:#f3e1b3; border:1px solid rgba(215,185,111,0.35);">🏠 Reclaimed Day Off</span>',
+                wasted_time: '<span class="log-tag-badge" style="background:rgba(196, 125, 96, 0.18); color:#f4d3c5; border:1px solid rgba(196,125,96,0.4);">⏳ Focus Leak</span>',
+                missed: '<span class="log-tag-badge" style="background:rgba(196, 125, 96, 0.18); color:#f4d3c5; border:1px solid rgba(196,125,96,0.35);">⚠️ Missed Block</span>',
+                weekly_report: '<span class="log-tag-badge" style="background:rgba(120, 152, 172, 0.18); color:#b7cad6; border:1px solid rgba(120,152,172,0.35);">📊 Weekly Evaluation</span>'
+            } : {
                 fire: '<span class="log-tag-badge" style="background:rgba(244, 63, 94, 0.16); color:#fda4af;">🔥 إنتاجية استثنائية</span>',
                 bolt: '<span class="log-tag-badge" style="background:rgba(45, 212, 191, 0.16); color:var(--primary);">⚡ إنجاز متقن</span>',
                 lightbulb: '<span class="log-tag-badge" style="background:rgba(16, 185, 129, 0.16); color:#6ee7b7;">💡 استيعاب جديد</span>',
@@ -26347,7 +26515,7 @@
 
             const dayGroupsMap = new Map();
             filteredLogs.forEach(log => {
-                const dKey = log.date || 'سجلات عامة';
+                const dKey = log.date || (isEn ? 'General Logs' : 'سجلات عامة');
                 if (!dayGroupsMap.has(dKey)) dayGroupsMap.set(dKey, []);
                 dayGroupsMap.get(dKey).push(log);
             });
@@ -26384,11 +26552,11 @@
                     const isCompensatedOrInvested = linkedScheduleEvents.length > 0;
 
                     const subTag = parsed.subjectName
-                        ? `<span class="sc-subject-tag" style="cursor:${parsed.subjectId ? 'pointer' : 'default'};" ${parsed.subjectId ? `onclick="openSubjectFromLog('${parsed.subjectId}')"` : ''} title="اضغط لفتح المادة"><i class="fa-solid fa-book"></i> ${parsed.subjectName}</span>`
+                        ? `<span class="sc-subject-tag" style="cursor:${parsed.subjectId ? 'pointer' : 'default'};" ${parsed.subjectId ? `onclick="openSubjectFromLog('${parsed.subjectId}')"` : ''} title="${isEn ? 'Open course' : 'اضغط لفتح المادة'}"><i class="fa-solid fa-book"></i> ${escapeHtml(parsed.subjectName)}</span>`
                         : '';
-                    const durDisplay = log.mood === 'college_absent' ? '1 يوم غياب' : parsed.durationBadgeText;
+                    const durDisplay = log.mood === 'college_absent' ? (isEn ? '1 day off' : '1 يوم غياب') : parsed.durationBadgeText;
                     const durTag = durDisplay
-                        ? `<span class="log-duration-chip"><i class="fa-regular ${log.mood === 'college_absent' ? 'fa-calendar-check' : 'fa-clock'}" style="color:var(--primary);"></i> ${durDisplay}</span>`
+                        ? `<span class="log-duration-chip"><i class="fa-regular ${log.mood === 'college_absent' ? 'fa-calendar-check' : 'fa-clock'}" style="color:var(--sage-green, #899982);"></i> ${durDisplay}</span>`
                         : '';
 
                     let linkedStatusBadgeHtml = '';
@@ -26398,34 +26566,34 @@
                     if (log.mood === 'missed' || log.mood === 'wasted_time') {
                         if (isCompensatedOrInvested) {
                             rowExtraClass = 'is-compensated-log';
-                            const names = linkedScheduleEvents.map(e => e.title).join(' ، ');
+                            const names = linkedScheduleEvents.map(e => e.title).join(', ');
                             const allDone = linkedScheduleEvents.every(e => e.completed);
                             linkedStatusBadgeHtml = `
-                                <span class="log-compensated-pill" onclick="openLogRecoveryLinkerModal(${log.id}, event)" style="cursor:pointer;" title="اضغط لعرض أو تعديل مهمة التعويض المرتبطة">
-                                    <i class="fa-solid fa-circle-check"></i> تم التعويض بـ: «${names}» ${allDone ? '(مكتملة ✓)' : '(مجدولة 📅)'}
+                                <span class="log-compensated-pill" onclick="openLogRecoveryLinkerModal(${log.id}, event)" style="cursor:pointer;">
+                                    <i class="fa-solid fa-circle-check"></i> ${isEn ? `Recovered via «${escapeHtml(names)}» ${allDone ? '(Done ✓)' : '(Scheduled)'}` : `تم التعويض بـ: «${escapeHtml(names)}» ${allDone ? '(مكتملة ✓)' : '(مجدولة 📅)'}`}
                                 </span>
                             `;
                             actionBtnHtml = `
-                                <button type="button" class="log-act-btn" style="color:#6ee7b7; border-color:rgba(16,185,129,0.4); background:rgba(16,185,129,0.12);" onclick="openLogRecoveryLinkerModal(${log.id}, event)" title="تعديل مهمة التعويض المرتبطة">
-                                    <i class="fa-solid fa-check-double"></i> تم التعويض ✓
+                                <button type="button" class="log-act-btn" style="color:#cde0c5; border-color:rgba(137,153,130,0.45); background:rgba(137,153,130,0.14);" onclick="openLogRecoveryLinkerModal(${log.id}, event)">
+                                    <i class="fa-solid fa-check-double"></i> ${isEn ? 'Recovered ✓' : 'تم التعويض ✓'}
                                 </button>
                             `;
                         } else {
                             rowExtraClass = 'is-missed-log';
                             actionBtnHtml = `
-                                <button type="button" class="log-act-btn recover" onclick="actionRecoverMissedFromLog(${log.id})" title="جدولة جلسة تعويض لهذه المهمة الآن وربطها بالسجل">
-                                    <i class="fa-solid fa-bolt"></i> تعويض الآن
+                                <button type="button" class="log-act-btn recover" onclick="actionRecoverMissedFromLog(${log.id})">
+                                    <i class="fa-solid fa-bolt"></i> ${isEn ? 'Recover Now' : 'تعويض الآن'}
                                 </button>
-                                <button type="button" class="log-act-btn" onclick="openLogRecoveryLinkerModal(${log.id}, event)" title="ربط بمهمة تعويض أضفتها مسبقاً في الجدول">
-                                    <i class="fa-solid fa-link"></i> ربط بمهمة
+                                <button type="button" class="log-act-btn" onclick="openLogRecoveryLinkerModal(${log.id}, event)">
+                                    <i class="fa-solid fa-link"></i> ${isEn ? 'Link Block' : 'ربط بمهمة'}
                                 </button>
                             `;
                         }
                     } else if (log.mood === 'weekly_report') {
                         rowExtraClass = 'is-report-log';
                         actionBtnHtml = `
-                            <button type="button" class="log-act-btn" style="color:#38bdf8; border-color:rgba(56,189,248,0.35); background:rgba(56,189,248,0.1);" onclick="scrollToWeeklyEvaluationsSection()">
-                                <i class="fa-solid fa-chart-pie"></i> التقارير
+                            <button type="button" class="log-act-btn" style="color:#b7cad6; border-color:rgba(120,152,172,0.38); background:rgba(120,152,172,0.12);" onclick="scrollToWeeklyEvaluationsSection()">
+                                <i class="fa-solid fa-chart-pie"></i> ${isEn ? 'Reports' : 'التقارير'}
                             </button>
                         `;
                     } else if (log.mood === 'college_absent') {
@@ -26434,35 +26602,35 @@
                             let invHrs = 0;
                             linkedScheduleEvents.forEach(e => { invHrs += getSessionDisplayTiming(e).effectiveDurationHours; });
                             invHrs = Number(invHrs.toFixed(1));
-                            const names = linkedScheduleEvents.map(e => e.title).join(' ، ');
+                            const names = linkedScheduleEvents.map(e => e.title).join(', ');
                             linkedStatusBadgeHtml = `
-                                <span class="log-compensated-pill" onclick="openLogRecoveryLinkerModal(${log.id}, event)" style="cursor:pointer;" title="اضغط لإدارة المهام المرتبطة بيوم الغياب">
-                                    <i class="fa-solid fa-circle-check"></i> تم استثمار الغياب في: «${names}» (${invHrs} س)
+                                <span class="log-compensated-pill" onclick="openLogRecoveryLinkerModal(${log.id}, event)" style="cursor:pointer;">
+                                    <i class="fa-solid fa-circle-check"></i> ${isEn ? `Reclaimed in «${escapeHtml(names)}» (${invHrs}h)` : `تم استثمار الغياب في: «${escapeHtml(names)}» (${invHrs} س)`}
                                 </span>
                             `;
                             actionBtnHtml = `
-                                <button type="button" class="log-act-btn" style="color:#6ee7b7; border-color:rgba(16,185,129,0.4); background:rgba(16,185,129,0.12);" onclick="actionInvestAbsentFromLog(${log.id})" title="إضافة مهمة أخرى في يوم الغياب">
-                                    <i class="fa-solid fa-plus"></i> مهمة أخرى
+                                <button type="button" class="log-act-btn" style="color:#cde0c5; border-color:rgba(137,153,130,0.45); background:rgba(137,153,130,0.14);" onclick="actionInvestAbsentFromLog(${log.id})">
+                                    <i class="fa-solid fa-plus"></i> ${isEn ? 'Add Block' : 'مهمة أخرى'}
                                 </button>
-                                <button type="button" class="log-act-btn" onclick="openLogRecoveryLinkerModal(${log.id}, event)" title="ربط أو تعديل المهام المستثمرة">
+                                <button type="button" class="log-act-btn" onclick="openLogRecoveryLinkerModal(${log.id}, event)">
                                     <i class="fa-solid fa-link"></i>
                                 </button>
                             `;
                         } else {
                             rowExtraClass = 'is-absent-log';
                             actionBtnHtml = `
-                                <button type="button" class="log-act-btn" style="color:#fdba74; border-color:rgba(249,115,22,0.35); background:rgba(249,115,22,0.1);" onclick="actionInvestAbsentFromLog(${log.id})">
-                                    <i class="fa-solid fa-calendar-check"></i> استثمار بالجدول
+                                <button type="button" class="log-act-btn" style="color:#f3e1b3; border-color:rgba(215,185,111,0.38); background:rgba(215,185,111,0.12);" onclick="actionInvestAbsentFromLog(${log.id})">
+                                    <i class="fa-solid fa-calendar-check"></i> ${isEn ? 'Reclaim Time' : 'استثمار بالجدول'}
                                 </button>
-                                <button type="button" class="log-act-btn" onclick="openLogRecoveryLinkerModal(${log.id}, event)" title="ربط بمهمة موجودة في الجدول">
-                                    <i class="fa-solid fa-link"></i> ربط بمهمة
+                                <button type="button" class="log-act-btn" onclick="openLogRecoveryLinkerModal(${log.id}, event)">
+                                    <i class="fa-solid fa-link"></i> ${isEn ? 'Link Block' : 'ربط بمهمة'}
                                 </button>
                             `;
                         }
                     } else {
                         actionBtnHtml = `
-                            <button type="button" class="log-act-btn" onclick="actionScheduleReviewFromLog(${log.id})" title="جدولة جلسة مراجعة لهذا الموضوع في جدولك بضغطة زر">
-                                <i class="fa-solid fa-rotate"></i> جدولة مراجعة
+                            <button type="button" class="log-act-btn" onclick="actionScheduleReviewFromLog(${log.id})">
+                                <i class="fa-solid fa-rotate"></i> ${isEn ? 'Schedule Review' : 'جدولة مراجعة'}
                             </button>
                         `;
                     }
@@ -26476,13 +26644,13 @@
                                     ${durTag}
                                     ${linkedStatusBadgeHtml}
                                 </div>
-                                <div style="font-weight: 800; font-size: 0.9rem; color: var(--text-main); line-height: 1.4; word-break: break-word;">
+                                <div style="font-weight: 800; font-size: 0.9rem; color: var(--warm-paper, #F0E6D4); line-height: 1.4; word-break: break-word;">
                                     ${parsed.cleanTitle}
                                 </div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; flex-wrap: wrap;">
                                 ${actionBtnHtml}
-                                <button type="button" class="icon-btn delete" style="width:28px; height:28px;" onclick="triggerDeleteLog(${log.id})" title="حذف من السجل">
+                                <button type="button" class="icon-btn delete" style="width:28px; height:28px;" onclick="triggerDeleteLog(${log.id})" aria-label="${isEn ? 'Delete log entry' : 'حذف من السجل'}">
                                     <i class="fa-solid fa-trash" style="font-size:0.74rem;"></i>
                                 </button>
                             </div>
@@ -26495,18 +26663,18 @@
                         <div class="log-day-header" onclick="toggleLogDayAccordion('${escapedKey}')">
                             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                                 <i class="fa-solid fa-chevron-down log-day-chevron"></i>
-                                <span style="font-weight:800; font-size:0.9rem; color:var(--text-main);">
-                                    <i class="fa-regular fa-calendar-check" style="color:var(--primary); margin-left:5px;"></i>
-                                    ${dKey === todayDateStr ? `اليوم (${dKey})` : dKey}
+                                <span style="font-weight:800; font-size:0.9rem; color:var(--warm-paper, #F0E6D4);">
+                                    <i class="fa-regular fa-calendar-check" style="color:var(--sage-green, #899982); margin-inline-end:5px;"></i>
+                                    ${dKey === todayDateStr ? (isEn ? `Today (${dKey})` : `اليوم (${dKey})`) : dKey}
                                 </span>
-                                <span class="studio-pill" style="font-size:0.7rem; color:#6ee7b7; border-color:rgba(16,185,129,0.3);">
-                                    ✅ ${doneCount} إنجاز
+                                <span class="studio-pill" style="font-size:0.7rem; color:#cde0c5; border-color:rgba(137,153,130,0.35);">
+                                    ${isEn ? `✓ ${doneCount} done` : `✅ ${doneCount} إنجاز`}
                                 </span>
-                                ${dayHoursSum > 0 ? `<span class="studio-pill" style="font-size:0.7rem; color:var(--primary); border-color:rgba(45,212,191,0.3);">⏱️ ${dayHoursSum} س مذاكرة</span>` : ''}
-                                ${missedCount > 0 ? `<span class="studio-pill" style="font-size:0.68rem; color:#fda4af; border-color:rgba(244,63,94,0.3);">⚠️ ${missedCount} للتعويض</span>` : ''}
+                                ${dayHoursSum > 0 ? `<span class="studio-pill" style="font-size:0.7rem; color:#b7cad6; border-color:rgba(120,152,172,0.35);">⏱️ ${dayHoursSum} ${hrUnit}</span>` : ''}
+                                ${missedCount > 0 ? `<span class="studio-pill" style="font-size:0.68rem; color:#f4d3c5; border-color:rgba(196,125,96,0.35);">⚠️ ${missedCount} ${isEn ? 'to recover' : 'للتعويض'}</span>` : ''}
                             </div>
-                            <span style="font-size:0.74rem; color:var(--text-muted); font-weight:700;">
-                                ${isOpen ? 'طيّ اليوم ▲' : `فتح (${dayItems.length}) ▼`}
+                            <span style="font-size:0.74rem; color:var(--stone, #ABA69D); font-weight:700;">
+                                ${isOpen ? (isEn ? 'Collapse ▲' : 'طيّ اليوم ▲') : (isEn ? `Expand (${dayItems.length}) ▼` : `فتح (${dayItems.length}) ▼`)}
                             </span>
                         </div>
                         <div class="log-day-body">
@@ -26547,6 +26715,47 @@
                 .trim();
         }
 
+        function updateSchedulePdfSummaryBar() {
+            const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
+            const opts = getSchedulePdfOptions();
+            const stage = document.getElementById('schedulePdfPreviewStage');
+            const isZoomed = Boolean(stage && stage.classList.contains('zoomed-preview'));
+            const specs = (Array.isArray(currentSchedulePdfPageSpecs) && currentSchedulePdfPageSpecs.length > 0)
+                ? currentSchedulePdfPageSpecs
+                : buildSchedulePdfPageSpecs();
+            const summary = deriveSchedulePdfExportSummary({
+                styleMode: opts.theme,
+                preset: currentPdfActivePreset,
+                title: opts.title,
+                subtitle: opts.studentName,
+                isZoomed
+            }, specs, currentSchedulePdfActivePageIdx, isEn);
+
+            const summaryBar = document.getElementById('pdfConfigSummaryBar');
+            if (summaryBar) summaryBar.innerText = summary.configSummaryText;
+
+            const zoomBtn = document.getElementById('btnTogglePdfPreviewZoom');
+            const zoomText = document.getElementById('btnTogglePdfPreviewZoomText');
+            if (zoomBtn) {
+                zoomBtn.classList.toggle('active', isZoomed);
+                const iconEl = zoomBtn.querySelector('i');
+                if (iconEl) {
+                    iconEl.className = isZoomed ? 'fa-solid fa-magnifying-glass-minus' : 'fa-solid fa-magnifying-glass-plus';
+                }
+            }
+            if (zoomText) zoomText.innerText = summary.zoomLabel;
+
+            const footerHint = document.getElementById('pdfModeHintFooterText');
+            if (footerHint) footerHint.innerText = summary.editionHint;
+
+            const counter = document.getElementById('pdfPreviewPageCounterLabel');
+            if (counter) {
+                counter.innerText = isEn
+                    ? `Preview: ${summary.activePageLabel} (${summary.activePageNumber}/${summary.totalPages})`
+                    : `معاينة: ${summary.activePageLabel} • المختار للتصدير: ${summary.totalPages} صفحات`;
+            }
+        }
+
         function selectSchedulePdfStyleMode(modeKey) {
             const themeSelect = document.getElementById('pdfScheduleThemeSelect');
             if (themeSelect) {
@@ -26559,12 +26768,7 @@
                 printCard.classList.toggle('active', isPrint);
                 digCard.classList.toggle('active', !isPrint);
             }
-            const footerHint = document.getElementById('pdfModeHintFooterText');
-            if (footerHint) {
-                footerHint.innerText = modeKey === 'pearl_editorial'
-                    ? 'نسخة الطباعة مجهزة بمربعات شطب يدوية ومساحات تدوين لتعلّم بالقلم طوال الأسبوع.'
-                    : 'النسخة الديجيتال تعرض ألوان المواد وحالة الإنجاز الفعلي بوضوح فائق للموبايل والتابلت.';
-            }
+            updateSchedulePdfSummaryBar();
             refreshSchedulePdfPreview();
         }
 
@@ -26610,18 +26814,13 @@
 
         function toggleSchedulePdfPreviewZoom() {
             const stage = document.getElementById('schedulePdfPreviewStage');
-            const btn = document.getElementById('btnTogglePdfPreviewZoom');
             if (!stage) return;
-            const isZoomed = stage.classList.toggle('zoomed-preview');
-            if (btn) {
-                btn.innerHTML = isZoomed
-                    ? '<i class="fa-solid fa-magnifying-glass-minus"></i> تصغير المعاينة'
-                    : '<i class="fa-solid fa-magnifying-glass-plus"></i> تكبير المعاينة';
-                btn.classList.toggle('active', isZoomed);
-            }
+            stage.classList.toggle('zoomed-preview');
+            updateSchedulePdfSummaryBar();
         }
 
         function getAllCandidateSchedulePdfPageSpecs() {
+            const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
             const opts = getSchedulePdfOptions();
             const orderedDays = getOrderedWeekDays();
             const totalWeekTasks = filterEventsForPdfExport(scheduleEvents, opts).length;
@@ -26629,10 +26828,12 @@
                 {
                     key: 'week_overview',
                     type: 'week_overview',
-                    shortTitle: 'تجميعة الأسبوع',
-                    subCountText: `${totalWeekTasks} مهام`,
+                    shortTitle: isEn ? 'Week Overview' : 'تجميعة الأسبوع',
+                    subCountText: isEn ? `${totalWeekTasks} items` : `${totalWeekTasks} مهام`,
                     hasTasks: totalWeekTasks > 0,
-                    label: 'تجميعة الأسبوع 🌐',
+                    label: isEn ? 'Week Overview' : 'تجميعة الأسبوع 🌐',
+                    labelEn: 'Week Overview',
+                    labelAr: 'تجميعة الأسبوع',
                     dayObj: null
                 }
             ];
@@ -26642,9 +26843,11 @@
                     key: `day_${dObj.dayIdx}`,
                     type: 'daily_page',
                     shortTitle: dObj.dayName,
-                    subCountText: dayEvents.length > 0 ? `${dayEvents.length} مهام` : 'فارغ',
+                    subCountText: dayEvents.length > 0 ? (isEn ? `${dayEvents.length} items` : `${dayEvents.length} مهام`) : (isEn ? 'Empty' : 'فارغ'),
                     hasTasks: dayEvents.length > 0,
                     label: `${dObj.dayName}`,
+                    labelEn: dObj.dayName,
+                    labelAr: dObj.dayName,
                     dayObj: dObj
                 });
             });
@@ -26919,6 +27122,7 @@
         function renderSchedulePdfPageTabs() {
             const strip = document.getElementById('pdfPreviewPageTabs');
             if (!strip) return;
+            const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
             const allCandidates = getAllCandidateSchedulePdfPageSpecs();
             const activeSpec = currentSchedulePdfPageSpecs[currentSchedulePdfActivePageIdx] || currentSchedulePdfPageSpecs[0];
             const activeKey = activeSpec ? activeSpec.key : 'week_overview';
@@ -26929,25 +27133,21 @@
                 return `
                     <div class="pdf-day-select-card ${isIncluded ? 'is-included' : 'is-excluded'} ${isPreviewing ? 'is-previewing' : ''}"
                          onclick="previewAndEnsurePdfPageKey('${cand.key}')"
-                         title="اضغط لمعاينة هذه الصفحة أو استخدم المربع لتضمينها واستبعادها من الملف">
+                         title="${isEn ? 'Preview this page or toggle inclusion checkbox' : 'اضغط لمعاينة هذه الصفحة أو استخدم المربع لتضمينها واستبعادها من الملف'}">
                         <div style="display:flex; align-items:center; gap:7px; min-width:0;">
-                            <div class="pdf-day-check-toggle" onclick="toggleSchedulePdfPageInclusion('${cand.key}', event)" title="تضمين أو استبعاد من التصدير">
+                            <div class="pdf-day-check-toggle" onclick="toggleSchedulePdfPageInclusion('${cand.key}', event)" title="${isEn ? 'Include or exclude from export' : 'تضمين أو استبعاد من التصدير'}">
                                 <i class="fa-solid fa-check"></i>
                             </div>
                             <span style="font-size:0.77rem; font-weight:800; color:#f8fafc; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                ${cand.shortTitle}
+                                ${escapeHtml(cand.shortTitle)}
                             </span>
                         </div>
-                        <span class="pdf-day-count-tag ${cand.hasTasks ? 'has-tasks' : ''}">${cand.subCountText}</span>
+                        <span class="pdf-day-count-tag ${cand.hasTasks ? 'has-tasks' : ''}">${escapeHtml(cand.subCountText)}</span>
                     </div>
                 `;
             }).join('');
 
-            const counter = document.getElementById('pdfPreviewPageCounterLabel');
-            if (counter) {
-                const activeTitle = activeSpec ? activeSpec.shortTitle : 'تجميعة الأسبوع';
-                counter.innerText = `معاينة: ${activeTitle} • المختار للتصدير: ${currentSchedulePdfPageSpecs.length} صفحات`;
-            }
+            updateSchedulePdfSummaryBar();
         }
 
         function selectSchedulePdfPreviewPage(idx) {
@@ -26971,6 +27171,7 @@
             const spec = currentSchedulePdfPageSpecs[currentSchedulePdfActivePageIdx] || currentSchedulePdfPageSpecs[0];
             const opts = getSchedulePdfOptions();
             renderSchedulePdfPageToCanvas(canvas, spec, opts, currentSchedulePdfActivePageIdx + 1, currentSchedulePdfPageSpecs.length, 2.0);
+            updateSchedulePdfSummaryBar();
         }
 
         function drawPdfRoundedRect(ctx, x, y, w, h, r, fillStyle, strokeStyle = null, lineWidth = 1) {
@@ -31152,56 +31353,103 @@
         let pendingImportData = null;
         function showBackupImportPreflightModal(inspection, rawData) {
             pendingImportData = rawData;
+            const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
             const detailsEl = document.getElementById('backupPreflightDetails');
+            const tierNoteEl = document.getElementById('backupTierANoteBox');
+            const titleTextEl = document.getElementById('backupPreflightTitleText');
             const badgeEl = document.getElementById('backupFormatBadge');
+            const cancelBtn = document.getElementById('backupCancelBtn');
             const mergeBtn = document.getElementById('backupMergeBtn');
+            const mergeBtnText = document.getElementById('backupMergeBtnText');
             const replaceBtn = document.getElementById('backupReplaceBtn');
+            const replaceBtnText = document.getElementById('backupReplaceBtnText');
+
+            const stats = (inspection && inspection.stats) ? inspection.stats : {};
+            const localCounts = {
+                subjects: Array.isArray(subjects) ? subjects.length : 0,
+                events: Array.isArray(scheduleEvents) ? scheduleEvents.length : 0,
+                logs: Array.isArray(logs) ? logs.length : 0
+            };
+
+            const summary = deriveBackupComparisonSummary({
+                integrityStatus: inspection.isV4 ? (inspection.integrityStatus === 'valid' ? 'verified' : 'tampered') : 'legacy',
+                validSignature: inspection.integrityStatus === 'valid',
+                hasIntegrityHash: Boolean(inspection.isV4),
+                formatVersion: inspection.isV4 ? '4.0' : 'legacy',
+                canReplace: inspection.canReplace,
+                totalSubjects: stats.subjectsCount || 0,
+                totalEvents: stats.scheduleEventsCount || 0,
+                totalLogs: stats.logsCount || 0,
+                totalBacklog: stats.backlogCount || 0
+            }, localCounts, isEn);
+
+            if (titleTextEl) titleTextEl.innerText = isEn ? 'Backup Inspection & Recovery' : 'فحص واسترجاع النسخة الاحتياطية';
+            if (cancelBtn) cancelBtn.innerText = isEn ? 'Cancel' : 'إلغاء';
+            if (mergeBtnText) mergeBtnText.innerText = summary.merge.headline;
+            if (replaceBtnText) replaceBtnText.innerText = summary.replace.headline;
 
             if (badgeEl) {
-                badgeEl.innerText = inspection.isV4 ? 'v4 (مشفر SHA-256)' : 'Legacy (تنسيق سابق)';
-                badgeEl.style.color = inspection.isV4 ? '#38bdf8' : '#fbbf24';
+                badgeEl.innerText = inspection.isV4
+                    ? (isEn ? 'v4 · SHA-256' : 'v4 (بصمة SHA-256)')
+                    : (isEn ? 'Legacy JSON' : 'نسخة سابقة (Legacy)');
+                badgeEl.style.color = inspection.isV4 ? 'var(--sage-green, #899982)' : 'var(--ochre, #D7B96F)';
             }
 
-            let integrityHtml = '';
-            if (inspection.isV4) {
-                if (inspection.integrityStatus === 'valid') {
-                    integrityHtml = '<div style="color: #10b981; font-weight: 700; margin-bottom: 8px;"><i class="fa-solid fa-circle-check"></i> التحقق المشفر سليم (SHA-256 Verified)</div>';
-                } else {
-                    integrityHtml = '<div style="color: #f43f5e; font-weight: 700; margin-bottom: 8px;"><i class="fa-solid fa-triangle-exclamation"></i> تحذير: فشل فحص البصمة الرقمية للنسخة</div>';
-                }
-            } else {
-                integrityHtml = '<div style="color: #fbbf24; font-weight: 600; margin-bottom: 8px;"><i class="fa-solid fa-clock-rotate-left"></i> نسخة احتياطية سابقة (سيتم ترقيتها تلقائياً)</div>';
-            }
+            const shaIcon = summary.integrityState === 'verified'
+                ? 'fa-circle-check'
+                : (summary.integrityState === 'tampered' ? 'fa-triangle-exclamation' : 'fa-clock-rotate-left');
 
-            let missingDomainWarning = '';
-            if (inspection.stats && inspection.stats.annotationsMissingFromBackup) {
-                missingDomainWarning = '<div style="color: #fbbf24; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.25); border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; font-size: 0.82rem;"><i class="fa-solid fa-shield-halved"></i> <strong>حماية الدفاتر:</strong> هذه النسخة السابقة لا تحتوي على دفاتر الملاحظات (Annotations)؛ تم تعطيل خيار الاستبدال الكامل تلقائياً لحماية دفاتر حسابك الحالية من المسح، ويمكنك استخدام خيار الدمج الذكي بأمان تام.</div>';
-            }
+            const sizeMb = inspection.sizeBytes ? (inspection.sizeBytes / (1024 * 1024)).toFixed(2) : '0.00';
+            const mergePointsHtml = summary.merge.points.map(pt => `<li>${escapeHtml(pt)}</li>`).join('');
+            const replacePointsHtml = summary.replace.points.map(pt => `<li>${escapeHtml(pt)}</li>`).join('');
 
-            const stats = inspection.stats;
-            const sizeMb = inspection.sizeBytes ? (inspection.sizeBytes / (1024 * 1024)).toFixed(2) : '0';
             const html = `
-                ${integrityHtml}
-                ${missingDomainWarning}
-                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
-                        <div>📚 المواد الأكاديمية: <strong>${stats.subjectsCount}</strong></div>
-                        <div>📖 المحاضرات: <strong>${stats.lecturesCount}</strong></div>
-                        <div>📅 جلسات الجدول: <strong>${stats.scheduleEventsCount}</strong></div>
-                        <div>📝 سجلات المذاكرة: <strong>${stats.logsCount}</strong></div>
-                        <div>✏️ دفاتر الملاحظات: <strong>${stats.annotationLecturesCount}</strong></div>
-                        <div>📦 حجم الملف: <strong>${sizeMb} MB</strong></div>
+                <div style="margin-bottom: 10px;">
+                    <span class="wp65-backup-sha-pill is-${summary.integrityState}">
+                        <i class="fa-solid ${shaIcon}"></i> ${escapeHtml(summary.integrityLabel)}
+                    </span>
+                </div>
+                <div style="background: rgba(25, 27, 29, 0.78); border: 1px solid rgba(240, 230, 212, 0.1); border-radius: 10px; padding: 11px 13px; margin-bottom: 10px;">
+                    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; font-size: 0.8rem; color: var(--warm-paper, #F0E6D4);">
+                        <div>📚 ${isEn ? 'Courses' : 'المواد الدراسية'}: <strong>${summary.backupCounts.subjects}</strong> <span style="color: var(--stone, #ABA69D);">(${isEn ? 'local' : 'الحالي'}: ${summary.localCounts.subjects})</span></div>
+                        <div>📖 ${isEn ? 'Chapters' : 'المحاضرات'}: <strong>${stats.lecturesCount || 0}</strong></div>
+                        <div>📅 ${isEn ? 'Sessions' : 'جلسات الجدول'}: <strong>${summary.backupCounts.events}</strong> <span style="color: var(--stone, #ABA69D);">(${isEn ? 'local' : 'الحالي'}: ${summary.localCounts.events})</span></div>
+                        <div>📝 ${isEn ? 'Study Logs' : 'السجلات'}: <strong>${summary.backupCounts.logs}</strong> <span style="color: var(--stone, #ABA69D);">(${isEn ? 'local' : 'الحالي'}: ${summary.localCounts.logs})</span></div>
+                        <div>✏️ ${isEn ? 'Notebooks' : 'دفاتر الملاحظات'}: <strong>${stats.annotationLecturesCount || 0}</strong></div>
+                        <div>📦 ${isEn ? 'File Size' : 'حجم الملف'}: <strong>${sizeMb} MB</strong></div>
                     </div>
                 </div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">
-                    اختر نوع الاسترجاع المطلوب:
-                    <ul style="margin: 4px 0 0 16px; padding: 0;">
-                        <li><strong>دمج ذكي (Merge):</strong> الحفاظ على بياناتك الحالية وإضافة محتويات النسخة ودمج الكتابات دون مسح أي بيانات سابقة.</li>
-                        <li><strong>استبدال كامل (Replace):</strong> استبدال مساحة العمل الحالية بالكامل بمحتويات هذه النسخة.</li>
-                    </ul>
+                <div class="wp65-backup-compare-grid">
+                    <div class="wp65-backup-option-card is-merge">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
+                            <strong style="color: var(--warm-paper, #F0E6D4); font-size:0.84rem;">${escapeHtml(summary.merge.headline)}</strong>
+                            <span class="studio-pill" style="font-size:0.65rem; color:#cde0c5; border-color:rgba(137,153,130,0.45);">${escapeHtml(summary.merge.badge)}</span>
+                        </div>
+                        <ul>${mergePointsHtml}</ul>
+                    </div>
+                    <div class="wp65-backup-option-card is-replace">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
+                            <strong style="color: var(--warm-paper, #F0E6D4); font-size:0.84rem;">${escapeHtml(summary.replace.headline)}</strong>
+                            <span class="studio-pill" style="font-size:0.65rem; color:${summary.replace.allowed ? '#f4d3c5' : '#f3e1b3'}; border-color:rgba(196,125,96,0.45);">${escapeHtml(summary.replace.badge)}</span>
+                        </div>
+                        <ul>${replacePointsHtml}</ul>
+                    </div>
                 </div>
             `;
             if (detailsEl) detailsEl.innerHTML = html;
+
+            if (tierNoteEl) {
+                const blockedHtml = (!summary.replace.allowed && summary.replace.blockedReason)
+                    ? `<div style="margin-top:6px; color:#f3e1b3; font-weight:700;"><i class="fa-solid fa-shield-halved"></i> ${escapeHtml(summary.replace.blockedReason)}</div>`
+                    : '';
+                tierNoteEl.innerHTML = `
+                    <div><strong><i class="fa-solid fa-layer-group"></i> ${escapeHtml(summary.tierALabel)}</strong></div>
+                    <div style="margin-top:2px;">${isEn
+                        ? 'Backups restore academic metadata, schedule blocks, logs, and handwritten annotations. Heavy PDFs/audio stay in device storage or your private Google Drive.'
+                        : 'النسخة الاحتياطية تسترجع المواد والجدول والسجلات والملاحظات والكتابة اليدوية؛ ملفات PDF والصوتيات الثقيلة تبقى في جهازك أو مجلد Google Drive الخاص بك.'}</div>
+                    ${blockedHtml}
+                `;
+            }
 
             if (mergeBtn) {
                 mergeBtn.onclick = async () => {
@@ -31215,7 +31463,10 @@
                     replaceBtn.style.opacity = '0.5';
                     replaceBtn.style.cursor = 'not-allowed';
                     replaceBtn.onclick = () => {
-                        showToast('وضع الاستبدال غير متاح لهذه النسخة لحماية بياناتك وحواشيك من المسح غير المقصود؛ استخدم الدمج الذكي 🛡️', 'error');
+                        showToast({
+                            en: 'Full Replace is disabled for this backup to protect your existing annotations; use Smart Merge instead.',
+                            ar: 'وضع الاستبدال غير متاح لهذه النسخة لحماية بياناتك وحواشيك من المسح غير المقصود؛ استخدم الدمج الذكي 🛡️'
+                        }, 'error');
                     };
                 } else {
                     replaceBtn.disabled = false;
@@ -40642,9 +40893,7 @@ function togglePdfAudioPlayerBar(forceState) {
             }
             const overlay = document.getElementById('helpModalOverlay');
             if (overlay) overlay.classList.add('active');
-            if (targetMod) {
-                switchAcademyModule(targetMod);
-            }
+            switchAcademyModule(targetMod || window.currentAcademyMod || 1);
             if (!sb3Inited) {
                 initSb3MiniCanvas();
                 sb3Inited = true;
@@ -40652,18 +40901,100 @@ function togglePdfAudioPlayerBar(forceState) {
             updateAcademyXpUI();
         }
 
+        function exoJumpToClosedLoopStation(stepNum) {
+            closeModal('helpModalOverlay');
+            const s = Number(stepNum) || 1;
+            const schedNav = document.querySelector('.sidebar-nav-item[data-tab="schedule"]') || document.querySelectorAll('.nav-item')[1];
+            const subNav = document.querySelector('.sidebar-nav-item[data-tab="subjects"]') || document.querySelectorAll('.nav-item')[0];
+            const trackNav = document.querySelector('.sidebar-nav-item[data-tab="tracker"]') || document.querySelectorAll('.nav-item')[2];
+            if (s === 1) {
+                switchView('schedule', schedNav);
+                switchScheduleSubView('tasks', document.getElementById('schPillTasks'));
+            } else if (s === 2) {
+                switchView('schedule', schedNav);
+                switchScheduleSubView('today', document.getElementById('schPillToday'));
+            } else if (s === 3) {
+                switchView('subjects', subNav);
+            } else if (s === 4) {
+                switchView('tracker', trackNav);
+            } else if (s === 5) {
+                switchView('tracker', trackNav);
+                setTimeout(() => {
+                    const evalSec = document.getElementById('weeklyEvaluationsHubSection');
+                    if (evalSec) evalSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 80);
+            }
+        }
+
+        function renderAcademyClosedLoopStations(metrics, isEn) {
+            const grid = document.getElementById('wp65ClosedLoopStationsGrid');
+            if (!grid || !metrics) return;
+            const titleEl = document.getElementById('wp65ClosedLoopTitle');
+            const subEl = document.getElementById('wp65ClosedLoopSub');
+            const badgeEl = document.getElementById('wp65ClosedLoopBadge');
+
+            if (titleEl) {
+                titleEl.innerText = isEn
+                    ? 'EXO Closed Study Loop (5 Connected Stations)'
+                    : 'الحلقة الدراسية المغلقة في Exo (٥ محطات متصلة)';
+            }
+            if (subEl) {
+                subEl.innerText = isEn
+                    ? 'Click any station below to jump straight to that step in your live workspace.'
+                    : 'اضغط على أي محطة بالأسفل للانتقال مباشرة إلى خطوتها الفعلية داخل مساحتك.';
+            }
+            if (badgeEl) {
+                badgeEl.innerText = isEn ? '5 Connected Stations' : '٥ محطات متصلة';
+            }
+
+            const stationIcons = ['fa-bullseye', 'fa-calendar-check', 'fa-book-open-reader', 'fa-compass', 'fa-award'];
+            grid.innerHTML = metrics.closedLoopStations.map((st, idx) => `
+                <div class="wp65-loop-station"
+                     role="button"
+                     tabindex="0"
+                     onclick="exoJumpToClosedLoopStation(${st.step})"
+                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();exoJumpToClosedLoopStation(${st.step});}">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:6px;">
+                        <span style="font-size:0.7rem; font-weight:900; color:var(--sage-green, #899982);">${isEn ? `Step ${st.step}` : `محطة ${st.step}`}</span>
+                        <i class="fa-solid ${stationIcons[idx] || 'fa-circle-dot'}" style="color:var(--warm-paper, #F0E6D4); font-size:0.82rem;"></i>
+                    </div>
+                    <div style="font-size:0.85rem; font-weight:800; color:var(--warm-paper, #F0E6D4); margin-bottom:4px;">${escapeHtml(st.label)}</div>
+                    <div style="font-size:0.74rem; color:var(--stone, #ABA69D); line-height:1.45;">${escapeHtml(st.desc)}</div>
+                </div>
+            `).join('');
+        }
+
         function switchAcademyModule(modNum) {
-            const targetMod = Math.max(1, Math.min(9, Number(modNum) || 1));
+            const targetMod = Math.max(1, Math.min(6, Number(modNum) || 1));
+            window.currentAcademyMod = targetMod;
+            const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
+            const metrics = (typeof deriveAcademyGuideMetrics === 'function')
+                ? deriveAcademyGuideMetrics(targetMod, 6, isEn)
+                : null;
+
             for (let i = 1; i <= 9; i++) {
                 const nav = document.getElementById(`acadNav_${i}`);
                 const pane = document.getElementById(`acadPane_${i}`);
                 if (nav) nav.classList.toggle('active', i === targetMod);
                 if (pane) pane.classList.toggle('active', i === targetMod);
             }
+
+            if (metrics && Array.isArray(metrics.panes)) {
+                metrics.panes.forEach((p) => {
+                    const lbl = document.getElementById(`acadNavLabel_${p.num}`);
+                    if (lbl) lbl.textContent = `${p.num}. ${p.title}`;
+                });
+                renderAcademyClosedLoopStations(metrics, isEn);
+            }
+
             const topLabel = document.getElementById('egTopSliderLabel');
-            if (topLabel) topLabel.textContent = `القسم ${Math.min(targetMod, 6)} من 6`;
+            if (topLabel) {
+                topLabel.textContent = isEn
+                    ? `Section ${targetMod} of 6`
+                    : `القسم ${targetMod} من 6`;
+            }
             const topSlider = document.getElementById('egTopModuleRangeSlider');
-            if (topSlider) topSlider.value = String(Math.min(targetMod, 6));
+            if (topSlider) topSlider.value = String(targetMod);
             const segBar = document.getElementById('egSegmentedProgressBar');
             if (segBar) {
                 const segItems = segBar.querySelectorAll('.eg-seg-bar-item');
@@ -40825,6 +41156,8 @@ function togglePdfAudioPlayerBar(forceState) {
             if (el) el.scrollBy({ left: dir * -140, behavior: 'smooth' });
         }
     
+        let spotlightTourIdx = 0;
+
         function clearSpotlightHighlights() {
             document.querySelectorAll('.spotlight-tour-highlight').forEach(el => el.classList.remove('spotlight-tour-highlight'));
         }
@@ -40842,11 +41175,16 @@ function togglePdfAudioPlayerBar(forceState) {
         }
 
         function stepInteractiveSpotlightTour(delta) {
+            const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
+            const steps = exoResolveSpotlightTourSteps(isEn);
             spotlightTourIdx += delta;
             if (spotlightTourIdx < 0) spotlightTourIdx = 0;
-            if (spotlightTourIdx >= SPOTLIGHT_TOUR_STEPS.length) {
+            if (spotlightTourIdx >= steps.length) {
                 stopInteractiveSpotlightTour();
-                showToast('🎉 اكتملت الجولة التفاعلية! انطلق الآن في مذاكرتك.');
+                showToast({
+                    en: 'Interactive walkthrough complete! Ready to focus.',
+                    ar: '🎉 اكتملت الجولة التفاعلية! انطلق الآن في مذاكرتك.'
+                });
                 return;
             }
             renderSpotlightTourStep();
@@ -40854,13 +41192,13 @@ function togglePdfAudioPlayerBar(forceState) {
 
         function renderSpotlightTourStep() {
             clearSpotlightHighlights();
-            const step = SPOTLIGHT_TOUR_STEPS[spotlightTourIdx];
+            const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
+            const steps = exoResolveSpotlightTourSteps(isEn);
+            const step = steps[spotlightTourIdx];
             if (!step) return;
 
-            const navItems = document.querySelectorAll('.nav-item');
-            if (navItems[step.navIdx]) {
-                switchView(step.view, navItems[step.navIdx]);
-            }
+            const targetNav = document.querySelector(`.sidebar-nav-item[data-tab="${step.view}"]`) || document.querySelectorAll('.nav-item')[step.view === 'schedule' ? 1 : (step.view === 'tracker' ? 2 : 0)];
+            switchView(step.view, targetNav);
             if (step.view === 'schedule' && step.subView) {
                 const pillId = step.subView === 'tasks' ? 'schPillTasks' : (step.subView === 'week' ? 'schPillWeek' : 'schPillToday');
                 switchScheduleSubView(step.subView, document.getElementById(pillId));
@@ -40876,14 +41214,36 @@ function togglePdfAudioPlayerBar(forceState) {
 
             const card = document.getElementById('spotlightTourFloatingCard');
             if (!card) return;
+            card.dir = isEn ? 'ltr' : 'rtl';
             card.classList.add('active');
-            document.getElementById('spotlightTourStepBadge').innerText = `جولة تفاعلية • خطوة ${spotlightTourIdx + 1} من ${SPOTLIGHT_TOUR_STEPS.length}`;
-            document.getElementById('spotlightTourTitle').innerText = step.title;
-            document.getElementById('spotlightTourDesc').innerText = step.desc;
+            const closeBtn = document.getElementById('spotlightCloseBtn');
+            if (closeBtn) closeBtn.setAttribute('aria-label', isEn ? 'Close tour' : 'إغلاق الجولة');
+            const stepBadge = document.getElementById('spotlightTourStepBadge');
+            const titleEl = document.getElementById('spotlightTourTitle');
+            const descEl = document.getElementById('spotlightTourDesc');
+            const endBtn = document.getElementById('spotlightEndBtn');
             const prevBtn = document.getElementById('spotlightPrevBtn');
             const nextBtn = document.getElementById('spotlightNextBtn');
-            if (prevBtn) prevBtn.style.display = spotlightTourIdx === 0 ? 'none' : 'inline-flex';
-            if (nextBtn) nextBtn.innerHTML = spotlightTourIdx === SPOTLIGHT_TOUR_STEPS.length - 1 ? 'إنهاء الجولة ✓' : 'التالي <i class="fa-solid fa-arrow-left"></i>';
+
+            if (stepBadge) {
+                stepBadge.innerText = isEn
+                    ? `Step ${spotlightTourIdx + 1} of ${steps.length}`
+                    : `جولة تفاعلية • خطوة ${spotlightTourIdx + 1} من ${steps.length}`;
+            }
+            if (titleEl) titleEl.innerText = step.title;
+            if (descEl) descEl.innerText = step.desc;
+            if (endBtn) endBtn.innerText = isEn ? 'End Tour' : 'إنهاء';
+            if (prevBtn) {
+                prevBtn.style.display = spotlightTourIdx === 0 ? 'none' : 'inline-flex';
+                prevBtn.innerHTML = isEn
+                    ? '<i class="fa-solid fa-arrow-left"></i> Previous'
+                    : '<i class="fa-solid fa-arrow-right"></i> السابق';
+            }
+            if (nextBtn) {
+                nextBtn.innerHTML = spotlightTourIdx === steps.length - 1
+                    ? (isEn ? 'Finish Tour ✓' : 'إنهاء الجولة ✓')
+                    : (isEn ? 'Next <i class="fa-solid fa-arrow-right"></i>' : 'التالي <i class="fa-solid fa-arrow-left"></i>');
+            }
         }
 
 
@@ -42332,9 +42692,10 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (ev.completed) completedTasks++;
             });
 
+            const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
             if (subCountEl) subCountEl.innerText = String((subjects || []).length);
             if (lecCountEl) lecCountEl.innerText = String(totalLectures);
-            if (hrsEl) hrsEl.innerText = `${Number(weekStudyHrs.toFixed(1))} س`;
+            if (hrsEl) hrsEl.innerText = `${Number(weekStudyHrs.toFixed(1))} ${isEn ? 'hrs' : 'س'}`;
             if (tasksEl) tasksEl.innerText = String(completedTasks);
 
             const savedSpec = localStorage.getItem('pharmaUserSpecialtyTitleV1') || '';
@@ -42603,25 +42964,38 @@ function togglePdfAudioPlayerBar(forceState) {
                     });
                 });
             });
+            window.__exoLastDriveMediaStats = {
+                pdfCloudCount,
+                audioCloudCount,
+                unuploadedLocalCount,
+                totalCloudBytes
+            };
+            const isEnStats = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
             const totalMB = (totalCloudBytes / (1024 * 1024)).toFixed(1);
             const usedBadge = document.getElementById('cloudTotalStorageUsedBadge');
             if (usedBadge) {
-                usedBadge.innerText = `المرفوع حالياً: ${pdfCloudCount + audioCloudCount} ملف (${totalMB} MB)`;
+                usedBadge.innerText = isEnStats
+                    ? `Uploaded: ${pdfCloudCount + audioCloudCount} files (${totalMB} MB)`
+                    : `المرفوع حالياً: ${pdfCloudCount + audioCloudCount} ملف (${totalMB} MB)`;
             }
             const badge = document.getElementById('cloudMediaCountBadge');
             if (badge) {
                 if (currentUserCanUploadMedia) {
-                    badge.style.color = '#6ee7b7';
-                    badge.style.borderColor = 'rgba(16, 185, 129, 0.5)';
-                    badge.style.background = 'rgba(16, 185, 129, 0.12)';
+                    badge.style.color = '#cde0c5';
+                    badge.style.borderColor = 'rgba(137, 153, 130, 0.5)';
+                    badge.style.background = 'rgba(137, 153, 130, 0.14)';
                     badge.style.cursor = 'default';
-                    badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> أنت مشترك بالفعل في VIP Pro 👑 • ${pdfCloudCount} PDF • ${audioCloudCount} ريكورد`;
+                    badge.innerHTML = isEnStats
+                        ? `<i class="fa-solid fa-circle-check"></i> VIP Pro Active · ${pdfCloudCount} PDF · ${audioCloudCount} Audio`
+                        : `<i class="fa-solid fa-circle-check"></i> VIP Pro مفعّل · ${pdfCloudCount} PDF · ${audioCloudCount} صوت`;
                 } else {
-                    badge.style.color = '#fcd34d';
-                    badge.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+                    badge.style.color = '#f3e1b3';
+                    badge.style.borderColor = 'rgba(215, 185, 111, 0.42)';
                     badge.style.background = 'transparent';
                     badge.style.cursor = 'pointer';
-                    badge.innerHTML = '🔒 ترقية لـ VIP Pro (تعرف على المزايا)';
+                    badge.innerHTML = isEnStats
+                        ? '🔒 Upgrade to VIP Pro (Media Cloud)'
+                        : '🔒 ترقية لـ VIP Pro (سحابة الملفات)';
                 }
             }
             const btnUp = document.getElementById('btnSyncAllMediaUp');
@@ -42630,12 +43004,16 @@ function togglePdfAudioPlayerBar(forceState) {
                     btnUp.disabled = true;
                     btnUp.style.opacity = '0.55';
                     btnUp.style.cursor = 'not-allowed';
-                    btnUp.innerHTML = `<i class="fa-solid fa-check-double"></i> كل ملفاتك مرفوعة بالفعل (${pdfCloudCount + audioCloudCount} ملف ✓)`;
+                    btnUp.innerHTML = isEnStats
+                        ? `<i class="fa-solid fa-check-double"></i> All files synced (${pdfCloudCount + audioCloudCount})`
+                        : `<i class="fa-solid fa-check-double"></i> كل ملفاتك مرفوعة بالفعل (${pdfCloudCount + audioCloudCount} ملف ✓)`;
                 } else {
                     btnUp.disabled = false;
                     btnUp.style.opacity = '1';
                     btnUp.style.cursor = 'pointer';
-                    btnUp.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> رفع الملفات الجديدة فقط للحساب${unuploadedLocalCount > 0 ? ' (' + unuploadedLocalCount + ' جديد)' : ''}`;
+                    btnUp.innerHTML = isEnStats
+                        ? `<i class="fa-solid fa-cloud-arrow-up"></i> Upload New Media Only${unuploadedLocalCount > 0 ? ' (' + unuploadedLocalCount + ' new)' : ''}`
+                        : `<i class="fa-solid fa-cloud-arrow-up"></i> رفع الملفات الجديدة فقط للحساب${unuploadedLocalCount > 0 ? ' (' + unuploadedLocalCount + ' جديد)' : ''}`;
                 }
             }
             syncExtraNoteButtonsLockUI();
@@ -43997,11 +44375,18 @@ function togglePdfAudioPlayerBar(forceState) {
         }
 
         function updateGoogleDriveUI() {
+            const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
             const badge = document.getElementById('gdriveStatusBadge');
             const btnConnect = document.getElementById('btnConnectGoogleDrive');
             const btnDisconnect = document.getElementById('btnDisconnectGoogleDrive');
+            const btnAudit = document.getElementById('btnAuditGdrivePrivacy');
+            const btnAuditText = document.getElementById('btnAuditGdrivePrivacyText');
             const btnSwitch = document.getElementById('btnSwitchGoogleDrive');
             const resumableNoticeEl = document.getElementById('gdriveResumableNotice');
+            const privacyPillEl = document.getElementById('gdrivePrivacySummaryPill');
+            const mediaStripEl = document.getElementById('gdriveMediaRegistryStrip');
+            const panelTitleEl = document.getElementById('cloudVipDrivePanelTitle');
+            const cardHeadlineEl = document.getElementById('gdriveCardHeadline');
             if (btnSwitch) btnSwitch.style.display = 'none';
             const infoEl = document.getElementById('gdriveAccountInfo');
             const isVip = Boolean(currentCloudUser && currentUserCanUploadMedia);
@@ -44010,56 +44395,131 @@ function togglePdfAudioPlayerBar(forceState) {
             const email = isBoundToCurrent ? localStorage.getItem('exo_gdrive_user_email') : null;
             const quota = isBoundToCurrent ? localStorage.getItem('exo_gdrive_quota_info') : null;
 
+            const manualTitle = document.getElementById('cloudManualSyncTitle');
+            const manualHint = document.getElementById('cloudManualSyncHint');
+            const pushText = document.getElementById('btnManualCloudPushText');
+            const pullText = document.getElementById('btnManualCloudPullText');
+            if (manualTitle) manualTitle.innerText = isEn ? 'Manual Cloud Sync' : 'المزامنة السحابية اليدوية';
+            if (manualHint) manualHint.innerText = isEn
+                ? 'Push local device edits to cloud or pull the latest cloud workspace copy.'
+                : 'ارفع تعديلات هذا الجهاز للسحابة أو اسحب أحدث نسخة سحابية محفوظة.';
+            if (pushText) pushText.innerText = isEn ? 'Sync Now' : 'رفع الآن';
+            if (pullText) pullText.innerText = isEn ? 'Pull Cloud Copy' : 'سحب نسخة السحابة';
+            if (panelTitleEl) panelTitleEl.innerText = isEn ? 'Private Media Cloud & VIP Entitlement' : 'سحابة الوسائط الخاصة واستحقاق VIP';
+            if (cardHeadlineEl) cardHeadlineEl.innerText = isEn ? 'Google Drive — Private Folder (Exo_Workspace)' : 'Google Drive — مجلد خاص (Exo_Workspace)';
+            if (btnAuditText) btnAuditText.innerText = isEn ? 'Privacy Check' : 'فحص الخصوصية';
+
+            const authState = getGoogleDriveAuthState();
+            const isLinked = isGoogleDriveAccountLinked() || (isBoundToCurrent && localStorage.getItem('exo_gdrive_connected') === '1' && Boolean(email));
+            let mStats = (typeof window !== 'undefined' && window.__exoLastDriveMediaStats) ? window.__exoLastDriveMediaStats : null;
+            if (!mStats) {
+                let pdfC = 0, audC = 0, localC = 0, bytesC = 0;
+                (subjects || []).forEach(s => (s.groups || []).forEach(g => (g.lectures || []).forEach(l => {
+                    if (Boolean(l.cloudPdfUploaded || l.cloudPdfPath || l.cloudPdfUrl || l.cloudPdfDriveId) && !l.cloudPdfNeedsReplace) {
+                        pdfC++;
+                        bytesC += (Number(l.cloudPdfSize) || 0);
+                    } else if (typeof localMediaCache !== 'undefined' && localMediaCache.pdfs?.has(String(l.id))) {
+                        localC++;
+                    }
+                    if (Boolean(l.cloudAudioUploaded || l.cloudAudioPath || l.cloudAudioUrl || l.cloudAudioDriveId) && !l.cloudAudioNeedsReplace) {
+                        audC++;
+                        bytesC += (Number(l.cloudAudioSize) || 0);
+                    } else if (typeof localMediaCache !== 'undefined' && localMediaCache.audios?.has(String(l.id))) {
+                        localC++;
+                    }
+                })));
+                mStats = { pdfCloudCount: pdfC, audioCloudCount: audC, unuploadedLocalCount: localC, totalCloudBytes: bytesC };
+            }
+
+            const driveSummary = (typeof deriveDrivePrivacyAndMediaSummary === 'function')
+                ? deriveDrivePrivacyAndMediaSummary({
+                    isConnected: isVip && isLinked && authState === 'connected',
+                    hasVipEntitlement: isVip,
+                    tokenExpired: isVip && isLinked && authState !== 'connected' && authState !== 'disconnected',
+                    isOnline: typeof navigator === 'undefined' ? true : navigator.onLine !== false,
+                    cloudPdfCount: mStats.pdfCloudCount,
+                    cloudAudioCount: mStats.audioCloudCount,
+                    localOnlyCount: mStats.unuploadedLocalCount,
+                    totalCloudBytes: mStats.totalCloudBytes,
+                    folderName: 'Exo_Workspace'
+                }, isEn)
+                : null;
+
+            if (privacyPillEl && driveSummary) {
+                privacyPillEl.innerHTML = `<i class="fa-solid fa-shield-halved"></i> ${escapeHtml(driveSummary.privacyBadge)}`;
+            }
+            if (mediaStripEl && driveSummary) {
+                mediaStripEl.innerHTML = `
+                    <div style="color: var(--warm-paper, #F0E6D4); font-weight: 700;">${escapeHtml(driveSummary.mediaSummaryLine)}</div>
+                    <div>${escapeHtml(driveSummary.privacyDetail)}</div>
+                    <div style="color: #b7cad6;">${escapeHtml(driveSummary.nextActionHint)}</div>
+                `;
+            }
+            if (btnAudit) {
+                btnAudit.style.display = (driveSummary && driveSummary.canAuditPermissions) ? 'inline-flex' : 'none';
+            }
+
             if (!isVip) {
                 if (resumableNoticeEl) { resumableNoticeEl.style.display = 'none'; resumableNoticeEl.innerHTML = ''; }
                 if (badge) {
-                    badge.style.color = 'var(--text-muted)';
-                    badge.style.borderColor = 'rgba(148, 163, 184, 0.25)';
+                    badge.style.color = 'var(--stone, #ABA69D)';
+                    badge.style.borderColor = 'rgba(240, 230, 212, 0.2)';
                     badge.style.background = 'transparent';
-                    badge.innerHTML = '<i class="fa-solid fa-lock" style="color:var(--primary); margin-left:4px;"></i> ميزة VIP Pro';
+                    badge.innerHTML = isEn
+                        ? '<i class="fa-solid fa-lock" style="color:var(--ochre, #D7B96F);"></i> VIP Pro Feature'
+                        : '<i class="fa-solid fa-lock" style="color:var(--ochre, #D7B96F);"></i> ميزة VIP Pro';
                 }
                 if (btnConnect) {
                     btnConnect.style.display = 'inline-flex';
                     btnConnect.style.background = 'transparent';
-                    btnConnect.style.border = '1px solid rgba(45, 212, 191, 0.35)';
-                    btnConnect.style.color = 'var(--primary)';
-                    btnConnect.innerHTML = '<i class="fa-brands fa-google-drive"></i> ربط حساب Google Drive';
+                    btnConnect.style.border = '1px solid rgba(215, 185, 111, 0.42)';
+                    btnConnect.style.color = 'var(--ochre, #D7B96F)';
+                    btnConnect.innerHTML = isEn
+                        ? '<i class="fa-brands fa-google-drive"></i> <span id="btnConnectGdriveText" data-exo-no-i18n="1">VIP Drive Sync</span>'
+                        : '<i class="fa-brands fa-google-drive"></i> <span id="btnConnectGdriveText" data-exo-no-i18n="1">ربط حساب Google Drive</span>';
                     btnConnect.onclick = function() {
-                        openVipUpgradeModal('مزامنة Google Drive السحابية غير المحدودة');
+                        openVipUpgradeModal(isEn ? 'Unlimited Google Drive Cloud Sync' : 'مزامنة Google Drive السحابية غير المحدودة');
                     };
                 }
                 if (btnDisconnect) btnDisconnect.style.display = 'none';
                 if (infoEl) {
-                    infoEl.innerHTML = '<span style="color:var(--primary);">🔒</span> مزامنة سحابية غير محدودة لملفات الـ PDF والريكوردات عبر Google Drive الخاص بك بين جميع أجهزتك';
+                    infoEl.innerHTML = isEn
+                        ? '<span style="color:var(--ochre, #D7B96F);">🔒</span> Optional private Drive cloud backup for heavy PDFs and audio. Local device workspace remains free.'
+                        : '<span style="color:var(--ochre, #D7B96F);">🔒</span> مزامنة سحابية اختيارية لملفات الـ PDF والتسجيلات عبر Google Drive الخاص بك؛ التخزين المحلي والمذاكرة مجانيان.';
                 }
                 return;
             }
 
-            const authState = getGoogleDriveAuthState();
-            const isLinked = isGoogleDriveAccountLinked() || (isBoundToCurrent && localStorage.getItem('exo_gdrive_connected') === '1' && Boolean(email));
-
             if (isLinked && authState !== 'disconnected') {
                 if (badge) {
                     if (authState === 'connected') {
-                        badge.style.color = '#6ee7b7';
-                        badge.style.borderColor = 'rgba(16, 185, 129, 0.45)';
-                        badge.style.background = 'rgba(16, 185, 129, 0.12)';
-                        badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> متصل ونشط على هذا الجهاز';
+                        badge.style.color = '#cde0c5';
+                        badge.style.borderColor = 'rgba(137, 153, 130, 0.5)';
+                        badge.style.background = 'rgba(137, 153, 130, 0.16)';
+                        badge.innerHTML = isEn
+                            ? '<i class="fa-solid fa-circle-check"></i> Connected & Private'
+                            : '<i class="fa-solid fa-circle-check"></i> متصل ونشط على هذا الجهاز';
                     } else if (authState === 'permission_denied') {
-                        badge.style.color = '#fda4af';
-                        badge.style.borderColor = 'rgba(244, 63, 94, 0.45)';
-                        badge.style.background = 'rgba(244, 63, 94, 0.12)';
-                        badge.innerHTML = '<i class="fa-solid fa-shield-exclamation"></i> الصلاحيات مرفوضة — أعد التفويض';
+                        badge.style.color = '#f4d3c5';
+                        badge.style.borderColor = 'rgba(196, 125, 96, 0.5)';
+                        badge.style.background = 'rgba(196, 125, 96, 0.16)';
+                        badge.innerHTML = isEn
+                            ? '<i class="fa-solid fa-shield-exclamation"></i> Permission Denied — Re-authorize'
+                            : '<i class="fa-solid fa-shield-exclamation"></i> الصلاحيات مرفوضة — أعد التفويض';
                     } else if (authState === 'token_expired') {
-                        badge.style.color = '#fbbf24';
-                        badge.style.borderColor = 'rgba(245, 158, 11, 0.45)';
-                        badge.style.background = 'rgba(245, 158, 11, 0.12)';
-                        badge.innerHTML = '<i class="fa-solid fa-clock"></i> انتهت الجلسة — اضغط تنشيط';
+                        badge.style.color = '#f3e1b3';
+                        badge.style.borderColor = 'rgba(215, 185, 111, 0.45)';
+                        badge.style.background = 'rgba(215, 185, 111, 0.14)';
+                        badge.innerHTML = isEn
+                            ? '<i class="fa-solid fa-clock"></i> Session Expired — Reactivate'
+                            : '<i class="fa-solid fa-clock"></i> انتهت الجلسة — اضغط تنشيط';
                     } else {
-                        badge.style.color = '#fbbf24';
-                        badge.style.borderColor = 'rgba(245, 158, 11, 0.45)';
-                        badge.style.background = 'rgba(245, 158, 11, 0.12)';
-                        badge.innerHTML = '<i class="fa-solid fa-bolt"></i> يحتاج تنشيط على هذا الجهاز';
+                        badge.style.color = '#f3e1b3';
+                        badge.style.borderColor = 'rgba(215, 185, 111, 0.45)';
+                        badge.style.background = 'rgba(215, 185, 111, 0.14)';
+                        badge.innerHTML = isEn
+                            ? '<i class="fa-solid fa-bolt"></i> Needs Activation on Device'
+                            : '<i class="fa-solid fa-bolt"></i> يحتاج تنشيط على هذا الجهاز';
                     }
                 }
                 if (btnConnect) {
@@ -44072,43 +44532,58 @@ function togglePdfAudioPlayerBar(forceState) {
                         btnConnect.style.border = '';
                         btnConnect.style.color = '';
                         btnConnect.innerHTML = authState === 'permission_denied'
-                            ? '<i class="fa-brands fa-google-drive"></i> إعادة منح صلاحيات Google Drive'
-                            : '<i class="fa-brands fa-google-drive"></i> تنشيط Google Drive على هذا الجهاز';
+                            ? `<i class="fa-brands fa-google-drive"></i> <span id="btnConnectGdriveText" data-exo-no-i18n="1">${isEn ? 'Re-grant Drive Access' : 'إعادة منح صلاحيات Google Drive'}</span>`
+                            : `<i class="fa-brands fa-google-drive"></i> <span id="btnConnectGdriveText" data-exo-no-i18n="1">${isEn ? 'Activate Google Drive' : 'تنشيط Google Drive على هذا الجهاز'}</span>`;
                         btnConnect.onclick = function() {
                             connectGoogleDriveAccount(true);
                         };
                     }
                 }
-                if (btnDisconnect) btnDisconnect.style.display = 'inline-flex';
+                if (btnDisconnect) {
+                    btnDisconnect.style.display = 'inline-flex';
+                    const disTxt = document.getElementById('btnDisconnectGdriveText');
+                    if (disTxt) disTxt.innerText = isEn ? 'Disconnect' : 'فصل';
+                }
                 if (infoEl) {
                     if (authState === 'connected') {
-                        infoEl.innerHTML = `<span style="color:#6ee7b7;">●</span> حساب Google Drive: <b style="color:var(--text-main);">${escapeHtml(email || 'حسابك')}</b>${quota ? ' • سعة: ' + escapeHtml(quota) : ''} (مجلد Exo_Workspace المنظم)`;
+                        infoEl.innerHTML = isEn
+                            ? `<span style="color:#cde0c5;">●</span> Linked account: <b style="color:var(--warm-paper, #F0E6D4);">${escapeHtml(email || 'Your Google Account')}</b>${quota ? ' • Quota: ' + escapeHtml(quota) : ''} (Private Exo_Workspace)`
+                            : `<span style="color:#cde0c5;">●</span> حساب Google Drive: <b style="color:var(--warm-paper, #F0E6D4);">${escapeHtml(email || 'حسابك')}</b>${quota ? ' • سعة: ' + escapeHtml(quota) : ''} (مجلد Exo_Workspace الخاص)`;
                     } else if (authState === 'permission_denied') {
-                        infoEl.innerHTML = `<span style="color:#fda4af;">●</span> تم رفض الوصول أو نقصت صلاحيات Google Drive لحساب <b style="color:var(--text-main);">${escapeHtml(email || 'Google Drive')}</b>`;
+                        infoEl.innerHTML = isEn
+                            ? `<span style="color:#f4d3c5;">●</span> Drive permission denied or missing for <b style="color:var(--warm-paper, #F0E6D4);">${escapeHtml(email || 'Google Drive')}</b>`
+                            : `<span style="color:#f4d3c5;">●</span> تم رفض الوصول أو نقصت صلاحيات Google Drive لحساب <b style="color:var(--warm-paper, #F0E6D4);">${escapeHtml(email || 'Google Drive')}</b>`;
                     } else {
-                        infoEl.innerHTML = `<span style="color:#fbbf24;">●</span> حسابك مربوط بـ <b style="color:var(--text-main);">${escapeHtml(email || 'Google Drive')}</b> • اضغط «تنشيط» لتفعيل الرفع والتحميل السحابي على هذا الجهاز`;
+                        infoEl.innerHTML = isEn
+                            ? `<span style="color:#f3e1b3;">●</span> Linked to <b style="color:var(--warm-paper, #F0E6D4);">${escapeHtml(email || 'Google Drive')}</b> · Click Activate to resume cloud media upload/download`
+                            : `<span style="color:#f3e1b3;">●</span> حسابك مربوط بـ <b style="color:var(--warm-paper, #F0E6D4);">${escapeHtml(email || 'Google Drive')}</b> • اضغط «تنشيط» لتفعيل الرفع والتحميل السحابي على هذا الجهاز`;
                     }
                 }
             } else {
                 if (badge) {
-                    badge.style.color = '#94a3b8';
-                    badge.style.borderColor = 'rgba(148, 163, 184, 0.3)';
+                    badge.style.color = 'var(--stone, #ABA69D)';
+                    badge.style.borderColor = 'rgba(240, 230, 212, 0.22)';
                     badge.style.background = 'transparent';
-                    badge.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> غير متصل';
+                    badge.innerHTML = isEn
+                        ? '<i class="fa-solid fa-circle-xmark"></i> Disconnected'
+                        : '<i class="fa-solid fa-circle-xmark"></i> غير متصل';
                 }
                 if (btnConnect) {
                     btnConnect.style.display = 'inline-flex';
+                    btnConnect.className = 'btn btn-primary';
                     btnConnect.style.background = '';
                     btnConnect.style.border = '';
                     btnConnect.style.color = '';
-                    btnConnect.innerHTML = '<i class="fa-brands fa-google-drive"></i> ربط حساب Google Drive';
+                    btnConnect.innerHTML = `<i class="fa-brands fa-google-drive"></i> <span id="btnConnectGdriveText" data-exo-no-i18n="1">${isEn ? 'Link Google Drive' : 'ربط حساب Google Drive'}</span>`;
                     btnConnect.onclick = function() {
                         connectGoogleDriveAccount(true);
                     };
                 }
                 if (btnDisconnect) btnDisconnect.style.display = 'none';
                 if (infoEl) {
-                    infoEl.innerText = 'مزامنة سحابية مباشرة إلى فولدر Exo_Workspace في درايف الخاص بك';
+                    infoEl.innerText = isEn
+                        ? 'Private owner-only sync to your Exo_Workspace folder inside Google Drive.'
+                        : 'مزامنة سحابية خاصة مباشرة إلى مجلد Exo_Workspace في درايف الخاص بك.';
                 }
             }
 
@@ -44122,8 +44597,8 @@ function togglePdfAudioPlayerBar(forceState) {
                         const pct = desc.expectedSize > 0 ? Math.min(99, Math.round((Number(desc.uploadedBytes || 0) / desc.expectedSize) * 100)) : 0;
                         return `
                             <div class="gdrive-resumable-item">
-                                <span><i class="fa-solid fa-cloud-arrow-up"></i> رفع غير مكتمل: <b>${escapeHtml(desc.fileName || desc.recordKey)}</b> (${pct}%)</span>
-                                <button type="button" class="btn btn-primary" style="padding:3px 10px; font-size:0.71rem; border-radius:7px;" onclick="resumePendingDriveUpload('${escapeHtml(desc.storeName)}', '${escapeHtml(desc.recordKey)}')">استكمال الرفع</button>
+                                <span><i class="fa-solid fa-cloud-arrow-up"></i> ${isEn ? 'Incomplete upload:' : 'رفع غير مكتمل:'} <b>${escapeHtml(desc.fileName || desc.recordKey)}</b> (${pct}%)</span>
+                                <button type="button" class="btn btn-primary" style="padding:3px 10px; font-size:0.71rem; border-radius:7px;" onclick="resumePendingDriveUpload('${escapeHtml(desc.storeName)}', '${escapeHtml(desc.recordKey)}')">${isEn ? 'Resume Upload' : 'استكمال الرفع'}</button>
                             </div>
                         `;
                     }).join('');
@@ -56432,6 +56907,94 @@ function togglePdfAudioPlayerBar(forceState) {
             }
         }
 
+        function updateWp65StaticLabels(targetLang) {
+            const isEn = (targetLang || window.currentExoLang || document.documentElement?.lang) !== 'ar';
+            const setText = (id, text) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = text;
+            };
+            // Tracker KPI labels
+            setText('kpiLblStreak', isEn ? 'Study Streak' : 'سلسلة الاستمرارية');
+            setText('kpiLblDoneHours', isEn ? 'Effective Study Hours' : 'ساعات المذاكرة الفعّالة');
+            setText('kpiLblOfTotal', isEn ? 'of' : 'من');
+            setText('kpiLblHoursUnit', isEn ? 'h' : 'س');
+            setText('kpiLblGoalsRatio', isEn ? 'Weekly Goals Progress' : 'إنجاز أهداف الأسبوع');
+            setText('kpiLblAdherence', isEn ? 'Weekly Adherence' : 'مؤشر الالتزام الأسبوعي');
+            setText('analyticsTotalHoursUnit', isEn ? 'h' : 'س');
+
+            const logSearch = document.getElementById('logSearchInput');
+            if (logSearch) {
+                logSearch.placeholder = isEn ? 'Search logs or courses...' : 'ابحث باسم المهمة أو المادة...';
+                logSearch.setAttribute('aria-label', isEn ? 'Search study logs' : 'البحث في السجل');
+            }
+
+            // Backup Preflight static chrome (when open or initialized)
+            setText('backupPreflightTitleText', isEn ? 'Backup Inspection & Recovery' : 'فحص واسترجاع النسخة الاحتياطية');
+            setText('backupCancelBtn', isEn ? 'Cancel' : 'إلغاء');
+            setText('backupMergeBtnText', isEn ? 'Smart Merge' : 'الدمج الذكي الآمن');
+            setText('backupReplaceBtnText', isEn ? 'Full Replace' : 'الاستبدال الكامل');
+
+            // Schedule PDF static fields & directional presets
+            const pdfTitleInput = document.getElementById('pdfScheduleCustomTitleInput');
+            if (pdfTitleInput && (!pdfTitleInput.value || pdfTitleInput.value === 'جدولي الدراسي وخطة الأسبوع' || pdfTitleInput.value === 'Weekly Study Schedule')) {
+                pdfTitleInput.value = isEn ? 'Weekly Study Schedule' : 'جدولي الدراسي وخطة الأسبوع';
+            }
+            const pdfStudentInput = document.getElementById('pdfScheduleStudentNameInput');
+            if (pdfStudentInput) {
+                pdfStudentInput.placeholder = isEn ? 'e.g., Alex — Year 3 Pharmacology' : 'مثال: د. أحمد — الفرقة الثالثة';
+            }
+            setText('pdfPresetBtn_all', isEn ? 'Full Week' : 'تحديد كل الأسبوع');
+            setText('pdfPresetBtn_scheduled', isEn ? 'Scheduled Days Only' : 'الأيام التي بها مهام فقط');
+            setText('pdfPresetBtn_overview', isEn ? 'Week Overview Only' : 'تجميعة الأسبوع فقط');
+            if (typeof updateSchedulePdfSummaryBar === 'function') {
+                updateSchedulePdfSummaryBar();
+            } else {
+                setText('pdfPreviewPageCounterLabel', isEn ? 'Page Preview' : 'معاينة الصفحة');
+                setText('pdfModeHintFooterText', isEn
+                    ? 'Printable Paper Edition: crisp ink-friendly grid with handwritten checkboxes and study notes margin.'
+                    : 'نسخة الطباعة مجهزة بمربعات شطب يدوية ومساحات تدوين لتعلّم بالقلم طوال الأسبوع.');
+            }
+
+            // Help / Academy header & dock labels (even before Help modal opens)
+            const tourBtn = document.getElementById('helpStartSpotlightTourBtn');
+            if (tourBtn) {
+                tourBtn.innerHTML = isEn
+                    ? '<i class="fa-solid fa-location-crosshairs"></i> Interactive Tour'
+                    : '<i class="fa-solid fa-location-crosshairs"></i> جولة تعريفية تفاعلية';
+            }
+            const demoBtn = document.getElementById('helpLoadDemoDataBtn');
+            if (demoBtn) {
+                demoBtn.innerHTML = isEn
+                    ? '<i class="fa-solid fa-wand-magic-sparkles"></i> Load Demo Workspace'
+                    : '<i class="fa-solid fa-wand-magic-sparkles"></i> تحميل بيانات تجريبية';
+            }
+            if (typeof deriveAcademyGuideMetrics === 'function') {
+                const guideMetrics = deriveAcademyGuideMetrics(window.currentAcademyMod || 1, 6, isEn);
+                guideMetrics.panes.forEach((p, idx) => {
+                    setText(`acadNavLabel_${idx + 1}`, `${p.num}. ${p.title}`);
+                });
+                setText('egTopSliderLabel', isEn
+                    ? `Section ${guideMetrics.activeModule} of ${guideMetrics.totalModules}`
+                    : `القسم ${guideMetrics.activeModule} من ${guideMetrics.totalModules}`);
+            }
+            const setBtnA11y = (id, label) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.setAttribute('aria-label', label);
+                    el.setAttribute('title', label);
+                }
+            };
+            setBtnA11y('egDockPrevBtn', isEn ? 'Previous section' : 'القسم السابق');
+            setBtnA11y('egDockNextBtn', isEn ? 'Next section' : 'القسم التالي');
+            const prevDockIcon = document.querySelector('#egDockPrevBtn i');
+            const nextDockIcon = document.querySelector('#egDockNextBtn i');
+            if (prevDockIcon) prevDockIcon.className = isEn ? 'fa-solid fa-chevron-left' : 'fa-solid fa-chevron-right';
+            if (nextDockIcon) nextDockIcon.className = isEn ? 'fa-solid fa-chevron-right' : 'fa-solid fa-chevron-left';
+            setBtnA11y('helpModalCloseBtn', isEn ? 'Close help center' : 'إغلاق مركز المساعدة');
+            setBtnA11y('cloudAuthModalCloseBtn', isEn ? 'Close account modal' : 'إغلاق نافذة الحساب');
+            setBtnA11y('shareSchedulePdfCloseBtn', isEn ? 'Close PDF export modal' : 'إغلاق نافذة تصدير الجدول');
+        }
+
         function applyExoLanguage(lang, saveChoice) {
             const targetLang = (lang === 'ar') ? 'ar' : 'en';
             window.currentExoLang = targetLang;
@@ -56462,6 +57025,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (typeof updateLiveTimeSyncBanner === 'function') updateLiveTimeSyncBanner();
                 if (typeof renderDashboard === 'function') renderDashboard();
                 if (typeof updateWp62StaticLabels === 'function') updateWp62StaticLabels(targetLang);
+                if (typeof updateWp65StaticLabels === 'function') updateWp65StaticLabels(targetLang);
                 if (typeof renderSubjectsList === 'function') renderSubjectsList();
                 if (typeof activeSubjectId !== 'undefined' && activeSubjectId && typeof renderGroups === 'function') renderGroups();
                 if (typeof updateWp63ChapterWorkspaceLabels === 'function') updateWp63ChapterWorkspaceLabels(targetLang);
@@ -56470,10 +57034,25 @@ function togglePdfAudioPlayerBar(forceState) {
                     renderSubjectMergeLecturesDrawer();
                 }
 
-                // Re-render Schedule PDF preview canvas if open
+                if (typeof renderSchedule === 'function') renderSchedule();
+                if (typeof updateTracker === 'function') updateTracker();
+                if (typeof updateGoogleDriveUI === 'function') updateGoogleDriveUI();
+
+                const helpModal = document.getElementById('helpModalOverlay');
+                if (helpModal && helpModal.classList.contains('active') && typeof switchAcademyModule === 'function') {
+                    switchAcademyModule(window.currentAcademyMod || 1);
+                }
+
+                const spotlightCard = document.getElementById('spotlightTourFloatingCard');
+                if (spotlightCard && spotlightCard.classList.contains('active') && typeof renderSpotlightTourStep === 'function') {
+                    renderSpotlightTourStep();
+                }
+
+                // Re-render Schedule PDF preview canvas & tabs if open
                 const pdfModal = document.getElementById('shareSchedulePdfModalOverlay');
-                if (pdfModal && pdfModal.classList.contains('active') && typeof window.refreshSchedulePdfPreview === 'function') {
-                    window.refreshSchedulePdfPreview();
+                if (pdfModal && pdfModal.classList.contains('active')) {
+                    if (typeof renderSchedulePdfPageTabs === 'function') renderSchedulePdfPageTabs();
+                    if (typeof window.refreshSchedulePdfPreview === 'function') window.refreshSchedulePdfPreview();
                 }
 
                 if (typeof updateCloudNavUI === 'function' && typeof exoRuntimeStatusState !== 'undefined') {

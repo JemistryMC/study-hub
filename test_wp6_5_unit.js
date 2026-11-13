@@ -239,3 +239,15 @@ test('WP 6.5: deriveAcademyGuideMetrics & exoResolveSpotlightTourSteps preserve 
     assert.ok(indexHtml.includes(`id="${idMatch[1]}"`), `Target element id="${idMatch[1]}" must exist in index.html`);
   }
 });
+
+test('WP 6.5: production UI callers wire all Pass 2 helpers and declare spotlightTourIdx cleanly', () => {
+  assert.ok(indexHtml.includes('deriveCompassPriorityMeta('), 'renderSmartRecommendations must invoke deriveCompassPriorityMeta');
+  assert.ok(indexHtml.includes('deriveBackupComparisonSummary('), 'showBackupImportPreflightModal must invoke deriveBackupComparisonSummary');
+  assert.ok(indexHtml.includes('deriveSchedulePdfExportSummary('), 'updateSchedulePdfSummaryBar must invoke deriveSchedulePdfExportSummary');
+  assert.ok(indexHtml.includes('deriveDrivePrivacyAndMediaSummary('), 'updateGoogleDriveUI must invoke deriveDrivePrivacyAndMediaSummary');
+  assert.ok(indexHtml.includes('deriveAcademyGuideMetrics('), 'switchAcademyModule and updateWp65StaticLabels must invoke deriveAcademyGuideMetrics');
+  assert.ok(indexHtml.includes('let spotlightTourIdx = 0;'), 'spotlightTourIdx must be explicitly declared');
+  assert.ok(!indexHtml.includes('SPOTLIGHT_TOUR_STEPS'), 'Legacy undefined SPOTLIGHT_TOUR_STEPS reference must not remain');
+  assert.ok(indexHtml.includes('function updateWp65StaticLabels('), 'updateWp65StaticLabels must exist');
+});
+
