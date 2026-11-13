@@ -3,16 +3,17 @@
 **آخر تحديث:** 2026-11-13  
 **المستودع:** JemistryMC/study-hub  
 **فرع العمل:** main  
-**نقطة الأساس المعتمدة لـ WP 6.1 على GitHub:** `ef5b70656530a9f97560bafc87039729c2371f1e` (مبنية على توثيق واعتماد Gate 6.0 في `8c5dac054294d3e7288061ec35f1c41b5620b009` وعلى آخر commit مصدري قبل Phase 6 `c74315a4580d68c61da8a0f49ec2b2f5946301e4`)  
-**آخر مستند تدقيق WP 6.0 على GitHub:** `reports/PHASE_6_BASELINE_AUDIT.md` — commit `0a6100439a6d98fee9aaa84683ad4bf7d1247c5f`  
-**تقرير إتمام WP 6.1 المحلي:** `reports/PHASE_6_WP_6_1_REPORT.md`  
-**حالة Phase 5.2 عند التسليم:** IMPLEMENTED — LOCAL TESTS REPORTED; CI NOT VERIFIED; OWNER REVIEW PENDING.  
-**المرحلة النشطة:** Phase 6 — EXO Personal Study Journal Experience Redesign  
-**حالة Gate 6.0:** APPROVED BY OWNER بتاريخ 2026-11-13 بعد مراجعة التقرير المصحح `reports/PHASE_6_BASELINE_AUDIT.md`.  
-**حزمة العمل النشطة:** WP 6.1 — Design Foundations, Application Shell, Hybrid Navigation, Typography, Bilingual Foundation & Simplified Today Dashboard.  
-**حالة WP 6.1:** **IMPLEMENTED — LOCAL TESTS ONLY** (`GATE 6.1 OWNER REVIEW PENDING` — محليًا في AI Studio: 659/659 ناجحة [Static 54/54 + Unit 416/416 شاملة `test_wp6_1_unit.js` 5/5 + PGlite 41/41 + Chromium E2E 148/148 شاملة `Test KK.1–KK.4` + `lint` + `build` + `benchmark:node` 5/5]، بينما `test:pg16` غير متاح محليًا لغياب PostgreSQL 16 Daemon وبانتظار المزامنة وتشغيل GitHub Actions CI لتأكيد `CI VERIFIED` ثم قرار المالك لـ `APPROVED`).  
-**نطاق التنفيذ الملتزم به:** تم استكمال وإصلاح WP 6.1 (إصلاح فشل `Test KK.3` في CI Run #52 `43444338698`، مواءمة `Simplified Today Dashboard` في الواجهة ووثيقة التصميم والخطة، ضبط عزل الاتجاه Bidi ومساحات اللمس `>=44px`، وربط `test_wp6_1_unit.js` بـ`lint`/`test:unit`/`run_all_tests.js`). لم تُفتح WP 6.2 أو WP 6.3 أو WP 6.4 أو WP 6.5، ولم تُمسّ قواعد Supabase/Auth/Drive/Sync/IndexedDB/Free-VIP/Extra Note Sheets.
-
+**آخر Source SHA اجتاز GitHub Actions CI:** `86fda9824880c00268db117f1ab8780b106f6fe0`  
+**دليل CI:** GitHub Actions CI Run #53 — Run ID `43450226930` — SUCCESS على Source SHA أعلاه، بإجمالي موحد `755/755`، بما في ذلك PostgreSQL 16 الحقيقي `96/96` وChromium E2E `148/148`.  
+**دليل النشر:** GitHub Pages Run #146 — Run ID `43450226479` — SUCCESS على Source SHA نفسه.  
+**التغيير بعد التحقق:** أي commits لاحقة لتوحيد ملفات الحالة والتقارير هي تغييرات توثيقية فقط ولا تغيّر Source SHA الذي اجتاز CI، ما لم يُذكر خلاف ذلك صراحةً.  
+**حالة Phase 6:** IN PROGRESS — WP 6.1 CI VERIFIED; WP 6.2 ACTIVE; FINAL OWNER REVIEW DEFERRED TO PHASE 6 COMPLETION.  
+**حالة WP 6.0:** READ-ONLY BASELINE AUDIT — ACCEPTED.  
+**حالة WP 6.1:** CI VERIFIED — COMPLETE. تم إصلاح فشل CI #52 في Test KK.3، واجتازت جميع خطوات CI #53 على SHA المحدد أعلاه. لا توجد موافقة منفصلة مطلوبة لإغلاق كل Work Package؛ الاعتماد النهائي سيكون على Phase 6 ككل.  
+**حزمة العمل النشطة:** WP 6.2 — Library, Subjects & Table of Contents (Digital Bookshelf، الحفاظ على التسلسل الأكاديمي الحالي، وجعل Table of Contents عرض الفصول الافتراضي).  
+**نموذج المراجعة:** يستمر العمل في Work Packages بالتسلسل بعد اكتمال التنفيذ والتحقق التقني ونجاح GitHub Actions CI للحزمة السابقة. لا يُطلب اعتماد منفصل من المالك بعد كل حزمة. للمالك حق إرسال ملاحظات أو طلب تعديلات أو إيقاف العمل في أي وقت، ويحتفظ بالاعتماد النهائي بعد مراجعة Phase 6 كاملة.  
+**حدود لا يتضمنها هذا التفويض:** لا تغييرات في Production Supabase أو SQL/Migrations/RLS/RPC/Auth/OAuth/Google Drive permissions أو عقود المزامنة أو مخططات التخزين أو عزل الحسابات أو سياسة Free/VIP أو العمليات الأكاديمية المغلقة دون تفويض صريح مستقل.  
+**مراجع المصدر الحالية:** `reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md`, `reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md`, `reports/PHASE_6_BASELINE_AUDIT.md`, `reports/PHASE_6_WP_6_1_REPORT.md`.
 ## مراجع التسليم الحالية
 
 1. العقد الهندسي الدائم: `GEMINI.md`.

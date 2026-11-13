@@ -45,7 +45,7 @@
 - لا تضف Dependencies أو تغيّر Framework أو Build System دون موافقة صريحة.
 - في مهام Documentation-only لا تعدل المصدر أو الاختبارات أو SQL أو إعدادات المشروع.
 - في مهام Planning-only لا تبدأ التنفيذ.
-- لا تنتقل تلقائيًا إلى Milestone أو Phase تالية؛ توقف عند حدود المهمة واطلب المراجعة.
+- لا تقفز بين Work Packages أو تتجاوز ترتيب الخطة. داخل Phase سبق أن أذن المالك باستكمالها، انتقل إلى Work Package التالية بالتسلسل بعد اكتمال الحزمة السابقة ونجاح CI والتحقق من الأدلة؛ لا تطلب موافقة منفصلة من المالك بعد كل Work Package. يظل للمالك حق إيقاف العمل أو تعديل النطاق في أي وقت، وتكون المراجعة والاعتماد النهائيان في نهاية Phase.
 
 ## 4. الأمان والخدمات الخارجية
 
@@ -233,7 +233,7 @@ Before changing any app UI code:
 - Record exact Source SHA and actual baseline checks.
 
 ### 13.3 Incremental implementation and behavior preservation
-- Follow the work-package gates in the Phase 6 plan. The first work package is documentation/audit only; no source changes until the owner reviews its deliverables.
+- Follow the Phase 6 work-package sequence. WP 6.0 was the read-only audit and has been accepted. Continue through WP 6.1–6.6 in order after each package meets its technical acceptance criteria and its exact-source GitHub Actions CI passes; do not request a separate owner approval between packages. The owner may provide edits or pause work at any time. Reserve the overall Phase 6 owner review and final approval for the end of the phase.
 - Do not perform a one-shot rewrite of index.html or replace the existing UI wholesale.
 - Preserve existing IDs, event wiring, handlers, data contracts, storage formats, account boundaries, permissions, and integrations unless a separately reviewed task explicitly authorizes a change.
 - A UI redesign does not authorize changing Supabase, RLS, migrations, RPC, auth/OAuth, Google Drive permissions, sync contracts, IndexedDB/LocalStorage schemas, backups, deletion/recovery, annotation identity, or Free/VIP policy.
@@ -250,4 +250,4 @@ Before changing any app UI code:
 - Never silently overwrite conflicts or discard pending data. Redact tokens, secrets, private URLs, and personal content from diagnostics.
 
 ### 13.5 Acceptance
-A redesigned screen is not complete because a screenshot looks good. Verify its real interactions, data behavior, bilingual layouts, responsive states, accessibility, reduced motion, performance, and regression coverage. Tie evidence to exact Source SHA. Local tests, CI VERIFIED, and owner APPROVED are separate states; Gemini cannot self-approve.
+A redesigned screen is not complete because a screenshot looks good. Verify its real interactions, data behavior, bilingual layouts, responsive states, accessibility, reduced motion, performance, and regression coverage. Tie evidence to exact Source SHA. Local tests and CI VERIFIED are technical states; work packages may proceed sequentially after CI verification without separate per-package owner approval. Final Phase 6 APPROVED remains a distinct decision reserved for the owner after the overall phase review; Gemini cannot self-approve.

@@ -14,11 +14,11 @@
 
 **Phase 6 — EXO Personal Study Journal Experience Redesign**
 
-الحالة: **WP 6.1 — IMPLEMENTED — LOCAL TESTS ONLY (`GATE 6.1 OWNER REVIEW PENDING`)**.
+الحالة: **Phase 6 IN PROGRESS — WP 6.1 CI VERIFIED; WP 6.2 ACTIVE; FINAL OWNER REVIEW DEFERRED TO PHASE 6 COMPLETION**.
 
 **تقرير WP 6.0:** [PHASE_6_BASELINE_AUDIT.md](PHASE_6_BASELINE_AUDIT.md) تم رفعه إلى GitHub في commit `0a6100439a6d98fee9aaa84683ad4bf7d1247c5f` بعد جولة reconciliation مع قرارات المالك، واعتمده المالك بتاريخ 2026-11-13.  
-**تقرير WP 6.1:** [PHASE_6_WP_6_1_REPORT.md](PHASE_6_WP_6_1_REPORT.md) (نقطة الأساس `ef5b70656530a9f97560bafc87039729c2371f1e` — `659/659` اختبارًا محليًا ناجحًا شاملة Chromium E2E `148/148` و`test_wp6_1_unit.js` `5/5`، بانتظار المزامنة وتشغيل CI لـ PostgreSQL 16 ومراجعة المالك لإغلاق Gate 6.1).  
-**النطاق الحالي فقط:** التصميم الأساسي، الهيكل العام، Hybrid Navigation، Typography، التأسيس ثنائي اللغة، وSimplified Today Dashboard. لا يبدأ WP 6.2 أو WP 6.3 قبل اعتماد Gate 6.1.
+**تقرير WP 6.1:** [PHASE_6_WP_6_1_REPORT.md](PHASE_6_WP_6_1_REPORT.md) — CI Run #53 (`43450226930`) SUCCESS على SHA `86fda9824880c00268db117f1ab8780b106f6fe0`، بإجمالي `755/755` في `npm test` وPostgreSQL 16 `96/96` وChromium E2E `148/148`؛ وGitHub Pages Run #146 (`43450226479`) SUCCESS على SHA نفسه.  
+**النطاق النشط:** WP 6.2 — Digital Bookshelf، إعادة عرض Subjects، وTable of Contents. يبدأ الآن بعد نجاح CI لـ WP 6.1. تستمر Work Packages بالتسلسل دون موافقة منفصلة بعد كل واحدة؛ المالك يراجع Phase 6 كاملة ويعتمدها في النهاية، ويمكنه طلب تعديلات أو إيقاف العمل في أي وقت.
 
 ## حالة Phase 5.2 السابقة
 
@@ -44,7 +44,7 @@
 4. يقدم Diff والملفات والاختبارات والقيود قبل أي مزامنة.
 5. المالك وحده يقرر GitHub Sync. إذا لم يكن الفرع main ظاهرًا بوضوح يتوقف. لا يستخدم Force Push كإجراء روتيني.
 6. بعد المزامنة نتحقق من Commit SHA والملفات الفعلية وGitHub Actions المرتبطة بنفس SHA.
-7. لا تصبح المرحلة APPROVED إلا بعد مراجعة مستقلة وقرار المالك.
+7. كل Work Package يحتاج اختبارات وأدلة ومراجعة هندسية مستقلة ونجاح CI على Source SHA الخاص به قبل الانتقال للحزمة التالية. لا توجد موافقة منفصلة من المالك بين الحزم؛ الاعتماد النهائي للـPhase من المالك بعد اكتمال النطاق كله.
 
 ## الفروع
 
@@ -69,4 +69,4 @@
 - `CI VERIFIED`
 - `APPROVED`
 
-نجاح الاختبارات المحلية لا يساوي CI VERIFIED، وCI VERIFIED لا يساوي APPROVED. الاعتماد النهائي قرار المالك.
+نجاح الاختبارات المحلية لا يساوي CI VERIFIED. حالة CI VERIFIED تثبت الاجتياز التقني للحزمة، لكنها لا تعني الاعتماد النهائي للـPhase؛ الاعتماد النهائي من المالك بعد اكتمال Phase 6.

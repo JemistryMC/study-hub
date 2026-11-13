@@ -1,13 +1,17 @@
 # Phase 6 — EXO Personal Study Journal Experience Redesign
 ## Incremental Implementation Plan and Acceptance Gates
 
-**Status:** IN PROGRESS — WP 6.0 APPROVED BY OWNER; WP 6.1 ACTIVE  
+**Status:** IN PROGRESS — WP 6.1 CI VERIFIED; WP 6.2 ACTIVE; FINAL OWNER REVIEW AT PHASE 6 COMPLETION  
 **Design authority:** reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md  
 **Engineering authority:** GEMINI.md  
 **Initial app-source baseline:** c74315a4580d68c61da8a0f49ec2b2f5946301e4 (verify current GitHub HEAD before every task)  
 **Branch:** main. Gemini prepares work in AI Studio; the owner alone reviews and performs GitHub synchronization.
 
 This is a full experience redesign, not a color/font refresh. Deliver it in reviewable work packages. Do not attempt a one-shot application rewrite.
+
+## Work-package progression and final review model
+
+The owner has directed that there will be **no separate owner-approval checkpoint after every Work Package**. Execute WP 6.1 through WP 6.6 in the documented order. Each package must still meet its own technical acceptance criteria, receive independent engineering verification, and pass GitHub Actions CI on its exact uploaded source SHA before the next package begins. The owner may provide corrections, change priorities, or pause work at any time. The owner’s formal product review and final `APPROVED` decision are deferred until the complete Phase 6 scope is delivered. This progression policy does not grant permission for protected changes that still require explicit separate authorization (Production access, Supabase/SQL/RLS/RPC/Auth, OAuth/Drive permissions, storage/schema/account-isolation changes, Free/VIP policy, or closed-loop business rules).
 
 ## Goals
 1. Apply the approved Dark Personal Study Journal identity throughout Exo.
@@ -56,17 +60,19 @@ Deliverables: create one documentation-only audit report at `reports/PHASE_6_BAS
 
 ## WP 6.1 — Design foundations, application shell, and simplified Today dashboard
 
-**Entry:** Owner reviews WP 6.0 mapping.
+**Entry:** WP 6.0 read-only audit was accepted; WP 6.1 has now passed CI Run #53 on Source SHA `86fda9824880c00268db117f1ab8780b106f6fe0`. WP 6.1 is technically complete.
 
 Implement design tokens and typography, global dark shell, restrained paper surfaces, hybrid navigation, desktop collapsible sidebar, purpose-built tablet/mobile navigation, correct locale persistence/switching (`en` first-run default when unset; `ar`/`en` persisted choice preserved), and the **simplified Today dashboard** (minimal greeting/date header, single primary "Today's plan" section with heading completion count + tiny progress indicator and single-CTA empty state, plus at most one compact "Continue studying" item using persisted reading/session state — excluding separate Daily Progress, Weekly Overview, Journal Notes, and Quick Access cards). Introduce shared buttons/cards/inputs/menus/tabs/status/loading/focus primitives only where safe.
 
 Preserve every current destination, permission, event contract, and data behavior. No placeholder metrics in production. Implement RTL/LTR as each component is built. Compare performance to baseline.
 
-**Gate 6.1:** visual and functional review, desktop/mobile, English/Arabic, navigation regression, lint/build, performance comparison.
+**WP 6.1 Evidence:** CI Run #53 (`43450226930`) SUCCESS on `86fda9824880c00268db117f1ab8780b106f6fe0`; unified `npm test` = `755/755`, PostgreSQL 16 = `96/96`, Chromium E2E = `148/148`. GitHub Pages Run #146 (`43450226479`) SUCCESS on the same SHA. WP 6.1 is `CI VERIFIED`; overall Phase 6 owner review is deferred until all work packages are complete.
 
 ---
 
 ## WP 6.2 — Library, Subjects, and Table of Contents
+
+**Status:** ACTIVE — continuation authorized after WP 6.1 CI verification. No separate owner approval is required at this boundary.
 
 Implement the restrained Digital Bookshelf presentation; preserve the existing subject/group/chapter hierarchy; make Table of Contents the default chapter view; show chapter number, name, real status/progress, and contextual actions. Add practical search/sort/filter and optional Grid View only when it fits the current architecture.
 
@@ -113,7 +119,7 @@ Use the actual WP 6.0 inventory; the following is illustrative, not exhaustive: 
 
 Do not leave legacy-looking screens behind. Do not invent or delete product behavior for visual consistency. Preserve the existing closed-loop operations exactly unless the owner separately authorizes a business-logic change. Each screen must be bilingual, responsive, and coherent with the design system.
 
-**Gate 6.5:** complete inventory coverage and owner review of every major screen family.
+**Gate 6.5:** complete inventory coverage and independent engineering review of every major screen family, with responsive/accessibility/regression evidence. Owner review is deferred to the overall Phase 6 final review.
 
 ---
 
@@ -137,9 +143,9 @@ Tie every result to source SHA, command, environment, and actual output. Disting
 
 ## Global stop conditions
 
-Stop for owner review before changes to schema/migrations/RLS/RPC/auth/OAuth/Drive permissions/cloud-sync contracts; local/IndexedDB schema, backups, account boundaries, annotation identity, deletion/recovery semantics; removing/weakening a feature/test; new runtime dependency/framework; irreversible migration; Free/VIP policy; or existing closed-loop business operations.
+Stop and obtain explicit separate owner authorization before changes to schema/migrations/RLS/RPC/auth/OAuth/Drive permissions/cloud-sync contracts; local/IndexedDB schema, backups, account boundaries, annotation identity, deletion/recovery semantics; removing/weakening a feature/test; new runtime dependency/framework; irreversible migration; Free/VIP policy; or existing closed-loop business operations. This restriction is independent of the no-per-Work-Package approval workflow.
 
-No Force Push, direct Gemini GitHub push, Production access, or real Google Drive actions. The owner controls sync and final approval.
+No Force Push, direct Gemini GitHub push, Production access, or real Google Drive actions. The owner controls GitHub sync and retains the final Phase 6 approval decision; no per-Work-Package owner approval checkpoint is required.
 
 ## Required work-package report
 
