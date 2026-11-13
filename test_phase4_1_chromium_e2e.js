@@ -5143,6 +5143,354 @@ async function main() {
 
     await tabFF.close();
     await contextFF.close();
+
+    // =========================================================================
+    // TEST GG: STABILITY & RESPONSIVENESS SPRINT — END-TO-END SAVE LIFECYCLE,
+    // NAVIGATION & PDF CLOSE LATENCY, MODAL INPUT PRESERVATION & OFFLINE->ONLINE SYNC
+    // =========================================================================
+    console.log('\n--- Test GG: Stability & Responsiveness Sprint E2E Verification ---');
+    const contextGG = await browser.newContext();
+    await contextGG.route('**/*', (route) => {
+      const reqUrl = route.request().url();
+      if (reqUrl.startsWith('http://127.0.0.1:') || reqUrl.startsWith('http://localhost:')) {
+        return route.continue();
+      }
+      return route.abort();
+    });
+
+    const uidGG1 = 'b0770000-1111-4222-8333-444455550001';
+    const uidGG2 = 'b0770000-1111-4222-8333-444455550002';
+    const tabGG = await contextGG.newPage();
+    await tabGG.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+    await tabGG.waitForFunction(() => Boolean(window.__exoSupabaseStartupState && window.__exoSupabaseStartupState.settled === true));
+
+    // GG.1: Complete End-to-End Save Lifecycle Across All Domains + Page Reload
+    const gg1CreateAndEdit = await tabGG.evaluate(async (uid) => {
+      await initPdfDB();
+      await handleAuthSessionChange({ id: uid, email: 'gg1@exo.edu', name: 'GG1 Student' }, false);
+      subjects = [];
+      scheduleEvents = [];
+      scheduleBacklog = [];
+      weeklyReports = [];
+      logs = [];
+
+      // 1. Create Subject via Smart Subject Modal
+      openSmartSubjectModal();
+      document.getElementById('smartSubjectNameInput').value = 'Clinical Pharmacokinetics GG';
+      document.getElementById('smartSubjectExamTitleInput').value = 'Midterm Exam';
+      document.getElementById('smartSubjectExamDateInput').value = '2026-12-15';
+      saveSmartSubjectModal();
+      const createdSub = subjects[0];
+      openSubject(createdSub.id);
+
+      // 2. Create Group & Chapter via triggerAddGroup + saveSingleInputModal
+      triggerAddGroup();
+      document.getElementById('siModalInput').value = 'Chapter 1: Clearance & Volume';
+      await saveSingleInputModal();
+
+      triggerAddGroup();
+      document.getElementById('siModalInput').value = 'Chapter 2: Renal Elimination';
+      await saveSingleInputModal();
+
+      const ch1 = createdSub.groups.find(g => g.name === 'Chapter 1: Clearance & Volume');
+
+      // 3. Add two Lectures via triggerAddLecture
+      triggerAddLecture(ch1.id);
+      document.getElementById('diModalInput1').value = 'Lec 1: Hepatic Clearance';
+      document.getElementById('diModalInput2').value = 'https://example.com/hepatic.pdf';
+      await document.getElementById('diModalSaveBtn').onclick();
+
+      triggerAddLecture(ch1.id);
+      document.getElementById('diModalInput1').value = 'Lec 2: Temp To Delete';
+      document.getElementById('diModalInput2').value = 'https://example.com/temp.pdf';
+      await document.getElementById('diModalSaveBtn').onclick();
+
+      const lec1 = ch1.lectures.find(l => l.title === 'Lec 1: Hepatic Clearance');
+      const lecTemp = ch1.lectures.find(l => l.title === 'Lec 2: Temp To Delete');
+
+      // 4. Edit Lecture 1 via triggerEditLecture
+      triggerEditLecture(ch1.id, lec1.id);
+      document.getElementById('diModalInput1').value = 'Lec 1: Hepatic & Intrinsic Clearance (Updated)';
+      document.getElementById('diModalInput2').value = 'https://example.com/hepatic_v2.pdf';
+      await document.getElementById('diModalSaveBtn').onclick();
+
+      // 5. Delete temporary Lecture 2 via triggerDeleteLecture
+      triggerDeleteLecture(ch1.id, lecTemp.id);
+      await document.getElementById('confirmModalBtn').onclick();
+
+      // 6. Save Schedule Session, Backlog Task, Study Log, and Weekly Report
+      document.getElementById('sessionEditId').value = '';
+      document.getElementById('sessionTitleInput').value = 'PK Clearance Deep Study';
+      populateSubjectDropdowns();
+      document.getElementById('sessionSubjectSelect').value = String(createdSub.id);
+      document.getElementById('sessionDaySelect').value = '2';
+      document.getElementById('sessionStartHourSelect').value = '14';
+      document.getElementById('sessionTypeSelect').value = 'important';
+      document.getElementById('sessionNotesInput').value = 'Solve practice problems 1-10';
+      saveSession();
+
+      document.getElementById('newTaskTitle').value = 'Finish Clearance Problem Set';
+      document.getElementById('newTaskSubject').value = String(createdSub.id);
+      addBacklogTask();
+
+      triggerAddLogPro();
+      document.getElementById('logTextInput').value = 'Completed Hepatic Clearance derivations';
+      document.getElementById('logSubjectSelect').value = String(createdSub.id);
+      document.getElementById('logMoodSelect').value = 'fire';
+      saveLogPro();
+
+      weeklyReports.push({
+        id: 'rep_gg_1',
+        weekStartIso: '2026-11-08',
+        completionRate: 92,
+        totalPlannedHours: 12,
+        totalCompletedHours: 11,
+        archivedGoals: [{ id: 'ag_gg_1', title: 'Archived Goal GG', done: true }]
+      });
+      saveScheduleData();
+
+      // 7. Add PDF Annotation & Reading Bookmark
+      await openLectureDocument(ch1.id, lec1.id);
+      currentActivePageNum = 4;
+      totalPdfPages = 18;
+      pageAnnotations[1] = [{
+        id: 'stroke_gg1_1',
+        tool: 'pen',
+        color: '#2dd4bf',
+        size: 3,
+        points: [{ x: 12, y: 18 }, { x: 64, y: 82 }]
+      }];
+      saveAnnotationsToDB(lec1.id, pageAnnotations);
+      await closePdfViewer();
+
+      return {
+        subjectId: createdSub.id,
+        ch1Id: ch1.id,
+        lec1Id: lec1.id,
+        deletedLecId: lecTemp.id
+      };
+    }, uidGG1);
+
+    // Reload page and verify all created/edited/deleted items survive reload and workspace restoration
+    await tabGG.reload({ waitUntil: 'domcontentloaded' });
+    await tabGG.waitForFunction(() => typeof initPdfDB === 'function' && typeof subjects !== 'undefined');
+
+    const gg1PostReload = await tabGG.evaluate(async ({ uid, ids }) => {
+      await initPdfDB();
+      await handleAuthSessionChange({ id: uid, email: 'gg1@exo.edu', name: 'GG1 Student' }, false);
+      await migrateAndHydrateWorkspaceFromIDB(uid);
+
+      const sub = subjects.find(s => String(s.id) === String(ids.subjectId));
+      const ch1 = sub ? (sub.groups || []).find(g => String(g.id) === String(ids.ch1Id)) : null;
+      const ch2 = sub ? (sub.groups || []).find(g => g.name === 'Chapter 2: Renal Elimination') : null;
+      const lec1 = ch1 ? (ch1.lectures || []).find(l => String(l.id) === String(ids.lec1Id)) : null;
+      const deletedStillGone = ch1 ? !(ch1.lectures || []).some(l => String(l.id) === String(ids.deletedLecId)) : false;
+      const annos = await getAnnotationsFromDB(ids.lec1Id, uid);
+
+      return {
+        subFound: Boolean(sub && sub.name === 'Clinical Pharmacokinetics GG'),
+        ch1Found: Boolean(ch1),
+        ch2Found: Boolean(ch2),
+        lec1Updated: Boolean(lec1 && lec1.title === 'Lec 1: Hepatic & Intrinsic Clearance (Updated)' && lec1.path === 'https://example.com/hepatic_v2.pdf'),
+        bookmarkSaved: Boolean(lec1 && lec1.lastPageNum === 4 && lec1.totalPages === 18),
+        deletedStillGone,
+        sessionSaved: scheduleEvents.some(e => e.title === 'PK Clearance Deep Study' && e.notes === 'Solve practice problems 1-10'),
+        backlogSaved: scheduleBacklog.some(b => b.title === 'Finish Clearance Problem Set'),
+        logSaved: logs.some(l => l.text === 'Completed Hepatic Clearance derivations'),
+        reportSaved: weeklyReports.some(r => r.id === 'rep_gg_1' && r.completionRate === 92),
+        annoSaved: Boolean(annos && Array.isArray(annos[1]) && annos[1].some(st => st.id === 'stroke_gg1_1'))
+      };
+    }, { uid: uidGG1, ids: gg1CreateAndEdit });
+
+    assert(
+      gg1PostReload.subFound &&
+      gg1PostReload.ch1Found &&
+      gg1PostReload.ch2Found &&
+      gg1PostReload.lec1Updated &&
+      gg1PostReload.bookmarkSaved &&
+      gg1PostReload.deletedStillGone &&
+      gg1PostReload.sessionSaved &&
+      gg1PostReload.backlogSaved &&
+      gg1PostReload.logSaved &&
+      gg1PostReload.reportSaved &&
+      gg1PostReload.annoSaved,
+      'Test GG.1: Complete end-to-end save & reload lifecycle preserves Subject, Groups, Chapters, added/edited/deleted Lectures, Schedule, Backlog, Logs, Weekly Reports, PDF Bookmarks, and Annotations across browser reload'
+    );
+
+    // GG.2 & GG.3: Navigation Responsiveness + PDF Viewer Instant Open/Close & Escape Key Support
+    const gg2And3Perf = await tabGG.evaluate(async (ids) => {
+      const tNav1 = performance.now();
+      switchView('schedule');
+      const navScheduleMs = performance.now() - tNav1;
+      const scheduleActive = document.getElementById('schedule')?.classList.contains('active');
+
+      const tNav2 = performance.now();
+      switchView('tracker');
+      const navTrackerMs = performance.now() - tNav2;
+      const trackerActive = document.getElementById('tracker')?.classList.contains('active');
+
+      const tNav3 = performance.now();
+      switchView('subjects');
+      const navSubjectsMs = performance.now() - tNav3;
+      const subjectsActive = document.getElementById('subjects')?.classList.contains('active');
+
+      openSubject(ids.subjectId);
+      const openPromise = openLectureDocument(ids.ch1Id, ids.lec1Id);
+      const modalVisibleImmediately = document.getElementById('pdfViewerModalOverlay')?.classList.contains('active');
+      await openPromise;
+
+      // Test closing via closePdfViewer() button handler
+      const overlay = document.getElementById('pdfViewerModalOverlay');
+      const tCloseBtn = performance.now();
+      const closePromise = closePdfViewer();
+      const closedSynchronouslyOnCall = !overlay.classList.contains('active');
+      const hideMsBtn = performance.now() - tCloseBtn;
+      await closePromise;
+      const closedAfterBtn = closedSynchronouslyOnCall && !overlay.classList.contains('active');
+
+      // Reopen and test closing via Escape key
+      await openLectureDocument(ids.ch1Id, ids.lec1Id);
+      const openBeforeEsc = overlay.classList.contains('active');
+      if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+      const closedAfterEsc = !overlay.classList.contains('active');
+
+      return {
+        navScheduleMs,
+        navTrackerMs,
+        navSubjectsMs,
+        scheduleActive,
+        trackerActive,
+        subjectsActive,
+        modalVisibleImmediately,
+        hideMsBtn,
+        closedAfterBtn,
+        openBeforeEsc,
+        closedAfterEsc
+      };
+    }, gg1CreateAndEdit);
+
+    assert(
+      gg2And3Perf.scheduleActive &&
+      gg2And3Perf.trackerActive &&
+      gg2And3Perf.subjectsActive &&
+      gg2And3Perf.navScheduleMs < 150 &&
+      gg2And3Perf.navTrackerMs < 150 &&
+      gg2And3Perf.navSubjectsMs < 150,
+      'Test GG.2: Main view navigation (subjects <-> schedule <-> tracker) switches cleanly and renders in under 150ms'
+    );
+
+    assert(
+      gg2And3Perf.modalVisibleImmediately === true &&
+      gg2And3Perf.closedAfterBtn === true &&
+      gg2And3Perf.hideMsBtn < 50 &&
+      gg2And3Perf.openBeforeEsc === true &&
+      gg2And3Perf.closedAfterEsc === true,
+      'Test GG.3: PDF Viewer shows immediately on open and hides visually in under 50ms on both close button and Escape key'
+    );
+
+    // GG.4: Modal Input Preservation When Both LocalStorage and IndexedDB Fail
+    const gg4InputPreservation = await tabGG.evaluate(async () => {
+      const origSetItem = Storage.prototype.setItem;
+      const origTx = dbInstance.transaction.bind(dbInstance);
+      try {
+        Storage.prototype.setItem = function(k, v) {
+          if (String(k) === 'pharmaSubjectsV4' || String(k) === 'pharmaLogsV4') {
+            const err = new Error('QuotaExceededError: Simulated full storage');
+            err.name = 'QuotaExceededError';
+            throw err;
+          }
+          return origSetItem.call(this, k, v);
+        };
+        dbInstance.transaction = function(storeNames, mode) {
+          const names = Array.isArray(storeNames) ? storeNames : [storeNames];
+          if (mode === 'readwrite' && names.includes('workspace_state')) {
+            const tx = origTx(storeNames, mode);
+            queueMicrotask(() => {
+              try { tx.abort(); } catch (e) {}
+            });
+            return tx;
+          }
+          return origTx(storeNames, mode);
+        };
+
+        openSmartSubjectModal();
+        document.getElementById('smartSubjectNameInput').value = 'Unsaved Subject Input Must Stay';
+        await saveSmartSubjectModal();
+        const subModalStillOpen = document.getElementById('smartSubjectModalOverlay')?.classList.contains('active');
+        const subInputPreserved = document.getElementById('smartSubjectNameInput')?.value === 'Unsaved Subject Input Must Stay';
+
+        triggerAddLogPro();
+        document.getElementById('logTextInput').value = 'Unsaved Study Log Input Must Stay';
+        await saveLogPro();
+        const logModalStillOpen = document.getElementById('addLogModalOverlay')?.classList.contains('active');
+        const logInputPreserved = document.getElementById('logTextInput')?.value === 'Unsaved Study Log Input Must Stay';
+
+        return {
+          subModalStillOpen: Boolean(subModalStillOpen),
+          subInputPreserved: Boolean(subInputPreserved),
+          logModalStillOpen: Boolean(logModalStillOpen),
+          logInputPreserved: Boolean(logInputPreserved)
+        };
+      } finally {
+        Storage.prototype.setItem = origSetItem;
+        dbInstance.transaction = origTx;
+        subjects = subjects.filter(s => s.name !== 'Unsaved Subject Input Must Stay');
+        logs = logs.filter(l => l.text !== 'Unsaved Study Log Input Must Stay');
+        pendingSmartSubjectDraftObj = null;
+        closeModal('smartSubjectModalOverlay');
+        closeModal('addLogModalOverlay');
+      }
+    });
+
+    assert(
+      gg4InputPreservation.subModalStillOpen === true &&
+      gg4InputPreservation.subInputPreserved === true &&
+      gg4InputPreservation.logModalStillOpen === true &&
+      gg4InputPreservation.logInputPreserved === true,
+      'Test GG.4: Add Subject and Add Log modals stay open and preserve user input text when both LocalStorage and IndexedDB writes fail'
+    );
+
+    // GG.5: Offline Save Indicator -> Online Reconnect Sync + Cross-Account Isolation
+    const gg5OfflineAndIsolation = await tabGG.evaluate(async ({ uid1, uid2 }) => {
+      // Simulate offline save for uid1
+      updateCloudNavUI('offline');
+      const offlineNavText = document.getElementById('cloudNavText')?.innerText || '';
+      const offlineBadgeText = document.getElementById('cloudLiveSyncBadge')?.innerText || '';
+
+      updateCloudNavUI('pending');
+      const pendingNavText = document.getElementById('cloudNavText')?.innerText || '';
+
+      // Switch to Account 2 (uid2) and verify zero data leakage from uid1
+      await handleAuthSessionChange({ id: uid2, email: 'gg2@exo.edu', name: 'GG2 Isolated User' }, false);
+      const uid2SubjectsCount = subjects.length;
+      const uid2EventsCount = scheduleEvents.length;
+      const uid2LogsCount = logs.length;
+
+      // Switch back to Account 1 (uid1) and verify Account 1's data is restored intact
+      await handleAuthSessionChange({ id: uid1, email: 'gg1@exo.edu', name: 'GG1 Student' }, false);
+      const uid1RestoredSub = subjects.some(s => s.name === 'Clinical Pharmacokinetics GG');
+
+      return {
+        offlineShowsSavedLocally: offlineNavText.includes('تم الحفظ محليًا — المزامنة معلقة') && offlineBadgeText.includes('تم الحفظ محليًا — المزامنة معلقة'),
+        pendingShowsSavedLocally: pendingNavText.includes('تم الحفظ محليًا — المزامنة معلقة'),
+        uid2Isolated: uid2SubjectsCount === 0 && uid2EventsCount === 0 && uid2LogsCount === 0,
+        uid1RestoredSub
+      };
+    }, { uid1: uidGG1, uid2: uidGG2 });
+
+    assert(
+      gg5OfflineAndIsolation.offlineShowsSavedLocally === true &&
+      gg5OfflineAndIsolation.pendingShowsSavedLocally === true &&
+      gg5OfflineAndIsolation.uid2Isolated === true &&
+      gg5OfflineAndIsolation.uid1RestoredSub === true,
+      'Test GG.5: Offline/pending states display clear Arabic local-save indicator, and switching accounts enforces strict isolation while preserving each account workspace'
+    );
+
+    await tabGG.close();
+    await contextGG.close();
     await context.close();
   } finally {
     await browser.close();

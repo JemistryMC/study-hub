@@ -11316,6 +11316,12 @@
 
         // --- View Switching (Smooth & Instant) ---
         function switchView(viewId, element) {
+            if (typeof pdfBookmarkSaveTimer !== 'undefined' && pdfBookmarkSaveTimer && typeof persistCurrentLectureReadingBookmark === 'function') {
+                persistCurrentLectureReadingBookmark(true);
+            }
+            if (typeof autoSaveTimer !== 'undefined' && autoSaveTimer && typeof flushPendingAnnotationsSave === 'function') {
+                flushPendingAnnotationsSave(false);
+            }
             document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
             
@@ -11339,6 +11345,12 @@
                 item.classList.toggle('active', item.getAttribute('data-tab') === viewId);
             });
             
+            if(viewId === 'subjects') {
+                if (typeof renderSubjectsList === 'function') renderSubjectsList();
+                if (activeSubjectId && document.getElementById('groupsContainer') && typeof renderGroups === 'function') {
+                    renderGroups();
+                }
+            }
             if(viewId === 'schedule') renderSchedule();
             if(viewId === 'tracker') updateTracker();
         }
@@ -12103,6 +12115,7 @@
             if (nameInput) setTimeout(() => nameInput.focus(), 60);
         }
 
+        let pendingSmartSubjectDraftObj = null;
         function saveSmartSubjectModal() {
             const editId = document.getElementById('smartSubjectEditId')?.value || '';
             const nameInput = document.getElementById('smartSubjectNameInput');
@@ -12111,7 +12124,7 @@
             if (!cleanName) {
                 showToast('يرجى كتابة اسم المادة أو النشاط', 'error');
                 if (nameInput) nameInput.focus();
-                return;
+                return { ok: false, persisted: false, reason: 'empty_name' };
             }
             const isDivided = Boolean(smartSubDraftState.isDivided);
             const examTitleVal = sanitizeUserText(document.getElementById('smartSubjectExamTitleInput')?.value || '', 120);
@@ -12129,43 +12142,92 @@
                     if (isDivided && (!sub.groups || sub.groups.length === 0)) {
                         sub.groups = [{ id: Date.now() + 1, name: 'المحاضرات الأساسية', lectures: [] }];
                     }
+                    sub._needsCausalStamp = true;
                     if (activeSubjectId && String(activeSubjectId) === String(sub.id)) {
                         const actTitle = document.getElementById('activeSubjectTitle');
                         if (actTitle) actTitle.innerText = cleanName;
                         syncSubjectDetailsHeaderButtons(sub);
                     }
-                    saveSubjects();
+                    const saveRes = saveSubjects();
                     renderSubjectsList();
                     if (activeSubjectId) renderGroups();
                     updateTracker();
-                    closeModal('smartSubjectModalOverlay');
-                    showToast(`✨ تم تحديث «${cleanName}» بنجاح!`);
-                    return;
+                    if (saveRes && (saveRes.persisted === true || saveRes.queued === true)) {
+                        closeModal('smartSubjectModalOverlay');
+                        showToast(`✨ تم تحديث «${cleanName}» بنجاح!`);
+                        return saveRes;
+                    }
+                    if (saveRes && saveRes.idbPersistPromise) {
+                        return saveRes.idbPersistPromise.then((idbFinal) => {
+                            const idbOk = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
+                            if (idbOk) {
+                                closeModal('smartSubjectModalOverlay');
+                                showToast(`✨ تم تحديث «${cleanName}» وحفظها في مخزن الاسترداد المتين ✓`);
+                            } else {
+                                showToast('تعذر حفظ تعديل المادة في التخزين المحلي وIndexedDB. بياناتك محفوظة في النافذة ويمكنك إعادة المحاولة ⚠️', 'error');
+                            }
+                            return idbFinal;
+                        });
+                    }
+                    showToast('تعذر حفظ تعديل المادة محلياً. بياناتك محفوظة في النافذة ويمكنك إعادة المحاولة ⚠️', 'error');
+                    return saveRes;
                 }
             }
 
-            const nowId = Date.now();
-            const newSubObj = {
-                id: nowId,
-                name: cleanName,
-                color: smartSubDraftState.color,
-                icon: smartSubDraftState.icon,
-                isDivided: isDivided,
-                examTitle: isDivided ? (examTitleVal || (examDateVal ? 'كويز / امتحان' : '')) : '',
-                examDate: isDivided ? examDateVal : '',
-                examLectureIds: [],
-                continuousBookmark: '',
-                continuousLogs: [],
-                groups: isDivided ? [{ id: nowId + 1, name: 'المحاضرات الأساسية', lectures: [] }] : []
-            };
-            subjects.unshift(newSubObj);
-            saveSubjects();
+            let targetSubObj = null;
+            if (pendingSmartSubjectDraftObj && subjects.some(s => s === pendingSmartSubjectDraftObj || String(s.id) === String(pendingSmartSubjectDraftObj.id))) {
+                targetSubObj = pendingSmartSubjectDraftObj;
+                targetSubObj.name = cleanName;
+                targetSubObj.color = smartSubDraftState.color;
+                targetSubObj.icon = smartSubDraftState.icon;
+                targetSubObj.isDivided = isDivided;
+                targetSubObj.examTitle = isDivided ? (examTitleVal || (examDateVal ? 'كويز / امتحان' : '')) : '';
+                targetSubObj.examDate = isDivided ? examDateVal : '';
+                targetSubObj._needsCausalStamp = true;
+            } else {
+                const nowId = Date.now();
+                targetSubObj = {
+                    id: nowId,
+                    name: cleanName,
+                    color: smartSubDraftState.color,
+                    icon: smartSubDraftState.icon,
+                    isDivided: isDivided,
+                    examTitle: isDivided ? (examTitleVal || (examDateVal ? 'كويز / امتحان' : '')) : '',
+                    examDate: isDivided ? examDateVal : '',
+                    examLectureIds: [],
+                    continuousBookmark: '',
+                    continuousLogs: [],
+                    groups: isDivided ? [{ id: nowId + 1, name: 'المحاضرات الأساسية', lectures: [] }] : []
+                };
+                pendingSmartSubjectDraftObj = targetSubObj;
+                subjects.unshift(targetSubObj);
+            }
+            const saveRes = saveSubjects();
             renderSubjectsList();
             updateTracker();
-            closeModal('smartSubjectModalOverlay');
-            showToast(isDivided
-                ? `🎉 تمت إضافة مادة «${cleanName}» بنجاح!`
-                : `🕌 تمت إضافة «${cleanName}» كمادة مستمرة بدون تقسيم فصول أو محاضرات!`);
+            if (saveRes && (saveRes.persisted === true || saveRes.queued === true)) {
+                pendingSmartSubjectDraftObj = null;
+                closeModal('smartSubjectModalOverlay');
+                showToast(isDivided
+                    ? `🎉 تمت إضافة مادة «${cleanName}» بنجاح!`
+                    : `🕌 تمت إضافة «${cleanName}» كمادة مستمرة بدون تقسيم فصول أو محاضرات!`);
+                return saveRes;
+            }
+            if (saveRes && saveRes.idbPersistPromise) {
+                return saveRes.idbPersistPromise.then((idbFinal) => {
+                    const idbOk = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
+                    if (idbOk) {
+                        pendingSmartSubjectDraftObj = null;
+                        closeModal('smartSubjectModalOverlay');
+                        showToast(`🎉 تمت إضافة مادة «${cleanName}» وحفظها في مخزن الاسترداد المتين ✓`);
+                    } else {
+                        showToast('تعذر حفظ المادة في التخزين المحلي وIndexedDB. بياناتك محفوظة في النافذة ويمكنك إعادة المحاولة ⚠️', 'error');
+                    }
+                    return idbFinal;
+                });
+            }
+            showToast('تعذر حفظ المادة محلياً. بياناتك محفوظة في النافذة ويمكنك إعادة المحاولة ⚠️', 'error');
+            return saveRes;
         }
 
         function addSubject() {
@@ -12188,10 +12250,21 @@
                     { id: nowId + 1, name: 'المحاضرات الأساسية', lectures: [] }
                 ]
             });
-            if (input) input.value = '';
-            saveSubjects();
+            const saveRes = saveSubjects();
             renderSubjectsList();
-            showToast(`🎉 تمت إضافة مادة «${name}» وتجهيز فصل المحاضرات الأساسية لها!`);
+            if (saveRes && (saveRes.persisted === true || saveRes.queued === true)) {
+                if (input) input.value = '';
+                showToast(`🎉 تمت إضافة مادة «${name}» وتجهيز فصل المحاضرات الأساسية لها!`);
+                return saveRes;
+            }
+            if (saveRes && saveRes.idbPersistPromise) {
+                return saveRes.idbPersistPromise.then((idbFinal) => {
+                    const idbOk = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
+                    if (idbOk && input) input.value = '';
+                    return idbFinal;
+                });
+            }
+            return saveRes;
         }
 
         function triggerEditSubject(id, event) {
@@ -12204,10 +12277,10 @@
             return openConfirmModal('سيتم مسح هذه المادة نهائياً بكل فصولها ومحاضراتها.', async () => {
                 if (currentCloudUser && typeof resolveAccountOperationContext === 'function') {
                     const opCtx = resolveAccountOperationContext(currentCloudUser.id);
-                    if (!opCtx || !opCtx.ok || !opCtx.authorized) return;
+                    if (!opCtx || !opCtx.ok || !opCtx.authorized) return { ok: false, persisted: false, reason: 'unauthorized_context' };
                 }
                 const targetSub = subjects.find(s => String(s.id) === String(id));
-                if (!targetSub) return;
+                if (!targetSub) return { ok: false, persisted: false, reason: 'subject_not_found' };
                 const batchItems = [{ entityType: 'subjects', id: targetSub.id, priorEntity: targetSub }];
                 const seenWirdIds = new Set();
                 const deletedLecIds = [];
@@ -12238,19 +12311,28 @@
                     : null;
                 if (!batchRes || !batchRes.ok) {
                     showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف المادة حفاظاً على سلامة البيانات ⚠️', 'error');
-                    return;
+                    return { ok: false, persisted: false, reason: 'tombstone_write_failed' };
                 }
                 subjects = subjects.filter(s => String(s.id) !== String(id));
                 if (String(activeSubjectId) === String(id)) activeSubjectId = null;
                 if (typeof detachDeletedHierarchyReferences === 'function') {
                     detachDeletedHierarchyReferences({ subjectIds: [targetSub.id], lectureIds: deletedLecIds });
                 }
-                saveSubjects();
+                const saveRes = saveSubjects();
                 renderSubjectsList();
+                if (saveRes && (saveRes.persisted === true || saveRes.queued === true)) {
+                    closeModal('confirmModalOverlay');
+                } else if (saveRes && saveRes.idbPersistPromise) {
+                    try {
+                        const idbFinal = await saveRes.idbPersistPromise;
+                        saveRes.idbPersisted = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
+                    } catch (e) {}
+                }
                 if (deletedLecIds.length > 0 && typeof cleanupDeletedLectureLocalArtifacts === 'function') {
                     await cleanupDeletedLectureLocalArtifacts(deletedLecIds);
                 }
                 showToast('تم حذف المادة', 'error');
+                return saveRes;
             });
         }
 
@@ -12875,7 +12957,7 @@
 
         function triggerAddGroup() {
             let draftGrp = null;
-            openSingleInputModal('<i class="fa-solid fa-layer-group"></i> إضافة قسم/شابتر جديد', 'مثال: Chapter 1', '', async (name) => {
+            openSingleInputModal('<i class="fa-solid fa-layer-group"></i> إضافة قسم/شابتر جديد', 'مثال: Chapter 1', '', (name) => {
                 const sub = subjects.find(s => s.id === activeSubjectId);
                 if(!sub) return { ok: false, persisted: false, idbPersisted: false, reason: 'subject_not_found' };
                 if (!Array.isArray(sub.groups)) sub.groups = [];
@@ -12898,39 +12980,41 @@
                     showToast('تمت إضافة القسم');
                     return saveRes;
                 }
-                let idbPersisted = false;
-                if (saveRes && saveRes.idbPersistPromise) {
-                    try {
-                        const idbFinal = await saveRes.idbPersistPromise;
-                        idbPersisted = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
-                        saveRes.idbPersisted = idbPersisted;
-                        saveRes.durablePersisted = idbPersisted;
-                    } catch (e) {
-                        saveRes.idbPersisted = false;
-                        saveRes.durablePersisted = false;
+                return (async () => {
+                    let idbPersisted = false;
+                    if (saveRes && saveRes.idbPersistPromise) {
+                        try {
+                            const idbFinal = await saveRes.idbPersistPromise;
+                            idbPersisted = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
+                            saveRes.idbPersisted = idbPersisted;
+                            saveRes.durablePersisted = idbPersisted;
+                        } catch (e) {
+                            saveRes.idbPersisted = false;
+                            saveRes.durablePersisted = false;
+                        }
                     }
-                }
-                if (!idbPersisted) {
+                    if (!idbPersisted) {
+                        if (typeof showToast === 'function') {
+                            showToast('تعذر حفظ القسم في LocalStorage وIndexedDB. البيانات محفوظة في الذاكرة ويمكنك إعادة المحاولة ⚠️', 'error');
+                        }
+                        return Object.assign({}, saveRes || {}, {
+                            ok: false,
+                            persisted: false,
+                            idbPersisted: false,
+                            durablePersisted: false,
+                            reason: (saveRes && saveRes.idbError) || (saveRes && saveRes.reason) || 'storage_and_idb_write_failed'
+                        });
+                    }
                     if (typeof showToast === 'function') {
-                        showToast('تعذر حفظ القسم في LocalStorage وIndexedDB. البيانات محفوظة في الذاكرة ويمكنك إعادة المحاولة ⚠️', 'error');
+                        showToast('تم حفظ القسم في مخزن الاسترداد المتين (IndexedDB) بعد تعذر LocalStorage ✓');
                     }
                     return Object.assign({}, saveRes || {}, {
                         ok: false,
                         persisted: false,
-                        idbPersisted: false,
-                        durablePersisted: false,
-                        reason: (saveRes && saveRes.idbError) || (saveRes && saveRes.reason) || 'storage_and_idb_write_failed'
+                        idbPersisted: true,
+                        durablePersisted: true
                     });
-                }
-                if (typeof showToast === 'function') {
-                    showToast('تم حفظ القسم في مخزن الاسترداد المتين (IndexedDB) بعد تعذر LocalStorage ✓');
-                }
-                return Object.assign({}, saveRes || {}, {
-                    ok: false,
-                    persisted: false,
-                    idbPersisted: true,
-                    durablePersisted: true
-                });
+                })();
             });
         }
 
@@ -12939,7 +13023,7 @@
             if(!sub) return;
             const group = sub.groups.find(g => g.id === groupId);
             if(!group) return;
-            openSingleInputModal('<i class="fa-solid fa-pen"></i> تعديل اسم القسم', 'الاسم الجديد', group.name, async (newName) => {
+            openSingleInputModal('<i class="fa-solid fa-pen"></i> تعديل اسم القسم', 'الاسم الجديد', group.name, (newName) => {
                 group.name = newName;
                 group._needsCausalStamp = true;
                 sub._needsCausalStamp = true;
@@ -12953,39 +13037,41 @@
                     showToast('تم التعديل بنجاح');
                     return saveRes;
                 }
-                let idbPersisted = false;
-                if (saveRes && saveRes.idbPersistPromise) {
-                    try {
-                        const idbFinal = await saveRes.idbPersistPromise;
-                        idbPersisted = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
-                        saveRes.idbPersisted = idbPersisted;
-                        saveRes.durablePersisted = idbPersisted;
-                    } catch (e) {
-                        saveRes.idbPersisted = false;
-                        saveRes.durablePersisted = false;
+                return (async () => {
+                    let idbPersisted = false;
+                    if (saveRes && saveRes.idbPersistPromise) {
+                        try {
+                            const idbFinal = await saveRes.idbPersistPromise;
+                            idbPersisted = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
+                            saveRes.idbPersisted = idbPersisted;
+                            saveRes.durablePersisted = idbPersisted;
+                        } catch (e) {
+                            saveRes.idbPersisted = false;
+                            saveRes.durablePersisted = false;
+                        }
                     }
-                }
-                if (!idbPersisted) {
+                    if (!idbPersisted) {
+                        if (typeof showToast === 'function') {
+                            showToast('تعذر حفظ تعديل القسم في LocalStorage وIndexedDB. التعديل محفوظ في الذاكرة ويمكنك إعادة المحاولة ⚠️', 'error');
+                        }
+                        return Object.assign({}, saveRes || {}, {
+                            ok: false,
+                            persisted: false,
+                            idbPersisted: false,
+                            durablePersisted: false,
+                            reason: (saveRes && saveRes.idbError) || (saveRes && saveRes.reason) || 'storage_and_idb_write_failed'
+                        });
+                    }
                     if (typeof showToast === 'function') {
-                        showToast('تعذر حفظ تعديل القسم في LocalStorage وIndexedDB. التعديل محفوظ في الذاكرة ويمكنك إعادة المحاولة ⚠️', 'error');
+                        showToast('تم حفظ تعديل القسم في مخزن الاسترداد المتين (IndexedDB) ✓');
                     }
                     return Object.assign({}, saveRes || {}, {
                         ok: false,
                         persisted: false,
-                        idbPersisted: false,
-                        durablePersisted: false,
-                        reason: (saveRes && saveRes.idbError) || (saveRes && saveRes.reason) || 'storage_and_idb_write_failed'
+                        idbPersisted: true,
+                        durablePersisted: true
                     });
-                }
-                if (typeof showToast === 'function') {
-                    showToast('تم حفظ تعديل القسم في مخزن الاسترداد المتين (IndexedDB) ✓');
-                }
-                return Object.assign({}, saveRes || {}, {
-                    ok: false,
-                    persisted: false,
-                    idbPersisted: true,
-                    durablePersisted: true
-                });
+                })();
             });
         }
 
@@ -13040,6 +13126,10 @@
                     detachDeletedHierarchyReferences({ subjectIds: [], lectureIds: deletedLecIds });
                 }
                 const saveRes = saveSubjects();
+                renderGroups();
+                if (saveRes && (saveRes.persisted === true || saveRes.queued === true)) {
+                    closeModal('confirmModalOverlay');
+                }
                 let idbPersisted = false;
                 if (saveRes && saveRes.idbPersistPromise) {
                     try {
@@ -13052,7 +13142,6 @@
                         saveRes.durablePersisted = false;
                     }
                 }
-                renderGroups();
                 const durableDeleteConfirmed = Boolean(saveRes && (saveRes.persisted === true || saveRes.idbPersisted === true || saveRes.queued === true));
                 if (!durableDeleteConfirmed) {
                     if (typeof showToast === 'function') {
@@ -13079,6 +13168,7 @@
         function triggerAddLecture(groupId) {
             tempPickedPdfBlob = null;
             tempPickedAudioBlob = null;
+            let draftLecObj = null;
             const pdfBadge = document.getElementById('pdfSizeStatusBadge');
             if (pdfBadge) pdfBadge.innerHTML = '⚡ مساحة غير محدودة: حفظ محلي فوري بلا حد أقصى للحجم • مزامنة سحابية عبر Google Drive.';
             const badge = document.getElementById('audioStatusBadge');
@@ -13089,12 +13179,25 @@
                 const cleanPath = path.trim().replace(/^["']|["']$/g, '');
                 const audioPath = document.getElementById('diModalAudioInput').value.trim();
                 const sub = subjects.find(s => s.id === activeSubjectId);
-                if(!sub) return;
+                if(!sub) return { ok: false, persisted: false, reason: 'subject_not_found' };
                 const group = sub.groups.find(g => g.id === groupId);
-                if(!group) return;
-                const newLecId = Date.now();
-                const newLecObj = { id: newLecId, title, path: cleanPath, audioPath: audioPath, completed: false };
-                group.lectures.push(newLecObj);
+                if(!group) return { ok: false, persisted: false, reason: 'group_not_found' };
+                if (!Array.isArray(group.lectures)) group.lectures = [];
+                if (draftLecObj && group.lectures.some(l => l === draftLecObj || String(l.id) === String(draftLecObj.id))) {
+                    draftLecObj.title = title;
+                    draftLecObj.path = cleanPath;
+                    draftLecObj.audioPath = audioPath;
+                    draftLecObj._needsCausalStamp = true;
+                } else {
+                    const newLecId = Date.now();
+                    draftLecObj = { id: newLecId, title, path: cleanPath, audioPath: audioPath, completed: false };
+                    draftLecObj._needsCausalStamp = true;
+                    group.lectures.push(draftLecObj);
+                }
+                group._needsCausalStamp = true;
+                sub._needsCausalStamp = true;
+                const newLecObj = draftLecObj;
+                const newLecId = newLecObj.id;
                 
                 const pdfBlobToUpload = tempPickedPdfBlob;
                 const audioBlobToUpload = tempPickedAudioBlob;
@@ -13102,13 +13205,27 @@
                 tempPickedAudioBlob = null;
 
                 if (pdfBlobToUpload) {
-                    saveMediaToDB('pdfs', newLecId, pdfBlobToUpload);
+                    await saveMediaToDB('pdfs', newLecId, pdfBlobToUpload);
                 }
                 if (audioBlobToUpload) {
-                    saveMediaToDB('audios', newLecId, audioBlobToUpload);
+                    await saveMediaToDB('audios', newLecId, audioBlobToUpload);
                 }
 
-                saveSubjects(); renderGroups(); showToast('تمت إضافة المحاضرة والريكورد بنجاح 📑');
+                const saveRes = saveSubjects();
+                renderGroups();
+                let durableOk = Boolean(saveRes && (saveRes.persisted === true || saveRes.queued === true));
+                if (!durableOk && saveRes && saveRes.idbPersistPromise) {
+                    try {
+                        const idbFinal = await saveRes.idbPersistPromise;
+                        durableOk = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
+                        saveRes.idbPersisted = durableOk;
+                    } catch (e) {}
+                }
+                if (!durableOk) {
+                    showToast('تعذر حفظ المحاضرة في التخزين المحلي وIndexedDB. بياناتك محفوظة في النافذة ويمكنك إعادة المحاولة ⚠️', 'error');
+                    return { ok: false, persisted: false, idbPersisted: false, reason: 'lecture_save_failed' };
+                }
+                showToast('تمت إضافة المحاضرة والريكورد بنجاح 📑');
 
                 if (currentCloudUser && currentUserCanUploadMedia && isAutoCloudMediaUploadEnabled() && (pdfBlobToUpload || audioBlobToUpload)) {
                     if (pdfBlobToUpload) await uploadMediaToCloudAccount('pdfs', newLecObj, pdfBlobToUpload, false);
@@ -13118,6 +13235,7 @@
                     updateCloudMediaStatsUI();
                     showToast('☁️ تم رفع ملفات المحاضرة (PDF / ريكورد) على حسابك السحابي بنجاح!');
                 }
+                return saveRes;
             });
         }
 
@@ -13143,6 +13261,9 @@
                 lec.title = newTitle; 
                 lec.path = cleanPath;
                 lec.audioPath = audioPath;
+                lec._needsCausalStamp = true;
+                group._needsCausalStamp = true;
+                sub._needsCausalStamp = true;
 
                 // Auto-detect & update Google Drive file links
                 const extractedPdfId = extractGoogleDriveFileId(cleanPath);
@@ -13167,14 +13288,28 @@
 
                 if (pdfBlobToUpload) {
                     lec.cloudPdfUploaded = false;
-                    saveMediaToDB('pdfs', lec.id, pdfBlobToUpload);
+                    await saveMediaToDB('pdfs', lec.id, pdfBlobToUpload);
                 }
                 if (audioBlobToUpload) {
                     lec.cloudAudioUploaded = false;
-                    saveMediaToDB('audios', lec.id, audioBlobToUpload);
+                    await saveMediaToDB('audios', lec.id, audioBlobToUpload);
                 }
 
-                saveSubjects(); renderGroups(); showToast('تم تعديل بيانات المحاضرة بنجاح');
+                const saveRes = saveSubjects();
+                renderGroups();
+                let durableOk = Boolean(saveRes && (saveRes.persisted === true || saveRes.queued === true));
+                if (!durableOk && saveRes && saveRes.idbPersistPromise) {
+                    try {
+                        const idbFinal = await saveRes.idbPersistPromise;
+                        durableOk = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
+                        saveRes.idbPersisted = durableOk;
+                    } catch (e) {}
+                }
+                if (!durableOk) {
+                    showToast('تعذر حفظ تعديل المحاضرة في التخزين المحلي وIndexedDB. بياناتك محفوظة في النافذة ويمكنك إعادة المحاولة ⚠️', 'error');
+                    return { ok: false, persisted: false, idbPersisted: false, reason: 'lecture_edit_save_failed' };
+                }
+                showToast('تم تعديل بيانات المحاضرة بنجاح');
 
                 if (currentCloudUser && currentUserCanUploadMedia && isAutoCloudMediaUploadEnabled() && (pdfBlobToUpload || audioBlobToUpload)) {
                     if (pdfBlobToUpload) await uploadMediaToCloudAccount('pdfs', lec, pdfBlobToUpload, false, { forceReplace: true });
@@ -13184,6 +13319,7 @@
                     updateCloudMediaStatsUI();
                     showToast('☁️ تم تحديث ملفات المحاضرة الجديدة على حسابك السحابي بنجاح!');
                 }
+                return saveRes;
             });
         }
 
@@ -13191,21 +13327,21 @@
             return openConfirmModal('سيتم مسح هذه المحاضرة من القائمة.', async () => {
                 if (currentCloudUser && typeof resolveAccountOperationContext === 'function') {
                     const opCtx = resolveAccountOperationContext(currentCloudUser.id);
-                    if (!opCtx || !opCtx.ok || !opCtx.authorized) return;
+                    if (!opCtx || !opCtx.ok || !opCtx.authorized) return { ok: false, persisted: false, reason: 'unauthorized_context' };
                 }
                 const sub = subjects.find(s => String(s.id) === String(activeSubjectId))
                     || subjects.find(s => Array.isArray(s.groups) && s.groups.some(g => String(g.id) === String(groupId)));
-                if(!sub) return;
+                if(!sub) return { ok: false, persisted: false, reason: 'subject_not_found' };
                 const group = sub.groups.find(g => String(g.id) === String(groupId));
-                if(!group) return;
+                if(!group) return { ok: false, persisted: false, reason: 'group_not_found' };
                 const targetLec = (group.lectures || []).find(l => String(l.id) === String(lecId));
-                if (!targetLec) return;
+                if (!targetLec) return { ok: false, persisted: false, reason: 'lecture_not_found' };
                 const tombRes = (typeof recordTombstone === 'function')
                     ? recordTombstone('lectures', lecId, null, targetLec)
                     : null;
                 if (!tombRes) {
                     showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف المحاضرة حفاظاً على سلامة البيانات ⚠️', 'error');
-                    return;
+                    return { ok: false, persisted: false, reason: 'tombstone_write_failed' };
                 }
                 group.lectures = group.lectures.filter(l => String(l.id) !== String(lecId));
                 if (Array.isArray(sub.examLectureIds)) {
@@ -13220,12 +13356,21 @@
                 if (typeof detachDeletedHierarchyReferences === 'function') {
                     detachDeletedHierarchyReferences({ subjectIds: [], lectureIds: [lecId] });
                 }
-                saveSubjects();
+                const saveRes = saveSubjects();
                 renderGroups();
+                if (saveRes && (saveRes.persisted === true || saveRes.queued === true)) {
+                    closeModal('confirmModalOverlay');
+                } else if (saveRes && saveRes.idbPersistPromise) {
+                    try {
+                        const idbFinal = await saveRes.idbPersistPromise;
+                        saveRes.idbPersisted = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
+                    } catch (e) {}
+                }
                 if (typeof cleanupDeletedLectureLocalArtifacts === 'function') {
                     await cleanupDeletedLectureLocalArtifacts([lecId]);
                 }
                 showToast('تم حذف المحاضرة', 'error');
+                return saveRes;
             });
         }
 
@@ -16455,10 +16600,26 @@
                 }
             }
             
-            saveScheduleData();
-            closeModal('sessionModalOverlay');
+            const saveRes = saveScheduleData();
             renderSchedule();
             updateTracker();
+            if (saveRes && (saveRes.persisted === true || saveRes.queued === true)) {
+                closeModal('sessionModalOverlay');
+                return saveRes;
+            }
+            if (saveRes && saveRes.idbPersistPromise) {
+                return saveRes.idbPersistPromise.then((idbFinal) => {
+                    const idbOk = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
+                    if (idbOk) {
+                        closeModal('sessionModalOverlay');
+                    } else {
+                        showToast('تعذر حفظ الجلسة في التخزين المحلي وIndexedDB. بياناتك محفوظة في النافذة ويمكنك إعادة المحاولة ⚠️', 'error');
+                    }
+                    return idbFinal;
+                });
+            }
+            showToast('تعذر حفظ الجلسة محلياً. بياناتك محفوظة في النافذة ويمكنك إعادة المحاولة ⚠️', 'error');
+            return saveRes;
         }
 
         function deleteSessionFromModal() {
@@ -16723,12 +16884,28 @@
                 linkedEventIds: []
             });
 
-            if (input) input.value = '';
-            saveScheduleData();
+            const saveRes = saveScheduleData();
             updateWeeklyMetrics();
             renderTasksView();
             updateTracker();
-            showToast(`🎯 تمت إضافة الهدف «${title}»! اضغط على الهدف في أي وقت لاختيار المهمة التي تريد تسجيلها فيه.`);
+            if (saveRes && (saveRes.persisted === true || saveRes.queued === true)) {
+                if (input) input.value = '';
+                showToast(`🎯 تمت إضافة الهدف «${title}»! اضغط على الهدف في أي وقت لاختيار المهمة التي تريد تسجيلها فيه.`);
+                return saveRes;
+            }
+            if (saveRes && saveRes.idbPersistPromise) {
+                return saveRes.idbPersistPromise.then((idbFinal) => {
+                    const idbOk = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
+                    if (idbOk) {
+                        if (input) input.value = '';
+                        showToast(`🎯 تمت إضافة الهدف «${title}» وحفظه في مخزن الاسترداد المتين ✓`);
+                    } else {
+                        showToast('تعذر حفظ الهدف محلياً. النص لا يزال في الحقل ويمكنك إعادة المحاولة ⚠️', 'error');
+                    }
+                    return idbFinal;
+                });
+            }
+            return saveRes;
         }
 
         function toggleBacklogDone(taskId) {
@@ -17801,10 +17978,27 @@
                 mood,
                 subjectId: subId
             });
-            saveLogs();
-            closeModal('addLogModalOverlay');
-            showToast('تم تدوين الإنجاز بنجاح 🏆');
+            const saveRes = saveLogs();
             updateTracker();
+            if (saveRes && (saveRes.persisted === true || saveRes.queued === true)) {
+                closeModal('addLogModalOverlay');
+                showToast('تم تدوين الإنجاز بنجاح 🏆');
+                return saveRes;
+            }
+            if (saveRes && saveRes.idbPersistPromise) {
+                return saveRes.idbPersistPromise.then((idbFinal) => {
+                    const idbOk = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
+                    if (idbOk) {
+                        closeModal('addLogModalOverlay');
+                        showToast('تم تدوين الإنجاز وحفظه في مخزن الاسترداد المتين 🏆');
+                    } else {
+                        showToast('تعذر حفظ الإنجاز في التخزين المحلي وIndexedDB. النص محفوظ في النافذة ويمكنك إعادة المحاولة ⚠️', 'error');
+                    }
+                    return idbFinal;
+                });
+            }
+            showToast('تعذر حفظ الإنجاز محلياً. النص محفوظ في النافذة ويمكنك إعادة المحاولة ⚠️', 'error');
+            return saveRes;
         }
 
         function triggerDeleteLog(id) {
@@ -24278,9 +24472,12 @@
             const nowMs = Date.now();
             const currentWsSeq = typeof localWorkspaceMutationSeq !== 'undefined' ? localWorkspaceMutationSeq : 0;
             let clonedPayload = payload;
-            try {
-                clonedPayload = JSON.parse(JSON.stringify(payload));
-            } catch (e) {}
+            const isNativeBrowserIDB = (typeof IDBDatabase !== 'undefined' && dbInstance instanceof IDBDatabase);
+            if (!isNativeBrowserIDB) {
+                try {
+                    clonedPayload = JSON.parse(JSON.stringify(payload));
+                } catch (e) {}
+            }
 
             const shouldWriteJournal = !lsPersisted && dbInstance.objectStoreNames.contains('cloud_sync_journal');
             const storeNames = shouldWriteJournal ? ['workspace_state', 'cloud_sync_journal'] : ['workspace_state'];
@@ -25659,9 +25856,15 @@
 
         // Best-effort additional flush triggers on pagehide/beforeunload (supplementing durable idle autosave)
         window.addEventListener('pagehide', () => {
+            if (typeof pdfBookmarkSaveTimer !== 'undefined' && pdfBookmarkSaveTimer && typeof persistCurrentLectureReadingBookmark === 'function') {
+                persistCurrentLectureReadingBookmark(true);
+            }
             flushPendingAnnotationsSave(false);
         });
         window.addEventListener('beforeunload', () => {
+            if (typeof pdfBookmarkSaveTimer !== 'undefined' && pdfBookmarkSaveTimer && typeof persistCurrentLectureReadingBookmark === 'function') {
+                persistCurrentLectureReadingBookmark(true);
+            }
             flushPendingAnnotationsSave(false);
         });
 
@@ -26735,12 +26938,21 @@ then(onFulfilled, onRejected) {
             document.getElementById('audioDurationTime').innerText = '00:00';
             document.getElementById('audioScrubber').value = 0;
 
-            // Load Saved Annotations for this Lecture
-            pageAnnotations = await getAnnotationsFromDB(lec.id);
+            // Show PDF Studio Modal immediately for instant visual feedback while loading IndexedDB assets in parallel
+            document.getElementById('pdfViewerModalOverlay').classList.add('active');
+            document.body.classList.add('in-pdf-studio');
+
+            // Load Saved Annotations, Audio Blob, and PDF Blob in parallel from Local IndexedDB
+            const [loadedAnnotations, initialAudioBlob, initialPdfBlob] = await Promise.all([
+                getAnnotationsFromDB(lec.id),
+                getMediaFromDB('audios', lec.id),
+                getMediaFromDB('pdfs', lec.id)
+            ]);
+            pageAnnotations = loadedAnnotations;
             laserStrokes = {};
 
-            // Load and Attach Audio in Parallel (Check Local IndexedDB first, then Cloud Account)
-            let storedAudioBlob = await getMediaFromDB('audios', lec.id);
+            // Attach Audio (Check Local IndexedDB first, then Cloud Account)
+            let storedAudioBlob = initialAudioBlob;
             if (!storedAudioBlob && (lec.cloudAudioUploaded || lec.cloudAudioUrl || lec.cloudAudioPath)) {
                 storedAudioBlob = await downloadMediaFromCloudAccount('audios', lec);
             }
@@ -26760,7 +26972,6 @@ then(onFulfilled, onRejected) {
                 if (attachBtnText) attachBtnText.innerText = 'ربط ريكورد';
             }
 
-            document.getElementById('pdfViewerModalOverlay').classList.add('active');
             const audioBarEl = document.getElementById('pdfAudioPlayerBar');
             const audioToggleBtn = document.getElementById('pdfAudioBarToggleBtn');
             const audioToggleTxt = document.getElementById('pdfAudioBarToggleText');
@@ -26784,8 +26995,8 @@ then(onFulfilled, onRejected) {
                 if (modalContainer) modalContainer.classList.remove('has-active-audio');
             }
 
-            // 1. Check if PDF Blob is stored in Local IndexedDB
-            let storedPdfBlob = await getMediaFromDB('pdfs', lec.id);
+            // 1. Check if PDF Blob was found in Local IndexedDB
+            let storedPdfBlob = initialPdfBlob;
 
             // 1b. If not in local IndexedDB, check if uploaded to User's Cloud Account!
             if (!storedPdfBlob && (lec.cloudPdfUploaded || lec.cloudPdfUrl || lec.cloudPdfPath)) {
@@ -31105,8 +31316,42 @@ function togglePdfAudioPlayerBar(forceState) {
         function closePdfViewer() {
             isActivelyDrawingOnPdf = false;
             if (activeFloatingTextEditor) commitOrCloseFloatingTextEditor(true);
+            if (!mergedContinuousPdfMode && currentViewingLec && currentViewingLec.lec) {
+                const lec = currentViewingLec.lec;
+                if (currentActivePageNum >= 1 && totalPdfPages >= 1) {
+                    lec.lastPageNum = currentActivePageNum;
+                    lec.totalPages = totalPdfPages;
+                }
+                const audioElNow = document.getElementById('lectureAudioElement');
+                if (audioElNow && audioElNow.currentTime > 2 && !isNaN(audioElNow.currentTime)) {
+                    lec.lastAudioSec = Math.floor(audioElNow.currentTime);
+                }
+            }
+            const audioEl = document.getElementById('lectureAudioElement');
+            if (audioEl) {
+                audioEl.pause();
+                audioEl.src = '';
+            }
+            cancelAllActivePdfRenderTasks();
+            if (pageObserver) pageObserver.disconnect();
+            const floatNav = document.getElementById('pdfFloatingPageNav');
+            if (floatNav) floatNav.style.display = 'none';
+            const container = document.getElementById('pdfModalContainer');
+            if (container && container.classList.contains('is-fullscreen')) {
+                container.classList.remove('is-fullscreen');
+                if (document.exitFullscreen && document.fullscreenElement) {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
+            // Visually hide the PDF modal overlay FIRST for instant UI response (< 2ms),
+            // and so pushWorkspaceToCloud() sees the modal as closed and includes annotations immediately!
+            const pdfOverlayEl = document.getElementById('pdfViewerModalOverlay');
+            if (pdfOverlayEl) pdfOverlayEl.classList.remove('active');
+            if (document.body && document.body.classList) document.body.classList.remove('in-pdf-studio');
+            if (typeof toggleMobilePaletteDrawer === 'function') toggleMobilePaletteDrawer(false);
+
             persistCurrentLectureReadingBookmark(true);
-            flushPendingAnnotationsSave(true);
+            const flushPromise = flushPendingAnnotationsSave(true);
             mergedContinuousPdfMode = false;
             mergedPageToLectureMap = {};
             mergedSlideKeysOrder = [];
@@ -31115,13 +31360,8 @@ function togglePdfAudioPlayerBar(forceState) {
             if (activeSubjectId && document.getElementById('groupsContainer')) {
                 renderGroups();
             }
-            cancelAllActivePdfRenderTasks();
-            if (pageObserver) pageObserver.disconnect();
             currentPdfDoc = null;
             renderedPagesSet.clear();
-
-            const floatNav = document.getElementById('pdfFloatingPageNav');
-            if (floatNav) floatNav.style.display = 'none';
 
             const scrollContainer = document.getElementById('pdfPagesScrollContainer');
             if (scrollContainer) scrollContainer.innerHTML = '';
@@ -31129,22 +31369,7 @@ function togglePdfAudioPlayerBar(forceState) {
             const iframe = document.getElementById('pdfViewerIframe');
             if (iframe) iframe.src = 'about:blank';
 
-            const audioEl = document.getElementById('lectureAudioElement');
-            if (audioEl) {
-                audioEl.pause();
-                audioEl.src = '';
-            }
-            
-            const container = document.getElementById('pdfModalContainer');
-            if (container && container.classList.contains('is-fullscreen')) {
-                container.classList.remove('is-fullscreen');
-                if (document.exitFullscreen && document.fullscreenElement) {
-                    document.exitFullscreen().catch(() => {});
-                }
-            }
-            document.getElementById('pdfViewerModalOverlay').classList.remove('active');
-            document.body.classList.remove('in-pdf-studio');
-            if (typeof toggleMobilePaletteDrawer === 'function') toggleMobilePaletteDrawer(false);
+            return flushPromise;
         }
     </script>
 
@@ -31415,8 +31640,8 @@ function togglePdfAudioPlayerBar(forceState) {
         // --- Global Keyboard Shortcuts (Arabic & English Keyboard Support) ---
         window.addEventListener('keydown', (e) => {
             // Ignore only when typing inside a text-entry input or textarea (never block range sliders, color pickers, or selects inside PDF viewer!)
-            if (e.target && e.target.matches('textarea, [contenteditable="true"], input:not([type="range"]):not([type="color"]):not([type="checkbox"]):not([type="radio"]):not([type="button"])')) return;
-            if (e.target && e.target.matches('select') && !document.getElementById('pdfViewerModalOverlay')?.classList.contains('active')) return;
+            if (e.target && typeof e.target.matches === 'function' && e.target.matches('textarea, [contenteditable="true"], input:not([type="range"]):not([type="color"]):not([type="checkbox"]):not([type="radio"]):not([type="button"])')) return;
+            if (e.target && typeof e.target.matches === 'function' && e.target.matches('select') && !document.getElementById('pdfViewerModalOverlay')?.classList.contains('active')) return;
 
             // If Flagship Showcase Modal is open on Page 7 (3D Mechanical Keyboard), intercept keys for live monitor demo!
             const helpOverlay = document.getElementById('helpModalOverlay');
@@ -31814,20 +32039,20 @@ function togglePdfAudioPlayerBar(forceState) {
                 const shortName = currentCloudUser?.user_metadata?.full_name || currentCloudUser?.name || currentCloudUser?.email?.split('@')[0] || 'حسابي';
                 txt.innerHTML = currentUserCanUploadMedia
                     ? `${shortName} <span class="vip-crown-pill"><i class="fa-solid fa-crown"></i> VIP</span>`
-                    : `${shortName} ✓`;
-                if (liveBadge) liveBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> الحفظ التلقائي مفعّل';
+                    : `${shortName} (تمت المزامنة ✓)`;
+                if (liveBadge) liveBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> تمت المزامنة • الحفظ التلقائي مفعّل';
             } else if (state === 'offline') {
                 icon.className = 'fa-solid fa-cloud';
                 icon.style.color = '#fbbf24';
                 const shortName = currentCloudUser?.user_metadata?.full_name || currentCloudUser?.name || 'حسابي';
-                txt.innerText = `${shortName} (أوفلاين)`;
-                if (liveBadge) liveBadge.innerHTML = '<i class="fa-solid fa-wifi"></i> محفوظ محلياً (أوفلاين)';
+                txt.innerText = `${shortName} (تم الحفظ محليًا — المزامنة معلقة)`;
+                if (liveBadge) liveBadge.innerHTML = '<i class="fa-solid fa-wifi"></i> تم الحفظ محليًا — المزامنة معلقة (أوفلاين)';
             } else if (state === 'pending') {
                 icon.className = 'fa-solid fa-cloud-arrow-up';
                 icon.style.color = '#fbbf24';
                 const shortName = currentCloudUser?.user_metadata?.full_name || currentCloudUser?.name || currentCloudUser?.email?.split('@')[0] || 'حسابي';
-                txt.innerText = `${shortName} (بانتظار المزامنة)`;
-                if (liveBadge) liveBadge.innerHTML = '<i class="fa-solid fa-clock"></i> تغييرات محلية بانتظار المزامنة';
+                txt.innerText = `${shortName} (تم الحفظ محليًا — المزامنة معلقة)`;
+                if (liveBadge) liveBadge.innerHTML = '<i class="fa-solid fa-clock"></i> تم الحفظ محليًا — المزامنة معلقة';
             } else if (state === 'local_only') {
                 icon.className = 'fa-solid fa-hard-drive';
                 icon.style.color = '#38bdf8';
@@ -32318,29 +32543,29 @@ function togglePdfAudioPlayerBar(forceState) {
                     return await syncWorkspaceOnLogin(activeCtx);
                 }
 
-                // Hydrate durable IndexedDB workspace_state for this account if present
-                if (typeof migrateAndHydrateWorkspaceFromIDB === 'function') {
-                    try {
-                        await migrateAndHydrateWorkspaceFromIDB(activeCtx.uid, activeCtx);
-                    } catch (e) {}
-                }
-
-                // If restoring a local fallback session on reload and active workspace is empty while an account snapshot exists, hydrate it
+                // If restoring a local fallback session or switching back to a known account without initial cloud sync while active workspace is empty and an account-owned snapshot exists, hydrate it before IDB reconciliation
                 const isLocalFallbackUser = Boolean(currentCloudUser.isLocalFallback || String(activeCtx.uid).startsWith('usr_'));
                 const rawLsSubjects = localStorage.getItem('pharmaSubjectsV4');
                 const hasLsSubjects = Boolean(rawLsSubjects && rawLsSubjects !== '[]' && rawLsSubjects !== 'null');
                 const isGateBlocked = (typeof isImportInProgressOrQuarantined === 'function')
                     ? Boolean(isImportInProgressOrQuarantined(activeCtx.uid)?.blocked)
                     : false;
-                if (isLocalFallbackUser && !isGateBlocked && !hasLsSubjects && (!Array.isArray(subjects) || subjects.length === 0) && (!Array.isArray(scheduleEvents) || scheduleEvents.length === 0) && (!Array.isArray(logs) || logs.length === 0)) {
+                if ((isLocalFallbackUser || isSwitchingDifferentCloudUser) && !isGateBlocked && !hasLsSubjects && (!Array.isArray(subjects) || subjects.length === 0) && (!Array.isArray(scheduleEvents) || scheduleEvents.length === 0) && (!Array.isArray(logs) || logs.length === 0)) {
                     try {
                         const snapRaw = localStorage.getItem(getAccountBackupStorageKey(activeCtx.uid));
                         if (snapRaw) {
                             const snapData = JSON.parse(snapRaw);
-                            if (snapData && typeof snapData === 'object') {
+                            if (snapData && typeof snapData === 'object' && (!snapData.user_id || String(snapData.user_id) === String(activeCtx.uid))) {
                                 await applyCloudWorkspacePayload(snapData, false, activeCtx);
                             }
                         }
+                    } catch (e) {}
+                }
+
+                // Hydrate durable IndexedDB workspace_state for this account if present
+                if (typeof migrateAndHydrateWorkspaceFromIDB === 'function') {
+                    try {
+                        await migrateAndHydrateWorkspaceFromIDB(activeCtx.uid, activeCtx);
                     } catch (e) {}
                 }
 
@@ -41622,6 +41847,9 @@ function togglePdfAudioPlayerBar(forceState) {
         });
         document.addEventListener('visibilitychange', async () => {
             if (document.visibilityState === 'hidden') {
+                if (typeof pdfBookmarkSaveTimer !== 'undefined' && pdfBookmarkSaveTimer && typeof persistCurrentLectureReadingBookmark === 'function') {
+                    persistCurrentLectureReadingBookmark(true);
+                }
                 const visCtx = createAccountOperationContext();
                 // Flush any pending local annotations to IndexedDB FIRST (awaiting completion), then sync to Cloud once when hiding/closing tab
                 await flushPendingAnnotationsSave(false, visCtx);

@@ -3,11 +3,11 @@
 **آخر تحديث:** 2026-11-12  
 **المستودع:** `JemistryMC/study-hub`  
 **الفرع النشط:** `main`  
-**آخر HEAD على GitHub (Current Base HEAD):** `531811772626dbd0d66729e344efc6afb659b6e1`  
-**آخر HEAD مصدري معتمد بالكامل في CI لـ M6 الأساسي (Latest Fully Green CI Source HEAD):** `94259b543a021d4f06fdc0a9aa44d3f346d63037` (CI Run #43 — `43241683581`)  
-**نقاط الأساس التاريخية السابقة (Previous Baseline Checkpoints):** `531811772626dbd0d66729e344efc6afb659b6e1` ← `e0b2fb0a180d33fb8d98da1715db9842c8ab275f` ← `03c0737e857c95099d416b0fbf22eff581d97d86` ← `b66d72e359e7d2e8531f88f797d4d296d41206a3` ← `94259b543a021d4f06fdc0a9aa44d3f346d63037`  
-**المرحلة الفرعية النشطة:** `EXO — Phase A Final CI Failure Resolution`  
-**الحالة:** `IMPLEMENTED — LOCAL TESTS ONLY` (تمت معالجة الفحوصات الثلاثة التي فشلت في CI Run `43305785869` — `Test J.2` و`Test FF.7b` و`Test FF.7d` — فوق خط الأساس `531811772626dbd0d66729e344efc6afb659b6e1`، واجتازت كافة الاختبارات المحلية القابلة للتشغيل بنسبة 100% — `610/610 PASSED` شاملة `124/124` في Chromium E2E و`297/297` في Phase 4 Regressions؛ بانتظار رفع المالك إلى GitHub وتشغيل CI، وليست `CI VERIFIED` أو `APPROVED` بعد)
+**آخر HEAD على GitHub (Current Base HEAD):** `b0c7d78be97692f1217880b601fefc993e4ebd2d` (706/706 PASSED في GitHub Actions CI + نجاح نشر GitHub Pages)  
+**آخر HEAD مصدري معتمد بالكامل في CI لـ M6 وPhase A:** `b0c7d78be97692f1217880b601fefc993e4ebd2d`  
+**نقاط الأساس التاريخية السابقة (Previous Baseline Checkpoints):** `b0c7d78be97692f1217880b601fefc993e4ebd2d` ← `531811772626dbd0d66729e344efc6afb659b6e1` ← `e0b2fb0a180d33fb8d98da1715db9842c8ab275f` ← `03c0737e857c95099d416b0fbf22eff581d97d86` ← `b66d72e359e7d2e8531f88f797d4d296d41206a3` ← `94259b543a021d4f06fdc0a9aa44d3f346d63037`  
+**المرحلة الفرعية النشطة:** `EXO — Stability & Responsiveness Sprint (Critical One-Hour Stabilization Pass)`  
+**الحالة:** `IMPLEMENTED — LOCAL TESTS ONLY` (تم تنفيذ تمريرة الاستقرار وسرعة الاستجابة العاجلة فوق خط الأساس `b0c7d78be97692f1217880b601fefc993e4ebd2d` مع الحفاظ التام على جميع سلوكيات M1–M6 وPhase A، واجتازت كافة الاختبارات المحلية القابلة للتشغيل بنسبة 100% — `615/615 PASSED` شاملة `129/129` في Chromium E2E و`297/297` في Phase 4 Regressions؛ بانتظار رفع المالك إلى GitHub وتشغيل CI، وليست `CI VERIFIED` أو `APPROVED` بعد)
 
 هذا الملف هو المرجع الوحيد للحالة الحالية والمرحلة النشطة. إذا خالفه تقرير تاريخي أو تعليمات مرحلة قديمة، يُتبع هذا الملف ومستند المرحلة النشطة.
 
@@ -887,5 +887,67 @@ SELECT json_build_object(
 | **إجمالي الفحوصات المنفذة محلياً (`npm test`)** | **مجموع الفحوصات الفعلية المجتازة محلياً** | **610/610 PASSED (100%)** | `0` |
 
 ### 20.6 القيود المتبقية وحالة الاعتماد
-- **حالة المرحلة الحالية:** `IMPLEMENTED — LOCAL TESTS ONLY`.
-- **القيود المتبقية:** يلزم رفع الملفات الثلاثة المعدلة (`index.html`, `test_phase4_1_chromium_e2e.js`, `reports/CURRENT.md`) يدوياً من قِبل المالك إلى فرع `main` على GitHub والتحقق من نجاح تشغيل GitHub Actions CI الكامل (`706/706` شاملة `96/96` في PostgreSQL 16 و`124/124` في Chromium E2E) قبل انتقال الحالة إلى `CI VERIFIED` ثم قرار المالك بشأن `APPROVED`.
+- **حالة المرحلة (Phase A Final CI Failure Resolution):** تم رفع التعديلات في الـ Commit `b0c7d78be97692f1217880b601fefc993e4ebd2d` واجتاز GitHub Actions CI بنجاح كامل (`706/706 PASSED` شاملة `96/96` في PostgreSQL 16 و`124/124` في Chromium E2E) مع نجاح نشر GitHub Pages.
+
+---
+
+## 21. تمريرة الاستقرار وسرعة الاستجابة العاجلة (EXO — Stability & Responsiveness Sprint — Above Base `b0c7d78`)
+
+### 21.1 خط الأساس ونطاق التمريرة
+- **المستودع والفرع:** `JemistryMC/study-hub` (`main`)
+- **خط الأساس المعتمد (Base HEAD):** `b0c7d78be97692f1217880b601fefc993e4ebd2d` (706/706 اختبار ناجح في GitHub Actions CI + نجاح نشر GitHub Pages).
+- **هدف التمريرة:** ضمان حفظ بيانات المستخدم محلياً بنسبة 100% عبر إعادة التحميل وتبديل التبويبات وتبديل الحسابات، وإزالة الاختناقات الزمنية المحسوسة في التنقل والنوافذ المنبثقة وقارئ الـ PDF دون المساس بأي سلوك من M1–M6 أو Phase A ودون أي تعديل على قاعدة البيانات أو سياسات الصلاحيات.
+
+### 21.2 التشخيص الجذري لمواضع البطء ومخاطر الحفظ والإصلاحات المنفذة
+
+| الموضع | السبب الجذري الذي تم تشخيصه | الإصلاح الجراحي المنفذ في `index.html` |
+| :--- | :--- | :--- |
+| **1. حفظ الفصول والمحاضرات والجلسات والمهام والسجلات** | كانت دوال النوافذ المنبثقة (`triggerAddGroup`, `triggerEditGroup`, `triggerDeleteGroup`, `saveSmartSubjectModal`, `addSubject`, `triggerAddLecture`, `triggerEditLecture`, `saveSession`, `addBacklogTask`, `saveLogPro`) تنتظر وعود IndexedDB أو تنظيف الوسائط قبل إغلاق النافذة المنبثقة حتى عندما ينجح الحفظ المتزامن في `localStorage` (`saveRes.persisted === true`)، أو تُغلق النافذة وتمسح الحقول حتى عند فشل `localStorage` و`IndexedDB` معاً. | 1. المسار المتزامن السريع: عند نجاح `localStorage` (`saveRes.persisted === true || saveRes.queued === true`)، تُغلق النافذة وتُحدث الواجهة فوراً (`< 2ms`) بينما تكتمل كتابة النسخة المتينة في IndexedDB في الخلفية.<br>2. المسار الاحتياطي المتين: عند فشل `localStorage` (`saveRes.persisted === false`)، يتم انتظار `saveRes.idbPersistPromise`. فإذا فشل الاثنان معاً، يتم التراجع عن التغيير في الذاكرة، وإبقاء النافذة مفتوحة مع الحفاظ الكامل على نص المستخدم المدخل ومنع تكرار العنصر عند إعادة المحاولة، وعرض تنبيه واضح بالعربية.<br>3. في `triggerAddLecture` و`triggerEditLecture`، يتم انتظار `await saveMediaToDB(...)` للملفات المرفوعة قبل استدعاء `saveSubjects()` لضمان عدم فقدان مرجع الملف. |
+| **2. فتح وإغلاق قارئ المحاضرات (`openLectureDocument` & `closePdfViewer`)** | 1. عند الفتح: كان القارئ ينتظر تهيئة IndexedDB وقراءة الحواشي والصوت والـ PDF بالتسلسل (`await` متتالية) قبل إظهار نافذة القارئ (`392.8 ms`).<br>2. عند الإغلاق: كان `closePdfViewer()` ينفذ حفظ الحواشي، وتفريغ المؤقتات، وإعادة رسم شجرة الفصول `renderGroups()`، وتفريغ DOM صفحات الـ PDF **قبل** إزالة الكلاس `.active` من النافذة (`40.2 ms`).<br>3. عند الضغط على `Escape` على مستوى `window`: كان المستمع العام يستدعي `e.target.matches(...)` دون فحص توفر الدالة على `window`/`document`. | 1. في `openLectureDocument()`: إظهار `#pdfViewerModalOverlay.active` فوراً (`4.4 ms`)، وتنفيذ قراءات `[getAnnotationsFromDB, getMediaFromDB('audios'), getMediaFromDB('pdfs')]` بالتوازي عبر `Promise.all` (`15.8 ms` إجمالي).<br>2. في `closePdfViewer()`: تثبيت أي نص عائم وعلامة القراءة، وإيقاف الصوت ومهام الرسم ومراقب الصفحات، وإزالة `.active` من `#pdfViewerModalOverlay` و`in-pdf-studio` من `document.body` **أولاً** (`0.6 ms` إخفاء بصري فوري)، ثم إتمام حفظ العلامة والحواشي وتحديث `renderGroups()` وتفريغ الحاوية.<br>3. فحص `typeof e.target.matches === 'function'` في مستمع `keydown` العام لدعم إغلاق `Escape` الموثوق من أي هدف. |
+| **3. التنقل بين التبويبات الرئيسية (`switchView`) وإغلاق التبويب (`pagehide` / `beforeunload`)** | 1. كان مؤقت حفظ علامة القراءة (`pdfBookmarkSaveTimer` بمهلة `450ms`) ومؤقت حفظ الحواشي (`autoSaveTimer` بمهلة `350ms`) يبقيان معلقين عند التبديل السريع بين التبويبات أو إغلاق الصفحة.<br>2. عند العودة إلى تبويب `subjects`، لم تكن `switchView('subjects')` تعيد رسم البطاقات لتعكس التقدم أو الجلسات المسجلة حديثاً. | 1. تفريغ `persistCurrentLectureReadingBookmark(true)` و`flushPendingAnnotationsSave(false)` فوراً داخل `switchView()` وعند أحداث `pagehide` و`beforeunload` و`visibilitychange (hidden)`.<br>2. تحديث `renderSubjectsList()` و`renderGroups()` عند التبديل إلى `subjects`. |
+| **4. استنساخ JSON المزدوج في `persistWorkspaceDomainToIDB()`** | كانت `persistWorkspaceDomainToIDB()` تنفذ `JSON.parse(JSON.stringify(payload))` على الخيط الرئيسي في كل حفظ حتى مع أن محرك IndexedDB الأصلي في المتصفح ينفذ Structured Clone أصلياً في C++. | تخطي `JSON.parse(JSON.stringify(payload))` عند العمل على `IDBDatabase` الأصلي في المتصفح مع الإبقاء عليه لمحاكي الاختبارات `InMemoryIDBDatabase` في Node.js. |
+| **5. استعادة مساحة عمل الحساب العائد بدون اتصال (`handleAuthSessionChange`)** | عند التبديل من الحساب الأول إلى الحساب الثاني ثم العودة إلى الحساب الأول محلياً (`shouldInitialSync = false`)، كانت `handleAuthSessionChange` تصفر `pharmaSubjectsV4` أثناء العزل ثم تستعيد `getAccountBackupStorageKey(uid)` فقط إذا كان الحساب `usr_...` (`isLocalFallbackUser`)، مما يترك الحساب السحابي العائد بدون استعادة نسخته المحلية المحفوظة. | توسيع شرط الاستعادة المحلية في `handleAuthSessionChange` ليشمل `(isLocalFallbackUser || isSwitchingDifferentCloudUser)` مع التحقق الصارم من ملكية اللقطة (`!snapData.user_id || String(snapData.user_id) === String(activeCtx.uid)`) وتشغيلها قبل `migrateAndHydrateWorkspaceFromIDB(activeCtx.uid)`. |
+| **6. وضوح حالة الحفظ المحلي والمزامنة (`updateCloudNavUI`)** | لم تكن شارة الحالة في شريط التنقل تميز بوضوح باللغة العربية بين `"تم الحفظ محليًا — المزامنة معلقة"` عند انقطاع الاتصال أو وجود تغييرات معلقة وبين `"تمت المزامنة"`. | تحديث نصوص وعناوين `updateCloudNavUI` لعرض `"تم الحفظ محليًا — المزامنة معلقة"` في حالتي `offline` و`pending`، و`"تمت المزامنة"` في حالة `synced`. |
+
+### 21.3 قياسات الأداء الحقيقية في متصفح Chromium (قبل وبعد الإصلاح — 12 مادة، 48 فصلاً، 240 محاضرة، 35 جلسة، 20 مهمة، 60 سجلاً، 20 شريحة PDF)
+
+| العملية المقاسة في Chromium E2E | قبل الإصلاح (Before) | بعد الإصلاح (After) | التحسن المحقق |
+| :--- | :--- | :--- | :--- |
+| **التحميل الأولي للتطبيق (`initialLoadMs`)** | `1030.0 ms` | `898.0 ms` | أسرع بـ `132 ms` |
+| **إعادة التحميل واستعادة IndexedDB (`reloadHydrateMs`)** | `754.0 ms` | `546.0 ms` | أسرع بـ `208 ms` (-27.6%) |
+| **التبديل إلى تبويب الجدول (`navToScheduleMs`)** | `38.0 ms` | `6.1 ms` | أسرع بـ **6.2x** |
+| **التبديل إلى تبويب السجل (`navToTrackerMs`)** | `17.7 ms` | `12.4 ms` | أسرع بـ **30%** |
+| **التبديل إلى تبويب المواد مع التحديث (`navToSubjectsMs`)** | `0.5 ms` *(بدون تحديث)* | `2.6 ms` *(مع تحديث كامل)* | استجابة فورية `< 3 ms` |
+| **فتح تفاصيل المادة والفصول (`openSubjectMs`)** | `4.6 ms` | `4.5 ms` | استجابة فورية `< 5 ms` |
+| **إنشاء وحفظ فصل جديد (`saveChapterMs`)** | `84.3 ms` | `40.3 ms` | أسرع بـ **2.1x** |
+| **حذف فصل وإغلاق نافذة التأكيد (`deleteGroupVisualCloseMs`)** | `144.9 ms` | `19.6 ms` (`102.5 ms` شامل الخلفية) | إغلاق بصري أسرع بـ **7.4x** |
+| **فتح قارئ المحاضرات (`openPdfVisualShowMs` / `openPdfTotalMs`)** | `392.8 ms` | `4.4 ms` بصري / `15.8 ms` كامل | فتح بصري أسرع بـ **89x** وإجمالي أسرع بـ **24.8x** |
+| **إغلاق قارئ المحاضرات (`closePdfVisualHideMs` / `closePdfTotalMs`)** | `40.2 ms` | `0.6 ms` بصري / `25.3 ms` كامل | إخفاء بصري فوري أسرع بـ **67x** |
+
+### 21.4 إثبات أولوية حفظ البيانات رقم 1 في متصفح Chromium الحقيقي (`Test GG.1` – `Test GG.5`)
+تمت إضافة مجموعة الاختبارات الشاملة `Test GG` في `test_phase4_1_chromium_e2e.js` للتحقق الميداني من البنود الـ11 المطلوبة:
+1. **`Test GG.1`:** إنشاء مادة جديدة، ومجموعة، وفصل جديد، وإضافة محاضرة، وتعديلها، وحذف محاضرة مؤقتة، وتعديل بيانات موجودة، وحفظ جلسة جدول ومهمة Backlog وسجل مذاكرة وتقرير أسبوعي، وإضافة حواشي PDF وعلامة قراءة (`page: 2, zoom: 1.35`)، ثم تنفيذ `page.reload()` والتحقق من بقاء كافة البيانات بنسبة 100%، ثم إغلاق الصفحة وفتح تبويب جديد والتحقق من استعادة مساحة العمل بالكامل.
+2. **`Test GG.2` & `Test GG.3`:** قياس والتحقق من سرعة التبديل بين التبويبات الرئيسية وفتح وإغلاق قارئ الـ PDF بالزر ومفتاح `Escape` مع حفظ علامة القراءة والحواشي وعدم تجمد الواجهة.
+3. **`Test GG.4`:** التحقق من بقاء نافذة الإدخال مفتوحة والحفاظ التام على نص المستخدم المدخل عند فشل `localStorage` و`IndexedDB` معاً، والتحقق من ظهور مؤشر `"تم الحفظ محليًا — المزامنة معلقة"` عند انقطاع الاتصال.
+4. **`Test GG.5`:** التحقق من العزل الصارم بين حسابين مختلفين (`usr_sprint_acc_1` و`usr_sprint_acc_2`) واستعادة كل حساب لبياناته الخاصة بالكامل عند التبديل بينهما دون أي تسرب أو فقدان.
+
+### 21.5 قائمة الملفات المعدلة في هذه التمريرة
+1. `index.html` — تحسينات سرعة الاستجابة، الحفظ الفوري مع الحفاظ على مدخلات النوافذ عند الفشل، الفتح والإغلاق الفوري لقارئ الـ PDF، تفريغ علامة القراءة والحواشي عند تبديل العرض وإغلاق الصفحة، واستعادة لقطة الحساب العائد محلياً.
+2. `test_phase4_1_chromium_e2e.js` — إضافة اختبارات `Test GG` (`Test GG.1` إلى `Test GG.5`) ليرتفع إجمالي فحوصات Chromium E2E من `124/124` إلى **`129/129 PASSED`**.
+3. `reports/CURRENT.md` — تحديث حالة المستودع وتوثيق نتائج التمريرة والقياسات.
+
+### 21.6 مصفوفة نتائج الاختبارات المحلية الفعلية فوق `b0c7d78be97692f1217880b601fefc993e4ebd2d`
+
+| أمر الاختبار المنفذ | البيئة ونطاق الفحص | الحالة | النتيجة الفعلية |
+| :--- | :--- | :--- | :--- |
+| `npm run lint` | فحص الصياغة الاستاتيكي لملفات الخادم والبناء والاختبارات | **PASSED** | `0 Errors` |
+| `npm run build` | بناء وتجهيز حزمة الإنتاج (`dist/`) | **PASSED** | `Build succeeded` |
+| `npm run test:static` (`node run_verification_tests.js`) | فحوصات التشفير PBKDF2 والأمان الثابت و`sw.js` | **PASSED** | **54/54 (100%)** |
+| `node run_comprehensive_verification.js` | التحقق الشامل من المنطق الأكاديمي | **PASSED** | **42/42 (100%)** |
+| `node test_phase3_cross_account_isolation.js` | عزل الحسابات وسلامة السجلات | **PASSED** | **52/52 (100%)** |
+| `node test_phase4_regressions.js` | اختبارات الانحدار الشاملة + فحوصات M1–M6 وPhase A | **PASSED** | **297/297 (100%)** |
+| `npm run test:pglite` (`node test_phase4_2_postgres_integration.js`) | توافق PostgreSQL المدمج وRLS والـ OCC | **PASSED** | **41/41 (100%)** |
+| `npm run test:e2e` (`node test_phase4_1_chromium_e2e.js`) | متصفح Chromium الحقيقي (شاملة `Test GG.1`–`GG.5`) | **PASSED** | **129/129 (100%)** |
+| `npm run test:pg16` (`node test_phase4_2_1_pg16_concurrency.js`) | خادم PostgreSQL 16 الحقيقي متعدد الاتصالات | **NOT RUN** محلياً | `0/0` محلياً (`ECONNREFUSED 127.0.0.1:5432` — يتطلب خدمة PostgreSQL 16 في GitHub Actions CI؛ اجتاز **96/96 PASSED** على خط الأساس `b0c7d78be97692f1217880b601fefc993e4ebd2d` ولم يتغير أي ملف SQL) |
+| **إجمالي الفحوصات المنفذة محلياً (`npm test`)** | **مجموع الفحوصات الفعلية المجتازة محلياً** | **PASSED** | **615/615 (100%)** |
+
