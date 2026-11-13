@@ -14,7 +14,7 @@
 
 **Phase 6 — EXO Personal Study Journal Experience Redesign**
 
-الحالة: **IN PROGRESS — DESIGN DIRECTION DOCUMENTED; BASELINE AUDIT NOT STARTED**.
+الحالة: **IN PROGRESS — WP 6.0 AUDIT DELIVERED; OWNER REVIEW PENDING**.
 
 **تقرير WP 6.0:** [PHASE_6_BASELINE_AUDIT.md](PHASE_6_BASELINE_AUDIT.md) تم رفعه إلى GitHub في commit `0a6100439a6d98fee9aaa84683ad4bf7d1247c5f` بعد جولة reconciliation مع قرارات المالك.
 
