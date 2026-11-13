@@ -37,7 +37,7 @@ Required work:
 - Capture/document representative visual baselines in desktop and mobile, English and Arabic where supported. Never expose personal/sensitive data.
 - Run safe, non-destructive baseline checks only.
 
-Deliverables:
+Deliverables: create one documentation-only audit report at `reports/PHASE_6_BASELINE_AUDIT.md` containing:
 1. Complete screen/component inventory.
 2. Current-to-target design mapping.
 3. PDF Studio control-by-control preservation matrix.
