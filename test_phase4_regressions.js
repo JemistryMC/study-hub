@@ -7983,6 +7983,731 @@ async function main() {
     );
   }
 
+  // --------------------------------------------------------------------------
+  // TEST 25 (PHASE 5.2): Google Drive Reliability, OAuth Security & Multi-Recording Media Sync
+  // --------------------------------------------------------------------------
+  {
+    console.log('\n--- TEST 25 (Phase 5.2): Google Drive OAuth, Resumable Uploads, Folder IDs, Secondary Recordings & Studio Reactivation ---');
+    const idb52 = new InMemoryIDBDatabase();
+    const sessionBacking = new Map();
+    const phase52HarnessCode = `
+      const storageBacking = new Map();
+      const sessionBacking = new Map();
+      const toastHistory = [];
+      const localStorage = {
+        getItem: (k) => (storageBacking.has(String(k)) ? storageBacking.get(String(k)) : null),
+        setItem: (k, v) => { storageBacking.set(String(k), String(v)); },
+        removeItem: (k) => { storageBacking.delete(String(k)); },
+        clear: () => { storageBacking.clear(); }
+      };
+      const sessionStorage = {
+        get length() { return sessionBacking.size; },
+        key: (idx) => Array.from(sessionBacking.keys())[idx] || null,
+        getItem: (k) => (sessionBacking.has(String(k)) ? sessionBacking.get(String(k)) : null),
+        setItem: (k, v) => { sessionBacking.set(String(k), String(v)); },
+        removeItem: (k) => { sessionBacking.delete(String(k)); },
+        clear: () => { sessionBacking.clear(); }
+      };
+      const window = globalThis;
+      const navigator = { onLine: true };
+      const domStore = new Map();
+      function makeDomEl(id) {
+        return {
+          id,
+          style: {},
+          innerText: '',
+          innerHTML: '',
+          disabled: false,
+          classList: {
+            _set: new Set(),
+            add(c) { this._set.add(c); },
+            remove(c) { this._set.delete(c); },
+            contains(c) { return this._set.has(c); }
+          }
+        };
+      }
+      const ensureEl = (id) => {
+        if (!domStore.has(id)) domStore.set(id, makeDomEl(id));
+        return domStore.get(id);
+      };
+      [
+        'gdriveConnectBtn', 'gdriveStatusBadge', 'gdriveSyncCardBadge', 'gdriveAccountDetails',
+        'gdriveUserEmailText', 'gdriveQuotaInfoText', 'gdriveAuthNoticeText', 'gdriveResumableNotice',
+        'pdfDriveReactivateBanner', 'pdfDriveReactivateMsg', 'pdfDriveReactivateBtn',
+        'pdfViewerIframe', 'pdfFallbackBox', 'pdfOpenInTabBtn', 'cloudMediaProgressText',
+        'btnSyncAllMediaUp', 'btnSyncAllMediaDown', 'pdfAutoSaveStatus', 'pdfModalRecordingSelect',
+        'pdfModalRecordingCount', 'pdfMenuAudioRow', 'floatingAudioPlayer', 'playerLecTitle',
+        'playerTimeDisplay', 'playerPlayBtn', 'playerSpeedSelect', 'lectureAudioElement'
+      ].forEach(ensureEl);
+      const lecAudioEl = ensureEl('lectureAudioElement');
+      lecAudioEl.pause = () => {};
+      lecAudioEl.play = async () => {};
+      lecAudioEl.src = '';
+      const document = {
+        getElementById: (id) => domStore.get(id) || null
+      };
+      const URL = { createObjectURL: (b) => 'blob:mock/' + (b ? b.size : 0), revokeObjectURL: () => {} };
+      let currentCloudUser = null;
+      let currentUserCanUploadMedia = true;
+      let currentSessionGeneration = 1;
+      let dbInstance = null;
+      let supabaseClient = null;
+      let subjects = [];
+      let activeSubjectId = null;
+      let currentViewingLec = null;
+      let currentActivePageNum = 1;
+      let currentPdfZoom = 1;
+      let pageAnnotations = {};
+      let localMediaCache = { pdfs: new Set(), audios: new Set() };
+      let sessionMediaBlobRamCache = { pdfs: new Map(), audios: new Map() };
+      let inMemoryAnnotationsCache = {};
+      let inMemoryAnnotationsCacheNormalized = {};
+      let pendingAnnoSaveMap = {};
+      let cloudMediaRegistry = {};
+      let isBulkMediaUploading = false;
+      let cloudAutoSaveTimer = null;
+      let activeRecordingId = null;
+      let currentAudioUrl = null;
+      let audioElement = { pause: () => {}, play: async () => {}, src: '', currentTime: 0, playbackRate: 1 };
+      let googleAccessToken = null;
+      let googleTokenExpiry = 0;
+      let googleTokenGrantedScope = '';
+      let googleTokenClient = null;
+      let pendingGoogleTokenPromise = null;
+      let googleDriveAuthState = 'disconnected';
+      let googleDriveLastError = null;
+      let gdriveSubfolderCache = new Map();
+      let gdriveInFlightFolderOps = new Map();
+      let isReactivatingDriveFromPdfStudio = false;
+      const GOOGLE_CLIENT_ID = '1234567890-test-mock.apps.googleusercontent.com';
+      const ALLOWED_MEDIA_STORES = new Set(['pdfs', 'audios']);
+      const GOOGLE_DRIVE_REQUIRED_SCOPES = [
+        'https://www.googleapis.com/auth/drive.readonly',
+        'https://www.googleapis.com/auth/drive.file'
+      ];
+      const GOOGLE_DRIVE_SCOPE_STRING = GOOGLE_DRIVE_REQUIRED_SCOPES.join(' ');
+      const GDRIVE_RESUMABLE_SESSION_PREFIX = 'exo_gdrive_resumable_';
+      const inFlightMediaDownloads = new Map();
+      const activeImportBarriersByAccount = new Map();
+      const activeImportQuarantinesByAccount = new Map();
+      let liveTabActorId = null;
+      let liveLamportClock = 0;
+      let lastStorageFailureDiagnostics = null;
+      let renderPdfCalls = [];
+      let pushCloudCalls = 0;
+      let authModalOpened = 0;
+      let mockGoogleTokenClientImpl = null;
+      let google = {
+        accounts: {
+          oauth2: {
+            initTokenClient: (cfg) => {
+              return {
+                requestAccessToken: (reqOpts) => {
+                  if (typeof mockGoogleTokenClientImpl === 'function') {
+                    return mockGoogleTokenClientImpl(cfg, reqOpts);
+                  }
+                }
+              };
+            },
+            revoke: () => {}
+          }
+        }
+      };
+      function showToast(msg, type = 'info') { toastHistory.push({ msg, type }); }
+      function openCloudAuthModal() { authModalOpened++; }
+      async function verifyVipStatusFromServer() { return currentUserCanUploadMedia; }
+      function checkCloudMediaUploadPermission() { return Boolean(currentUserCanUploadMedia); }
+      async function pushWorkspaceToCloud() { pushCloudCalls++; return { ok: true }; }
+      async function pullWorkspaceFromCloud() { return { ok: true }; }
+      async function reconcileCloudMediaWithStorageBucket() {}
+      function updateCloudMediaStatsUI() {}
+      function updatePdfMenuUploadButtonState() {}
+      function renderSubjectContent() {}
+      function renderGroups() {}
+      function renderPdfMenuRecordingsList() {}
+      function updateMediaButtons() {}
+      function scheduleAutoSaveToCloud() {}
+      function formatAudioTime(s) { return String(Math.floor(Number(s) || 0)); }
+      function getPrimaryLectureAudioUrl() { return ''; }
+      function updateLiveUploadMonitorUI() {}
+      function setupAudioEventListeners() {}
+      function ensureAudioBoostGraph() {}
+      function isSafeHttpUrl(u) { return new RegExp('^https?://', 'i').test(String(u || '')); }
+      async function initPdfDB() { return dbInstance; }
+      async function getAnnotationsFromDB() { return {}; }
+      async function getSignedMediaUrlFromSupabase() { return null; }
+      async function dataUrlToBlob() { return null; }
+      async function renderPdfBlobInStudio(blob, opts) {
+        renderPdfCalls.push({ size: blob ? blob.size : 0, opts: opts || {} });
+        if (typeof setPdfDriveReactivateBannerState === 'function') setPdfDriveReactivateBannerState({ visible: false });
+      }
+      function saveSubjects() {}
+      ${extractFunctionSource(indexHtmlContent, 'formatUploadSpeed')}
+      ${extractFunctionSource(indexHtmlContent, 'escapeHtml')}
+      ${extractFunctionSource(indexHtmlContent, 'extractGoogleDriveFileId')}
+      ${extractFunctionSource(indexHtmlContent, 'sanitizeUserIdForPrefix')}
+      ${extractFunctionSource(indexHtmlContent, 'getUserStoragePrefix')}
+      ${extractFunctionSource(indexHtmlContent, 'getCanonicalUserId')}
+      ${extractFunctionSource(indexHtmlContent, 'bumpAccountSessionGeneration')}
+      ${extractFunctionSource(indexHtmlContent, 'createAccountOperationContext')}
+      ${extractFunctionSource(indexHtmlContent, 'resolveAccountOperationContext')}
+      ${extractFunctionSource(indexHtmlContent, 'extractUserIdFromScopedKey')}
+      ${extractFunctionSource(indexHtmlContent, 'extractRawIdFromScopedKey')}
+      ${extractFunctionSource(indexHtmlContent, 'toScopedKey')}
+      ${extractFunctionSource(indexHtmlContent, 'resolveAuthorizedScopedKey')}
+      ${extractFunctionSource(indexHtmlContent, 'hasStrictDualRecordOwnership')}
+      ${extractFunctionSource(indexHtmlContent, 'getOrCreateDeviceId')}
+      ${extractFunctionSource(indexHtmlContent, 'getLiveActorId')}
+      ${extractFunctionSource(indexHtmlContent, 'normalizeTombstonesObject')}
+      ${extractFunctionSource(indexHtmlContent, 'getLocalTombstones')}
+      ${extractFunctionSource(indexHtmlContent, 'isValidPdfBlob')}
+      ${extractFunctionSource(indexHtmlContent, 'saveMediaToDB')}
+      ${extractFunctionSource(indexHtmlContent, 'getMediaFromDB')}
+      ${extractFunctionSource(indexHtmlContent, 'saveCloudMediaRegistry')}
+      ${extractFunctionSource(indexHtmlContent, 'normMediaKeyStr')}
+      ${extractFunctionSource(indexHtmlContent, 'isSecondaryAudioRecording')}
+      ${extractFunctionSource(indexHtmlContent, 'recordUploadedMediaInRegistry')}
+      ${extractFunctionSource(indexHtmlContent, 'findMediaInCloudRegistry')}
+      ${extractFunctionSource(indexHtmlContent, 'cleanupLegacyGoogleTokenStorage')}
+      ${extractFunctionSource(indexHtmlContent, 'redactDriveSecrets')}
+      ${extractFunctionSource(indexHtmlContent, 'hasRequiredGoogleDriveScopes')}
+      ${extractFunctionSource(indexHtmlContent, 'isGoogleDriveTokenActive')}
+      ${extractFunctionSource(indexHtmlContent, 'getGoogleDriveAuthState')}
+      ${extractFunctionSource(indexHtmlContent, 'setGoogleDriveAuthState')}
+      ${extractFunctionSource(indexHtmlContent, 'getEffectiveGoogleClientId')}
+      ${extractFunctionSource(indexHtmlContent, 'ensureGoogleAccessToken')}
+      ${extractFunctionSource(indexHtmlContent, 'isGoogleDriveAccountLinked')}
+      ${extractFunctionSource(indexHtmlContent, 'isGoogleDriveConnected')}
+      ${extractFunctionSource(indexHtmlContent, 'driveApiRequest')}
+      ${extractFunctionSource(indexHtmlContent, 'fetchGoogleDriveUserInfo')}
+      ${extractFunctionSource(indexHtmlContent, 'sanitizeFolderNameForDrive')}
+      ${extractFunctionSource(indexHtmlContent, 'verifyDriveFolderById')}
+      ${extractFunctionSource(indexHtmlContent, 'ensureSubfolderInGoogleDrive')}
+      ${extractFunctionSource(indexHtmlContent, 'ensureExoGoogleDriveFolder')}
+      ${extractFunctionSource(indexHtmlContent, 'ensureSubjectDriveFolder')}
+      ${extractFunctionSource(indexHtmlContent, 'ensureGroupDriveFolder')}
+      ${extractFunctionSource(indexHtmlContent, 'renameVerifiedExoDriveFolder')}
+      ${extractFunctionSource(indexHtmlContent, 'syncRenamedSubjectDriveFolder')}
+      ${extractFunctionSource(indexHtmlContent, 'syncRenamedGroupDriveFolder')}
+      ${extractFunctionSource(indexHtmlContent, 'updateGoogleDriveUI')}
+      ${extractFunctionSource(indexHtmlContent, 'getGoogleDriveResumableSessionKey')}
+      ${extractFunctionSource(indexHtmlContent, 'computeDriveBlobFingerprint')}
+      ${extractFunctionSource(indexHtmlContent, 'saveGoogleDriveResumableDescriptor')}
+      ${extractFunctionSource(indexHtmlContent, 'getGoogleDriveResumableDescriptor')}
+      ${extractFunctionSource(indexHtmlContent, 'clearGoogleDriveResumableDescriptor')}
+      ${extractFunctionSource(indexHtmlContent, 'clearAllGoogleDriveResumableDescriptors')}
+      ${extractFunctionSource(indexHtmlContent, 'listPendingGoogleDriveResumableDescriptors')}
+      ${extractFunctionSource(indexHtmlContent, 'parseDriveRangeUpperBound')}
+      ${extractFunctionSource(indexHtmlContent, 'sendDriveUploadChunkRequest')}
+      ${extractFunctionSource(indexHtmlContent, 'uploadBlobToGoogleDriveViaXHR')}
+      ${extractFunctionSource(indexHtmlContent, 'uploadMediaToCloudAccount')}
+      ${extractFunctionSource(indexHtmlContent, 'downloadBlobFromGoogleDrive')}
+      ${extractFunctionSource(indexHtmlContent, 'downloadMediaFromCloudAccountDetailed')}
+      ${extractFunctionSource(indexHtmlContent, 'setPdfDriveReactivateBannerState')}
+      ${extractFunctionSource(indexHtmlContent, 'reactivateDriveFromPdfStudio')}
+      ${extractFunctionSource(indexHtmlContent, 'syncAllLocalMediaToCloud')}
+      ${extractFunctionSource(indexHtmlContent, 'downloadAllCloudMediaToLocal')}
+      ${extractFunctionSource(indexHtmlContent, 'renderLectureRecordingsSelector')}
+      ${extractFunctionSource(indexHtmlContent, 'switchLectureRecording')}
+      ${extractFunctionSource(indexHtmlContent, 'cleanupDeletedLectureLocalArtifacts')}
+      module.exports = {
+        localStorage, sessionStorage, domStore, toastHistory,
+        setDbInstance: (d) => { dbInstance = d; },
+        setNavigatorOnline: (v) => { navigator.onLine = Boolean(v); },
+        setUser: (u, vip = true) => { currentCloudUser = u; currentUserCanUploadMedia = vip; bumpAccountSessionGeneration(); },
+        setGoogleClientImpl: (fn) => { mockGoogleTokenClientImpl = fn; googleTokenClient = null; },
+        setToken: (tok, scope = GOOGLE_DRIVE_SCOPE_STRING, expMs = Date.now() + 3600000) => {
+          googleAccessToken = tok; googleTokenGrantedScope = scope; googleTokenExpiry = tok ? expMs : 0;
+          if (tok) googleDriveAuthState = 'connected';
+        },
+        getTokenState: () => ({ googleAccessToken, googleTokenExpiry, googleTokenGrantedScope, authState: getGoogleDriveAuthState() }),
+        setSubjectsState: (subs, activeId = null) => { subjects = subs; activeSubjectId = activeId; },
+        getSubjectsState: () => subjects,
+        setViewingState: ({ lec, page = 1, zoom = 1, annos = {} }) => {
+          currentViewingLec = lec ? { lec, groupId: 'g1', subjectId: 's1' } : null;
+          currentActivePageNum = page;
+          currentPdfZoom = zoom;
+          pageAnnotations = annos;
+        },
+        getViewingState: () => ({ currentViewingLec, currentActivePageNum, currentPdfZoom, pageAnnotations, activeRecordingId, renderPdfCalls, pushCloudCalls }),
+        resetCounters: () => { renderPdfCalls = []; pushCloudCalls = 0; authModalOpened = 0; toastHistory.length = 0; },
+        createAccountOperationContext,
+        saveMediaToDB,
+        getMediaFromDB,
+        cleanupLegacyGoogleTokenStorage,
+        redactDriveSecrets,
+        hasRequiredGoogleDriveScopes,
+        ensureGoogleAccessToken,
+        getGoogleDriveAuthState,
+        setGoogleDriveAuthState,
+        updateGoogleDriveUI,
+        driveApiRequest,
+        ensureExoGoogleDriveFolder,
+        ensureSubjectDriveFolder,
+        ensureGroupDriveFolder,
+        syncRenamedSubjectDriveFolder,
+        syncRenamedGroupDriveFolder,
+        uploadBlobToGoogleDriveViaXHR,
+        uploadMediaToCloudAccount,
+        downloadMediaFromCloudAccountDetailed,
+        getGoogleDriveResumableDescriptor,
+        listPendingGoogleDriveResumableDescriptors,
+        clearAllGoogleDriveResumableDescriptors,
+        reactivateDriveFromPdfStudio,
+        syncAllLocalMediaToCloud,
+        downloadAllCloudMediaToLocal,
+        switchLectureRecording,
+        cleanupDeletedLectureLocalArtifacts,
+        clearRamMediaCaches: () => { sessionMediaBlobRamCache.pdfs.clear(); sessionMediaBlobRamCache.audios.clear(); },
+        gdriveInFlightFolderOps
+      };
+    `;
+    const tempP52Path = './_temp_p52_helpers.js';
+    fs.writeFileSync(tempP52Path, phase52HarnessCode);
+    let p52 = null;
+    try {
+      p52 = require(tempP52Path);
+    } finally {
+      if (fs.existsSync(tempP52Path)) fs.unlinkSync(tempP52Path);
+    }
+
+    const origFetch = globalThis.fetch;
+    globalThis.__exoDriveRetryDelayMs = 1;
+    globalThis.__exoDriveChunkSizeBytes = 10;
+    p52.setDbInstance(idb52);
+
+    const uid52 = 'e5200000-1111-2222-3333-444455556666';
+    p52.setUser({ id: uid52, email: 'student52@exo.edu' }, true);
+
+    try {
+      // R52.1: Legacy token cleanup preserves metadata, missing scope => permission_denied, email mismatch rejected, silent refresh never uses consent prompt
+      p52.localStorage.setItem('exo_gdrive_token', 'ya29.legacy_secret_token');
+      p52.localStorage.setItem('exo_gdrive_token_exp', String(Date.now() + 3600000));
+      p52.localStorage.setItem('exo_gdrive_connected', '1');
+      p52.localStorage.setItem('exo_gdrive_user_email', 'bound@gmail.com');
+      p52.localStorage.setItem('exo_gdrive_bound_user_id', uid52);
+      p52.cleanupLegacyGoogleTokenStorage();
+      const legacyTokenCleared = p52.localStorage.getItem('exo_gdrive_token') === null && p52.localStorage.getItem('exo_gdrive_token_exp') === null;
+      const metaPreserved = p52.localStorage.getItem('exo_gdrive_connected') === '1' && p52.localStorage.getItem('exo_gdrive_user_email') === 'bound@gmail.com';
+
+      const observedPrompts = [];
+      p52.setGoogleClientImpl((cfg, reqOpts) => {
+        observedPrompts.push(reqOpts.prompt);
+        if (reqOpts.prompt === 'none') {
+          cfg.callback({ error: 'interaction_required' });
+        } else {
+          cfg.callback({ access_token: 'ya29.missing_scope', expires_in: 3600, scope: 'https://www.googleapis.com/auth/drive.readonly' });
+        }
+      });
+      const silentFailTok = await p52.ensureGoogleAccessToken(false);
+      const stateAfterSilentFail = p52.getGoogleDriveAuthState();
+
+      const missingScopeTok = await p52.ensureGoogleAccessToken(true);
+      const stateAfterMissingScope = p52.getGoogleDriveAuthState();
+
+      // Now return full scopes, but wrong Google email on drive/v3/about check
+      globalThis.fetch = async (url) => {
+        if (String(url).includes('drive/v3/about')) {
+          return new Response(JSON.stringify({ user: { emailAddress: 'wrong-other@gmail.com' } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        return new Response('{}', { status: 200 });
+      };
+      p52.setGoogleClientImpl((cfg) => {
+        cfg.callback({
+          access_token: 'ya29.wrong_email_tok',
+          expires_in: 3600,
+          scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file'
+        });
+      });
+      const mismatchTok = await p52.ensureGoogleAccessToken(true);
+      const emailStayedBound = p52.localStorage.getItem('exo_gdrive_user_email') === 'bound@gmail.com';
+      const redactedSample = p52.redactDriveSecrets('Authorization: Bearer ya29.supersecret123 https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=abcXYZ');
+
+      assert(
+        legacyTokenCleared && metaPreserved &&
+        observedPrompts[0] === 'none' && silentFailTok === null && stateAfterSilentFail === 'reauth_required' &&
+        missingScopeTok === null && stateAfterMissingScope === 'permission_denied' &&
+        mismatchTok === null && emailStayedBound && p52.getTokenState().googleAccessToken === null &&
+        !redactedSample.includes('ya29.supersecret123') && !redactedSample.includes('abcXYZ'),
+        'P5.2-R1: Legacy token keys purged safely, silent refresh avoids interactive popup, missing scopes => permission_denied, Google email mismatch rejected without overwriting bound email, and secrets redacted',
+        JSON.stringify({ legacyTokenCleared, metaPreserved, observedPrompts, silentFailTok, stateAfterSilentFail, missingScopeTok, stateAfterMissingScope, mismatchTok, emailStayedBound, token: p52.getTokenState().googleAccessToken, redactedSample })
+      );
+
+      // R52.2: driveApiRequest bounded retries (429/503/network), no retry on 403, 401 sets reauth_required, opCtx aborts on account switch
+      p52.setToken('ya29.valid_p52_tok');
+      let retryAttempts = 0;
+      globalThis.fetch = async () => {
+        retryAttempts++;
+        if (retryAttempts === 1) throw new TypeError('Simulated transient network failure');
+        if (retryAttempts === 2) return new Response(JSON.stringify({ error: { message: 'Rate limit' } }), { status: 429 });
+        if (retryAttempts === 3) return new Response(JSON.stringify({ error: { message: 'Service unavailable' } }), { status: 503 });
+        return new Response(JSON.stringify({ ok: true, id: 'drv_ok' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      };
+      const retrySuccess = await p52.driveApiRequest('https://www.googleapis.com/drive/v3/files/drv_ok', { maxRetries: 3 });
+
+      let attempts403 = 0;
+      globalThis.fetch = async () => {
+        attempts403++;
+        return new Response(JSON.stringify({ error: { message: 'Forbidden', errors: [{ reason: 'insufficientFilePermissions' }] } }), { status: 403 });
+      };
+      const res403 = await p52.driveApiRequest('https://www.googleapis.com/drive/v3/files/drv_ok');
+
+      p52.setToken('ya29.will_expire_401');
+      globalThis.fetch = async () => new Response(JSON.stringify({ error: { message: 'Invalid Credentials' } }), { status: 401 });
+      const res401 = await p52.driveApiRequest('https://www.googleapis.com/drive/v3/files/drv_ok');
+      const tokenAfter401 = p52.getTokenState();
+
+      // opCtx cancellation check
+      p52.setToken('ya29.ctx_tok');
+      const staleCtx = p52.createAccountOperationContext();
+      p52.setUser({ id: 'other-uid-999', email: 'other@exo.edu' }, true);
+      const resStaleCtx = await p52.driveApiRequest('https://www.googleapis.com/drive/v3/files/drv_ok', { opCtx: staleCtx });
+      p52.setUser({ id: uid52, email: 'student52@exo.edu' }, true);
+
+      assert(
+        retrySuccess.ok === true && retryAttempts === 4 &&
+        res403.ok === false && res403.status === 403 && attempts403 === 1 &&
+        res401.ok === false && res401.status === 401 && tokenAfter401.googleAccessToken === null && tokenAfter401.authState === 'reauth_required' &&
+        resStaleCtx.ok === false && resStaleCtx.code === 'account_switched',
+        'P5.2-R2: driveApiRequest retries transient network/429/503, never retries non-rate-limit 403, clears token -> reauth_required on 401, and aborts on stale opCtx'
+      );
+
+      // R52.3: In-place PATCH replacement (no parents in PATCH body), 404->POST fallback, and preserving existing ID on 401/403/500 without duplicate POST
+      p52.setToken('ya29.patch_tok');
+      const recordedRequests = [];
+      const blob25 = new Blob([new Uint8Array(25).fill(65)], { type: 'application/pdf' });
+      globalThis.fetch = async (url, init = {}) => {
+        recordedRequests.push({ method: init.method || 'GET', url: String(url), headers: init.headers || {}, body: init.body });
+        if (String(init.method) === 'PATCH' && String(url).includes('/files/drv_old_1')) {
+          return new Response('', { status: 200, headers: { Location: 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=up_patch_1' } });
+        }
+        if (String(init.method) === 'PUT' && String(url).includes('upload_id=up_patch_1')) {
+          const cr = String((init.headers || {})['Content-Range'] || '');
+          if (cr === 'bytes 0-9/25') return new Response('', { status: 308, headers: { Range: 'bytes=0-9' } });
+          if (cr === 'bytes 10-19/25') return new Response('', { status: 308, headers: { Range: 'bytes=0-19' } });
+          return new Response(JSON.stringify({ id: 'drv_old_1', name: 'Lec.pdf' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        return new Response('{}', { status: 404 });
+      };
+      const patchRes = await p52.uploadBlobToGoogleDriveViaXHR('Lec.pdf', blob25, 'application/pdf', 'fld_grp', null, {
+        existingDriveFileId: 'drv_old_1',
+        forceReplace: true,
+        exoUid: uid52,
+        storeName: 'pdfs',
+        recordKey: 'lec1',
+        lectureId: 'lec1'
+      });
+      const patchInitReq = recordedRequests.find(r => r.method === 'PATCH');
+      const patchInitBody = patchInitReq ? JSON.parse(String(patchInitReq.body || '{}')) : null;
+      const chunkRanges = recordedRequests.filter(r => r.method === 'PUT').map(r => r.headers['Content-Range']);
+
+      // Now test PATCH -> 404 -> POST fallback
+      recordedRequests.length = 0;
+      globalThis.fetch = async (url, init = {}) => {
+        recordedRequests.push({ method: init.method || 'GET', url: String(url), headers: init.headers || {}, body: init.body });
+        if (String(init.method) === 'PATCH') return new Response('{}', { status: 404 });
+        if (String(init.method) === 'POST') return new Response('', { status: 200, headers: { Location: 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=up_post_fb' } });
+        if (String(init.method) === 'PUT') return new Response(JSON.stringify({ id: 'drv_new_fb', name: 'Lec.pdf' }), { status: 200 });
+        return new Response('{}', { status: 404 });
+      };
+      const tinyBlob = new Blob(['%PDF-1.4\n'], { type: 'application/pdf' });
+      const fallback404Res = await p52.uploadBlobToGoogleDriveViaXHR('Lec.pdf', tinyBlob, 'application/pdf', 'fld_grp', null, {
+        existingDriveFileId: 'drv_missing_404',
+        forceReplace: true,
+        exoUid: uid52,
+        storeName: 'pdfs',
+        recordKey: 'lec1',
+        lectureId: 'lec1'
+      });
+
+      // Now test PATCH -> 403 -> NO POST duplicate!
+      recordedRequests.length = 0;
+      globalThis.fetch = async (url, init = {}) => {
+        recordedRequests.push({ method: init.method || 'GET', url: String(url) });
+        if (String(init.method) === 'PATCH') return new Response(JSON.stringify({ error: { message: 'Forbidden' } }), { status: 403 });
+        return new Response('{}', { status: 500 });
+      };
+      const noDupOn403 = await p52.uploadBlobToGoogleDriveViaXHR('Lec.pdf', tinyBlob, 'application/pdf', 'fld_grp', null, {
+        existingDriveFileId: 'drv_keep_id',
+        forceReplace: true,
+        exoUid: uid52,
+        storeName: 'pdfs',
+        recordKey: 'lec1',
+        lectureId: 'lec1'
+      });
+
+      assert(
+        patchRes.ok === true && patchRes.method === 'PATCH' && patchRes.fileData.id === 'drv_old_1' &&
+        patchInitBody && !('parents' in patchInitBody) &&
+        chunkRanges.join(',') === 'bytes 0-9/25,bytes 10-19/25,bytes 20-24/25' &&
+        fallback404Res.ok === true && fallback404Res.fileData.id === 'drv_new_fb' &&
+        noDupOn403.ok === false && noDupOn403.status === 403 && !recordedRequests.some(r => r.method === 'POST'),
+        'P5.2-R3: PATCH replaces in-place without parents and chunks 308/Range cleanly; 404 falls back to POST; 403 never creates duplicate POST'
+      );
+
+      // R52.4: Resumable sessionStorage descriptor survives mid-upload failure (with zero tokens) and resumes via Content-Range: bytes */total; mid-upload 404 restarts once cleanly
+      p52.setToken('ya29.resume_tok');
+      p52.clearAllGoogleDriveResumableDescriptors();
+      let failAfterChunk1 = true;
+      globalThis.fetch = async (url, init = {}) => {
+        if (String(init.method) === 'POST') {
+          return new Response('', { status: 200, headers: { Location: 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=up_resumable_1' } });
+        }
+        if (String(init.method) === 'PUT') {
+          const cr = String((init.headers || {})['Content-Range'] || '');
+          if (cr === 'bytes 0-9/25') return new Response('', { status: 308, headers: { Range: 'bytes=0-9' } });
+          if (failAfterChunk1 && cr === 'bytes 10-19/25') {
+            return new Response('Transient 500', { status: 500 });
+          }
+        }
+        return new Response('{}', { status: 500 });
+      };
+      const interruptedRes = await p52.uploadBlobToGoogleDriveViaXHR('Chunked.pdf', blob25, 'application/pdf', 'fld_grp', null, {
+        exoUid: uid52,
+        storeName: 'pdfs',
+        recordKey: 'lec_chunk',
+        lectureId: 'lec_chunk'
+      });
+      const savedDesc = p52.getGoogleDriveResumableDescriptor(uid52, 'pdfs', 'lec_chunk');
+      const descRawStr = p52.sessionStorage.getItem(`exo_gdrive_resumable_${uid52}_pdfs_lec_chunk`) || '';
+
+      // Resume attempt: probe returns 308 Range 0-9, then remaining 2 chunks succeed (zero POST!)
+      failAfterChunk1 = false;
+      const resumeCalls = [];
+      globalThis.fetch = async (url, init = {}) => {
+        resumeCalls.push({ method: init.method, cr: (init.headers || {})['Content-Range'] || '' });
+        if (String(init.method) === 'PUT') {
+          const cr = String((init.headers || {})['Content-Range'] || '');
+          if (cr === 'bytes */25') return new Response('', { status: 308, headers: { Range: 'bytes=0-9' } });
+          if (cr === 'bytes 10-19/25') return new Response('', { status: 308, headers: { Range: 'bytes=0-19' } });
+          if (cr === 'bytes 20-24/25') return new Response(JSON.stringify({ id: 'drv_resumed_ok' }), { status: 200 });
+        }
+        return new Response('{}', { status: 500 });
+      };
+      const resumedRes = await p52.uploadBlobToGoogleDriveViaXHR('Chunked.pdf', blob25, 'application/pdf', 'fld_grp', null, {
+        exoUid: uid52,
+        storeName: 'pdfs',
+        recordKey: 'lec_chunk',
+        lectureId: 'lec_chunk'
+      });
+      const descClearedAfterOk = p52.getGoogleDriveResumableDescriptor(uid52, 'pdfs', 'lec_chunk') === null;
+
+      assert(
+        interruptedRes.ok === false &&
+        savedDesc !== null && savedDesc.uploadUrl.includes('up_resumable_1') &&
+        !descRawStr.includes('ya29.') && !descRawStr.includes('accessToken') &&
+        resumedRes.ok === true && resumedRes.fileData.id === 'drv_resumed_ok' &&
+        !resumeCalls.some(c => c.method === 'POST') &&
+        resumeCalls[0].cr === 'bytes */25' && resumeCalls[1].cr === 'bytes 10-19/25' &&
+        descClearedAfterOk,
+        'P5.2-R4: Interrupted chunked upload persists token-free descriptor in sessionStorage, probes bytes */total, resumes without duplicate POST, and clears descriptor on completion'
+      );
+
+      // R52.5: Stable Subject/Group driveFolderId persistence, concurrent dedupe, and offline-safe rename
+      p52.setToken('ya29.folder_tok');
+      const subObj = { id: 'sub52', name: 'Pharmacology' };
+      const grpObj = { id: 'grp52', name: 'Autonomic', lectures: [] };
+      p52.localStorage.setItem('exo_gdrive_folder_id', 'fld_root_52');
+      let folderCreates = 0;
+      let folderPatches = 0;
+      globalThis.fetch = async (url, init = {}) => {
+        const u = String(url);
+        const m = String(init.method || 'GET');
+        if (m === 'GET' && u.includes('/files/fld_root_52')) return new Response(JSON.stringify({ id: 'fld_root_52', trashed: false }), { status: 200 });
+        if (m === 'GET' && u.includes('files?q=')) return new Response(JSON.stringify({ files: [] }), { status: 200 });
+        if (m === 'POST' && (u.endsWith('/files') || u.includes('/files?'))) {
+          folderCreates++;
+          const body = JSON.parse(String(init.body || '{}'));
+          const isGrp = (body.parents || []).includes('fld_sub_52');
+          return new Response(JSON.stringify({ id: isGrp ? 'fld_grp_52' : 'fld_sub_52', name: body.name }), { status: 200 });
+        }
+        if (m === 'GET' && u.includes('/files/fld_sub_52')) return new Response(JSON.stringify({ id: 'fld_sub_52', trashed: false, parents: ['fld_root_52'] }), { status: 200 });
+        if (m === 'GET' && u.includes('/files/fld_grp_52')) return new Response(JSON.stringify({ id: 'fld_grp_52', trashed: false, parents: ['fld_sub_52'] }), { status: 200 });
+        if (m === 'PATCH' && u.includes('/files/fld_sub_52')) {
+          folderPatches++;
+          return new Response(JSON.stringify({ id: 'fld_sub_52', name: 'Pharmacology Renamed' }), { status: 200 });
+        }
+        return new Response('{}', { status: 200 });
+      };
+      const [subF1, subF2] = await Promise.all([
+        p52.ensureSubjectDriveFolder(subObj, 'fld_root_52'),
+        p52.ensureSubjectDriveFolder(subObj, 'fld_root_52')
+      ]);
+      const grpF1 = await p52.ensureGroupDriveFolder(subObj, grpObj, subF1);
+      subObj.name = 'Pharmacology Renamed';
+      const renameOk = await p52.syncRenamedSubjectDriveFolder(subObj, 'Pharmacology');
+      p52.setNavigatorOnline(false);
+      grpObj.name = 'Offline Renamed Group';
+      const offlineRenameRes = await p52.syncRenamedGroupDriveFolder(subObj, grpObj, 'Autonomic');
+      p52.setNavigatorOnline(true);
+
+      assert(
+        subF1 === 'fld_sub_52' && subF2 === 'fld_sub_52' && subObj.driveFolderId === 'fld_sub_52' &&
+        grpF1 === 'fld_grp_52' && grpObj.driveFolderId === 'fld_grp_52' &&
+        folderCreates === 2 && renameOk && renameOk.ok === true && folderPatches === 1 &&
+        offlineRenameRes && offlineRenameRes.ok === false && grpObj.driveFolderId === 'fld_grp_52',
+        'P5.2-R5: Subject/Group driveFolderId dedupes concurrent creation, persists stable IDs, renames Drive folder online, and preserves IDs offline'
+      );
+
+      // R52.6: Secondary audio recordings parity (upload, download, stale switch guard, bulk sync isolation/auth-pause & IDB delete cleanup)
+      p52.setToken('ya29.sec_rec_tok');
+      const secBlob = new Blob([new Uint8Array(12).fill(77)], { type: 'audio/mpeg' });
+      const lec52 = {
+        id: '5201',
+        title: 'Cardio Lecture',
+        recordings: [
+          { id: '5201', dbKey: '5201', name: 'Main' },
+          { id: 'rec_5201_sec1', dbKey: 'rec_5201_sec1', name: 'Q&A Recording' }
+        ]
+      };
+      const sub52 = { id: 'sub52', name: 'Cardio', driveFolderId: 'fld_sub_52', groups: [{ id: 'g52', name: 'Week 1', driveFolderId: 'fld_grp_52', lectures: [lec52] }] };
+      p52.setSubjectsState([sub52], 'sub52');
+      await p52.saveMediaToDB('audios', 'rec_5201_sec1', secBlob);
+
+      globalThis.fetch = async (url, init = {}) => {
+        const u = String(url);
+        const m = String(init.method || 'GET');
+        if (m === 'GET' && u.includes('/files/fld_')) return new Response(JSON.stringify({ id: 'fld_grp_52', trashed: false, parents: ['fld_sub_52'] }), { status: 200 });
+        if (m === 'POST' && u.includes('uploadType=resumable')) return new Response('', { status: 200, headers: { Location: 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=up_sec_1' } });
+        if (m === 'PUT' && u.includes('up_sec_1')) {
+          const cr = String((init.headers || {})['Content-Range'] || '');
+          if (cr === 'bytes 0-9/12') return new Response('', { status: 308, headers: { Range: 'bytes=0-9' } });
+          return new Response(JSON.stringify({ id: '1MockDriveSecAudioId0000001', name: 'Cardio - Q&A.mp3' }), { status: 200 });
+        }
+        if (m === 'GET' && u.includes('/files/1MockDriveSecAudioId0000001?alt=media')) {
+          return new Response(new Uint8Array(12).fill(77), { status: 200, headers: { 'Content-Type': 'audio/mpeg' } });
+        }
+        return new Response('{}', { status: 200 });
+      };
+      const secUpRes = await p52.uploadMediaToCloudAccount('audios', lec52, secBlob, false, { recordingObj: lec52.recordings[1], deferWorkspaceSync: true });
+      idb52.stores.audios.clear();
+      p52.clearRamMediaCaches();
+      const secDlRes = await p52.downloadMediaFromCloudAccountDetailed('audios', lec52, { recordingObj: lec52.recordings[1], interactive: false });
+      const secRestoredFromIdb = await p52.getMediaFromDB('audios', 'rec_5201_sec1');
+
+      // Stale async switch guard: start switch to rec_slow (delayed download), immediately switch to rec_fast
+      const lecSwitch = {
+        id: '5202',
+        title: 'Rapid Switch',
+        recordings: [
+          { id: 'rec_5202_slow', dbKey: 'rec_5202_slow', name: 'Slow', cloudAudioDriveId: '1MockDriveSlowAudioId0000001' },
+          { id: 'rec_5202_fast', dbKey: 'rec_5202_fast', name: 'Fast', cloudAudioDriveId: '1MockDriveFastAudioId0000002' }
+        ]
+      };
+      p52.setViewingState({ lec: lecSwitch, page: 1, zoom: 1 });
+      let resolveSlowFetch = null;
+      globalThis.fetch = async (url) => {
+        if (String(url).includes('1MockDriveSlowAudioId0000001')) {
+          return new Promise((r) => {
+            resolveSlowFetch = () => r(new Response(new Uint8Array([1, 2, 3]), { status: 200, headers: { 'Content-Type': 'audio/mpeg' } }));
+          });
+        }
+        return new Response(new Uint8Array([4, 5, 6, 7]), { status: 200, headers: { 'Content-Type': 'audio/mpeg' } });
+      };
+      const slowSwitchPromise = p52.switchLectureRecording('rec_5202_slow');
+      const fastSwitchRes = await p52.switchLectureRecording('rec_5202_fast');
+      if (resolveSlowFetch) resolveSlowFetch();
+      const slowSwitchRes = await slowSwitchPromise;
+      const finalActiveRecId = lecSwitch.recordings[lecSwitch.activeRecordingIndex]?.id;
+      const finalAudioSrc = p52.domStore.get('lectureAudioElement')?.src;
+
+      // Bulk sync auth-pause & per-item isolation
+      const validPdfA = new Blob(['%PDF-1.4\n1 0 obj <<>> endobj\n%%EOF A'], { type: 'application/pdf' });
+      const validPdfB = new Blob(['%PDF-1.4\n1 0 obj <<>> endobj\n%%EOF B'], { type: 'application/pdf' });
+      const lec53a = { id: '5301', title: 'Bulk A', recordings: [] };
+      const lec53b = { id: '5302', title: 'Bulk B', recordings: [] };
+      p52.setSubjectsState([{ id: 's53', name: 'Bio', driveFolderId: 'fld_sub_52', groups: [{ id: 'g53', name: 'G1', driveFolderId: 'fld_grp_52', lectures: [lec53a, lec53b] }] }]);
+      await p52.saveMediaToDB('pdfs', '5301', validPdfA);
+      await p52.saveMediaToDB('pdfs', '5302', validPdfB);
+      globalThis.fetch = async (url, init = {}) => {
+        const u = String(url);
+        const m = String(init.method || 'GET');
+        if (m === 'GET' && u.includes('/files/fld_')) return new Response(JSON.stringify({ id: 'fld_grp_52', trashed: false, parents: ['fld_sub_52'] }), { status: 200 });
+        if (m === 'POST') return new Response(JSON.stringify({ error: { message: 'Unauthorized' } }), { status: 401 });
+        return new Response('{}', { status: 200 });
+      };
+      const bulk401Res = await p52.syncAllLocalMediaToCloud();
+
+      // Deleted lecture cleans primary AND arbitrary/prefixed secondary recording blobs in IDB
+      await p52.saveMediaToDB('pdfs', '5201', validPdfA);
+      const delCleanupRes = await p52.cleanupDeletedLectureLocalArtifacts(['5201'], uid52);
+      const secCleanedAfterDel = (await p52.getMediaFromDB('audios', 'rec_5201_sec1')) === null && (await p52.getMediaFromDB('pdfs', '5201')) === null;
+
+      assert(
+        secUpRes.ok === true && lec52.recordings[1].cloudAudioDriveId === '1MockDriveSecAudioId0000001' &&
+        secDlRes.ok === true && secDlRes.source === 'gdrive' && secRestoredFromIdb && secRestoredFromIdb.size === 12 &&
+        fastSwitchRes.ok === true && slowSwitchRes.reason === 'recording_changed' &&
+        finalActiveRecId === 'rec_5202_fast' && finalAudioSrc === 'blob:mock/4' &&
+        bulk401Res.authPaused === true &&
+        delCleanupRes.deletedKeys.audios.length === 1 && delCleanupRes.deletedKeys.pdfs.length === 1 &&
+        secCleanedAfterDel,
+        'P5.2-R6: Secondary recordings sync/download cleanly, rapid switching ignores stale async callbacks, bulk sync pauses on 401, and lecture delete cleans secondary IDB blobs',
+        JSON.stringify({ secUpRes, secDriveId: lec52.recordings[1].cloudAudioDriveId, secDlRes, secRestoredSize: secRestoredFromIdb?.size, fastSwitchRes, slowSwitchRes, finalActiveRecId, finalAudioSrc, bulk401Res, delCleanupRes, secCleanedAfterDel })
+      );
+
+      // R52.7: PDF Studio reactivateDriveFromPdfStudio preserves annotations/page/zoom & blocks /uc bypass on 403/404
+      p52.resetCounters();
+      p52.setToken(null);
+      p52.localStorage.setItem('exo_gdrive_connected', '1');
+      p52.localStorage.setItem('exo_gdrive_user_email', 'bound@gmail.com');
+      p52.localStorage.setItem('exo_gdrive_bound_user_id', uid52);
+      const lecReactivate = { id: '5401', title: 'Studio Reactivate', cloudPdfDriveId: '1MockDriveStudioPdfId00005401', cloudPdfUploaded: true };
+      const keptAnnos = { 3: [{ id: 'st_keep_1', tool: 'pen', color: '#000', points: [{ x: 0.1, y: 0.1 }] }] };
+      p52.setViewingState({ lec: lecReactivate, page: 3, zoom: 1.45, annos: keptAnnos });
+
+      let ucFallbackCalled = false;
+      p52.setGoogleClientImpl((cfg) => {
+        cfg.callback({
+          access_token: 'ya29.reactivated_tok',
+          expires_in: 3600,
+          scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file'
+        });
+      });
+      const studioPdfBytes = new TextEncoder().encode('%PDF-1.4\n1 0 obj <<>> endobj\n%%EOF');
+      globalThis.fetch = async (url) => {
+        const u = String(url);
+        if (u.includes('drive.google.com/uc')) ucFallbackCalled = true;
+        if (u.includes('drive/v3/about')) return new Response(JSON.stringify({ user: { emailAddress: 'bound@gmail.com' } }), { status: 200 });
+        if (u.includes('drive/v3/files?q=')) return new Response(JSON.stringify({ files: [{ id: 'fld_root_52' }] }), { status: 200 });
+        if (u.includes('/files/1MockDriveStudioPdfId00005401?alt=media')) return new Response(studioPdfBytes, { status: 200, headers: { 'Content-Type': 'application/pdf' } });
+        return new Response('{}', { status: 404 });
+      };
+      const reactivateOkRes = await p52.reactivateDriveFromPdfStudio();
+      const postReactivateView = p52.getViewingState();
+      const bannerEl = p52.domStore.get('pdfDriveReactivateBanner');
+      const bannerHiddenAfterOk = bannerEl.style.display === 'none';
+      const idbPdfSaved = await p52.getMediaFromDB('pdfs', '5401');
+
+      // Test 403 non-looping & no /uc fallback
+      idb52.stores.pdfs.clear();
+      p52.clearRamMediaCaches();
+      globalThis.fetch = async (url) => {
+        if (String(url).includes('drive.google.com/uc')) ucFallbackCalled = true;
+        return new Response(JSON.stringify({ error: { message: 'Forbidden', errors: [{ reason: 'insufficientFilePermissions' }] } }), { status: 403 });
+      };
+      const dl403Res = await p52.reactivateDriveFromPdfStudio();
+      const bannerMsg403 = p52.domStore.get('pdfDriveReactivateMsg')?.innerText || '';
+
+      assert(
+        reactivateOkRes.ok === true &&
+        postReactivateView.renderPdfCalls.length === 1 &&
+        postReactivateView.renderPdfCalls[0].opts.preservePageNum === 3 &&
+        postReactivateView.renderPdfCalls[0].opts.preserveZoom === 1.45 &&
+        postReactivateView.pageAnnotations[3] && postReactivateView.pageAnnotations[3][0].id === 'st_keep_1' &&
+        bannerHiddenAfterOk &&
+        idbPdfSaved && idbPdfSaved.size === studioPdfBytes.byteLength &&
+        dl403Res.ok === false && dl403Res.status === 403 && !ucFallbackCalled &&
+        bannerEl.style.display === 'flex' && bannerMsg403.includes('403'),
+        'P5.2-R7: reactivateDriveFromPdfStudio hydrates IDB, switches to PDF.js preserving page/zoom/annotations, hides banner, and handles 403 without /uc fallback or loops',
+        JSON.stringify({ reactivateOkRes, renderPdfCalls: postReactivateView.renderPdfCalls, annos: postReactivateView.pageAnnotations, bannerHiddenAfterOk, bannerDispAfter403: bannerEl.style.display, idbPdfSize: idbPdfSaved?.size, dl403Res, ucFallbackCalled, bannerMsg403 })
+      );
+    } finally {
+      globalThis.fetch = origFetch;
+      delete globalThis.__exoDriveRetryDelayMs;
+      delete globalThis.__exoDriveChunkSizeBytes;
+    }
+  }
+
   console.log('\n======================================================================');
   console.log(`TOTAL PHASE 4/4.1 REGRESSION CHECKS: ${testsPassed + testsFailed} | PASSED: ${testsPassed} | FAILED: ${testsFailed}`);
   console.log('======================================================================\n');

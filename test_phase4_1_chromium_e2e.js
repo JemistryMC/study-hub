@@ -6381,6 +6381,459 @@ async function main() {
 
     await tabII.close();
     await contextII.close();
+
+    // ========================================================================
+    // TEST JJ: Phase 5.2 Google Drive Reliability, OAuth Security, Resumable
+    //          Uploads, Stable Folder IDs, Secondary Recordings & Studio Reactivation
+    // ========================================================================
+    console.log('\n--- TEST JJ: Phase 5.2 Google Drive Reliability, OAuth, Resumable Uploads, Folder IDs, Recordings & Studio Reactivation ---');
+    const contextJJ = await browser.newContext();
+    const tabJJ = await contextJJ.newPage();
+    const uidJJ = 'e52jj000-1111-4222-8333-444455556666';
+
+    const driveMockState = {
+      ucCalls: 0,
+      postCalls: [],
+      patchCalls: [],
+      putRanges: [],
+      failChunk2Once: true,
+      return403Download: false,
+      silentShouldFail: true,
+      validPdfBytes: Buffer.from(
+        '%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [] /Count 0 >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n'
+      )
+    };
+
+    await tabJJ.route('https://www.googleapis.com/**', async (route) => {
+      const req = route.request();
+      const url = req.url();
+      const method = req.method();
+      const headers = req.headers();
+
+      if (url.includes('/drive/v3/about')) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ user: { emailAddress: 'jj.student@gmail.com' }, storageQuota: { limit: '16106127360', usage: '1073741824' } })
+        });
+      }
+      if (method === 'GET' && url.includes('/drive/v3/files?q=')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ files: [] }) });
+      }
+      if (method === 'GET' && url.includes('?alt=media')) {
+        if (driveMockState.return403Download) {
+          return route.fulfill({
+            status: 403,
+            contentType: 'application/json',
+            body: JSON.stringify({ error: { message: 'Forbidden', errors: [{ reason: 'insufficientFilePermissions' }] } })
+          });
+        }
+        if (url.includes('1MockJJSecAudioId00000000001')) {
+          return route.fulfill({ status: 200, contentType: 'audio/mpeg', body: Buffer.from([10, 20, 30, 40, 50, 60, 70, 80]) });
+        }
+        return route.fulfill({ status: 200, contentType: 'application/pdf', body: driveMockState.validPdfBytes });
+      }
+      if (method === 'GET' && /\/drive\/v3\/files\/fld_/.test(url)) {
+        const match = url.match(/\/drive\/v3\/files\/(fld_[^?]+)/);
+        const fId = match ? match[1] : 'fld_root_jj';
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ id: fId, name: fId, mimeType: 'application/vnd.google-apps.folder', trashed: false, parents: fId === 'fld_grp_jj' ? ['fld_sub_jj'] : ['fld_root_jj'] })
+        });
+      }
+      if (method === 'POST' && url.includes('/drive/v3/files') && !url.includes('uploadType=resumable')) {
+        const bodyJson = JSON.parse(req.postData() || '{}');
+        driveMockState.postCalls.push({ kind: 'folder', name: bodyJson.name });
+        const fId = bodyJson.name === 'Exo_Workspace' ? 'fld_root_jj' : ((bodyJson.parents || []).includes('fld_sub_jj') ? 'fld_grp_jj' : 'fld_sub_jj');
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: fId, name: bodyJson.name }) });
+      }
+      if (method === 'POST' && url.includes('uploadType=resumable')) {
+        driveMockState.postCalls.push({ kind: 'upload_init', url });
+        return route.fulfill({
+          status: 200,
+          headers: {
+            Location: 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=up_jj_session_1',
+            'Access-Control-Expose-Headers': 'Location'
+          },
+          body: ''
+        });
+      }
+      if (method === 'PATCH' && /\/drive\/v3\/files\/fld_/.test(url)) {
+        const bodyJson = JSON.parse(req.postData() || '{}');
+        driveMockState.patchCalls.push({ url, body: bodyJson });
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'fld_sub_jj', name: bodyJson.name }) });
+      }
+      if (method === 'PUT' && url.includes('upload_id=up_jj_session_1')) {
+        const cr = headers['content-range'] || headers['Content-Range'] || '';
+        driveMockState.putRanges.push(cr);
+        if (cr.startsWith('bytes */')) {
+          return route.fulfill({
+            status: 308,
+            headers: { Range: 'bytes=0-19', 'Access-Control-Expose-Headers': 'Range' },
+            body: ''
+          });
+        }
+        const m = cr.match(/bytes (\d+)-(\d+)\/(\d+)/);
+        if (m) {
+          const start = Number(m[1]);
+          const end = Number(m[2]);
+          const total = Number(m[3]);
+          if (driveMockState.failChunk2Once && start > 0 && end + 1 < total) {
+            driveMockState.failChunk2Once = false;
+            return route.fulfill({ status: 500, body: 'Simulated Mid-Upload Crash' });
+          }
+          if (end + 1 < total) {
+            return route.fulfill({
+              status: 308,
+              headers: { Range: `bytes=0-${end}`, 'Access-Control-Expose-Headers': 'Range' },
+              body: ''
+            });
+          }
+        }
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ id: '1MockJJUploadedFileId0000001', name: 'JJ_File' })
+        });
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    });
+
+    await tabJJ.route('https://drive.google.com/**', async (route) => {
+      if (route.request().url().includes('/uc')) driveMockState.ucCalls++;
+      return route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>Preview</body></html>' });
+    });
+
+    await tabJJ.route('https://accounts.google.com/**', async (route) => {
+      return route.fulfill({ status: 200, contentType: 'application/javascript', body: '/* mocked GIS in E2E */' });
+    });
+
+    await tabJJ.route('**/*supabase*', async (route) => {
+      return route.fulfill({ status: 200, contentType: 'application/javascript', body: '/* mocked Supabase CDN in E2E */' });
+    });
+
+    await tabJJ.addInitScript((syntheticUid) => {
+      window.__exoDriveChunkSizeBytes = 20;
+      window.__exoDriveRetryDelayMs = 5;
+      window.__jjSilentFail = true;
+      window.__jjTokenSeq = 0;
+
+      const jjSession = {
+        access_token: 'synthetic-jwt-jj',
+        refresh_token: 'synthetic-refresh-jj',
+        expires_in: 3600,
+        token_type: 'bearer',
+        user: {
+          id: syntheticUid,
+          email: 'jj.student@exo.edu',
+          user_metadata: { full_name: 'JJ Student' }
+        }
+      };
+
+      window.supabase = {
+        createClient: () => ({
+          auth: {
+            getSession: async () => ({ data: { session: jjSession }, error: null }),
+            onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
+          },
+          channel: () => {
+            const ch = { on: () => ch, subscribe: () => ch };
+            return ch;
+          },
+          removeChannel: () => {},
+          from: () => ({
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: {
+                    user_id: syntheticUid,
+                    user_email: 'jj.student@exo.edu',
+                    can_upload_media: true,
+                    revision: 1,
+                    subjects: JSON.parse(localStorage.getItem('pharmaSubjectsV4') || '[]'),
+                    schedule: {
+                      version: 3,
+                      events: [],
+                      backlog: [],
+                      weeklyReports: [],
+                      gdriveSync: { linked: true, userEmail: 'jj.student@gmail.com', folderId: 'fld_root_jj' }
+                    },
+                    logs: [],
+                    academy_progress: [],
+                    annotations: {}
+                  },
+                  error: null
+                })
+              })
+            })
+          }),
+          rpc: async () => ({ data: { ok: true, status: 'ok', revision: 2 }, error: null })
+        })
+      };
+
+      window.google = {
+        accounts: {
+          oauth2: {
+            initTokenClient: (cfg) => ({
+              requestAccessToken: (reqOpts) => {
+                setTimeout(() => {
+                  if (reqOpts && reqOpts.prompt === 'none' && window.__jjSilentFail) {
+                    cfg.callback({ error: 'interaction_required' });
+                  } else {
+                    window.__jjTokenSeq++;
+                    cfg.callback({
+                      access_token: 'ya29.jj_mem_tok_' + window.__jjTokenSeq,
+                      expires_in: 3600,
+                      scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file'
+                    });
+                  }
+                }, 10);
+              }
+            }),
+            revoke: () => {}
+          }
+        }
+      };
+    }, uidJJ);
+
+    await tabJJ.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+    await tabJJ.waitForFunction(() => typeof initPdfDB === 'function' && typeof ensureGoogleAccessToken === 'function' && window.__exoSupabaseStartupState && window.__exoSupabaseStartupState.settled);
+
+    // JJ.1: Legacy token cleanup on load + 5-state card + in-memory only token
+    const jj1Setup = await tabJJ.evaluate(async (uid) => {
+      await initPdfDB();
+      localStorage.setItem('exo_gdrive_token', 'ya29.stale_legacy_ls_token');
+      localStorage.setItem('exo_gdrive_token_exp', String(Date.now() + 999999));
+      cleanupLegacyGoogleTokenStorage();
+
+      await handleAuthSessionChange({ id: uid, email: 'jj.student@exo.edu', name: 'JJ Student' }, false);
+      currentUserCanUploadMedia = true;
+      verifyVipStatusFromServer = async () => true;
+      pushWorkspaceToCloud = async () => ({ ok: true });
+
+      localStorage.setItem('exo_gdrive_connected', '1');
+      localStorage.setItem('exo_gdrive_user_email', 'jj.student@gmail.com');
+      localStorage.setItem('exo_gdrive_bound_user_id', uid);
+
+      const silentTok = await ensureGoogleAccessToken(false);
+      const stateReauth = getGoogleDriveAuthState();
+      const badgeReauth = document.getElementById('gdriveStatusBadge')?.innerText || '';
+
+      window.__jjSilentFail = false;
+      const interactiveTok = await ensureGoogleAccessToken(true);
+      const stateConnected = getGoogleDriveAuthState();
+
+      return {
+        legacyRemoved: localStorage.getItem('exo_gdrive_token') === null && localStorage.getItem('exo_gdrive_token_exp') === null,
+        silentTokNull: silentTok === null,
+        stateReauth,
+        badgeHasText: badgeReauth.length > 0,
+        interactiveTokOk: Boolean(interactiveTok),
+        stateConnected,
+        stillZeroLsToken: localStorage.getItem('exo_gdrive_token') === null
+      };
+    }, uidJJ);
+
+    // JJ.2: Interrupted chunked upload -> sessionStorage descriptor (no token) -> reload -> resume without duplicate POST
+    const jj2Interrupt = await tabJJ.evaluate(async (uid) => {
+      subjects = [{
+        id: 'subJJ',
+        name: 'JJ Pharmacology',
+        groups: [{
+          id: 'grpJJ',
+          name: 'JJ Chapter 1',
+          lectures: [{ id: 'lecJJ1', title: 'Chunked Lec', recordings: [] }]
+        }]
+      }];
+      activeSubjectId = 'subJJ';
+      localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+      const pdfBytes = new Uint8Array(55).fill(66);
+      pdfBytes.set([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, 0x0a], 0);
+      const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+      await saveMediaToDB('pdfs', 'lecJJ1', pdfBlob);
+      const upFailRes = await uploadMediaToCloudAccount('pdfs', subjects[0].groups[0].lectures[0], pdfBlob, false, { deferWorkspaceSync: true });
+      const desc = getGoogleDriveResumableDescriptor(uid, 'pdfs', 'lecJJ1');
+      const rawDesc = sessionStorage.getItem(getGoogleDriveResumableSessionKey(uid, 'pdfs', 'lecJJ1')) || '';
+      const idbBlobStillThere = await getMediaFromDB('pdfs', 'lecJJ1');
+      return {
+        upFailOk: upFailRes.ok === false,
+        hasDesc: Boolean(desc && desc.uploadUrl && desc.uploadUrl.includes('up_jj_session_1')),
+        noTokenInSession: !rawDesc.includes('ya29.'),
+        idbBlobKept: Boolean(idbBlobStillThere && idbBlobStillThere.size === 55),
+        subFolderId: subjects[0].driveFolderId || '',
+        grpFolderId: subjects[0].groups[0].driveFolderId || ''
+      };
+    }, uidJJ);
+
+    // Reload page while keeping sessionStorage intact and verify resume + stable folder rename
+    await tabJJ.reload({ waitUntil: 'domcontentloaded' });
+    await tabJJ.waitForFunction(() => typeof initPdfDB === 'function' && typeof resumePendingDriveUpload === 'function' && window.__exoSupabaseStartupState && window.__exoSupabaseStartupState.settled);
+
+    const jj2And3PostReload = await tabJJ.evaluate(async (uid) => {
+      await initPdfDB();
+      await handleAuthSessionChange({ id: uid, email: 'jj.student@exo.edu', name: 'JJ Student' }, false);
+      currentUserCanUploadMedia = true;
+      verifyVipStatusFromServer = async () => true;
+      pushWorkspaceToCloud = async () => ({ ok: true });
+      subjects = JSON.parse(localStorage.getItem('pharmaSubjectsV4') || '[]');
+      activeSubjectId = 'subJJ';
+      localStorage.setItem('exo_gdrive_connected', '1');
+      localStorage.setItem('exo_gdrive_user_email', 'jj.student@gmail.com');
+      localStorage.setItem('exo_gdrive_bound_user_id', uid);
+      localStorage.setItem('exo_gdrive_folder_id', 'fld_root_jj');
+
+      const tokenAfterReload = isGoogleDriveTokenActive();
+      window.__jjSilentFail = false;
+      await ensureGoogleAccessToken(true);
+
+      updateGoogleDriveUI();
+      const resumableHtml = document.getElementById('gdriveResumableNotice')?.innerHTML || '';
+      const resumeRes = await resumePendingDriveUpload('pdfs', 'lecJJ1');
+      const descAfterResume = getGoogleDriveResumableDescriptor(uid, 'pdfs', 'lecJJ1');
+
+      // JJ.3: Rename subject using persisted driveFolderId
+      const sub = subjects[0];
+      sub.name = 'JJ Pharmacology Renamed';
+      const renameRes = await syncRenamedSubjectDriveFolder(sub, 'JJ Pharmacology');
+
+      return {
+        tokenClearedOnReload: tokenAfterReload === false,
+        resumableBannerListed: resumableHtml.includes('Chunked Lec') || resumableHtml.includes('lecJJ1'),
+        resumeOk: Boolean(resumeRes && resumeRes.ok && resumeRes.driveFileId === '1MockJJUploadedFileId0000001'),
+        descCleared: descAfterResume === null,
+        renameOk: Boolean(renameRes && renameRes.ok),
+        subFolderIdPreserved: sub.driveFolderId === 'fld_sub_jj'
+      };
+    }, uidJJ);
+
+    const jjUploadInitCount = driveMockState.postCalls.filter(c => c.kind === 'upload_init').length;
+    const jjUsedProbe = driveMockState.putRanges.includes('bytes */55');
+    const jjRenamedFolder = driveMockState.patchCalls.some(c => c.body && c.body.name === 'JJ Pharmacology Renamed');
+
+    // JJ.4: Secondary audio recording cloud download on switch in Chromium
+    const jj4SecRec = await tabJJ.evaluate(async () => {
+      const lec = {
+        id: 'lecJJ2',
+        title: 'Multi Rec Lec',
+        recordings: [
+          { id: 'lecJJ2', dbKey: 'lecJJ2', name: 'Main' },
+          { id: 'rec_lecJJ2_sec1', dbKey: 'rec_lecJJ2_sec1', name: 'Section Audio', cloudAudioUploaded: true, cloudAudioDriveId: '1MockJJSecAudioId00000000001' }
+        ]
+      };
+      subjects[0].groups[0].lectures.push(lec);
+      currentViewingLec = { lec, groupId: 'grpJJ', subjectId: 'subJJ' };
+      const swRes = await switchLectureRecording('rec_lecJJ2_sec1');
+      const dlBlob = await getMediaFromDB('audios', 'rec_lecJJ2_sec1');
+      const audioSrc = document.getElementById('lectureAudioElement')?.src || '';
+      return {
+        swOk: Boolean(swRes && swRes.ok),
+        blobSavedSize: dlBlob ? dlBlob.size : 0,
+        audioSrcSet: audioSrc.startsWith('blob:')
+      };
+    });
+
+    // JJ.5: PDF Studio /preview + click #pdfDriveReactivateBtn -> PDF.js canvas + IDB + preserved annotations/page/zoom + non-looping 403
+    await tabJJ.evaluate(async () => {
+      // Simulate lost Drive token + silent refresh failure + no local PDF blob so openLectureDocument enters /preview fallback with reactivate banner
+      window.__jjSilentFail = true;
+      setGoogleDriveAuthState('reauth_required', 'expired');
+      window.pdfjsLib = {
+        getDocument: () => ({
+          promise: Promise.resolve({
+            numPages: 3,
+            getPage: async () => ({
+              getViewport: ({ scale }) => ({ width: 400 * scale, height: 600 * scale }),
+              render: () => ({ promise: Promise.resolve() })
+            })
+          })
+        })
+      };
+      const lecPdf = {
+        id: 'lecJJ3',
+        title: 'Studio Reactivate Lec',
+        cloudPdfUploaded: true,
+        cloudPdfDriveId: '1MockJJStudioPdfId0000000003',
+        lastPageNum: 2,
+        recordings: []
+      };
+      subjects[0].groups[0].lectures.push(lecPdf);
+      await openLectureDocument('grpJJ', 'lecJJ3');
+      // Set explicit active page/zoom & annotations in memory to verify preservation across reactivation
+      currentActivePageNum = 2;
+      currentPdfZoom = 1.4;
+      pageAnnotations = { 2: [{ id: 'jj_anno_2', tool: 'pen', color: '#e11d48', points: [{ x: 0.2, y: 0.3 }] }] };
+    });
+
+    const jjBannerVisibleBeforeClick = await tabJJ.locator('#pdfDriveReactivateBanner').isVisible();
+    await tabJJ.click('#pdfDriveReactivateBtn');
+    await tabJJ.waitForFunction(() => {
+      const b = document.getElementById('pdfDriveReactivateBanner');
+      return b && b.style.display === 'none' && typeof currentPdfDoc !== 'undefined' && currentPdfDoc !== null;
+    });
+
+    const jj5AfterClick = await tabJJ.evaluate(async () => {
+      const idbPdf = await getMediaFromDB('pdfs', 'lecJJ3');
+      return {
+        bannerHidden: document.getElementById('pdfDriveReactivateBanner')?.style.display === 'none',
+        iframeHidden: document.getElementById('pdfViewerIframe')?.style.display === 'none',
+        scrollShown: document.getElementById('pdfPagesScrollContainer')?.style.display === 'flex',
+        preservedPage: currentActivePageNum === 2,
+        preservedZoom: Math.abs(currentPdfZoom - 1.4) < 0.01,
+        preservedAnnos: Boolean(pageAnnotations[2] && pageAnnotations[2][0].id === 'jj_anno_2'),
+        idbSavedOk: Boolean(idbPdf && idbPdf.size > 20)
+      };
+    });
+
+    // JJ.5b: Verify 403 does not fall back to /uc and keeps banner in non-looping permission_denied state
+    driveMockState.return403Download = true;
+    const jj5ErrorState = await tabJJ.evaluate(async () => {
+      await deleteMediaFromDB('pdfs', 'lecJJ3');
+      sessionMediaBlobRamCache.pdfs.clear();
+      const res = await reactivateDriveFromPdfStudio();
+      const banner = document.getElementById('pdfDriveReactivateBanner');
+      const msg = document.getElementById('pdfDriveReactivateMsg')?.innerText || '';
+      const btn = document.getElementById('pdfDriveReactivateBtn');
+      return {
+        okFalse: res.ok === false && res.status === 403,
+        bannerShown: banner && banner.style.display === 'flex',
+        btnReenabled: btn && btn.disabled === false,
+        has403Msg: msg.includes('403')
+      };
+    });
+
+    assert(
+      jj1Setup.legacyRemoved && jj1Setup.silentTokNull && jj1Setup.stateReauth === 'reauth_required' &&
+      jj1Setup.badgeHasText && jj1Setup.interactiveTokOk && jj1Setup.stateConnected === 'connected' && jj1Setup.stillZeroLsToken,
+      'Test JJ.1: Legacy token keys wiped on startup, token kept strictly in memory, silent refresh avoids popup, and 5-state Drive UI updates cleanly'
+    );
+    assert(
+      jj2Interrupt.upFailOk && jj2Interrupt.hasDesc && jj2Interrupt.noTokenInSession && jj2Interrupt.idbBlobKept &&
+      jj2And3PostReload.tokenClearedOnReload && jj2And3PostReload.resumableBannerListed &&
+      jj2And3PostReload.resumeOk && jj2And3PostReload.descCleared &&
+      jjUploadInitCount === 1 && jjUsedProbe,
+      'Test JJ.2: Interrupted chunked upload stores token-free sessionStorage descriptor, survives reload, resumes via bytes */total without duplicate POST, and clears on completion'
+    );
+    assert(
+      jj2Interrupt.subFolderId === 'fld_sub_jj' && jj2Interrupt.grpFolderId === 'fld_grp_jj' &&
+      jj2And3PostReload.renameOk && jj2And3PostReload.subFolderIdPreserved && jjRenamedFolder,
+      'Test JJ.3: Subject & Group persist stable driveFolderId and rename existing verified Drive folder via PATCH'
+    );
+    assert(
+      jj4SecRec.swOk && jj4SecRec.blobSavedSize === 8 && jj4SecRec.audioSrcSet,
+      'Test JJ.4: Secondary audio recording downloads from Drive on switch, persists in IDB, and wires <audio> src cleanly'
+    );
+    assert(
+      jjBannerVisibleBeforeClick &&
+      jj5AfterClick.bannerHidden && jj5AfterClick.iframeHidden && jj5AfterClick.scrollShown &&
+      jj5AfterClick.preservedPage && jj5AfterClick.preservedZoom && jj5AfterClick.preservedAnnos && jj5AfterClick.idbSavedOk &&
+      jj5ErrorState.okFalse && jj5ErrorState.bannerShown && jj5ErrorState.btnReenabled && jj5ErrorState.has403Msg &&
+      driveMockState.ucCalls === 0,
+      'Test JJ.5: Clicking #pdfDriveReactivateBtn in /preview switches to PDF.js + IDB preserving page/zoom/annotations, and 403 stays fail-closed with zero /uc fallback'
+    );
+
+    await tabJJ.close();
+    await contextJJ.close();
     await context.close();
   } finally {
     await browser.close();

@@ -1,0 +1,562 @@
+# EXO — PHASE 5.2
+# Google Drive Reliability, OAuth Security & Multi-Recording Cloud Media Pipeline
+
+## 1. Repository & Authoritative Base
+
+Repository: `JemistryMC/study-hub`  
+Active branch: `main`
+
+Latest GitHub repository HEAD:
+
+`b4aacfa1e31e66d01cf5d0e701fff2cbc2a8c39d`
+
+Latest verified application source and test SHA:
+
+`0fba2907c375b166aeb70fe78498546a6d1c6d4b`
+
+Current `index.html` Git blob SHA:
+
+`c42cc8a48e05c7681085b0ba8a66ed14bfe35774`
+
+Previous verified CI:
+GitHub Actions Run #50 (`43415571477`): 734/734 PASSED.
+
+GitHub Pages Run #124 (`43415570728`): SUCCESS.
+
+The latest repository commit after the verified source commit is documentation-only. Do not mistake its SHA for a new application test baseline.
+
+The owner has explicitly directed the project to proceed with the Google Drive and OAuth engineering track, Phase 5.2. Do not reopen the completed Phase 5.1/M1–M6 work or start another Phase 5.1 blueprint exercise.
+
+If project status documents still describe an older phase, reconcile the handoff to the owner's current direction without rewriting historical evidence or falsely claiming unverified approvals.
+
+## 2. Phase 5.2 Goal
+
+Implement and verify the Google Drive reliability and OAuth improvements previously identified in the Phase 5.0.2 audit:
+
+- F-06: OAuth token persistence, token expiry, 401 recovery, and scope behavior.
+- F-07: Secondary lecture audio recordings (`lec.recordings[]`, `rec_*`) missing from Cloud Media synchronization.
+- F-08: Google Drive file replacement, resumable upload recovery, and folder identity persistence.
+- F-10: Google Drive `/preview` fallback preventing Exo PDF Studio tools from being used.
+
+This is an implementation phase for the current application, not a generic rewrite.
+
+Preserve existing Exo architecture, UI, data structures, authentication boundaries, and user workflows.
+
+## 3. Mandatory Source Synchronization and Inspection
+
+Before modifying anything:
+
+1. Verify the connected repository and branch.
+2. Confirm the workspace source corresponds exactly to the latest GitHub `index.html` blob SHA:
+   `c42cc8a48e05c7681085b0ba8a66ed14bfe35774`.
+3. If the AI Studio workspace is stale, synchronize it before proceeding.
+4. Inspect the current source implementation. Do not trust old line numbers from the Phase 5.0.2 audit.
+5. Recalculate all current function locations and identify all production call sites.
+6. Inspect `package.json`, `run_all_tests.js`, current test suites, and the GitHub workflow before deciding how to add tests.
+
+Inspect these exact functions and their complete call chains:
+
+### OAuth and token management
+- `isGoogleDriveTokenActive()`
+- `ensureGoogleAccessToken()`
+- `trySilentGoogleDriveConnection()`
+- `connectGoogleDriveAccount()`
+- `disconnectGoogleDriveAccount()`
+- `fetchGoogleDriveUserInfo()`
+- `verifyVipStatusFromServer()`
+
+### Drive folders and permissions
+- `ensureSubfolderInGoogleDrive()`
+- `ensureExoGoogleDriveFolder()`
+- `auditAndManageGoogleDrivePermissions()`
+- `shareGoogleDriveFileExplicitly()`
+- `revokeGoogleDriveFileSharing()`
+
+### Upload and download
+- `uploadBlobToGoogleDriveViaXHR()`
+- `uploadMediaToCloudAccount()`
+- `downloadBlobFromGoogleDrive()`
+- `downloadMediaFromCloudAccount()`
+- `uploadSingleLectureMediaToCloud()`
+- `uploadCurrentViewingLectureMediaToCloud()`
+- `syncAllLocalMediaToCloud()`
+- `downloadAllCloudMediaToLocal()`
+
+### Recording and Studio flows
+- `addRecordingToCurrentLecture()`
+- `switchLectureRecording()`
+- `renderLectureRecordingsSelector()`
+- `openLectureDocument()`
+- PDF Studio fallback and loading handlers.
+
+Trace all real UI call sites. Do not fix one helper while leaving another caller with incompatible behavior.
+
+## 4. P5.2-A — OAuth Token Lifecycle and Security (F-06)
+
+### A1. Stop long-lived raw token persistence
+
+The current audit reports that the raw Google access token is stored in:
+
+`localStorage['exo_gdrive_token']`
+
+Required behavior:
+
+1. Stop writing raw Google OAuth access tokens to long-lived LocalStorage.
+2. Prefer an in-memory token held by the existing application authorization module/state.
+3. Never put Google access tokens, OAuth callback payloads, or credentials into reports, logs, Git, IndexedDB workspace snapshots, or backup exports.
+4. Remove the old persisted token only through a safe, account-aware migration after inspecting existing initialization and disconnect behavior.
+5. Preserve non-sensitive connection metadata such as the connected Google account email where appropriate.
+6. Clear in-memory token, expiry, and pending auth state on disconnect, account/session transition, and explicit revocation.
+7. Do not clear unrelated Google Drive metadata or file references simply because an access token expires.
+
+Do not claim that `sessionStorage` protects tokens from XSS. It is still readable by same-origin JavaScript.
+
+### A2. Respect the GIS token model
+
+The current application uses Google Identity Services `google.accounts.oauth2.initTokenClient()`.
+
+The browser token model does not provide a persistent refresh token. Access tokens are short-lived, and a new token request must be initiated from a user-driven event after expiry.
+
+Do not invent an automatic refresh-token implementation.
+
+Required behavior:
+
+- Keep the existing token-client architecture unless inspection proves it cannot safely meet the requirements.
+- Keep a single re-entrant/token-request coordination mechanism to prevent concurrent duplicate authorization flows.
+- Distinguish `connected`, `token_expired`, `reauth_required`, `permission_denied`, and `disconnected`.
+- A background synchronization task must never unexpectedly open a Google consent popup.
+- If a background operation receives an expired-token response, pause safely and expose an explicit user action to reconnect.
+- A user clicking Connect or Resume must initiate the GIS `requestAccessToken()` call from the actual click handler.
+- Do not rely on a delayed `requestAccessToken()` call after an asynchronous network response retaining browser user activation.
+- Validate that the granted scopes include the capabilities actually required by the requested operation.
+- Verify the connected Google account identity and avoid silently switching a pending upload/download to a different Google account.
+
+### A3. Distinguish API failures
+
+Do not treat all failures as token expiration.
+
+Handle at least:
+
+- `401`: invalid/expired authorization; clear the invalid in-memory token and require reauthorization.
+- `403`: insufficient permissions or scope; explain the missing access without an infinite authentication loop.
+- `404`: the referenced file/folder no longer exists or is inaccessible; reconcile the stale reference safely.
+- `429`: respect rate limiting and retry policy.
+- `5xx` / network interruption: bounded retry/resume behavior without creating duplicate files.
+
+Do not retry indefinitely.
+
+## 5. P5.2-B — Centralized Authenticated Drive Operations
+
+Introduce a narrowly scoped shared authorization/request mechanism if source inspection confirms that it reduces duplicated and inconsistent handling.
+
+It must support:
+
+- Drive metadata requests.
+- Folder lookup/create operations.
+- File download requests.
+- Resumable upload initiation.
+- Resumable upload chunk requests.
+- Existing file update requests.
+
+Required behavior:
+
+1. Use the current in-memory access token at execution time.
+2. Return structured results instead of swallowing status codes.
+3. Do not blindly repeat non-idempotent operations.
+4. Retry a request only when its semantics and server state make a retry safe.
+5. On `401`, pause the affected operation and surface a user-driven reauthorization/resume action.
+6. On `403`, distinguish permission/scope denial from an expired token.
+7. Preserve the current account operation context and session-generation checks.
+8. Prevent a late request from an old Google account session from modifying the active account's local metadata.
+9. Never log Authorization headers or resumable session URIs.
+
+Do not introduce a generic framework or new dependency merely to implement this wrapper.
+
+## 6. P5.2-C — Correct In-Place File Replacement (F-08)
+
+The previous audit identified that `triggerEditLecture()` sends `forceReplace: true`, but `uploadMediaToCloudAccount()` ignores the flag and creates another Drive file.
+
+Required correction:
+
+1. Honor `queueMeta.forceReplace`.
+2. Also recognize existing file IDs:
+   - `cloudPdfDriveId`
+   - `cloudAudioDriveId`
+3. When a valid existing Drive file ID is present and replacement is requested, update that file using the Drive API resumable update endpoint:
+
+   `PATCH /upload/drive/v3/files/{fileId}?uploadType=resumable`
+
+4. Use `POST /upload/drive/v3/files?uploadType=resumable` only for genuine new-file creation.
+5. A missing/stale file ID may be recreated only after a confirmed `404` for that exact file. Do not fall back to creating another file after a `401`, `403`, timeout, network error, or `5xx`.
+6. Preserve the existing file ID until the replacement is confirmed successful.
+7. Update local lecture metadata only after the final Drive response confirms the new file state.
+8. Avoid accidental duplicate uploads if the server completed the operation but the response was lost.
+9. Never automatically trash the previous or any unrelated remote Drive file.
+10. Preserve file names, MIME types, parent folders, and relevant metadata.
+
+Use the official Drive API `PATCH` behavior for existing files. Do not implement replacement by creating a second file and changing the local pointer.
+
+## 7. P5.2-D — Resumable Upload Recovery
+
+The existing upload code uses a resumable upload session but does not persist enough state to recover after reload.
+
+Implement a controlled, crash/reload-resilient session mechanism.
+
+### Session metadata
+
+Use `sessionStorage` for the resumable upload session URI only if the security and account-isolation review confirms it is appropriate.
+
+Treat the URI as sensitive capability data. It must never appear in console logs, error text, Git, or reports.
+
+Keep the stored session descriptor minimal and account-scoped. It should identify:
+
+- Active Exo UID.
+- Connected Google account identity.
+- Target Drive file ID, if updating an existing file.
+- Media type and record identity.
+- Expected file size and MIME type.
+- The resumable session URI.
+- The operation state and last verified progress.
+
+Never store the OAuth access token in the resumable session descriptor.
+
+### Resume protocol
+
+Follow Google's documented resumable upload protocol:
+
+1. Initiate the resumable session.
+2. Save the returned session URI.
+3. Upload chunks using correct `Content-Range` headers.
+4. Respect the returned `Range` response header; never assume all submitted bytes were accepted.
+5. On interruption or retryable `5xx`, query server upload status using an empty `PUT` with the appropriate `Content-Range: bytes */{totalSize}`.
+6. Handle `308 Resume Incomplete` and continue at the exact next byte.
+7. Handle completed `200`/`201` responses without uploading again.
+8. Handle expired session `404` by restarting safely from the original IndexedDB Blob.
+9. Validate that the local Blob is still the correct file for the pending operation before resuming.
+10. Clear the session descriptor after confirmed completion, confirmed cancellation, explicit disconnect, or unrecoverable session expiry.
+
+Do not remove the original IndexedDB media Blob until upload success and metadata persistence are confirmed.
+
+Keep chunk sizes and byte-range handling compliant with the Drive API requirements.
+
+A reload must not create a second file while a valid resumable session for the first file is recoverable.
+
+## 8. P5.2-E — Stable Google Drive Folder IDs (F-08)
+
+The current audit found that folder resolution relies on sanitized subject/group display names.
+
+Required correction:
+
+1. Persist stable `driveFolderId` metadata on the relevant subject and group records, after verifying the actual current schema and naming conventions.
+2. Resolve an existing folder by stored ID first.
+3. Validate that the stored ID is actually a folder and belongs to the expected parent/Exo workspace hierarchy.
+4. If the stored folder ID is missing or stale, perform a bounded, account-authorized lookup under the correct parent before creating anything.
+5. Avoid duplicate folder creation on retries or concurrent requests.
+6. After a successful lookup or creation, persist the stable folder ID locally and through the existing Workspace sync path.
+7. Subject/group display-name changes must not cause future uploads to silently create a new folder path.
+8. If folder rename is implemented, only rename a verified Exo-owned folder identified by its persisted ID and expected parent. Do not rename arbitrary user folders.
+9. Preserve compatibility with existing Drive IDs and folders. Do not force a migration that loses old references.
+10. Do not move files or modify external Drive folders outside the verified Exo hierarchy.
+
+## 9. P5.2-F — Secondary Audio Recordings Cloud Sync (F-07)
+
+The current application stores secondary recordings in:
+
+- `lec.recordings[]`
+- IndexedDB `audios`
+- keys such as `rec_*`
+
+The previous audit found that normal cloud-media pipelines handle only the primary `lec.id` audio blob.
+
+Extend the existing pipeline to support every secondary recording.
+
+### Upload
+
+For each recording object:
+
+- Preserve its stable recording ID.
+- Resolve its local Blob using the correct account-scoped IndexedDB key.
+- Upload the Blob through the same hardened Drive media pipeline.
+- Persist the recording's remote metadata only after successful upload.
+
+Use compatible metadata fields where appropriate:
+
+- `cloudAudioUploaded`
+- `cloudAudioDriveId`
+- `cloudAudioPath`
+- `cloudAudioSize`
+
+Inspect the current object schema first; do not create conflicting aliases or duplicate metadata fields.
+
+### Download
+
+1. Download each recording using its own Drive file ID.
+2. Save it under the exact expected account-scoped IndexedDB recording key.
+3. Verify the saved Blob is readable and its size/type are consistent.
+4. Preserve the existing recording name, order, and selection metadata.
+5. Do not overwrite the primary audio Blob with a secondary recording.
+6. Ensure `switchLectureRecording()` loads the selected local recording or performs a safe authorized download when absent.
+7. Ensure playback errors are visible and recoverable, not silent.
+
+### Bulk synchronization
+
+Extend:
+
+- `uploadCurrentViewingLectureMediaToCloud()`
+- `syncAllLocalMediaToCloud()`
+- `downloadAllCloudMediaToLocal()`
+
+to include `lec.recordings[]`.
+
+Requirements:
+
+- Use bounded concurrency to avoid excessive memory usage and Drive rate limiting.
+- Continue processing independent recordings when one item fails, while reporting each failure.
+- Support retry and resume for interrupted uploads.
+- Avoid duplicate uploads when a remote ID already exists.
+- Preserve per-record progress and account ownership.
+- Ensure a recording cannot be attached to a different lecture or UID through a stale asynchronous callback.
+
+Keep primary lecture audio and secondary recordings independently addressable.
+
+## 10. P5.2-G — Restore Interactive PDF Studio After Drive Reauthorization (F-10)
+
+Current issue:
+
+When a Drive-backed PDF is unavailable locally and a non-interactive Drive download fails, `openLectureDocument()` may show the Google Drive `/preview` iframe.
+
+That fallback prevents Exo's PDF.js annotation canvas and Studio features from working.
+
+Required UX:
+
+1. Detect when the requested lecture has a Drive-backed PDF but the local IndexedDB Blob is absent.
+2. If authorization is missing or expired, display a clear, contextual action in the PDF Studio header:
+
+   **"Activate Google Drive to Enable Ink & Studio Tools"**
+
+3. The action must be a real clickable control.
+4. On explicit user click:
+   - Initiate Google authorization using the proper user gesture.
+   - Verify the resulting account and permissions.
+   - Download the requested PDF from its existing Drive file ID.
+   - Save the Blob into the correct account-scoped IndexedDB `pdfs` store.
+   - Verify the stored Blob.
+   - Reopen/switch the current viewer from the Drive iframe to the normal Exo PDF.js interactive viewer.
+5. Preserve the active lecture, requested page, zoom where possible, and existing annotations.
+6. Do not overwrite or clear annotations as part of PDF download.
+7. If the Google account lacks access (`403`), show a clear permission message rather than repeating authorization.
+8. If the file is missing (`404`), report the missing remote file and preserve all local metadata.
+9. Prevent duplicate download attempts and duplicate banners.
+10. Hide the banner once the interactive PDF is available.
+
+The `/preview` iframe may remain as a read-only fallback when the user declines or cannot complete authorization. It must not silently masquerade as the full Exo Studio.
+
+## 11. OAuth Scope Decision Gate — Do Not Silently Change Permissions
+
+The current implementation requests `drive.readonly` alongside `drive.file`.
+
+The audit records that:
+
+- `drive.readonly` allows reading/downloading all Drive files.
+- `drive.file` provides narrower per-file access.
+- The existing `auditAndManageGoogleDrivePermissions()` scans Drive files.
+- External Drive URLs pasted into Exo may rely on broader read scope.
+- Google Picker is not currently implemented.
+
+This is a material privacy and product decision.
+
+For this implementation pass:
+
+1. Preserve the currently requested scopes.
+2. Do not silently remove `drive.readonly`.
+3. Do not add broader scopes.
+4. Do not add Google Picker unless separately approved.
+5. Do not create automatic `anyone`/public sharing permissions.
+6. Do not weaken private-by-default Drive behavior.
+7. Document the current scope and its privacy/verification implications accurately.
+8. Prepare a separate owner decision note comparing:
+   - Retaining `drive.readonly`.
+   - Moving toward `drive.file` with a future Google Picker/per-file workflow.
+9. Do not implement the scope transition without the owner's explicit approval.
+
+Also, do not build a server-side authorization-code/refresh-token architecture, add OAuth client secrets, or expose credentials in browser code as a shortcut. Any move from the current browser token model to a backend authorization-code flow is a separately scoped security architecture decision.
+
+## 12. VIP and Free Policy — Must Remain Intact
+
+Follow `GEMINI.md` Section 6 and Section 7.
+
+- Google Drive media uploading/management remains server-authoritative VIP-gated.
+- Never let the client grant itself VIP.
+- Do not trust a LocalStorage VIP flag.
+- Do not make core workspace saves or annotations depend on VIP.
+- Do not introduce subscriptions, payments, billing, or automatic VIP expiry.
+- Preserve the owner's manual `can_upload_media` entitlement process.
+- Do not block ordinary workspace metadata sync because Google Drive is disconnected.
+- Do not block local reading/annotation of already available media due to unrelated entitlement checks.
+- Do not expose a private Drive file to another Google account.
+- Do not change private-by-default sharing.
+
+## 13. Mandatory Test Engineering
+
+Tests must use synthetic data, mock GIS token callbacks, and intercept Google Drive API requests. Never use the owner's real Google account or real Drive files in CI.
+
+Use existing Playwright/Chromium and Node test harnesses where possible. Do not add dependencies without authorization.
+
+### OAuth Tests
+
+- No raw access token remains in LocalStorage after successful connect.
+- Token exists only in the approved in-memory lifecycle.
+- Expired token transitions to `reauth_required`.
+- Background sync does not unexpectedly open an OAuth popup.
+- User click starts exactly one authorization request.
+- Concurrent token requests are coordinated.
+- Disconnect clears token and pending state.
+- Switching Exo accounts prevents a late OAuth response from attaching to the wrong account.
+- Granted scopes are checked.
+- `401` and `403` are distinguished correctly.
+- No token appears in logs, test output, or report artifacts.
+
+### Shared Drive Request Tests
+
+- Authenticated metadata request.
+- Authenticated download.
+- `401` invalidation.
+- `403` permission denial without auth loop.
+- `404` stale reference behavior.
+- `429` bounded backoff.
+- Retryable `5xx`.
+- Network timeout.
+- Account switch during an in-flight request.
+
+### Replacement and Resumable Upload Tests
+
+- New upload uses POST.
+- Replacement of an existing Drive file uses PATCH.
+- Successful replacement preserves the same Drive file ID.
+- Confirmed missing target file follows the documented recovery path.
+- `401` does not create a duplicate.
+- Timeout after server completion does not produce a duplicate.
+- Reload during resumable upload.
+- Resume using server `Range`.
+- `308 Resume Incomplete`.
+- Upload session expired (`404`).
+- Wrong local Blob or mismatched file size is rejected.
+- Session descriptor is cleared after success.
+- Session descriptor cannot be reused by another Exo account or Google account.
+- Original local IndexedDB Blob is preserved on all failed upload paths.
+
+### Folder Tests
+
+- First-time subject folder lookup/create.
+- First-time group folder lookup/create.
+- Stored folder ID lookup.
+- Stale folder ID recovery.
+- Same-name folders under different parents.
+- Subject rename.
+- Group rename.
+- Concurrent folder resolution does not create duplicate folders.
+- No arbitrary folder is renamed or modified.
+
+### Secondary Recording Tests
+
+- One lecture with multiple `rec_*` recordings.
+- Upload each recording and persist its own Drive ID.
+- Download each recording into the correct IndexedDB key.
+- Switch recording after download.
+- Primary lecture audio remains distinct from secondary recordings.
+- Retry failed recording without duplicate remote files.
+- Bulk sync with one failed recording and other successful recordings.
+- Cross-lecture and cross-account isolation.
+- Reload and playback after successful download.
+
+### PDF Studio Tests
+
+- Cloud PDF absent locally.
+- `/preview` fallback displayed.
+- User clicks reauthorization button.
+- Download succeeds and is persisted locally.
+- PDF.js interactive canvas becomes active.
+- Existing annotations remain visible and editable.
+- `403` permission denial is clear.
+- `404` stale file is handled safely.
+- No duplicated download or repeated authorization popup.
+- Reload after successful download opens the local interactive Studio.
+
+All tests must exercise real production call paths. Do not pass by testing only duplicate helper implementations or mocks that bypass production code.
+
+## 14. Strict Safety Boundaries
+
+- No real Google Drive upload, download, move, rename, sharing, or deletion during development/CI.
+- No live Google Cloud Console changes.
+- No live OAuth secret or client-secret creation.
+- No Supabase production access.
+- No SQL/schema/migration/RLS/RPC/Auth database changes.
+- No remote Drive file deletion.
+- No public sharing or permission broadening.
+- No deleting local IndexedDB blobs before verified upload/replace completion.
+- No deleting annotations as a side effect of media reauthorization.
+- No clearing unrelated LocalStorage keys.
+- No weakening account isolation or session-generation checks.
+- No unbounded automatic retries.
+- No unrelated UI redesign or feature additions.
+
+Preserve all previous M1–M6, Phase 4, P0, P0.1, backup/restore, IndexedDB durability, and conflict recovery behavior.
+
+## 15. Scope Exclusions for This Pass
+
+Do not implement the optional Tier B `.exo.zip` complete binary backup archive in this phase. Keep it separately deferred.
+
+Do not implement the optional Google Picker integration or OAuth scope migration yet.
+
+Do not redesign the Supabase media storage architecture.
+
+Do not optimize Phase 5.3 RAM cache/IndexedDB prefix scans unless a direct Phase 5.2 correctness issue requires it.
+
+Do not add remote Drive deletion.
+
+## 16. Documentation and Milestone Control
+
+Update project handoff documents to identify Phase 5.2 as the active owner-authorized phase, while preserving all previous historical evidence.
+
+Accurately distinguish:
+
+- Latest repository HEAD.
+- Latest application source SHA.
+- Last CI-verified source SHA.
+- Current local test results.
+- Any new GitHub CI results after owner upload.
+- Owner acceptance.
+
+Use phase state accurately:
+
+`IMPLEMENTED — LOCAL TESTS ONLY`
+
+until the owner uploads the changes and GitHub CI passes.
+
+Do not label it `CI VERIFIED` or `APPROVED` based on local tests.
+
+## 17. Expected Delivery
+
+Work in a focused implementation pass.
+
+If the full phase is too large for one quota/session, divide it into explicit safe sub-milestones and finish the current sub-milestone with a complete report before stopping.
+
+Do not leave half-written production functions or a partially changed file that cannot build.
+
+For every completed sub-milestone, provide:
+
+1. Exact Base SHA.
+2. Exact source/test files modified.
+3. Exact functions changed.
+4. Root cause of each fix.
+5. Before/after behavior.
+6. New tests and assertions.
+7. Existing test suite results.
+8. Performance impact if measured.
+9. Any remaining open requirements.
+10. Whether Google Cloud/Supabase production behavior remains unverified.
+11. Exact files and final diff for owner review.
+
+Do not commit or push. The owner will review and upload manually.
+
+Priority: secure OAuth handling, correct private Drive access, reliable media synchronization, zero duplicate remote files, and preservation of local user data.
