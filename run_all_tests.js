@@ -63,6 +63,10 @@ const SUITES = [
   {
     category: '5. Real Headless Chromium + IndexedDB Browser E2E Tests (Scenarios A–N)',
     file: 'test_phase4_1_chromium_e2e.js'
+  },
+  {
+    category: '5. Real Headless Chromium Browser E2E Tests (WP 6.5 Real-UI S1–S8)',
+    file: 'test_wp6_5_chromium_e2e.js'
   }
 ];
 
