@@ -4,11 +4,13 @@
 **المستودع:** JemistryMC/study-hub  
 **فرع العمل:** main  
 **آخر commit مصدري معروف قبل توثيق Phase 6:** c74315a4580d68c61da8a0f49ec2b2f5946301e4  
+**آخر مستند تدقيق WP 6.0 على GitHub:** `reports/PHASE_6_BASELINE_AUDIT.md` — commit `0a6100439a6d98fee9aaa84683ad4bf7d1247c5f`  
 **رسالة commit المصدر:** feat: implement Google Drive reliability and OAuth  
 **حالة Phase 5.2 عند التسليم:** IMPLEMENTED — LOCAL TESTS REPORTED; CI NOT VERIFIED; OWNER REVIEW PENDING. Gemini أفاد محليًا بـ650/650 ونجاح npm run lint وnpm run build. فحص GitHub Combined Status لهذا SHA لم يُرجع Status Checks في آخر تحقق؛ لا تعتبر ذلك إثبات CI.
 **المرحلة النشطة:** Phase 6 — EXO Personal Study Journal Experience Redesign  
-**حالة Phase 6:** IN PROGRESS — DESIGN DIRECTION DOCUMENTED; BASELINE AUDIT NOT STARTED  
-**الخطوة التالية المصرح بها:** Work Package 6.0 — Read-only baseline audit and implementation map. لا تغيّر كود التطبيق أو CSS أو الاختبارات أو التخزين أو الخدمات في هذه الخطوة.
+**حالة Phase 6:** IN PROGRESS — WP 6.0 AUDIT DELIVERED; OWNER REVIEW PENDING  
+**حالة Gate 6.0:** التقرير مرفوع ومصحح وفق Design Contract وImplementation Plan؛ بانتظار مراجعة المالك واعتماد الإغلاق.  
+**الخطوة التالية المصرح بها:** مراجعة Gate 6.0 فقط. لا يبدأ WP 6.1 ولا أي تعديل برمجي قبل موافقة المالك الصريحة.
 
 ## مراجع التسليم الحالية
 
@@ -16,6 +18,7 @@
 2. قرارات المنتج وتجربة الاستخدام المعتمدة: reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md.
 3. خطة التنفيذ المرحلية: reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md.
 4. الفهرس والتسليم بين Gemini وChatGPT: reports/README.md.
+5. تقرير WP 6.0 المكتمل: reports/PHASE_6_BASELINE_AUDIT.md.
 
 ## قرارات التصميم المثبتة
 
