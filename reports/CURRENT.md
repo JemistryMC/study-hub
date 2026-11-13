@@ -3,11 +3,11 @@
 **آخر تحديث:** 2026-11-13  
 **المستودع:** `JemistryMC/study-hub`  
 **الفرع النشط:** `main`  
-**آخر HEAD على GitHub (Current Base HEAD):** `10a5d5ba55255956653e17de3ca3da4f671c7fa2` (724/724 PASSED في GitHub Actions CI Run #49 + نجاح نشر GitHub Pages Run #123)  
-**آخر HEAD مصدري معتمد بالكامل في CI:** `10a5d5ba55255956653e17de3ca3da4f671c7fa2`  
-**نقاط الأساس التاريخية السابقة (Previous Baseline Checkpoints):** `10a5d5ba55255956653e17de3ca3da4f671c7fa2` ← `196f68df6674dea7f4d2a5a59201bb10f45f16fd` ← `b0c7d78be97692f1217880b601fefc993e4ebd2d` ← `531811772626dbd0d66729e344efc6afb659b6e1` ← `e0b2fb0a180d33fb8d98da1715db9842c8ab275f` ← `03c0737e857c95099d416b0fbf22eff581d97d86` ← `b66d72e359e7d2e8531f88f797d4d296d41206a3` ← `94259b543a021d4f06fdc0a9aa44d3f346d63037`  
+**آخر HEAD على GitHub (Current GitHub HEAD):** `0fba2907c375b166aeb70fe78498546a6d1c6d4b` (734/734 PASSED في GitHub Actions CI Run #50 `43415571477` + نجاح نشر GitHub Pages Run #124 `43415570728`)  
+**آخر HEAD مصدري معتمد بالكامل في CI:** `0fba2907c375b166aeb70fe78498546a6d1c6d4b`  
+**نقاط الأساس التاريخية السابقة (Previous Baseline Checkpoints):** `10a5d5ba55255956653e17de3ca3da4f671c7fa2` (CI Run #49: 724/724 PASSED، Pages Run #123) ← `196f68df6674dea7f4d2a5a59201bb10f45f16fd` ← `b0c7d78be97692f1217880b601fefc993e4ebd2d` ← `531811772626dbd0d66729e344efc6afb659b6e1` ← `e0b2fb0a180d33fb8d98da1715db9842c8ab275f` ← `03c0737e857c95099d416b0fbf22eff581d97d86` ← `b66d72e359e7d2e8531f88f797d4d296d41206a3` ← `94259b543a021d4f06fdc0a9aa44d3f346d63037`  
 **المرحلة الفرعية النشطة:** `EXO — P0.1 Durable Conflict Recovery & Atomic Deletion Rollback Hardening`  
-**الحالة:** `IMPLEMENTED — LOCAL TESTS ONLY` (تم تنفيذ تمريرة التصليب P0.1 لمعالجة سباق متانة سجل التعافي، والضغط غير المدمّر لـ LocalStorage، والتراجع المتين القابل للتحقق عن شواهد الحذف، والحفاظ الكامل على حمولة التعافي الفرعية فوق خط الأساس `10a5d5ba55255956653e17de3ca3da4f671c7fa2`، واجتازت كافة الاختبارات المحلية القابلة للتشغيل بنسبة 100% — `638/638 PASSED` شاملة `139/139` في Chromium E2E و`310/310` في Phase 4 Regressions؛ بانتظار رفع المالك إلى GitHub وتشغيل CI، وليست `CI VERIFIED` أو `APPROVED` بعد)
+**الحالة:** `CI VERIFIED` (تم تنفيذ تمريرة التصليب P0.1 فوق خط الأساس `10a5d5ba55255956653e17de3ca3da4f671c7fa2` ورفعها في Commit `0fba2907c375b166aeb70fe78498546a6d1c6d4b`، واجتازت كافة فحوصات GitHub Actions CI Run #50 [`43415571477`] بنسبة `734/734 PASSED` شاملةً Real PostgreSQL 16 `96/96` وChromium E2E `139/139` وPhase 4 Regressions `310/310`، كما نجح نشر GitHub Pages Run #124 [`43415570728`] على `https://jemistrymc.github.io/study-hub/`؛ بانتظار قرار القبول والاعتماد النهائي `APPROVED` من المالك)
 
 هذا الملف هو المرجع الوحيد للحالة الحالية والمرحلة النشطة. إذا خالفه تقرير تاريخي أو تعليمات مرحلة قديمة، يُتبع هذا الملف ومستند المرحلة النشطة.
 
@@ -997,5 +997,48 @@ SELECT json_build_object(
 | `npm run test:e2e` (`node test_phase4_1_chromium_e2e.js`) | متصفح Chromium الحقيقي (شاملة `Test HH.1`–`HH.7` تحت ضغط ~5 MiB) | **PASSED** | **135/135 (100%)** |
 | `npm run test:pg16` (`node test_phase4_2_1_pg16_concurrency.js`) | خادم PostgreSQL 16 الحقيقي متعدد الاتصالات | **NOT RUN** محلياً | `0/0` محلياً (`ECONNREFUSED 127.0.0.1:5432` — يتطلب خدمة PostgreSQL 16 في GitHub Actions CI؛ اجتاز **96/96 PASSED** على خط الأساس `196f68df6674dea7f4d2a5a59201bb10f45f16fd` ولم يتغير أي ملف SQL) |
 | **إجمالي الفحوصات المنفذة محلياً** | **مجموع الفحوصات الفعلية المجتازة محلياً** | **PASSED** | **628/628 (100%)** |
+
+---
+
+## 23. التحقق النهائي واعتماد CI لتمريرة P0.1 (EXO — P0.1 Durable Conflict Recovery & Atomic Deletion Rollback Hardening)
+
+### 23.1 خط الأساس وبيانات التحقق في GitHub Actions
+- **المستودع والفرع:** `JemistryMC/study-hub` (`main`)
+- **خط الأساس السابق:** `10a5d5ba55255956653e17de3ca3da4f671c7fa2`
+- **Commit المصدري المرفوع على GitHub (Current GitHub HEAD):** `0fba2907c375b166aeb70fe78498546a6d1c6d4b`
+- **GitHub Actions CI Run #50 (`43415571477`):** **734/734 PASSED (100%)**
+  - Static Security (`run_verification_tests.js`): **54/54 PASSED**
+  - Comprehensive Verification (`run_comprehensive_verification.js`): **42/42 PASSED**
+  - Cross-Account Isolation (`test_phase3_cross_account_isolation.js`): **52/52 PASSED**
+  - Phase 4 Regressions (`test_phase4_regressions.js` شاملة `P0-R24.1`–`P0-R24.6`): **310/310 PASSED**
+  - Embedded PGlite (`test_phase4_2_postgres_integration.js`): **41/41 PASSED**
+  - Real PostgreSQL 16 (`test_phase4_2_1_pg16_concurrency.js`): **96/96 PASSED**
+  - Real Chromium E2E (`test_phase4_1_chromium_e2e.js` شاملة `Test II.1`–`Test II.4`): **139/139 PASSED**
+- **GitHub Pages Deployment Run #124 (`43415570728`):** **SUCCESS** (`https://jemistrymc.github.io/study-hub/`)
+- **الاختبارات المحلية المسجلة للتمريرة عند `0fba2907`:** **638/638 PASSED** محلياً (لم يُشغّل PostgreSQL 16 محلياً؛ ونفذه GitHub CI Run #50 بنجاح `96/96`).
+
+### 23.2 نطاق التنفيذ المحقق في المراجعة الهندسية النهائية للكود المصدري (`index.html` والاختبارات)
+1. **P0-A — متانة سجل التعافي وتسلسل الكتابة (`migrateConflictRecoveryToIDB`, `_runMigrateConflictRecoveryToIDB`, `recordConflictRecoveryCandidate`, `persistConflictRecoveryRecordsList`, `flushPendingConflictRecoveryWrites`):**
+   - تسلسل عمليات الترحيل والكتابة لكل حساب via `conflictRecoveryQueueByUid`.
+   - منع كتابة أو تحديث مؤشر `pharmaConflictRecovery_<uid>` في `localStorage` قبل اكتمال `tx.oncomplete` والقراءة العكسية في `readonly` والتحقق من عدد السجلات و`byteLength` وتجزئة `SHA-256` وحالة `COMMITTED`.
+   - التحقق الصارم من سلامة المؤشر عند التهيئة والاستعادة عند أي عدم تطابق (`pointer_count_mismatch` / `pointer_sha256_mismatch` / `idb_record_missing_for_pointer`).
+   - التحقق التنفيذي في `P0-R24.2`, `P0-R24.3`, `Test II.1`, `Test II.2`.
+2. **P0-B — الضغط غير المدمّر لـ LocalStorage (`compactAccountAndScheduleConflictRecoveryInLS` و`migrateAndHydrateWorkspaceFromIDB`):**
+   - حفظ النسخ الأصلية في `workspace_state` (`compaction_staging`, `phase: 'STAGING'`) قبل لمس `localStorage`.
+   - استبدال مباشر بـ `localStorage.setItem` دون أي استدعاء لـ `removeItem()` على المفاتيح المحمية، والتحقق من حقول مساحة العمل والجدول واستعادة النص الأصلي عند أي فشل كتابة أو فساد قراءة.
+   - التعافي التلقائي من مرحلة `STAGING` المتوقفة بعد إعادة تحميل المتصفح.
+   - التحقق التنفيذي في `P0-R24.4` و`Test II.3`.
+3. **P0-C — التراجع المتين القابل للتحقق عن شواهد الحذف (`recordTombstonesAtomicBatch`, `rollbackDurable`, `confirmEntityCommit`, `triggerDeleteSubject`, `triggerDeleteGroup`, `triggerDeleteLecture`, `migrateAndHydrateWorkspaceFromIDB`):**
+   - تسجيل `pendingDeleteTx` (`phase: 'PENDING_ENTITY_COMMIT'`) وإتاحة `rollbackDurable()` و`confirmEntityCommit()`.
+   - التحقق من استعادة `localStorage` و`IndexedDB` عبر قراءة عكسية فعلية (`readWorkspaceDomainFromIDB`) وإرجاع `{ ok, verified, localStorageRestored, idbRestored, recoverableFailClosed }` صراحةً عند فشل التراجع دون ابتلاع الخطأ.
+   - شفاء شواهد الحذف غير المثبتة (`pendingDeleteTx`) تلقائياً عند إعادة التحميل وقبل المزامنة السحابية حتى لا يختفي عنصر مرئي لم يُحذف.
+   - التحقق التنفيذي في `P0-R24.5`, `P0-R24.6`, `Test II.4`.
+4. **P0-D — الحفاظ الكامل على حمولة التعافي الفرعية (`canonicalizeRecoveryValueForDigest`, `sanitizeRecordItem`, `mergeConflictRecoveryLists`):**
+   - الحفاظ على `groups` و`lectures` و`wirdLogs` و`continuousLogs` كاملة داخل `losingValue` مع إزالة الحقول العابرة فقط (`_needsCausalStamp`, `_canonicalGeomOrdinal`)، وحساب البصمة الدلالية تكرارياً لمنع الدمج الخاطئ للسجلات المتطابقة جذرياً والمختلفة فرعياً.
+   - التحقق التنفيذي في `P0-R24.1` و`Test II.1`.
+
+### 23.3 حالة المرحلة
+- **الحالة الحالية:** `CI VERIFIED` على Commit `0fba2907c375b166aeb70fe78498546a6d1c6d4b` (CI Run #50 `43415571477`: `734/734 PASSED` + Pages Run #124 `43415570728`: `SUCCESS`).
+- **الاعتماد النهائي (`APPROVED`):** بانتظار المراجعة والقرار النهائي من المالك.
 
 
