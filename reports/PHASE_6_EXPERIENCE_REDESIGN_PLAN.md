@@ -1,7 +1,7 @@
 # Phase 6 — EXO Personal Study Journal Experience Redesign
 ## Incremental Implementation Plan and Acceptance Gates
 
-**Status:** IN PROGRESS — WP 6.1 CI VERIFIED; WP 6.2 ACTIVE; FINAL OWNER REVIEW AT PHASE 6 COMPLETION  
+**Status:** IN PROGRESS — WP 6.1 CI VERIFIED; WP 6.2 IMPLEMENTED — LOCAL TESTS ONLY; WP 6.3 INACTIVE UNTIL WP 6.2 CI PASSES; FINAL OWNER REVIEW AT PHASE 6 COMPLETION  
 **Design authority:** reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md  
 **Engineering authority:** GEMINI.md  
 **Initial app-source baseline:** c74315a4580d68c61da8a0f49ec2b2f5946301e4 (verify current GitHub HEAD before every task)  
@@ -72,13 +72,13 @@ Preserve every current destination, permission, event contract, and data behavio
 
 ## WP 6.2 — Library, Subjects, and Table of Contents
 
-**Status:** ACTIVE — continuation authorized after WP 6.1 CI verification. No separate owner approval is required at this boundary.
+**Status:** `IMPLEMENTED — LOCAL TESTS ONLY` — implemented locally on baseline `c0f8e1d4e944fa8ecd7cdfa0c6da68cc76e4a8c1` (verified source `86fda9824880c00268db117f1ab8780b106f6fe0`). Local verification passed (`670/670` across static, unit, PGlite, and Chromium E2E + `5/5` Node benchmark tiers); `test:pg16` requires CI PostgreSQL 16. WP 6.3 remains **inactive** until pushed WP 6.2 source passes GitHub Actions CI (`reports/PHASE_6_WP_6_2_REPORT.md`).
 
 Implement the restrained Digital Bookshelf presentation; preserve the existing subject/group/chapter hierarchy; make Table of Contents the default chapter view; show chapter number, name, real status/progress, and contextual actions. Add practical search/sort/filter and optional Grid View only when it fits the current architecture.
 
 Do not create duplicate domain entities for decorative covers. Keep chapter create/edit/reorder/delete efficient.
 
-**Gate 6.2:** subject/resource CRUD, chapter navigation, keyboard/touch, RTL/LTR, responsive tests.
+**Gate 6.2:** subject/resource CRUD, chapter navigation, keyboard/touch, RTL/LTR, responsive tests (`Test LL.1–LL.5` + `test_wp6_2_unit.js` passing locally; awaiting GitHub Actions CI verification).
 
 ---
 

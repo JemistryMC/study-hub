@@ -7157,6 +7157,416 @@ async function main() {
 
     await pageKK.close();
     await contextKK.close();
+
+    // =========================================================================
+    // TEST LL: WP 6.2 DIGITAL BOOKSHELF, SUBJECT/CHAPTER CRUD, TABLE OF CONTENTS,
+    // BILINGUAL LIVE SWITCH & RESPONSIVE / PDF STUDIO REGRESSION
+    // =========================================================================
+    console.log('\n--- TEST LL: WP 6.2 Digital Bookshelf, Library & Table of Contents ---');
+    const contextLL = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const pageLL = await contextLL.newPage();
+    const llErrors = [];
+    const llFailedUrls = [];
+    pageLL.on('pageerror', err => llErrors.push('pageerror: ' + err.message));
+    pageLL.on('console', msg => {
+      if (msg.type() === 'error') llErrors.push('console.error: ' + msg.text());
+    });
+    pageLL.on('requestfailed', req => {
+      llFailedUrls.push(req.url() + ' -> ' + (req.failure()?.errorText || 'failed'));
+    });
+
+    await pageLL.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+    await pageLL.waitForFunction(() => typeof renderSubjectsList === 'function' && typeof renderGroups === 'function' && typeof window.applyExoLanguage === 'function');
+
+    // Seed clean synthetic study library (courses + continuous track + exam radar + planned hours)
+    await pageLL.evaluate(() => {
+      const futureDate = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+      subjects = [
+        {
+          id: 8801,
+          name: 'Pharmacology I — علم الأدوية',
+          color: '#899982',
+          icon: 'fa-capsules',
+          isDivided: true,
+          examTitle: 'Midterm Quiz',
+          examDate: futureDate,
+          examLectureIds: [88101, 88102],
+          groups: [
+            {
+              id: 8811,
+              name: 'Autonomic Pharmacology',
+              lectures: [
+                { id: 88101, title: 'Cholinergic Agonists', path: 'Cholinergic.pdf', completed: true, lastStudiedAt: Date.now() - 86400000 * 4, reviewCount: 1 },
+                { id: 88102, title: 'Muscarinic Antagonists', path: '', completed: false }
+              ]
+            },
+            {
+              id: 8812,
+              name: 'Cardiovascular Agents',
+              lectures: [
+                { id: 88103, title: 'Antihypertensive Drugs', path: 'HTN.pdf', completed: false, lastPageNum: 5, totalPages: 12, lastStudiedAt: Date.now() - 60000 }
+              ]
+            }
+          ]
+        },
+        {
+          id: 8802,
+          name: 'Organic Chemistry',
+          color: '#7898AC',
+          icon: 'fa-flask-vial',
+          isDivided: true,
+          groups: [
+            {
+              id: 8821,
+              name: 'Stereochemistry',
+              lectures: [
+                { id: 88201, title: 'Enantiomers & Chirality', path: '', completed: true }
+              ]
+            }
+          ]
+        },
+        {
+          id: 8803,
+          name: 'Daily Quran Track — الورد اليومي',
+          color: '#D7B96F',
+          icon: 'fa-book-quran',
+          isDivided: false,
+          continuousBookmark: 'Surah Al-Baqarah p. 24',
+          continuousLogs: [{ id: 88301, date: '13/11/2026', text: 'Reviewed 2 pages' }],
+          groups: []
+        }
+      ];
+      scheduleEvents = [
+        { id: 8891, title: 'Pharm Session', subjectId: 8801, day: new Date().getDay(), startHour: 10, duration: 3, type: 'important', completed: false }
+      ];
+      saveSubjects();
+      saveScheduleData();
+      renderSubjectsList();
+    });
+
+    await pageLL.click('.sidebar-nav-item[data-tab="subjects"]');
+    await pageLL.waitForSelector('#subjects.view-section.active', { state: 'visible' });
+
+    // LL.1: Bookshelf default rendering, real counts, Shelf/List toggle, Filter & Sort
+    const ll1Shelf = await pageLL.evaluate(() => {
+      const card = document.querySelector('#mainSubjectsGrid .subject-card[data-subject-id="8801"]');
+      const cardBg = card ? getComputedStyle(card).backgroundColor : '';
+      return {
+        lang: document.documentElement.lang,
+        shelfActive: document.getElementById('libViewShelfBtn')?.classList.contains('active'),
+        isList: document.getElementById('mainSubjectsGrid')?.classList.contains('is-list-view'),
+        cardCount: document.querySelectorAll('#mainSubjectsGrid .subject-card').length,
+        cardBg,
+        ribbonSubs: document.getElementById('ribbonTotalSubjects')?.innerText.trim(),
+        ribbonLecs: document.getElementById('ribbonTotalLectures')?.innerText.trim(),
+        ribbonDone: document.getElementById('ribbonDoneLectures')?.innerText.trim(),
+        ribbonPct: document.getElementById('ribbonSemesterProgress')?.innerText.trim(),
+        hasExamBadge: Boolean(card?.querySelector('.exo-book-exam-strip'))
+      };
+    });
+
+    await pageLL.click('#libViewListBtn');
+    const ll1ListOn = await pageLL.evaluate(() => ({
+      listActive: document.getElementById('libViewListBtn')?.classList.contains('active'),
+      isList: document.getElementById('mainSubjectsGrid')?.classList.contains('is-list-view'),
+      savedView: localStorage.getItem('exoLibraryViewModeV1')
+    }));
+    await pageLL.click('#libViewShelfBtn');
+
+    await pageLL.selectOption('#subjectFilterSelect', 'continuous');
+    const ll1FilterCont = await pageLL.evaluate(() =>
+      Array.from(document.querySelectorAll('#mainSubjectsGrid .subject-card')).map(c => c.getAttribute('data-subject-id'))
+    );
+    await pageLL.selectOption('#subjectFilterSelect', 'courses');
+    await pageLL.selectOption('#subjectSortOrderSelect', 'progress_desc');
+    const ll1SortedCourses = await pageLL.evaluate(() =>
+      Array.from(document.querySelectorAll('#mainSubjectsGrid .subject-card')).map(c => c.getAttribute('data-subject-id'))
+    );
+    await pageLL.selectOption('#subjectFilterSelect', 'all');
+    await pageLL.selectOption('#subjectSortOrderSelect', 'custom');
+    await pageLL.fill('#searchSubjectInput', 'Organic');
+    const ll1Search = await pageLL.evaluate(() =>
+      Array.from(document.querySelectorAll('#mainSubjectsGrid .subject-card')).map(c => c.getAttribute('data-subject-id'))
+    );
+    await pageLL.fill('#searchSubjectInput', '');
+
+    assert(
+      ll1Shelf.lang === 'en' &&
+      ll1Shelf.shelfActive === true &&
+      ll1Shelf.isList === false &&
+      ll1Shelf.cardCount === 3 &&
+      ll1Shelf.cardBg === 'rgb(41, 43, 45)' &&
+      ll1Shelf.ribbonSubs === '3 books' &&
+      ll1Shelf.ribbonLecs === '4 lectures' &&
+      ll1Shelf.ribbonDone === '2 done' &&
+      ll1Shelf.ribbonPct === '50%' &&
+      ll1Shelf.hasExamBadge === true &&
+      ll1ListOn.listActive === true && ll1ListOn.isList === true && ll1ListOn.savedView === 'list' &&
+      JSON.stringify(ll1FilterCont) === JSON.stringify(['8803']) &&
+      JSON.stringify(ll1SortedCourses) === JSON.stringify(['8802', '8801']) &&
+      JSON.stringify(ll1Search) === JSON.stringify(['8802']),
+      'Test LL.1: Digital Bookshelf defaults to Shelf view with Charcoal covers (#292b2d), real counts, Shelf/List toggle, Filter, Sort, and Search',
+      JSON.stringify({ ll1Shelf, ll1ListOn, ll1FilterCont, ll1SortedCourses, ll1Search })
+    );
+
+    // LL.2: Subject CRUD + reorder + reload persistence
+    await pageLL.click('#addSubjectPrimaryBtn');
+    await pageLL.waitForSelector('#smartSubjectModalOverlay.active', { state: 'visible' });
+    await pageLL.fill('#smartSubjectNameInput', 'Clinical Pharmacy');
+    await pageLL.click('#smartSubjectModalOverlay button[onclick*="saveSmartSubjectModal"]');
+    await pageLL.waitForFunction(() => !document.getElementById('smartSubjectModalOverlay')?.classList.contains('active'));
+
+    const ll2CreatedId = await pageLL.evaluate(() => {
+      const s = subjects.find(x => x.name === 'Clinical Pharmacy');
+      return s ? s.id : null;
+    });
+    assert(ll2CreatedId !== null, 'Test LL.2a: Created book Clinical Pharmacy exists in subjects model');
+
+    // Move created book (at index 0) down by 1 position using UI move-btn, then edit its name
+    await pageLL.click(`.subject-card[data-subject-id="${ll2CreatedId}"] button[onclick*="moveSubjectOrder(${ll2CreatedId}, 1"]`);
+    await pageLL.click(`.subject-card[data-subject-id="${ll2CreatedId}"] button[onclick*="triggerEditSubject(${ll2CreatedId}"]`);
+    await pageLL.waitForSelector('#smartSubjectModalOverlay.active', { state: 'visible' });
+    await pageLL.fill('#smartSubjectNameInput', 'Clinical Therapeutics');
+    await pageLL.click('#smartSubjectModalOverlay button[onclick*="saveSmartSubjectModal"]');
+    await pageLL.waitForFunction(() => !document.getElementById('smartSubjectModalOverlay')?.classList.contains('active'));
+
+    await pageLL.reload({ waitUntil: 'domcontentloaded' });
+    await pageLL.waitForFunction(() => typeof renderSubjectsList === 'function');
+    await pageLL.click('.sidebar-nav-item[data-tab="subjects"]');
+    await pageLL.waitForSelector('#subjects.view-section.active', { state: 'visible' });
+
+    const ll2AfterReload = await pageLL.evaluate((cid) => {
+      const ids = Array.from(document.querySelectorAll('#mainSubjectsGrid .subject-card')).map(c => Number(c.getAttribute('data-subject-id')));
+      const renamedCard = document.querySelector(`.subject-card[data-subject-id="${cid}"] h3`)?.innerText.trim() || '';
+      return { ids, renamedCard, indexOfEdited: ids.indexOf(cid) };
+    }, ll2CreatedId);
+
+    assert(
+      ll2AfterReload.renamedCard === 'Clinical Therapeutics' && ll2AfterReload.indexOfEdited === 1,
+      'Test LL.2: Subject create, reorder, edit, and reload persistence work via Library UI',
+      JSON.stringify(ll2AfterReload)
+    );
+
+    // Clean up temporary created book via direct UI delete confirmation if needed or leave clean 3 subjects
+    await pageLL.evaluate((cid) => {
+      subjects = subjects.filter(s => s.id !== cid);
+      saveSubjects();
+      renderSubjectsList();
+    }, ll2CreatedId);
+
+    // LL.3: Open Book -> Table of Contents default view, TOC filter/search, Grid toggle, Collapse/Expand, Chapter CRUD & reorder, Lecture complete toggle, Back to Library
+    await pageLL.click('.subject-card[data-subject-id="8801"]');
+    await pageLL.waitForSelector('#subject-details-view', { state: 'visible' });
+
+    const ll3InitialToc = await pageLL.evaluate(() => ({
+      activeTitle: document.getElementById('activeSubjectTitle')?.innerText.trim(),
+      tocBtnActive: document.getElementById('tocViewTocBtn')?.classList.contains('active'),
+      isGrid: document.getElementById('groupsContainer')?.classList.contains('is-grid-view'),
+      chapterNums: Array.from(document.querySelectorAll('#groupsContainer .exo-toc-chapter-num')).map(el => el.innerText.trim()),
+      lecCount: document.querySelectorAll('#groupsContainer .lecture-item').length,
+      hasExamBanner: Boolean(document.querySelector('#groupsContainer .exo-toc-exam-banner'))
+    }));
+
+    // Test TOC status filter (completed vs all) & search
+    await pageLL.selectOption('#tocStatusFilterSelect', 'completed');
+    const ll3CompletedFilter = await pageLL.evaluate(() => ({
+      chapters: document.querySelectorAll('#groupsContainer .group-card').length,
+      lectures: document.querySelectorAll('#groupsContainer .lecture-item').length
+    }));
+    await pageLL.selectOption('#tocStatusFilterSelect', 'all');
+    await pageLL.fill('#tocSearchInput', 'Muscarinic');
+    const ll3SearchFilter = await pageLL.evaluate(() => ({
+      chapters: document.querySelectorAll('#groupsContainer .group-card').length,
+      chapterNum: document.querySelector('#groupsContainer .exo-toc-chapter-num')?.innerText.trim() || ''
+    }));
+    await pageLL.fill('#tocSearchInput', '');
+
+    // Toggle Grid mode and back to Table of Contents (verify lecture title & actions never overlap inside Grid cards)
+    await pageLL.click('#tocViewGridBtn');
+    const ll3GridMode = await pageLL.evaluate(() => {
+      const lec = document.querySelector('#groupsContainer .lecture-item');
+      const titleBox = lec?.querySelector('div[onclick*="openLectureDocument"]')?.getBoundingClientRect();
+      const actBox = lec?.querySelector('.card-actions')?.getBoundingClientRect();
+      const noOverlap = Boolean(titleBox && actBox && actBox.top >= titleBox.bottom - 2);
+      return {
+        gridBtnActive: document.getElementById('tocViewGridBtn')?.classList.contains('active'),
+        isGrid: document.getElementById('groupsContainer')?.classList.contains('is-grid-view'),
+        noOverlap
+      };
+    });
+    await pageLL.click('#tocViewTocBtn');
+
+    // Collapse All & Expand All chapters
+    await pageLL.click('#tocExpandAllBtn');
+    const ll3CollapsedAll = await pageLL.evaluate(() =>
+      Array.from(document.querySelectorAll('#groupsContainer .group-card')).every(c => c.classList.contains('collapsed'))
+    );
+    await pageLL.click('#tocExpandAllBtn');
+    const ll3ExpandedAll = await pageLL.evaluate(() =>
+      Array.from(document.querySelectorAll('#groupsContainer .group-card')).every(c => !c.classList.contains('collapsed'))
+    );
+
+    // Move Chapter 1 down via UI reorder button, then move back up
+    await pageLL.click('#groupCard_8811 button[onclick*="moveGroupOrder(8811, 1"]');
+    const ll3AfterChapterMove = await pageLL.evaluate(() =>
+      Array.from(document.querySelectorAll('#groupsContainer .group-card')).map(c => c.id)
+    );
+    await pageLL.click('#groupCard_8811 button[onclick*="moveGroupOrder(8811, -1"]');
+
+    // Create, rename, and delete a chapter via SingleInputModal / ConfirmModal UI
+    await pageLL.click('#addSubjectGroupBtn');
+    await pageLL.waitForSelector('#singleInputModalOverlay.active', { state: 'visible' });
+    await pageLL.fill('#siModalInput', 'Endocrine Unit');
+    await pageLL.click('#siModalSaveBtn');
+    await pageLL.waitForFunction(() => !document.getElementById('singleInputModalOverlay')?.classList.contains('active'));
+    const ll3NewGrpId = await pageLL.evaluate(() => {
+      const sub = subjects.find(s => s.id === 8801);
+      const grp = sub?.groups?.find(g => g.name === 'Endocrine Unit');
+      return grp ? grp.id : null;
+    });
+    assert(ll3NewGrpId !== null, 'Test LL.3a: New chapter Endocrine Unit created via UI modal');
+
+    await pageLL.click(`#groupCard_${ll3NewGrpId} button[onclick*="triggerEditGroup(${ll3NewGrpId})"]`);
+    await pageLL.waitForSelector('#singleInputModalOverlay.active', { state: 'visible' });
+    await pageLL.fill('#siModalInput', 'Endocrine & Thyroid');
+    await pageLL.click('#siModalSaveBtn');
+    await pageLL.waitForFunction(() => !document.getElementById('singleInputModalOverlay')?.classList.contains('active'));
+    const ll3RenamedGrpTitle = await pageLL.evaluate((gid) =>
+      document.querySelector(`#groupCard_${gid} .exo-toc-chapter-titles h3`)?.innerText.trim() || ''
+    , ll3NewGrpId);
+
+    // Toggle completion on lecture 88102 (preserves Smart Study closed-loop prompt when linked to an active schedule event)
+    await pageLL.click('#groupCard_8811 .lecture-item:nth-child(2) .exo-lec-check-btn');
+    const ll3SmartVerifyShown = await pageLL.evaluate(() => {
+      const m = document.getElementById('smartStudyVerifyModalOverlay');
+      return Boolean(m && m.classList.contains('active'));
+    });
+    if (ll3SmartVerifyShown) {
+      await pageLL.click('#smartVerifyBtnComplete');
+      await pageLL.waitForFunction(() => !document.getElementById('smartStudyVerifyModalOverlay')?.classList.contains('active'));
+    }
+    const ll3HeroAfterCheck = await pageLL.evaluate(() => document.getElementById('subjectHeroStatsRow')?.innerText.trim() || '');
+
+    // Delete temporary chapter via ConfirmModal
+    await pageLL.click(`#groupCard_${ll3NewGrpId} button[onclick*="triggerDeleteGroup(${ll3NewGrpId})"]`);
+    await pageLL.waitForSelector('#confirmModalOverlay.active', { state: 'visible' });
+    await pageLL.click('#confirmModalBtn');
+    await pageLL.waitForFunction((gid) => !document.getElementById(`groupCard_${gid}`), ll3NewGrpId);
+
+    assert(
+      ll3InitialToc.activeTitle === 'Pharmacology I — علم الأدوية' &&
+      ll3InitialToc.tocBtnActive === true &&
+      ll3InitialToc.isGrid === false &&
+      JSON.stringify(ll3InitialToc.chapterNums) === JSON.stringify(['01', '02']) &&
+      ll3InitialToc.lecCount === 3 &&
+      ll3InitialToc.hasExamBanner === true &&
+      ll3CompletedFilter.chapters === 1 && ll3CompletedFilter.lectures === 1 &&
+      ll3SearchFilter.chapters === 1 && ll3SearchFilter.chapterNum === '01' &&
+      ll3GridMode.gridBtnActive === true && ll3GridMode.isGrid === true && ll3GridMode.noOverlap === true &&
+      ll3CollapsedAll === true && ll3ExpandedAll === true &&
+      JSON.stringify(ll3AfterChapterMove) === JSON.stringify(['groupCard_8812', 'groupCard_8811']) &&
+      ll3RenamedGrpTitle === 'Endocrine & Thyroid' &&
+      ll3HeroAfterCheck.includes('67%'),
+      'Test LL.3: Table of Contents default view, numbered chapters (01/02), TOC search & status filter, Grid toggle without overlap, Collapse/Expand All, chapter reorder/CRUD, and lecture completion updates work cleanly',
+      JSON.stringify({ ll3InitialToc, ll3CompletedFilter, ll3SearchFilter, ll3GridMode, ll3CollapsedAll, ll3ExpandedAll, ll3AfterChapterMove, ll3RenamedGrpTitle, ll3HeroAfterCheck })
+    );
+
+    // LL.4: Live EN <-> AR switch inside TOC & Library preserving active subject, search inputs, RTL icons, non-overlapping RTL sidebar, and reload locale
+    await pageLL.fill('#tocSearchInput', 'Cholinergic');
+    await pageLL.click('#sidebarLangToggleBtn'); // EN -> AR inside Subject Details
+    const ll4TocAr = await pageLL.evaluate(() => {
+      const mainRect = document.querySelector('.main-content')?.getBoundingClientRect();
+      const sideRect = document.getElementById('exoAppSidebar')?.getBoundingClientRect();
+      return {
+        lang: document.documentElement.lang,
+        dir: document.documentElement.dir,
+        detailsVisible: getComputedStyle(document.getElementById('subject-details-view')).display !== 'none',
+        activeTitle: document.getElementById('activeSubjectTitle')?.innerText.trim(),
+        tocSearchVal: document.getElementById('tocSearchInput')?.value || '',
+        backFlip: Boolean(document.querySelector('#backToSubjectsBtn i.exo-rtl-flip')),
+        noSidebarOverlap: Boolean(mainRect && sideRect && mainRect.right <= sideRect.left + 1)
+      };
+    });
+    await pageLL.fill('#tocSearchInput', '');
+
+    await pageLL.click('#backToSubjectsBtn');
+    await pageLL.waitForSelector('#subjects-list-view', { state: 'visible' });
+    await pageLL.fill('#searchSubjectInput', 'Organic');
+    await pageLL.click('#sidebarLangToggleBtn'); // AR -> EN inside Library
+    const ll4LibEn = await pageLL.evaluate(() => ({
+      lang: document.documentElement.lang,
+      dir: document.documentElement.dir,
+      listVisible: getComputedStyle(document.getElementById('subjects-list-view')).display !== 'none',
+      searchVal: document.getElementById('searchSubjectInput')?.value || '',
+      heading: document.getElementById('libraryTitleHeading')?.innerText.trim()
+    }));
+    await pageLL.fill('#searchSubjectInput', '');
+
+    assert(
+      ll4TocAr.lang === 'ar' && ll4TocAr.dir === 'rtl' &&
+      ll4TocAr.detailsVisible === true &&
+      ll4TocAr.activeTitle === 'Pharmacology I — علم الأدوية' &&
+      ll4TocAr.tocSearchVal === 'Cholinergic' &&
+      ll4TocAr.backFlip === true &&
+      ll4TocAr.noSidebarOverlap === true &&
+      ll4LibEn.lang === 'en' && ll4LibEn.dir === 'ltr' &&
+      ll4LibEn.listVisible === true &&
+      ll4LibEn.searchVal === 'Organic' &&
+      ll4LibEn.heading === 'Study Library',
+      'Test LL.4: Live EN <-> AR language switching preserves active Subject Details/TOC, Library view, unsaved search filters, RTL icon flips, zero RTL sidebar overlap, and bilingual headings',
+      JSON.stringify({ ll4TocAr, ll4LibEn })
+    );
+
+    // LL.5: Responsive viewport matrix (Desktop 1440x900, Tablet 834x1112, Mobile 390x844 EN/AR), >=44px touch targets, reduced motion, PDF Studio click/close regression, zero console/request errors
+    await pageLL.emulateMedia({ reducedMotion: 'reduce' });
+    await pageLL.setViewportSize({ width: 834, height: 1112 });
+    const ll5Tablet = await pageLL.evaluate(() => ({
+      overflowX: document.documentElement.scrollWidth > window.innerWidth,
+      minCardBtnH: Math.min(...Array.from(document.querySelectorAll('#subjects .card-actions-always .icon-btn')).map(b => b.getBoundingClientRect().height))
+    }));
+
+    await pageLL.setViewportSize({ width: 390, height: 844 });
+    const ll5MobileLibEn = await pageLL.evaluate(() => ({
+      overflowX: document.documentElement.scrollWidth > window.innerWidth,
+      minCardBtnH: Math.min(...Array.from(document.querySelectorAll('#subjects .card-actions-always .icon-btn')).map(b => b.getBoundingClientRect().height))
+    }));
+
+    await pageLL.click('.subject-card[data-subject-id="8801"]');
+    await pageLL.waitForSelector('#subject-details-view', { state: 'visible' });
+    const ll5MobileTocEn = await pageLL.evaluate(() => ({
+      overflowX: document.documentElement.scrollWidth > window.innerWidth,
+      minOpenBtnH: Math.min(...Array.from(document.querySelectorAll('#groupsContainer .lec-mobile-study-btn')).map(b => b.getBoundingClientRect().height)),
+      minCheckH: Math.min(...Array.from(document.querySelectorAll('#groupsContainer .exo-lec-check-btn')).map(b => b.getBoundingClientRect().height))
+    }));
+
+    // Switch to Arabic on Mobile 390x844
+    await pageLL.evaluate(() => applyExoLanguage('ar', true));
+    const ll5MobileTocAr = await pageLL.evaluate(() => ({
+      lang: document.documentElement.lang,
+      dir: document.documentElement.dir,
+      overflowX: document.documentElement.scrollWidth > window.innerWidth
+    }));
+
+    // Click preserved .lecture-item div[onclick*="openLectureDocument(...)"] and verify PDF Studio opens & closes cleanly
+    await pageLL.click('#groupsContainer .lecture-item div[onclick*="openLectureDocument(8811, 88101)"]');
+    await pageLL.waitForSelector('#pdfViewerModalOverlay.active', { state: 'visible' });
+    const ll5StudioOpen = await pageLL.evaluate(() => document.getElementById('pdfViewerModalOverlay')?.classList.contains('active'));
+    await pageLL.click('#pdfViewerModalOverlay button[onclick*="closePdfViewer"]');
+    const ll5StudioClose = await pageLL.evaluate(() => !document.getElementById('pdfViewerModalOverlay')?.classList.contains('active'));
+
+    assert(
+      ll5Tablet.overflowX === false && ll5Tablet.minCardBtnH >= 44 &&
+      ll5MobileLibEn.overflowX === false && ll5MobileLibEn.minCardBtnH >= 44 &&
+      ll5MobileTocEn.overflowX === false && ll5MobileTocEn.minOpenBtnH >= 44 && ll5MobileTocEn.minCheckH >= 44 &&
+      ll5MobileTocAr.lang === 'ar' && ll5MobileTocAr.dir === 'rtl' && ll5MobileTocAr.overflowX === false &&
+      ll5StudioOpen === true && ll5StudioClose === true &&
+      llErrors.length === 0 && llFailedUrls.length === 0,
+      'Test LL.5: Tablet/Mobile EN/AR layouts have zero horizontal overflow, >=44px touch targets, preserved PDF Studio open/close flow, and zero console/network errors',
+      JSON.stringify({ ll5Tablet, ll5MobileLibEn, ll5MobileTocEn, ll5MobileTocAr, ll5StudioOpen, ll5StudioClose, llErrors, llFailedUrls })
+    );
+
+    await pageLL.close();
+    await contextLL.close();
     await context.close();
   } finally {
     await browser.close();
@@ -7172,7 +7582,7 @@ async function main() {
   if (testsFailed > 0) {
     process.exit(1);
   } else {
-    console.log('ALL 21 MANDATORY CHROMIUM + INDEXEDDB E2E SCENARIOS (A - V) PASSED (100%).');
+    console.log('ALL 22 MANDATORY CHROMIUM + INDEXEDDB E2E SCENARIOS (A - V, AA - LL) PASSED (100%).');
     process.exit(0);
   }
 }

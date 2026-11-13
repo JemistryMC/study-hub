@@ -8137,7 +8137,7 @@
             margin-top: 2px;
         }
 
-        /* Desktop Main Content offset (Logical Properties for LTR & RTL) */
+        /* Desktop Main Content offset (Logical + Explicit Physical LTR/RTL for live dir switches) */
         @media (min-width: 1025px) and (min-height: 561px) {
             .navbar { display: none !important; }
             .main-content {
@@ -8145,12 +8145,28 @@
                 margin-inline-end: 0 !important;
                 padding: 26px 32px 44px !important;
                 max-width: calc(100vw - 260px) !important;
-                transition: margin-inline-start 0.22s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+                transition: none !important;
+            }
+            html[dir="ltr"] .main-content {
+                margin-left: 260px !important;
+                margin-right: 0 !important;
+            }
+            html[dir="rtl"] .main-content {
+                margin-left: 0 !important;
+                margin-right: 260px !important;
             }
             body.sidebar-collapsed .main-content {
                 margin-inline-start: 72px !important;
                 margin-inline-end: 0 !important;
                 max-width: calc(100vw - 72px) !important;
+            }
+            html[dir="ltr"] body.sidebar-collapsed .main-content {
+                margin-left: 72px !important;
+                margin-right: 0 !important;
+            }
+            html[dir="rtl"] body.sidebar-collapsed .main-content {
+                margin-left: 0 !important;
+                margin-right: 72px !important;
             }
         }
 
@@ -8730,6 +8746,971 @@
             background: rgba(239, 68, 68, 0.05) !important;
         }
 
+        /* ================= WP 6.2 — DIGITAL BOOKSHELF & TABLE OF CONTENTS ================= */
+        .exo-library-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .exo-library-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(240, 230, 212, 0.1);
+            margin-bottom: 4px;
+        }
+        .exo-library-title-wrap h3 {
+            margin: 0 0 6px 0;
+            font-size: clamp(1.5rem, 2.4vw, 1.9rem);
+            font-weight: 700;
+            color: var(--warm-paper);
+            letter-spacing: -0.015em;
+            line-height: 1.2;
+        }
+        .exo-library-kicker {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--sage-green);
+            margin-bottom: 4px;
+        }
+        #subjects .minimal-Inline-Stats {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px 8px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+            margin-top: 2px;
+        }
+        #subjects .minimal-Inline-Stats .dot-sep {
+            opacity: 0.45;
+        }
+        #subjects .exo-library-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+        #subjects .exo-library-search-wrap {
+            position: relative;
+            flex: 1 1 200px;
+            min-width: 170px;
+            max-width: 260px;
+        }
+        #subjects .exo-library-search-wrap i {
+            position: absolute;
+            top: 50%;
+            inset-inline-start: 13px;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            pointer-events: none;
+        }
+        #searchSubjectInput,
+        #tocSearchInput {
+            width: 100%;
+            min-height: 44px;
+            padding: 9px 14px;
+            padding-inline-start: 36px;
+            font-size: 0.86rem;
+            border-radius: 10px;
+            background: #141618;
+            border: 1px solid rgba(240, 230, 212, 0.14);
+            color: var(--text-main);
+            margin: 0;
+        }
+        #searchSubjectInput:focus,
+        #tocSearchInput:focus,
+        #subjectSortOrderSelect:focus,
+        #subjectFilterSelect:focus,
+        #tocStatusFilterSelect:focus {
+            border-color: var(--sage-green);
+            box-shadow: 0 0 0 3px rgba(137, 153, 130, 0.22);
+        }
+        #subjectSortOrderSelect,
+        #subjectFilterSelect,
+        #tocStatusFilterSelect {
+            min-height: 44px;
+            padding: 8px 12px;
+            font-size: 0.84rem;
+            border-radius: 10px;
+            background: #141618;
+            border: 1px solid rgba(240, 230, 212, 0.14);
+            color: var(--text-main);
+            margin: 0;
+            cursor: pointer;
+        }
+        .exo-view-segmented {
+            display: inline-flex;
+            align-items: center;
+            background: #141618;
+            border: 1px solid rgba(240, 230, 212, 0.14);
+            border-radius: 10px;
+            padding: 3px;
+            gap: 2px;
+        }
+        .exo-view-seg-btn {
+            min-height: 36px;
+            min-width: 40px;
+            padding: 6px 11px;
+            border: none;
+            border-radius: 7px;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: background-color 0.15s ease, color 0.15s ease;
+        }
+        .exo-view-seg-btn:hover {
+            color: var(--text-main);
+            background: rgba(240, 230, 212, 0.06);
+        }
+        .exo-view-seg-btn.active {
+            background: rgba(137, 153, 130, 0.22);
+            color: var(--warm-paper);
+        }
+        .exo-library-primary-btn {
+            min-height: 44px;
+            padding: 9px 16px;
+            border-radius: 10px;
+            background: var(--sage-green);
+            color: #191B1D;
+            border: 1px solid var(--sage-green);
+            font-weight: 800;
+            font-size: 0.86rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: background-color 0.16s ease, transform 0.16s ease;
+        }
+        .exo-library-primary-btn:hover {
+            background: #9EAE97;
+            transform: translateY(-1px);
+        }
+
+        /* Digital Bookshelf Cards */
+        #subjects .subjects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 18px;
+            padding-top: 2px;
+        }
+        #subjects .subjects-grid.is-list-view {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        #subjects .subject-card {
+            contain: layout style;
+            background: #292B2D;
+            background-image: linear-gradient(180deg, rgba(240, 230, 212, 0.025) 0%, rgba(25, 27, 29, 0.14) 100%);
+            padding: 20px 20px 18px 20px;
+            border-radius: 14px;
+            border: 1px solid rgba(240, 230, 212, 0.11);
+            border-inline-start: 5px solid var(--subject-accent, var(--sage-green));
+            border-top: 1px solid rgba(240, 230, 212, 0.12);
+            cursor: pointer;
+            transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+            position: relative;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 208px;
+            overflow: hidden;
+        }
+        #subjects .subject-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            inset-inline-start: 18px;
+            width: 18px;
+            height: 6px;
+            border-radius: 0 0 4px 4px;
+            background: var(--subject-accent, var(--sage-green));
+            opacity: 0.72;
+            pointer-events: none;
+        }
+        #subjects .subject-card:hover,
+        #subjects .subject-card:focus-within {
+            transform: translateY(-2px);
+            background-color: #2F3235;
+            border-color: rgba(240, 230, 212, 0.24);
+            box-shadow: 0 12px 26px rgba(0, 0, 0, 0.36);
+        }
+        #subjects .subjects-grid.is-list-view .subject-card {
+            min-height: auto;
+            padding: 14px 18px;
+            flex-direction: row;
+            align-items: center;
+            gap: 18px;
+        }
+        #subjects .subjects-grid.is-list-view .subject-card::after {
+            display: none;
+        }
+        #subjects .subjects-grid.is-list-view .exo-book-body-wrap {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        #subjects .subjects-grid.is-list-view .exo-book-footer {
+            margin-top: 0;
+            min-width: 170px;
+        }
+        #subjects .sc-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        #subjects .subject-card .subject-emblem {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: var(--subject-accent-soft, rgba(137, 153, 130, 0.14));
+            color: var(--subject-accent, var(--sage-green));
+            border: 1px solid var(--subject-accent-border, rgba(137, 153, 130, 0.34));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .exo-book-index-num {
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.04em;
+        }
+        #subjects .subject-card .card-actions-always {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            opacity: 0.78;
+            transition: opacity 0.16s ease;
+        }
+        #subjects .subject-card:hover .card-actions-always,
+        #subjects .subject-card:focus-within .card-actions-always {
+            opacity: 1;
+        }
+        #subjects .subject-card .card-actions-always .icon-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: rgba(25, 27, 29, 0.72);
+            border: 1px solid rgba(240, 230, 212, 0.1);
+            font-size: 0.78rem;
+        }
+        #subjects .subject-card .card-actions-always .icon-btn:hover {
+            border-color: var(--sage-green);
+            color: var(--warm-paper);
+        }
+        #subjects .subject-card .card-actions-always .icon-btn.delete:hover {
+            background: rgba(196, 125, 96, 0.22);
+            border-color: var(--terracotta);
+            color: #F3EFE6;
+        }
+        #subjects .subject-card h3 {
+            font-size: 1.18rem;
+            font-weight: 700;
+            color: var(--warm-paper);
+            margin: 0 0 8px 0;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+        .exo-book-meta {
+            color: var(--text-muted);
+            font-size: 0.81rem;
+            line-height: 1.5;
+            margin: 0 0 14px 0;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px 6px;
+            font-variant-numeric: tabular-nums;
+        }
+        .exo-book-exam-strip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 6px 10px;
+            margin-bottom: 10px;
+            border-radius: 9px;
+            font-size: 0.75rem;
+            font-variant-numeric: tabular-nums;
+        }
+        .exo-book-cram-btn {
+            background: rgba(25, 27, 29, 0.65);
+            border: 1px solid rgba(240, 230, 212, 0.2);
+            color: var(--warm-paper);
+            border-radius: 7px;
+            padding: 4px 9px;
+            min-height: 28px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+        .exo-book-cram-btn:hover {
+            background: rgba(196, 125, 96, 0.28);
+            border-color: var(--terracotta);
+        }
+        .exo-book-footer {
+            margin-top: auto;
+            padding-top: 10px;
+            border-top: 1px solid rgba(240, 230, 212, 0.08);
+        }
+        .exo-book-progress-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 0.76rem;
+            font-variant-numeric: tabular-nums;
+        }
+        .exo-book-track-foot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.77rem;
+            font-weight: 700;
+        }
+        .exo-empty-bookshelf {
+            grid-column: 1 / -1;
+            background: #202225;
+            border: 1.5px dashed rgba(240, 230, 212, 0.2);
+            border-radius: 16px;
+            padding: 34px 24px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .exo-empty-bookshelf-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: rgba(137, 153, 130, 0.14);
+            border: 1px solid rgba(137, 153, 130, 0.34);
+            color: var(--sage-green);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+        }
+        .exo-empty-bookshelf h3 {
+            margin: 0;
+            font-size: 1.32rem;
+            color: var(--warm-paper);
+        }
+        .exo-empty-bookshelf p {
+            margin: 0;
+            max-width: 56ch;
+            line-height: 1.65;
+            color: var(--text-muted);
+            font-size: 0.88rem;
+        }
+        #subjects .quick-preset-chips {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 8px 0;
+        }
+        #subjects .preset-sub-chip {
+            min-height: 40px;
+            padding: 7px 13px;
+            border-radius: 9px;
+            background: #292B2D;
+            border: 1px solid rgba(240, 230, 212, 0.14);
+            color: var(--warm-paper);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: border-color 0.15s ease, background-color 0.15s ease;
+        }
+        #subjects .preset-sub-chip:hover {
+            border-color: var(--sage-green);
+            background: #313437;
+        }
+
+        /* Subject Details Hero & Default Table of Contents */
+        #subject-details-view {
+            display: none;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .exo-subject-hero {
+            background: #202225;
+            border: 1px solid rgba(240, 230, 212, 0.11);
+            border-radius: 16px;
+            padding: 20px 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .exo-subject-hero-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .exo-subject-breadcrumb-btn {
+            min-height: 40px;
+            padding: 7px 14px;
+            border-radius: 9px;
+            background: rgba(240, 230, 212, 0.04);
+            border: 1px solid rgba(240, 230, 212, 0.14);
+            color: var(--warm-paper);
+            font-size: 0.84rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            margin-bottom: 12px;
+            transition: border-color 0.16s ease, background-color 0.16s ease;
+        }
+        .exo-subject-breadcrumb-btn:hover {
+            border-color: var(--sage-green);
+            background: rgba(137, 153, 130, 0.14);
+        }
+        .exo-subject-title-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        #activeSubjectTitle {
+            margin: 0;
+            color: var(--warm-paper);
+            font-size: clamp(1.5rem, 2.5vw, 2rem);
+            font-weight: 700;
+            line-height: 1.25;
+            word-break: break-word;
+        }
+        .exo-subject-hero-stats {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px 12px;
+            margin-top: 8px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+        .exo-subject-hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+        #toggleSubjectExamRadarBtn {
+            min-height: 42px;
+            border-color: rgba(196, 125, 96, 0.48) !important;
+            color: #E8B49E !important;
+            background: rgba(196, 125, 96, 0.1) !important;
+        }
+        #toggleSubjectExamRadarBtn:hover {
+            background: rgba(196, 125, 96, 0.2) !important;
+            border-color: var(--terracotta) !important;
+        }
+        #toggleSubjectMergeDrawerBtn {
+            min-height: 42px;
+            border-color: rgba(120, 152, 172, 0.45) !important;
+            color: #B9CEDC !important;
+            background: rgba(120, 152, 172, 0.08) !important;
+        }
+        #toggleSubjectMergeDrawerBtn.active,
+        #toggleSubjectMergeDrawerBtn:hover {
+            background: rgba(120, 152, 172, 0.18) !important;
+            border-color: var(--muted-blue) !important;
+        }
+        #addSubjectGroupBtn {
+            min-height: 42px;
+        }
+
+        /* Merge Lectures Drawer (Restrained Charcoal + Sage) */
+        #subjects .subject-merge-drawer {
+            display: none;
+            background: #191B1D;
+            border: 1px solid rgba(137, 153, 130, 0.38);
+            border-inline-start: 4px solid var(--sage-green);
+            border-radius: 14px;
+            padding: 16px 18px;
+            margin-top: 4px;
+            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+        }
+        #subjects .subject-merge-drawer.open { display: block; }
+        #subjects .smd-group-box {
+            background: #202225;
+            border: 1px solid rgba(240, 230, 212, 0.1);
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+        #subjects .smd-lec-row:hover { background: rgba(137, 153, 130, 0.12); }
+        #subjects .smd-lec-row.checked {
+            background: rgba(137, 153, 130, 0.18);
+            border: 1px solid rgba(137, 153, 130, 0.42);
+            color: var(--warm-paper);
+        }
+
+        /* Table of Contents Toolbar & Views */
+        .exo-toc-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: #202225;
+            border: 1px solid rgba(240, 230, 212, 0.1);
+            border-radius: 12px;
+            padding: 10px 14px;
+        }
+        .exo-toc-toolbar-left {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+        }
+        .exo-toc-search-wrap {
+            position: relative;
+            flex: 1 1 200px;
+            min-width: 170px;
+            max-width: 300px;
+        }
+        .exo-toc-search-wrap i {
+            position: absolute;
+            top: 50%;
+            inset-inline-start: 13px;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            pointer-events: none;
+        }
+        .exo-toc-toolbar-right {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+        .exo-toc-util-btn {
+            min-height: 40px;
+            padding: 7px 12px;
+            border-radius: 9px;
+            background: #141618;
+            border: 1px solid rgba(240, 230, 212, 0.14);
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: color 0.15s ease, border-color 0.15s ease;
+        }
+        .exo-toc-util-btn:hover {
+            color: var(--warm-paper);
+            border-color: var(--sage-green);
+        }
+        .exo-toc-exam-banner {
+            background: rgba(196, 125, 96, 0.11);
+            border: 1px solid rgba(196, 125, 96, 0.36);
+            border-inline-start: 4px solid var(--terracotta);
+            border-radius: 14px;
+            padding: 14px 18px;
+            margin-bottom: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        #groupsContainer.is-grid-view .exo-toc-list-wrap {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 14px;
+            align-items: start;
+        }
+        #groupsContainer.is-grid-view .lecture-item {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            padding: 12px;
+        }
+        #groupsContainer.is-grid-view .lecture-item > div:first-child {
+            width: 100%;
+            min-width: 0;
+        }
+        #groupsContainer.is-grid-view .lecture-item div[onclick*="openLectureDocument"] {
+            min-width: 0 !important;
+        }
+        #groupsContainer.is-grid-view .lecture-item .card-actions {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(240, 230, 212, 0.08);
+        }
+        #groupsContainer.is-grid-view .lec-mobile-study-btn {
+            flex: 1 1 auto;
+            justify-content: center;
+        }
+        #groupsContainer .group-card.exo-toc-chapter {
+            contain: layout style;
+            background: #292B2D;
+            border: 1px solid rgba(240, 230, 212, 0.11);
+            border-inline-start: 4px solid rgba(137, 153, 130, 0.55);
+            border-radius: 14px;
+            padding: 16px 18px;
+            margin-bottom: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+        }
+        #groupsContainer.is-grid-view .group-card.exo-toc-chapter {
+            margin-bottom: 0;
+        }
+        #groupsContainer .group-card.exo-toc-chapter:not(.collapsed) .group-header {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(240, 230, 212, 0.08);
+        }
+        #groupsContainer .group-header {
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .exo-toc-chapter-main {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            min-width: 0;
+            flex: 1 1 240px;
+        }
+        .exo-toc-chapter-num {
+            min-width: 34px;
+            height: 30px;
+            padding: 0 8px;
+            border-radius: 8px;
+            background: #191B1D;
+            border: 1px solid rgba(137, 153, 130, 0.35);
+            color: var(--sage-green);
+            font-size: 0.78rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .exo-toc-chapter-titles {
+            min-width: 0;
+            flex: 1;
+        }
+        .exo-toc-chapter-titles h3 {
+            margin: 0 0 3px 0;
+            font-size: 1.12rem;
+            font-weight: 700;
+            color: var(--warm-paper);
+            line-height: 1.3;
+            word-break: break-word;
+        }
+        .exo-toc-chapter-sub {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px 10px;
+            font-size: 0.76rem;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+        .exo-toc-mini-bar {
+            width: 56px;
+            height: 4px;
+            border-radius: 999px;
+            background: rgba(240, 230, 212, 0.12);
+            overflow: hidden;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .exo-toc-mini-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: var(--sage-green);
+        }
+        #groupsContainer .group-card .card-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+        #groupsContainer .lecture-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 14px;
+            background: rgba(25, 27, 29, 0.68);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(240, 230, 212, 0.08);
+            border-inline-start: 3px solid rgba(240, 230, 212, 0.2);
+            transition: background-color 0.16s ease, border-color 0.16s ease;
+        }
+        #groupsContainer .lecture-item.is-done {
+            border-inline-start-color: var(--sage-green);
+        }
+        #groupsContainer .lecture-item:hover {
+            transform: none;
+            background: rgba(25, 27, 29, 0.92);
+            border-color: rgba(240, 230, 212, 0.18);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+        }
+        #groupsContainer .lecture-item:last-child {
+            margin-bottom: 0;
+        }
+        .exo-lec-check-btn {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            min-height: 36px;
+            border-radius: 9px;
+            background: rgba(41, 43, 45, 0.85);
+            border: 1px solid rgba(240, 230, 212, 0.14);
+            color: var(--text-muted);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+        .exo-lec-check-btn.is-done {
+            background: rgba(137, 153, 130, 0.22);
+            border-color: rgba(137, 153, 130, 0.55);
+            color: var(--sage-green);
+        }
+        .exo-lec-idx {
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+            min-width: 22px;
+        }
+        .exo-lec-status-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.71rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: rgba(240, 230, 212, 0.05);
+            border: 1px solid rgba(240, 230, 212, 0.12);
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+        .exo-lec-status-tag.is-sage {
+            color: var(--sage-green);
+            border-color: rgba(137, 153, 130, 0.38);
+            background: rgba(137, 153, 130, 0.12);
+        }
+        .exo-lec-status-tag.is-blue {
+            color: #B2CBE0;
+            border-color: rgba(120, 152, 172, 0.38);
+            background: rgba(120, 152, 172, 0.12);
+        }
+        .exo-lec-status-tag.is-gold {
+            color: var(--warm-gold);
+            border-color: rgba(215, 185, 111, 0.4);
+            background: rgba(215, 185, 111, 0.11);
+        }
+        .exo-lec-status-tag.is-terracotta {
+            color: #E8B49E;
+            border-color: rgba(196, 125, 96, 0.45);
+            background: rgba(196, 125, 96, 0.13);
+        }
+        button.exo-lec-status-tag {
+            cursor: pointer;
+        }
+        button.exo-lec-status-tag:hover {
+            filter: brightness(1.08);
+        }
+        #groupsContainer .lec-mobile-study-btn {
+            display: inline-flex !important;
+            align-items: center;
+            gap: 6px;
+            min-height: 36px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            border-radius: 8px;
+            background: var(--sage-green) !important;
+            color: #191B1D !important;
+            border: 1px solid var(--sage-green) !important;
+            box-shadow: none !important;
+        }
+        #groupsContainer .lec-mobile-study-btn:hover {
+            background: #9EAE97 !important;
+        }
+        #subjects .continuous-sub-shell {
+            background: #202225;
+            border: 1px solid rgba(240, 230, 212, 0.11);
+            border-radius: 16px;
+            padding: 20px 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .exo-cont-box {
+            background: #191B1D;
+            border: 1px solid rgba(240, 230, 212, 0.11);
+            border-radius: 12px;
+            padding: 14px;
+        }
+        .exo-cont-log-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: #292B2D;
+            border: 1px solid rgba(240, 230, 212, 0.1);
+            border-radius: 10px;
+        }
+        @media (hover: none), (max-width: 860px) {
+            #subjects .subject-card .card-actions-always {
+                opacity: 1 !important;
+            }
+            #subjects .subject-card .card-actions-always .icon-btn,
+            #subjects .exo-view-seg-btn,
+            #subjects .exo-toc-util-btn,
+            #groupsContainer .group-card .card-actions button,
+            #groupsContainer .lecture-item .card-actions button,
+            #groupsContainer .exo-lec-check-btn,
+            #subjects .lec-order-btn {
+                min-width: 44px !important;
+                min-height: 44px !important;
+            }
+            #groupsContainer .lec-mobile-study-btn {
+                min-height: 44px !important;
+                padding: 9px 14px !important;
+                font-size: 0.85rem !important;
+            }
+        }
+        @media (max-width: 768px) {
+            #subjects .exo-library-header {
+                align-items: stretch;
+            }
+            #subjects .exo-library-toolbar,
+            #subjects .exo-library-search-wrap {
+                max-width: none;
+                width: 100%;
+            }
+            #subjects #subjectSortOrderSelect,
+            #subjects #subjectFilterSelect {
+                flex: 1 1 140px;
+            }
+            #subjects .exo-library-primary-btn {
+                width: 100%;
+                justify-content: center;
+            }
+            #subjects .exo-subject-hero {
+                padding: 16px;
+            }
+            #subjects .exo-subject-hero-actions {
+                width: 100%;
+            }
+            #subjects .exo-subject-hero-actions button {
+                flex: 1 1 auto;
+            }
+            #subjects .exo-toc-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+                width: 100%;
+            }
+            #subjects .exo-toc-toolbar-left {
+                width: 100%;
+                flex: none;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            #subjects .exo-toc-search-wrap {
+                flex: 1 1 auto !important;
+                max-width: none !important;
+                width: 100%;
+            }
+            #subjects #tocStatusFilterSelect {
+                width: 100%;
+            }
+            #subjects .exo-toc-toolbar-right {
+                width: 100%;
+                flex: none;
+                justify-content: space-between;
+            }
+            #subjects .exo-toc-exam-banner > div:last-child {
+                width: 100%;
+            }
+            #subjects .exo-toc-exam-banner > div:last-child .btn {
+                flex: 1 1 120px;
+                justify-content: center;
+            }
+            #subjects .exo-toc-exam-banner > div:last-child .icon-btn {
+                flex: 0 0 44px;
+                min-width: 44px;
+                min-height: 44px;
+            }
+            #groupsContainer.is-grid-view .exo-toc-list-wrap {
+                grid-template-columns: 1fr;
+            }
+            #subjects .subjects-grid.is-list-view .subject-card {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            #groupsContainer .lecture-item {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                padding: 13px 12px !important;
+            }
+            #groupsContainer .lecture-item div[onclick*="openLectureDocument"] {
+                min-width: 0 !important;
+            }
+            #groupsContainer .lecture-item .card-actions {
+                flex-wrap: wrap !important;
+            }
+        }
+
 </style>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -8928,41 +9909,59 @@
             <div id="dashboardContent" class="exo-dash-shell" data-exo-no-i18n="1"></div>
         </div>
 
-        <!-- ================= PAGE 1: المركز ================= -->
-        <div id="subjects" class="view-section">
+        <!-- ================= PAGE 1: DIGITAL BOOKSHELF / SUBJECTS & TABLE OF CONTENTS ================= -->
+        <div id="subjects" class="view-section" data-exo-no-i18n="1">
             <div id="subjects-list-view">
-                <div class="panel">
-                    <div class="panel-header" style="margin-bottom: 16px; padding-bottom: 14px;">
-                        <div>
-                            <h3 style="font-size: 1.35rem; font-weight: 800;">المواد الدراسية</h3>
+                <div class="panel exo-library-panel">
+                    <div class="exo-library-header">
+                        <div class="exo-library-title-wrap">
+                            <div class="exo-library-kicker" id="libraryKickerLabel">PERSONAL LIBRARY</div>
+                            <h3 id="libraryTitleHeading" class="exo-editorial">Study Library</h3>
                             <div class="minimal-Inline-Stats" id="semesterSummaryRibbon">
-                                <span id="ribbonTotalSubjects">0 مادة</span>
-                                <span class="dot-sep">•</span>
-                                <span id="ribbonTotalLectures">0 ملف</span>
-                                <span class="dot-sep">•</span>
-                                <span id="ribbonDoneLectures" style="color: #6ee7b7;">0 مكتمل</span>
-                                <span class="dot-sep">•</span>
-                                <span>الإنجاز الكلي <b id="ribbonSemesterProgress" style="color: var(--primary);">0%</b></span>
-                                <div class="progress-bar-bg" style="width: 90px; height: 4px; display: inline-block; vertical-align: middle; margin: 0 6px 0 0;">
-                                    <div class="progress-bar-fill" id="ribbonProgressBar" style="width: 0%; background: var(--primary);"></div>
+                                <span id="ribbonTotalSubjects">0 books</span>
+                                <span class="dot-sep" aria-hidden="true">·</span>
+                                <span id="ribbonTotalLectures">0 items</span>
+                                <span class="dot-sep" aria-hidden="true">·</span>
+                                <span id="ribbonDoneLectures" style="color: var(--sage-green);">0 done</span>
+                                <span class="dot-sep" aria-hidden="true">·</span>
+                                <span id="ribbonProgressWrap"><span id="ribbonProgressLabel">Overall</span> <b id="ribbonSemesterProgress" style="color: var(--warm-paper);">0%</b></span>
+                                <div class="progress-bar-bg" style="width: 88px; height: 4px; display: inline-block; vertical-align: middle; margin: 0;">
+                                    <div class="progress-bar-fill" id="ribbonProgressBar" style="width: 0%; background: var(--sage-green);"></div>
                                 </div>
                             </div>
                         </div>
-                        <div class="hub-controls-toolbar" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                            <input type="text" id="searchSubjectInput" placeholder="🔍 بحث في المواد..." oninput="renderSubjectsList()" style="width: 150px; padding: 8px 13px; font-size: 0.84rem; margin: 0;">
-                            <select id="subjectSortOrderSelect" onchange="handleSubjectSortChange(this.value)" style="padding: 8px 11px; font-size: 0.82rem; border-radius: 10px; margin: 0;">
-                                <option value="custom">ترتيبي الخاص</option>
-                                <option value="progress_desc">الأعلى إنجازاً</option>
-                                <option value="progress_asc">الأقل إنجازاً</option>
-                                <option value="hours_desc">الأكثر ساعات بالجدول</option>
-                                <option value="alpha">الترتيب الأبجدي</option>
+                        <div class="hub-controls-toolbar exo-library-toolbar">
+                            <div class="exo-library-search-wrap">
+                                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                                <input type="text" id="searchSubjectInput" placeholder="Search books..." aria-label="Search books" oninput="renderSubjectsList()">
+                            </div>
+                            <select id="subjectFilterSelect" aria-label="Filter library" onchange="handleSubjectFilterChange(this.value)">
+                                <option value="all">All Books</option>
+                                <option value="courses">Courses (Chapters)</option>
+                                <option value="continuous">Continuous Tracks</option>
+                                <option value="in_progress">In Progress</option>
                             </select>
+                            <select id="subjectSortOrderSelect" aria-label="Sort books" onchange="handleSubjectSortChange(this.value)">
+                                <option value="custom">Custom Order</option>
+                                <option value="progress_desc">Highest Progress</option>
+                                <option value="progress_asc">Lowest Progress</option>
+                                <option value="hours_desc">Most Planned Hours</option>
+                                <option value="alpha">Alphabetical</option>
+                            </select>
+                            <div class="exo-view-segmented" role="group" aria-label="Library view mode">
+                                <button type="button" class="exo-view-seg-btn active" id="libViewShelfBtn" onclick="setLibraryViewMode('shelf')" title="Bookshelf Grid" aria-pressed="true">
+                                    <i class="fa-solid fa-grip"></i> <span id="libViewShelfLbl">Shelf</span>
+                                </button>
+                                <button type="button" class="exo-view-seg-btn" id="libViewListBtn" onclick="setLibraryViewMode('list')" title="Compact List" aria-pressed="false">
+                                    <i class="fa-solid fa-list"></i> <span id="libViewListLbl">List</span>
+                                </button>
+                            </div>
                             <div class="hub-add-subject-row" style="display: flex; gap: 6px; align-items: center;">
-                                <button class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem;" onclick="openSmartSubjectModal()"><i class="fa-solid fa-plus"></i> إضافة مادة</button>
+                                <button type="button" class="exo-library-primary-btn" id="addSubjectPrimaryBtn" onclick="openSmartSubjectModal()"><i class="fa-solid fa-plus"></i> <span id="addSubjectBtnLabel">New Book</span></button>
                             </div>
                             <div style="display: none;" aria-hidden="true">
-                                <input type="text" id="newSubjectName" placeholder="اسم مادة سريعة...">
-                                <button type="button" onclick="openSmartSubjectModal()">إعداد ذكي</button>
+                                <input type="text" id="newSubjectName" placeholder="Quick subject name...">
+                                <button type="button" onclick="openSmartSubjectModal()">Smart Setup</button>
                             </div>
                         </div>
                     </div>
@@ -8972,52 +9971,82 @@
             </div>
 
             <div id="subject-details-view">
-                <div class="panel">
-                    <div class="panel-header" style="margin-bottom: 0; border: none; padding-bottom: 0;">
-                        <div>
-                            <button class="btn btn-outline" onclick="backToSubjects()" style="margin-bottom: 14px; padding: 7px 16px;"><i class="fa-solid fa-arrow-right exo-rtl-flip"></i> عودة للمركز</button>
-                            <div style="display: flex; align-items: center; gap: 14px;">
-                                <h2 id="activeSubjectTitle" class="exo-editorial" style="color: var(--warm-paper); font-size: 2rem; font-weight: 700;">اسم المادة</h2>
-                                <button class="icon-btn edit" onclick="editCurrentSubject()"><i class="fa-solid fa-pen"></i></button>
+                <div class="exo-subject-hero">
+                    <div class="exo-subject-hero-top">
+                        <div style="min-width: 0; flex: 1 1 280px;">
+                            <button type="button" class="exo-subject-breadcrumb-btn" id="backToSubjectsBtn" onclick="backToSubjects()"><i class="fa-solid fa-arrow-right exo-rtl-flip"></i> <span id="backToSubjectsLabel">Back to Library</span></button>
+                            <div class="exo-subject-title-row">
+                                <h2 id="activeSubjectTitle" class="exo-editorial" dir="auto">Subject Title</h2>
+                                <button type="button" class="icon-btn edit" id="editCurrentSubjectBtn" onclick="editCurrentSubject()" title="Edit Book Settings" aria-label="Edit Book Settings"><i class="fa-solid fa-pen"></i></button>
                             </div>
+                            <div class="exo-subject-hero-stats" id="subjectHeroStatsRow"></div>
                         </div>
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button class="btn btn-outline" id="toggleSubjectExamRadarBtn" onclick="openSubjectExamRadarModal()" style="border-color: rgba(244, 63, 94, 0.45); color: #fda4af; background: rgba(244, 63, 94, 0.08);">
-                                <i class="fa-solid fa-bullseye"></i> رادار الامتحان / الكويز
+                        <div class="exo-subject-hero-actions">
+                            <button type="button" class="btn btn-outline" id="toggleSubjectExamRadarBtn" onclick="openSubjectExamRadarModal()">
+                                <i class="fa-solid fa-bullseye"></i> Exam / Quiz Radar
                             </button>
-                            <button class="btn btn-outline" id="toggleSubjectMergeDrawerBtn" onclick="toggleSubjectMergeLecturesDrawer()" style="border-color: rgba(45, 212, 191, 0.45); color: var(--primary);">
-                                <i class="fa-solid fa-layer-group"></i> دمج محاضرات وريكوردات للمراجعة
+                            <button type="button" class="btn btn-outline" id="toggleSubjectMergeDrawerBtn" onclick="toggleSubjectMergeLecturesDrawer()">
+                                <i class="fa-solid fa-layer-group"></i> Merge Lectures
                             </button>
-                            <button class="btn btn-success" id="addSubjectGroupBtn" onclick="triggerAddGroup()"><i class="fa-solid fa-plus"></i> قسم جديد</button>
+                            <button type="button" class="btn btn-success" id="addSubjectGroupBtn" onclick="triggerAddGroup()"><i class="fa-solid fa-plus"></i> New Chapter</button>
                         </div>
                     </div>
 
                     <!-- Organized External Multi-Lecture Merge Selector (Outside PDF Viewer) -->
                     <div class="subject-merge-drawer" id="subjectMergeLecturesDrawer">
-                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px solid rgba(148, 163, 184, 0.12);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px solid rgba(240, 230, 212, 0.1);">
                             <div>
-                                <h4 style="font-size: 0.98rem; font-weight: 900; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
-                                    <i class="fa-solid fa-book-open-reader" style="color: var(--primary);"></i> استوديو دمج المحاضرات والريكوردات (اختر المحاضرات التي تريد فتحها معاً)
+                                <h4 id="mergeDrawerTitle" style="font-size: 0.98rem; font-weight: 800; color: var(--warm-paper); margin: 0; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-book-open-reader" style="color: var(--sage-green);"></i> Multi-Lecture Review Studio (Select lectures to open together)
                                 </h4>
-                                <p style="font-size: 0.77rem; color: var(--text-muted); margin: 2px 0 0 0;">حدد محاضرتين أو أكثر ليتم فتح سلايداتها وريكورداتها متتالية في شاشة واحدة منظمة مع دعم أوراق التلخيص.</p>
+                                <p id="mergeDrawerDesc" style="font-size: 0.78rem; color: var(--text-muted); margin: 3px 0 0 0;">Select two or more lectures to open their slides and audio recordings sequentially in one study view.</p>
                             </div>
                             <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-                                <button type="button" class="ptm-btn" onclick="selectAllLecturesInMergeDrawer(true)" style="padding: 4px 10px; font-size: 0.74rem;">تحديد الكل</button>
-                                <button type="button" class="ptm-btn" onclick="selectAllLecturesInMergeDrawer(false)" style="padding: 4px 10px; font-size: 0.74rem;">إلغاء الكل</button>
-                                <button type="button" class="icon-btn" style="width: 28px; height: 28px;" onclick="toggleSubjectMergeLecturesDrawer(false)"><i class="fa-solid fa-xmark"></i></button>
+                                <button type="button" class="ptm-btn" id="mergeSelectAllBtn" onclick="selectAllLecturesInMergeDrawer(true)" style="padding: 5px 11px; font-size: 0.76rem; min-height: 36px;">Select All</button>
+                                <button type="button" class="ptm-btn" id="mergeClearAllBtn" onclick="selectAllLecturesInMergeDrawer(false)" style="padding: 5px 11px; font-size: 0.76rem; min-height: 36px;">Clear All</button>
+                                <button type="button" class="icon-btn" style="width: 34px; height: 34px;" onclick="toggleSubjectMergeLecturesDrawer(false)" aria-label="Close merge studio"><i class="fa-solid fa-xmark"></i></button>
                             </div>
                         </div>
 
                         <div class="smd-groups-grid" id="subjectMergeGroupsGrid"></div>
 
-                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid rgba(148, 163, 184, 0.12);">
-                            <span id="subjectMergeSelectionCounter" style="font-size: 0.8rem; color: var(--primary); font-weight: 800;">تم تحديد 0 محاضرات</span>
-                            <button type="button" class="btn btn-primary" style="padding: 8px 18px; font-size: 0.85rem;" onclick="launchSelectedLecturesMergedFromDrawer()">
-                                <i class="fa-solid fa-rocket"></i> فتح المحاضرات المختارة مدمجة الآن
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid rgba(240, 230, 212, 0.1);">
+                            <span id="subjectMergeSelectionCounter" style="font-size: 0.8rem; color: var(--sage-green); font-weight: 800;">0 lectures selected</span>
+                            <button type="button" class="exo-library-primary-btn" id="mergeLaunchBtn" style="min-height: 40px; padding: 7px 16px; font-size: 0.84rem;" onclick="launchSelectedLecturesMergedFromDrawer()">
+                                <i class="fa-solid fa-rocket"></i> <span id="mergeLaunchLabel">Open Selected Merged</span>
                             </button>
                         </div>
                     </div>
                 </div>
+
+                <div class="exo-toc-toolbar" id="tocToolbar" style="display: none;">
+                    <div class="exo-toc-toolbar-left">
+                        <div class="exo-toc-search-wrap">
+                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                            <input type="text" id="tocSearchInput" placeholder="Filter chapters or lectures..." aria-label="Filter chapters or lectures" oninput="renderGroups()">
+                        </div>
+                        <select id="tocStatusFilterSelect" aria-label="Filter chapter status" onchange="handleTocFilterChange(this.value)">
+                            <option value="all">All Chapters</option>
+                            <option value="incomplete">In Progress / Incomplete</option>
+                            <option value="completed">Completed</option>
+                            <option value="review_due">Review Due</option>
+                        </select>
+                    </div>
+                    <div class="exo-toc-toolbar-right">
+                        <button type="button" class="exo-toc-util-btn" id="tocExpandAllBtn" onclick="toggleAllTocChapters()">
+                            <i class="fa-solid fa-angles-up"></i> <span id="tocExpandAllLabel">Collapse All</span>
+                        </button>
+                        <div class="exo-view-segmented" role="group" aria-label="Chapter index view">
+                            <button type="button" class="exo-view-seg-btn active" id="tocViewTocBtn" onclick="setTocViewMode('toc')" aria-pressed="true">
+                                <i class="fa-solid fa-list-ol"></i> <span id="tocViewTocLabel">Contents</span>
+                            </button>
+                            <button type="button" class="exo-view-seg-btn" id="tocViewGridBtn" onclick="setTocViewMode('grid')" aria-pressed="false">
+                                <i class="fa-solid fa-table-cells-large"></i> <span id="tocViewGridLabel">Grid</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="groupsContainer"></div>
             </div>
         </div>
@@ -11374,12 +12403,12 @@
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
                     <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">🎨 اللون:</span>
                     <div style="display: flex; gap: 6px; align-items: center;" id="smartSubjectColorPickerRow">
-                        <button type="button" class="smart-sub-color-swatch active" data-color="#2dd4bf" style="background: #2dd4bf;" onclick="selectSmartSubjectColor('#2dd4bf')"><i class="fa-solid fa-check"></i></button>
-                        <button type="button" class="smart-sub-color-swatch" data-color="#10b981" style="background: #10b981;" onclick="selectSmartSubjectColor('#10b981')"></button>
-                        <button type="button" class="smart-sub-color-swatch" data-color="#38bdf8" style="background: #38bdf8;" onclick="selectSmartSubjectColor('#38bdf8')"></button>
-                        <button type="button" class="smart-sub-color-swatch" data-color="#a855f7" style="background: #a855f7;" onclick="selectSmartSubjectColor('#a855f7')"></button>
-                        <button type="button" class="smart-sub-color-swatch" data-color="#f59e0b" style="background: #f59e0b;" onclick="selectSmartSubjectColor('#f59e0b')"></button>
-                        <button type="button" class="smart-sub-color-swatch" data-color="#f43f5e" style="background: #f43f5e;" onclick="selectSmartSubjectColor('#f43f5e')"></button>
+                        <button type="button" class="smart-sub-color-swatch active" data-color="#899982" style="background: #899982;" onclick="selectSmartSubjectColor('#899982')"><i class="fa-solid fa-check"></i></button>
+                        <button type="button" class="smart-sub-color-swatch" data-color="#7898AC" style="background: #7898AC;" onclick="selectSmartSubjectColor('#7898AC')"></button>
+                        <button type="button" class="smart-sub-color-swatch" data-color="#C47D60" style="background: #C47D60;" onclick="selectSmartSubjectColor('#C47D60')"></button>
+                        <button type="button" class="smart-sub-color-swatch" data-color="#D7B96F" style="background: #D7B96F;" onclick="selectSmartSubjectColor('#D7B96F')"></button>
+                        <button type="button" class="smart-sub-color-swatch" data-color="#9EAE97" style="background: #9EAE97;" onclick="selectSmartSubjectColor('#9EAE97')"></button>
+                        <button type="button" class="smart-sub-color-swatch" data-color="#A58A7E" style="background: #A58A7E;" onclick="selectSmartSubjectColor('#A58A7E')"></button>
                     </div>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
@@ -12627,7 +13656,7 @@
         }
 
         let smartSubDraftState = {
-            color: '#2dd4bf',
+            color: '#899982',
             icon: 'fa-capsules',
             template: 'standard',
             isDivided: true
@@ -12651,14 +13680,14 @@
         function getSubjectColorTheme(sub, idx = 0) {
             if (sub && sub.color) return sub.color;
             const name = ((sub && sub.name) || '').toLowerCase();
-            if (isNonDividedSubjectName(name)) return '#10b981';
-            if (name.includes('كلينيك') || name.includes('إكلينيك') || name.includes('سرير')) return '#2dd4bf';
-            if (name.includes('كاينت') || name.includes('حركي') || name.includes('kinetics')) return '#38bdf8';
-            if (name.includes('فارما') || name.includes('أدوية') || name.includes('دواء')) return '#a855f7';
-            if (name.includes('بايو') || name.includes('حيوية')) return '#10b981';
-            if (name.includes('كيمياء') || name.includes('عضوية') || name.includes('تحليل')) return '#f59e0b';
-            if (name.includes('ميكرو') || name.includes('مناعة') || name.includes('باثو')) return '#f43f5e';
-            const palette = ['#2dd4bf', '#38bdf8', '#a855f7', '#10b981', '#f59e0b', '#f43f5e'];
+            if (isNonDividedSubjectName(name)) return '#899982';
+            if (name.includes('كلينيك') || name.includes('إكلينيك') || name.includes('سرير') || name.includes('clinical')) return '#899982';
+            if (name.includes('كاينت') || name.includes('حركي') || name.includes('kinetics')) return '#7898AC';
+            if (name.includes('فارما') || name.includes('أدوية') || name.includes('دواء') || name.includes('pharma')) return '#9EAE97';
+            if (name.includes('بايو') || name.includes('حيوية') || name.includes('biochem')) return '#7898AC';
+            if (name.includes('كيمياء') || name.includes('عضوية') || name.includes('تحليل') || name.includes('chem')) return '#D7B96F';
+            if (name.includes('ميكرو') || name.includes('مناعة') || name.includes('باثو') || name.includes('micro') || name.includes('patho')) return '#C47D60';
+            const palette = ['#899982', '#7898AC', '#C47D60', '#D7B96F', '#9EAE97', '#A58A7E'];
             return palette[idx % palette.length];
         }
 
@@ -12735,7 +13764,7 @@
         }
 
         function selectSmartSubjectColor(colorHex) {
-            smartSubDraftState.color = colorHex || '#2dd4bf';
+            smartSubDraftState.color = colorHex || '#899982';
             document.querySelectorAll('#smartSubjectColorPickerRow .smart-sub-color-swatch').forEach(btn => {
                 const isAct = btn.getAttribute('data-color') === smartSubDraftState.color;
                 btn.classList.toggle('active', isAct);
@@ -12779,7 +13808,8 @@
             today.setHours(0, 0, 0, 0);
             const diffDays = Math.round((examDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
             if (diffDays < 0) return null; // Past exam has ended; deactivate radar & emergency mode automatically!
-            const examTitle = (sub.examTitle && sub.examTitle.trim()) ? sub.examTitle.trim() : 'امتحان / كويز';
+            const isEn = (typeof window !== 'undefined' && (window.currentExoLang || (typeof document !== 'undefined' && document.documentElement ? document.documentElement.lang : 'en'))) !== 'ar';
+            const examTitle = (sub.examTitle && sub.examTitle.trim()) ? sub.examTitle.trim() : (isEn ? 'Exam / Quiz' : 'امتحان / كويز');
             const examLecIds = Array.isArray(sub.examLectureIds) ? sub.examLectureIds.map(String) : [];
             let totalExamLec = 0;
             let doneExamLec = 0;
@@ -12792,33 +13822,33 @@
                 });
             });
             let urgencyLabel = '';
-            let badgeColor = '#fda4af';
-            let badgeBg = 'rgba(244, 63, 94, 0.14)';
-            let badgeBorder = 'rgba(244, 63, 94, 0.45)';
-            if (diffDays < 0) {
-                urgencyLabel = 'انتهى أمس';
-            } else if (diffDays === 0) {
-                urgencyLabel = '🚨 اليوم!';
-                badgeColor = '#fecdd3';
-                badgeBg = 'rgba(225, 29, 72, 0.28)';
+            let badgeColor = '#E8B49E';
+            let badgeBg = 'rgba(196, 125, 96, 0.14)';
+            let badgeBorder = 'rgba(196, 125, 96, 0.42)';
+            if (diffDays === 0) {
+                urgencyLabel = isEn ? 'Today' : 'اليوم';
+                badgeColor = '#F3EFE6';
+                badgeBg = 'rgba(196, 125, 96, 0.28)';
+                badgeBorder = 'rgba(196, 125, 96, 0.65)';
             } else if (diffDays === 1) {
-                urgencyLabel = '🔥 غداً!';
-                badgeColor = '#fda4af';
-                badgeBg = 'rgba(244, 63, 94, 0.22)';
+                urgencyLabel = isEn ? 'Tomorrow' : 'غداً';
+                badgeColor = '#E8B49E';
+                badgeBg = 'rgba(196, 125, 96, 0.22)';
             } else if (diffDays === 2) {
-                urgencyLabel = '🔥 بعد يومين';
+                urgencyLabel = isEn ? 'In 2 days' : 'بعد يومين';
             } else if (diffDays <= 10) {
-                urgencyLabel = `🔥 بعد ${diffDays} أيام`;
+                urgencyLabel = isEn ? `In ${diffDays} days` : `بعد ${diffDays} أيام`;
             } else {
-                urgencyLabel = `📅 بعد ${diffDays} يوم`;
-                badgeColor = '#fcd34d';
-                badgeBg = 'rgba(245, 158, 11, 0.14)';
-                badgeBorder = 'rgba(245, 158, 11, 0.4)';
+                urgencyLabel = isEn ? `In ${diffDays} days` : `بعد ${diffDays} يوم`;
+                badgeColor = '#D7B96F';
+                badgeBg = 'rgba(215, 185, 111, 0.14)';
+                badgeBorder = 'rgba(215, 185, 111, 0.38)';
             }
             return {
                 examTitle,
                 examDate: cleanDate,
                 diffDays,
+                daysLeft: diffDays,
                 urgencyLabel,
                 badgeColor,
                 badgeBg,
@@ -12948,7 +13978,7 @@
             if (examBox) examBox.style.display = smartSubDraftState.isDivided ? 'block' : 'none';
             if (!smartSubDraftState.isDivided && smartSubDraftState.icon === 'fa-capsules') {
                 selectSmartSubjectIcon('fa-book-quran');
-                selectSmartSubjectColor('#10b981');
+                selectSmartSubjectColor('#899982');
             }
         }
 
@@ -12958,7 +13988,7 @@
             if (isNonDividedSubjectName(val)) {
                 selectSmartSubjectDivisionMode(false);
                 selectSmartSubjectIcon('fa-book-quran');
-                selectSmartSubjectColor('#10b981');
+                selectSmartSubjectColor('#899982');
             }
         }
 
@@ -13567,98 +14597,428 @@
             `;
         }
 
+        // ================= WP 6.2 PURE LIBRARY & TABLE OF CONTENTS HELPERS =================
+        let subjectFilterMode = 'all';
+        let libraryViewMode = (() => {
+            try {
+                return localStorage.getItem('exoLibraryViewModeV1') === 'list' ? 'list' : 'shelf';
+            } catch (e) {
+                return 'shelf';
+            }
+        })();
+        let tocStatusFilter = 'all';
+        let tocViewMode = (() => {
+            try {
+                return localStorage.getItem('exoTocViewModeV1') === 'grid' ? 'grid' : 'toc';
+            } catch (e) {
+                return 'toc';
+            }
+        })();
+
+        function buildBookshelfStats(subjectsList, scheduleEventsList) {
+            const safeSubs = Array.isArray(subjectsList) ? subjectsList : [];
+            const safeEvents = Array.isArray(scheduleEventsList) ? scheduleEventsList : [];
+            let grandTotalLectures = 0;
+            let grandDoneLectures = 0;
+            let grandChapters = 0;
+
+            const hoursBySubId = new Map();
+            const doneSessionsBySubId = new Map();
+            for (let i = 0; i < safeEvents.length; i++) {
+                const ev = safeEvents[i];
+                if (!ev || ev.subjectId === undefined || ev.subjectId === null) continue;
+                const key = String(ev.subjectId);
+                hoursBySubId.set(key, (hoursBySubId.get(key) || 0) + (Number(ev.duration) || 1));
+                if (ev.completed) {
+                    doneSessionsBySubId.set(key, (doneSessionsBySubId.get(key) || 0) + 1);
+                }
+            }
+
+            const items = safeSubs.map((sub, originalIdx) => {
+                const groups = Array.isArray(sub && sub.groups) ? sub.groups : [];
+                let totalLec = 0;
+                let doneLec = 0;
+                for (let gi = 0; gi < groups.length; gi++) {
+                    const g = groups[gi];
+                    const lecs = Array.isArray(g && g.lectures) ? g.lectures : [];
+                    for (let li = 0; li < lecs.length; li++) {
+                        totalLec++;
+                        grandTotalLectures++;
+                        if (lecs[li] && lecs[li].completed) {
+                            doneLec++;
+                            grandDoneLectures++;
+                        }
+                    }
+                }
+                grandChapters += groups.length;
+                const progressPct = totalLec > 0 ? Math.round((doneLec / totalLec) * 100) : 0;
+                const key = String(sub ? sub.id : '');
+                const scheduledHours = hoursBySubId.get(key) || 0;
+                const doneSessions = doneSessionsBySubId.get(key) || 0;
+                return {
+                    sub,
+                    originalIdx,
+                    chapterCount: groups.length,
+                    totalLec,
+                    doneLec,
+                    progressPct,
+                    scheduledHours,
+                    doneSessions
+                };
+            });
+
+            const semesterPct = grandTotalLectures > 0
+                ? Math.round((grandDoneLectures / grandTotalLectures) * 100)
+                : 0;
+
+            return {
+                totalSubjects: safeSubs.length,
+                totalChapters: grandChapters,
+                totalLectures: grandTotalLectures,
+                doneLectures: grandDoneLectures,
+                semesterPct,
+                items
+            };
+        }
+
+        function filterAndSortBookshelfItems(items, searchQuery, filterMode, sortMode, isDividedFn) {
+            const safeItems = Array.isArray(items) ? items : [];
+            const q = String(searchQuery || '').trim().toLowerCase();
+            const fMode = String(filterMode || 'all');
+            const sMode = String(sortMode || 'custom');
+            const checkDivided = typeof isDividedFn === 'function'
+                ? isDividedFn
+                : (s => !(s && s.isDivided === false));
+
+            const filtered = safeItems.filter(item => {
+                const sub = item && item.sub;
+                if (!sub) return false;
+                if (q) {
+                    const nameMatch = String(sub.name || '').toLowerCase().includes(q);
+                    if (!nameMatch) return false;
+                }
+                const divided = Boolean(checkDivided(sub));
+                if (fMode === 'courses') return divided;
+                if (fMode === 'continuous') return !divided;
+                if (fMode === 'in_progress') {
+                    return divided ? (item.totalLec > 0 && item.doneLec < item.totalLec) : true;
+                }
+                return true;
+            });
+
+            if (sMode === 'progress_desc') {
+                filtered.sort((a, b) => (b.progressPct - a.progressPct) || (b.doneLec - a.doneLec));
+            } else if (sMode === 'progress_asc') {
+                filtered.sort((a, b) => (a.progressPct - b.progressPct) || (a.doneLec - b.doneLec));
+            } else if (sMode === 'hours_desc') {
+                filtered.sort((a, b) => b.scheduledHours - a.scheduledHours);
+            } else if (sMode === 'alpha') {
+                filtered.sort((a, b) => String(a.sub.name || '').localeCompare(String(b.sub.name || ''), undefined, { sensitivity: 'base' }));
+            }
+
+            return filtered;
+        }
+
+        function formatChapterIndexNumber(index) {
+            const n = Math.max(1, Number(index) + 1);
+            return n < 10 ? `0${n}` : String(n);
+        }
+
+        function filterTocChapters(groups, searchQuery, statusFilter, isLectureDueFn) {
+            const safeGroups = Array.isArray(groups) ? groups : [];
+            const q = String(searchQuery || '').trim().toLowerCase();
+            const filterVal = String(statusFilter || 'all');
+            const checkDue = typeof isLectureDueFn === 'function'
+                ? isLectureDueFn
+                : (lec => Boolean(lec && lec.isReviewDue));
+
+            const rows = [];
+            for (let gi = 0; gi < safeGroups.length; gi++) {
+                const g = safeGroups[gi];
+                if (!g) continue;
+                const lecs = Array.isArray(g.lectures) ? g.lectures : [];
+                let doneCount = 0;
+                for (let i = 0; i < lecs.length; i++) {
+                    if (lecs[i] && lecs[i].completed) doneCount++;
+                }
+                const totalCount = lecs.length;
+                const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
+                const groupNameMatches = !q || String(g.name || '').toLowerCase().includes(q);
+                const visibleLectures = lecs.filter(lec => {
+                    if (!lec) return false;
+                    const titleMatch = groupNameMatches || String(lec.title || '').toLowerCase().includes(q);
+                    if (!titleMatch) return false;
+                    if (filterVal === 'incomplete') return !lec.completed;
+                    if (filterVal === 'completed') return Boolean(lec.completed);
+                    if (filterVal === 'review_due') return Boolean(lec.completed && checkDue(lec));
+                    return true;
+                });
+
+                if (filterVal === 'completed' && visibleLectures.length === 0) continue;
+                if (filterVal === 'incomplete' && totalCount > 0 && doneCount === totalCount) continue;
+                if (filterVal === 'review_due' && visibleLectures.length === 0) continue;
+                if (q && !groupNameMatches && visibleLectures.length === 0) continue;
+
+                rows.push({
+                    group: g,
+                    originalIndex: gi,
+                    indexLabel: formatChapterIndexNumber(gi),
+                    totalCount,
+                    doneCount,
+                    pct,
+                    visibleLectures
+                });
+            }
+            return rows;
+        }
+
+        function setLibraryViewMode(mode) {
+            libraryViewMode = (mode === 'list') ? 'list' : 'shelf';
+            try { localStorage.setItem('exoLibraryViewModeV1', libraryViewMode); } catch (e) {}
+            const shelfBtn = document.getElementById('libViewShelfBtn');
+            const listBtn = document.getElementById('libViewListBtn');
+            if (shelfBtn) {
+                shelfBtn.classList.toggle('active', libraryViewMode === 'shelf');
+                shelfBtn.setAttribute('aria-pressed', libraryViewMode === 'shelf' ? 'true' : 'false');
+            }
+            if (listBtn) {
+                listBtn.classList.toggle('active', libraryViewMode === 'list');
+                listBtn.setAttribute('aria-pressed', libraryViewMode === 'list' ? 'true' : 'false');
+            }
+            const grid = document.getElementById('mainSubjectsGrid');
+            if (grid) grid.classList.toggle('is-list-view', libraryViewMode === 'list');
+        }
+
+        function handleSubjectFilterChange(mode) {
+            subjectFilterMode = mode || 'all';
+            renderSubjectsList();
+        }
+
+        function setTocViewMode(mode) {
+            tocViewMode = (mode === 'grid') ? 'grid' : 'toc';
+            try { localStorage.setItem('exoTocViewModeV1', tocViewMode); } catch (e) {}
+            const tocBtn = document.getElementById('tocViewTocBtn');
+            const gridBtn = document.getElementById('tocViewGridBtn');
+            if (tocBtn) {
+                tocBtn.classList.toggle('active', tocViewMode === 'toc');
+                tocBtn.setAttribute('aria-pressed', tocViewMode === 'toc' ? 'true' : 'false');
+            }
+            if (gridBtn) {
+                gridBtn.classList.toggle('active', tocViewMode === 'grid');
+                gridBtn.setAttribute('aria-pressed', tocViewMode === 'grid' ? 'true' : 'false');
+            }
+            const container = document.getElementById('groupsContainer');
+            if (container) container.classList.toggle('is-grid-view', tocViewMode === 'grid');
+        }
+
+        function handleTocFilterChange(mode) {
+            tocStatusFilter = mode || 'all';
+            renderGroups();
+        }
+
+        function toggleAllTocChapters() {
+            const cards = Array.from(document.querySelectorAll('#groupsContainer .group-card'));
+            if (cards.length === 0) return;
+            const anyExpanded = cards.some(c => !c.classList.contains('collapsed'));
+            cards.forEach(c => c.classList.toggle('collapsed', anyExpanded));
+            syncTocExpandAllButton();
+        }
+
+        function syncTocExpandAllButton() {
+            const btn = document.getElementById('tocExpandAllBtn');
+            const lbl = document.getElementById('tocExpandAllLabel');
+            const icon = btn ? btn.querySelector('i') : null;
+            if (!btn || !lbl) return;
+            const isEn = (window.currentExoLang || document.documentElement?.lang) !== 'ar';
+            const cards = Array.from(document.querySelectorAll('#groupsContainer .group-card'));
+            const anyExpanded = cards.some(c => !c.classList.contains('collapsed'));
+            if (anyExpanded) {
+                lbl.textContent = isEn ? 'Collapse All' : 'طي الكل';
+                if (icon) icon.className = 'fa-solid fa-angles-up';
+            } else {
+                lbl.textContent = isEn ? 'Expand All' : 'فتح الكل';
+                if (icon) icon.className = 'fa-solid fa-angles-down';
+            }
+        }
+
+        function moveGroupOrder(groupId, delta, event) {
+            if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
+            const sub = subjects.find(s => String(s.id) === String(activeSubjectId));
+            if (!sub || !Array.isArray(sub.groups)) return;
+            const idx = sub.groups.findIndex(g => String(g.id) === String(groupId));
+            if (idx < 0) return;
+            const targetIdx = idx + delta;
+            if (targetIdx < 0 || targetIdx >= sub.groups.length) return;
+            const [moved] = sub.groups.splice(idx, 1);
+            sub.groups.splice(targetIdx, 0, moved);
+            if (moved && typeof moved === 'object') moved._needsCausalStamp = true;
+            sub._needsCausalStamp = true;
+            const saveRes = saveSubjects();
+            renderGroups();
+            const isEn = (window.currentExoLang || document.documentElement?.lang) !== 'ar';
+            if (!saveRes || saveRes.ok !== false) {
+                showToast(isEn
+                    ? `Moved "${moved.name}" to chapter ${targetIdx + 1}`
+                    : `تم نقل «${moved.name}» إلى الترتيب ${targetIdx + 1}`);
+            }
+            return saveRes;
+        }
+
+        function updateWp62StaticLabels(targetLang) {
+            const isEn = (targetLang || window.currentExoLang || document.documentElement?.lang) !== 'ar';
+            const setText = (id, text) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = text;
+            };
+            setText('libraryKickerLabel', isEn ? 'PERSONAL LIBRARY' : 'المكتبة الشخصية');
+            setText('libraryTitleHeading', isEn ? 'Study Library' : 'مكتبة المواد');
+            setText('ribbonProgressLabel', isEn ? 'Overall' : 'الإنجاز الكلي');
+            setText('libViewShelfLbl', isEn ? 'Shelf' : 'رف الكتب');
+            setText('libViewListLbl', isEn ? 'List' : 'قائمة');
+            setText('addSubjectBtnLabel', isEn ? 'New Book' : 'إضافة مادة');
+            setText('backToSubjectsLabel', isEn ? 'Back to Library' : 'عودة للمكتبة');
+            setText('tocViewTocLabel', isEn ? 'Contents' : 'الفهرس');
+            setText('tocViewGridLabel', isEn ? 'Grid' : 'شبكة');
+            setText('mergeSelectAllBtn', isEn ? 'Select All' : 'تحديد الكل');
+            setText('mergeClearAllBtn', isEn ? 'Clear All' : 'إلغاء الكل');
+            setText('mergeLaunchLabel', isEn ? 'Open Selected Merged' : 'فتح المحاضرات المختارة');
+
+            const searchEl = document.getElementById('searchSubjectInput');
+            if (searchEl) {
+                searchEl.placeholder = isEn ? 'Search books...' : 'ابحث في المواد...';
+                searchEl.setAttribute('aria-label', isEn ? 'Search books' : 'البحث في المواد');
+            }
+            const tocSearchEl = document.getElementById('tocSearchInput');
+            if (tocSearchEl) {
+                tocSearchEl.placeholder = isEn ? 'Filter chapters or lectures...' : 'تصفية الفصول والمحاضرات...';
+                tocSearchEl.setAttribute('aria-label', isEn ? 'Filter chapters or lectures' : 'تصفية الفصول والمحاضرات');
+            }
+
+            const filterSel = document.getElementById('subjectFilterSelect');
+            if (filterSel && filterSel.options.length >= 4) {
+                filterSel.options[0].text = isEn ? 'All Books' : 'كل المواد';
+                filterSel.options[1].text = isEn ? 'Courses (Chapters)' : 'مواد مقسمة';
+                filterSel.options[2].text = isEn ? 'Continuous Tracks' : 'مسارات مستمرة';
+                filterSel.options[3].text = isEn ? 'In Progress' : 'قيد الدراسة';
+            }
+            const sortSel = document.getElementById('subjectSortOrderSelect');
+            if (sortSel && sortSel.options.length >= 5) {
+                sortSel.options[0].text = isEn ? 'Custom Order' : 'ترتيبي الخاص';
+                sortSel.options[1].text = isEn ? 'Highest Progress' : 'الأعلى إنجازاً';
+                sortSel.options[2].text = isEn ? 'Lowest Progress' : 'الأقل إنجازاً';
+                sortSel.options[3].text = isEn ? 'Most Planned Hours' : 'الأكثر ساعات بالجدول';
+                sortSel.options[4].text = isEn ? 'Alphabetical' : 'الترتيب الأبجدي';
+            }
+            const tocFilterSel = document.getElementById('tocStatusFilterSelect');
+            if (tocFilterSel && tocFilterSel.options.length >= 4) {
+                tocFilterSel.options[0].text = isEn ? 'All Chapters' : 'كل الفصول';
+                tocFilterSel.options[1].text = isEn ? 'In Progress / Incomplete' : 'غير مكتمل';
+                tocFilterSel.options[2].text = isEn ? 'Completed' : 'مكتمل';
+                tocFilterSel.options[3].text = isEn ? 'Review Due' : 'مستحق للمراجعة';
+            }
+
+            const mergeTitle = document.getElementById('mergeDrawerTitle');
+            if (mergeTitle) {
+                mergeTitle.innerHTML = isEn
+                    ? '<i class="fa-solid fa-book-open-reader" style="color: var(--sage-green);"></i> Multi-Lecture Review Studio (Select lectures to open together)'
+                    : '<i class="fa-solid fa-book-open-reader" style="color: var(--sage-green);"></i> استوديو دمج المحاضرات والريكوردات (اختر المحاضرات للمراجعة معاً)';
+            }
+            const mergeDesc = document.getElementById('mergeDrawerDesc');
+            if (mergeDesc) {
+                mergeDesc.textContent = isEn
+                    ? 'Select two or more lectures to open their slides and recordings sequentially in one organized view.'
+                    : 'حدد محاضرتين أو أكثر لفتح سلايداتها وريكورداتها متتالية في شاشة مراجعة واحدة منظمة.';
+            }
+
+            const editSubBtn = document.getElementById('editCurrentSubjectBtn');
+            if (editSubBtn) {
+                const lbl = isEn ? 'Edit Book Settings' : 'تعديل إعدادات المادة';
+                editSubBtn.title = lbl;
+                editSubBtn.setAttribute('aria-label', lbl);
+            }
+            syncTocExpandAllButton();
+        }
+
         function renderSubjectsList() {
             const grid = document.getElementById('mainSubjectsGrid');
             if(!grid) return;
-            const gridParts = [];
+            const isEn = (window.currentExoLang || document.documentElement?.lang) !== 'ar';
+            updateWp62StaticLabels(isEn ? 'en' : 'ar');
+            setLibraryViewMode(libraryViewMode);
 
             const sortSel = document.getElementById('subjectSortOrderSelect');
             if (sortSel && sortSel.value !== subjectSortMode) {
                 sortSel.value = subjectSortMode;
             }
-            
-            // Calculate semester summary stats
-            let grandTotalLectures = 0;
-            let grandDoneLectures = 0;
-            subjects.forEach(s => {
-                (s?.groups || []).forEach(g => {
-                    (g?.lectures || []).forEach(l => {
-                        grandTotalLectures++;
-                        if (l && l.completed) grandDoneLectures++;
-                    });
-                });
-            });
-            const semesterPct = grandTotalLectures > 0 ? Math.round((grandDoneLectures / grandTotalLectures) * 100) : 0;
-            
-            if (document.getElementById('ribbonTotalSubjects')) document.getElementById('ribbonTotalSubjects').innerText = `${subjects.length} مادة`;
-            if (document.getElementById('ribbonTotalLectures')) document.getElementById('ribbonTotalLectures').innerText = `${grandTotalLectures} ملف`;
-            if (document.getElementById('ribbonDoneLectures')) document.getElementById('ribbonDoneLectures').innerText = `${grandDoneLectures} مكتمل`;
-            if (document.getElementById('ribbonSemesterProgress')) document.getElementById('ribbonSemesterProgress').innerText = `${semesterPct}%`;
-            if (document.getElementById('ribbonProgressBar')) document.getElementById('ribbonProgressBar').style.width = `${semesterPct}%`;
-
-            const searchVal = document.getElementById('searchSubjectInput') ? document.getElementById('searchSubjectInput').value.trim().toLowerCase() : '';
-            
-            // Enrich subjects with computed stats for sorting
-            const enriched = subjects
-                .filter(s => !searchVal || s.name.toLowerCase().includes(searchVal))
-                .map((sub, originalIdx) => {
-                    let totalLec = 0;
-                    let doneLec = 0;
-                    (sub.groups || []).forEach(g => {
-                        (g.lectures || []).forEach(l => {
-                            totalLec++;
-                            if (l.completed) doneLec++;
-                        });
-                    });
-                    const progressPct = totalLec > 0 ? Math.round((doneLec / totalLec) * 100) : 0;
-                    let scheduledHours = 0;
-                    scheduleEvents.forEach(ev => {
-                        if (String(ev.subjectId) === String(sub.id)) scheduledHours += (Number(ev.duration) || 1);
-                    });
-                    return { sub, originalIdx, totalLec, doneLec, progressPct, scheduledHours };
-                });
-
-            if (subjectSortMode === 'progress_desc') {
-                enriched.sort((a, b) => (b.progressPct - a.progressPct) || (b.doneLec - a.doneLec));
-            } else if (subjectSortMode === 'progress_asc') {
-                enriched.sort((a, b) => (a.progressPct - b.progressPct) || (a.doneLec - b.doneLec));
-            } else if (subjectSortMode === 'hours_desc') {
-                enriched.sort((a, b) => b.scheduledHours - a.scheduledHours);
-            } else if (subjectSortMode === 'alpha') {
-                enriched.sort((a, b) => (a.sub.name || '').localeCompare(b.sub.name || '', 'ar'));
+            const filterSel = document.getElementById('subjectFilterSelect');
+            if (filterSel && filterSel.value !== subjectFilterMode) {
+                filterSel.value = subjectFilterMode;
             }
+
+            const stats = buildBookshelfStats(subjects, scheduleEvents);
+            const setText = (id, text) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = text;
+            };
+            setText('ribbonTotalSubjects', isEn
+                ? `${stats.totalSubjects} ${stats.totalSubjects === 1 ? 'book' : 'books'}`
+                : `${stats.totalSubjects} مادة`);
+            setText('ribbonTotalLectures', isEn
+                ? `${stats.totalLectures} ${stats.totalLectures === 1 ? 'lecture' : 'lectures'}`
+                : `${stats.totalLectures} ملف`);
+            setText('ribbonDoneLectures', isEn
+                ? `${stats.doneLectures} done`
+                : `${stats.doneLectures} مكتمل`);
+            setText('ribbonSemesterProgress', `${stats.semesterPct}%`);
+            const progBar = document.getElementById('ribbonProgressBar');
+            if (progBar) progBar.style.width = `${stats.semesterPct}%`;
+
+            const searchInput = document.getElementById('searchSubjectInput');
+            const searchVal = searchInput ? searchInput.value.trim() : '';
+            const enriched = filterAndSortBookshelfItems(stats.items, searchVal, subjectFilterMode, subjectSortMode, isSubjectDivided);
 
             renderNewUserOnboardingHub();
 
-            if(enriched.length === 0) {
-                if (searchVal) {
-                    grid.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;"><i class="fa-solid fa-magnifying-glass"></i><h3>لا توجد مادة مطابقة لـ «${searchVal}»</h3><p>جرب البحث بكلمة أخرى أو أضف المادة مباشرة من الشريط العلوي.</p></div>`;
+            if (enriched.length === 0) {
+                if (searchVal || subjectFilterMode !== 'all') {
+                    const safeQ = escapeHtml(searchVal);
+                    grid.innerHTML = `
+                        <div class="exo-empty-bookshelf">
+                            <div class="exo-empty-bookshelf-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                            <h3 class="exo-editorial">${isEn ? 'No matching books found' : 'لا توجد مواد مطابقة للتصفية الحالية'}</h3>
+                            <p>${searchVal
+                                ? (isEn ? `No book matches "<span dir="auto">${safeQ}</span>" in the current filter.` : `لا توجد مادة مطابقة لـ «<span dir="auto">${safeQ}</span>» ضمن الفلتر المحدد.`)
+                                : (isEn ? 'No books match this filter category yet.' : 'لا توجد مواد ضمن هذا التصنيف حالياً.')}</p>
+                            <button type="button" class="btn btn-outline" onclick="if(document.getElementById('searchSubjectInput')) document.getElementById('searchSubjectInput').value=''; subjectFilterMode='all'; if(document.getElementById('subjectFilterSelect')) document.getElementById('subjectFilterSelect').value='all'; renderSubjectsList();">
+                                <i class="fa-solid fa-rotate-left"></i> ${isEn ? 'Reset Filters' : 'إظهار كل المواد'}
+                            </button>
+                        </div>
+                    `;
                 } else {
                     grid.innerHTML = `
-                        <div class="empty-state" style="grid-column: 1/-1; background: linear-gradient(145deg, rgba(18, 25, 38, 0.85), rgba(13, 18, 28, 0.92)); border: 1.5px dashed rgba(45, 212, 191, 0.35); border-radius: 18px; padding: 36px 24px;">
-                            <div style="width: 64px; height: 64px; border-radius: 18px; background: rgba(45, 212, 191, 0.14); border: 1px solid rgba(45, 212, 191, 0.35); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin-bottom: 14px;">
-                                <i class="fa-solid fa-graduation-cap"></i>
-                            </div>
-                            <h3 style="font-size: 1.3rem; font-weight: 900; color: var(--text-main); margin-bottom: 6px;">مرحباً بك في Exo! ابدأ بإضافة موادك الدراسية بضغطة واحدة</h3>
-                            <p style="max-width: 560px; line-height: 1.65; color: var(--text-muted); font-size: 0.88rem; margin-bottom: 6px;">
-                                اختر من المواد السريعة بالأسفل لإضافتها فوراً مع فصل افتراضي جاهز، أو اكتب اسم مادتك الخاصة، أو جرّب المنصة ببيانات نموذجية كاملة:
-                            </p>
+                        <div class="exo-empty-bookshelf">
+                            <div class="exo-empty-bookshelf-icon"><i class="fa-solid fa-book-bookmark"></i></div>
+                            <h3 class="exo-editorial">${isEn ? 'Your Study Library awaits its first book' : 'مكتبتك الدراسية جاهزة لأول مادة'}</h3>
+                            <p>${isEn
+                                ? 'Create a custom book with chapters and lectures, start with a ready template below, or load sample data to explore.'
+                                : 'أنشئ مادة دراسية جديدة مع فصولها ومحاضراتها، أو اختر من القوالب السريعة بالأسفل، أو جرّب المنصة ببيانات نموذجية.'}</p>
                             <div class="quick-preset-chips">
-                                <button type="button" class="preset-sub-chip" onclick="quickAddPresetSubject('علم الأدوية (Pharmacology)')"><i class="fa-solid fa-plus"></i> علم الأدوية (Pharmacology)</button>
-                                <button type="button" class="preset-sub-chip" onclick="quickAddPresetSubject('الكيمياء الحيوية (Biochemistry)')"><i class="fa-solid fa-plus"></i> الكيمياء الحيوية (Biochemistry)</button>
-                                <button type="button" class="preset-sub-chip" onclick="quickAddPresetSubject('الصيدلانيات (Pharmaceutics)')"><i class="fa-solid fa-plus"></i> الصيدلانيات (Pharmaceutics)</button>
-                                <button type="button" class="preset-sub-chip" onclick="quickAddPresetSubject('الميكروبيولوجي والمناعة')"><i class="fa-solid fa-plus"></i> الميكروبيولوجي والمناعة</button>
-                                <button type="button" class="preset-sub-chip" onclick="quickAddPresetSubject('الكيمياء العضوية (Organic)')"><i class="fa-solid fa-plus"></i> الكيمياء العضوية</button>
+                                <button type="button" class="preset-sub-chip" onclick="quickAddPresetSubject('علم الأدوية (Pharmacology)')"><i class="fa-solid fa-plus"></i> Pharmacology</button>
+                                <button type="button" class="preset-sub-chip" onclick="quickAddPresetSubject('الكيمياء الحيوية (Biochemistry)')"><i class="fa-solid fa-plus"></i> Biochemistry</button>
+                                <button type="button" class="preset-sub-chip" onclick="quickAddPresetSubject('الصيدلانيات (Pharmaceutics)')"><i class="fa-solid fa-plus"></i> Pharmaceutics</button>
+                                <button type="button" class="preset-sub-chip" onclick="quickAddPresetSubject('الميكروبيولوجي والمناعة')"><i class="fa-solid fa-plus"></i> Microbiology</button>
+                                <button type="button" class="preset-sub-chip" onclick="quickAddPresetSubject('الكيمياء العضوية (Organic)')"><i class="fa-solid fa-plus"></i> Organic Chemistry</button>
                             </div>
                             <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 6px;">
-                                <button type="button" class="btn btn-primary" onclick="promptQuickAddCustomSubject()">
-                                    <i class="fa-solid fa-folder-plus"></i> إضافة مادة باسم مخصص
+                                <button type="button" class="exo-library-primary-btn" onclick="openSmartSubjectModal()">
+                                    <i class="fa-solid fa-folder-plus"></i> ${isEn ? 'Create Custom Book' : 'إضافة مادة باسم مخصص'}
                                 </button>
-                                <button type="button" class="btn btn-outline" onclick="loadDemoData()" style="border-color: rgba(56, 189, 248, 0.45); color: #38bdf8;">
-                                    <i class="fa-solid fa-wand-magic-sparkles"></i> تجربة المنصة ببيانات جاهزة (Demo)
+                                <button type="button" class="btn btn-outline" onclick="loadDemoData()">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> ${isEn ? 'Load Sample Library (Demo)' : 'تجربة ببيانات جاهزة (Demo)'}
                                 </button>
                                 <button type="button" class="btn btn-outline" onclick="openHelpModal()">
-                                    <i class="fa-solid fa-book-open-reader"></i> جولة في الدليل الشامل
+                                    <i class="fa-solid fa-book-open-reader"></i> ${isEn ? 'Platform Guide' : 'الدليل الشامل'}
                                 </button>
                             </div>
                         </div>
@@ -13667,49 +15027,69 @@
                 return;
             }
 
+            const gridParts = [];
             enriched.forEach((item, idx) => {
-                const { sub, totalLec, doneLec, progressPct, scheduledHours } = item;
+                const { sub, totalLec, doneLec, progressPct, scheduledHours, doneSessions } = item;
                 const iconClass = getSubjectEmblemIcon(sub, idx);
                 const accentColor = getSubjectColorTheme(sub, idx);
                 const divided = isSubjectDivided(sub);
+                const orderNum = idx + 1 < 10 ? `0${idx + 1}` : String(idx + 1);
 
                 let subtitleHtml = '';
                 let footerHtml = '';
 
                 if (!divided) {
-                    const doneSessions = scheduleEvents.filter(ev => String(ev.subjectId) === String(sub.id) && ev.completed).length;
                     const wirdCount = Array.isArray(sub.continuousLogs) ? sub.continuousLogs.length : 0;
                     const totalEntries = doneSessions + wirdCount;
                     const isQSub = /قر[آا]ن|مصحف|تلاو|تجويد|حفظ/i.test(sub.name);
                     const isPSub = /برمج|كود|code|dev|python|java|web|flutter|front|back|sql|cs|c\+\+/i.test(sub.name);
-                    const contBadgeTxt = isQSub ? 'ورد / تلاوة مستمرة' : (isPSub ? 'مسار برمجي مستمر' : 'مسار تعلّم حر');
+                    const contBadgeTxt = isEn
+                        ? (isQSub ? 'Reading / Memorization Track' : (isPSub ? 'Coding Practice Track' : 'Continuous Track'))
+                        : (isQSub ? 'ورد / تلاوة مستمرة' : (isPSub ? 'مسار برمجي مستمر' : 'مسار تعلّم حر'));
                     const contBadgeIcon = isQSub ? 'fa-book-quran' : (isPSub ? 'fa-laptop-code' : 'fa-seedling');
-                    const bookmarkTxt = sub.continuousBookmark ? `📌 ${sub.continuousBookmark}` : (isPSub ? 'مسار برمجي مستمر' : 'مادة مستمرة / مسار تعلّم حر');
-                    subtitleHtml = `
-                        <p style="color: var(--text-muted); font-size: 0.82rem; margin-bottom: 14px; line-height: 1.5;">
-                            ${bookmarkTxt}${scheduledHours > 0 ? ` • ${scheduledHours} س بالجدول` : ''}
-                        </p>
-                    `;
+                    const bookmarkSeg = sub.continuousBookmark
+                        ? `<span class="exo-dash-meta-seg" dir="auto">${escapeHtml(sub.continuousBookmark)}</span>`
+                        : `<span class="exo-dash-meta-seg">${isEn ? 'Open journal track' : 'مسار مستمر بدون فصول'}</span>`;
+                    const hoursSeg = scheduledHours > 0
+                        ? `<span class="exo-dash-meta-sep" aria-hidden="true">·</span><span class="exo-dash-meta-seg">${isEn ? `${scheduledHours}h planned` : `${scheduledHours} س بالجدول`}</span>`
+                        : '';
+                    subtitleHtml = `<div class="exo-book-meta">${bookmarkSeg}${hoursSeg}</div>`;
                     footerHtml = `
-                        <div style="margin-top: auto; padding-top: 8px; border-top: 1px solid rgba(148, 163, 184, 0.1); display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem;">
-                            <span style="color: #6ee7b7; font-weight: 700;"><i class="fa-solid ${contBadgeIcon}"></i> ${contBadgeTxt}</span>
-                            <span style="color: var(--text-muted); font-weight: 700;">${totalEntries > 0 ? `${totalEntries} إنجاز مسجل ✓` : 'اضغط للمتابعة'}</span>
+                        <div class="exo-book-footer exo-book-track-foot">
+                            <span style="color: var(--sage-green);"><i class="fa-solid ${contBadgeIcon}"></i> ${contBadgeTxt}</span>
+                            <span style="color: var(--text-muted);">${totalEntries > 0
+                                ? (isEn ? `${totalEntries} logged` : `${totalEntries} إنجاز`)
+                                : (isEn ? 'Open' : 'متابعة')}</span>
                         </div>
                     `;
                 } else {
+                    const chCount = (sub.groups || []).length;
+                    const chTxt = isEn
+                        ? `${chCount} ${chCount === 1 ? 'chapter' : 'chapters'}`
+                        : `${chCount} فصول`;
+                    const lecTxt = isEn
+                        ? `${doneLec}/${totalLec} done`
+                        : `${doneLec} من ${totalLec} مكتملة`;
+                    const hrTxt = scheduledHours > 0
+                        ? `<span class="exo-dash-meta-sep" aria-hidden="true">·</span><span class="exo-dash-meta-seg">${isEn ? `${scheduledHours}h planned` : `${scheduledHours} س بالجدول`}</span>`
+                        : '';
                     subtitleHtml = `
-                        <p style="color: var(--text-muted); font-size: 0.82rem; margin-bottom: 14px;">
-                            ${(sub.groups || []).length} أقسام • ${doneLec} من ${totalLec} محاضرة مكتملة${scheduledHours > 0 ? ` • ${scheduledHours} س بالجدول` : ''}
-                        </p>
+                        <div class="exo-book-meta">
+                            <span class="exo-dash-meta-seg">${chTxt}</span>
+                            <span class="exo-dash-meta-sep" aria-hidden="true">·</span>
+                            <span class="exo-dash-meta-seg">${lecTxt}</span>
+                            ${hrTxt}
+                        </div>
                     `;
+                    const barColor = progressPct === 100 ? 'var(--sage-green)' : accentColor;
                     footerHtml = `
-                        <div style="margin-top: auto;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.75rem;">
-                                <span style="color: var(--text-muted);">نسبة الإنجاز</span>
-                                <span style="font-weight: 800; color: ${progressPct === 100 ? 'var(--important-color)' : accentColor};">${progressPct}%</span>
+                        <div class="exo-book-footer">
+                            <div class="exo-book-progress-head">
+                                <span style="color: var(--text-muted);">${isEn ? 'Progress' : 'نسبة الإنجاز'}</span>
+                                <span style="font-weight: 800; color: ${progressPct === 100 ? 'var(--sage-green)' : 'var(--warm-paper)'};">${progressPct}%</span>
                             </div>
-                            <div class="progress-bar-bg" style="height: 5px;">
-                                <div class="progress-bar-fill" style="width: ${progressPct}%; background: ${progressPct === 100 ? 'var(--important-color)' : accentColor};"></div>
+                            <div class="progress-bar-bg" style="height: 4px; background: rgba(240, 230, 212, 0.1);">
+                                <div class="progress-bar-fill" style="width: ${progressPct}%; background: ${barColor};"></div>
                             </div>
                         </div>
                     `;
@@ -13717,38 +15097,45 @@
 
                 const examInfo = divided ? getSubjectExamRadarInfo(sub) : null;
                 const examBadgeHtml = examInfo ? `
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; padding:5px 10px; margin-bottom:10px; border-radius:9px; background:${examInfo.badgeBg}; border:1px solid ${examInfo.badgeBorder}; font-size:0.73rem;">
-                        <span style="color:${examInfo.badgeColor}; font-weight:800;"><i class="fa-solid fa-bullseye"></i> ${escapeHtml(examInfo.examTitle)}: ${examInfo.urgencyLabel}</span>
-                        <button type="button" onclick="launchSubjectExamCramMode(${sub.id}, event)" style="background:rgba(255,255,255,0.12); border:none; color:#fff; border-radius:6px; padding:2px 7px; font-size:0.68rem; font-weight:800; cursor:pointer;" title="فتح محاضرات الامتحان مدمجة الآن">⚡ طوارئ</button>
+                    <div class="exo-book-exam-strip" style="background:${examInfo.badgeBg}; border:1px solid ${examInfo.badgeBorder};">
+                        <span style="color:${examInfo.badgeColor}; font-weight:700;" dir="auto"><i class="fa-solid fa-bullseye"></i> ${escapeHtml(examInfo.examTitle)} · ${escapeHtml(examInfo.urgencyLabel)}</span>
+                        <button type="button" class="exo-book-cram-btn" onclick="launchSubjectExamCramMode(${sub.id}, event)" title="${isEn ? 'Open exam lectures merged' : 'فتح محاضرات الامتحان مدمجة'}">${isEn ? 'Cram' : 'طوارئ'}</button>
                     </div>
                 ` : '';
 
+                const movePrevTitle = isEn ? 'Move earlier' : 'تقديم المادة';
+                const moveNextTitle = isEn ? 'Move later' : 'تأخير المادة';
+                const editTitle = isEn ? 'Edit book' : 'تعديل المادة';
+                const delTitle = isEn ? 'Delete book' : 'حذف المادة';
+
                 gridParts.push(`
                     <div class="subject-card" data-subject-id="${sub.id}" draggable="true"
-                         style="--subject-accent: ${accentColor}; --subject-accent-soft: ${accentColor}22; --subject-accent-border: ${accentColor}55;"
+                         style="--subject-accent: ${accentColor}; --subject-accent-soft: ${accentColor}1F; --subject-accent-border: ${accentColor}4D;"
                          ondragstart="handleSubjectDragStart(event, ${sub.id})"
                          ondragover="handleSubjectDragOver(event)"
                          ondragleave="handleSubjectDragLeave(event)"
                          ondrop="handleSubjectDrop(event, ${sub.id})"
                          ondragend="handleSubjectDragEnd(event)"
                          onclick="openSubject(${sub.id})">
-                        <div>
-                            <div class="sc-card-top">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <div class="subject-emblem"><i class="fa-solid ${iconClass}"></i></div>
-                                    <span class="sub-order-badge">#${idx + 1}</span>
+                        <div class="exo-book-body-wrap">
+                            <div style="width: 100%;">
+                                <div class="sc-card-top">
+                                    <div style="display: flex; align-items: center; gap: 9px;">
+                                        <div class="subject-emblem"><i class="fa-solid ${iconClass}"></i></div>
+                                        <span class="exo-book-index-num">${orderNum}</span>
+                                    </div>
+                                    <div class="card-actions-always">
+                                        <button type="button" class="icon-btn move-btn" title="${movePrevTitle}" aria-label="${movePrevTitle}" onclick="moveSubjectOrder(${sub.id}, -1, event)"><i class="fa-solid fa-arrow-right exo-rtl-flip"></i></button>
+                                        <button type="button" class="icon-btn move-btn" title="${moveNextTitle}" aria-label="${moveNextTitle}" onclick="moveSubjectOrder(${sub.id}, 1, event)"><i class="fa-solid fa-arrow-left exo-rtl-flip"></i></button>
+                                        <button type="button" class="icon-btn edit" title="${editTitle}" aria-label="${editTitle}" onclick="triggerEditSubject(${sub.id}, event)"><i class="fa-solid fa-pen"></i></button>
+                                        <button type="button" class="icon-btn delete" title="${delTitle}" aria-label="${delTitle}" onclick="triggerDeleteSubject(${sub.id}, event)"><i class="fa-solid fa-trash"></i></button>
+                                    </div>
                                 </div>
-                                <div class="card-actions-always">
-                                    <button class="icon-btn move-btn" title="تقديم المادة" onclick="moveSubjectOrder(${sub.id}, -1, event)"><i class="fa-solid fa-arrow-right exo-rtl-flip"></i></button>
-                                    <button class="icon-btn move-btn" title="تأخير المادة" onclick="moveSubjectOrder(${sub.id}, 1, event)"><i class="fa-solid fa-arrow-left exo-rtl-flip"></i></button>
-                                    <button class="icon-btn edit" title="تعديل المادة" onclick="triggerEditSubject(${sub.id}, event)"><i class="fa-solid fa-pen" style="font-size:0.78rem;"></i></button>
-                                    <button class="icon-btn delete" title="حذف المادة" onclick="triggerDeleteSubject(${sub.id}, event)"><i class="fa-solid fa-trash" style="font-size:0.78rem;"></i></button>
-                                </div>
-                            </div>
 
-                            <h3 data-exo-no-i18n="1" style="font-size: 1.15rem; font-weight: 800; color: var(--text-main); margin-bottom: 6px; line-height: 1.35;">${escapeHtml(sub.name)}</h3>
-                            ${examBadgeHtml}
-                            ${subtitleHtml}
+                                <h3 class="exo-editorial" data-exo-no-i18n="1" dir="auto">${escapeHtml(sub.name)}</h3>
+                                ${examBadgeHtml}
+                                ${subtitleHtml}
+                            </div>
                         </div>
                         ${footerHtml}
                     </div>
@@ -13758,29 +15145,81 @@
         }
 
         function syncSubjectDetailsHeaderButtons(sub) {
+            const isEn = (window.currentExoLang || document.documentElement?.lang) !== 'ar';
             const divided = isSubjectDivided(sub);
             const examBtn = document.getElementById('toggleSubjectExamRadarBtn');
             const mergeBtn = document.getElementById('toggleSubjectMergeDrawerBtn');
             const addGrpBtn = document.getElementById('addSubjectGroupBtn');
             const mergeDrawer = document.getElementById('subjectMergeLecturesDrawer');
+            const tocToolbar = document.getElementById('tocToolbar');
+            const heroStatsRow = document.getElementById('subjectHeroStatsRow');
+
             if (examBtn) {
                 examBtn.style.display = divided ? 'inline-flex' : 'none';
                 const info = divided ? getSubjectExamRadarInfo(sub) : null;
                 examBtn.innerHTML = info
-                    ? `<i class="fa-solid fa-bullseye"></i> ${escapeHtml(info.examTitle)} (${info.urgencyLabel})`
-                    : `<i class="fa-solid fa-bullseye"></i> رادار الامتحان / الكويز`;
+                    ? `<i class="fa-solid fa-bullseye"></i> <span dir="auto">${escapeHtml(info.examTitle)} (${escapeHtml(info.urgencyLabel)})</span>`
+                    : `<i class="fa-solid fa-bullseye"></i> ${isEn ? 'Exam / Quiz Radar' : 'رادار الامتحان / الكويز'}`;
             }
-            if (mergeBtn) mergeBtn.style.display = divided ? 'inline-flex' : 'none';
-            if (addGrpBtn) addGrpBtn.style.display = divided ? 'inline-flex' : 'none';
+            if (mergeBtn) {
+                mergeBtn.style.display = divided ? 'inline-flex' : 'none';
+                mergeBtn.innerHTML = `<i class="fa-solid fa-layer-group"></i> ${isEn ? 'Merge Lectures' : 'دمج محاضرات للمراجعة'}`;
+            }
+            if (addGrpBtn) {
+                addGrpBtn.style.display = divided ? 'inline-flex' : 'none';
+                addGrpBtn.innerHTML = `<i class="fa-solid fa-plus"></i> ${isEn ? 'New Chapter' : 'فصل جديد'}`;
+            }
+            if (tocToolbar) {
+                const hasChapters = divided && Array.isArray(sub && sub.groups) && sub.groups.length > 0;
+                tocToolbar.style.display = hasChapters ? 'flex' : 'none';
+            }
             if (!divided && mergeDrawer) mergeDrawer.classList.remove('open');
+
+            if (heroStatsRow && sub) {
+                if (divided) {
+                    const groups = Array.isArray(sub.groups) ? sub.groups : [];
+                    let totalLec = 0;
+                    let doneLec = 0;
+                    groups.forEach(g => (g.lectures || []).forEach(l => {
+                        totalLec++;
+                        if (l && l.completed) doneLec++;
+                    }));
+                    const pct = totalLec > 0 ? Math.round((doneLec / totalLec) * 100) : 0;
+                    heroStatsRow.innerHTML = `
+                        <span class="exo-dash-meta-seg">${isEn ? `${groups.length} ${groups.length === 1 ? 'chapter' : 'chapters'}` : `${groups.length} فصول`}</span>
+                        <span class="exo-dash-meta-sep" aria-hidden="true">·</span>
+                        <span class="exo-dash-meta-seg">${isEn ? `${doneLec}/${totalLec} lectures done` : `${doneLec}/${totalLec} محاضرة مكتملة`}</span>
+                        <span class="exo-dash-meta-sep" aria-hidden="true">·</span>
+                        <span class="exo-dash-meta-seg" style="color: var(--warm-paper); font-weight: 700;">${pct}%</span>
+                        <div class="progress-bar-bg" style="width: 96px; height: 4px; margin: 0; background: rgba(240, 230, 212, 0.12);">
+                            <div class="progress-bar-fill" style="width: ${pct}%; background: var(--sage-green);"></div>
+                        </div>
+                    `;
+                } else {
+                    const logCount = Array.isArray(sub.continuousLogs) ? sub.continuousLogs.length : 0;
+                    heroStatsRow.innerHTML = `
+                        <span class="exo-dash-meta-seg" style="color: var(--sage-green); font-weight: 700;">${isEn ? 'Continuous Study Track' : 'مسار تعلّم مستمر'}</span>
+                        <span class="exo-dash-meta-sep" aria-hidden="true">·</span>
+                        <span class="exo-dash-meta-seg">${isEn ? `${logCount} entries logged` : `${logCount} إنجاز مسجل`}</span>
+                    `;
+                }
+            }
         }
 
         function openSubject(id) {
             activeSubjectId = id;
             const sub = subjects.find(s => s.id === id);
             if(!sub) return;
-            document.getElementById('activeSubjectTitle').innerText = sub.name;
+            const titleEl = document.getElementById('activeSubjectTitle');
+            if (titleEl) titleEl.innerText = sub.name;
+            const tocSearchEl = document.getElementById('tocSearchInput');
+            if (tocSearchEl) tocSearchEl.value = '';
+            tocStatusFilter = 'all';
+            const tocFilterSel = document.getElementById('tocStatusFilterSelect');
+            if (tocFilterSel) tocFilterSel.value = 'all';
+            updateWp62StaticLabels((window.currentExoLang || document.documentElement?.lang) !== 'ar' ? 'en' : 'ar');
             syncSubjectDetailsHeaderButtons(sub);
+            setTocViewMode(tocViewMode);
             document.getElementById('subjects-list-view').style.display = 'none';
             document.getElementById('subject-details-view').style.display = 'flex';
             renderGroups();
@@ -14399,118 +15838,123 @@
             const card = document.getElementById(`groupCard_${groupId}`);
             if (card) {
                 card.classList.toggle('collapsed');
+                syncTocExpandAllButton();
             }
         }
 
         function renderGroups() {
             const container = document.getElementById('groupsContainer');
             if(!container) return;
-            const groupParts = [];
+            const isEn = (window.currentExoLang || document.documentElement?.lang) !== 'ar';
             const sub = subjects.find(s => s.id === activeSubjectId);
             if(!sub) return;
+            updateWp62StaticLabels(isEn ? 'en' : 'ar');
             syncSubjectDetailsHeaderButtons(sub);
+            setTocViewMode(tocViewMode);
 
             if (!isSubjectDivided(sub)) {
                 const subSessions = scheduleEvents.filter(ev => String(ev.subjectId) === String(sub.id));
                 const wirdLogs = Array.isArray(sub.continuousLogs) ? sub.continuousLogs : [];
-                const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+                const days = isEn
+                    ? ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+                    : ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
                 const isQuranSub = /قر[آا]ن|مصحف|تلاو|تجويد|حفظ/i.test(sub.name);
                 const isProgSub = /برمج|كود|code|dev|python|java|web|flutter|front|back|sql|cs|c\+\+/i.test(sub.name);
 
                 const trackPillIcon = isQuranSub ? 'fa-book-quran' : (isProgSub ? 'fa-laptop-code' : 'fa-seedling');
-                const trackPillTitle = isQuranSub
-                    ? 'مادة مستمرة / ورد وتلاوة'
-                    : (isProgSub ? 'مسار برمجي وتطوير مستمر' : 'مادة مستمرة / مسار تعلّم حر');
+                const trackPillTitle = isEn
+                    ? (isQuranSub ? 'Continuous Reading / Memorization Track' : (isProgSub ? 'Continuous Coding Track' : 'Continuous Learning Track'))
+                    : (isQuranSub ? 'مادة مستمرة / ورد وتلاوة' : (isProgSub ? 'مسار برمجي وتطوير مستمر' : 'مادة مستمرة / مسار تعلّم حر'));
 
-                const trackDesc = isQuranSub
-                    ? 'هذه المادة مخصصة للورد أو الحفظ المستمر؛ يمكنك تسجيل موضع توقفك الحالي أو تدوين ما أنجزته أو جدولة موعد لها بالجدول مباشرة.'
-                    : (isProgSub
-                        ? 'هذا المسار مخصص للممارسة والبرمجة الحرة بدون محاضرات تقليدية؛ يمكنك تدوين الدرس أو المشروع الذي وصلت إليه، أو تسجيل التمارين المنجزة اليوم، أو جدولتها في جدولك.'
-                        : 'هذه المادة مخصصة للممارسة والتعلم الذاتي المستمر بدون محاضرات تقليدية؛ يمكنك تدوين موضع توقفك الحالي، أو تسجيل إنجازك اليومي، أو جدولة مواعيد لها بالجدول مباشرة.');
+                const trackDesc = isEn
+                    ? 'Log your latest checkpoint, record daily study milestones, or schedule a study session directly in your planner.'
+                    : (isQuranSub
+                        ? 'هذه المادة مخصصة للورد أو الحفظ المستمر؛ يمكنك تسجيل موضع توقفك الحالي أو تدوين ما أنجزته أو جدولة موعد لها بالجدول مباشرة.'
+                        : 'هذه المادة مخصصة للممارسة والتعلم الذاتي المستمر؛ يمكنك تدوين موضع توقفك الحالي، أو تسجيل إنجازك اليومي، أو جدولة مواعيد لها بالجدول.');
 
-                const bookmarkLabel = isProgSub ? '📌 آخر نقطة وصلت إليها (درس / كود / مسألة):' : '📌 علامة التوقف الحالية (أين وصلت؟):';
-                const bookmarkPlaceholder = isQuranSub
-                    ? 'مثال: سورة البقرة - صفحة 24 / الجزء الثاني...'
-                    : (isProgSub
-                        ? 'مثال: الشابتر الثالث / درس الـ OOP / حل 5 مسائل...'
-                        : 'مثال: الدرس الخامس / صفحة 45 / المشروع الأول...');
+                const bookmarkLabel = isEn
+                    ? 'Current checkpoint (where you paused):'
+                    : (isProgSub ? 'آخر نقطة وصلت إليها (درس / كود / مسألة):' : 'علامة التوقف الحالية (أين وصلت؟):');
+                const bookmarkPlaceholder = isEn
+                    ? 'e.g., Chapter 3, Page 45, Exercise 5...'
+                    : (isQuranSub ? 'مثال: سورة البقرة - صفحة 24...' : 'مثال: الدرس الخامس / صفحة 45...');
 
-                const logLabel = isQuranSub ? '✨ تسجيل ورد أو تلاوة جديدة اليوم:' : (isProgSub ? '✨ تسجيل إنجاز برمجي أو تمرين اليوم:' : '✨ تسجيل إنجاز أو جلسة جديدة اليوم:');
-                const logPlaceholder = isQuranSub
-                    ? 'مثال: قراءة وتدبر نصف حزب / حفظ 3 صفحات...'
-                    : (isProgSub
-                        ? 'مثال: بناء الـ Navbar / حل تمرينين LeetCode / مذاكرة ساعتين...'
-                        : 'مثال: إتمام فصل كامل / تطبيق عملي / قراءة 15 صفحة...');
+                const logLabel = isEn
+                    ? 'Log a new milestone today:'
+                    : (isQuranSub ? 'تسجيل ورد أو تلاوة جديدة اليوم:' : 'تسجيل إنجاز أو جلسة جديدة اليوم:');
+                const logPlaceholder = isEn
+                    ? 'e.g., Completed Chapter 3 notes, practiced 2 problems...'
+                    : 'مثال: إتمام فصل كامل / تطبيق عملي / قراءة 15 صفحة...';
 
-                const logHistoryTitle = isQuranSub
-                    ? `سجل الورد والجلسات المرتبطة بـ «${sub.name}»`
-                    : `سجل الإنجاز والجلسات المرتبطة بـ «${sub.name}»`;
+                const logHistoryTitle = isEn
+                    ? `Progress & Sessions for "${escapeHtml(sub.name)}"`
+                    : `سجل الإنجاز والجلسات المرتبطة بـ «${escapeHtml(sub.name)}»`;
 
-                const emptyLogMessage = isQuranSub
-                    ? 'لم يتم تسجيل ورد أو جلسات لهذه المادة بعد.'
-                    : (isProgSub ? 'لم يتم تسجيل إنجاز أو جلسات برمجية لهذا المسار بعد.' : 'لم يتم تسجيل إنجاز أو جلسات لهذا المسار بعد.');
+                const emptyLogMessage = isEn
+                    ? 'No entries or scheduled sessions logged for this track yet.'
+                    : 'لم يتم تسجيل إنجاز أو جلسات لهذا المسار بعد.';
 
                 container.innerHTML = `
                     <div class="continuous-sub-shell">
-                        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; padding-bottom:12px; border-bottom:1px solid rgba(148,163,184,0.12);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; padding-bottom:12px; border-bottom:1px solid rgba(240,230,212,0.1);">
                             <div>
                                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                                    <span class="studio-pill" style="color:#6ee7b7; border-color:rgba(16,185,129,0.4); background:rgba(16,185,129,0.1);"><i class="fa-solid ${trackPillIcon}"></i> ${trackPillTitle}</span>
+                                    <span class="exo-lec-status-tag is-sage"><i class="fa-solid ${trackPillIcon}"></i> ${trackPillTitle}</span>
                                 </div>
-                                <p style="color:var(--text-muted); font-size:0.82rem; margin:6px 0 0 0;">
+                                <p style="color:var(--text-muted); font-size:0.84rem; margin:8px 0 0 0; line-height:1.55;">
                                     ${trackDesc}
                                 </p>
                             </div>
-                            <button type="button" class="btn btn-primary" onclick="scheduleSessionForContinuousSubject(${sub.id})">
-                                <i class="fa-solid fa-calendar-plus"></i> جدولة موعد في الجدول
+                            <button type="button" class="exo-library-primary-btn" onclick="scheduleSessionForContinuousSubject(${sub.id})">
+                                <i class="fa-solid fa-calendar-plus"></i> ${isEn ? 'Schedule Session' : 'جدولة موعد في الجدول'}
                             </button>
                         </div>
 
                         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:12px;">
-                            <div style="background:rgba(9,13,22,0.65); border:1px solid rgba(148,163,184,0.14); border-radius:12px; padding:14px;">
-                                <label style="font-size:0.78rem; color:#cbd5e1; font-weight:800; display:block; margin-bottom:6px;">${bookmarkLabel}</label>
+                            <div class="exo-cont-box">
+                                <label style="font-size:0.8rem; color:var(--warm-paper); font-weight:700; display:block; margin-bottom:8px;">${bookmarkLabel}</label>
                                 <div style="display:flex; gap:8px;">
-                                    <input type="text" id="continuousSubBookmarkInput" value="${escapeHtml(sub.continuousBookmark || '')}" placeholder="${bookmarkPlaceholder}" style="margin:0; flex:1;" onkeypress="if(event.key==='Enter') saveContinuousSubjectBookmark(${sub.id})">
-                                    <button type="button" class="btn btn-outline" style="padding:8px 14px;" onclick="saveContinuousSubjectBookmark(${sub.id})">حفظ</button>
+                                    <input type="text" id="continuousSubBookmarkInput" dir="auto" value="${escapeHtml(sub.continuousBookmark || '')}" placeholder="${bookmarkPlaceholder}" style="margin:0; flex:1;" onkeypress="if(event.key==='Enter') saveContinuousSubjectBookmark(${sub.id})">
+                                    <button type="button" class="btn btn-outline" style="padding:8px 14px;" onclick="saveContinuousSubjectBookmark(${sub.id})">${isEn ? 'Save' : 'حفظ'}</button>
                                 </div>
                             </div>
 
-                            <div style="background:rgba(9,13,22,0.65); border:1px solid rgba(148,163,184,0.14); border-radius:12px; padding:14px;">
-                                <label style="font-size:0.78rem; color:#cbd5e1; font-weight:800; display:block; margin-bottom:6px;">${logLabel}</label>
+                            <div class="exo-cont-box">
+                                <label style="font-size:0.8rem; color:var(--warm-paper); font-weight:700; display:block; margin-bottom:8px;">${logLabel}</label>
                                 <div style="display:flex; gap:8px;">
-                                    <input type="text" id="continuousSubNewLogInput" placeholder="${logPlaceholder}" style="margin:0; flex:1;" onkeypress="if(event.key==='Enter') addContinuousSubjectWirdLog(${sub.id})">
-                                    <button type="button" class="btn btn-success" style="padding:8px 14px;" onclick="addContinuousSubjectWirdLog(${sub.id})"><i class="fa-solid fa-check"></i> تسجيل</button>
+                                    <input type="text" id="continuousSubNewLogInput" dir="auto" placeholder="${logPlaceholder}" style="margin:0; flex:1;" onkeypress="if(event.key==='Enter') addContinuousSubjectWirdLog(${sub.id})">
+                                    <button type="button" class="btn btn-success" style="padding:8px 14px;" onclick="addContinuousSubjectWirdLog(${sub.id})"><i class="fa-solid fa-check"></i> ${isEn ? 'Log' : 'تسجيل'}</button>
                                 </div>
                             </div>
                         </div>
 
                         <div>
-                            <h4 style="font-size:0.92rem; font-weight:800; color:var(--text-main); margin:0 0 10px 0;"><i class="fa-solid fa-clock-rotate-left" style="color:var(--primary); margin-left:6px;"></i> ${logHistoryTitle}</h4>
+                            <h4 style="font-size:0.94rem; font-weight:700; color:var(--warm-paper); margin:0 0 10px 0;"><i class="fa-solid fa-clock-rotate-left" style="color:var(--sage-green);"></i> ${logHistoryTitle}</h4>
                             ${(wirdLogs.length === 0 && subSessions.length === 0) ? `
-                                <div style="padding:18px; text-align:center; color:var(--text-muted); background:rgba(9,13,22,0.45); border:1px dashed rgba(148,163,184,0.16); border-radius:12px; font-size:0.84rem;">
+                                <div style="padding:20px; text-align:center; color:var(--text-muted); background:#191B1D; border:1px dashed rgba(240,230,212,0.16); border-radius:12px; font-size:0.85rem;">
                                     ${emptyLogMessage}
                                 </div>
                             ` : `
                                 <div style="display:flex; flex-direction:column; gap:8px;">
                                     ${subSessions.map(ev => `
-                                        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 14px; background:rgba(15,23,36,0.75); border:1px solid rgba(148,163,184,0.14); border-radius:10px;">
-                                            <div style="display:flex; align-items:center; gap:10px;">
-                                                <button class="fsc-check-circle ${ev.completed ? 'checked' : ''}" onclick="toggleCompleteSession(event, ${ev.id})"><i class="fa-solid fa-check"></i></button>
-                                                <span style="font-weight:700; color:var(--text-main); ${ev.completed ? 'text-decoration:line-through; opacity:0.75;' : ''}">${ev.title}</span>
-                                                <span class="studio-pill" style="font-size:0.7rem;">${days[Number(ev.day)] || ''} • ${ev.duration} س</span>
+                                        <div class="exo-cont-log-row">
+                                            <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                                                <button type="button" class="exo-lec-check-btn ${ev.completed ? 'is-done' : ''}" onclick="toggleCompleteSession(event, ${ev.id})" aria-label="${isEn ? 'Toggle session completion' : 'تبديل إتمام الجلسة'}"><i class="fa-solid ${ev.completed ? 'fa-check' : 'fa-circle'}"></i></button>
+                                                <span dir="auto" style="font-weight:700; color:var(--text-main); ${ev.completed ? 'text-decoration:line-through; opacity:0.75;' : ''}">${escapeHtml(ev.title)}</span>
+                                                <span class="exo-lec-status-tag">${days[Number(ev.day)] || ''} · ${ev.duration}${isEn ? 'h' : ' س'}</span>
                                             </div>
-                                            <span style="font-size:0.75rem; color:${ev.completed ? '#6ee7b7' : '#fcd34d'}; font-weight:800;">${ev.completed ? 'مكتمل ✓' : 'مجدول بالجدول'}</span>
+                                            <span style="font-size:0.76rem; color:${ev.completed ? 'var(--sage-green)' : 'var(--warm-gold)'}; font-weight:700;">${ev.completed ? (isEn ? 'Done' : 'مكتمل') : (isEn ? 'Planned' : 'مجدول')}</span>
                                         </div>
                                     `).join('')}
                                     ${wirdLogs.map(w => `
-                                        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 14px; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.22); border-radius:10px;">
-                                            <div style="display:flex; align-items:center; gap:10px;">
-                                                <i class="fa-solid fa-circle-check" style="color:#10b981;"></i>
-                                                <span style="font-weight:700; color:var(--text-main);">${escapeHtml(w.text)}</span>
-                                                <span class="studio-pill" style="font-size:0.68rem;">${w.date}</span>
+                                        <div class="exo-cont-log-row">
+                                            <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                                                <i class="fa-solid fa-circle-check" style="color:var(--sage-green);"></i>
+                                                <span dir="auto" style="font-weight:700; color:var(--text-main);">${escapeHtml(w.text)}</span>
+                                                <span class="exo-lec-status-tag">${escapeHtml(w.date || '')}</span>
                                             </div>
-                                            <button class="icon-btn delete" style="width:28px; height:28px;" onclick="deleteContinuousSubjectWirdLog(${sub.id}, ${w.id})"><i class="fa-solid fa-trash" style="font-size:0.72rem;"></i></button>
+                                            <button type="button" class="icon-btn delete" style="width:32px; height:32px;" onclick="deleteContinuousSubjectWirdLog(${sub.id}, ${w.id})" aria-label="${isEn ? 'Delete entry' : 'حذف السجل'}"><i class="fa-solid fa-trash" style="font-size:0.75rem;"></i></button>
                                         </div>
                                     `).join('')}
                                 </div>
@@ -14520,21 +15964,21 @@
                 `;
                 return;
             }
-            
-            if(sub.groups.length === 0) {
+
+            if (!Array.isArray(sub.groups) || sub.groups.length === 0) {
                 container.innerHTML = `
-                    <div class="empty-state" style="background: rgba(18, 25, 38, 0.72); border: 1.5px dashed rgba(45, 212, 191, 0.35); border-radius: 16px; padding: 34px 20px;">
-                        <i class="fa-solid fa-file-circle-plus" style="font-size: 2.6rem; color: var(--primary); opacity: 0.85; margin-bottom: 12px;"></i>
-                        <h3 style="font-size: 1.2rem; font-weight: 900; color: var(--text-main);">ابدأ بإضافة أول محاضرة في «${sub.name}»</h3>
-                        <p style="max-width: 500px; line-height: 1.65; margin-bottom: 16px; font-size: 0.86rem;">
-                            بضغطة واحدة يمكنك إنشاء قسم افتراضي باسم «المحاضرات الأساسية» وفتح نافذة إرفاق أول ملف PDF وريكورد صوتي مباشرة:
-                        </p>
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
-                            <button type="button" class="btn btn-primary" onclick="quickCreateDefaultGroupAndLecture()">
-                                <i class="fa-solid fa-bolt"></i> إضافة أول محاضرة وريكورد فوراً
+                    <div class="exo-empty-bookshelf">
+                        <div class="exo-empty-bookshelf-icon"><i class="fa-solid fa-book-open"></i></div>
+                        <h3 class="exo-editorial">${isEn ? `Start building the Table of Contents for "${escapeHtml(sub.name)}"` : `ابدأ بإضافة أول فصل أو محاضرة في «${escapeHtml(sub.name)}»`}</h3>
+                        <p>${isEn
+                            ? 'Create a default chapter with your first lecture and recording, or add a custom chapter title first.'
+                            : 'بضغطة واحدة يمكنك إنشاء فصل افتراضي باسم «المحاضرات الأساسية» وإضافة أول محاضرة، أو إنشاء فصل باسم مخصص.'}</p>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 6px;">
+                            <button type="button" class="exo-library-primary-btn" onclick="quickCreateDefaultGroupAndLecture()">
+                                <i class="fa-solid fa-bolt"></i> ${isEn ? 'Add First Lecture Now' : 'إضافة أول محاضرة فوراً'}
                             </button>
                             <button type="button" class="btn btn-outline" onclick="triggerAddGroup()">
-                                <i class="fa-solid fa-folder-plus"></i> إنشاء قسم / شابتر باسم مخصص
+                                <i class="fa-solid fa-folder-plus"></i> ${isEn ? 'Create Custom Chapter' : 'إنشاء فصل باسم مخصص'}
                             </button>
                         </div>
                     </div>
@@ -14542,65 +15986,108 @@
                 return;
             }
 
+            const topParts = [];
             const activeExamInfo = getSubjectExamRadarInfo(sub);
             if (activeExamInfo) {
                 const examPct = activeExamInfo.totalExamLec > 0 ? Math.round((activeExamInfo.doneExamLec / activeExamInfo.totalExamLec) * 100) : 0;
-                groupParts.push(`
-                    <div style="background: linear-gradient(135deg, rgba(244, 63, 94, 0.14), rgba(15, 23, 36, 0.92)); border: 1px solid ${activeExamInfo.badgeBorder}; border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                const safeExamTitle = escapeHtml(activeExamInfo.examTitle);
+                const safeSubName = escapeHtml(sub.name);
+                topParts.push(`
+                    <div class="exo-toc-exam-banner">
                         <div>
                             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                                <span class="studio-pill" style="color:${activeExamInfo.badgeColor}; border-color:${activeExamInfo.badgeBorder}; background:${activeExamInfo.badgeBg}; font-weight:800;">
-                                    <i class="fa-solid fa-bullseye"></i> ${escapeHtml(activeExamInfo.examTitle)} — ${activeExamInfo.urgencyLabel} (${activeExamInfo.examDate})
+                                <span class="exo-lec-status-tag is-terracotta" style="font-weight:800;">
+                                    <i class="fa-solid fa-bullseye"></i> <span dir="auto">${safeExamTitle} — ${escapeHtml(activeExamInfo.urgencyLabel)} (${escapeHtml(activeExamInfo.examDate)})</span>
                                 </span>
-                                <span class="studio-pill" style="font-size:0.72rem; color:#e2e8f0;">
-                                    جاهزية محاضرات الامتحان: ${activeExamInfo.doneExamLec}/${activeExamInfo.totalExamLec} (${examPct}%)
+                                <span class="exo-lec-status-tag">
+                                    ${isEn ? `Readiness: ${activeExamInfo.doneExamLec}/${activeExamInfo.totalExamLec} (${examPct}%)` : `جاهزية المحاضرات: ${activeExamInfo.doneExamLec}/${activeExamInfo.totalExamLec} (${examPct}%)`}
                                 </span>
                             </div>
-                            <p style="color:var(--text-muted); font-size:0.78rem; margin:5px 0 0 0;">
-                                اضغط «وضع طوارئ الامتحان» لفتح جميع المحاضرات الداخلة في الامتحان مدمجة مع ريكورداتها وأوراق التلخيص فوراً.
+                            <p style="color:var(--text-muted); font-size:0.8rem; margin:6px 0 0 0;">
+                                ${isEn
+                                    ? 'Open all exam-scope lectures together in Cram Mode, or schedule a targeted review session.'
+                                    : 'افتح جميع المحاضرات الداخلة في الامتحان مدمجة للمراجعة السريعة أو جدول جلسة مراجعة.'}
                             </p>
                         </div>
                         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                            <button type="button" class="btn btn-primary" style="background: linear-gradient(135deg, #f43f5e, #e11d48); border:none; padding:8px 14px; font-size:0.82rem;" onclick="launchSubjectExamCramMode(${sub.id}, event)">
-                                <i class="fa-solid fa-bolt"></i> وضع طوارئ الامتحان (فتح مدمج)
+                            <button type="button" class="btn btn-danger" style="padding:8px 14px; font-size:0.82rem;" onclick="launchSubjectExamCramMode(${sub.id}, event)">
+                                <i class="fa-solid fa-bolt"></i> ${isEn ? 'Open Exam Cram' : 'وضع طوارئ الامتحان'}
                             </button>
-                            <button type="button" class="btn btn-outline" style="padding:8px 12px; font-size:0.78rem;" onclick="quickScheduleForSubject(${sub.id}, 'مراجعة ${escapeHtml(activeExamInfo.examTitle)} - ${escapeHtml(sub.name)}', 'urgent', ${JSON.stringify(activeExamInfo.examLecIds)})">
-                                <i class="fa-solid fa-calendar-plus"></i> جدولة مراجعة بأقرب وقت متاح
+                            <button type="button" class="btn btn-outline" style="padding:8px 12px; font-size:0.8rem;" onclick="quickScheduleForSubject(${sub.id}, '${isEn ? 'Review' : 'مراجعة'} ${safeExamTitle} - ${safeSubName}', 'urgent', ${JSON.stringify(activeExamInfo.examLecIds)})">
+                                <i class="fa-solid fa-calendar-plus"></i> ${isEn ? 'Schedule Review' : 'جدولة مراجعة'}
                             </button>
-                            <button type="button" class="icon-btn edit" onclick="openSubjectExamRadarModal(${sub.id}, event)" title="تعديل موعد ومحاضرات الامتحان"><i class="fa-solid fa-sliders"></i></button>
+                            <button type="button" class="icon-btn edit" onclick="openSubjectExamRadarModal(${sub.id}, event)" title="${isEn ? 'Edit exam details' : 'تعديل موعد الامتحان'}" aria-label="${isEn ? 'Edit exam details' : 'تعديل موعد الامتحان'}"><i class="fa-solid fa-sliders"></i></button>
                         </div>
                     </div>
                 `);
             }
 
-            sub.groups.forEach((g) => {
-                let gDone = 0;
-                g.lectures.forEach(l => { if (l.completed) gDone++; });
-                const gPct = g.lectures.length > 0 ? Math.round((gDone / g.lectures.length) * 100) : 0;
+            const tocSearchEl = document.getElementById('tocSearchInput');
+            const tocQuery = tocSearchEl ? tocSearchEl.value.trim() : '';
+            const tocRows = filterTocChapters(
+                sub.groups,
+                tocQuery,
+                tocStatusFilter,
+                (lec) => {
+                    if (!lec || !lec.completed) return false;
+                    if (typeof getSpacedRepetitionInfo === 'function') {
+                        const sr = getSpacedRepetitionInfo(lec);
+                        return Boolean(sr && sr.isDue);
+                    }
+                    return false;
+                }
+            );
+
+            if (tocRows.length === 0) {
+                container.innerHTML = `${topParts.join('')}<div class="exo-empty-bookshelf"><div class="exo-empty-bookshelf-icon"><i class="fa-solid fa-filter"></i></div><h3 class="exo-editorial">${isEn ? 'No chapters match this filter' : 'لا توجد فصول أو محاضرات مطابقة'}</h3><p>${isEn ? 'Adjust the chapter search or status filter to see all contents.' : 'عدّل نص البحث أو حالة الفصول لعرض جميع المحتويات.'}</p><button type="button" class="btn btn-outline" onclick="if(document.getElementById('tocSearchInput')) document.getElementById('tocSearchInput').value=''; tocStatusFilter='all'; if(document.getElementById('tocStatusFilterSelect')) document.getElementById('tocStatusFilterSelect').value='all'; renderGroups();"><i class="fa-solid fa-rotate-left"></i> ${isEn ? 'Show All Chapters' : 'عرض جميع الفصول'}</button></div>`;
+                syncTocExpandAllButton();
+                return;
+            }
+
+            const chapterParts = [];
+            tocRows.forEach((row) => {
+                const { group: g, originalIndex, indexLabel, totalCount, doneCount, pct, visibleLectures } = row;
+                const isFirstGrp = originalIndex === 0;
+                const isLastGrp = originalIndex === sub.groups.length - 1;
+                const grpMoveBtns = sub.groups.length > 1 ? `
+                    <button type="button" class="icon-btn" ${isFirstGrp ? 'disabled' : ''} style="width:32px; height:32px; ${isFirstGrp ? 'opacity:0.35; cursor:not-allowed;' : ''}" onclick="moveGroupOrder(${g.id}, -1, event)" title="${isEn ? 'Move chapter up' : 'تحريك الفصل لأعلى'}" aria-label="${isEn ? 'Move chapter up' : 'تحريك الفصل لأعلى'}"><i class="fa-solid fa-chevron-up"></i></button>
+                    <button type="button" class="icon-btn" ${isLastGrp ? 'disabled' : ''} style="width:32px; height:32px; ${isLastGrp ? 'opacity:0.35; cursor:not-allowed;' : ''}" onclick="moveGroupOrder(${g.id}, 1, event)" title="${isEn ? 'Move chapter down' : 'تحريك الفصل لأسفل'}" aria-label="${isEn ? 'Move chapter down' : 'تحريك الفصل لأسفل'}"><i class="fa-solid fa-chevron-down"></i></button>
+                ` : '';
 
                 let html = `
-                    <div class="group-card" id="groupCard_${g.id}">
+                    <div class="group-card exo-toc-chapter" id="groupCard_${g.id}">
                         <div class="group-header" onclick="toggleGroupAccordion(${g.id})">
-                            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                                <i class="fa-solid fa-chevron-down accordion-arrow"></i>
-                                <h3 style="color: var(--text-main); font-size: 1.25rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 10px;">
-                                    <i class="fa-solid fa-folder-open" style="color:var(--primary); font-size: 1.15rem;"></i> ${g.name}
-                                </h3>
-                                <span class="studio-pill" style="font-size: 0.72rem; margin-right: 6px;">${gDone}/${g.lectures.length} منجز (${gPct}%)</span>
+                            <div class="exo-toc-chapter-main">
+                                <i class="fa-solid fa-chevron-down accordion-arrow exo-rtl-flip"></i>
+                                <span class="exo-toc-chapter-num">${indexLabel}</span>
+                                <div class="exo-toc-chapter-titles">
+                                    <h3 class="exo-editorial" data-exo-no-i18n="1" dir="auto">${escapeHtml(g.name)}</h3>
+                                    <div class="exo-toc-chapter-sub">
+                                        <span>${isEn ? `${doneCount}/${totalCount} done (${pct}%)` : `${doneCount}/${totalCount} منجز (${pct}%)`}</span>
+                                        <span class="exo-toc-mini-bar" aria-hidden="true"><span class="exo-toc-mini-fill" style="width:${pct}%;"></span></span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="card-actions" style="display:flex; gap:8px; align-items:center;" onclick="event.stopPropagation()">
-                                ${g.lectures.length > 1 ? `<button class="btn btn-outline" style="padding: 6px 10px; font-size: 0.76rem; border-color:rgba(45,212,191,0.28); color:var(--primary);" onclick="autoSortLecturesInGroup(${g.id}, event)" title="ترتيب المحاضرات تلقائياً بالأرقام والأسماء"><i class="fa-solid fa-arrow-down-1-9"></i> ترتيب تلقائي</button>` : ''}
-                                <button class="btn btn-outline" style="padding: 6px 14px; font-size: 0.85rem;" onclick="triggerAddLecture(${g.id})"><i class="fa-solid fa-plus"></i> ملف جديد</button>
-                                <button class="icon-btn edit" onclick="triggerEditGroup(${g.id})"><i class="fa-solid fa-pen"></i></button>
-                                <button class="icon-btn delete" onclick="triggerDeleteGroup(${g.id})"><i class="fa-solid fa-trash"></i></button>
+                            <div class="card-actions" onclick="event.stopPropagation()">
+                                ${grpMoveBtns}
+                                ${g.lectures.length > 1 ? `<button type="button" class="btn btn-outline" style="padding: 6px 10px; font-size: 0.78rem; min-height: 34px;" onclick="autoSortLecturesInGroup(${g.id}, event)" title="${isEn ? 'Sort lectures numerically' : 'ترتيب المحاضرات تلقائياً'}"><i class="fa-solid fa-arrow-down-1-9"></i> ${isEn ? 'Sort' : 'ترتيب'}</button>` : ''}
+                                <button type="button" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.82rem; min-height: 34px;" onclick="triggerAddLecture(${g.id})"><i class="fa-solid fa-plus"></i> ${isEn ? 'New Lecture' : 'محاضرة جديدة'}</button>
+                                <button type="button" class="icon-btn edit" style="width:34px; height:34px;" onclick="triggerEditGroup(${g.id})" title="${isEn ? 'Rename chapter' : 'تعديل اسم الفصل'}" aria-label="${isEn ? 'Rename chapter' : 'تعديل اسم الفصل'}"><i class="fa-solid fa-pen"></i></button>
+                                <button type="button" class="icon-btn delete" style="width:34px; height:34px;" onclick="triggerDeleteGroup(${g.id})" title="${isEn ? 'Delete chapter' : 'حذف الفصل'}" aria-label="${isEn ? 'Delete chapter' : 'حذف الفصل'}"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
                         <div class="lectures-list">
                 `;
-                if(g.lectures.length === 0) {
-                    html += `<p style="color:var(--text-muted); font-size:0.9rem; padding: 12px; background: rgba(14, 16, 22, 0.4); border-radius: 10px;">هذا الفصل فارغ حالياً. اضغط «ملف جديد» لإضافة محاضراتك.</p>`;
+
+                if (visibleLectures.length === 0) {
+                    html += `<p style="color:var(--text-muted); font-size:0.86rem; padding: 12px; background: rgba(25, 27, 29, 0.55); border-radius: 10px; margin: 0;">${
+                        g.lectures.length === 0
+                            ? (isEn ? 'This chapter is empty. Select "New Lecture" to attach slides, audio, or notes.' : 'هذا الفصل فارغ حالياً. اضغط «محاضرة جديدة» لإضافة ملفاتك.')
+                            : (isEn ? 'No lectures in this chapter match the active filter.' : 'لا توجد محاضرات مطابقة للتصفية داخل هذا الفصل.')
+                    }</p>`;
                 } else {
-                    g.lectures.forEach((lec, lecIdx) => {
+                    visibleLectures.forEach((lec) => {
+                        const lecIdx = g.lectures.indexOf(lec);
                         const srBadge = getSpacedRepetitionBadgeHtml(lec, sub.id, g.id);
                         const readingProgressBadge = getLectureReadingProgressBadgeHtml(lec);
                         const hasLocalPdf = localMediaCache.pdfs.has(String(lec.id));
@@ -14610,67 +16097,66 @@
 
                         const isPdfCloud = Boolean(lec.cloudPdfUploaded);
                         const isAudioCloud = Boolean(lec.cloudAudioUploaded);
-
-                        // Determine if upload button should be locked/closed (already uploaded to cloud)
                         const pdfNeedsUpload = (hasLocalPdf || hasPdfDefined) && !isPdfCloud;
                         const audioNeedsUpload = (hasLocalAudio || hasAudioDefined) && !isAudioCloud;
                         const isFullyUploaded = (isPdfCloud || isAudioCloud) && !pdfNeedsUpload && !audioNeedsUpload;
 
                         let pdfBadgeHtml = '';
                         if (isPdfCloud && !hasLocalPdf) {
-                            pdfBadgeHtml = `<button type="button" class="studio-pill" style="font-size:0.68rem; color:#061318; background:var(--primary); border:none; cursor:pointer; font-weight:800; padding:3px 10px;" onclick="downloadSingleLectureMediaItem(${g.id}, ${lec.id}, 'pdfs', event)"><i class="fa-solid fa-cloud-arrow-down"></i> تحميل الـ PDF للجهاز ${lec.cloudPdfSize ? '(' + (lec.cloudPdfSize / (1024*1024)).toFixed(1) + 'MB)' : ''}</button>`;
+                            pdfBadgeHtml = `<button type="button" class="exo-lec-status-tag is-blue" onclick="downloadSingleLectureMediaItem(${g.id}, ${lec.id}, 'pdfs', event)"><i class="fa-solid fa-cloud-arrow-down"></i> ${isEn ? 'Download PDF' : 'تحميل PDF'} ${lec.cloudPdfSize ? '(' + (lec.cloudPdfSize / (1024*1024)).toFixed(1) + 'MB)' : ''}</button>`;
                         } else if (isPdfCloud) {
-                            pdfBadgeHtml = `<span class="studio-pill" style="font-size:0.66rem; color:#6ee7b7; border-color:rgba(16,185,129,0.4);"><i class="fa-solid fa-cloud-check"></i> PDF مرفوع بالسحابة ${lec.cloudPdfSize ? '(' + (lec.cloudPdfSize / (1024*1024)).toFixed(1) + 'MB)' : ''} ✓</span>`;
+                            pdfBadgeHtml = `<span class="exo-lec-status-tag is-sage"><i class="fa-solid fa-cloud"></i> ${isEn ? 'PDF synced' : 'PDF سحابي'}</span>`;
                         } else if (hasPdfDefined) {
-                            pdfBadgeHtml = `<span class="studio-pill" style="font-size:0.65rem; color:#fcd34d; border-color:rgba(245,158,11,0.32);"><i class="fa-solid fa-laptop-file"></i> PDF محلي فقط</span>`;
+                            pdfBadgeHtml = `<span class="exo-lec-status-tag is-gold"><i class="fa-solid fa-file-pdf"></i> ${isEn ? 'PDF local' : 'PDF محلي'}</span>`;
                         }
 
                         let audioBadgeHtml = '';
                         if (isAudioCloud && !hasLocalAudio) {
-                            audioBadgeHtml = `<button type="button" class="studio-pill" style="font-size:0.68rem; color:#061318; background:#38bdf8; border:none; cursor:pointer; font-weight:800; padding:3px 10px;" onclick="downloadSingleLectureMediaItem(${g.id}, ${lec.id}, 'audios', event)"><i class="fa-solid fa-cloud-arrow-down"></i> تحميل الريكورد للجهاز ${lec.cloudAudioSize ? '(' + (lec.cloudAudioSize / (1024*1024)).toFixed(1) + 'MB)' : ''}</button>`;
+                            audioBadgeHtml = `<button type="button" class="exo-lec-status-tag is-blue" onclick="downloadSingleLectureMediaItem(${g.id}, ${lec.id}, 'audios', event)"><i class="fa-solid fa-cloud-arrow-down"></i> ${isEn ? 'Download Audio' : 'تحميل الصوت'} ${lec.cloudAudioSize ? '(' + (lec.cloudAudioSize / (1024*1024)).toFixed(1) + 'MB)' : ''}</button>`;
                         } else if (isAudioCloud) {
-                            audioBadgeHtml = `<span class="studio-pill" style="font-size:0.66rem; color:#38bdf8; border-color:rgba(56,189,248,0.4);"><i class="fa-solid fa-cloud-check"></i> ريكورد مرفوع بالسحابة ${lec.cloudAudioSize ? '(' + (lec.cloudAudioSize / (1024*1024)).toFixed(1) + 'MB)' : ''} ✓</span>`;
+                            audioBadgeHtml = `<span class="exo-lec-status-tag is-blue"><i class="fa-solid fa-headphones"></i> ${isEn ? 'Audio synced' : 'ريكورد سحابي'}</span>`;
                         } else if (lec.audioPath) {
-                            audioBadgeHtml = `<span class="studio-pill" style="font-size:0.66rem; color:#93c5fd; border-color:rgba(59,130,246,0.3);"><i class="fa-solid fa-headphones"></i> ريكورد محلي فقط</span>`;
+                            audioBadgeHtml = `<span class="exo-lec-status-tag is-blue"><i class="fa-solid fa-headphones"></i> ${isEn ? 'Audio local' : 'ريكورد محلي'}</span>`;
                         }
 
                         let uploadActionBtnHtml = '';
                         if (isFullyUploaded) {
-                            uploadActionBtnHtml = `<button class="icon-btn" disabled title="تم رفع المحاضرة للسحابة مسبقاً ✓ (كتاباتك على الـ PDF تُحفظ تلقائياً بدون إعادة رفع)" style="color: #6ee7b7; border-color: rgba(16,185,129,0.28); background: rgba(16,185,129,0.08); opacity: 0.5; cursor: not-allowed;"><i class="fa-solid fa-check"></i></button>`;
+                            uploadActionBtnHtml = `<button type="button" class="icon-btn" disabled title="${isEn ? 'Uploaded to cloud (annotations sync automatically)' : 'مرفوع للسحابة مسبقاً'}" style="width:34px; height:34px; color: var(--sage-green); border-color: rgba(137,153,130,0.3); opacity: 0.55; cursor: not-allowed;"><i class="fa-solid fa-check"></i></button>`;
                         } else {
-                            uploadActionBtnHtml = `<button class="icon-btn" title="رفع ملف المحاضرة للسحابة (لمرة واحدة فقط)" style="color: #38bdf8; border-color: rgba(56,189,248,0.35);" onclick="uploadSingleLectureMediaToCloud(${g.id}, ${lec.id}, event)"><i class="fa-solid fa-cloud-arrow-up"></i></button>`;
+                            uploadActionBtnHtml = `<button type="button" class="icon-btn" title="${isEn ? 'Upload lecture files to cloud' : 'رفع ملف المحاضرة للسحابة'}" style="width:34px; height:34px; color: var(--muted-blue); border-color: rgba(120,152,172,0.35);" onclick="uploadSingleLectureMediaToCloud(${g.id}, ${lec.id}, event)"><i class="fa-solid fa-cloud-arrow-up"></i></button>`;
                         }
 
                         const isFirstLec = lecIdx === 0;
                         const isLastLec = lecIdx === g.lectures.length - 1;
                         const orderControlsHtml = g.lectures.length > 1 ? `
-                            <span class="lec-drag-handle" title="اسحب المحاضرة لتغيير ترتيبها"><i class="fa-solid fa-grip-vertical"></i></span>
+                            <span class="lec-drag-handle" title="${isEn ? 'Drag to reorder' : 'اسحب لتغيير الترتيب'}"><i class="fa-solid fa-grip-vertical"></i></span>
                             <div class="lec-order-controls" onclick="event.stopPropagation()">
-                                <button type="button" class="lec-order-btn" ${isFirstLec ? 'disabled' : ''} onclick="moveLectureInGroup(${g.id}, ${lec.id}, -1, event)" title="تحريك المحاضرة لأعلى">
+                                <button type="button" class="lec-order-btn" ${isFirstLec ? 'disabled' : ''} onclick="moveLectureInGroup(${g.id}, ${lec.id}, -1, event)" title="${isEn ? 'Move up' : 'تحريك لأعلى'}">
                                     <i class="fa-solid fa-chevron-up"></i>
                                 </button>
-                                <button type="button" class="lec-order-btn" ${isLastLec ? 'disabled' : ''} onclick="moveLectureInGroup(${g.id}, ${lec.id}, 1, event)" title="تحريك المحاضرة لأسفل">
+                                <button type="button" class="lec-order-btn" ${isLastLec ? 'disabled' : ''} onclick="moveLectureInGroup(${g.id}, ${lec.id}, 1, event)" title="${isEn ? 'Move down' : 'تحريك لأسفل'}">
                                     <i class="fa-solid fa-chevron-down"></i>
                                 </button>
                             </div>
                         ` : '';
 
+                        const lecOrderDisplay = (lecIdx + 1) < 10 ? `0${lecIdx + 1}` : String(lecIdx + 1);
                         html += `
-                            <div class="lecture-item" draggable="${g.lectures.length > 1 ? 'true' : 'false'}"
+                            <div class="lecture-item ${lec.completed ? 'is-done' : ''}" draggable="${g.lectures.length > 1 ? 'true' : 'false'}"
                                  ondragstart="handleLectureDragStart(event, ${g.id}, ${lec.id})"
                                  ondragover="handleLectureDragOver(event)"
                                  ondragleave="handleLectureDragLeave(event)"
                                  ondrop="handleLectureDrop(event, ${g.id}, ${lec.id})"
                                  ondragend="handleLectureDragEnd(event)">
-                                <div style="display: flex; align-items: center; gap: 10px; flex: 1; flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; gap: 10px; flex: 1; flex-wrap: wrap; min-width: 0;">
                                     ${orderControlsHtml}
-                                    <button class="icon-btn" style="width: 34px; height: 34px; border-radius: 9px; background: ${lec.completed ? 'rgba(16, 185, 129, 0.2)' : 'rgba(14, 16, 22, 0.6)'}; color: ${lec.completed ? 'var(--important-color)' : 'var(--text-muted)'};" onclick="toggleLectureCompleted(${g.id}, ${lec.id})">
-                                        <i class="fa-solid ${lec.completed ? 'fa-circle-check' : 'fa-circle'}" style="font-size: 1.15rem;"></i>
+                                    <button type="button" class="exo-lec-check-btn ${lec.completed ? 'is-done' : ''}" onclick="toggleLectureCompleted(${g.id}, ${lec.id})" aria-pressed="${lec.completed ? 'true' : 'false'}" aria-label="${isEn ? 'Toggle lecture completion' : 'تبديل إتمام المحاضرة'}">
+                                        <i class="fa-solid ${lec.completed ? 'fa-circle-check' : 'fa-circle'}" style="font-size: 1.05rem;"></i>
                                     </button>
-                                    <div onclick="openLectureDocument(${g.id}, ${lec.id})" style="flex: 1; display: flex; align-items: center; gap: 10px; cursor: pointer; min-width: 180px; flex-wrap: wrap;">
-                                        <span class="studio-pill" style="font-size:0.65rem; padding:1px 7px; color:var(--text-muted); border-color:rgba(148,163,184,0.18);">${lecIdx + 1}</span>
-                                        <i class="fa-solid fa-file-pdf" style="color: ${lec.completed ? 'var(--important-color)' : 'var(--mandatory-color)'}; font-size: 1.25rem;"></i> 
-                                        <span style="font-weight: 600; ${lec.completed ? 'text-decoration: line-through; color: #9ca3af;' : ''}">${lec.title}</span>
+                                    <div onclick="openLectureDocument(${g.id}, ${lec.id})" style="flex: 1; display: flex; align-items: center; gap: 9px; cursor: pointer; min-width: 170px; flex-wrap: wrap;">
+                                        <span class="exo-lec-idx">${lecOrderDisplay}</span>
+                                        <i class="fa-solid fa-file-pdf" style="color: ${lec.completed ? 'var(--sage-green)' : 'var(--terracotta)'}; font-size: 1.05rem;"></i>
+                                        <span data-exo-no-i18n="1" dir="auto" style="font-weight: 700; color: ${lec.completed ? 'var(--text-muted)' : 'var(--warm-paper)'}; ${lec.completed ? 'text-decoration: line-through;' : ''}">${escapeHtml(lec.title)}</span>
                                         ${pdfBadgeHtml}
                                         ${audioBadgeHtml}
                                         ${readingProgressBadge}
@@ -14678,20 +16164,22 @@
                                     </div>
                                 </div>
                                 <div class="card-actions">
-                                    <button type="button" class="btn btn-primary lec-mobile-study-btn" onclick="openLectureDocument(${g.id}, ${lec.id})"><i class="fa-solid fa-book-open"></i> <span>${(window.currentExoLang === "en") ? "Start Study" : "ابدأ المذاكرة"}</span></button>
+                                    <button type="button" class="btn lec-mobile-study-btn" onclick="openLectureDocument(${g.id}, ${lec.id})"><i class="fa-solid fa-book-open"></i> <span>${isEn ? 'Open' : 'ابدأ المذاكرة'}</span></button>
                                     ${uploadActionBtnHtml}
-                                    ${lec.completed ? `<button class="icon-btn" style="color: var(--primary); border-color: rgba(45, 212, 191,0.35);" onclick="refreshLectureSpacedRepetition(${g.id}, ${lec.id}, event)"><i class="fa-solid fa-rotate"></i></button>` : ''}
-                                    <button class="icon-btn edit" onclick="triggerEditLecture(${g.id}, ${lec.id})"><i class="fa-solid fa-pen"></i></button>
-                                    <button class="icon-btn delete" onclick="triggerDeleteLecture(${g.id}, ${lec.id})"><i class="fa-solid fa-trash"></i></button>
+                                    ${lec.completed ? `<button type="button" class="icon-btn" style="width:34px; height:34px; color: var(--sage-green); border-color: rgba(137, 153, 130, 0.35);" onclick="refreshLectureSpacedRepetition(${g.id}, ${lec.id}, event)" title="${isEn ? 'Log spaced review' : 'تسجيل مراجعة متباعدة'}" aria-label="${isEn ? 'Log spaced review' : 'تسجيل مراجعة متباعدة'}"><i class="fa-solid fa-rotate"></i></button>` : ''}
+                                    <button type="button" class="icon-btn edit" style="width:34px; height:34px;" onclick="triggerEditLecture(${g.id}, ${lec.id})" title="${isEn ? 'Edit lecture' : 'تعديل المحاضرة'}" aria-label="${isEn ? 'Edit lecture' : 'تعديل المحاضرة'}"><i class="fa-solid fa-pen"></i></button>
+                                    <button type="button" class="icon-btn delete" style="width:34px; height:34px;" onclick="triggerDeleteLecture(${g.id}, ${lec.id})" title="${isEn ? 'Delete lecture' : 'حذف المحاضرة'}" aria-label="${isEn ? 'Delete lecture' : 'حذف المحاضرة'}"><i class="fa-solid fa-trash"></i></button>
                                 </div>
                             </div>
                         `;
                     });
                 }
                 html += `</div></div>`;
-                groupParts.push(html);
+                chapterParts.push(html);
             });
-            container.innerHTML = groupParts.join('');
+
+            container.innerHTML = `${topParts.join('')}<div class="exo-toc-list-wrap">${chapterParts.join('')}</div>`;
+            syncTocExpandAllButton();
         }
 
         let draggedLectureState = null;
@@ -24711,19 +26199,31 @@
 
         function getSpacedRepetitionBadgeHtml(lec, subId = null, groupId = null) {
             if (!lec || !lec.completed) return '';
+            const isEn = (window.currentExoLang || document.documentElement?.lang) !== 'ar';
             const sr = getSpacedRepetitionInfo(lec);
             const targetSubId = subId || activeSubjectId;
             if (!sr.isDue) {
                 if (sr.diffDays <= 0) {
-                    return `<span class="studio-pill" style="border-color:rgba(16,185,129,0.35); color:#6ee7b7; font-size:0.7rem;" title="المراجعة القادمة بعد ${sr.intervalDays} يوم"><i class="fa-solid fa-check-double"></i> دُرست اليوم (مراجعة #${sr.revCount} • القادمة بعد ${sr.intervalDays} يوم)</span>`;
+                    const txt = isEn
+                        ? `Studied today · #${sr.revCount} · next in ${sr.intervalDays}d`
+                        : `دُرست اليوم · #${sr.revCount} · القادمة بعد ${sr.intervalDays} يوم`;
+                    return `<span class="exo-lec-status-tag is-sage" title="${isEn ? `Next review in ${sr.intervalDays} days` : `المراجعة القادمة بعد ${sr.intervalDays} يوم`}"><i class="fa-solid fa-check-double"></i> ${txt}</span>`;
                 }
-                const dayWord = sr.diffDays === 1 ? 'أمس' : (sr.diffDays === 2 ? 'منذ يومين' : `منذ ${sr.diffDays} أيام`);
-                return `<span class="studio-pill" style="border-color:rgba(59,130,246,0.35); color:#93c5fd; font-size:0.7rem;" title="فاصل إبنغهاوس الحالي: ${sr.intervalDays} أيام"><i class="fa-regular fa-clock"></i> دُرست ${dayWord} (مراجعة #${sr.revCount} • باقي ${sr.remainingDays} يوم)</span>`;
+                const dayWord = isEn
+                    ? `${sr.diffDays}d ago`
+                    : (sr.diffDays === 1 ? 'أمس' : (sr.diffDays === 2 ? 'منذ يومين' : `منذ ${sr.diffDays} أيام`));
+                const txt = isEn
+                    ? `${dayWord} · #${sr.revCount} · ${sr.remainingDays}d left`
+                    : `دُرست ${dayWord} · #${sr.revCount} · باقي ${sr.remainingDays} يوم`;
+                return `<span class="exo-lec-status-tag is-blue"><i class="fa-regular fa-clock"></i> ${txt}</span>`;
             }
             const quickScheduleBtn = (targetSubId && groupId)
-                ? `<button type="button" class="studio-pill" style="border-color:rgba(244,63,94,0.55); background:rgba(244,63,94,0.18); color:#fda4af; font-size:0.68rem; cursor:pointer; font-weight:800; padding:2px 8px;" onclick="quickScheduleReviewForLecture(${targetSubId}, ${groupId}, ${lec.id}, event)" title="جدولة جلسة مراجعة متباعدة في أقرب وقت فراغ متاح بالجدول"><i class="fa-solid fa-calendar-plus"></i> جدولة مراجعة</button>`
+                ? `<button type="button" class="exo-lec-status-tag is-terracotta" onclick="quickScheduleReviewForLecture(${targetSubId}, ${groupId}, ${lec.id}, event)" title="${isEn ? 'Schedule review session' : 'جدولة جلسة مراجعة'}"><i class="fa-solid fa-calendar-plus"></i> ${isEn ? 'Schedule review' : 'جدولة مراجعة'}</button>`
                 : '';
-            return `<span class="studio-pill" style="border-color:rgba(245,158,11,0.55); background:rgba(245,158,11,0.14); color:#fcd34d; font-size:0.7rem;"><i class="fa-solid fa-rotate"></i> مستحقة للمراجعة #${sr.revCount + 1} (منذ ${sr.diffDays} يوم)</span>${quickScheduleBtn}`;
+            const dueTxt = isEn
+                ? `Review #${sr.revCount + 1} due (${sr.diffDays}d)`
+                : `مستحقة للمراجعة #${sr.revCount + 1} (منذ ${sr.diffDays} يوم)`;
+            return `<span class="exo-lec-status-tag is-gold"><i class="fa-solid fa-rotate"></i> ${dueTxt}</span>${quickScheduleBtn}`;
         }
 
         function refreshLectureSpacedRepetition(groupId, lecId, event) {
@@ -27670,6 +29170,7 @@ then(onFulfilled, onRejected) {
         function renderSubjectMergeLecturesDrawer() {
             const grid = document.getElementById('subjectMergeGroupsGrid');
             if (!grid) return;
+            const isEn = (window.currentExoLang || document.documentElement?.lang) !== 'ar';
             const sub = subjects.find(s => String(s.id) === String(activeSubjectId));
             if (!sub) return;
 
@@ -27685,11 +29186,11 @@ then(onFulfilled, onRejected) {
                         <label class="smd-lec-row checked">
                             <div style="display:flex; align-items:center; gap:8px; min-width:0;">
                                 <input type="checkbox" class="smd-lec-checkbox" value="${l.id}" checked onchange="handleMergeDrawerCheckboxChange(this)">
-                                <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${l.title}</span>
+                                <span dir="auto" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(l.title)}</span>
                             </div>
                             <div style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
-                                ${hasAud ? '<i class="fa-solid fa-headphones" style="color:#38bdf8; font-size:0.72rem;" title="مرتبط بريكورد"></i>' : ''}
-                                <span style="font-size:0.68rem; color:${l.completed ? '#6ee7b7' : '#94a3b8'};">${l.completed ? '✓' : ''}</span>
+                                ${hasAud ? `<i class="fa-solid fa-headphones" style="color:var(--muted-blue); font-size:0.74rem;" title="${isEn ? 'Audio attached' : 'مرتبط بريكورد'}"></i>` : ''}
+                                <span style="font-size:0.72rem; color:${l.completed ? 'var(--sage-green)' : 'var(--text-muted)'};">${l.completed ? '✓' : ''}</span>
                             </div>
                         </label>
                     `;
@@ -27697,9 +29198,9 @@ then(onFulfilled, onRejected) {
 
                 groupCards.push(`
                     <div class="smd-group-box">
-                        <div style="font-size:0.8rem; font-weight:900; color:var(--primary); padding-bottom:4px; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between;">
-                            <span><i class="fa-solid fa-folder-open"></i> ${g.name}</span>
-                            <span style="color:var(--text-muted); font-size:0.72rem;">${lecs.length} محاضرات</span>
+                        <div style="font-size:0.8rem; font-weight:800; color:var(--sage-green); padding-bottom:4px; border-bottom:1px solid rgba(240,230,212,0.08); display:flex; justify-content:space-between; gap:8px;">
+                            <span dir="auto"><i class="fa-solid fa-folder-open"></i> ${escapeHtml(g.name)}</span>
+                            <span style="color:var(--text-muted); font-size:0.72rem; font-variant-numeric:tabular-nums;">${isEn ? `${lecs.length} items` : `${lecs.length} محاضرات`}</span>
                         </div>
                         ${rowsHtml}
                     </div>
@@ -27707,7 +29208,9 @@ then(onFulfilled, onRejected) {
             });
 
             if (totalLectures === 0) {
-                grid.innerHTML = `<div style="grid-column:1/-1; padding:16px; text-align:center; color:var(--text-muted); font-size:0.84rem;">لا توجد محاضرات مضافة في هذه المادة بعد. أضف محاضراتك أولاً ثم ادمجها هنا بضغطة زر.</div>`;
+                grid.innerHTML = `<div style="grid-column:1/-1; padding:16px; text-align:center; color:var(--text-muted); font-size:0.84rem;">${isEn
+                    ? 'No lectures in this book yet. Add lectures first, then merge them here.'
+                    : 'لا توجد محاضرات مضافة في هذه المادة بعد. أضف محاضراتك أولاً ثم ادمجها هنا.'}</div>`;
             } else {
                 grid.innerHTML = groupCards.join('');
             }
@@ -27734,8 +29237,11 @@ then(onFulfilled, onRejected) {
         function updateMergeDrawerCounter() {
             const count = document.querySelectorAll('#subjectMergeGroupsGrid .smd-lec-checkbox:checked').length;
             const counterEl = document.getElementById('subjectMergeSelectionCounter');
+            const isEn = (window.currentExoLang || document.documentElement?.lang) !== 'ar';
             if (counterEl) {
-                counterEl.innerText = `تم تحديد ${count} محاضرات للدمج`;
+                counterEl.innerText = isEn
+                    ? `${count} ${count === 1 ? 'lecture' : 'lectures'} selected`
+                    : `تم تحديد ${count} محاضرات للدمج`;
             }
         }
 
@@ -48349,7 +49855,13 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (typeof updateSidebarUI === 'function') updateSidebarUI();
                 if (typeof updateLiveTimeSyncBanner === 'function') updateLiveTimeSyncBanner();
                 if (typeof renderDashboard === 'function') renderDashboard();
+                if (typeof updateWp62StaticLabels === 'function') updateWp62StaticLabels(targetLang);
                 if (typeof renderSubjectsList === 'function') renderSubjectsList();
+                if (typeof activeSubjectId !== 'undefined' && activeSubjectId && typeof renderGroups === 'function') renderGroups();
+                const mergeDrawer = document.getElementById('subjectMergeLecturesDrawer');
+                if (mergeDrawer && mergeDrawer.classList.contains('open') && typeof renderSubjectMergeLecturesDrawer === 'function') {
+                    renderSubjectMergeLecturesDrawer();
+                }
 
                 // Re-render Schedule PDF preview canvas if open
                 const pdfModal = document.getElementById('shareSchedulePdfModalOverlay');

@@ -14,11 +14,11 @@
 
 **Phase 6 — EXO Personal Study Journal Experience Redesign**
 
-الحالة: **Phase 6 IN PROGRESS — WP 6.1 CI VERIFIED; WP 6.2 ACTIVE; FINAL OWNER REVIEW DEFERRED TO PHASE 6 COMPLETION**.
+الحالة: **Phase 6 IN PROGRESS — WP 6.1 CI VERIFIED; WP 6.2 IMPLEMENTED — LOCAL TESTS ONLY; WP 6.3 INACTIVE UNTIL WP 6.2 CI PASSES; FINAL OWNER REVIEW DEFERRED TO PHASE 6 COMPLETION**.
 
 **تقرير WP 6.0:** [PHASE_6_BASELINE_AUDIT.md](PHASE_6_BASELINE_AUDIT.md) تم رفعه إلى GitHub في commit `0a6100439a6d98fee9aaa84683ad4bf7d1247c5f` بعد جولة reconciliation مع قرارات المالك، واعتمده المالك بتاريخ 2026-11-13.  
 **تقرير WP 6.1:** [PHASE_6_WP_6_1_REPORT.md](PHASE_6_WP_6_1_REPORT.md) — CI Run #53 (`43450226930`) SUCCESS على SHA `86fda9824880c00268db117f1ab8780b106f6fe0`، بإجمالي `755/755` في `npm test` وPostgreSQL 16 `96/96` وChromium E2E `148/148`؛ وGitHub Pages Run #146 (`43450226479`) SUCCESS على SHA نفسه.  
-**النطاق النشط:** WP 6.2 — Digital Bookshelf، إعادة عرض Subjects، وTable of Contents. يبدأ الآن بعد نجاح CI لـ WP 6.1. تستمر Work Packages بالتسلسل دون موافقة منفصلة بعد كل واحدة؛ المالك يراجع Phase 6 كاملة ويعتمدها في النهاية، ويمكنه طلب تعديلات أو إيقاف العمل في أي وقت.
+**تقرير WP 6.2:** [PHASE_6_WP_6_2_REPORT.md](PHASE_6_WP_6_2_REPORT.md) — الحالة: **`IMPLEMENTED — LOCAL TESTS ONLY`** (`670/670` محلياً شاملة `Test LL.1–LL.5` و`test_wp6_2_unit.js`؛ بانتظار مزامنة المالك مع `main` واجتياز GitHub Actions CI قبل بدء WP 6.3). تظل WP 6.3 غير مفعّلة حتى يجتاز مصدر WP 6.2 المرفوع اختبارات CI، ويحتفظ المالك بالاعتماد النهائي لـ Phase 6 عند اكتمالها.
 
 ## حالة Phase 5.2 السابقة
 
