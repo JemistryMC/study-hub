@@ -1,7 +1,7 @@
 # Phase 6 — EXO Personal Study Journal Experience Redesign
 ## Incremental Implementation Plan and Acceptance Gates
 
-**Status:** IN PROGRESS — WP 6.1 & WP 6.2 CI VERIFIED (Run #54, 766/766); WP 6.3 `IMPLEMENTED — LOCAL TESTS ONLY` (`680/680` local, awaiting GitHub Sync & CI); WP 6.4 `NOT STARTED`; FINAL OWNER PRODUCT REVIEW AT PHASE 6 COMPLETION  
+**Status:** IN PROGRESS — WP 6.1, WP 6.2 & WP 6.3 CI VERIFIED (WP 6.3 has explicit authorization-boundary limitations); WP 6.4 ACTIVE; FINAL OWNER PRODUCT REVIEW AT PHASE 6 COMPLETION  
 **Design authority:** reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md  
 **Engineering authority:** GEMINI.md  
 **Initial app-source baseline:** c74315a4580d68c61da8a0f49ec2b2f5946301e4 (verify current GitHub HEAD before every task)  
@@ -102,7 +102,7 @@ Do not create duplicate domain entities for decorative covers. Keep chapter crea
 
 ## WP 6.3 — Unified Chapter Workspace and resource organization
 
-**Status:** `IMPLEMENTED — LOCAL TESTS ONLY` *(awaiting GitHub Sync & GitHub Actions CI verification on pushed source SHA; WP 6.4 remains `NOT STARTED` until WP 6.3 passes CI)*.  
+**Status:** `CI VERIFIED — CORE IMPLEMENTATION PASSED WITH DECLARED LIMITATIONS` on source SHA `c97499e35c006236854a2a43982fb4923e77d838` (CI Run #55 `43467239963`: `776/776`; Pages Run #151 `43467237937`: SUCCESS). Proposal A (mixed-type Collections/resource schema) and Proposal B (multiple Extra Note Sheets per slide) remain **HELD — NOT IMPLEMENTED** pending separate explicit owner authorization. The current package does not claim these capabilities as delivered.  
 **Deliverable & Evidence:** `reports/PHASE_6_WP_6_3_REPORT.md` + `reports/screenshots/wp6-3/*.png` (`8` sanitized screenshots).  
 **Local Post-Final-Edit Results:** `680/680` local assertions passed (`npm run lint`, `npm run build`, `54/54` static security, `42/42` comprehensive unit, `52/52` cross-account isolation, `317/317` Phase 4 regressions, `5/5` WP 6.1 unit, `4/4` WP 6.2 unit, `4/4` WP 6.3 unit, `41/41` PGlite, `161/161` Chromium E2E incl. `Test MM.1–MM.6`), plus `5/5` Tier A Node benchmarks and `1440×900` Chromium latency checks. `npm run test:pg16` was not run locally (no local PostgreSQL 16 server) and remains deferred to GitHub Actions CI. Both schema-expanding designs (**Proposal A**: 13-area Chapter Workspace Resource Model & Mixed-Type Collections; **Proposal B**: 10-area Multiple Extra Note Sheets) are documented in `reports/PHASE_6_WP_6_3_REPORT.md` Section 6 with status `HELD FOR SEPARATE OWNER REVIEW — NOT IMPLEMENTED IN CODE`.
 
@@ -121,11 +121,13 @@ Before changing it, create a control-by-control parity matrix against the curren
 
 Keep Annotated PDF Export and multiple Extra Note Sheets within the current Free/VIP policy. Do not change OAuth, Drive upload permissions, sync engine, account isolation, or storage semantics to achieve a visual integration. Do not reduce PDF canvas area for decoration.
 
-**Gate 6.3:** Local implementation and tests passed (`680/680` + Studio parity matrix + `8` visual captures); GitHub Sync and CI (`test:pg16` + unified suite) pending before WP 6.4 starts.
+**Gate 6.3:** GitHub Actions CI PASSED on `c97499e35c006236854a2a43982fb4923e77d838` (`776/776`; real PostgreSQL 16 `96/96`; Chromium E2E `161/161`) + Pages #151 SUCCESS. Core Workspace/Study Studio integration is CI verified. Held Proposals A/B are excluded from delivered scope until separately authorized. E2E coverage limitation: MM.2 directly seeds some annotation/bookmark/pin/custom-page fixtures and PDF/WAV IDB blobs; MM.3 adds a web link via UI and tests audio preview. UI-driven creation of every resource type is not yet fully demonstrated.
 
 ---
 
 ## WP 6.4 — Notifications, dialogs, save states, and recovery guidance
+
+**Status:** ACTIVE — WP 6.3 core implementation has passed CI Run #55 on `c97499e35c006236854a2a43982fb4923e77d838`. Proceed under the sequential progression policy. Do not implement any save/sync/schema contract change without separate authorization. Carry forward the WP 6.3 UI-evidence gap: do not overclaim resource-creation paths that were only fixture-seeded.
 
 Apply Explain, Guide & Recover across the app. Separate local durability from cloud sync. Show only runtime-proven states. Explain what happened, likely cause and uncertainty, data safety, next steps, and a direct recovery action only where supported and tested. Include sanitized technical details. Localize all feedback in Arabic and English.
 

@@ -1,4 +1,4 @@
-# EXO — Phase 6 (WP 6.3) Implementation & Local Verification Report
+# EXO — Phase 6 (WP 6.3) Implementation & CI Verification Report
 ## Unified Chapter Workspace & PDF Studio Integration (Functional Workflow Redesign)
 
 **Work Package:** WP 6.3 — Unified Chapter Workspace & PDF Studio Integration  
@@ -6,8 +6,8 @@
 **Target Branch:** `main`  
 **Starting Documentation HEAD:** `4177d67de45705fa432eecb151bc3372be8bb23d` (documentation sync commit on top of WP 6.2 source)  
 **Last CI-Verified Application Source SHA:** `70d1a8446cf9bf2a84af2035788bf7db56e4d589` (WP 6.2 CI Run `#54` [`43458938490`] — `766/766 PASSED`; Pages Run `#149` [`43458937476`] — `SUCCESS`)  
-**WP 6.3 Local Status:** `IMPLEMENTED — LOCAL TESTS ONLY` *(awaiting owner review, GitHub synchronization, and GitHub Actions CI)*  
-**Phase 6 Status:** `IN PROGRESS — WP 6.1 & WP 6.2 CI VERIFIED; WP 6.3 IMPLEMENTED LOCALLY; WP 6.4 NOT STARTED; FINAL OWNER PRODUCT REVIEW AT PHASE 6 COMPLETION`
+**WP 6.3 Status:** `CI VERIFIED — CORE IMPLEMENTATION PASSED WITH DECLARED LIMITATIONS` on source SHA `c97499e35c006236854a2a43982fb4923e77d838`  
+**Phase 6 Status:** `IN PROGRESS — WP 6.1, WP 6.2 & WP 6.3 CI VERIFIED; WP 6.4 ACTIVE; FINAL OWNER PRODUCT REVIEW AT PHASE 6 COMPLETION`
 
 ---
 
@@ -228,7 +228,15 @@ Measured against a synthetic heavy pharmacology workload (`20` lectures in Chapt
 
 - **Local Verified Assertion Total (excluding `test:pg16`):** **680 / 680 PASSED (100%)** (`54` static + `424` unit across `6` suites + `41` PGlite + `161` Chromium E2E).
 - **Secret Scan Verification:** `grep` across `/index.html`, `/test_wp6_3_unit.js`, `/test_phase4_1_chromium_e2e.js`, `/package.json`, and `/run_all_tests.js` returned zero real secrets, API keys, JWTs, service-role keys, or live tokens (only pre-existing Test JJ synthetic fixture tokens in `test_phase4_1_chromium_e2e.js:6590, 6610`).
-- **GitHub Actions CI Status:** `NOT YET SYNCED / NOT YET RUN IN CI` (local status is strictly `IMPLEMENTED — LOCAL TESTS ONLY`).
+### Independent post-sync verification and E2E coverage boundary
+
+- GitHub Actions **CI Run #55** (`43467239963`) completed **SUCCESS** on exact source SHA `c97499e35c006236854a2a43982fb4923e77d838`; `npm test` reported **`776/776` assertions passed**. Suite breakdown: static `54/54`, comprehensive `42/42`, cross-account isolation `52/52`, Phase 4 regressions `317/317`, WP6.1 unit `5/5`, WP6.2 unit `4/4`, WP6.3 unit `4/4`, PGlite `41/41`, PostgreSQL 16 `96/96`, and Chromium E2E `161/161`. All workflow steps succeeded.
+- GitHub Pages **Run #151** (`43467237937`) completed **SUCCESS** on the same source SHA.
+- Independent inspection of Chromium `Test MM.2` found that bookmark, extra-note strokes/flags, audio pins, and `customPages[]` are created by direct `page.evaluate()` fixture mutation; the synthetic PDF and WAV binaries are also seeded directly into IndexedDB before the journey. `Test MM.3` does add a Web Link through the actual Workspace UI and exercises Audio Preview through the UI, then checks reload visibility for the link and pin fixture.
+- Therefore the E2E suite demonstrates Workspace rendering, resource indexing/search/filter/sort, Web Link creation, audio playback, Study Studio navigation/context drawer, account-cache isolation, bilingual behavior, and responsive layout. It does **not** yet demonstrate UI-driven create/edit flows for every resource type (particularly PDF/audio upload, bookmark creation, note-sheet creation, and audio-pin creation). This is a **coverage limitation**, not evidence that the corresponding production controls are broken; do not claim full UI CRUD coverage on the basis of these fixture-seeded paths.
+- Proposals A and B remain intentionally **HELD — NOT IMPLEMENTED** pending separate owner authorization. Collections and multiple Extra Note Sheets must not be listed as delivered features.
+- **GitHub Actions CI Status:** [Run #55](https://github.com/JemistryMC/study-hub/actions/runs/43467239963) — **SUCCESS** on exact source SHA `c97499e35c006236854a2a43982fb4923e77d838` (`776/776`); PostgreSQL 16 `96/96`; Chromium E2E `161/161`.
+- **GitHub Pages Status:** [Run #151](https://github.com/JemistryMC/study-hub/actions/runs/43467237937) — **SUCCESS** on the same SHA.
 
 ---
 
@@ -281,8 +289,15 @@ All `8` sanitized screenshots (`892 KB` total) were captured from headless Chrom
 
 ---
 
-## 11. Next Required Owner Steps
+## 11. Verified GitHub Delivery, Remaining Scope Holds & Next Work Package
 
-1. Review `/index.html`, `/test_wp6_3_unit.js`, `/test_phase4_1_chromium_e2e.js`, `/package.json`, `/run_all_tests.js`, `/reports/screenshots/wp6-3/*.png`, and this report (`PHASE_6_WP_6_3_REPORT.md`).
-2. Synchronize workspace changes to GitHub (`JemistryMC/study-hub`, branch `main`) and verify GitHub Actions CI (including live `npm run test:pg16` PostgreSQL 16 verification) passes on the pushed Source SHA before WP 6.4 begins.
-3. Separately review **Proposal A** (13-area Chapter Workspace Resource Model & Collections) and **Proposal B** (10-area Backward-Compatible Multiple Extra Note Sheets) in Section 6 if/when ready to authorize schema persistence changes in a dedicated task.
+- **Source commit:** `c97499e35c006236854a2a43982fb4923e77d838` — [GitHub commit](https://github.com/JemistryMC/study-hub/commit/c97499e35c006236854a2a43982fb4923e77d838).
+- **CI:** [Run #55](https://github.com/JemistryMC/study-hub/actions/runs/43467239963) — SUCCESS, `776/776` assertions; PostgreSQL 16 `96/96`; Chromium E2E `161/161`; PGlite `41/41`.
+- **Pages:** [Run #151](https://github.com/JemistryMC/study-hub/actions/runs/43467237937) — SUCCESS on the same SHA.
+- **Tracked screenshots:** 8 PNG files under `reports/screenshots/wp6-3/`.
+- **Protected boundaries:** no SQL/migrations, IndexedDB store/schema, LocalStorage workspace contract, Supabase/RLS/RPC/Auth, Drive OAuth/permissions, or Free/VIP business-policy files were changed in this commit. The file-level diff is limited to `index.html`, package/test runner updates, WP6.3 test, report/status documents, and screenshots.
+- **Held Proposal A:** group-level mixed resource collections/schema remains unimplemented until separate explicit authorization.
+- **Held Proposal B:** multiple Extra Note Sheets per slide remains unimplemented until separate explicit authorization.
+- **E2E evidence limitation:** see Section 8 — some non-link resource fixtures are injected directly for verification; UI CRUD for every type is not yet proven.
+- **Next active package:** WP 6.4 — Notifications, dialogs, save states, and recovery guidance. Proceed only within existing save/sync/security contracts; explain local durability separately from server sync and never claim Saved/Synced without runtime evidence.
+- **Final owner review:** deferred to the end of Phase 6; WP6.3 is CI verified, not final product-approved.
