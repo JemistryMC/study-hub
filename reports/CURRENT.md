@@ -3,11 +3,11 @@
 **آخر تحديث:** 2026-11-13  
 **المستودع:** `JemistryMC/study-hub`  
 **الفرع النشط:** `main`  
-**آخر HEAD على GitHub (Current Base HEAD):** `196f68df6674dea7f4d2a5a59201bb10f45f16fd` (711/711 PASSED في GitHub Actions CI + نجاح نشر GitHub Pages)  
-**آخر HEAD مصدري معتمد بالكامل في CI:** `196f68df6674dea7f4d2a5a59201bb10f45f16fd`  
-**نقاط الأساس التاريخية السابقة (Previous Baseline Checkpoints):** `196f68df6674dea7f4d2a5a59201bb10f45f16fd` ← `b0c7d78be97692f1217880b601fefc993e4ebd2d` ← `531811772626dbd0d66729e344efc6afb659b6e1` ← `e0b2fb0a180d33fb8d98da1715db9842c8ab275f` ← `03c0737e857c95099d416b0fbf22eff581d97d86` ← `b66d72e359e7d2e8531f88f797d4d296d41206a3` ← `94259b543a021d4f06fdc0a9aa44d3f346d63037`  
-**المرحلة الفرعية النشطة:** `EXO — Critical Storage Quota & Durable Recovery Remediation (P0: LocalStorage Exhaustion, Conflict Recovery Bloat & Tombstone Persistence)`  
-**الحالة:** `IMPLEMENTED — LOCAL TESTS ONLY` (تم تنفيذ معالجة P0 الحاسمة لاستنزاف LocalStorage وتضخم `pharmaConflictRecovery_<uid>` ومتانة شواهد الحذف Tombstones فوق خط الأساس `196f68df6674dea7f4d2a5a59201bb10f45f16fd` مع الحفاظ التام على جميع سلوكيات M1–M6 وPhase A، واجتازت كافة الاختبارات المحلية القابلة للتشغيل بنسبة 100% — `628/628 PASSED` شاملة `135/135` في Chromium E2E و`304/304` في Phase 4 Regressions؛ بانتظار رفع المالك إلى GitHub وتشغيل CI، وليست `CI VERIFIED` أو `APPROVED` بعد)
+**آخر HEAD على GitHub (Current Base HEAD):** `10a5d5ba55255956653e17de3ca3da4f671c7fa2` (724/724 PASSED في GitHub Actions CI Run #49 + نجاح نشر GitHub Pages Run #123)  
+**آخر HEAD مصدري معتمد بالكامل في CI:** `10a5d5ba55255956653e17de3ca3da4f671c7fa2`  
+**نقاط الأساس التاريخية السابقة (Previous Baseline Checkpoints):** `10a5d5ba55255956653e17de3ca3da4f671c7fa2` ← `196f68df6674dea7f4d2a5a59201bb10f45f16fd` ← `b0c7d78be97692f1217880b601fefc993e4ebd2d` ← `531811772626dbd0d66729e344efc6afb659b6e1` ← `e0b2fb0a180d33fb8d98da1715db9842c8ab275f` ← `03c0737e857c95099d416b0fbf22eff581d97d86` ← `b66d72e359e7d2e8531f88f797d4d296d41206a3` ← `94259b543a021d4f06fdc0a9aa44d3f346d63037`  
+**المرحلة الفرعية النشطة:** `EXO — P0.1 Durable Conflict Recovery & Atomic Deletion Rollback Hardening`  
+**الحالة:** `IMPLEMENTED — LOCAL TESTS ONLY` (تم تنفيذ تمريرة التصليب P0.1 لمعالجة سباق متانة سجل التعافي، والضغط غير المدمّر لـ LocalStorage، والتراجع المتين القابل للتحقق عن شواهد الحذف، والحفاظ الكامل على حمولة التعافي الفرعية فوق خط الأساس `10a5d5ba55255956653e17de3ca3da4f671c7fa2`، واجتازت كافة الاختبارات المحلية القابلة للتشغيل بنسبة 100% — `638/638 PASSED` شاملة `139/139` في Chromium E2E و`310/310` في Phase 4 Regressions؛ بانتظار رفع المالك إلى GitHub وتشغيل CI، وليست `CI VERIFIED` أو `APPROVED` بعد)
 
 هذا الملف هو المرجع الوحيد للحالة الحالية والمرحلة النشطة. إذا خالفه تقرير تاريخي أو تعليمات مرحلة قديمة، يُتبع هذا الملف ومستند المرحلة النشطة.
 

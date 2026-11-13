@@ -5891,6 +5891,496 @@ async function main() {
 
     await tabHH.close();
     await contextHH.close();
+
+    // =========================================================================
+    // TEST II: P0.1 Durable Conflict Recovery & Atomic Deletion Rollback Hardening
+    // Covers P0-A (Zero Premature Pointer / Serialized Queue / Pointer Validation),
+    // P0-B (Non-Destructive Staged Compaction + Reload Healing),
+    // P0-C (Verifiable Tombstone Rollback + Mandatory Uncommitted Tombstone Crash Scenario),
+    // and P0-D (Full Deep losingValue Preservation + Semantic Digest Disambiguation)
+    // =========================================================================
+    console.log('\n--- TEST II: P0.1 Durable Conflict Recovery, Staged Compaction & Atomic Deletion Rollback Hardening ---');
+    const contextII = await browser.newContext();
+    const tabII = await contextII.newPage();
+    await tabII.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+    await tabII.waitForFunction(() =>
+      typeof window.recordConflictRecoveryCandidate === 'function' &&
+      typeof window.compactAccountAndScheduleConflictRecoveryInLS === 'function' &&
+      typeof window.recordTombstonesAtomicBatch === 'function'
+    );
+
+    const uidII1 = 'ii100000-1111-4222-8333-444455550001';
+
+    // II.1 (P0-A & P0-D): Deep losingValue preservation, semantic digest collision disambiguation,
+    // and durable conflict recovery persistence after IDB migration
+    const ii1DeepAndDurable = await tabII.evaluate(async (uid) => {
+      await handleAuthSessionChange({ id: uid, email: 'ii1@exo.edu', name: 'II1 Student' }, false);
+
+      // Two conflict candidates with identical root fields & IDs but different nested lectures
+      const recA = recordConflictRecoveryCandidate({
+        userId: uid,
+        entityType: 'subjects',
+        entityId: 'sub_ii_deep_1',
+        reason: 'concurrent_entity_tie_break',
+        losingOperationId: 'op_ii_lose_same',
+        winningOperationId: 'op_ii_win_same',
+        losingValue: {
+          id: 'sub_ii_deep_1',
+          name: 'Identical Root Title',
+          color: '#38bdf8',
+          _canonicalGeomOrdinal: 77,
+          _needsCausalStamp: true,
+          groups: [{
+            id: 'grp_ii_1',
+            name: 'Group Alpha',
+            lectures: [{ id: 'lec_ii_1', title: 'Lecture Version 1', notes: 'Important notes V1' }]
+          }],
+          wirdLogs: [{ id: 'w_ii_1', pages: 12 }],
+          continuousLogs: [{ id: 'c_ii_1', minutes: 45 }]
+        }
+      });
+
+      const recB = recordConflictRecoveryCandidate({
+        userId: uid,
+        entityType: 'subjects',
+        entityId: 'sub_ii_deep_1',
+        reason: 'concurrent_entity_tie_break',
+        losingOperationId: 'op_ii_lose_same',
+        winningOperationId: 'op_ii_win_same',
+        losingValue: {
+          id: 'sub_ii_deep_1',
+          name: 'Identical Root Title',
+          color: '#38bdf8',
+          groups: [{
+            id: 'grp_ii_1',
+            name: 'Group Alpha',
+            lectures: [{ id: 'lec_ii_1', title: 'Lecture Version 2 (Modified)', notes: 'Important notes V2' }]
+          }],
+          wirdLogs: [{ id: 'w_ii_1', pages: 20 }],
+          continuousLogs: [{ id: 'c_ii_1', minutes: 60 }]
+        }
+      });
+
+      // Flush initial IDB migration queue
+      await flushPendingConflictRecoveryWrites(uid);
+      const migInitial = await migrateConflictRecoveryToIDB(uid);
+      const pointerBeforeThird = JSON.parse(localStorage.getItem('pharmaConflictRecovery_' + uid) || 'null');
+
+      // Now add a 3rd candidate AFTER migration is active
+      const recC = recordConflictRecoveryCandidate({
+        userId: uid,
+        entityType: 'groups',
+        entityId: 'grp_ii_new_3',
+        reason: 'delete_superseded_concurrent_or_stale_entity',
+        losingOperationId: 'op_ii_lose_3',
+        winningOperationId: 'op_ii_win_3',
+        losingValue: {
+          id: 'grp_ii_new_3',
+          name: 'Newly Added Group After Migration',
+          lectures: [{ id: 'lec_ii_3', title: 'Nested Lecture 3' }]
+        }
+      });
+
+      const syncDurablePersisted = recC.durablePersisted;
+      const pointerImmediatelyAfterCall = JSON.parse(localStorage.getItem('pharmaConflictRecovery_' + uid) || 'null');
+      const pointerNotPrematurelyIncremented = pointerImmediatelyAfterCall?.count === 2;
+
+      // Wait for async IDB persistence to complete
+      const idbPersistRes = await recC.idbPersistPromise;
+      const pointerAfterIdbComplete = JSON.parse(localStorage.getItem('pharmaConflictRecovery_' + uid) || 'null');
+
+      return {
+        distinctRecoveryIds: Boolean(recA?.recoveryId && recB?.recoveryId && recA.recoveryId !== recB.recoveryId),
+        transientStripped: recA?.losingValue?._canonicalGeomOrdinal === undefined && recA?.losingValue?._needsCausalStamp === undefined,
+        nestedPreserved: recA?.losingValue?.groups?.[0]?.lectures?.[0]?.notes === 'Important notes V1' &&
+          recB?.losingValue?.groups?.[0]?.lectures?.[0]?.notes === 'Important notes V2' &&
+          recA?.losingValue?.wirdLogs?.[0]?.pages === 12 &&
+          recB?.losingValue?.continuousLogs?.[0]?.minutes === 60,
+        migInitialCount: migInitial?.recordCount,
+        pointerBeforeCount: pointerBeforeThird?.count,
+        syncDurablePersisted,
+        pointerNotPrematurelyIncremented,
+        idbPersistOk: Boolean(idbPersistRes?.ok && idbPersistRes?.durablePersisted === true),
+        pointerAfterCount: pointerAfterIdbComplete?.count
+      };
+    }, uidII1);
+
+    // Reload page in real Chromium to verify all 3 records (including recC added after migration) survive reload from IDB
+    await tabII.reload({ waitUntil: 'domcontentloaded' });
+    await tabII.waitForFunction(() => typeof window.migrateConflictRecoveryToIDB === 'function');
+
+    const ii1PostReload = await tabII.evaluate(async (uid) => {
+      await handleAuthSessionChange({ id: uid, email: 'ii1@exo.edu', name: 'II1 Student' }, false);
+      const migAfterReload = await migrateConflictRecoveryToIDB(uid);
+      const recs = getConflictRecoveryRecords(uid);
+      return {
+        migAfterReloadCount: migAfterReload?.recordCount,
+        recsCount: recs.length,
+        hasRecC: recs.some(r => r.entityId === 'grp_ii_new_3' && r.losingValue?.lectures?.[0]?.title === 'Nested Lecture 3'),
+        hasBothDisambiguated: recs.filter(r => r.entityId === 'sub_ii_deep_1').length === 2
+      };
+    }, uidII1);
+
+    assert(
+      ii1DeepAndDurable.distinctRecoveryIds === true &&
+      ii1DeepAndDurable.transientStripped === true &&
+      ii1DeepAndDurable.nestedPreserved === true &&
+      ii1DeepAndDurable.migInitialCount === 2 &&
+      ii1DeepAndDurable.syncDurablePersisted === false &&
+      ii1DeepAndDurable.pointerNotPrematurelyIncremented === true &&
+      ii1DeepAndDurable.idbPersistOk === true &&
+      ii1DeepAndDurable.pointerAfterCount === 3 &&
+      ii1PostReload.recsCount === 3 &&
+      ii1PostReload.hasRecC === true &&
+      ii1PostReload.hasBothDisambiguated === true,
+      'Test II.1 (P0-A & P0-D): Deep losingValue hierarchies are preserved, semantic digest disambiguates identical root fields, and post-migration conflict records report durablePersisted=false until IDB completes and survive browser reload'
+    );
+
+    // II.2 (P0-A Pointer Validation, Concurrent Updates & Readback Verification Failure)
+    const ii2PointerAndConcurrency = await tabII.evaluate(async (uid) => {
+      const storageKey = 'pharmaConflictRecovery_' + uid;
+      const validPtr = JSON.parse(localStorage.getItem(storageKey));
+
+      // 1. Pointer count mismatch
+      localStorage.setItem(storageKey, JSON.stringify({ ...validPtr, count: 999 }));
+      inMemoryConflictRecoveryByUid.delete(uid);
+      const resCountMismatch = await migrateConflictRecoveryToIDB(uid);
+
+      // 2. Pointer SHA-256 mismatch
+      localStorage.setItem(storageKey, JSON.stringify({ ...validPtr, sha256: '0'.repeat(64) }));
+      inMemoryConflictRecoveryByUid.delete(uid);
+      const resShaMismatch = await migrateConflictRecoveryToIDB(uid);
+
+      // 3. Readback verification failure hook (force re-migration with tampered pointer so Step 5 readback is reached)
+      localStorage.setItem(storageKey, JSON.stringify({ ...validPtr, count: 777 }));
+      window.__exoConflictMigrationTestHooks = { failReadback: true };
+      const resReadbackFail = await migrateConflictRecoveryToIDB(uid);
+      window.__exoConflictMigrationTestHooks = null;
+      await migrateConflictRecoveryToIDB(uid);
+
+      // 4. Concurrent updates for the same account
+      const p1 = recordConflictRecoveryCandidate({
+        userId: uid,
+        entityType: 'subjects',
+        entityId: 'sub_conc_1',
+        reason: 'concurrent_entity_tie_break',
+        losingOperationId: 'op_conc_lose_1',
+        winningOperationId: 'op_conc_win_1',
+        losingValue: { id: 'sub_conc_1', name: 'Concurrent 1' }
+      }).idbPersistPromise;
+
+      const p2 = recordConflictRecoveryCandidate({
+        userId: uid,
+        entityType: 'subjects',
+        entityId: 'sub_conc_2',
+        reason: 'concurrent_entity_tie_break',
+        losingOperationId: 'op_conc_lose_2',
+        winningOperationId: 'op_conc_win_2',
+        losingValue: { id: 'sub_conc_2', name: 'Concurrent 2' }
+      }).idbPersistPromise;
+
+      await Promise.all([p1, p2]);
+      const finalRecs = getConflictRecoveryRecords(uid);
+      const finalPtr = JSON.parse(localStorage.getItem(storageKey) || 'null');
+
+      return {
+        countMismatchRevalidated: resCountMismatch?.ok === true && resCountMismatch?.recordCount === 3 && resCountMismatch?.pointerMismatchRecovered === true,
+        shaMismatchRevalidated: resShaMismatch?.ok === true && resShaMismatch?.recordCount === 3 && resShaMismatch?.pointerMismatchRecovered === true,
+        readbackFailAborted: resReadbackFail?.ok === false && resReadbackFail?.reason === 'idb_readback_verification_failed',
+        concurrentBothSaved: finalRecs.length === 5 &&
+          finalRecs.some(r => r.entityId === 'sub_conc_1') &&
+          finalRecs.some(r => r.entityId === 'sub_conc_2') &&
+          finalPtr?.count === 5
+      };
+    }, uidII1);
+
+    assert(
+      ii2PointerAndConcurrency.countMismatchRevalidated === true &&
+      ii2PointerAndConcurrency.shaMismatchRevalidated === true &&
+      ii2PointerAndConcurrency.readbackFailAborted === true &&
+      ii2PointerAndConcurrency.concurrentBothSaved === true,
+      'Test II.2 (P0-A): Fast-hydration detects pointer count/SHA-256 mismatches, aborts on readback verification failure, and serializes concurrent per-UID updates without overwriting'
+    );
+
+    // II.3 (P0-B Non-Destructive LocalStorage Compaction + Interrupted STAGING Healing Across Reload)
+    const ii3SetupAndFaults = await tabII.evaluate(async (uid) => {
+      const accountKey = 'pharmaAccountWorkspace_' + uid;
+      const scheduleKey = 'pharmaScheduleV4';
+
+      const fullAccountSnap = {
+        user_id: uid,
+        user_email: 'ii1@exo.edu',
+        revision: 9,
+        subjects: [{ id: 9901, name: 'Protected Subject II', groups: [{ id: 9911, name: 'Protected Ch 1', lectures: [] }] }],
+        schedule: {
+          version: 3,
+          events: [{ id: 'ev_ii_1', title: 'Exam Prep' }],
+          backlog: [{ id: 'bl_ii_1', title: 'Review Notes' }],
+          weeklyReports: [{ id: 'wr_ii_1', completionRate: 98 }],
+          plannerPrefs: { startHour: 7 },
+          _conflictRecovery: [{ recoveryId: 'bloated_1', losingValue: { pad: 'X'.repeat(5000) } }]
+        },
+        logs: [{ id: 'lg_ii_1', text: 'Studied 3 hours' }]
+      };
+      const fullScheduleSnap = {
+        version: 3,
+        events: [{ id: 'ev_ii_1', title: 'Exam Prep' }],
+        backlog: [{ id: 'bl_ii_1', title: 'Review Notes' }],
+        weeklyReports: [{ id: 'wr_ii_1', completionRate: 98 }],
+        plannerPrefs: { startHour: 7 },
+        _conflictRecovery: [{ recoveryId: 'bloated_1', losingValue: { pad: 'X'.repeat(5000) } }]
+      };
+
+      const origAccRaw = JSON.stringify(fullAccountSnap);
+      const origSchRaw = JSON.stringify(fullScheduleSnap);
+      localStorage.setItem(accountKey, origAccRaw);
+      localStorage.setItem(scheduleKey, origSchRaw);
+
+      let removeItemCallsOnProtectedKeys = 0;
+      const origRemove = Storage.prototype.removeItem;
+      Storage.prototype.removeItem = function(k) {
+        if (k === accountKey || k === scheduleKey || k === 'pharmaConflictRecovery_' + uid) {
+          removeItemCallsOnProtectedKeys++;
+        }
+        return origRemove.call(this, k);
+      };
+
+      try {
+        // 1. Staging failure
+        window.__exoCompactionTestHooks = { failStagingWrite: true };
+        const resStageFail = await compactAccountAndScheduleConflictRecoveryInLS(uid);
+
+        // 2. Replacement write failure
+        window.__exoCompactionTestHooks = { failReplacementWrite: true };
+        const resWriteFail = await compactAccountAndScheduleConflictRecoveryInLS(uid);
+        const intactAfterWriteFail = localStorage.getItem(accountKey) === origAccRaw && localStorage.getItem(scheduleKey) === origSchRaw;
+
+        // 3. Readback corruption -> automatic restore of original value
+        window.__exoCompactionTestHooks = { corruptReadback: true };
+        const resReadbackFail = await compactAccountAndScheduleConflictRecoveryInLS(uid);
+        const intactAfterReadbackFail = localStorage.getItem(accountKey) === origAccRaw && localStorage.getItem(scheduleKey) === origSchRaw;
+
+        // 4. Simulate crash/reload while compaction is in STAGING phase
+        window.__exoCompactionTestHooks = { abortDuringCompaction: true };
+        const resAbortedMid = await compactAccountAndScheduleConflictRecoveryInLS(uid);
+        window.__exoCompactionTestHooks = null;
+
+        return {
+          stageFailAborted: resStageFail?.ok === false && resStageFail?.reason === 'compaction_staging_write_failed',
+          writeFailAborted: resWriteFail?.ok === false && intactAfterWriteFail === true,
+          readbackFailRestored: resReadbackFail?.ok === false && intactAfterReadbackFail === true,
+          abortedMidStage: resAbortedMid?.ok === false && resAbortedMid?.reason === 'simulated_abort_during_compaction',
+          removeItemCallsOnProtectedKeys
+        };
+      } finally {
+        Storage.prototype.removeItem = origRemove;
+      }
+    }, uidII1);
+
+    // Reload browser while compaction staging record is in 'STAGING' phase -> verify healing + normal compaction
+    await tabII.reload({ waitUntil: 'domcontentloaded' });
+    await tabII.waitForFunction(() => typeof window.migrateAndHydrateWorkspaceFromIDB === 'function');
+
+    const ii3PostReloadAndCompact = await tabII.evaluate(async (uid) => {
+      await handleAuthSessionChange({ id: uid, email: 'ii1@exo.edu', name: 'II1 Student' }, false);
+      await migrateAndHydrateWorkspaceFromIDB(uid);
+
+      const stagingAfterHeal = await readWorkspaceDomainFromIDB('compaction_staging', uid);
+      const healedPhase = stagingAfterHeal?.record?.phase;
+
+      // Now run normal non-destructive compaction
+      const compRes = await compactAccountAndScheduleConflictRecoveryInLS(uid);
+      const compactedAcc = JSON.parse(localStorage.getItem('pharmaAccountWorkspace_' + uid) || 'null');
+      const compactedSch = JSON.parse(localStorage.getItem('pharmaScheduleV4') || 'null');
+
+      return {
+        healedPhaseOk: healedPhase === 'RECOVERED' || healedPhase === 'COMMITTED',
+        compOk: compRes?.ok === true,
+        accConflictStripped: Array.isArray(compactedAcc?.schedule?._conflictRecovery) && compactedAcc.schedule._conflictRecovery.length === 0,
+        schConflictStripped: Array.isArray(compactedSch?._conflictRecovery) && compactedSch._conflictRecovery.length === 0,
+        accFieldsPreserved: compactedAcc?.revision === 9 &&
+          compactedAcc?.subjects?.[0]?.name === 'Protected Subject II' &&
+          compactedAcc?.schedule?.events?.[0]?.id === 'ev_ii_1' &&
+          compactedAcc?.schedule?.backlog?.[0]?.id === 'bl_ii_1' &&
+          compactedAcc?.schedule?.weeklyReports?.[0]?.id === 'wr_ii_1' &&
+          compactedAcc?.logs?.[0]?.id === 'lg_ii_1',
+        schFieldsPreserved: compactedSch?.events?.[0]?.id === 'ev_ii_1' &&
+          compactedSch?.backlog?.[0]?.id === 'bl_ii_1' &&
+          compactedSch?.weeklyReports?.[0]?.id === 'wr_ii_1' &&
+          compactedSch?.plannerPrefs?.startHour === 7
+      };
+    }, uidII1);
+
+    assert(
+      ii3SetupAndFaults.stageFailAborted === true &&
+      ii3SetupAndFaults.writeFailAborted === true &&
+      ii3SetupAndFaults.readbackFailRestored === true &&
+      ii3SetupAndFaults.abortedMidStage === true &&
+      ii3SetupAndFaults.removeItemCallsOnProtectedKeys === 0 &&
+      ii3PostReloadAndCompact.healedPhaseOk === true &&
+      ii3PostReloadAndCompact.compOk === true &&
+      ii3PostReloadAndCompact.accConflictStripped === true &&
+      ii3PostReloadAndCompact.schConflictStripped === true &&
+      ii3PostReloadAndCompact.accFieldsPreserved === true &&
+      ii3PostReloadAndCompact.schFieldsPreserved === true,
+      'Test II.3 (P0-B): Staged LocalStorage compaction never calls removeItem on protected keys, restores original values on write/readback fault, heals interrupted STAGING across reload, and preserves all workspace/schedule fields'
+    );
+
+    // II.4 (P0-C Verifiable Tombstone Rollback & Mandatory Missing Crash Scenario)
+    const ii4RollbackAndCrashSetup = await tabII.evaluate(async (uid) => {
+      const origOpenConfirm = openConfirmModal;
+      openConfirmModal = (msg, onConfirm) => {
+        if (typeof onConfirm === 'function') return onConfirm();
+      };
+
+      subjects = [{
+        id: 9901,
+        name: 'Protected Subject II',
+        groups: [
+          { id: 9911, name: 'Chapter 1: Must Never Disappear', lectures: [{ id: 9921, name: 'Lecture 1' }] },
+          { id: 9912, name: 'Chapter 2: Surviving Chapter', lectures: [] }
+        ]
+      }];
+      activeSubjectId = 9901;
+      const saveInit = saveSubjects();
+      await saveInit.idbPersistPromise;
+
+      const origSetItem = Storage.prototype.setItem;
+      const origTx = dbInstance.transaction.bind(dbInstance);
+
+      try {
+        // 1. Normal rollback verification: tombstone write succeeds in IDB, saveSubjects fails in both LS and IDB, rollbackDurable succeeds and verifies
+        let failSubjectsOnly = true;
+        Storage.prototype.setItem = function(k, v) {
+          if (failSubjectsOnly && String(k) === 'pharmaSubjectsV4') {
+            throw new DOMException('QuotaExceededError', 'QuotaExceededError');
+          }
+          return origSetItem.call(this, k, v);
+        };
+        let blockSubjectsIdb = true;
+        dbInstance.transaction = function(storeNames, mode) {
+          const names = Array.isArray(storeNames) ? storeNames : [storeNames];
+          const tx = origTx(storeNames, mode);
+          if (blockSubjectsIdb && mode === 'readwrite' && names.includes('workspace_state')) {
+            const origStore = tx.objectStore.bind(tx);
+            tx.objectStore = function(sName) {
+              const st = origStore(sName);
+              if (sName === 'workspace_state') {
+                const origPut = st.put.bind(st);
+                st.put = function(val, key) {
+                  if (val && val.domain === 'subjects') {
+                    queueMicrotask(() => { try { tx.abort(); } catch (e) {} });
+                  }
+                  return origPut(val, key);
+                };
+              }
+              return st;
+            };
+          }
+          return tx;
+        };
+
+        const delRollbackVerifiedRes = await triggerDeleteGroup(9911);
+        failSubjectsOnly = false;
+        blockSubjectsIdb = false;
+
+        // 2. Mandatory Missing Scenario:
+        // - Tombstone write fails in LS (QuotaExceededError) and succeeds in IDB (with pendingDeleteTx)
+        // - saveSubjects() fails in both LS and IDB
+        // - rollbackDurable() ALSO fails in IDB (failIdbRestore: true)
+        let failLsTombAndSub = true;
+        Storage.prototype.setItem = function(k, v) {
+          if (failLsTombAndSub && (String(k) === 'pharmaTombstones_' + uid || String(k) === 'pharmaSubjectsV4')) {
+            throw new DOMException('QuotaExceededError', 'QuotaExceededError');
+          }
+          return origSetItem.call(this, k, v);
+        };
+        blockSubjectsIdb = true;
+        window.__exoTombstoneRollbackTestHooks = { failIdbRestore: true };
+
+        const delDoubleFailRes = await triggerDeleteGroup(9911);
+
+        window.__exoTombstoneRollbackTestHooks = null;
+        failLsTombAndSub = false;
+        blockSubjectsIdb = false;
+
+        // Inspect raw IDB tombstones record before reload: it still has the unrolled-back tombstone + pendingDeleteTx!
+        const rawIdbBeforeReload = await readWorkspaceDomainFromIDB('tombstones', uid);
+
+        return {
+          normalRollbackOk: delRollbackVerifiedRes?.ok === false &&
+            delRollbackVerifiedRes?.rollbackVerified === true &&
+            delRollbackVerifiedRes?.rollbackResult?.localStorageRestored === true &&
+            delRollbackVerifiedRes?.rollbackResult?.idbRestored === true,
+          doubleFailDetected: delDoubleFailRes?.ok === false &&
+            delDoubleFailRes?.rollbackVerified === false &&
+            delDoubleFailRes?.recoverableFailClosed === true &&
+            delDoubleFailRes?.rollbackResult?.idbRestored === false,
+          rawIdbHasPendingDeleteTxBeforeReload: rawIdbBeforeReload?.record?.pendingDeleteTx?.phase === 'PENDING_ENTITY_COMMIT' &&
+            Boolean(rawIdbBeforeReload?.record?.payload?.groups?.['9911'])
+        };
+      } finally {
+        window.__exoTombstoneRollbackTestHooks = null;
+        Storage.prototype.setItem = origSetItem;
+        dbInstance.transaction = origTx;
+        openConfirmModal = origOpenConfirm;
+      }
+    }, uidII1);
+
+    // Now perform a REAL browser reload in Chromium followed by stale Cloud Sync
+    await tabII.reload({ waitUntil: 'domcontentloaded' });
+    await tabII.waitForFunction(() => typeof window.migrateAndHydrateWorkspaceFromIDB === 'function');
+
+    const ii4PostReloadAndSync = await tabII.evaluate(async (uid) => {
+      await handleAuthSessionChange({ id: uid, email: 'ii1@exo.edu', name: 'II1 Student' }, false);
+      await migrateAndHydrateWorkspaceFromIDB(uid);
+
+      const groupsAfterReload = (subjects[0]?.groups || []).map(g => g.id);
+      const tombsAfterReload = getLocalTombstones(uid);
+      const rawIdbAfterReload = await readWorkspaceDomainFromIDB('tombstones', uid);
+
+      // Simulate Cloud Sync with remote payload containing Chapter 9911
+      const remoteRow = {
+        user_id: uid,
+        user_email: 'ii1@exo.edu',
+        revision: 12,
+        subjects: [{
+          id: 9901,
+          name: 'Protected Subject II',
+          groups: [
+            { id: 9911, name: 'Chapter 1: Must Never Disappear', lectures: [{ id: 9921, name: 'Lecture 1' }] },
+            { id: 9912, name: 'Chapter 2: Surviving Chapter', lectures: [] }
+          ]
+        }],
+        schedule: { version: 3, events: [], backlog: [], weeklyReports: [], _tombstones: {} },
+        logs: [],
+        annotations: {}
+      };
+      await applyCloudWorkspacePayload(remoteRow, false);
+      const groupsAfterCloudSync = (subjects[0]?.groups || []).map(g => g.id);
+
+      return {
+        ch9911PresentAfterReload: groupsAfterReload.includes(9911) && groupsAfterReload.includes(9912),
+        uncommittedTombHealedInMem: !tombsAfterReload.groups?.['9911'] && !tombsAfterReload.lectures?.['9921'],
+        uncommittedTombHealedInIDB: !rawIdbAfterReload?.record?.payload?.groups?.['9911'] &&
+          rawIdbAfterReload?.record?.pendingDeleteTx === null,
+        ch9911PresentAfterCloudSync: groupsAfterCloudSync.includes(9911) && groupsAfterCloudSync.includes(9912)
+      };
+    }, uidII1);
+
+    assert(
+      ii4RollbackAndCrashSetup.normalRollbackOk === true &&
+      ii4RollbackAndCrashSetup.doubleFailDetected === true &&
+      ii4RollbackAndCrashSetup.rawIdbHasPendingDeleteTxBeforeReload === true &&
+      ii4PostReloadAndSync.ch9911PresentAfterReload === true &&
+      ii4PostReloadAndSync.uncommittedTombHealedInMem === true &&
+      ii4PostReloadAndSync.uncommittedTombHealedInIDB === true &&
+      ii4PostReloadAndSync.ch9911PresentAfterCloudSync === true,
+      'Test II.4 (P0-C Mandatory Missing Scenario): Verified rollbackDurable() on normal failure, and when both saveSubjects() and IDB tombstone rollback fail, reload + Cloud Sync automatically heal the uncommitted pendingDeleteTx tombstone and preserve the visible entity'
+    );
+
+    await tabII.close();
+    await contextII.close();
     await context.close();
   } finally {
     await browser.close();

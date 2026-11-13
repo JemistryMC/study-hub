@@ -596,11 +596,16 @@ ${extractFunctionSource(indexHtmlContent, 'handleLectureDrop')}
 ${extractFunctionSource(indexHtmlContent, 'handleAuthSessionChange')}
 ${extractFunctionSource(indexHtmlContent, 'isImportInProgressOrQuarantined')}
 ${extractFunctionSource(indexHtmlContent, 'runWithImportLock')}
+${extractFunctionSource(indexHtmlContent, 'canonicalizeRecoveryValueForDigest')}
+${extractFunctionSource(indexHtmlContent, 'sanitizeRecordItem')}
 ${extractFunctionSource(indexHtmlContent, 'inspectConflictRecoveryDiagnostics')}
+${extractFunctionSource(indexHtmlContent, 'compactAccountAndScheduleConflictRecoveryInLS')}
 ${extractFunctionSource(indexHtmlContent, 'migrateConflictRecoveryToIDB')}
+${extractFunctionSource(indexHtmlContent, '_runMigrateConflictRecoveryToIDB')}
 ${extractFunctionSource(indexHtmlContent, 'recordTombstoneDurable')}
 ${extractFunctionSource(indexHtmlContent, 'getCompactConflictRecoveryForLocalStorage')}
 ${extractFunctionSource(indexHtmlContent, 'persistConflictRecoveryRecordsList')}
+${extractFunctionSource(indexHtmlContent, 'flushPendingConflictRecoveryWrites')}
 module.exports = {
   localStorage,
   scheduledTimers,
@@ -809,7 +814,11 @@ module.exports = {
   inspectArchivedLocalFallbackWorkspaces,
   recoverArchivedLocalFallbackWorkspace,
   inspectConflictRecoveryDiagnostics,
+  canonicalizeRecoveryValueForDigest,
+  sanitizeRecordItem,
+  compactAccountAndScheduleConflictRecoveryInLS,
   migrateConflictRecoveryToIDB,
+  flushPendingConflictRecoveryWrites,
   recordTombstoneDurable,
   mergeConflictRecoveryLists,
   window
@@ -7680,6 +7689,297 @@ async function main() {
       idempBatchRes.ok === true &&
       idempBatchRes.tombstones[0].operationId === existingTomb9712.operationId,
       'P0-R23.7: recordTombstonesAtomicBatch is idempotent when called repeatedly for an already-tombstoned entity'
+    );
+  }
+
+  // ============================================================================
+  // P0-R24: P0.1 Durable Conflict Recovery Race Elimination, Non-Destructive
+  //         Compaction, Verifiable Tombstone Rollback & Deep Payload Preservation
+  // ============================================================================
+  console.log('\n--- Suite P0-R24: P0.1 Conflict Recovery Race, Non-Destructive Compaction, Verifiable Tombstone Rollback & Deep Payload Preservation ---');
+  {
+    const idb24 = idb;
+    const prod24 = prod;
+    prod24.localStorage.clear();
+    idb24.stores['workspace_state'].clear();
+    idb24.stores['cloud_sync_journal'].clear();
+    prod24.toastHistory.length = 0;
+    const uid24 = 'usr_p0_1_hardening_24';
+    prod24.setSessionUser(uid24);
+    prod24.localStorage.setItem('pharmaLastActiveCloudUid', uid24);
+    prod24.localStorage.setItem('pharmaLastActiveUserIdV1', uid24);
+
+    // 1. P0-D: Deep losingValue preservation & disambiguation when root fields match but nested lectures/groups differ
+    const recDeepA = prod24.recordConflictRecoveryCandidate({
+      scopeId: 'entity:subjects:500',
+      entityType: 'subjects',
+      entityId: '500',
+      reason: 'concurrent_update_tie_break',
+      losingCausal: { operationId: 'op_lose_deep_same', actorId: 'dev_a', actorCounter: 1, lamport: 1 },
+      winningCausal: { operationId: 'op_win_deep_same', actorId: 'dev_b', actorCounter: 2, lamport: 2 },
+      losingValue: {
+        id: 500,
+        name: 'Pharmacology Same Root',
+        color: '#2dd4bf',
+        groups: [{ id: 501, name: 'Autonomic', lectures: [{ id: 5001, title: 'Cholinergic Agonists V1' }] }],
+        wirdLogs: [{ id: 901, text: 'Wird A' }],
+        continuousLogs: [{ id: 902, text: 'Cont A' }]
+      }
+    }, uid24);
+
+    const recDeepB = prod24.recordConflictRecoveryCandidate({
+      scopeId: 'entity:subjects:500',
+      entityType: 'subjects',
+      entityId: '500',
+      reason: 'concurrent_update_tie_break',
+      losingCausal: { operationId: 'op_lose_deep_same', actorId: 'dev_a', actorCounter: 1, lamport: 1 },
+      winningCausal: { operationId: 'op_win_deep_same', actorId: 'dev_b', actorCounter: 2, lamport: 2 },
+      losingValue: {
+        id: 500,
+        name: 'Pharmacology Same Root',
+        color: '#2dd4bf',
+        groups: [{ id: 501, name: 'Autonomic', lectures: [{ id: 5001, title: 'Cholinergic Agonists V2 MODIFIED' }, { id: 5002, title: 'Adrenergic Blockers' }] }],
+        wirdLogs: [{ id: 901, text: 'Wird B' }],
+        continuousLogs: [{ id: 902, text: 'Cont B' }]
+      }
+    }, uid24);
+
+    const recsBeforeMig24 = prod24.getConflictRecoveryRecords(uid24);
+    assert(
+      recsBeforeMig24.length === 2 &&
+      Array.isArray(recsBeforeMig24[0].losingValue.groups) &&
+      recsBeforeMig24[0].losingValue.groups[0].lectures[0].title === 'Cholinergic Agonists V1' &&
+      Array.isArray(recsBeforeMig24[1].losingValue.groups) &&
+      recsBeforeMig24[1].losingValue.groups[0].lectures.length === 2 &&
+      recsBeforeMig24[1].losingValue.groups[0].lectures[0].title === 'Cholinergic Agonists V2 MODIFIED' &&
+      Array.isArray(recsBeforeMig24[0].losingValue.wirdLogs) &&
+      Array.isArray(recsBeforeMig24[0].losingValue.continuousLogs) &&
+      recDeepA.recoveryId !== recDeepB.recoveryId,
+      'P0-R24.1 (P0-D): Full nested groups, lectures, wirdLogs, and continuousLogs are preserved in losingValue, and records with identical root fields/IDs but different nested lectures are both retained without false deduplication'
+    );
+
+    // 2. Migrate to IDB, then test P0-A: new candidate after migration never updates LS pointer before IDB commit & verification
+    const initialMig24 = await prod24.migrateConflictRecoveryToIDB(uid24);
+    const ptrBeforeNewCand = JSON.parse(prod24.localStorage.getItem('pharmaConflictRecovery_' + uid24) || 'null');
+
+    const newCandAfterMig = prod24.recordConflictRecoveryCandidate({
+      scopeId: 'entity:groups:501',
+      entityType: 'groups',
+      entityId: '501',
+      reason: 'concurrent_update_tie_break',
+      losingCausal: { operationId: 'op_lose_grp_501', actorId: 'dev_a', actorCounter: 3, lamport: 3 },
+      winningCausal: { operationId: 'op_win_grp_501', actorId: 'dev_b', actorCounter: 4, lamport: 4 },
+      losingValue: {
+        id: 501,
+        name: 'Autonomic Losing Branch',
+        lectures: [{ id: 5009, title: 'Ganglionic Blockers' }]
+      }
+    }, uid24);
+
+    const ptrImmediatelyAfterSyncCall = JSON.parse(prod24.localStorage.getItem('pharmaConflictRecovery_' + uid24) || 'null');
+    const syncDurableFlagBeforeAwait = newCandAfterMig.durablePersisted;
+    const asyncPersistResult = await newCandAfterMig.idbPersistPromise;
+    const ptrAfterIdbAwait = JSON.parse(prod24.localStorage.getItem('pharmaConflictRecovery_' + uid24) || 'null');
+    const idbStoredAfterNewCand = idb24.stores.workspace_state.get(prod24.getWorkspaceDomainStateKey('conflict_recovery', uid24));
+
+    assert(
+      initialMig24.ok === true &&
+      ptrBeforeNewCand && ptrBeforeNewCand.count === 2 &&
+      syncDurableFlagBeforeAwait === false &&
+      ptrImmediatelyAfterSyncCall.count === 2 &&
+      asyncPersistResult && asyncPersistResult.ok === true &&
+      newCandAfterMig.durablePersisted === true &&
+      ptrAfterIdbAwait && ptrAfterIdbAwait.count === 3 &&
+      idbStoredAfterNewCand && Array.isArray(idbStoredAfterNewCand.payload) &&
+      idbStoredAfterNewCand.payload.length === 3 &&
+      idbStoredAfterNewCand.payload[2].losingValue.lectures[0].title === 'Ganglionic Blockers',
+      'P0-R24.2 (P0-A): After IDB migration, recordConflictRecoveryCandidate never writes the LocalStorage pointer before IDB tx.oncomplete + readback verification, and durably persists new candidates to IndexedDB'
+    );
+
+    // 3. P0-A Pointer Mismatch Validation: count mismatch, SHA-256 mismatch, and missing IDB record
+    const tamperedCountPtr = Object.assign({}, ptrAfterIdbAwait, { count: 99 });
+    prod24.localStorage.setItem('pharmaConflictRecovery_' + uid24, JSON.stringify(tamperedCountPtr));
+    const countMismatchRes = await prod24.migrateConflictRecoveryToIDB(uid24);
+    const healedPtrAfterCountMismatch = JSON.parse(prod24.localStorage.getItem('pharmaConflictRecovery_' + uid24) || 'null');
+
+    const tamperedShaPtr = Object.assign({}, healedPtrAfterCountMismatch, { sha256: '000000000000000000000000000000000000000000000000000000000000dead' });
+    prod24.localStorage.setItem('pharmaConflictRecovery_' + uid24, JSON.stringify(tamperedShaPtr));
+    const shaMismatchRes = await prod24.migrateConflictRecoveryToIDB(uid24);
+    const healedPtrAfterShaMismatch = JSON.parse(prod24.localStorage.getItem('pharmaConflictRecovery_' + uid24) || 'null');
+
+    assert(
+      countMismatchRes.ok === true &&
+      countMismatchRes.pointerMismatchRecovered === true &&
+      countMismatchRes.pointerMismatchReason === 'pointer_count_mismatch' &&
+      healedPtrAfterCountMismatch.count === 3 &&
+      shaMismatchRes.ok === true &&
+      shaMismatchRes.pointerMismatchRecovered === true &&
+      shaMismatchRes.pointerMismatchReason === 'pointer_sha256_mismatch' &&
+      healedPtrAfterShaMismatch.sha256 === ptrAfterIdbAwait.sha256,
+      'P0-R24.3 (P0-A): migrateConflictRecoveryToIDB detects pointer count and SHA-256 mismatches instead of blindly trusting the pointer, and heals the pointer from verified IndexedDB state'
+    );
+
+    // 4. P0-B Non-Destructive LocalStorage Compaction with fault injection (failStagingWrite, failReplacementWrite, corruptReadback)
+    const origAccountSnap24 = {
+      user_id: uid24,
+      revision: 12,
+      subjects: [{ id: 500, name: 'Pharmacology', groups: [] }],
+      logs: [{ id: 1, text: 'Study log' }],
+      schedule: {
+        version: 3,
+        events: [{ id: 701, title: 'Lecture Session' }],
+        backlog: [{ id: 801, title: 'Review Chapter' }],
+        weeklyReports: [{ id: 901, weekStartIso: '2026-10-31' }],
+        plannerPrefs: { weekStartDay: 6, dayStartHour: 6, dayEndHour: 23, autoCompletePct: 75 },
+        _conflictRecovery: [{ recoveryId: 'bloated_1', losingValue: { padding: 'X'.repeat(2048) } }]
+      }
+    };
+    const origAccountSnapStr24 = JSON.stringify(origAccountSnap24);
+    prod24.localStorage.setItem('pharmaAccountWorkspace_' + uid24, origAccountSnapStr24);
+
+    prod24.window.__exoCompactionTestHooks = { failStagingWrite: true };
+    const failStageCompRes = await prod24.compactAccountAndScheduleConflictRecoveryInLS(uid24);
+    const snapAfterStageFail = prod24.localStorage.getItem('pharmaAccountWorkspace_' + uid24);
+
+    prod24.window.__exoCompactionTestHooks = { failReplacementWrite: true };
+    const failReplaceCompRes = await prod24.compactAccountAndScheduleConflictRecoveryInLS(uid24);
+    const snapAfterReplaceFail = prod24.localStorage.getItem('pharmaAccountWorkspace_' + uid24);
+
+    prod24.window.__exoCompactionTestHooks = { corruptReadback: true };
+    const corruptReadCompRes = await prod24.compactAccountAndScheduleConflictRecoveryInLS(uid24);
+    const snapAfterCorruptRead = prod24.localStorage.getItem('pharmaAccountWorkspace_' + uid24);
+
+    prod24.window.__exoCompactionTestHooks = null;
+    const okCompRes = await prod24.compactAccountAndScheduleConflictRecoveryInLS(uid24);
+    const snapAfterOkComp = JSON.parse(prod24.localStorage.getItem('pharmaAccountWorkspace_' + uid24) || 'null');
+
+    assert(
+      failStageCompRes.compactionOk === false && failStageCompRes.freedBytes === 0 && snapAfterStageFail === origAccountSnapStr24 &&
+      failReplaceCompRes.compactionOk === false && failReplaceCompRes.freedBytes === 0 && snapAfterReplaceFail === origAccountSnapStr24 &&
+      corruptReadCompRes.compactionOk === false && corruptReadCompRes.freedBytes === 0 && snapAfterCorruptRead === origAccountSnapStr24 &&
+      okCompRes.compactionOk === true && okCompRes.freedBytes > 1000 &&
+      snapAfterOkComp && snapAfterOkComp.subjects.length === 1 &&
+      snapAfterOkComp.schedule.events.length === 1 &&
+      snapAfterOkComp.schedule.backlog.length === 1 &&
+      snapAfterOkComp.schedule._conflictRecovery.length === 0,
+      'P0-R24.4 (P0-B): Non-destructive LocalStorage compaction preserves original values on staging failure, replacement write failure, or readback corruption (without removeItem), and preserves all non-_conflictRecovery fields on success'
+    );
+
+    // 5. P0-C Mandatory Missing Scenario: Tombstone succeeds in IDB -> saveSubjects fails -> rollbackDurable fails in IDB -> reload + stale Cloud Sync
+    prod24.setRuntimeState({
+      activeSubjectId: 9800,
+      subjects: [{
+        id: 9800,
+        name: 'Medicinal Chemistry',
+        groups: [
+          { id: 9811, name: 'Undeleted Chapter Must Survive', lectures: [{ id: 98110, title: 'Beta-Lactams' }] }
+        ]
+      }]
+    });
+    await prod24.saveSubjects().idbPersistPromise;
+
+    // Force tombstone LS write and subjects LS write to fail (while allowing artifact cleanup journal),
+    // let tombstone IDB write succeed with pendingDeleteTx, force saveSubjects IDB write to abort, AND force rollbackDurable IDB restore to fail!
+    const origPersistDomain24 = idb24.stores.workspace_state;
+    const origSetItem24 = prod24.localStorage.setItem.bind(prod24.localStorage);
+    prod24.localStorage.setItem = function(k, v) {
+      if (String(k).startsWith('pharmaTombstones_') || String(k) === 'pharmaSubjectsV4') {
+        const qErr = new Error('QuotaExceededError: Simulated targeted quota failure on ' + k);
+        qErr.name = 'QuotaExceededError';
+        throw qErr;
+      }
+      return origSetItem24(k, v);
+    };
+    let blockSubjectsIdbWrite = false;
+    const origTx24 = idb24.transaction.bind(idb24);
+    idb24.transaction = function(storeName, mode = 'readonly') {
+      const names = Array.isArray(storeName) ? storeName : [storeName];
+      if (blockSubjectsIdbWrite && mode === 'readwrite' && names.includes('workspace_state')) {
+        const tx = origTx24(storeName, mode);
+        const origObjStore = tx.objectStore.bind(tx);
+        tx.objectStore = function(n) {
+          const st = origObjStore(n);
+          if (n === 'workspace_state') {
+            const origPut = st.put.bind(st);
+            st.put = function(val) {
+              if (val && val.domain === 'subjects') {
+                process.nextTick(() => {
+                  const abt = tx.onabort;
+                  tx.oncomplete = null;
+                  if (abt) abt(new Error('Simulated subjects IDB write abort'));
+                });
+                return { onsuccess: null, onerror: null };
+              }
+              return origPut(val);
+            };
+          }
+          return st;
+        };
+        return tx;
+      }
+      return origTx24(storeName, mode);
+    };
+
+    blockSubjectsIdbWrite = true;
+    prod24.window.__exoTombstoneRollbackTestHooks = { failIdbRestore: true };
+    const failedDelWithBrokenRollback = await prod24.triggerDeleteGroup(9811);
+    prod24.window.__exoTombstoneRollbackTestHooks = null;
+    blockSubjectsIdbWrite = false;
+    idb24.transaction = origTx24;
+    prod24.localStorage.setItem = origSetItem24;
+
+    // Verify rollback failure was explicitly surfaced and NOT silently swallowed
+    assert(
+      failedDelWithBrokenRollback &&
+      failedDelWithBrokenRollback.ok === false &&
+      failedDelWithBrokenRollback.rollbackVerified === false &&
+      failedDelWithBrokenRollback.recoverableFailClosed === true &&
+      failedDelWithBrokenRollback.rollbackResult &&
+      failedDelWithBrokenRollback.rollbackResult.idbRestored === false &&
+      prod24.getSubjects()[0].groups.length === 1 &&
+      prod24.getSubjects()[0].groups[0].id === 9811,
+      'P0-R24.5 (P0-C): When saveSubjects fails and rollbackDurable IDB write also fails, triggerDeleteGroup reports rollbackVerified:false and recoverableFailClosed:true while keeping Group 9811 in memory'
+    );
+
+    // Now simulate browser reload (migrateAndHydrateWorkspaceFromIDB) followed by stale Cloud Sync
+    // Before reload, IDB workspace_state still has the uncommitted tombstone from Step 2 with pendingDeleteTx!
+    const rawIdbTombBeforeReload = origPersistDomain24.get(prod24.getWorkspaceDomainStateKey('tombstones', uid24));
+    const hadUncommittedTombInIdb = Boolean(
+      rawIdbTombBeforeReload &&
+      rawIdbTombBeforeReload.payload?.groups?.['9811'] &&
+      rawIdbTombBeforeReload.pendingDeleteTx?.phase === 'PENDING_ENTITY_COMMIT'
+    );
+
+    const hydrateAfterCrashRes = await prod24.migrateAndHydrateWorkspaceFromIDB(uid24);
+    const tombsAfterReloadHeal = prod24.getLocalTombstones(uid24);
+
+    // Run stale Cloud Sync with remote revision containing Group 9811
+    const staleRemoteRow = {
+      user_id: uid24,
+      revision: 15,
+      subjects: [{
+        id: 9800,
+        name: 'Medicinal Chemistry',
+        groups: [
+          { id: 9811, name: 'Undeleted Chapter Must Survive', lectures: [{ id: 98110, title: 'Beta-Lactams' }] }
+        ]
+      }],
+      schedule: { version: 3, events: [], backlog: [], weeklyReports: [], _tombstones: {} },
+      logs: []
+    };
+    await prod24.applyCloudWorkspacePayload(staleRemoteRow, false);
+
+    assert(
+      hadUncommittedTombInIdb === true &&
+      hydrateAfterCrashRes && hydrateAfterCrashRes.ok === true &&
+      !tombsAfterReloadHeal.groups['9811'] &&
+      !tombsAfterReloadHeal.lectures['98110'] &&
+      prod24.getSubjects().length === 1 &&
+      prod24.getSubjects()[0].groups.length === 1 &&
+      prod24.getSubjects()[0].groups[0].id === 9811 &&
+      prod24.getSubjects()[0].groups[0].lectures.length === 1 &&
+      prod24.getSubjects()[0].groups[0].lectures[0].id === 98110,
+      'P0-R24.6 (P0-C Mandatory Missing Scenario): After tombstone IDB write succeeds, saveSubjects fails, and rollbackDurable IDB write aborts, reload + stale Cloud Sync automatically heals uncommitted pendingDeleteTx tombstones and never suppresses the visible undeleted chapter'
     );
   }
 
