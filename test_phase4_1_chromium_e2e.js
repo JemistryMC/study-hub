@@ -2124,7 +2124,9 @@ async function main() {
       }, uidU, opCtxU);
     });
 
-    // 1. Open Subject 8801 and Lecture 8821 through real DOM clicks
+    // 1. Navigate from Today Dashboard to Subjects, then open Subject 8801 and Lecture 8821 through real DOM clicks
+    await page.click('.sidebar-nav-item[data-tab="subjects"]');
+    await page.waitForSelector('#subjects.view-section.active', { state: 'visible' });
     await page.click('.subject-card[data-subject-id="8801"]');
     await page.waitForSelector('#subject-details-view', { state: 'visible' });
     await page.click('#groupsContainer .lecture-item div[onclick*="openLectureDocument(8811, 8821)"]');
@@ -2285,6 +2287,8 @@ async function main() {
       renderSubjectsList();
     });
 
+    await page.click('.sidebar-nav-item[data-tab="subjects"]');
+    await page.waitForSelector('#subjects.view-section.active', { state: 'visible' });
     await page.click('.subject-card[data-subject-id="8801"]');
     await page.waitForSelector('#subject-details-view', { state: 'visible' });
     await page.click('#groupsContainer .lecture-item div[onclick*="openLectureDocument(8811, 8821)"]');
@@ -6834,6 +6838,253 @@ async function main() {
 
     await tabJJ.close();
     await contextJJ.close();
+
+    // ========================================================================
+    // TEST KK: WP 6.1 Design Foundations, Hybrid Shell, Bilingual Engine & Today Dashboard
+    // ========================================================================
+    console.log('\n--- TEST KK: WP 6.1 Foundations, Shell, Bilingual Engine & Today Dashboard ---');
+    const contextKK = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const pageKK = await contextKK.newPage();
+    const kkErrors = [];
+    const kkFailedUrls = [];
+    pageKK.on('pageerror', err => kkErrors.push('pageerror: ' + err.message));
+    pageKK.on('console', msg => {
+      if (msg.type() === 'error') kkErrors.push('console.error: ' + msg.text());
+    });
+    pageKK.on('requestfailed', req => {
+      kkFailedUrls.push(req.url() + ' -> ' + (req.failure()?.errorText || 'failed'));
+    });
+
+    await pageKK.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+    await pageKK.waitForFunction(() => typeof renderDashboard === 'function' && typeof window.applyExoLanguage === 'function');
+
+    // KK.1: First-run English default, Today landing active, clock populated immediately, tokens accurate, native Canvas prototype
+    const kk1State = await pageKK.evaluate(() => {
+      const html = document.documentElement;
+      const bodyStyle = getComputedStyle(document.body);
+      const primaryVal = getComputedStyle(html).getPropertyValue('--primary').trim().toLowerCase();
+      const bgVal = getComputedStyle(html).getPropertyValue('--bg-color').trim().toLowerCase();
+      const dashActive = document.getElementById('dashboard')?.classList.contains('active');
+      const subjActive = document.getElementById('subjects')?.classList.contains('active');
+      const clockTxt = document.getElementById('sidebarClockTime')?.innerText.trim();
+      const dateTxt = document.getElementById('sidebarClockDate')?.innerText.trim();
+      const nativeCanvas = CanvasRenderingContext2D.prototype.fillText.toString().includes('[native code]');
+      const overflowX = document.documentElement.scrollWidth > window.innerWidth;
+      const sidebarRect = document.getElementById('exoAppSidebar')?.getBoundingClientRect();
+      const emptyBtns = document.querySelectorAll('#dashboardContent .exo-empty-actions button').length;
+      return {
+        lang: html.lang,
+        dir: html.dir,
+        primaryVal,
+        bgVal,
+        dashActive,
+        subjActive,
+        clockTxt,
+        dateTxt,
+        nativeCanvas,
+        overflowX,
+        sidebarLeft: sidebarRect ? Math.round(sidebarRect.left) : -1,
+        emptyBtns,
+        bodyFont: bodyStyle.fontFamily
+      };
+    });
+
+    assert(
+      kk1State.lang === 'en' &&
+      kk1State.dir === 'ltr' &&
+      kk1State.primaryVal === '#899982' &&
+      kk1State.bgVal === '#191b1d' &&
+      kk1State.dashActive === true &&
+      kk1State.subjActive === false &&
+      kk1State.clockTxt && kk1State.clockTxt !== '--:--' &&
+      kk1State.dateTxt && kk1State.dateTxt !== '--' &&
+      kk1State.nativeCanvas === true &&
+      kk1State.overflowX === false &&
+      kk1State.sidebarLeft === 0 &&
+      kk1State.emptyBtns >= 3,
+      'Test KK.1: First-run defaults to EN LTR on Today Dashboard with Ink/Sage tokens, live sidebar clock, native Canvas prototype, and zero horizontal overflow',
+      JSON.stringify(kk1State)
+    );
+
+    // KK.2: Populate real subject/lecture/session/log -> verify Today Dashboard real counts, lecture reading badge p. X/Y, and interactive session completion
+    const kk2State = await pageKK.evaluate(() => {
+      const todayIdx = new Date().getDay();
+      subjects = [
+        {
+          id: 9901,
+          name: 'فارماكولوجي — Pharmacology 101',
+          groups: [
+            {
+              id: 9911,
+              name: 'Unit 1',
+              lectures: [
+                { id: 9921, title: 'Cholinergic Drugs', path: 'Cholinergic_1.pdf', completed: false, lastPageNum: 2, totalPages: 10 },
+                { id: 9922, title: 'Adrenergic Drugs', path: 'Adrenergic_2.pdf', completed: true, lastStudiedAt: Date.now() - 86400000 * 3, reviewCount: 1 }
+              ]
+            }
+          ]
+        }
+      ];
+      scheduleEvents = [
+        { id: 9931, title: 'Review Cholinergic', subjectId: 9901, day: todayIdx, startHour: 10, duration: 1.5, type: 'important', completed: false }
+      ];
+      logs = [
+        { id: 9941, date: new Date().toLocaleDateString('ar-EG'), text: 'Finished Lecture_1.pdf summary & الخلوي notes', mood: 'fire', subjectId: 9901 }
+      ];
+      saveSubjects();
+      saveScheduleData();
+      saveLogs();
+      renderDashboard();
+      updateSidebarUI();
+
+      const ratioBefore = document.getElementById('dashTodayRatioPill')?.innerText.trim() || '';
+      const badgeBefore = document.getElementById('sidebarTodayCountBadge')?.innerText.trim() || '';
+      const dashHtml = document.getElementById('dashboardContent')?.innerHTML || '';
+      return {
+        ratioBefore,
+        badgeBefore,
+        hasPageBadgeEn: dashHtml.includes('p. 2/10 (20%)'),
+        noAmBug: !dashHtml.includes('AM 2/10'),
+        hasRealSubName: dashHtml.includes('فارماكولوجي — Pharmacology 101')
+      };
+    });
+
+    await pageKK.click('#dashboardContent .exo-paper-check');
+    const kk2AfterToggle = await pageKK.evaluate(() => ({
+      completed: Boolean(scheduleEvents[0]?.completed),
+      ratioAfter: document.getElementById('dashTodayRatioPill')?.innerText.trim() || '',
+      badgeAfter: document.getElementById('sidebarTodayCountBadge')?.innerText.trim() || ''
+    }));
+
+    assert(
+      kk2State.ratioBefore === '0/1 done' &&
+      kk2State.badgeBefore === '1' &&
+      kk2State.hasPageBadgeEn === true &&
+      kk2State.noAmBug === true &&
+      kk2State.hasRealSubName === true &&
+      kk2AfterToggle.completed === true &&
+      kk2AfterToggle.ratioAfter === '1/1 done' &&
+      kk2AfterToggle.badgeAfter === '0',
+      'Test KK.2: Today Dashboard renders real workspace metrics, preserves Arabic subject names & p. 2/10 badge, and persists session completion',
+      JSON.stringify({ kk2State, kk2AfterToggle })
+    );
+
+    // KK.3: Live language switch preserves active screen, unsaved input text, URLs/emails/filenames/unknown Arabic words, and persists choice across reload
+    await pageKK.click('.sidebar-nav-item[data-tab="subjects"]');
+    await pageKK.waitForSelector('#subjects.view-section.active', { state: 'visible' });
+    await pageKK.fill('#searchSubjectInput', 'شابتر 2 — https://example.com/a.pdf');
+
+    await pageKK.click('#sidebarLangToggleBtn'); // Switch EN -> AR
+    const kk3Arabic = await pageKK.evaluate(() => {
+      const subTitle = document.querySelector('.subject-card[data-subject-id="9901"] h3')?.innerText || '';
+      const sidebarRect = document.getElementById('exoAppSidebar')?.getBoundingClientRect();
+      return {
+        lang: document.documentElement.lang,
+        dir: document.documentElement.dir,
+        saved: localStorage.getItem('exoAppLang'),
+        subjectsStillActive: document.getElementById('subjects')?.classList.contains('active'),
+        searchVal: document.getElementById('searchSubjectInput')?.value,
+        subTitle,
+        sidebarRight: sidebarRect ? Math.round(sidebarRect.right) : -1,
+        vw: window.innerWidth,
+        clockHasText: Boolean(document.getElementById('sidebarClockTime')?.innerText.trim()),
+        reorderHasFlip: document.querySelectorAll('.subject-card .move-btn i.exo-rtl-flip').length === 2
+      };
+    });
+
+    await pageKK.click('#sidebarLangToggleBtn'); // Switch AR -> EN
+    const kk3EnglishAgain = await pageKK.evaluate(() => {
+      const subTitle = document.querySelector('.subject-card[data-subject-id="9901"] h3')?.innerText || '';
+      const trMixed = exoTranslateText('راجع ملف Lecture_1.pdf على https://example.com/doc.pdf مع التنظيم الخلوي و student@exo.edu');
+      return {
+        lang: document.documentElement.lang,
+        dir: document.documentElement.dir,
+        saved: localStorage.getItem('exoAppLang'),
+        subjectsStillActive: document.getElementById('subjects')?.classList.contains('active'),
+        searchVal: document.getElementById('searchSubjectInput')?.value,
+        subTitle,
+        trMixed
+      };
+    });
+
+    // Reload with 'ar' persisted to verify saved locale is NOT overwritten by EN default
+    await pageKK.evaluate(() => applyExoLanguage('ar', true));
+    await pageKK.reload({ waitUntil: 'domcontentloaded' });
+    await pageKK.waitForFunction(() => typeof applyExoLanguage === 'function');
+    const kk3ReloadAr = await pageKK.evaluate(() => ({
+      lang: document.documentElement.lang,
+      dir: document.documentElement.dir,
+      saved: localStorage.getItem('exoAppLang'),
+      dashActive: document.getElementById('dashboard')?.classList.contains('active')
+    }));
+
+    assert(
+      kk3Arabic.lang === 'ar' && kk3Arabic.dir === 'rtl' && kk3Arabic.saved === 'ar' &&
+      kk3Arabic.subjectsStillActive === true &&
+      kk3Arabic.searchVal === 'شابتر 2 — https://example.com/a.pdf' &&
+      kk3Arabic.subTitle === 'فارماكولوجي — Pharmacology 101' &&
+      kk3Arabic.sidebarRight === kk3Arabic.vw &&
+      kk3Arabic.reorderHasFlip === true &&
+      kk3EnglishAgain.lang === 'en' && kk3EnglishAgain.dir === 'ltr' && kk3EnglishAgain.saved === 'en' &&
+      kk3EnglishAgain.subjectsStillActive === true &&
+      kk3EnglishAgain.searchVal === 'شابتر 2 — https://example.com/a.pdf' &&
+      kk3EnglishAgain.subTitle === 'فارماكولوجي — Pharmacology 101' &&
+      kk3EnglishAgain.trMixed.includes('Lecture_1.pdf') &&
+      kk3EnglishAgain.trMixed.includes('https://example.com/doc.pdf') &&
+      kk3EnglishAgain.trMixed.includes('student@exo.edu') &&
+      kk3EnglishAgain.trMixed.includes('الخلوي') &&
+      kk3ReloadAr.lang === 'ar' && kk3ReloadAr.dir === 'rtl' && kk3ReloadAr.saved === 'ar' && kk3ReloadAr.dashActive === true,
+      'Test KK.3: Live language toggle preserves view, unsaved input, user text, URLs/emails/filenames/unknown Arabic words, RTL sidebar alignment, and saved locale across reload',
+      JSON.stringify({ kk3Arabic, kk3EnglishAgain, kk3ReloadAr })
+    );
+
+    // KK.4: Responsive Tablet (834x1112) & Mobile (390x844) + touch targets >= 44px + reduced motion + zero console/request errors
+    await pageKK.evaluate(() => applyExoLanguage('en', true));
+    await pageKK.setViewportSize({ width: 834, height: 1112 });
+    const kk4Tablet = await pageKK.evaluate(() => {
+      const navDisplay = getComputedStyle(document.querySelector('.navbar')).display;
+      const navItemsDisplay = getComputedStyle(document.querySelector('.navbar .nav-items')).display;
+      const mobileDisplay = getComputedStyle(document.getElementById('mobileBottomNav')).display;
+      const navBtns = Array.from(document.querySelectorAll('.navbar .nav-items button'));
+      const minH = Math.min(...navBtns.map(b => b.getBoundingClientRect().height));
+      return {
+        navDisplay,
+        navItemsDisplay,
+        mobileDisplay,
+        minH,
+        overflowX: document.documentElement.scrollWidth > window.innerWidth
+      };
+    });
+
+    await pageKK.setViewportSize({ width: 390, height: 844 });
+    await pageKK.emulateMedia({ reducedMotion: 'reduce' });
+    const kk4Mobile = await pageKK.evaluate(() => {
+      const sideDisplay = getComputedStyle(document.getElementById('exoAppSidebar')).display;
+      const mobNav = document.getElementById('mobileBottomNav');
+      const mobDisplay = getComputedStyle(mobNav).display;
+      const mobBtns = Array.from(mobNav.querySelectorAll('.mobile-nav-item'));
+      const minH = Math.min(...mobBtns.map(b => b.getBoundingClientRect().height));
+      return {
+        sideDisplay,
+        mobDisplay,
+        tabCount: mobBtns.length,
+        minH,
+        overflowX: document.documentElement.scrollWidth > window.innerWidth
+      };
+    });
+
+    assert(
+      kk4Tablet.navDisplay !== 'none' && kk4Tablet.navItemsDisplay !== 'none' && kk4Tablet.mobileDisplay === 'none' &&
+      kk4Tablet.minH >= 44 && kk4Tablet.overflowX === false &&
+      kk4Mobile.sideDisplay === 'none' && kk4Mobile.mobDisplay === 'flex' && kk4Mobile.tabCount === 4 &&
+      kk4Mobile.minH >= 44 && kk4Mobile.overflowX === false &&
+      kkErrors.length === 0 && kkFailedUrls.length === 0,
+      'Test KK.4: Tablet (834x1112) & Mobile (390x844) hybrid navigation, >=44px touch targets, reduced motion, zero horizontal overflow, and zero console/network errors',
+      JSON.stringify({ kk4Tablet, kk4Mobile, kkErrors, kkFailedUrls })
+    );
+
+    await pageKK.close();
+    await contextKK.close();
     await context.close();
   } finally {
     await browser.close();
