@@ -1,7 +1,7 @@
 # Phase 6 — EXO Personal Study Journal Experience Redesign
 ## Incremental Implementation Plan and Acceptance Gates
 
-**Status:** IN PROGRESS — WP 6.1 CI VERIFIED; WP 6.2 CI VERIFIED — TECHNICALLY COMPLETE (Run #54, 766/766); WP 6.3 ACTIVE; FINAL OWNER PRODUCT REVIEW AT PHASE 6 COMPLETION  
+**Status:** IN PROGRESS — WP 6.1 & WP 6.2 CI VERIFIED (Run #54, 766/766); WP 6.3 `IMPLEMENTED — LOCAL TESTS ONLY` (`680/680` local, awaiting GitHub Sync & CI); WP 6.4 `NOT STARTED`; FINAL OWNER PRODUCT REVIEW AT PHASE 6 COMPLETION  
 **Design authority:** reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md  
 **Engineering authority:** GEMINI.md  
 **Initial app-source baseline:** c74315a4580d68c61da8a0f49ec2b2f5946301e4 (verify current GitHub HEAD before every task)  
@@ -102,6 +102,10 @@ Do not create duplicate domain entities for decorative covers. Keep chapter crea
 
 ## WP 6.3 — Unified Chapter Workspace and resource organization
 
+**Status:** `IMPLEMENTED — LOCAL TESTS ONLY` *(awaiting GitHub Sync & GitHub Actions CI verification on pushed source SHA; WP 6.4 remains `NOT STARTED` until WP 6.3 passes CI)*.  
+**Deliverable & Evidence:** `reports/PHASE_6_WP_6_3_REPORT.md` + `reports/screenshots/wp6-3/*.png` (`8` sanitized screenshots).  
+**Local Post-Final-Edit Results:** `680/680` local assertions passed (`npm run lint`, `npm run build`, `54/54` static security, `42/42` comprehensive unit, `52/52` cross-account isolation, `317/317` Phase 4 regressions, `5/5` WP 6.1 unit, `4/4` WP 6.2 unit, `4/4` WP 6.3 unit, `41/41` PGlite, `161/161` Chromium E2E incl. `Test MM.1–MM.6`), plus `5/5` Tier A Node benchmarks and `1440×900` Chromium latency checks. `npm run test:pg16` was not run locally (no local PostgreSQL 16 server) and remains deferred to GitHub Actions CI. Both schema-expanding designs (**Proposal A**: 13-area Chapter Workspace Resource Model & Mixed-Type Collections; **Proposal B**: 10-area Multiple Extra Note Sheets) are documented in `reports/PHASE_6_WP_6_3_REPORT.md` Section 6 with status `HELD FOR SEPARATE OWNER REVIEW — NOT IMPLEMENTED IN CODE`.
+
 Implement:
 - First-entry resource setup from one place; progressive and skippable, with later additions allowed.
 - Verified resource support for PDFs/documents, multiple audio recordings, video/web links, written notes, images/slides, and other existing attachment types.
@@ -117,7 +121,7 @@ Before changing it, create a control-by-control parity matrix against the curren
 
 Keep Annotated PDF Export and multiple Extra Note Sheets within the current Free/VIP policy. Do not change OAuth, Drive upload permissions, sync engine, account isolation, or storage semantics to achieve a visual integration. Do not reduce PDF canvas area for decoration.
 
-**Gate 6.3:** prove resource identity and relationships persist; mixed collections work; session restore behaves honestly; PDF Studio parity matrix passes; validate local durability, cloud paths, account isolation, annotations, audio pins, and exports.
+**Gate 6.3:** Local implementation and tests passed (`680/680` + Studio parity matrix + `8` visual captures); GitHub Sync and CI (`test:pg16` + unified suite) pending before WP 6.4 starts.
 
 ---
 

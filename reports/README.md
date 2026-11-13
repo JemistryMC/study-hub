@@ -14,12 +14,13 @@
 
 **Phase 6 — EXO Personal Study Journal Experience Redesign**
 
-الحالة: **Phase 6 IN PROGRESS — WP 6.1 CI VERIFIED; WP 6.2 CI VERIFIED — TECHNICALLY COMPLETE; WP 6.3 ACTIVE; FINAL OWNER PRODUCT REVIEW DEFERRED TO PHASE 6 COMPLETION**.
+الحالة: **Phase 6 IN PROGRESS — WP 6.1 & WP 6.2 CI VERIFIED; WP 6.3 `IMPLEMENTED — LOCAL TESTS ONLY` (بانتظار مزامنة GitHub وCI); WP 6.4 `NOT STARTED`; FINAL OWNER PRODUCT REVIEW DEFERRED TO PHASE 6 COMPLETION**.
 
 **تقرير WP 6.0:** [PHASE_6_BASELINE_AUDIT.md](PHASE_6_BASELINE_AUDIT.md) تم رفعه إلى GitHub واعتمده المالك بتاريخ 2026-11-13.  
 **تقرير WP 6.1:** [PHASE_6_WP_6_1_REPORT.md](PHASE_6_WP_6_1_REPORT.md) — CI Run #53 (`43450226930`) SUCCESS على SHA `86fda9824880c00268db117f1ab8780b106f6fe0`، وPages Run #146 (`43450226479`) SUCCESS.  
 **تقرير WP 6.2:** [PHASE_6_WP_6_2_REPORT.md](PHASE_6_WP_6_2_REPORT.md) — CI Run #54 (`43458938490`) SUCCESS على SHA `70d1a8446cf9bf2a84af2035788bf7db56e4d589` بإجمالي `766/766`؛ Chromium E2E `155/155`؛ PostgreSQL 16 `96/96`؛ PGlite `41/41`. Pages Run #149 (`43458937476`) SUCCESS. WP 6.2 اجتازت البوابة التقنية، والاعتماد النهائي لتجربة Phase 6 مؤجل لنهاية المرحلة.  
-**الحزمة النشطة:** WP 6.3 — Unified Chapter Workspace & PDF Studio Integration.  
+**تقرير WP 6.3:** [PHASE_6_WP_6_3_REPORT.md](PHASE_6_WP_6_3_REPORT.md) — `IMPLEMENTED — LOCAL TESTS ONLY` (`680/680` تحققًا محليًا بعد آخر تعديل، شاملة `161/161` Chromium E2E و`41/41` PGlite و`4/4` وحدة WP 6.3 و`5/5` مستويات Tier A، بينما `test:pg16` مؤجل إلى GitHub Actions CI). يوثق رحلات Before/After، مصفوفة تكافؤ Study Studio، `8` لقطات شاشة منظفة في `reports/screenshots/wp6-3/`، والمقترحين التقنيين المعلقين (`HELD FOR SEPARATE OWNER REVIEW`).  
+**الحزمة التالية (غير مفعّلة بعد):** WP 6.4 — Notifications, dialogs, save states, and recovery guidance (`NOT STARTED` حتى مزامنة WP 6.3 ونجاح CI).  
 **ملاحظة المالك (2026-11-13):** لا يكفي أن يبدو التطبيق كـskin جديد. الحزم القادمة مطالبة بإظهار إعادة تصميم فعلية لرحلات المستخدم والتفاعلات وسير العمل؛ يجب توثيق Before/After user journeys واختبار آثار التفاعلات على حالة التطبيق والبيانات، مع الحفاظ على عقود البيانات والمنطق الحالي.
 
 ## حالة Phase 5.2 السابقة

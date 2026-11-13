@@ -9711,6 +9711,570 @@
             }
         }
 
+        /* ================= WP 6.3 — CHAPTER WORKSPACE & INTEGRATED STUDIO ================= */
+        .exo-toc-open-workspace-btn {
+            min-height: 34px;
+            padding: 6px 12px !important;
+            border-radius: 9px !important;
+            background: rgba(137, 153, 130, 0.16) !important;
+            border: 1px solid rgba(137, 153, 130, 0.45) !important;
+            color: var(--warm-paper) !important;
+            font-size: 0.8rem !important;
+            font-weight: 800 !important;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: background-color 0.16s ease, border-color 0.16s ease;
+        }
+        .exo-toc-open-workspace-btn:hover {
+            background: rgba(137, 153, 130, 0.28) !important;
+            border-color: var(--sage-green) !important;
+        }
+        #chapter-workspace-view {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .exo-cw-hero {
+            background: #202225;
+            border: 1px solid rgba(240, 230, 212, 0.12);
+            border-radius: 16px;
+            padding: 18px 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .exo-cw-breadcrumbs {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .exo-cw-crumb-btn {
+            min-height: 36px;
+            padding: 5px 11px;
+            border-radius: 8px;
+            background: rgba(240, 230, 212, 0.04);
+            border: 1px solid rgba(240, 230, 212, 0.13);
+            color: var(--warm-paper);
+            font-size: 0.78rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: border-color 0.15s ease, background-color 0.15s ease;
+        }
+        .exo-cw-crumb-btn:hover {
+            border-color: var(--sage-green);
+            background: rgba(137, 153, 130, 0.14);
+        }
+        .exo-cw-header-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+        .exo-cw-title-block {
+            min-width: 0;
+            flex: 1 1 280px;
+        }
+        .exo-cw-title-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: nowrap;
+            gap: 10px;
+        }
+        .exo-cw-title-row h2 {
+            margin: 0;
+            min-width: 0;
+            font-size: clamp(1.38rem, 2.2vw, 1.85rem);
+            font-weight: 700;
+            color: var(--warm-paper);
+            line-height: 1.25;
+            word-break: break-word;
+        }
+        .exo-cw-meta-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px 12px;
+            margin-top: 8px;
+            font-size: 0.81rem;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+        .exo-cw-header-actions {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .exo-cw-chapter-select {
+            min-height: 42px;
+            max-width: 220px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: #141618;
+            border: 1px solid rgba(240, 230, 212, 0.15);
+            color: var(--warm-paper);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0;
+        }
+        .exo-cw-add-wrap {
+            position: relative;
+        }
+        .exo-cw-add-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            inset-inline-end: 0;
+            min-width: 245px;
+            background: #191B1D;
+            border: 1px solid rgba(240, 230, 212, 0.18);
+            border-radius: 12px;
+            padding: 6px;
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
+            z-index: 45;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .exo-cw-add-menu.open {
+            display: flex;
+        }
+        .exo-cw-add-menu-item {
+            width: 100%;
+            min-height: 42px;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--warm-paper);
+            font-size: 0.82rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            cursor: pointer;
+            text-align: start;
+        }
+        .exo-cw-add-menu-item:hover {
+            background: rgba(137, 153, 130, 0.16);
+        }
+        .exo-cw-setup-card {
+            background: #202225;
+            border: 1px dashed rgba(137, 153, 130, 0.45);
+            border-radius: 16px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .exo-cw-setup-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .exo-cw-setup-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 10px;
+        }
+        .exo-cw-setup-tile {
+            min-height: 62px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: #292B2D;
+            border: 1px solid rgba(240, 230, 212, 0.12);
+            color: var(--warm-paper);
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            cursor: pointer;
+            text-align: start;
+            transition: border-color 0.16s ease, background-color 0.16s ease;
+        }
+        .exo-cw-setup-tile:hover {
+            border-color: var(--sage-green);
+            background: #303336;
+        }
+        .exo-cw-tabs {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            background: #202225;
+            border: 1px solid rgba(240, 230, 212, 0.1);
+            border-radius: 12px;
+            padding: 6px;
+        }
+        .exo-cw-tab-btn {
+            min-height: 40px;
+            padding: 7px 14px;
+            border-radius: 9px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.83rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            cursor: pointer;
+            transition: background-color 0.15s ease, color 0.15s ease;
+        }
+        .exo-cw-tab-btn:hover {
+            color: var(--warm-paper);
+            background: rgba(240, 230, 212, 0.05);
+        }
+        .exo-cw-tab-btn.active {
+            background: rgba(137, 153, 130, 0.22);
+            color: var(--warm-paper);
+        }
+        .exo-cw-tab-count {
+            font-size: 0.72rem;
+            padding: 1px 7px;
+            border-radius: 6px;
+            background: rgba(25, 27, 29, 0.72);
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+        .exo-cw-tab-btn.active .exo-cw-tab-count {
+            color: var(--sage-green);
+        }
+        .exo-cw-grid {
+            display: grid;
+            grid-template-columns: repeat(12, minmax(0, 1fr));
+            gap: 14px;
+        }
+        .exo-cw-card {
+            background: #202225;
+            border: 1px solid rgba(240, 230, 212, 0.11);
+            border-radius: 14px;
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .exo-cw-card-resume {
+            grid-column: span 7;
+            background: #292B2D;
+            border-inline-start: 4px solid var(--sage-green);
+        }
+        .exo-cw-card-mix {
+            grid-column: span 5;
+        }
+        .exo-cw-card-schedule {
+            grid-column: span 7;
+        }
+        .exo-cw-card-honest {
+            grid-column: span 5;
+        }
+        .exo-cw-card-title {
+            margin: 0;
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: var(--warm-paper);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .exo-cw-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .exo-cw-stat-cell {
+            background: #191B1D;
+            border: 1px solid rgba(240, 230, 212, 0.08);
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+        .exo-cw-stat-val {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--warm-paper);
+            font-variant-numeric: tabular-nums;
+        }
+        .exo-cw-stat-lbl {
+            font-size: 0.74rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .exo-cw-truth-note {
+            background: rgba(25, 27, 29, 0.78);
+            border: 1px solid rgba(240, 230, 212, 0.12);
+            border-radius: 10px;
+            padding: 10px 13px;
+            font-size: 0.83rem;
+            font-family: var(--font-ui, sans-serif);
+            letter-spacing: 0.005em;
+            word-spacing: 0.04em;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+        #pdfViewerModalOverlay {
+            background: rgba(13, 15, 18, 0.94);
+        }
+        .exo-cw-resource-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            background: #202225;
+            border: 1px solid rgba(240, 230, 212, 0.1);
+            border-radius: 12px;
+            padding: 10px 14px;
+        }
+        .exo-cw-resource-toolbar input,
+        .exo-cw-resource-toolbar select {
+            min-height: 42px;
+            padding: 8px 12px;
+            border-radius: 9px;
+            background: #141618;
+            border: 1px solid rgba(240, 230, 212, 0.14);
+            color: var(--warm-paper);
+            font-size: 0.83rem;
+            margin: 0;
+        }
+        .exo-cw-resource-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .exo-cw-res-row {
+            background: #292B2D;
+            border: 1px solid rgba(240, 230, 212, 0.1);
+            border-inline-start: 4px solid rgba(240, 230, 212, 0.25);
+            border-radius: 12px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .exo-cw-res-row.is-pdf { border-inline-start-color: var(--terracotta); }
+        .exo-cw-res-row.is-audio { border-inline-start-color: var(--muted-blue); }
+        .exo-cw-res-row.is-note { border-inline-start-color: var(--warm-gold); }
+        .exo-cw-res-row.is-done { border-inline-start-color: var(--sage-green); }
+        .exo-cw-res-main {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            min-width: 0;
+            flex: 1 1 240px;
+        }
+        .exo-cw-res-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: #191B1D;
+            border: 1px solid rgba(240, 230, 212, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.95rem;
+        }
+        .exo-cw-res-actions {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .exo-cw-audio-preview {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            background: #191B1D;
+            border: 1px solid rgba(120, 152, 172, 0.4);
+            border-radius: 12px;
+            padding: 10px 14px;
+        }
+        .exo-cw-audio-preview.active {
+            display: flex;
+        }
+
+        /* Integrated Studio Chapter Context Header & Collapsible Drawer (Canvas-preserving) */
+        .exo-studio-back-chapter-btn {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            min-height: 30px;
+            padding: 4px 10px !important;
+            border-radius: 8px !important;
+            background: rgba(137, 153, 130, 0.16) !important;
+            border: 1px solid rgba(137, 153, 130, 0.42) !important;
+            color: var(--warm-paper) !important;
+            font-size: 0.74rem !important;
+            font-weight: 800 !important;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .exo-studio-back-chapter-btn:hover {
+            background: rgba(137, 153, 130, 0.28) !important;
+        }
+        .pdf-chapter-context-drawer {
+            position: absolute;
+            top: 0;
+            inset-inline-end: 0;
+            bottom: 0;
+            width: 320px;
+            max-width: 88vw;
+            background: #191B1D;
+            border-inline-start: 1px solid rgba(240, 230, 212, 0.14);
+            z-index: 44;
+            display: flex;
+            flex-direction: column;
+            transform: translateX(108%);
+            transition: transform 0.2s ease;
+            box-shadow: -12px 0 32px rgba(0, 0, 0, 0.55);
+        }
+        html[dir="rtl"] .pdf-chapter-context-drawer {
+            transform: translateX(-108%);
+            box-shadow: 12px 0 32px rgba(0, 0, 0, 0.55);
+        }
+        .pdf-chapter-context-drawer.open {
+            transform: translateX(0) !important;
+        }
+        .pdf-chapter-drawer-backdrop {
+            display: none;
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 43;
+        }
+        .pdf-chapter-drawer-backdrop.open {
+            display: block;
+        }
+        #pdfModalContainer.dock-collapsed #pdfMobileDockFloatingTriggerBtn {
+            top: 64px !important;
+        }
+        #pdfModalContainer:has(.pdf-chapter-context-drawer.open) #pdfMobileDockFloatingTriggerBtn,
+        #pdfModalContainer:has(.pdf-thumbnails-drawer.open) #pdfMobileDockFloatingTriggerBtn,
+        #pdfModalContainer:has(.pdf-chapter-context-drawer.open) .pdf-annotation-toolbar,
+        #pdfModalContainer:has(.pdf-thumbnails-drawer.open) .pdf-annotation-toolbar {
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        .exo-studio-ctx-header {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(240, 230, 212, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .exo-studio-ctx-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .exo-studio-ctx-section h5 {
+            margin: 0 0 8px 0;
+            font-size: 0.74rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--sage-green);
+        }
+        .exo-studio-ctx-item {
+            width: 100%;
+            min-height: 38px;
+            padding: 7px 10px;
+            border-radius: 9px;
+            background: #202225;
+            border: 1px solid rgba(240, 230, 212, 0.1);
+            color: var(--warm-paper);
+            font-size: 0.78rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            cursor: pointer;
+            text-align: start;
+            margin-bottom: 5px;
+        }
+        .exo-studio-ctx-item:hover {
+            border-color: var(--sage-green);
+            background: #292B2D;
+        }
+        .exo-studio-ctx-item.is-active {
+            border-color: var(--sage-green);
+            background: rgba(137, 153, 130, 0.18);
+        }
+
+        @media (max-width: 960px) {
+            .exo-cw-card-resume,
+            .exo-cw-card-mix,
+            .exo-cw-card-schedule,
+            .exo-cw-card-honest {
+                grid-column: span 12;
+            }
+        }
+        @media (hover: none), (max-width: 860px) {
+            #chapter-workspace-view button,
+            #chapter-workspace-view .exo-cw-tab-btn,
+            #chapter-workspace-view .exo-cw-crumb-btn,
+            #chapter-workspace-view .exo-cw-chapter-select,
+            #groupsContainer .exo-toc-open-workspace-btn {
+                min-height: 44px !important;
+            }
+        }
+        @media (max-width: 768px) {
+            #chapter-workspace-view {
+                padding-bottom: 84px;
+            }
+            .exo-cw-hero {
+                padding: 14px;
+            }
+            .exo-cw-header-actions {
+                width: 100%;
+                min-width: 0;
+            }
+            .exo-cw-chapter-select {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                flex: 1 1 100%;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .exo-cw-header-actions > .exo-library-primary-btn {
+                flex: 1 1 140px;
+                justify-content: center;
+            }
+            .exo-cw-resource-toolbar > * {
+                width: 100%;
+            }
+            .exo-studio-back-chapter-btn .exo-studio-back-lbl {
+                display: none;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #chapter-workspace-view *,
+            .pdf-chapter-context-drawer {
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+
 </style>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -10048,6 +10612,21 @@
                 </div>
 
                 <div id="groupsContainer"></div>
+            </div>
+
+            <div id="chapter-workspace-view" class="exo-cw-shell" style="display: none;">
+                <div class="exo-cw-hero" id="cwHeader"></div>
+                <div id="cwFirstEntrySetup" style="display: none;"></div>
+                <div class="exo-cw-tabs" id="cwTabsRow" role="tablist" aria-label="Chapter Workspace Sections"></div>
+                <div class="exo-cw-audio-preview" id="cwAudioPreviewBar">
+                    <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1;">
+                        <i class="fa-solid fa-headphones" style="color: var(--muted-blue);"></i>
+                        <span id="cwAudioPreviewTitle" dir="auto" style="font-size:0.84rem; font-weight:700; color:var(--warm-paper); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Audio</span>
+                    </div>
+                    <audio id="cwAudioPreviewEl" controls style="height:36px; max-width:340px; flex:1 1 220px;"></audio>
+                    <button type="button" class="icon-btn" onclick="cwStopAudioPreview()" aria-label="Close audio preview"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div id="cwBody"></div>
             </div>
         </div>
 
@@ -10971,8 +11550,12 @@
         <div class="pdf-modal-container" id="pdfModalContainer">
             <!-- Clean, Organized 3-Zone Top Studio Header -->
             <div class="pdf-viewer-header">
-                <!-- Zone 1 (Right): Clean Title & Silent Save Indicator -->
+                <!-- Zone 1 (Right): Back to Chapter + Clean Title & Silent Save Indicator -->
                 <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex-shrink: 1;">
+                    <button type="button" id="pdfBackToChapterBtn" class="exo-studio-back-chapter-btn" data-exo-no-i18n="1" onclick="returnToChapterWorkspaceFromStudio()" title="Return to Chapter Workspace">
+                        <i class="fa-solid fa-arrow-right exo-rtl-flip"></i>
+                        <span class="exo-studio-back-lbl" id="pdfBackToChapterLabel">Chapter</span>
+                    </button>
                     <div style="width: 28px; height: 28px; border-radius: 7px; background: rgba(45, 212, 191, 0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                         <i class="fa-solid fa-file-pdf" style="color: var(--primary); font-size: 0.85rem;"></i>
                     </div>
@@ -11012,6 +11595,9 @@
 
                 <!-- Zone 3 (Left): 4 Clean Action Icons + More Menu + Close -->
                 <div class="pdf-header-left-actions" style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                    <button type="button" class="anno-btn icon-only" id="pdfChapterContextToggleBtn" data-exo-no-i18n="1" onclick="togglePdfChapterContextDrawer()" title="Chapter Workspace Context & Switcher" style="display:none;">
+                        <i class="fa-solid fa-diagram-project" style="color: var(--sage-green);"></i>
+                    </button>
                     <button type="button" class="anno-btn icon-only" id="pdfBookmarkCurrentSlideBtn" onclick="toggleBookmarkCurrentSlide()" title="تمييز السلايد كمهم للاختبار (B)">
                         <i class="fa-regular fa-star" id="pdfBookmarkCurrentSlideIcon"></i>
                     </button>
@@ -11270,6 +11856,19 @@
                     </div>
                 </aside>
                 <div class="pdf-thumb-backdrop" id="pdfThumbDrawerBackdrop" onclick="togglePdfThumbnailsDrawer(false)"></div>
+
+                <!-- Integrated Chapter Workspace Context Drawer (Zero Canvas Shrinkage) -->
+                <aside class="pdf-chapter-context-drawer" id="pdfChapterContextDrawer" data-exo-no-i18n="1" aria-label="Chapter Context">
+                    <div class="exo-studio-ctx-header">
+                        <div style="min-width:0;">
+                            <div style="font-size:0.7rem; font-weight:800; color:var(--sage-green); text-transform:uppercase; letter-spacing:0.06em;" id="pdfCtxKicker">CHAPTER CONTEXT</div>
+                            <div style="font-size:0.88rem; font-weight:700; color:var(--warm-paper); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="pdfCtxTitle" dir="auto">Chapter</div>
+                        </div>
+                        <button type="button" class="icon-btn" onclick="togglePdfChapterContextDrawer(false)" aria-label="Close chapter context"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="exo-studio-ctx-body" id="pdfChapterContextDrawerBody"></div>
+                </aside>
+                <div class="pdf-chapter-drawer-backdrop" id="pdfChapterDrawerBackdrop" onclick="togglePdfChapterContextDrawer(false)"></div>
                 <!-- Ultra-Minimalist 1-Click Exit Pill when Zen Focus Mode is active -->
                 <div class="pdf-zen-floating-pill" onclick="togglePdfZenMode()" title="اضغط للخروج من وضع التركيز (أو اضغط حرف Z من الكيبورد)">
                     <i class="fa-solid fa-compress" style="color: var(--primary); font-size: 0.78rem;"></i>
@@ -12944,6 +13543,9 @@
                 item.classList.toggle('active', item.getAttribute('data-tab') === viewId);
             });
             
+            if (viewId !== 'subjects' && typeof cwStopAudioPreview === 'function') {
+                cwStopAudioPreview();
+            }
             if(viewId === 'dashboard' && typeof renderDashboard === 'function') {
                 renderDashboard();
             }
@@ -14940,6 +15542,1518 @@
             syncTocExpandAllButton();
         }
 
+        // ================= WP 6.3 — CHAPTER WORKSPACE PURE HELPERS & CONTROLLER =================
+        let activeChapterWorkspaceGroupId = null;
+        let activeChapterWorkspaceTab = 'overview';
+        let cwSearchQuery = '';
+        let cwResourceFilter = 'all';
+        let cwResourceSort = 'order';
+        let cwSetupDismissedByGroup = {};
+        let cwStudioOpenedFromWorkspace = false;
+        let chapterAnnotationsMetaCache = new Map();
+        window.__exoPendingStudioJump = null;
+
+        function getCwAccountCacheScope() {
+            try {
+                if (typeof getActiveStorageAccountId === 'function') {
+                    return String(getActiveStorageAccountId() || 'local_guest');
+                }
+            } catch (_) {}
+            return (typeof currentCloudUser !== 'undefined' && currentCloudUser && currentCloudUser.id)
+                ? String(currentCloudUser.id)
+                : 'local_guest';
+        }
+
+        function serializeCwIdArg(rawId) {
+            if (typeof rawId === 'number' && Number.isFinite(rawId)) return String(rawId);
+            return escapeHtml(JSON.stringify(String(rawId ?? '')));
+        }
+
+        function formatCwTimeSeconds(sec) {
+            const total = Math.max(0, Math.floor(Number(sec) || 0));
+            const h = Math.floor(total / 3600);
+            const m = Math.floor((total % 3600) / 60);
+            const s = total % 60;
+            if (h > 0) return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+            return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        function buildChapterWorkspaceSummary(sub, group, chapterIndex, scheduleEventsList, annotationsByLecMap, srFn) {
+            const safeGroup = (group && typeof group === 'object') ? group : {};
+            const lectures = Array.isArray(safeGroup.lectures) ? safeGroup.lectures : [];
+            const events = Array.isArray(scheduleEventsList) ? scheduleEventsList : [];
+            const annMap = (annotationsByLecMap && typeof annotationsByLecMap === 'object') ? annotationsByLecMap : {};
+            const idxNum = Math.max(0, Number(chapterIndex) || 0) + 1;
+            const chapterIndexLabel = idxNum < 10 ? `0${idxNum}` : String(idxNum);
+
+            let doneLectures = 0;
+            let pdfCount = 0;
+            let linkCount = 0;
+            let missingPdfCount = 0;
+            let recordingCount = 0;
+            let blankPageCount = 0;
+            let extraSheetCount = 0;
+            let audioPinCount = 0;
+            let bookmarkedSlideCount = 0;
+            let annotatedSlidesCount = 0;
+            let reviewDueCount = 0;
+            const lectureIdsSet = new Set();
+
+            lectures.forEach((lec) => {
+                if (!lec || typeof lec !== 'object') return;
+                lectureIdsSet.add(String(lec.id));
+                if (lec.completed) doneLectures++;
+
+                const rawPath = String(lec.path || '').trim();
+                const isHttpLink = rawPath.startsWith('http://') || rawPath.startsWith('https://');
+                const hasCloudPdf = Boolean(lec.cloudPdfUploaded || lec.cloudPdfDriveId || lec.cloudPdfPath || lec.cloudPdfUrl);
+                if (isHttpLink && !lec.cloudPdfDriveId) {
+                    linkCount++;
+                } else if (rawPath || hasCloudPdf) {
+                    pdfCount++;
+                } else {
+                    missingPdfCount++;
+                }
+
+                const recs = Array.isArray(lec.recordings) ? lec.recordings : [];
+                if (recs.length > 0) {
+                    recordingCount += recs.length;
+                } else if (lec.audioPath || lec.cloudAudioUploaded || lec.cloudAudioDriveId || lec.cloudAudioUrl || lec.cloudAudioPath) {
+                    recordingCount += 1;
+                }
+
+                const customPages = Array.isArray(lec.customPages) ? lec.customPages : [];
+                blankPageCount += customPages.length;
+
+                const bmarks = Array.isArray(lec.bookmarkedSlides) ? lec.bookmarkedSlides : [];
+                bookmarkedSlideCount += bmarks.length;
+
+                if (lec.completed && typeof srFn === 'function') {
+                    try {
+                        const srInfo = srFn(lec);
+                        if (srInfo && srInfo.isDue) reviewDueCount++;
+                    } catch (_) {}
+                }
+
+                const lecAnnos = annMap[String(lec.id)];
+                if (lecAnnos && typeof lecAnnos === 'object') {
+                    const extraFlags = (lecAnnos._extraNotes && typeof lecAnnos._extraNotes === 'object') ? lecAnnos._extraNotes : {};
+                    const seenExtraPages = new Set();
+                    Object.keys(extraFlags).forEach((pKey) => {
+                        if (extraFlags[pKey]) seenExtraPages.add(String(pKey));
+                    });
+                    Object.keys(lecAnnos).forEach((k) => {
+                        const val = lecAnnos[k];
+                        if (k.startsWith('note_')) {
+                            const pStr = k.slice(5);
+                            if ((Array.isArray(val) && val.length > 0) || extraFlags[pStr]) {
+                                seenExtraPages.add(pStr);
+                            }
+                        } else if (!k.startsWith('_') && !k.startsWith('custom_') && /^\d+$/.test(k)) {
+                            if (Array.isArray(val) && val.length > 0) annotatedSlidesCount++;
+                        }
+                    });
+                    extraSheetCount += seenExtraPages.size;
+                    if (Array.isArray(lecAnnos._audioPins)) {
+                        audioPinCount += lecAnnos._audioPins.length;
+                    }
+                }
+            });
+
+            const totalLectures = lectures.length;
+            const pct = totalLectures > 0 ? Math.round((doneLectures / totalLectures) * 100) : 0;
+
+            const subIdStr = sub ? String(sub.id) : '';
+            const grpNameLower = String(safeGroup.name || '').trim().toLowerCase();
+            let plannedSessionsCount = 0;
+            let completedSessionsCount = 0;
+            let plannedHours = 0;
+            events.forEach((ev) => {
+                if (!ev || String(ev.subjectId) !== subIdStr) return;
+                const matchesLec = ev.lectureId && lectureIdsSet.has(String(ev.lectureId));
+                const matchesTitle = grpNameLower && String(ev.title || '').toLowerCase().includes(grpNameLower);
+                if (matchesLec || matchesTitle) {
+                    plannedSessionsCount++;
+                    if (ev.completed) completedSessionsCount++;
+                    plannedHours += (Number(ev.duration) || 0);
+                }
+            });
+
+            const examIds = (sub && Array.isArray(sub.examLectureIds)) ? sub.examLectureIds.map(String) : [];
+            const examOverlapIds = examIds.filter(id => lectureIdsSet.has(id));
+
+            return {
+                chapterIndexLabel,
+                totalLectures,
+                doneLectures,
+                pct,
+                pdfCount,
+                linkCount,
+                missingPdfCount,
+                recordingCount,
+                blankPageCount,
+                extraSheetCount,
+                audioPinCount,
+                bookmarkedSlideCount,
+                annotatedSlidesCount,
+                totalNotesAssets: blankPageCount + extraSheetCount + audioPinCount + bookmarkedSlideCount,
+                reviewDueCount,
+                plannedSessionsCount,
+                completedSessionsCount,
+                plannedHours: Number(plannedHours.toFixed(1)),
+                examOverlapIds
+            };
+        }
+
+        function resolveResumableChapterSession(sub, group, localPdfSet, localAudioSet) {
+            const safeGroup = (group && typeof group === 'object') ? group : {};
+            const lectures = Array.isArray(safeGroup.lectures) ? safeGroup.lectures : [];
+            if (lectures.length === 0) {
+                return {
+                    hasLectures: false,
+                    lecture: null,
+                    hasResumeState: false,
+                    resumeSource: 'empty',
+                    pageNum: 1,
+                    totalPages: 0,
+                    audioSec: 0,
+                    pdfStatus: 'none',
+                    audioStatus: 'none',
+                    transientResetKeys: ['zoom', 'activeTool']
+                };
+            }
+
+            const hasProgressSignal = (lec) => Boolean(
+                (Number(lec.lastPageNum) > 1) ||
+                (Number(lec.lastAudioSec) > 5) ||
+                (Number(lec.lastStudiedAt) > 0)
+            );
+            const scoreLec = (lec) => {
+                let s = 0;
+                if (!lec.completed) s += 1000000;
+                if (Number(lec.lastPageNum) > 1 || Number(lec.lastAudioSec) > 5) s += 500000;
+                s += (Number(lec.lastStudiedAt) || 0) / 1000000;
+                return s;
+            };
+
+            let target = null;
+            let resumeSource = 'first';
+            const withProgress = lectures.filter(l => l && hasProgressSignal(l)).sort((a, b) => scoreLec(b) - scoreLec(a));
+            if (withProgress.length > 0) {
+                target = withProgress[0];
+                if (Number(target.lastPageNum) > 1) resumeSource = 'page';
+                else if (Number(target.lastAudioSec) > 5) resumeSource = 'audio';
+                else resumeSource = 'recent';
+            } else {
+                const firstIncomplete = lectures.find(l => l && !l.completed);
+                if (firstIncomplete) {
+                    target = firstIncomplete;
+                    resumeSource = 'next_incomplete';
+                } else {
+                    target = lectures[0];
+                    resumeSource = 'first';
+                }
+            }
+
+            const lecIdStr = String(target.id);
+            const pdfCached = Boolean(localPdfSet && typeof localPdfSet.has === 'function' && localPdfSet.has(lecIdStr));
+            const rawPath = String(target.path || '').trim();
+            const isWebUrl = rawPath.startsWith('http://') || rawPath.startsWith('https://');
+            const hasCloudPdf = Boolean(target.cloudPdfUploaded || target.cloudPdfDriveId || target.cloudPdfPath || target.cloudPdfUrl);
+            let pdfStatus = 'missing';
+            if (pdfCached) pdfStatus = 'local';
+            else if (hasCloudPdf) pdfStatus = 'cloud_pending';
+            else if (isWebUrl) pdfStatus = 'web_link';
+            else if (rawPath) pdfStatus = 'local_ref';
+
+            const recs = Array.isArray(target.recordings) ? target.recordings : [];
+            const activeRec = recs.length > 0 ? recs[Math.max(0, Math.min(recs.length - 1, Number(target.activeRecordingIndex) || 0))] : null;
+            const audioKey = activeRec ? String(activeRec.dbKey || activeRec.id || lecIdStr) : lecIdStr;
+            const audioCached = Boolean(localAudioSet && typeof localAudioSet.has === 'function' && (localAudioSet.has(audioKey) || localAudioSet.has(lecIdStr)));
+            const hasCloudAudio = Boolean(
+                (activeRec && (activeRec.cloudAudioUploaded || activeRec.cloudAudioDriveId || activeRec.cloudAudioUrl || activeRec.cloudAudioPath)) ||
+                target.cloudAudioUploaded || target.cloudAudioDriveId || target.cloudAudioUrl || target.cloudAudioPath
+            );
+            const rawAudio = String(target.audioPath || '').trim();
+            let audioStatus = 'none';
+            if (audioCached) audioStatus = 'local';
+            else if (hasCloudAudio) audioStatus = 'cloud_pending';
+            else if (rawAudio.startsWith('http://') || rawAudio.startsWith('https://')) audioStatus = 'web_link';
+            else if (rawAudio || recs.length > 0) audioStatus = 'local_ref';
+
+            return {
+                hasLectures: true,
+                lecture: target,
+                hasResumeState: hasProgressSignal(target),
+                resumeSource,
+                pageNum: Math.max(1, Number(target.lastPageNum) || 1),
+                totalPages: Math.max(0, Number(target.totalPages) || 0),
+                audioSec: Math.max(0, Math.floor(Number(target.lastAudioSec) || 0)),
+                pdfStatus,
+                audioStatus,
+                transientResetKeys: ['zoom', 'activeTool']
+            };
+        }
+
+        function buildUnifiedChapterResources(sub, group, localPdfSet, localAudioSet, annotationsByLecMap) {
+            const safeGroup = (group && typeof group === 'object') ? group : {};
+            const lectures = Array.isArray(safeGroup.lectures) ? safeGroup.lectures : [];
+            const annMap = (annotationsByLecMap && typeof annotationsByLecMap === 'object') ? annotationsByLecMap : {};
+            const items = [];
+            let orderSeq = 0;
+
+            lectures.forEach((lec, lecIdx) => {
+                if (!lec || typeof lec !== 'object') return;
+                const lecIdStr = String(lec.id);
+                const rawPath = String(lec.path || '').trim();
+                const isHttpLink = (rawPath.startsWith('http://') || rawPath.startsWith('https://')) && !lec.cloudPdfDriveId;
+                const hasLocalPdf = Boolean(localPdfSet && typeof localPdfSet.has === 'function' && localPdfSet.has(lecIdStr));
+                const hasCloudPdf = Boolean(lec.cloudPdfUploaded || lec.cloudPdfDriveId || lec.cloudPdfPath || lec.cloudPdfUrl);
+
+                let pdfAvailability = 'needs_file';
+                if (isHttpLink) pdfAvailability = 'web_link';
+                else if (hasLocalPdf) pdfAvailability = 'ready_local';
+                else if (hasCloudPdf) pdfAvailability = 'cloud_download';
+                else if (rawPath) pdfAvailability = 'needs_file';
+
+                items.push({
+                    uid: `res_lec_${lecIdStr}`,
+                    kind: isHttpLink ? 'link' : 'pdf',
+                    subKind: isHttpLink ? 'web_link' : 'lecture_pdf',
+                    order: orderSeq++,
+                    lecIdx,
+                    lectureId: lec.id,
+                    groupId: safeGroup.id,
+                    title: lec.title || `Lecture ${lecIdx + 1}`,
+                    parentTitle: lec.title || '',
+                    completed: Boolean(lec.completed),
+                    availability: pdfAvailability,
+                    needsAction: pdfAvailability === 'needs_file' || pdfAvailability === 'cloud_download',
+                    pageNum: Math.max(1, Number(lec.lastPageNum) || 1),
+                    totalPages: Math.max(0, Number(lec.totalPages) || 0),
+                    cloudSize: Number(lec.cloudPdfSize) || 0,
+                    urlPath: isHttpLink ? rawPath : '',
+                    rawPath
+                });
+
+                // Recordings (Primary & Secondary)
+                const recs = Array.isArray(lec.recordings) ? lec.recordings : [];
+                if (recs.length > 0) {
+                    recs.forEach((rec, recIdx) => {
+                        if (!rec) return;
+                        const dbKey = String(rec.dbKey || rec.id || lecIdStr);
+                        const hasLocalAudio = Boolean(localAudioSet && typeof localAudioSet.has === 'function' && (localAudioSet.has(dbKey) || (recIdx === 0 && localAudioSet.has(lecIdStr))));
+                        const hasCloudAudio = Boolean(rec.cloudAudioUploaded || rec.cloudAudioDriveId || rec.cloudAudioUrl || rec.cloudAudioPath);
+                        const recAudioUrl = String(rec.audioPath || (recIdx === 0 ? lec.audioPath : '') || '').trim();
+                        const isAudioUrl = recAudioUrl.startsWith('http://') || recAudioUrl.startsWith('https://');
+                        let audioAvailability = 'needs_file';
+                        if (hasLocalAudio) audioAvailability = 'ready_local';
+                        else if (hasCloudAudio) audioAvailability = 'cloud_download';
+                        else if (isAudioUrl) audioAvailability = 'web_link';
+                        items.push({
+                            uid: `res_audio_${lecIdStr}_${String(rec.id || recIdx)}`,
+                            kind: 'audio',
+                            subKind: recIdx === 0 ? 'primary_audio' : 'secondary_audio',
+                            order: orderSeq++,
+                            lecIdx,
+                            recIdx,
+                            recId: rec.id,
+                            dbKey,
+                            isPrimary: dbKey === lecIdStr || String(rec.id || '').startsWith('rec_default_'),
+                            lectureId: lec.id,
+                            groupId: safeGroup.id,
+                            title: rec.name || rec.fileName || `Recording ${recIdx + 1}`,
+                            parentTitle: lec.title || '',
+                            completed: Boolean(lec.completed),
+                            availability: audioAvailability,
+                            needsAction: audioAvailability === 'cloud_download' || audioAvailability === 'needs_file',
+                            audioSec: recIdx === (Number(lec.activeRecordingIndex) || 0) ? Math.max(0, Math.floor(Number(lec.lastAudioSec) || 0)) : 0,
+                            cloudSize: Number(rec.cloudAudioSize) || 0,
+                            urlPath: isAudioUrl ? recAudioUrl : ''
+                        });
+                    });
+                } else if (lec.audioPath || lec.cloudAudioUploaded || lec.cloudAudioDriveId || lec.cloudAudioUrl || lec.cloudAudioPath) {
+                    const hasLocalAudio = Boolean(localAudioSet && typeof localAudioSet.has === 'function' && localAudioSet.has(lecIdStr));
+                    const hasCloudAudio = Boolean(lec.cloudAudioUploaded || lec.cloudAudioDriveId || lec.cloudAudioUrl || lec.cloudAudioPath);
+                    const rawAudio = String(lec.audioPath || '').trim();
+                    const isAudioUrl = rawAudio.startsWith('http://') || rawAudio.startsWith('https://');
+                    let audioAvailability = 'needs_file';
+                    if (hasLocalAudio) audioAvailability = 'ready_local';
+                    else if (hasCloudAudio) audioAvailability = 'cloud_download';
+                    else if (isAudioUrl) audioAvailability = 'web_link';
+                    items.push({
+                        uid: `res_audio_${lecIdStr}_main`,
+                        kind: 'audio',
+                        subKind: 'primary_audio',
+                        order: orderSeq++,
+                        lecIdx,
+                        recIdx: 0,
+                        recId: 'main_' + lecIdStr,
+                        dbKey: lecIdStr,
+                        isPrimary: true,
+                        lectureId: lec.id,
+                        groupId: safeGroup.id,
+                        title: rawAudio ? rawAudio.replace(/\.[^/.]+$/, '') : `${lec.title} (Audio)`,
+                        parentTitle: lec.title || '',
+                        completed: Boolean(lec.completed),
+                        availability: audioAvailability,
+                        needsAction: audioAvailability === 'cloud_download' || audioAvailability === 'needs_file',
+                        audioSec: Math.max(0, Math.floor(Number(lec.lastAudioSec) || 0)),
+                        cloudSize: Number(lec.cloudAudioSize) || 0,
+                        urlPath: isAudioUrl ? rawAudio : ''
+                    });
+                }
+
+                // Blank Note Pages
+                const customPages = Array.isArray(lec.customPages) ? lec.customPages : [];
+                customPages.forEach((cp, cpIdx) => {
+                    if (!cp) return;
+                    items.push({
+                        uid: `res_blank_${lecIdStr}_${String(cp.id)}`,
+                        kind: 'note',
+                        subKind: 'blank_page',
+                        order: orderSeq++,
+                        lecIdx,
+                        lectureId: lec.id,
+                        groupId: safeGroup.id,
+                        title: cp.title || `Blank Sheet #${cpIdx + 1}`,
+                        parentTitle: lec.title || '',
+                        completed: Boolean(lec.completed),
+                        availability: 'ready_local',
+                        needsAction: false,
+                        pageKey: cp.id,
+                        afterPage: Number(cp.afterPage) || 1
+                    });
+                });
+
+                // Extra Note Sheets & Audio Pins from Annotations Map
+                const lecAnnos = annMap[lecIdStr];
+                if (lecAnnos && typeof lecAnnos === 'object') {
+                    const extraFlags = (lecAnnos._extraNotes && typeof lecAnnos._extraNotes === 'object') ? lecAnnos._extraNotes : {};
+                    const extraPageNums = new Set();
+                    Object.keys(extraFlags).forEach((k) => { if (extraFlags[k]) extraPageNums.add(String(k)); });
+                    Object.keys(lecAnnos).forEach((k) => {
+                        if (k.startsWith('note_') && Array.isArray(lecAnnos[k]) && lecAnnos[k].length > 0) {
+                            extraPageNums.add(k.slice(5));
+                        }
+                    });
+                    Array.from(extraPageNums).sort((a, b) => Number(a) - Number(b)).forEach((pStr) => {
+                        const strokeCnt = Array.isArray(lecAnnos[`note_${pStr}`]) ? lecAnnos[`note_${pStr}`].length : 0;
+                        items.push({
+                            uid: `res_extra_${lecIdStr}_${pStr}`,
+                            kind: 'note',
+                            subKind: 'extra_sheet',
+                            order: orderSeq++,
+                            lecIdx,
+                            lectureId: lec.id,
+                            groupId: safeGroup.id,
+                            title: `Slide ${pStr} Summary Sheet`,
+                            parentTitle: lec.title || '',
+                            completed: Boolean(lec.completed),
+                            availability: 'ready_local',
+                            needsAction: false,
+                            pageNum: Number(pStr) || 1,
+                            strokeCount: strokeCnt
+                        });
+                    });
+
+                    if (Array.isArray(lecAnnos._audioPins)) {
+                        lecAnnos._audioPins.forEach((pin, pinIdx) => {
+                            if (!pin) return;
+                            items.push({
+                                uid: `res_pin_${lecIdStr}_${String(pin.id || pinIdx)}`,
+                                kind: 'note',
+                                subKind: 'audio_pin',
+                                order: orderSeq++,
+                                lecIdx,
+                                lectureId: lec.id,
+                                groupId: safeGroup.id,
+                                title: pin.note || `Audio Moment (Slide ${pin.page || 1})`,
+                                parentTitle: lec.title || '',
+                                completed: Boolean(lec.completed),
+                                availability: 'ready_local',
+                                needsAction: false,
+                                pageNum: Number(pin.page) || 1,
+                                timeSec: Number(pin.timeSec) || 0,
+                                pinId: pin.id
+                            });
+                        });
+                    }
+                }
+
+                // Bookmarked Slides
+                const bookmarks = Array.isArray(lec.bookmarkedSlides) ? lec.bookmarkedSlides : [];
+                bookmarks.forEach((bmPage) => {
+                    items.push({
+                        uid: `res_bmark_${lecIdStr}_${bmPage}`,
+                        kind: 'note',
+                        subKind: 'bookmark',
+                        order: orderSeq++,
+                        lecIdx,
+                        lectureId: lec.id,
+                        groupId: safeGroup.id,
+                        title: `Bookmarked Slide ${bmPage}`,
+                        parentTitle: lec.title || '',
+                        completed: Boolean(lec.completed),
+                        availability: 'ready_local',
+                        needsAction: false,
+                        pageNum: Number(bmPage) || 1
+                    });
+                });
+            });
+
+            return items;
+        }
+
+        function filterAndSortChapterResources(resources, query, typeFilter, sortMode) {
+            const list = Array.isArray(resources) ? resources.slice() : [];
+            const q = String(query || '').trim().toLowerCase();
+            const f = String(typeFilter || 'all');
+            const s = String(sortMode || 'order');
+
+            const filtered = list.filter((item) => {
+                if (!item) return false;
+                if (f === 'pdf' && item.kind !== 'pdf' && item.kind !== 'link') return false;
+                if (f === 'audio' && item.kind !== 'audio') return false;
+                if (f === 'note' && item.kind !== 'note') return false;
+                if (f === 'needs_action' && !item.needsAction) return false;
+                if (q) {
+                    const hay = `${item.title || ''} ${item.parentTitle || ''} ${item.subKind || ''}`.toLowerCase();
+                    if (!hay.includes(q)) return false;
+                }
+                return true;
+            });
+
+            if (s === 'title') {
+                filtered.sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), undefined, { numeric: true, sensitivity: 'base' }));
+            } else if (s === 'incomplete') {
+                filtered.sort((a, b) => {
+                    if (Boolean(a.completed) !== Boolean(b.completed)) return a.completed ? 1 : -1;
+                    return (a.order || 0) - (b.order || 0);
+                });
+            } else if (s === 'notes_first') {
+                const rank = { note: 0, audio: 1, pdf: 2, link: 2 };
+                filtered.sort((a, b) => {
+                    const ra = rank[a.kind] ?? 9;
+                    const rb = rank[b.kind] ?? 9;
+                    if (ra !== rb) return ra - rb;
+                    return (a.order || 0) - (b.order || 0);
+                });
+            } else {
+                filtered.sort((a, b) => (a.order || 0) - (b.order || 0));
+            }
+            return filtered;
+        }
+
+        function buildChapterContextSnapshot(sub, group, activeLec, annotationsForLec, scheduleEventsList) {
+            const safeSub = (sub && typeof sub === 'object') ? sub : {};
+            const safeGroup = (group && typeof group === 'object') ? group : {};
+            const lectures = Array.isArray(safeGroup.lectures) ? safeGroup.lectures : [];
+            const ann = (annotationsForLec && typeof annotationsForLec === 'object') ? annotationsForLec : {};
+            const events = Array.isArray(scheduleEventsList) ? scheduleEventsList : [];
+
+            const bookmarks = (activeLec && Array.isArray(activeLec.bookmarkedSlides))
+                ? activeLec.bookmarkedSlides.slice().sort((a, b) => Number(a) - Number(b))
+                : [];
+            const blankPages = (activeLec && Array.isArray(activeLec.customPages)) ? activeLec.customPages.slice() : [];
+            const extraFlags = (ann._extraNotes && typeof ann._extraNotes === 'object') ? ann._extraNotes : {};
+            const extraSet = new Set();
+            Object.keys(extraFlags).forEach((k) => { if (extraFlags[k]) extraSet.add(Number(k)); });
+            Object.keys(ann).forEach((k) => {
+                if (k.startsWith('note_') && Array.isArray(ann[k]) && ann[k].length > 0) extraSet.add(Number(k.slice(5)));
+            });
+            const extraNotePages = Array.from(extraSet).filter(n => Number.isFinite(n) && n >= 1).sort((a, b) => a - b);
+            const audioPins = Array.isArray(ann._audioPins) ? ann._audioPins.slice().sort((a, b) => (Number(a.timeSec) || 0) - (Number(b.timeSec) || 0)) : [];
+
+            const lecIds = new Set(lectures.map(l => String(l.id)));
+            const subIdStr = String(safeSub.id || '');
+            const grpNameLower = String(safeGroup.name || '').trim().toLowerCase();
+            const chapterSessions = events.filter((ev) => {
+                if (!ev || String(ev.subjectId) !== subIdStr) return false;
+                if (ev.lectureId && lecIds.has(String(ev.lectureId))) return true;
+                if (grpNameLower && String(ev.title || '').toLowerCase().includes(grpNameLower)) return true;
+                return false;
+            });
+
+            return {
+                subjectName: safeSub.name || '',
+                chapterName: safeGroup.name || '',
+                lectures,
+                recordings: (activeLec && Array.isArray(activeLec.recordings)) ? activeLec.recordings.slice() : [],
+                bookmarkedSlides: bookmarks,
+                blankPages,
+                extraNotePages,
+                audioPins,
+                chapterSessions
+            };
+        }
+
+        function getChapterCachedAnnotationsMap(group) {
+            const scope = getCwAccountCacheScope();
+            const out = {};
+            if (!group || !Array.isArray(group.lectures)) return out;
+            group.lectures.forEach((l) => {
+                if (!l) return;
+                const k = `${scope}::${String(l.id)}`;
+                if (chapterAnnotationsMetaCache.has(k)) {
+                    out[String(l.id)] = chapterAnnotationsMetaCache.get(k);
+                }
+            });
+            return out;
+        }
+
+        async function preloadChapterWorkspaceAnnotations(group, expectedGroupId) {
+            if (!group || !Array.isArray(group.lectures) || typeof getAnnotationsFromDB !== 'function') return;
+            const scope = getCwAccountCacheScope();
+            const opCtx = typeof createAccountOperationContext === 'function' ? createAccountOperationContext() : null;
+            let changed = false;
+            await Promise.all(group.lectures.map(async (lec) => {
+                if (!lec) return;
+                const k = `${scope}::${String(lec.id)}`;
+                if (chapterAnnotationsMetaCache.has(k)) return;
+                try {
+                    const data = await getAnnotationsFromDB(lec.id);
+                    if (opCtx && !opCtx.isCurrent()) return;
+                    chapterAnnotationsMetaCache.set(k, data || {});
+                    changed = true;
+                } catch (_) {}
+            }));
+            if (changed && (!opCtx || opCtx.isCurrent()) && String(activeChapterWorkspaceGroupId) === String(expectedGroupId)) {
+                const cwEl = document.getElementById('chapter-workspace-view');
+                if (cwEl && cwEl.style.display !== 'none') {
+                    renderChapterWorkspace(true);
+                }
+            }
+        }
+
+        function openChapterWorkspace(groupId, initialTab = null, event = null) {
+            if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
+            const sub = subjects.find(s => String(s.id) === String(activeSubjectId));
+            if (!sub || !Array.isArray(sub.groups)) return;
+            const group = sub.groups.find(g => String(g.id) === String(groupId));
+            if (!group) return;
+
+            activeChapterWorkspaceGroupId = group.id;
+            if (initialTab && ['overview', 'resources', 'audio', 'notes'].includes(initialTab)) {
+                activeChapterWorkspaceTab = initialTab;
+            } else {
+                activeChapterWorkspaceTab = 'overview';
+            }
+            cwSearchQuery = '';
+            cwResourceFilter = 'all';
+            cwResourceSort = 'order';
+
+            const listView = document.getElementById('subjects-list-view');
+            const detailsView = document.getElementById('subject-details-view');
+            const cwView = document.getElementById('chapter-workspace-view');
+            if (listView) listView.style.display = 'none';
+            if (detailsView) detailsView.style.display = 'none';
+            if (cwView) cwView.style.display = 'flex';
+
+            renderChapterWorkspace(false);
+        }
+
+        function closeChapterWorkspace() {
+            cwStopAudioPreview();
+            activeChapterWorkspaceGroupId = null;
+            const cwView = document.getElementById('chapter-workspace-view');
+            const detailsView = document.getElementById('subject-details-view');
+            if (cwView) cwView.style.display = 'none';
+            if (detailsView && activeSubjectId) {
+                detailsView.style.display = 'flex';
+                renderGroups();
+            }
+        }
+
+        function switchChapterWorkspaceTab(tabId) {
+            if (!['overview', 'resources', 'audio', 'notes'].includes(tabId)) return;
+            activeChapterWorkspaceTab = tabId;
+            renderChapterWorkspace(true);
+        }
+
+        function switchWorkspaceChapterSelection(newGroupId) {
+            const sub = subjects.find(s => String(s.id) === String(activeSubjectId));
+            if (!sub || !Array.isArray(sub.groups)) return;
+            const target = sub.groups.find(g => String(g.id) === String(newGroupId));
+            if (!target) return;
+            cwStopAudioPreview();
+            activeChapterWorkspaceGroupId = target.id;
+            cwSearchQuery = '';
+            renderChapterWorkspace(false);
+        }
+
+        function dismissChapterSetupPrompt(groupId) {
+            cwSetupDismissedByGroup[String(groupId)] = true;
+            renderChapterWorkspace(true);
+        }
+
+        function toggleChapterWorkspaceAddMenu(forceOpen) {
+            const menu = document.getElementById('cwAddResourceMenu');
+            const btn = document.getElementById('cwAddResourceBtn');
+            if (!menu) return;
+            const open = typeof forceOpen === 'boolean' ? forceOpen : !menu.classList.contains('open');
+            menu.classList.toggle('open', open);
+            if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+
+        function applyPendingAudioJumpInStudio() {
+            const pendingJump = window.__exoPendingStudioJump;
+            if (!pendingJump) return;
+            window.__exoPendingStudioJump = null;
+            if (typeof pendingJump.audioSec === 'number' && pendingJump.audioSec > 0) {
+                const aEl = document.getElementById('lectureAudioElement');
+                if (aEl && aEl.src) {
+                    aEl.currentTime = pendingJump.audioSec;
+                }
+            }
+            if (pendingJump.openAudioBar && typeof togglePdfAudioPlayerBar === 'function') {
+                togglePdfAudioPlayerBar(true);
+            }
+        }
+
+        if (typeof document !== 'undefined' && !window.__exoCwDocListenersBound) {
+            window.__exoCwDocListenersBound = true;
+            document.addEventListener('click', (e) => {
+                const menu = document.getElementById('cwAddResourceMenu');
+                if (menu && menu.classList.contains('open') && (!e.target || !e.target.closest || !e.target.closest('.exo-cw-add-wrap'))) {
+                    toggleChapterWorkspaceAddMenu(false);
+                }
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    const menu = document.getElementById('cwAddResourceMenu');
+                    if (menu && menu.classList.contains('open')) {
+                        toggleChapterWorkspaceAddMenu(false);
+                    }
+                }
+            });
+        }
+
+        function cwAddPdfLectureFlow() {
+            toggleChapterWorkspaceAddMenu(false);
+            if (!activeChapterWorkspaceGroupId) return;
+            triggerAddLecture(activeChapterWorkspaceGroupId);
+        }
+
+        function cwAddWebLinkFlow() {
+            toggleChapterWorkspaceAddMenu(false);
+            if (!activeChapterWorkspaceGroupId) return;
+            const sub = subjects.find(s => String(s.id) === String(activeSubjectId));
+            const group = sub && Array.isArray(sub.groups) ? sub.groups.find(g => String(g.id) === String(activeChapterWorkspaceGroupId)) : null;
+            if (!group) return;
+            const isEn = (window.currentExoLang || document.documentElement?.lang) !== 'ar';
+            triggerAddLecture(group.id);
+            setTimeout(() => {
+                const pIn = document.getElementById('diModalInput2');
+                if (pIn) {
+                    pIn.placeholder = isEn ? 'https://... (Google Drive or Reference URL)' : 'https://... (رابط Google Drive أو مرجع)';
+                    pIn.focus();
+                }
+            }, 30);
+        }
+
+        function cwAddAudioRecordingFlow(targetLecId = null) {
+            toggleChapterWorkspaceAddMenu(false);
+            const sub = subjects.find(s => String(s.id) === String(activeSubjectId));
+            const group = sub && Array.isArray(sub.groups) ? sub.groups.find(g => String(g.id) === String(activeChapterWorkspaceGroupId)) : null;
+            if (!group) return;
+            const isEn = (window.currentExoLang || document.documentElement?.lang) !== 'ar';
+
+            const attachToLecture = (lecObj) => {
+                if (!lecObj) return;
+                const opCtx = typeof createAccountOperationContext === 'function' ? createAccountOperationContext() : null;
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'audio/*,.mp3,.m4a,.wav,.ogg,.aac';
+                input.onchange = async (e) => {
+                    const file = e.target.files && e.target.files[0];
+                    if (!file) return;
+                    if (opCtx && !opCtx.isCurrent()) return;
+                    const recId = 'rec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+                    await saveMediaToDB('audios', recId, file);
+                    if (opCtx && !opCtx.isCurrent()) return;
+                    if (!Array.isArray(lecObj.recordings)) lecObj.recordings = [];
+                    const newRec = {
+                        id: recId,
+                        name: file.name.replace(/\.[^/.]+$/, '').trim() || (isEn ? `Recording ${lecObj.recordings.length + 1}` : `تسجيل ${lecObj.recordings.length + 1}`),
+                        fileName: file.name,
+                        dbKey: recId,
+                        createdAt: Date.now()
+                    };
+                    lecObj.recordings.push(newRec);
+                    lecObj.activeRecordingIndex = lecObj.recordings.length - 1;
+                    if (!lecObj.audioPath) lecObj.audioPath = file.name;
+                    lecObj._needsCausalStamp = true;
+                    group._needsCausalStamp = true;
+                    sub._needsCausalStamp = true;
+                    saveSubjects();
+                    renderChapterWorkspace(true);
+                    showToast(isEn ? `Added recording "${file.name}"` : `تمت إضافة التسجيل «${file.name}» للفصل`);
+                    if (currentCloudUser && currentUserCanUploadMedia && typeof isAutoCloudMediaUploadEnabled === 'function' && isAutoCloudMediaUploadEnabled()) {
+                        await uploadMediaToCloudAccount('audios', lecObj, file, true, { recordingObj: newRec });
+                        if (!opCtx || opCtx.isCurrent()) {
+                            saveSubjects();
+                            renderChapterWorkspace(true);
+                        }
+                    }
+                };
+                input.click();
+            };
+
+            if (targetLecId !== null && targetLecId !== undefined) {
+                const found = (group.lectures || []).find(l => String(l.id) === String(targetLecId));
+                if (found) {
+                    attachToLecture(found);
+                    return;
+                }
+            }
+            if (Array.isArray(group.lectures) && group.lectures.length > 0) {
+                attachToLecture(group.lectures[0]);
+            } else {
+                const newLec = {
+                    id: Date.now(),
+                    title: isEn ? `${group.name} — Audio Notes` : `${group.name} — تسجيل صوتي`,
+                    path: '',
+                    audioPath: '',
+                    completed: false,
+                    recordings: [],
+                    _needsCausalStamp: true
+                };
+                if (!Array.isArray(group.lectures)) group.lectures = [];
+                group.lectures.push(newLec);
+                group._needsCausalStamp = true;
+                sub._needsCausalStamp = true;
+                saveSubjects();
+                renderChapterWorkspace(true);
+                attachToLecture(newLec);
+            }
+        }
+
+        async function cwPlayAudioPreview(lecId, dbKey, title, urlPath) {
+            const bar = document.getElementById('cwAudioPreviewBar');
+            const titleEl = document.getElementById('cwAudioPreviewTitle');
+            const audioEl = document.getElementById('cwAudioPreviewEl');
+            if (!bar || !audioEl) return;
+            const isEn = (window.currentExoLang || document.documentElement?.lang) !== 'ar';
+
+            let blob = await getMediaFromDB('audios', String(dbKey || lecId));
+            if (!blob && String(dbKey) !== String(lecId)) {
+                blob = await getMediaFromDB('audios', String(lecId));
+            }
+            if (audioEl._cwPreviewUrl) {
+                try { URL.revokeObjectURL(audioEl._cwPreviewUrl); } catch (_) {}
+                audioEl._cwPreviewUrl = null;
+            }
+            if (blob) {
+                const objUrl = URL.createObjectURL(blob);
+                audioEl._cwPreviewUrl = objUrl;
+                audioEl.src = objUrl;
+            } else if (urlPath && typeof isSafeHttpUrl === 'function' && isSafeHttpUrl(urlPath)) {
+                audioEl.src = urlPath;
+            } else {
+                showToast(isEn ? 'Audio file is not cached locally yet. Open Study Studio or download from Cloud Drive.' : 'الملف الصوتي غير محفوظ محلياً بعد. افتح الاستوديو أو حمّله من السحابة.', 'info');
+                return;
+            }
+            if (titleEl) titleEl.textContent = title || (isEn ? 'Audio Preview' : 'استماع للتسجيل');
+            bar.classList.add('active');
+            audioEl.play().catch(() => {});
+        }
+
+        function cwStopAudioPreview() {
+            const bar = document.getElementById('cwAudioPreviewBar');
+            const audioEl = document.getElementById('cwAudioPreviewEl');
+            if (audioEl) {
+                audioEl.pause();
+                audioEl.removeAttribute('src');
+                if (audioEl._cwPreviewUrl) {
+                    try { URL.revokeObjectURL(audioEl._cwPreviewUrl); } catch (_) {}
+                    audioEl._cwPreviewUrl = null;
+                }
+            }
+            if (bar) bar.classList.remove('active');
+        }
+
+        async function cwOpenResourceInStudio(lecId, opts = {}) {
+            const sub = subjects.find(s => String(s.id) === String(activeSubjectId));
+            if (!sub || !Array.isArray(sub.groups)) return;
+            const group = sub.groups.find(g => String(g.id) === String(activeChapterWorkspaceGroupId));
+            if (!group || !Array.isArray(group.lectures)) return;
+            const lec = group.lectures.find(l => String(l.id) === String(lecId));
+            if (!lec) return;
+
+            cwStopAudioPreview();
+            cwStudioOpenedFromWorkspace = true;
+
+            if (opts && typeof opts.recIdx === 'number' && Array.isArray(lec.recordings) && opts.recIdx >= 0 && opts.recIdx < lec.recordings.length) {
+                lec.activeRecordingIndex = opts.recIdx;
+                saveSubjects();
+            }
+
+            window.__exoPendingStudioJump = (opts && (opts.pageNum || opts.openExtraNote || opts.audioSec !== undefined || opts.openAudioBar))
+                ? Object.assign({}, opts)
+                : null;
+
+            await openLectureDocument(group.id, lec.id);
+        }
+
+        function resumeChapterLastSession() {
+            const sub = subjects.find(s => String(s.id) === String(activeSubjectId));
+            const group = sub && Array.isArray(sub.groups) ? sub.groups.find(g => String(g.id) === String(activeChapterWorkspaceGroupId)) : null;
+            if (!group) return;
+            const localPdfSet = (typeof localMediaCache !== 'undefined' && localMediaCache.pdfs) ? localMediaCache.pdfs : new Set();
+            const localAudioSet = (typeof localMediaCache !== 'undefined' && localMediaCache.audios) ? localMediaCache.audios : new Set();
+            const res = resolveResumableChapterSession(sub, group, localPdfSet, localAudioSet);
+            if (!res.hasLectures || !res.lecture) {
+                cwAddPdfLectureFlow();
+                return;
+            }
+            cwOpenResourceInStudio(res.lecture.id, {
+                pageNum: res.pageNum > 1 ? res.pageNum : undefined,
+                audioSec: res.audioSec > 2 ? res.audioSec : undefined,
+                openAudioBar: res.audioSec > 2
+            });
+        }
+
+        function cwScheduleChapterSession() {
+            const sub = subjects.find(s => String(s.id) === String(activeSubjectId));
+            const group = sub && Array.isArray(sub.groups) ? sub.groups.find(g => String(g.id) === String(activeChapterWorkspaceGroupId)) : null;
+            if (!sub || !group) return;
+            const isEn = (window.currentExoLang || document.documentElement?.lang) !== 'ar';
+            if (typeof openAddSessionModal === 'function') {
+                openAddSessionModal(getCurrentDayIdx(), Math.min(22, Math.max(8, new Date().getHours() + 1)));
+                const subSel = document.getElementById('sessionSubjectSelect');
+                if (subSel) subSel.value = String(sub.id);
+                const titleIn = document.getElementById('sessionTitleInput');
+                if (titleIn) titleIn.value = isEn ? `Study: ${group.name}` : `مذاكرة: ${group.name}`;
+            }
+        }
+
+        function returnToChapterWorkspaceFromStudio() {
+            closePdfViewer();
+        }
+
+        function togglePdfChapterContextDrawer(forceOpen) {
+            const drawer = document.getElementById('pdfChapterContextDrawer');
+            const backdrop = document.getElementById('pdfChapterDrawerBackdrop');
+            const toggleBtn = document.getElementById('pdfChapterContextToggleBtn');
+            if (!drawer) return;
+            const next = typeof forceOpen === 'boolean' ? forceOpen : !drawer.classList.contains('open');
+            if (next && typeof togglePdfThumbnailsDrawer === 'function') {
+                togglePdfThumbnailsDrawer(false);
+            }
+            drawer.classList.toggle('open', next);
+            if (backdrop) backdrop.classList.toggle('open', next);
+            if (toggleBtn) toggleBtn.classList.toggle('active', next);
+            if (next) renderPdfChapterContextDrawer();
+        }
+
+        function renderPdfChapterContextDrawer() {
+            const body = document.getElementById('pdfChapterContextDrawerBody');
+            const kicker = document.getElementById('pdfCtxKicker');
+            const titleEl = document.getElementById('pdfCtxTitle');
+            const backBtn = document.getElementById('pdfBackToChapterBtn');
+            const backLbl = document.getElementById('pdfBackToChapterLabel');
+            const toggleBtn = document.getElementById('pdfChapterContextToggleBtn');
+
+            const isEn = (window.currentExoLang || document.documentElement?.lang) !== 'ar';
+            const ctxSub = currentViewingLec && currentViewingLec.sub;
+            const ctxGrp = currentViewingLec && currentViewingLec.group;
+            const ctxLec = currentViewingLec && currentViewingLec.lec;
+
+            if (!ctxSub || !ctxGrp) {
+                if (backBtn) backBtn.style.display = 'none';
+                if (toggleBtn) toggleBtn.style.display = 'none';
+                return;
+            }
+
+            if (backBtn) {
+                backBtn.style.display = cwStudioOpenedFromWorkspace ? 'inline-flex' : 'none';
+                backBtn.title = isEn ? 'Return to Chapter Workspace' : 'العودة لمساحة الفصل';
+            }
+            if (backLbl) backLbl.textContent = isEn ? 'Chapter' : 'الفصل';
+            if (toggleBtn) {
+                toggleBtn.style.display = 'inline-flex';
+                toggleBtn.title = isEn ? 'Chapter Context & Switcher' : 'سياق الفصل والتبديل السريع';
+            }
+            if (kicker) kicker.textContent = isEn ? 'CHAPTER CONTEXT' : 'سياق الفصل';
+            if (titleEl) titleEl.textContent = ctxGrp.name || '';
+            if (!body) return;
+
+            const snap = buildChapterContextSnapshot(ctxSub, ctxGrp, ctxLec, pageAnnotations, scheduleEvents);
+            const parts = [];
+
+            parts.push(`
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <button type="button" class="exo-library-primary-btn" style="width:100%; justify-content:center; min-height:40px; padding:7px 12px; font-size:0.8rem;" onclick="togglePdfChapterContextDrawer(false); ${cwStudioOpenedFromWorkspace ? 'returnToChapterWorkspaceFromStudio()' : `closePdfViewer(); openChapterWorkspace(${serializeCwIdArg(ctxGrp.id)});`}">
+                        <i class="fa-solid fa-layer-group"></i> ${isEn ? 'Open Chapter Workspace' : 'فتح مساحة الفصل'}
+                    </button>
+                </div>
+            `);
+
+            parts.push(`<div class="exo-studio-ctx-section">
+                <h5>${isEn ? `Chapter Materials (${snap.lectures.length})` : `محتوى الفصل (${snap.lectures.length})`}</h5>
+                ${snap.lectures.map((l, i) => {
+                    const isCur = ctxLec && String(l.id) === String(ctxLec.id);
+                    return `<button type="button" class="exo-studio-ctx-item ${isCur ? 'is-active' : ''}" onclick="togglePdfChapterContextDrawer(false); openLectureDocument(${serializeCwIdArg(ctxGrp.id)}, ${serializeCwIdArg(l.id)})">
+                        <span data-exo-no-i18n="1" dir="auto" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${i + 1}. ${escapeHtml(l.title)}</span>
+                        <span style="font-size:0.7rem; color:${isCur ? 'var(--sage-green)' : 'var(--text-muted)'};">${isCur ? (isEn ? 'Open' : 'مفتوح') : (l.completed ? '✓' : '→')}</span>
+                    </button>`;
+                }).join('')}
+            </div>`);
+
+            if (snap.recordings.length > 0) {
+                const curRecIdx = Math.max(0, Math.min(snap.recordings.length - 1, Number(ctxLec.activeRecordingIndex) || 0));
+                parts.push(`<div class="exo-studio-ctx-section">
+                    <h5>${isEn ? `Audio Recordings (${snap.recordings.length})` : `التسجيلات الصوتية (${snap.recordings.length})`}</h5>
+                    ${snap.recordings.map((r, ri) => `
+                        <button type="button" class="exo-studio-ctx-item ${ri === curRecIdx ? 'is-active' : ''}" onclick="switchLectureRecording(${serializeCwIdArg(r.id)}); togglePdfChapterContextDrawer(false);">
+                            <span data-exo-no-i18n="1" dir="auto" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><i class="fa-solid fa-headphones" style="color:var(--muted-blue);"></i> ${escapeHtml(r.name || r.fileName || '')}</span>
+                            <span style="font-size:0.7rem; color:var(--text-muted);">${ri === curRecIdx ? (isEn ? 'Active' : 'نشط') : (isEn ? 'Play' : 'تشغيل')}</span>
+                        </button>
+                    `).join('')}
+                </div>`);
+            }
+
+            if (snap.bookmarkedSlides.length > 0 || snap.extraNotePages.length > 0 || snap.blankPages.length > 0) {
+                parts.push(`<div class="exo-studio-ctx-section">
+                    <h5>${isEn ? 'Bookmarks & Notes' : 'العلامات والملاحظات'}</h5>
+                    ${snap.bookmarkedSlides.map(p => `
+                        <button type="button" class="exo-studio-ctx-item" onclick="goToPdfPage(${Number(p)}); togglePdfChapterContextDrawer(false);">
+                            <span><i class="fa-solid fa-star" style="color:var(--warm-gold);"></i> ${isEn ? `Bookmarked Slide ${p}` : `سلايد مميز ${p}`}</span>
+                            <span>↵</span>
+                        </button>
+                    `).join('')}
+                    ${snap.extraNotePages.map(p => `
+                        <button type="button" class="exo-studio-ctx-item" onclick="cwJumpToExtraNoteInOpenStudio(${Number(p)}); togglePdfChapterContextDrawer(false);">
+                            <span><i class="fa-solid fa-note-sticky" style="color:var(--sage-green);"></i> ${isEn ? `Summary Sheet · Slide ${p}` : `ورقة تلخيص · سلايد ${p}`}</span>
+                            <span>↵</span>
+                        </button>
+                    `).join('')}
+                    ${snap.blankPages.map((cp, ci) => `
+                        <button type="button" class="exo-studio-ctx-item" onclick="cwJumpToBlankPageInOpenStudio(${serializeCwIdArg(cp.id)}); togglePdfChapterContextDrawer(false);">
+                            <span data-exo-no-i18n="1" dir="auto"><i class="fa-solid fa-file-pen" style="color:var(--sage-green);"></i> ${escapeHtml(cp.title || `Sheet ${ci + 1}`)}</span>
+                            <span>↵</span>
+                        </button>
+                    `).join('')}
+                </div>`);
+            }
+
+            if (snap.audioPins.length > 0) {
+                parts.push(`<div class="exo-studio-ctx-section">
+                    <h5>${isEn ? `Audio Timestamp Pins (${snap.audioPins.length})` : `دبابيس الصوت (${snap.audioPins.length})`}</h5>
+                    ${snap.audioPins.map(pin => `
+                        <button type="button" class="exo-studio-ctx-item" onclick="jumpToAudioPin(${Number(pin.timeSec) || 0}, ${Number(pin.page) || 1}); togglePdfChapterContextDrawer(false);">
+                            <span data-exo-no-i18n="1" dir="auto" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><i class="fa-solid fa-thumbtack" style="color:var(--muted-blue);"></i> ${escapeHtml(pin.note || (isEn ? `Slide ${pin.page || 1}` : `سلايد ${pin.page || 1}`))}</span>
+                            <span style="font-variant-numeric:tabular-nums; color:var(--muted-blue);">${formatCwTimeSeconds(pin.timeSec)}</span>
+                        </button>
+                    `).join('')}
+                </div>`);
+            }
+
+            if (snap.chapterSessions.length > 0) {
+                parts.push(`<div class="exo-studio-ctx-section">
+                    <h5>${isEn ? `Planned Sessions (${snap.chapterSessions.length})` : `جلسات الجدول (${snap.chapterSessions.length})`}</h5>
+                    ${snap.chapterSessions.slice(0, 5).map(ev => `
+                        <div class="exo-studio-ctx-item" style="cursor:default;">
+                            <span data-exo-no-i18n="1" dir="auto" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(ev.title)}</span>
+                            <span style="font-size:0.7rem; color:${ev.completed ? 'var(--sage-green)' : 'var(--warm-gold)'};">${ev.completed ? (isEn ? 'Done' : 'مكتمل') : `${ev.duration}h`}</span>
+                        </div>
+                    `).join('')}
+                </div>`);
+            }
+
+            body.innerHTML = parts.join('');
+        }
+
+        function cwJumpToExtraNoteInOpenStudio(pageNum) {
+            const p = Math.max(1, Number(pageNum) || 1);
+            if (typeof goToPdfPage === 'function') goToPdfPage(p, false);
+            const sheet = document.getElementById(`pdfExtraNoteWrapper_${p}`);
+            if (sheet) {
+                if (sheet.style.display === 'none' && typeof toggleExtraNoteForPage === 'function') {
+                    toggleExtraNoteForPage(p);
+                } else {
+                    sheet.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }
+
+        function cwJumpToBlankPageInOpenStudio(pageId) {
+            const wrapper = document.getElementById(`pdfCustomPageWrapper_${pageId}`);
+            if (wrapper) {
+                wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function updateWp63ChapterWorkspaceLabels(targetLang) {
+            const isEn = (targetLang || window.currentExoLang || document.documentElement?.lang) !== 'ar';
+            const backBtn = document.getElementById('pdfBackToChapterBtn');
+            const backLbl = document.getElementById('pdfBackToChapterLabel');
+            const ctxBtn = document.getElementById('pdfChapterContextToggleBtn');
+            if (backBtn) backBtn.title = isEn ? 'Return to Chapter Workspace' : 'العودة لمساحة الفصل';
+            if (backLbl) backLbl.textContent = isEn ? 'Chapter' : 'الفصل';
+            if (ctxBtn) ctxBtn.title = isEn ? 'Chapter Context & Switcher' : 'سياق الفصل والتبديل السريع';
+            const cwView = document.getElementById('chapter-workspace-view');
+            if (cwView && cwView.style.display !== 'none' && activeChapterWorkspaceGroupId) {
+                renderChapterWorkspace(true);
+            }
+            const ctxDrawer = document.getElementById('pdfChapterContextDrawer');
+            if (ctxDrawer && ctxDrawer.classList.contains('open')) {
+                renderPdfChapterContextDrawer();
+            }
+        }
+
+        function renderChapterWorkspace(skipPreload = false) {
+            const cwView = document.getElementById('chapter-workspace-view');
+            const headerEl = document.getElementById('cwHeader');
+            const setupEl = document.getElementById('cwFirstEntrySetup');
+            const tabsEl = document.getElementById('cwTabsRow');
+            const bodyEl = document.getElementById('cwBody');
+            if (!cwView || !headerEl || !tabsEl || !bodyEl) return;
+
+            const sub = subjects.find(s => String(s.id) === String(activeSubjectId));
+            if (!sub || !Array.isArray(sub.groups)) {
+                closeChapterWorkspace();
+                return;
+            }
+            const grpIdx = sub.groups.findIndex(g => String(g.id) === String(activeChapterWorkspaceGroupId));
+            if (grpIdx < 0) {
+                closeChapterWorkspace();
+                return;
+            }
+            const group = sub.groups[grpIdx];
+            if (!skipPreload) {
+                preloadChapterWorkspaceAnnotations(group, group.id);
+            }
+
+            const isEn = (window.currentExoLang || document.documentElement?.lang) !== 'ar';
+            const localPdfSet = (typeof localMediaCache !== 'undefined' && localMediaCache.pdfs) ? localMediaCache.pdfs : new Set();
+            const localAudioSet = (typeof localMediaCache !== 'undefined' && localMediaCache.audios) ? localMediaCache.audios : new Set();
+            const annByLecMap = getChapterCachedAnnotationsMap(group);
+            const srFn = typeof getSpacedRepetitionInfo === 'function' ? getSpacedRepetitionInfo : null;
+
+            const summary = buildChapterWorkspaceSummary(sub, group, grpIdx, scheduleEvents, annByLecMap, srFn);
+            const resume = resolveResumableChapterSession(sub, group, localPdfSet, localAudioSet);
+            const allResources = buildUnifiedChapterResources(sub, group, localPdfSet, localAudioSet, annByLecMap);
+            const audioItems = allResources.filter(r => r.kind === 'audio');
+            const noteItems = allResources.filter(r => r.kind === 'note');
+
+            // 1. Header & Breadcrumb
+            const chapterOptionsHtml = sub.groups.map((g, i) => {
+                const numLbl = formatChapterIndexNumber(i);
+                const selected = String(g.id) === String(group.id) ? 'selected' : '';
+                return `<option value="${escapeHtml(String(g.id))}" ${selected}>${numLbl} · ${escapeHtml(g.name)}</option>`;
+            }).join('');
+
+            headerEl.innerHTML = `
+                <div class="exo-cw-breadcrumbs">
+                    <button type="button" class="exo-cw-crumb-btn" id="cwBackToLibraryBtn" onclick="backToSubjects()">
+                        <i class="fa-solid fa-book-bookmark"></i> ${isEn ? 'Library' : 'المكتبة'}
+                    </button>
+                    <span aria-hidden="true">/</span>
+                    <button type="button" class="exo-cw-crumb-btn" id="cwBackToSubjectBtn" onclick="closeChapterWorkspace()">
+                        <i class="fa-solid fa-arrow-right exo-rtl-flip"></i> <span data-exo-no-i18n="1" dir="auto">${escapeHtml(sub.name)}</span>
+                    </button>
+                    <span aria-hidden="true">/</span>
+                    <span class="exo-lec-status-tag is-sage">${isEn ? `Chapter ${summary.chapterIndexLabel}` : `فصل ${summary.chapterIndexLabel}`}</span>
+                </div>
+                <div class="exo-cw-header-main">
+                    <div class="exo-cw-title-block">
+                        <div class="exo-cw-title-row">
+                            <span class="exo-toc-chapter-num">${summary.chapterIndexLabel}</span>
+                            <h2 class="exo-editorial" id="cwActiveChapterTitle" data-exo-no-i18n="1" dir="auto">${escapeHtml(group.name)}</h2>
+                            <button type="button" class="icon-btn edit" style="width:36px; height:36px;" onclick="triggerEditGroup(${serializeCwIdArg(group.id)})" title="${isEn ? 'Rename chapter' : 'تعديل اسم الفصل'}" aria-label="${isEn ? 'Rename chapter' : 'تعديل اسم الفصل'}"><i class="fa-solid fa-pen"></i></button>
+                        </div>
+                        <div class="exo-cw-meta-row" id="cwHeaderMetaRow">
+                            <span>${isEn ? `${summary.doneLectures}/${summary.totalLectures} lectures done (${summary.pct}%)` : `${summary.doneLectures}/${summary.totalLectures} محاضرة مكتملة (${summary.pct}%)`}</span>
+                            <span aria-hidden="true">·</span>
+                            <span>${isEn ? `${summary.pdfCount + summary.linkCount} docs · ${summary.recordingCount} recordings · ${summary.totalNotesAssets} notes/pins` : `${summary.pdfCount + summary.linkCount} ملف · ${summary.recordingCount} تسجيل · ${summary.totalNotesAssets} ملاحظات/دبابيس`}</span>
+                        </div>
+                    </div>
+                    <div class="exo-cw-header-actions">
+                        <select class="exo-cw-chapter-select" id="cwChapterSwitcherSelect" aria-label="${isEn ? 'Switch chapter' : 'تبديل الفصل'}" onchange="switchWorkspaceChapterSelection(this.value)">
+                            ${chapterOptionsHtml}
+                        </select>
+                        <div class="exo-cw-add-wrap">
+                            <button type="button" class="btn btn-outline" id="cwAddResourceBtn" onclick="toggleChapterWorkspaceAddMenu()" style="min-height:44px; padding:8px 14px; font-weight:700;">
+                                <i class="fa-solid fa-plus"></i> ${isEn ? 'Add Resource' : 'إضافة مورد'}
+                            </button>
+                            <div class="exo-cw-add-menu" id="cwAddResourceMenu">
+                                <button type="button" class="exo-cw-add-menu-item" id="cwAddPdfMenuBtn" onclick="cwAddPdfLectureFlow()">
+                                    <i class="fa-solid fa-file-pdf" style="color:var(--terracotta);"></i> ${isEn ? 'New Lecture / Local PDF' : 'محاضرة جديدة / ملف PDF'}
+                                </button>
+                                <button type="button" class="exo-cw-add-menu-item" id="cwAddAudioMenuBtn" onclick="cwAddAudioRecordingFlow()">
+                                    <i class="fa-solid fa-headphones" style="color:var(--muted-blue);"></i> ${isEn ? 'Attach Audio Recording' : 'إضافة تسجيل صوتي'}
+                                </button>
+                                <button type="button" class="exo-cw-add-menu-item" id="cwAddLinkMenuBtn" onclick="cwAddWebLinkFlow()">
+                                    <i class="fa-solid fa-link" style="color:var(--sage-green);"></i> ${isEn ? 'Add Web / Drive Link' : 'إضافة رابط أو مرجع ويب'}
+                                </button>
+                                <button type="button" class="exo-cw-add-menu-item" id="cwAddSessionMenuBtn" onclick="toggleChapterWorkspaceAddMenu(false); cwScheduleChapterSession();">
+                                    <i class="fa-solid fa-calendar-plus" style="color:var(--warm-gold);"></i> ${isEn ? 'Schedule Chapter Session' : 'جدولة جلسة للفصل'}
+                                </button>
+                            </div>
+                        </div>
+                        <button type="button" class="exo-library-primary-btn" id="cwOpenStudioPrimaryBtn" onclick="resumeChapterLastSession()">
+                            <i class="fa-solid fa-book-open-reader"></i> ${isEn ? (resume.hasResumeState ? 'Resume in Studio' : 'Open Study Studio') : (resume.hasResumeState ? 'استئناف المذاكرة' : 'فتح استوديو المذاكرة')}
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // 2. Skippable First-Entry Resource Setup (only when empty and not dismissed)
+            const isSetupVisible = summary.totalLectures === 0 && !cwSetupDismissedByGroup[String(group.id)];
+            if (setupEl) {
+                if (isSetupVisible) {
+                    setupEl.style.display = 'block';
+                    setupEl.innerHTML = `
+                        <div class="exo-cw-setup-card" id="cwFirstEntrySetupCard">
+                            <div class="exo-cw-setup-head">
+                                <div>
+                                    <span class="exo-lec-status-tag is-sage" style="margin-bottom:6px;">${isEn ? 'FIRST-ENTRY CHAPTER SETUP · OPTIONAL' : 'إعداد سريع للفصل · اختياري'}</span>
+                                    <h3 class="exo-editorial" style="margin:4px 0; color:var(--warm-paper); font-size:1.22rem;">${isEn ? `Prepare materials for "${escapeHtml(group.name)}"` : `جهّز موارد الفصل «${escapeHtml(group.name)}»`}</h3>
+                                    <p style="margin:0; font-size:0.84rem; color:var(--text-muted); line-height:1.55;">
+                                        ${isEn
+                                            ? 'Attach PDFs, audio recordings, or reference links now — or skip directly into the workspace and add resources anytime.'
+                                            : 'أضف ملفات PDF أو تسجيلات صوتية أو روابط مرجعية الآن، أو تخطّ هذه الخطوة للدخول مباشرة لمساحة الفصل.'}
+                                    </p>
+                                </div>
+                                <button type="button" class="btn btn-outline" id="cwSkipSetupBtn" onclick="dismissChapterSetupPrompt(${serializeCwIdArg(group.id)})" style="min-height:42px;">
+                                    <i class="fa-solid fa-forward"></i> ${isEn ? 'Skip for Now' : 'تخطي والدخول للمساحة'}
+                                </button>
+                            </div>
+                            <div class="exo-cw-setup-actions">
+                                <button type="button" class="exo-cw-setup-tile" onclick="cwAddPdfLectureFlow()">
+                                    <i class="fa-solid fa-file-pdf" style="color:var(--terracotta); font-size:1.2rem;"></i>
+                                    <div>
+                                        <div style="font-weight:700; font-size:0.88rem;">${isEn ? 'Attach Lecture PDF' : 'إضافة محاضرة وPDF'}</div>
+                                        <div style="font-size:0.75rem; color:var(--text-muted);">${isEn ? 'Cached locally in IndexedDB' : 'حفظ محلي فوري بدون حدود'}</div>
+                                    </div>
+                                </button>
+                                <button type="button" class="exo-cw-setup-tile" onclick="cwAddAudioRecordingFlow()">
+                                    <i class="fa-solid fa-headphones" style="color:var(--muted-blue); font-size:1.2rem;"></i>
+                                    <div>
+                                        <div style="font-weight:700; font-size:0.88rem;">${isEn ? 'Attach Audio Recording' : 'إضافة تسجيل صوتي'}</div>
+                                        <div style="font-size:0.75rem; color:var(--text-muted);">${isEn ? 'Listen & pin moments to slides' : 'تشغيل وربط دبابيس بالسلايدات'}</div>
+                                    </div>
+                                </button>
+                                <button type="button" class="exo-cw-setup-tile" onclick="cwAddWebLinkFlow()">
+                                    <i class="fa-solid fa-link" style="color:var(--sage-green); font-size:1.2rem;"></i>
+                                    <div>
+                                        <div style="font-weight:700; font-size:0.88rem;">${isEn ? 'Add Web / Drive Link' : 'إضافة رابط ويب أو Drive'}</div>
+                                        <div style="font-size:0.75rem; color:var(--text-muted);">${isEn ? 'Reference URL or cloud file' : 'مرجع خارجي أو ملف سحابي'}</div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    setupEl.style.display = 'none';
+                    setupEl.innerHTML = '';
+                }
+            }
+
+            // 3. Tabs Row
+            const tabsMeta = [
+                { id: 'overview', icon: 'fa-compass', lbl: isEn ? 'Overview' : 'نظرة عامة', count: summary.totalLectures },
+                { id: 'resources', icon: 'fa-folder-open', lbl: isEn ? 'Resources' : 'الموارد', count: allResources.length },
+                { id: 'audio', icon: 'fa-headphones', lbl: isEn ? 'Audio & Pins' : 'الصوتيات والدبابيس', count: audioItems.length + summary.audioPinCount },
+                { id: 'notes', icon: 'fa-pen-nib', lbl: isEn ? 'Notes & Sheets' : 'الملاحظات والأوراق', count: noteItems.length }
+            ];
+            tabsEl.innerHTML = tabsMeta.map(t => `
+                <button type="button" role="tab" aria-selected="${activeChapterWorkspaceTab === t.id ? 'true' : 'false'}" class="exo-cw-tab-btn ${activeChapterWorkspaceTab === t.id ? 'active' : ''}" id="cwTabBtn_${t.id}" onclick="switchChapterWorkspaceTab('${t.id}')">
+                    <i class="fa-solid ${t.icon}"></i>
+                    <span>${t.lbl}</span>
+                    <span class="exo-cw-tab-count">${t.count}</span>
+                </button>
+            `).join('');
+
+            // 4. Active Tab Body
+            if (activeChapterWorkspaceTab === 'overview') {
+                const resumeCardHtml = !resume.hasLectures ? `
+                    <div class="exo-cw-card exo-cw-card-resume">
+                        <h3 class="exo-cw-card-title"><span><i class="fa-solid fa-book-open" style="color:var(--sage-green);"></i> ${isEn ? 'Chapter Workspace Ready' : 'مساحة الفصل جاهزة'}</span></h3>
+                        <p style="margin:0; font-size:0.85rem; color:var(--text-muted); line-height:1.6;">
+                            ${isEn
+                                ? 'This chapter has no lectures yet. Add a PDF, audio recording, or web link whenever you are ready.'
+                                : 'لا توجد محاضرات في هذا الفصل بعد. أضف ملف PDF أو تسجيلاً صوتياً أو رابطاً في أي وقت.'}
+                        </p>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button type="button" class="exo-library-primary-btn" onclick="cwAddPdfLectureFlow()"><i class="fa-solid fa-plus"></i> ${isEn ? 'Add Lecture' : 'إضافة محاضرة'}</button>
+                            <button type="button" class="btn btn-outline" onclick="cwAddAudioRecordingFlow()"><i class="fa-solid fa-headphones"></i> ${isEn ? 'Add Recording' : 'إضافة تسجيل'}</button>
+                        </div>
+                    </div>
+                ` : (() => {
+                    const lec = resume.lecture;
+                    const pdfBadge = resume.pdfStatus === 'local' || resume.pdfStatus === 'local_ref'
+                        ? `<span class="exo-lec-status-tag is-sage">${isEn ? 'PDF Local Ready' : 'PDF محلي جاهز'}</span>`
+                        : resume.pdfStatus === 'cloud_pending'
+                        ? `<span class="exo-lec-status-tag is-blue">${isEn ? 'Cloud PDF (Downloads in Studio)' : 'PDF سحابي (يُحمّل في الاستوديو)'}</span>`
+                        : resume.pdfStatus === 'web_link'
+                        ? `<span class="exo-lec-status-tag is-gold">${isEn ? 'External Link' : 'رابط خارجي'}</span>`
+                        : `<span class="exo-lec-status-tag is-terracotta">${isEn ? 'No PDF Attached' : 'بدون ملف PDF'}</span>`;
+
+                    const pageInfo = resume.pageNum > 1
+                        ? (isEn ? `Saved slide ${resume.pageNum}${resume.totalPages ? '/' + resume.totalPages : ''}` : `الصفحة المحفوظة ${resume.pageNum}${resume.totalPages ? '/' + resume.totalPages : ''}`)
+                        : (isEn ? 'Starts from Slide 1' : 'يبدأ من الشريحة 1');
+                    const audioInfo = resume.audioSec > 2
+                        ? (isEn ? ` · Audio at ${formatCwTimeSeconds(resume.audioSec)}` : ` · الصوت عند ${formatCwTimeSeconds(resume.audioSec)}`)
+                        : '';
+
+                    return `
+                        <div class="exo-cw-card exo-cw-card-resume" id="cwResumeCard">
+                            <h3 class="exo-cw-card-title">
+                                <span><i class="fa-solid fa-bookmark" style="color:var(--sage-green);"></i> ${isEn ? (resume.hasResumeState ? 'Resume Last Study State' : 'Recommended Next Item') : (resume.hasResumeState ? 'استكمال آخر موضع دراسة' : 'المحاضرة التالية المقترحة')}</span>
+                                ${pdfBadge}
+                            </h3>
+                            <div style="font-size:1.05rem; font-weight:700; color:var(--warm-paper);" data-exo-no-i18n="1" dir="auto">${escapeHtml(lec.title)}</div>
+                            <div style="font-size:0.83rem; color:var(--text-muted); font-variant-numeric:tabular-nums;">${pageInfo}${audioInfo}</div>
+                            <div class="exo-cw-truth-note" id="cwPartialRestoreNotice" style="display:flex; align-items:flex-start; gap:9px;">
+                                <i class="fa-solid fa-circle-info" style="color:var(--muted-blue); margin-top:3px; flex-shrink:0;"></i>
+                                <span>${isEn
+                                    ? 'Restores saved slide bookmark, audio position, ink strokes, and extra summary sheets. Viewport zoom and active drawing tool start cleanly in default fit/pan mode.'
+                                    : 'يسترجع آخر صفحة محفوظة وموضع الصوت والكتابة اليدوية وأوراق التلخيص، بينما يبدأ مستوى التكبير وأداة القلم بالوضع الافتراضي الآمن.'}</span>
+                            </div>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button type="button" class="exo-library-primary-btn" id="cwResumeActionBtn" onclick="resumeChapterLastSession()">
+                                    <i class="fa-solid fa-play"></i> ${isEn ? (resume.hasResumeState ? 'Resume in Study Studio' : 'Open in Study Studio') : (resume.hasResumeState ? 'استئناف في الاستوديو' : 'فتح في الاستوديو')}
+                                </button>
+                                <button type="button" class="btn btn-outline" onclick="switchChapterWorkspaceTab('resources')">
+                                    <i class="fa-solid fa-list"></i> ${isEn ? `View All Resources (${allResources.length})` : `عرض كل الموارد (${allResources.length})`}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                })();
+
+                const mixCardHtml = `
+                    <div class="exo-cw-card exo-cw-card-mix">
+                        <h3 class="exo-cw-card-title">
+                            <span><i class="fa-solid fa-cubes" style="color:var(--warm-gold);"></i> ${isEn ? 'Material Summary' : 'ملخص محتوى الفصل'}</span>
+                            <span style="font-size:0.78rem; color:var(--sage-green); font-variant-numeric:tabular-nums;">${summary.pct}%</span>
+                        </h3>
+                        <div class="exo-cw-stat-grid">
+                            <div class="exo-cw-stat-cell">
+                                <div class="exo-cw-stat-val">${summary.pdfCount + summary.linkCount}</div>
+                                <div class="exo-cw-stat-lbl">${isEn ? 'Documents & Links' : 'مستندات وروابط'}</div>
+                            </div>
+                            <div class="exo-cw-stat-cell">
+                                <div class="exo-cw-stat-val">${summary.recordingCount}</div>
+                                <div class="exo-cw-stat-lbl">${isEn ? 'Audio Recordings' : 'تسجيلات صوتية'}</div>
+                            </div>
+                            <div class="exo-cw-stat-cell">
+                                <div class="exo-cw-stat-val">${summary.blankPageCount + summary.extraSheetCount}</div>
+                                <div class="exo-cw-stat-lbl">${isEn ? 'Blank & Summary Sheets' : 'أوراق تلخيص وصفحات'}</div>
+                            </div>
+                            <div class="exo-cw-stat-cell">
+                                <div class="exo-cw-stat-val">${summary.bookmarkedSlideCount + summary.audioPinCount}</div>
+                                <div class="exo-cw-stat-lbl">${isEn ? 'Bookmarks & Audio Pins' : 'علامات ودبابيس صوت'}</div>
+                            </div>
+                        </div>
+                        ${summary.reviewDueCount > 0 ? `<div class="exo-lec-status-tag is-terracotta"><i class="fa-solid fa-rotate"></i> ${isEn ? `${summary.reviewDueCount} lecture(s) due for spaced review` : `${summary.reviewDueCount} محاضرة مستحقة للمراجعة`}</div>` : ''}
+                    </div>
+                `;
+
+                const ctxSnap = buildChapterContextSnapshot(sub, group, null, {}, scheduleEvents);
+                const scheduleCardHtml = `
+                    <div class="exo-cw-card exo-cw-card-schedule">
+                        <h3 class="exo-cw-card-title">
+                            <span><i class="fa-solid fa-calendar-check" style="color:var(--muted-blue);"></i> ${isEn ? 'Linked Schedule & Exam Context' : 'الجلسات المجدولة وسياق الامتحان'}</span>
+                            <button type="button" class="btn btn-outline" style="padding:5px 10px; font-size:0.76rem; min-height:36px;" onclick="cwScheduleChapterSession()">
+                                <i class="fa-solid fa-plus"></i> ${isEn ? 'Schedule Session' : 'جدولة جلسة'}
+                            </button>
+                        </h3>
+                        ${summary.examOverlapIds.length > 0 ? `
+                            <div class="exo-toc-exam-banner" style="margin-bottom:4px; padding:10px 12px;">
+                                <span class="exo-lec-status-tag is-terracotta">${isEn ? `${summary.examOverlapIds.length} lecture(s) in Exam Radar scope` : `${summary.examOverlapIds.length} محاضرة ضمن نطاق الامتحان`}</span>
+                                <button type="button" class="btn btn-danger" style="padding:6px 11px; font-size:0.78rem;" onclick="openMergedSubjectLecturesStudio(${JSON.stringify(summary.examOverlapIds)}, ${serializeCwIdArg(sub.id)})">
+                                    <i class="fa-solid fa-bolt"></i> ${isEn ? 'Study Chapter Exam Scope' : 'مراجعة محاضرات الامتحان'}
+                                </button>
+                            </div>
+                        ` : ''}
+                        ${ctxSnap.chapterSessions.length === 0 ? `
+                            <p style="margin:0; font-size:0.83rem; color:var(--text-muted);">${isEn ? 'No planner sessions explicitly linked to this chapter yet.' : 'لا توجد جلسات مجدولة مرتبطة بهذا الفصل حالياً.'}</p>
+                        ` : ctxSnap.chapterSessions.map(ev => `
+                            <div class="exo-cont-log-row">
+                                <span data-exo-no-i18n="1" dir="auto" style="font-weight:700; font-size:0.84rem; color:var(--warm-paper);">${escapeHtml(ev.title)}</span>
+                                <span class="exo-lec-status-tag ${ev.completed ? 'is-sage' : 'is-gold'}">${ev.duration}h · ${ev.completed ? (isEn ? 'Done' : 'مكتمل') : (isEn ? 'Planned' : 'مجدول')}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+
+                const honestBoundaryHtml = `
+                    <div class="exo-cw-card exo-cw-card-honest">
+                        <h3 class="exo-cw-card-title"><span><i class="fa-solid fa-shield-halved" style="color:var(--sage-green);"></i> ${isEn ? 'Supported Formats & Sync Scope' : 'الصيغ المدعومة وحدود الحفظ'}</span></h3>
+                        <div class="exo-cw-truth-note" id="cwHonestFormatNotice">
+                            ${isEn
+                                ? 'Live persisted chapter formats today: Local/Cloud PDFs, Audio recordings, Web/Drive URLs, Ink & Text annotations, Blank Note Pages, 1 Extra Summary Sheet per slide, Bookmarks, and Audio Pins. Cross-chapter Collections and multiple Extra Note Sheets per slide remain staged in reviewed technical proposals awaiting schema approval.'
+                                : 'الصيغ المحفوظة فعلياً الآن: ملفات PDF (محلي/سحابي)، التسجيلات الصوتية، روابط الويب، الكتابة اليدوية والنصية، الصفحات الفارغة، ورقة تلخيص واحدة لكل سلايد، العلامات، ودبابيس الصوت. المجموعات المختلطة وتعدد أوراق التلخيص بانتظار اعتماد تعديل المخطط.'}
+                        </div>
+                    </div>
+                `;
+
+                bodyEl.innerHTML = `<div class="exo-cw-grid">${resumeCardHtml}${mixCardHtml}${scheduleCardHtml}${honestBoundaryHtml}</div>`;
+                return;
+            }
+
+            if (activeChapterWorkspaceTab === 'resources') {
+                const visibleResources = filterAndSortChapterResources(allResources, cwSearchQuery, cwResourceFilter, cwResourceSort);
+                bodyEl.innerHTML = `
+                    <div class="exo-cw-resource-toolbar">
+                        <input type="text" id="cwResourceSearchInput" value="${escapeHtml(cwSearchQuery)}" placeholder="${isEn ? 'Search chapter resources...' : 'ابحث في موارد الفصل...'}" aria-label="${isEn ? 'Search chapter resources' : 'بحث في موارد الفصل'}" style="flex:1 1 200px; min-width:170px;" oninput="cwSearchQuery = this.value; renderChapterWorkspace(true);">
+                        <select id="cwResourceFilterSelect" aria-label="${isEn ? 'Filter resource type' : 'تصفية نوع المورد'}" onchange="cwResourceFilter = this.value; renderChapterWorkspace(true);">
+                            <option value="all" ${cwResourceFilter === 'all' ? 'selected' : ''}>${isEn ? 'All Resources' : 'كل الموارد'}</option>
+                            <option value="pdf" ${cwResourceFilter === 'pdf' ? 'selected' : ''}>${isEn ? 'PDFs & Web Links' : 'ملفات PDF والروابط'}</option>
+                            <option value="audio" ${cwResourceFilter === 'audio' ? 'selected' : ''}>${isEn ? 'Audio Recordings' : 'التسجيلات الصوتية'}</option>
+                            <option value="note" ${cwResourceFilter === 'note' ? 'selected' : ''}>${isEn ? 'Notes, Sheets & Pins' : 'الملاحظات والدبابيس'}</option>
+                            <option value="needs_action" ${cwResourceFilter === 'needs_action' ? 'selected' : ''}>${isEn ? 'Needs File / Cloud Download' : 'يحتاج ملفاً أو تنزيلاً'}</option>
+                        </select>
+                        <select id="cwResourceSortSelect" aria-label="${isEn ? 'Sort resources' : 'ترتيب الموارد'}" onchange="cwResourceSort = this.value; renderChapterWorkspace(true);">
+                            <option value="order" ${cwResourceSort === 'order' ? 'selected' : ''}>${isEn ? 'Chapter Order' : 'ترتيب الفصل'}</option>
+                            <option value="incomplete" ${cwResourceSort === 'incomplete' ? 'selected' : ''}>${isEn ? 'Incomplete First' : 'غير المكتمل أولاً'}</option>
+                            <option value="notes_first" ${cwResourceSort === 'notes_first' ? 'selected' : ''}>${isEn ? 'Notes & Audio First' : 'الملاحظات والصوت أولاً'}</option>
+                            <option value="title" ${cwResourceSort === 'title' ? 'selected' : ''}>${isEn ? 'Title A-Z' : 'أبجدي'}</option>
+                        </select>
+                    </div>
+                    <div class="exo-cw-resource-list" id="cwResourcesList">
+                        ${visibleResources.length === 0 ? `
+                            <div class="exo-empty-bookshelf" style="padding:26px;">
+                                <div class="exo-empty-bookshelf-icon"><i class="fa-solid fa-folder-open"></i></div>
+                                <h3 class="exo-editorial">${isEn ? 'No chapter resources match' : 'لا توجد موارد مطابقة'}</h3>
+                                <p>${isEn ? 'Add a PDF lecture, audio recording, or web link, or reset active filters.' : 'أضف محاضرة PDF أو تسجيلاً صوتياً أو رابطاً، أو أعِد ضبط الفلاتر.'}</p>
+                            </div>
+                        ` : visibleResources.map(item => renderCwResourceRowHtml(item, group, isEn)).join('')}
+                    </div>
+                `;
+                return;
+            }
+
+            if (activeChapterWorkspaceTab === 'audio') {
+                const pins = noteItems.filter(n => n.subKind === 'audio_pin');
+                bodyEl.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+                        <span style="font-size:0.86rem; color:var(--text-muted);">${isEn ? `${audioItems.length} recording(s) and ${pins.length} timestamped pin(s) in this chapter` : `${audioItems.length} تسجيل صوتي و ${pins.length} دبوس لحظة في هذا الفصل`}</span>
+                        <button type="button" class="exo-library-primary-btn" id="cwAddAudioBtnTab" onclick="cwAddAudioRecordingFlow()"><i class="fa-solid fa-plus"></i> ${isEn ? 'Add Audio Recording' : 'إضافة تسجيل صوتي'}</button>
+                    </div>
+                    <div class="exo-cw-resource-list">
+                        ${audioItems.length === 0 && pins.length === 0 ? `
+                            <div class="exo-empty-bookshelf" style="padding:26px;">
+                                <div class="exo-empty-bookshelf-icon"><i class="fa-solid fa-headphones"></i></div>
+                                <h3 class="exo-editorial">${isEn ? 'No recordings in this chapter yet' : 'لا توجد تسجيلات صوتية في هذا الفصل بعد'}</h3>
+                                <p>${isEn ? 'Attach primary or supplementary recordings directly here, then pin audio moments to PDF slides in Study Studio.' : 'أضف التسجيل الرئيسي أو تسجيلات السكشن والمراجعة هنا، وثبّت لحظات الصوت على السلايدات في الاستوديو.'}</p>
+                            </div>
+                        ` : [
+                            ...audioItems.map(item => renderCwResourceRowHtml(item, group, isEn)),
+                            ...pins.map(item => renderCwResourceRowHtml(item, group, isEn))
+                        ].join('')}
+                    </div>
+                `;
+                return;
+            }
+
+            // Notes & Sheets Tab
+            bodyEl.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+                    <span style="font-size:0.86rem; color:var(--text-muted);">${isEn ? `${noteItems.length} note sheet(s), blank page(s), bookmark(s), and audio pin(s)` : `${noteItems.length} عنصر من الأوراق والصفحات والعلامات والدبابيس`}</span>
+                    <button type="button" class="btn btn-outline" onclick="resumeChapterLastSession()"><i class="fa-solid fa-pen-nib"></i> ${isEn ? 'Open Studio to Annotate' : 'فتح الاستوديو للكتابة والتلخيص'}</button>
+                </div>
+                <div class="exo-cw-resource-list">
+                    ${noteItems.length === 0 ? `
+                        <div class="exo-empty-bookshelf" style="padding:26px;">
+                            <div class="exo-empty-bookshelf-icon"><i class="fa-solid fa-note-sticky"></i></div>
+                            <h3 class="exo-editorial">${isEn ? 'No notes, sheets, or bookmarks yet' : 'لا توجد ملاحظات أو أوراق تلخيص بعد'}</h3>
+                            <p>${isEn ? 'Bookmarks, Blank Note Pages, Extra Summary Sheets, and Audio Pins created in Study Studio automatically index here.' : 'السلايدات المميزة، والصفحات الفارغة، وأوراق التلخيص، ودبابيس الصوت المنشأة في الاستوديو ستظهر مفهرسة هنا تلقائياً.'}</p>
+                        </div>
+                    ` : noteItems.map(item => renderCwResourceRowHtml(item, group, isEn)).join('')}
+                </div>
+            `;
+        }
+
+        function renderCwResourceRowHtml(item, group, isEn) {
+            const rowClass = item.kind === 'audio' ? 'is-audio' : (item.kind === 'note' ? 'is-note' : (item.completed ? 'is-done' : 'is-pdf'));
+            const iconClass = item.kind === 'audio'
+                ? 'fa-headphones'
+                : (item.kind === 'link' ? 'fa-link' : (item.subKind === 'bookmark' ? 'fa-star' : (item.subKind === 'audio_pin' ? 'fa-thumbtack' : (item.kind === 'note' ? 'fa-note-sticky' : 'fa-file-pdf'))));
+            const iconColor = item.kind === 'audio' ? 'var(--muted-blue)' : (item.kind === 'note' ? 'var(--warm-gold)' : (item.kind === 'link' ? 'var(--sage-green)' : 'var(--terracotta)'));
+
+            let statusTagHtml = '';
+            if (item.availability === 'ready_local') {
+                statusTagHtml = `<span class="exo-lec-status-tag is-sage">${isEn ? 'Local Ready' : 'محفوظ محلياً'}</span>`;
+            } else if (item.availability === 'cloud_download') {
+                statusTagHtml = `<span class="exo-lec-status-tag is-blue">${isEn ? 'Cloud Drive' : 'سحابي'}</span>`;
+            } else if (item.availability === 'web_link') {
+                statusTagHtml = `<span class="exo-lec-status-tag is-gold">${isEn ? 'Web URL' : 'رابط ويب'}</span>`;
+            } else {
+                statusTagHtml = `<span class="exo-lec-status-tag is-terracotta">${isEn ? 'Needs Local File' : 'بحاجة لملف محلي'}</span>`;
+            }
+
+            let metaText = item.parentTitle && item.parentTitle !== item.title ? item.parentTitle : '';
+            if (item.kind === 'pdf' && item.pageNum > 1) {
+                metaText = `${isEn ? 'Saved page' : 'صفحة'} ${item.pageNum}${item.totalPages ? '/' + item.totalPages : ''}`;
+            } else if (item.subKind === 'audio_pin') {
+                metaText = `${item.parentTitle} · ${isEn ? 'Slide' : 'سلايد'} ${item.pageNum} · ${formatCwTimeSeconds(item.timeSec)}`;
+            } else if (item.subKind === 'extra_sheet') {
+                metaText = `${item.parentTitle} · ${item.strokeCount || 0} ${isEn ? 'strokes' : 'ضربات قلم'}`;
+            } else if (item.kind === 'audio' && item.audioSec > 2) {
+                metaText = `${item.parentTitle} · ${formatCwTimeSeconds(item.audioSec)}`;
+            }
+
+            let actionsHtml = '';
+            if (item.kind === 'pdf' || item.kind === 'link') {
+                actionsHtml = `
+                    <button type="button" class="exo-lec-check-btn ${item.completed ? 'is-done' : ''}" onclick="toggleLectureCompleted(${serializeCwIdArg(group.id)}, ${serializeCwIdArg(item.lectureId)})" title="${isEn ? 'Toggle complete' : 'تبديل الإتمام'}" aria-label="${isEn ? 'Toggle complete' : 'تبديل الإتمام'}">
+                        <i class="fa-solid ${item.completed ? 'fa-circle-check' : 'fa-circle'}"></i>
+                    </button>
+                    <button type="button" class="btn btn-primary" style="min-height:38px; padding:6px 12px; font-size:0.8rem;" onclick="cwOpenResourceInStudio(${serializeCwIdArg(item.lectureId)})">
+                        <i class="fa-solid fa-book-open"></i> ${isEn ? 'Open in Studio' : 'فتح بالاستوديو'}
+                    </button>
+                    <button type="button" class="icon-btn" style="width:36px; height:36px;" onclick="cwAddAudioRecordingFlow(${serializeCwIdArg(item.lectureId)})" title="${isEn ? 'Add recording to this lecture' : 'إضافة تسجيل لهذه المحاضرة'}" aria-label="${isEn ? 'Add recording' : 'إضافة تسجيل'}">
+                        <i class="fa-solid fa-microphone-lines"></i>
+                    </button>
+                    <button type="button" class="icon-btn edit" style="width:36px; height:36px;" onclick="triggerEditLecture(${serializeCwIdArg(group.id)}, ${serializeCwIdArg(item.lectureId)})" title="${isEn ? 'Edit' : 'تعديل'}" aria-label="${isEn ? 'Edit' : 'تعديل'}"><i class="fa-solid fa-pen"></i></button>
+                    <button type="button" class="icon-btn delete" style="width:36px; height:36px;" onclick="triggerDeleteLecture(${serializeCwIdArg(group.id)}, ${serializeCwIdArg(item.lectureId)})" title="${isEn ? 'Delete' : 'حذف'}" aria-label="${isEn ? 'Delete' : 'حذف'}"><i class="fa-solid fa-trash"></i></button>
+                `;
+            } else if (item.kind === 'audio') {
+                actionsHtml = `
+                    <button type="button" class="btn btn-outline" style="min-height:38px; padding:6px 12px; font-size:0.8rem;" onclick="cwPlayAudioPreview(${serializeCwIdArg(item.lectureId)}, ${serializeCwIdArg(item.dbKey)}, ${serializeCwIdArg(item.title)}, ${serializeCwIdArg(item.urlPath || '')})">
+                        <i class="fa-solid fa-play"></i> ${isEn ? 'Listen' : 'استماع'}
+                    </button>
+                    <button type="button" class="btn btn-primary" style="min-height:38px; padding:6px 12px; font-size:0.8rem;" onclick="cwOpenResourceInStudio(${serializeCwIdArg(item.lectureId)}, { recIdx: ${Number(item.recIdx) || 0}, openAudioBar: true })">
+                        <i class="fa-solid fa-sliders"></i> ${isEn ? 'Studio Player' : 'فتح بالاستوديو'}
+                    </button>
+                `;
+            } else if (item.kind === 'note') {
+                const jumpOpts = item.subKind === 'extra_sheet'
+                    ? `{ pageNum: ${Number(item.pageNum) || 1}, openExtraNote: true }`
+                    : item.subKind === 'audio_pin'
+                    ? `{ pageNum: ${Number(item.pageNum) || 1}, audioSec: ${Number(item.timeSec) || 0}, openAudioBar: true }`
+                    : item.subKind === 'blank_page'
+                    ? `{ pageNum: ${Number(item.afterPage) || 1}, customPageId: ${serializeCwIdArg(item.pageKey)} }`
+                    : `{ pageNum: ${Number(item.pageNum) || 1} }`;
+                actionsHtml = `
+                    <button type="button" class="btn btn-primary" style="min-height:38px; padding:6px 12px; font-size:0.8rem;" onclick="cwOpenResourceInStudio(${serializeCwIdArg(item.lectureId)}, ${jumpOpts})">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> ${isEn ? 'Jump in Studio' : 'انتقال بالاستوديو'}
+                    </button>
+                `;
+            }
+
+            return `
+                <div class="exo-cw-res-row ${rowClass}" data-cw-resource-uid="${escapeHtml(item.uid)}">
+                    <div class="exo-cw-res-main">
+                        <div class="exo-cw-res-icon"><i class="fa-solid ${iconClass}" style="color:${iconColor};"></i></div>
+                        <div style="min-width:0; flex:1;">
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <span data-exo-no-i18n="1" dir="auto" style="font-weight:700; font-size:0.93rem; color:var(--warm-paper);">${escapeHtml(item.title)}</span>
+                                ${statusTagHtml}
+                            </div>
+                            ${metaText ? `<div data-exo-no-i18n="1" dir="auto" style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">${escapeHtml(metaText)}</div>` : ''}
+                        </div>
+                    </div>
+                    <div class="exo-cw-res-actions">${actionsHtml}</div>
+                </div>
+            `;
+        }
+
         function renderSubjectsList() {
             const grid = document.getElementById('mainSubjectsGrid');
             if(!grid) return;
@@ -15208,6 +17322,9 @@
 
         function openSubject(id) {
             activeSubjectId = id;
+            activeChapterWorkspaceGroupId = null;
+            cwStudioOpenedFromWorkspace = false;
+            if (typeof cwStopAudioPreview === 'function') cwStopAudioPreview();
             const sub = subjects.find(s => s.id === id);
             if(!sub) return;
             const titleEl = document.getElementById('activeSubjectTitle');
@@ -15220,6 +17337,8 @@
             updateWp62StaticLabels((window.currentExoLang || document.documentElement?.lang) !== 'ar' ? 'en' : 'ar');
             syncSubjectDetailsHeaderButtons(sub);
             setTocViewMode(tocViewMode);
+            const cwEl = document.getElementById('chapter-workspace-view');
+            if (cwEl) cwEl.style.display = 'none';
             document.getElementById('subjects-list-view').style.display = 'none';
             document.getElementById('subject-details-view').style.display = 'flex';
             renderGroups();
@@ -15319,6 +17438,11 @@
 
         function backToSubjects() {
             activeSubjectId = null;
+            activeChapterWorkspaceGroupId = null;
+            cwStudioOpenedFromWorkspace = false;
+            if (typeof cwStopAudioPreview === 'function') cwStopAudioPreview();
+            const cwEl = document.getElementById('chapter-workspace-view');
+            if (cwEl) cwEl.style.display = 'none';
             document.getElementById('subjects-list-view').style.display = 'block';
             document.getElementById('subject-details-view').style.display = 'none';
             renderSubjectsList();
@@ -16070,6 +18194,9 @@
                             </div>
                             <div class="card-actions" onclick="event.stopPropagation()">
                                 ${grpMoveBtns}
+                                <button type="button" class="exo-toc-open-workspace-btn" onclick="openChapterWorkspace(${serializeCwIdArg(g.id)}, 'overview', event)" title="${isEn ? 'Open Chapter Workspace' : 'فتح مساحة الفصل'}">
+                                    <i class="fa-solid fa-layer-group"></i> <span>${isEn ? 'Workspace' : 'مساحة الفصل'}</span>
+                                </button>
                                 ${g.lectures.length > 1 ? `<button type="button" class="btn btn-outline" style="padding: 6px 10px; font-size: 0.78rem; min-height: 34px;" onclick="autoSortLecturesInGroup(${g.id}, event)" title="${isEn ? 'Sort lectures numerically' : 'ترتيب المحاضرات تلقائياً'}"><i class="fa-solid fa-arrow-down-1-9"></i> ${isEn ? 'Sort' : 'ترتيب'}</button>` : ''}
                                 <button type="button" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.82rem; min-height: 34px;" onclick="triggerAddLecture(${g.id})"><i class="fa-solid fa-plus"></i> ${isEn ? 'New Lecture' : 'محاضرة جديدة'}</button>
                                 <button type="button" class="icon-btn edit" style="width:34px; height:34px;" onclick="triggerEditGroup(${g.id})" title="${isEn ? 'Rename chapter' : 'تعديل اسم الفصل'}" aria-label="${isEn ? 'Rename chapter' : 'تعديل اسم الفصل'}"><i class="fa-solid fa-pen"></i></button>
@@ -16180,6 +18307,12 @@
 
             container.innerHTML = `${topParts.join('')}<div class="exo-toc-list-wrap">${chapterParts.join('')}</div>`;
             syncTocExpandAllButton();
+            if (typeof activeChapterWorkspaceGroupId !== 'undefined' && activeChapterWorkspaceGroupId) {
+                const cwEl = document.getElementById('chapter-workspace-view');
+                if (cwEl && cwEl.style.display !== 'none' && typeof renderChapterWorkspace === 'function') {
+                    renderChapterWorkspace(true);
+                }
+            }
         }
 
         let draggedLectureState = null;
@@ -29805,6 +31938,8 @@ then(onFulfilled, onRejected) {
             // Show PDF Studio Modal immediately for instant visual feedback while loading IndexedDB assets in parallel
             document.getElementById('pdfViewerModalOverlay').classList.add('active');
             document.body.classList.add('in-pdf-studio');
+            if (typeof togglePdfChapterContextDrawer === 'function') togglePdfChapterContextDrawer(false);
+            if (typeof renderPdfChapterContextDrawer === 'function') renderPdfChapterContextDrawer();
 
             // Load Saved Annotations, Audio Blob, and PDF Blob in parallel from Local IndexedDB
             const [loadedAnnotations, initialAudioBlob, initialPdfBlob] = await Promise.all([
@@ -29919,6 +32054,7 @@ then(onFulfilled, onRejected) {
                     else if (typeof isGoogleDriveTokenActive === 'function' && !isGoogleDriveTokenActive()) bannerMode = 'reauth_required';
                     setPdfDriveReactivateBannerState({ visible: true, mode: bannerMode, disabled: false });
                 }
+                if (typeof applyPendingAudioJumpInStudio === 'function') applyPendingAudioJumpInStudio();
                 return;
             }
 
@@ -29935,6 +32071,7 @@ then(onFulfilled, onRejected) {
                 iframe.style.display = 'block';
                 openInTabBtn.href = rawPath;
                 openInTabBtn.style.display = 'inline-flex';
+                if (typeof applyPendingAudioJumpInStudio === 'function') applyPendingAudioJumpInStudio();
                 return;
             }
 
@@ -29943,6 +32080,7 @@ then(onFulfilled, onRejected) {
             iframe.style.display = 'none';
             fallback.style.display = 'flex';
             openInTabBtn.style.display = 'none';
+            if (typeof applyPendingAudioJumpInStudio === 'function') applyPendingAudioJumpInStudio();
         }
 
         let pdfBookmarkSaveTimer = null;
@@ -30382,6 +32520,9 @@ function togglePdfAudioPlayerBar(forceState) {
             const toggleBtn = document.getElementById('pdfThumbnailsToggleBtn');
             if (!drawer) return;
             const shouldOpen = forceState !== undefined ? Boolean(forceState) : !drawer.classList.contains('open');
+            if (shouldOpen && typeof togglePdfChapterContextDrawer === 'function') {
+                togglePdfChapterContextDrawer(false);
+            }
             drawer.classList.toggle('open', shouldOpen);
             if (backdrop) backdrop.classList.toggle('open', shouldOpen);
             if (toggleBtn) toggleBtn.classList.toggle('active', shouldOpen);
@@ -30939,6 +33080,27 @@ function togglePdfAudioPlayerBar(forceState) {
                     }
                 } catch (_) {}
                 renderPdfThumbnailsList();
+                if (typeof renderPdfChapterContextDrawer === 'function') renderPdfChapterContextDrawer();
+                if (window.__exoPendingStudioJump) {
+                    const pendingJump = window.__exoPendingStudioJump;
+                    window.__exoPendingStudioJump = null;
+                    if (pendingJump.customPageId && typeof cwJumpToBlankPageInOpenStudio === 'function') {
+                        cwJumpToBlankPageInOpenStudio(pendingJump.customPageId);
+                    } else if (pendingJump.openExtraNote && typeof cwJumpToExtraNoteInOpenStudio === 'function') {
+                        cwJumpToExtraNoteInOpenStudio(pendingJump.pageNum || savedPage);
+                    } else if (pendingJump.pageNum && pendingJump.pageNum !== savedPage && typeof goToPdfPage === 'function') {
+                        goToPdfPage(pendingJump.pageNum, false);
+                    }
+                    if (typeof pendingJump.audioSec === 'number' && pendingJump.audioSec > 0) {
+                        const aEl = document.getElementById('lectureAudioElement');
+                        if (aEl && aEl.src) {
+                            aEl.currentTime = pendingJump.audioSec;
+                        }
+                    }
+                    if (pendingJump.openAudioBar && typeof togglePdfAudioPlayerBar === 'function') {
+                        togglePdfAudioPlayerBar(true);
+                    }
+                }
             } catch (err) {
                 // Fallback to native iframe if PDF.js CDN is unreachable offline
                 scrollContainer.style.display = 'none';
@@ -34368,6 +36530,7 @@ function togglePdfAudioPlayerBar(forceState) {
             if (pdfOverlayEl) pdfOverlayEl.classList.remove('active');
             if (document.body && document.body.classList) document.body.classList.remove('in-pdf-studio');
             if (typeof toggleMobilePaletteDrawer === 'function') toggleMobilePaletteDrawer(false);
+            if (typeof togglePdfChapterContextDrawer === 'function') togglePdfChapterContextDrawer(false);
 
             persistCurrentLectureReadingBookmark(true);
             const flushPromise = flushPendingAnnotationsSave(true);
@@ -34376,9 +36539,19 @@ function togglePdfAudioPlayerBar(forceState) {
             mergedSlideKeysOrder = [];
             const closingLecRef = currentViewingLec;
             stopLiveLectureStudyTracking(closingLecRef);
+            if (closingLecRef && closingLecRef.lec && typeof getCwAccountCacheScope === 'function' && typeof chapterAnnotationsMetaCache !== 'undefined') {
+                chapterAnnotationsMetaCache.delete(`${getCwAccountCacheScope()}::${String(closingLecRef.lec.id)}`);
+            }
             if (activeSubjectId && document.getElementById('groupsContainer')) {
                 renderGroups();
             }
+            if (typeof activeChapterWorkspaceGroupId !== 'undefined' && activeChapterWorkspaceGroupId && typeof renderChapterWorkspace === 'function') {
+                const cwEl = document.getElementById('chapter-workspace-view');
+                if (cwEl && cwEl.style.display !== 'none') {
+                    renderChapterWorkspace(false);
+                }
+            }
+            cwStudioOpenedFromWorkspace = false;
             currentPdfDoc = null;
             renderedPagesSet.clear();
 
@@ -49858,6 +52031,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (typeof updateWp62StaticLabels === 'function') updateWp62StaticLabels(targetLang);
                 if (typeof renderSubjectsList === 'function') renderSubjectsList();
                 if (typeof activeSubjectId !== 'undefined' && activeSubjectId && typeof renderGroups === 'function') renderGroups();
+                if (typeof updateWp63ChapterWorkspaceLabels === 'function') updateWp63ChapterWorkspaceLabels(targetLang);
                 const mergeDrawer = document.getElementById('subjectMergeLecturesDrawer');
                 if (mergeDrawer && mergeDrawer.classList.contains('open') && typeof renderSubjectMergeLecturesDrawer === 'function') {
                     renderSubjectMergeLecturesDrawer();

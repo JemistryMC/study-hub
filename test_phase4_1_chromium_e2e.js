@@ -7567,6 +7567,468 @@ async function main() {
 
     await pageLL.close();
     await contextLL.close();
+
+    // =========================================================================
+    // TEST MM: WP 6.3 UNIFIED CHAPTER WORKSPACE, INTEGRATED PDF STUDIO DRAWER,
+    // REAL INTERACTIONS, CROSS-ACCOUNT ISOLATION, LIVE EN<->AR & RESPONSIVE
+    // =========================================================================
+    console.log('\n--- TEST MM: WP 6.3 Chapter Workspace & Integrated Study Studio ---');
+    const contextMM = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const pageMM = await contextMM.newPage();
+    const mmErrors = [];
+    const mmFailedUrls = [];
+    pageMM.on('pageerror', err => mmErrors.push('pageerror: ' + err.message));
+    pageMM.on('console', msg => {
+      if (msg.type() === 'error') mmErrors.push('console.error: ' + msg.text());
+    });
+    pageMM.on('requestfailed', req => {
+      mmFailedUrls.push(req.url() + ' -> ' + (req.failure()?.errorText || 'failed'));
+    });
+
+    await pageMM.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+    await pageMM.waitForFunction(() =>
+      typeof openChapterWorkspace === 'function' &&
+      typeof renderChapterWorkspace === 'function' &&
+      typeof togglePdfChapterContextDrawer === 'function' &&
+      typeof saveMediaToDB === 'function'
+    );
+
+    // Seed valid synthetic multi-chapter course + real 2-page PDF + real WAV audio + schedule event in IndexedDB
+    await pageMM.evaluate(async () => {
+      function makeTwoPagePdfBytes() {
+        const objs = [
+          '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+          '2 0 obj\n<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>\nendobj\n',
+          '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] /Contents 4 0 R /Resources << >> >>\nendobj\n',
+          '4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n',
+          '5 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] /Contents 6 0 R /Resources << >> >>\nendobj\n',
+          '6 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n'
+        ];
+        let body = '%PDF-1.4\n';
+        const offsets = [0];
+        for (const o of objs) {
+          offsets.push(body.length);
+          body += o;
+        }
+        const xrefStart = body.length;
+        let xref = `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`;
+        for (let i = 1; i < offsets.length; i++) {
+          xref += String(offsets[i]).padStart(10, '0') + ' 00000 n \n';
+        }
+        body += xref + `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+        return new Blob([body], { type: 'application/pdf' });
+      }
+      function makeSilentWavBlob(seconds = 3) {
+        const sr = 8000;
+        const len = sr * seconds;
+        const buf = new ArrayBuffer(44 + len);
+        const dv = new DataView(buf);
+        const str = (off, s) => { for (let i = 0; i < s.length; i++) dv.setUint8(off + i, s.charCodeAt(i)); };
+        str(0, 'RIFF'); dv.setUint32(4, 36 + len, true); str(8, 'WAVE');
+        str(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true);
+        dv.setUint16(22, 1, true); dv.setUint32(24, sr, true); dv.setUint32(28, sr, true);
+        dv.setUint16(32, 1, true); dv.setUint16(34, 8, true);
+        str(36, 'data'); dv.setUint32(40, len, true);
+        return new Blob([buf], { type: 'audio/wav' });
+      }
+
+      if (!dbInstance) await initPdfDB();
+      await saveMediaToDB('pdfs', 89101, makeTwoPagePdfBytes());
+      await saveMediaToDB('audios', 89101, makeSilentWavBlob(4));
+      await saveMediaToDB('audios', 'rec_mm_sec', makeSilentWavBlob(3));
+      localMediaCache.pdfs.add('89101');
+      localMediaCache.audios.add('89101');
+      localMediaCache.audios.add('rec_mm_sec');
+
+      subjects = [
+        {
+          id: 8901,
+          name: 'Clinical Pharmacology — الفارما الإكلينيكية',
+          color: '#899982',
+          icon: 'fa-capsules',
+          isDivided: true,
+          groups: [
+            {
+              id: 8911,
+              name: 'Autonomic Systems — الجهاز العصبي',
+              lectures: [
+                {
+                  id: 89101,
+                  title: 'Cholinergic Drugs',
+                  path: 'cholinergics.pdf',
+                  audioPath: 'cholinergic_main.wav',
+                  completed: false,
+                  lastPageNum: 2,
+                  totalPages: 2,
+                  lastAudioSec: 12,
+                  lastStudiedAt: Date.now() - 10000,
+                  recordings: [
+                    { id: 'rec_default_89101', name: 'Main Lecture Audio', dbKey: '89101' },
+                    { id: 'rec_mm_sec', name: 'TA Section Recap', dbKey: 'rec_mm_sec' }
+                  ],
+                  activeRecordingIndex: 0
+                }
+              ]
+            },
+            {
+              id: 8912,
+              name: 'Cardiovascular Agents',
+              lectures: [
+                { id: 89102, title: 'Beta Blockers Ref', path: 'https://example.org/beta-blockers', completed: false }
+              ]
+            },
+            {
+              id: 8913,
+              name: 'Empty Practice Unit',
+              lectures: []
+            }
+          ]
+        }
+      ];
+      scheduleEvents = [
+        { id: 8991, title: 'Study: Autonomic Systems', subjectId: 8901, lectureId: 89101, day: new Date().getDay(), startHour: 11, duration: 2, completed: false }
+      ];
+      saveSubjects();
+      saveScheduleData();
+      renderSubjectsList();
+    });
+
+    await pageMM.click('.sidebar-nav-item[data-tab="subjects"]');
+    await pageMM.waitForSelector('#subjects.view-section.active', { state: 'visible' });
+    await pageMM.click('.subject-card[data-subject-id="8901"]');
+    await pageMM.waitForSelector('#subject-details-view', { state: 'visible' });
+
+    // MM.1: Open Empty Chapter Workspace via TOC CTA -> test skippable first-entry setup
+    await pageMM.click('#groupCard_8913 .exo-toc-open-workspace-btn');
+    await pageMM.waitForSelector('#chapter-workspace-view', { state: 'visible' });
+    const mm1EmptySetup = await pageMM.evaluate(() => ({
+      setupVisible: Boolean(document.getElementById('cwFirstEntrySetupCard')),
+      cwVisible: getComputedStyle(document.getElementById('chapter-workspace-view')).display !== 'none',
+      tocHidden: getComputedStyle(document.getElementById('subject-details-view')).display === 'none',
+      activeTitle: document.getElementById('cwActiveChapterTitle')?.innerText.trim()
+    }));
+    await pageMM.click('#cwSkipSetupBtn');
+    const mm1AfterSkip = await pageMM.evaluate(() => ({
+      setupHidden: getComputedStyle(document.getElementById('cwFirstEntrySetup')).display === 'none',
+      tabCount: document.querySelectorAll('#cwTabsRow .exo-cw-tab-btn').length
+    }));
+    assert(
+      mm1EmptySetup.setupVisible === true &&
+      mm1EmptySetup.cwVisible === true &&
+      mm1EmptySetup.tocHidden === true &&
+      mm1EmptySetup.activeTitle === 'Empty Practice Unit' &&
+      mm1AfterSkip.setupHidden === true &&
+      mm1AfterSkip.tabCount === 4,
+      'Test MM.1: Opening empty chapter enters Chapter Workspace with optional skippable first-entry setup and immediate workspace access after Skip',
+      JSON.stringify({ mm1EmptySetup, mm1AfterSkip })
+    );
+
+    // MM.2: Switch to Chapter 01 via #cwChapterSwitcherSelect -> Resume Notice -> Open Study Studio -> Chapter Context Drawer + Drawer Mutual Exclusion + Annotate/Note/Bookmark/Pin + Fast Return
+    await pageMM.selectOption('#cwChapterSwitcherSelect', '8911');
+    await pageMM.waitForFunction(() => document.getElementById('cwActiveChapterTitle')?.innerText.includes('Autonomic Systems'));
+    const mm2OverviewBefore = await pageMM.evaluate(() => ({
+      hasResumeNotice: Boolean(document.getElementById('cwPartialRestoreNotice')?.innerText.includes('zoom')),
+      hasHonestNotice: Boolean(document.getElementById('cwHonestFormatNotice')),
+      metaRow: document.getElementById('cwHeaderMetaRow')?.innerText.trim() || ''
+    }));
+
+    await pageMM.click('#cwOpenStudioPrimaryBtn');
+    await pageMM.waitForSelector('#pdfViewerModalOverlay.active', { state: 'visible' });
+    // Wait briefly for PDF rendering / fallback setup
+    await pageMM.waitForTimeout(350);
+
+    const mm2StudioState = await pageMM.evaluate(() => {
+      const backBtn = document.getElementById('pdfBackToChapterBtn');
+      const ctxBtn = document.getElementById('pdfChapterContextToggleBtn');
+      const pagesWrap = document.getElementById('pdfPagesScrollContainer');
+      const wrapBoxBefore = pagesWrap ? pagesWrap.getBoundingClientRect() : null;
+      return {
+        backVisible: Boolean(backBtn && getComputedStyle(backBtn).display !== 'none'),
+        ctxVisible: Boolean(ctxBtn && getComputedStyle(ctxBtn).display !== 'none'),
+        wrapWBefore: wrapBoxBefore ? wrapBoxBefore.width : 0,
+        savedPageLoaded: typeof currentActivePageNum !== 'undefined' ? currentActivePageNum : 0
+      };
+    });
+
+    // Open Chapter Context Drawer and confirm non-destructive slide-over width + mutual exclusion with Thumbnails drawer
+    await pageMM.click('#pdfChapterContextToggleBtn');
+    const mm2DrawerOpen = await pageMM.evaluate(() => {
+      const drawer = document.getElementById('pdfChapterContextDrawer');
+      const pagesWrap = document.getElementById('pdfPagesScrollContainer');
+      return {
+        isOpen: Boolean(drawer && drawer.classList.contains('open')),
+        ctxText: drawer?.innerText || '',
+        wrapWAfter: pagesWrap ? pagesWrap.getBoundingClientRect().width : 0
+      };
+    });
+
+    // Click Thumbnails drawer -> must close Chapter Context drawer automatically (no overlapping drawers!)
+    await pageMM.click('#pdfThumbnailsToggleBtn');
+    const mm2MutualExclusion = await pageMM.evaluate(() => ({
+      thumbsOpen: Boolean(document.getElementById('pdfThumbnailsDrawer')?.classList.contains('open')),
+      ctxClosed: !document.getElementById('pdfChapterContextDrawer')?.classList.contains('open')
+    }));
+    await pageMM.click('#pdfThumbnailsToggleBtn'); // close thumbnails
+
+    // Add real slide Bookmark, Extra Summary Sheet flag + stroke, Blank Page, and Audio Pin via Studio state helpers
+    await pageMM.evaluate(async () => {
+      if (typeof toggleBookmarkForPage === 'function') {
+        toggleBookmarkForPage(2);
+      } else {
+        const sub = subjects.find(s => s.id === 8901);
+        sub.groups[0].lectures[0].bookmarkedSlides = [2];
+      }
+      if (typeof toggleExtraNoteForPage === 'function') {
+        toggleExtraNoteForPage(1);
+      }
+      if (!pageAnnotations._extraNotes) pageAnnotations._extraNotes = {};
+      pageAnnotations._extraNotes['1'] = true;
+      pageAnnotations['note_1'] = [{ id: 'mm_s1', tool: 'pen', color: '#899982', size: 3, points: [{ x: 20, y: 20 }, { x: 80, y: 40 }] }];
+      if (!Array.isArray(pageAnnotations._audioPins)) pageAnnotations._audioPins = [];
+      pageAnnotations._audioPins.push({ id: 'pin_mm_1', timeSec: 2, page: 1, note: 'Receptor Affinity Mechanism' });
+
+      const sub = subjects.find(s => s.id === 8901);
+      const lec = sub.groups[0].lectures[0];
+      if (!Array.isArray(lec.customPages)) lec.customPages = [];
+      lec.customPages.push({ id: 'cp_mm_1', title: 'Autonomic Mindmap Sheet', afterPage: 1 });
+      saveSubjects();
+      await saveAnnotationsToDB(89101, pageAnnotations);
+      if (typeof renderPdfChapterContextDrawer === 'function') renderPdfChapterContextDrawer();
+    });
+
+    // Click Back to Chapter Studio header button and measure close latency
+    const mm2CloseTiming = await pageMM.evaluate(() => {
+      const t0 = performance.now();
+      document.getElementById('pdfBackToChapterBtn').click();
+      const closeMs = performance.now() - t0;
+      const overlay = document.getElementById('pdfViewerModalOverlay');
+      const cwView = document.getElementById('chapter-workspace-view');
+      return {
+        closeMs,
+        overlayClosed: !overlay?.classList.contains('active'),
+        cwStillVisible: Boolean(cwView && getComputedStyle(cwView).display !== 'none'),
+        metaRowAfter: document.getElementById('cwHeaderMetaRow')?.innerText.trim() || ''
+      };
+    });
+
+    assert(
+      mm2OverviewBefore.hasResumeNotice === true &&
+      mm2OverviewBefore.hasHonestNotice === true &&
+      mm2StudioState.backVisible === true &&
+      mm2StudioState.ctxVisible === true &&
+      mm2DrawerOpen.isOpen === true &&
+      mm2DrawerOpen.ctxText.includes('Cholinergic Drugs') &&
+      mm2DrawerOpen.ctxText.includes('TA Section Recap') &&
+      Math.abs(mm2DrawerOpen.wrapWAfter - mm2StudioState.wrapWBefore) < 2 &&
+      mm2MutualExclusion.thumbsOpen === true && mm2MutualExclusion.ctxClosed === true &&
+      mm2CloseTiming.closeMs < 50 &&
+      mm2CloseTiming.overlayClosed === true &&
+      mm2CloseTiming.cwStillVisible === true,
+      'Test MM.2: Chapter switcher, Resume Study Studio, non-shrinking slide-over Chapter Context Drawer, drawer mutual exclusion, and <50ms return to Chapter Workspace all pass',
+      JSON.stringify({ mm2OverviewBefore, mm2StudioState, mm2DrawerOpen, mm2MutualExclusion, mm2CloseTiming })
+    );
+
+    // MM.3: Resources, Audio & Pins, and Notes & Sheets tabs; Search/Filter/Sort; Add Web Link via UI; Reload Durability; Preview Audio & Studio Jump
+    await pageMM.waitForTimeout(150);
+    await pageMM.click('#cwTabBtn_resources');
+    await pageMM.waitForSelector('#cwResourceSearchInput', { state: 'visible' });
+
+    await pageMM.fill('#cwResourceSearchInput', 'Receptor Affinity');
+    const mm3SearchPin = await pageMM.evaluate(() => document.querySelectorAll('#cwResourcesList .exo-cw-res-row').length);
+    await pageMM.fill('#cwResourceSearchInput', '');
+    await pageMM.selectOption('#cwResourceFilterSelect', 'audio');
+    const mm3FilterAudio = await pageMM.evaluate(() => document.querySelectorAll('#cwResourcesList .exo-cw-res-row').length);
+    await pageMM.selectOption('#cwResourceFilterSelect', 'all');
+    await pageMM.selectOption('#cwResourceSortSelect', 'notes_first');
+    const mm3SortNotesFirst = await pageMM.evaluate(() => {
+      const firstRow = document.querySelector('#cwResourcesList .exo-cw-res-row');
+      return Boolean(firstRow && firstRow.classList.contains('is-note'));
+    });
+
+    // Add Web Link via Chapter Workspace Add Menu -> real UI modal
+    await pageMM.click('#cwAddResourceBtn');
+    await pageMM.waitForSelector('#cwAddResourceMenu.open', { state: 'visible' });
+    await pageMM.click('#cwAddLinkMenuBtn');
+    await pageMM.waitForSelector('#doubleInputModalOverlay.active', { state: 'visible' });
+    await pageMM.fill('#diModalInput1', 'Goodman & Gilman Summary');
+    await pageMM.fill('#diModalInput2', 'https://example.org/goodman-summary');
+    await pageMM.click('#diModalSaveBtn');
+    await pageMM.waitForFunction(() => !document.getElementById('doubleInputModalOverlay')?.classList.contains('active'));
+
+    // Check Audio & Pins tab + Notes & Sheets tab counts and Audio Preview bar
+    await pageMM.click('#cwTabBtn_audio');
+    const mm3AudioTab = await pageMM.evaluate(() => document.querySelectorAll('#cwBody .exo-cw-res-row').length);
+    await pageMM.click('#cwBody .exo-cw-res-row button[onclick*="cwPlayAudioPreview"]');
+    const mm3PreviewActive = await pageMM.evaluate(() => document.getElementById('cwAudioPreviewBar')?.classList.contains('active'));
+    await pageMM.click('#cwAudioPreviewBar button[onclick*="cwStopAudioPreview"]');
+
+    await pageMM.click('#cwTabBtn_notes');
+    const mm3NotesTabCount = await pageMM.evaluate(() => document.querySelectorAll('#cwBody .exo-cw-res-row').length);
+
+    // Reload browser and confirm added Web Link + Notes/Pins survive cleanly
+    await pageMM.reload({ waitUntil: 'domcontentloaded' });
+    await pageMM.waitForFunction(() => typeof openChapterWorkspace === 'function');
+    await pageMM.click('.sidebar-nav-item[data-tab="subjects"]');
+    await pageMM.click('.subject-card[data-subject-id="8901"]');
+    await pageMM.click('#groupCard_8911 .exo-toc-open-workspace-btn');
+    await pageMM.waitForFunction(() =>
+      document.getElementById('chapter-workspace-view') &&
+      getComputedStyle(document.getElementById('chapter-workspace-view')).display !== 'none'
+    );
+    await pageMM.waitForTimeout(150);
+    await pageMM.click('#cwTabBtn_resources');
+    const mm3AfterReload = await pageMM.evaluate(() => ({
+      text: document.getElementById('cwResourcesList')?.innerText || '',
+      hasLink: (document.getElementById('cwResourcesList')?.innerText || '').includes('Goodman & Gilman Summary'),
+      hasPin: (document.getElementById('cwResourcesList')?.innerText || '').includes('Receptor Affinity Mechanism')
+    }));
+
+    assert(
+      mm3SearchPin === 1 &&
+      mm3FilterAudio === 2 &&
+      mm3SortNotesFirst === true &&
+      mm3AudioTab === 3 && // 2 recordings + 1 pin
+      mm3PreviewActive === true &&
+      mm3NotesTabCount >= 3 && // blank sheet + extra sheet + pin + bookmark
+      mm3AfterReload.hasLink === true &&
+      mm3AfterReload.hasPin === true,
+      'Test MM.3: Unified Resources search/filter/sort, Add Web Link via UI modal, Audio preview, Notes/Sheets index, and reload persistence all pass',
+      JSON.stringify({ mm3SearchPin, mm3FilterAudio, mm3SortNotesFirst, mm3AudioTab, mm3PreviewActive, mm3NotesTabCount, mm3AfterReload })
+    );
+
+    // MM.4: Cross-account isolation in Chapter Workspace cache & IndexedDB annotations
+    const mm4Isolation = await pageMM.evaluate(async () => {
+      const uidB = 'user-mm-isolated-b-9999';
+      await handleAuthSessionChange({ id: uidB, email: 'mmb@exo.edu', name: 'User B' }, false);
+      subjects = [
+        {
+          id: 8901,
+          name: 'Account B Course',
+          isDivided: true,
+          groups: [{ id: 8911, name: 'Account B Chapter', lectures: [{ id: 89101, title: 'Shared ID Lec B', path: '' }] }]
+        }
+      ];
+      activeSubjectId = 8901;
+      activeChapterWorkspaceGroupId = 8911;
+      activeChapterWorkspaceTab = 'notes';
+      await openChapterWorkspace(8911);
+      await new Promise(r => setTimeout(r, 120));
+      const notesRowsInB = document.querySelectorAll('#cwBody .exo-cw-res-row').length;
+      return { notesRowsInB };
+    });
+    assert(
+      mm4Isolation.notesRowsInB === 0,
+      'Test MM.4: Switching accounts with overlapping lecture/chapter IDs isolates Chapter Workspace annotations cache & shows zero cross-account notes/pins',
+      JSON.stringify(mm4Isolation)
+    );
+
+    // Restore guest/synthetic state for bilingual & responsive checks
+    await pageMM.evaluate(async () => {
+      await handleAuthSessionChange(null, false);
+      localStorage.setItem('exoAppLang', 'en');
+      applyExoLanguage('en', true);
+      subjects = [
+        {
+          id: 8901,
+          name: 'Clinical Pharmacology — الفارما الإكلينيكية',
+          color: '#899982',
+          icon: 'fa-capsules',
+          isDivided: true,
+          groups: [
+            {
+              id: 8911,
+              name: 'Autonomic Systems — الجهاز العصبي',
+              lectures: [
+                {
+                  id: 89101,
+                  title: 'Cholinergic Drugs',
+                  path: 'cholinergics.pdf',
+                  audioPath: 'cholinergic_main.wav',
+                  completed: false,
+                  bookmarkedSlides: [2],
+                  customPages: [{ id: 'cp_mm_1', title: 'Autonomic Mindmap Sheet', afterPage: 1 }]
+                }
+              ]
+            }
+          ]
+        }
+      ];
+      activeSubjectId = 8901;
+      openChapterWorkspace(8911);
+      switchChapterWorkspaceTab('resources');
+    });
+
+    // MM.5: Live EN <-> AR switch inside Chapter Workspace (preserving active tab & search input) + inside Studio Context Drawer
+    await pageMM.fill('#cwResourceSearchInput', 'Cholinergic');
+    await pageMM.click('#sidebarLangToggleBtn'); // EN -> AR
+    const mm5Ar = await pageMM.evaluate(() => {
+      const mainRect = document.querySelector('.main-content')?.getBoundingClientRect();
+      const sideRect = document.getElementById('exoAppSidebar')?.getBoundingClientRect();
+      return {
+        lang: document.documentElement.lang,
+        dir: document.documentElement.dir,
+        searchVal: document.getElementById('cwResourceSearchInput')?.value || '',
+        noSidebarOverlap: Boolean(mainRect && sideRect && mainRect.right <= sideRect.left + 1),
+        arTabText: document.getElementById('cwTabBtn_resources')?.innerText || ''
+      };
+    });
+    await pageMM.click('#sidebarLangToggleBtn'); // AR -> EN
+    const mm5En = await pageMM.evaluate(() => ({
+      lang: document.documentElement.lang,
+      dir: document.documentElement.dir,
+      searchVal: document.getElementById('cwResourceSearchInput')?.value || '',
+      enTabText: document.getElementById('cwTabBtn_resources')?.innerText || ''
+    }));
+    await pageMM.fill('#cwResourceSearchInput', '');
+
+    assert(
+      mm5Ar.lang === 'ar' && mm5Ar.dir === 'rtl' &&
+      mm5Ar.searchVal === 'Cholinergic' &&
+      mm5Ar.noSidebarOverlap === true &&
+      mm5Ar.arTabText.includes('الموارد') &&
+      mm5En.lang === 'en' && mm5En.dir === 'ltr' &&
+      mm5En.searchVal === 'Cholinergic' &&
+      mm5En.enTabText.includes('Resources'),
+      'Test MM.5: Live EN <-> AR switching inside Chapter Workspace preserves active tab, unsaved search filter, RTL layout, and zero sidebar overlap',
+      JSON.stringify({ mm5Ar, mm5En })
+    );
+
+    // MM.6: Responsive viewport matrix (1440x900, 834x1112, 390x844 EN/AR) + reduced motion + >=44px touch targets + zero console/network errors
+    await pageMM.emulateMedia({ reducedMotion: 'reduce' });
+    await pageMM.click('#cwTabBtn_overview');
+    const mm6Desktop = await pageMM.evaluate(() => ({
+      overflowX: document.documentElement.scrollWidth > window.innerWidth
+    }));
+    await pageMM.setViewportSize({ width: 834, height: 1112 });
+    const mm6Tablet = await pageMM.evaluate(() => ({
+      overflowX: document.documentElement.scrollWidth > window.innerWidth,
+      minTabH: Math.min(...Array.from(document.querySelectorAll('#cwTabsRow .exo-cw-tab-btn')).map(b => b.getBoundingClientRect().height))
+    }));
+    await pageMM.setViewportSize({ width: 390, height: 844 });
+    const mm6MobileEn = await pageMM.evaluate(() => ({
+      overflowX: document.documentElement.scrollWidth > window.innerWidth,
+      minTabH: Math.min(...Array.from(document.querySelectorAll('#cwTabsRow .exo-cw-tab-btn')).map(b => b.getBoundingClientRect().height)),
+      primaryBtnH: document.getElementById('cwOpenStudioPrimaryBtn')?.getBoundingClientRect().height || 0
+    }));
+    await pageMM.evaluate(() => applyExoLanguage('ar', true));
+    const mm6MobileAr = await pageMM.evaluate(() => ({
+      lang: document.documentElement.lang,
+      dir: document.documentElement.dir,
+      overflowX: document.documentElement.scrollWidth > window.innerWidth
+    }));
+
+    assert(
+      mm6Desktop.overflowX === false &&
+      mm6Tablet.overflowX === false && mm6Tablet.minTabH >= 44 &&
+      mm6MobileEn.overflowX === false && mm6MobileEn.minTabH >= 44 && mm6MobileEn.primaryBtnH >= 44 &&
+      mm6MobileAr.lang === 'ar' && mm6MobileAr.dir === 'rtl' && mm6MobileAr.overflowX === false &&
+      mmErrors.length === 0 && mmFailedUrls.length === 0,
+      'Test MM.6: Responsive Desktop/Tablet/Mobile EN/AR viewports for Chapter Workspace have zero horizontal overflow, >=44px touch targets, reduced-motion support, and zero console/network errors',
+      JSON.stringify({ mm6Desktop, mm6Tablet, mm6MobileEn, mm6MobileAr, mmErrors, mmFailedUrls })
+    );
+
+    await pageMM.close();
+    await contextMM.close();
     await context.close();
   } finally {
     await browser.close();
@@ -7582,7 +8044,7 @@ async function main() {
   if (testsFailed > 0) {
     process.exit(1);
   } else {
-    console.log('ALL 22 MANDATORY CHROMIUM + INDEXEDDB E2E SCENARIOS (A - V, AA - LL) PASSED (100%).');
+    console.log('ALL 23 MANDATORY CHROMIUM + INDEXEDDB E2E SCENARIOS (A - V, AA - MM) PASSED (100%).');
     process.exit(0);
   }
 }

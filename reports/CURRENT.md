@@ -6,17 +6,18 @@
 **آخر Application Source SHA اجتاز GitHub Actions CI:** `70d1a8446cf9bf2a84af2035788bf7db56e4d589`  
 **دليل CI:** GitHub Actions CI Run #54 — Run ID `43458938490` — SUCCESS على SHA أعلاه؛ إجمالي موحّد `766/766`، Chromium E2E `155/155`، PostgreSQL 16 الحقيقي `96/96`، وPGlite `41/41`.  
 **دليل النشر:** GitHub Pages Run #149 — Run ID `43458937476` — SUCCESS على SHA نفسه.  
-**نقطة الأساس عند بدء WP 6.2:** `c0f8e1d4e944fa8ecd7cdfa0c6da68cc76e4a8c1`.  
+**نقطة الأساس عند بدء WP 6.3:** Documentation HEAD `4177d67de45705fa432eecb151bc3372be8bb23d` / Source SHA `70d1a8446cf9bf2a84af2035788bf7db56e4d589`.  
 **Commit تنفيذ WP 6.2:** `70d1a8446cf9bf2a84af2035788bf7db56e4d589` — [عرض commit](https://github.com/JemistryMC/study-hub/commit/70d1a8446cf9bf2a84af2035788bf7db56e4d589).  
-**حالة Phase 6:** IN PROGRESS — WP 6.1 CI VERIFIED; WP 6.2 CI VERIFIED — TECHNICALLY COMPLETE; WP 6.3 ACTIVE; FINAL OWNER PRODUCT REVIEW DEFERRED TO PHASE 6 COMPLETION.  
+**حالة Phase 6:** IN PROGRESS — WP 6.1 & WP 6.2 CI VERIFIED; WP 6.3 `IMPLEMENTED — LOCAL TESTS ONLY` (بانتظار مزامنة GitHub وتشغيل CI); WP 6.4 `NOT STARTED`; FINAL OWNER PRODUCT REVIEW DEFERRED TO PHASE 6 COMPLETION.  
 **حالة WP 6.0:** READ-ONLY BASELINE AUDIT — ACCEPTED.  
 **حالة WP 6.1:** CI VERIFIED — COMPLETE.  
-**حالة WP 6.2:** `CI VERIFIED — COMPLETE (TECHNICAL GATE ONLY; FINAL PHASE 6 PRODUCT APPROVAL DEFERRED)`. CI #54 passed `766/766`; Pages #149 succeeded. Includes Digital Bookshelf, actual search/filter/sort and persisted view modes, numbered TOC with search/status filters, collapse/expand, reorder and CRUD interactions, bilingual live switching, responsive checks, and PDF Studio open/close regression.  
-**حزمة العمل النشطة:** WP 6.3 — Unified Chapter Workspace & PDF Studio Integration. Its purpose is to change the actual study workflow and resource organization, not just re-skin the existing PDF modal.  
-**ملاحظة المالك — معيار تجربة المنتج:** بتاريخ 2026-11-13 أوضح المالك أن التجربة الحالية ما زالت تبدو له أقرب إلى `skin` من إعادة تصميم حقيقية. هذه ملاحظة مفتوحة على مستوى Phase 6 وليست رفضًا لـWP 6.2؛ من WP 6.3 فصاعدًا يجب إثبات تغييرات واضحة في رحلات المستخدم والتفاعلات وحالة العمل، لا الاكتفاء بتغيير CSS أو ترتيب البطاقات.  
+**حالة WP 6.2:** `CI VERIFIED — COMPLETE (TECHNICAL GATE ONLY; FINAL PHASE 6 PRODUCT APPROVAL DEFERRED)`. CI #54 passed `766/766`; Pages #149 succeeded.  
+**حالة WP 6.3:** `IMPLEMENTED — LOCAL TESTS ONLY` (مسودة محلية في AI Studio غير مرفوعة إلى GitHub بعد). بعد آخر تعديل في `/index.html` اجتاز `680/680` اختبارًا محليًا (`54/54` static, `42/42` comprehensive, `52/52` cross-account isolation, `317/317` phase 4 regressions, `5/5` WP 6.1 unit, `4/4` WP 6.2 unit, `4/4` WP 6.3 unit, `41/41` PGlite, و`161/161` Chromium E2E شاملة `Test MM.1–MM.6`), بالإضافة إلى `npm run lint`، `npm run build`، `5/5` مستويات benchmark Tier A في Node.js، وفحص Chromium `1440×900` و`8` لقطات شاشة منظفة في `reports/screenshots/wp6-3/*.png`. `npm run test:pg16` لم يُشغّل محليًا لعدم وجود خادم PostgreSQL 16 محلي ومؤجل إلى GitHub Actions CI. يتضمن التقرير أيضًا المقترحين التقنيين المعلّقين للمراجعة المنفصلة (`HELD FOR SEPARATE OWNER REVIEW — NOT IMPLEMENTED IN CODE`).  
+**حزمة العمل التالية (غير مفعّلة بعد):** WP 6.4 — Notifications, dialogs, save states, and recovery guidance (`NOT STARTED` — لا تبدأ حتى يراجع المالك WP 6.3 ويزامنها مع GitHub ويجتاز CI على الـSource SHA المرفوع).  
+**ملاحظة المالك — معيار تجربة المنتج:** بتاريخ 2026-11-13 أوضح المالك أن التجربة الحالية ما زالت تبدو له أقرب إلى `skin` من إعادة تصميم حقيقية. لذلك يوثّق تقرير WP 6.3 التغييرات المصنفة (`Visual` / `Interaction` / `Workflow & Data Behavior`) ومقارنات Before/After لرحلات الدراسة داخل `#chapter-workspace-view` وStudy Studio، مع الالتزام الصارم بعدم تعديل عقود البيانات أو Supabase أو Drive أو العمليات المغلقة دون تفويض مستقل.  
 **نموذج المراجعة:** يستمر العمل في Work Packages بالتسلسل بعد اكتمال التنفيذ والتحقق التقني ونجاح GitHub Actions CI للحزمة السابقة. لا يُطلب اعتماد منفصل من المالك بعد كل حزمة. للمالك حق إرسال ملاحظات أو طلب تعديلات أو إيقاف العمل في أي وقت، ويحتفظ بالاعتماد النهائي بعد مراجعة Phase 6 كاملة.  
 **حدود لا يتضمنها هذا التفويض:** لا تغييرات في Production Supabase أو SQL/Migrations/RLS/RPC/Auth/OAuth/Google Drive permissions أو عقود المزامنة أو مخططات التخزين أو عزل الحسابات أو سياسة Free/VIP أو العمليات الأكاديمية المغلقة دون تفويض صريح مستقل.  
-**مراجع المصدر الحالية:** `reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md`, `reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md`, `reports/PHASE_6_BASELINE_AUDIT.md`, `reports/PHASE_6_WP_6_1_REPORT.md`, `reports/PHASE_6_WP_6_2_REPORT.md`.
+**مراجع المصدر الحالية:** `reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md`, `reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md`, `reports/PHASE_6_BASELINE_AUDIT.md`, `reports/PHASE_6_WP_6_1_REPORT.md`, `reports/PHASE_6_WP_6_2_REPORT.md`, `reports/PHASE_6_WP_6_3_REPORT.md`, `reports/screenshots/wp6-3/`.
 ## مراجع التسليم الحالية
 
 1. العقد الهندسي الدائم: `GEMINI.md`.
@@ -26,6 +27,7 @@
 5. تقرير WP 6.0 المكتمل: `reports/PHASE_6_BASELINE_AUDIT.md`.
 6. تقرير WP 6.1 ونتائج GitHub Actions CI: `reports/PHASE_6_WP_6_1_REPORT.md`.
 7. تقرير WP 6.2 ونتائج CI والتحقق التقني: `reports/PHASE_6_WP_6_2_REPORT.md`.
+8. تقرير WP 6.3 ونتائج التحقق المحلي والأدلة البصرية والمقترحين المعلقين: `reports/PHASE_6_WP_6_3_REPORT.md` (مع صور `reports/screenshots/wp6-3/*.png`).
 
 ## قرارات التصميم المثبتة
 
