@@ -22,7 +22,9 @@ This is a full experience redesign, not a color/font refresh. Deliver it in revi
 
 ## WP 6.0 — Read-only baseline audit and implementation map
 
-**Status:** NOT STARTED. This is the first authorized Gemini task. **No application source/style/test changes in WP 6.0.**
+**Status:** IMPLEMENTED — AUDIT REPORT DELIVERED; OWNER REVIEW PENDING.  
+**Deliverable:** `reports/PHASE_6_BASELINE_AUDIT.md`.  
+The read-only audit task is complete. No application source/style/test changes were made in WP 6.0.
 
 Required work:
 - Verify repository, main branch, actual HEAD, worktree state, and source SHA.
@@ -48,7 +50,7 @@ Deliverables: create one documentation-only audit report at `reports/PHASE_6_BAS
 8. File-by-file proposed implementation sequence with change boundaries.
 9. Actual baseline tests/build/lint/performance results tied to exact SHA.
 
-**Gate 6.0:** Present the audit for owner review. Documentation-only outputs in this Phase 6 folder are allowed. No application source, style, test, storage, schema, auth, or business-logic changes.
+**Gate 6.0:** The audit report has been delivered and is awaiting owner review. No WP 6.1 implementation is authorized until the owner explicitly approves Gate 6.0.
 
 ---
 
