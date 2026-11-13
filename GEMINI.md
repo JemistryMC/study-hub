@@ -203,3 +203,51 @@ VIP مخصص لميزات إضافية محددة، من ضمنها رفع وم�
 - توقف عند الحد الآمن وانتظر قرار المالك.
 
 **الأولوية الدائمة: أمن الحسابات، سلامة بيانات المستخدم، قابلية التحقق، ثم سرعة التنفيذ.**
+
+
+## 13. Design, UX, and full-interface redesign contract
+
+For any authorized UI/UX redesign, read and follow:
+- `reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md` — authoritative owner-approved visual/product experience decisions.
+- `reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md` — current Phase 6 work packages and acceptance gates.
+- `reports/CURRENT.md` — the only authority for the active phase and next authorized action.
+
+These documents do not weaken this engineering contract. In any conflict, preserve security, data integrity, privacy, account isolation, and owner permissions, then stop and explain the conflict.
+
+### 13.1 Non-negotiable UX principles
+- The approved product identity is EXO — Personal Study Journal: Dark Personal Study Journal, Refined Journal first with restrained Expressive Journal details.
+- The experience must be attractive, functional, and user-friendly. Functionality, clarity, accessibility, and performance are not optional trade-offs for visual styling.
+- No gaming/Deadlock visual identity, gamer UI, neon, cyberpunk, excessive grunge, or decorative scrapbook clutter.
+- English is the first-run default only when no saved locale exists; Arabic and English are both first-class, with intentional LTR/RTL layouts.
+- Follow the approved exact palette, typography, navigation, dashboard, library, Table of Contents, and Chapter Workspace decisions in the design contract.
+
+### 13.2 Mandatory pre-redesign audit
+Before changing any app UI code:
+- Inventory every screen, route/panel, shared component, modal, toast, context menu, empty/loading/error state, and responsive variant.
+- Map the DOM IDs, selectors, classes, data attributes, event listeners/delegation, inline handlers, state stores, function entry points, and tests used by the current UI.
+- Inventory all existing PDF Studio controls and behavior; create a feature-by-feature preservation matrix.
+- Trace resource relationships and existing local/IndexedDB/cloud/Drive persistence paths.
+- Trace save/sync/error states and prove what each state actually means.
+- Identify the actual existing closed-loop operations in source and tests; preserve their semantics. Do not invent or substitute a generic process.
+- Capture/document representative visual baselines in desktop/mobile and English/Arabic where available, without exposing personal data.
+- Record exact Source SHA and actual baseline checks.
+
+### 13.3 Incremental implementation and behavior preservation
+- Follow the work-package gates in the Phase 6 plan. The first work package is documentation/audit only; no source changes until the owner reviews its deliverables.
+- Do not perform a one-shot rewrite of index.html or replace the existing UI wholesale.
+- Preserve existing IDs, event wiring, handlers, data contracts, storage formats, account boundaries, permissions, and integrations unless a separately reviewed task explicitly authorizes a change.
+- A UI redesign does not authorize changing Supabase, RLS, migrations, RPC, auth/OAuth, Google Drive permissions, sync contracts, IndexedDB/LocalStorage schemas, backups, deletion/recovery, annotation identity, or Free/VIP policy.
+- Do not remove, hide without replacement, or weaken existing features and tests. PDF Studio is integrated inside Chapter Workspace; all current Studio functionality must be preserved.
+- Chapter Workspace is the umbrella for chapter resources; first-entry resource setup must be skippable and later additions supported. Mixed-type user Collections and a unified resource index are part of the approved direction.
+- Preserve existing closed-loop business operations exactly. Any desired change in their rules needs separate owner approval.
+- Work screen by screen and keep each diff reviewable. Stop at every acceptance gate for review.
+
+### 13.4 Truthful user feedback and safe recovery
+- Distinguish local durable save from cloud synchronization. Never show Saved before durable local completion is verified or Synced before remote acknowledgement.
+- Any actionable error must explain what happened, the supported likely cause/uncertainty, the current data-safety state, and ordered safe next steps.
+- Provide a direct retry/reconnect/review/recovery action only if it exists, is safe, and is tested.
+- Do not advise clearing browser storage, deleting IndexedDB/LocalStorage, resetting the app, or removing files as generic troubleshooting.
+- Never silently overwrite conflicts or discard pending data. Redact tokens, secrets, private URLs, and personal content from diagnostics.
+
+### 13.5 Acceptance
+A redesigned screen is not complete because a screenshot looks good. Verify its real interactions, data behavior, bilingual layouts, responsive states, accessibility, reduced motion, performance, and regression coverage. Tie evidence to exact Source SHA. Local tests, CI VERIFIED, and owner APPROVED are separate states; Gemini cannot self-approve.
