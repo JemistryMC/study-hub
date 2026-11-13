@@ -254,6 +254,12 @@ const localStorage = {
     }
     if (failNextAccountSnapshotKey && String(k) === String(failNextAccountSnapshotKey)) {
       failNextAccountSnapshotKey = null;
+      if (String(k).startsWith('pharmaTombstones_') && !window.__allowIdbTombstoneFallbackOnSnapshotKeyFail && dbInstance) {
+        dbInstance.failNextTransaction = true;
+        dbInstance.failOnStore = 'workspace_state';
+        dbInstance.failOnMode = 'readwrite';
+        dbInstance.failWithError = true;
+      }
       const qErr = new Error('QuotaExceededError: Simulated failure writing ' + k);
       qErr.name = 'QuotaExceededError';
       throw qErr;
@@ -590,6 +596,11 @@ ${extractFunctionSource(indexHtmlContent, 'handleLectureDrop')}
 ${extractFunctionSource(indexHtmlContent, 'handleAuthSessionChange')}
 ${extractFunctionSource(indexHtmlContent, 'isImportInProgressOrQuarantined')}
 ${extractFunctionSource(indexHtmlContent, 'runWithImportLock')}
+${extractFunctionSource(indexHtmlContent, 'inspectConflictRecoveryDiagnostics')}
+${extractFunctionSource(indexHtmlContent, 'migrateConflictRecoveryToIDB')}
+${extractFunctionSource(indexHtmlContent, 'recordTombstoneDurable')}
+${extractFunctionSource(indexHtmlContent, 'getCompactConflictRecoveryForLocalStorage')}
+${extractFunctionSource(indexHtmlContent, 'persistConflictRecoveryRecordsList')}
 module.exports = {
   localStorage,
   scheduledTimers,
@@ -796,7 +807,12 @@ module.exports = {
   readWorkspaceDomainFromIDB,
   migrateAndHydrateWorkspaceFromIDB,
   inspectArchivedLocalFallbackWorkspaces,
-  recoverArchivedLocalFallbackWorkspace
+  recoverArchivedLocalFallbackWorkspace,
+  inspectConflictRecoveryDiagnostics,
+  migrateConflictRecoveryToIDB,
+  recordTombstoneDurable,
+  mergeConflictRecoveryLists,
+  window
 };
 `;
 
@@ -7434,6 +7450,236 @@ async function main() {
       prod.getSubjects()[0].groups.length === 2 &&
       prod.getSubjects()[0].groups.filter(g => g.name === 'Chapter 2: Distribution').length === 1,
       'P0-R22.3: When retry succeeds in IndexedDB workspace_state, idbPersisted becomes true, modal closes, and exactly 1 Chapter 2 exists without duplicates'
+    );
+
+    // ------------------------------------------------------------------------
+    // P0-R23: Conflict Recovery Diagnostics, 7-Step Verified Migration to IDB,
+    // and Durable Tombstone Persistence Cases A, B, C, D Under Storage Pressure
+    // ------------------------------------------------------------------------
+    const uidP23 = 'c0230000-1111-4222-8333-444455550023';
+    const uidForeign23 = 'f0230000-9999-4888-8777-666655550099';
+    prod.localStorage.clear();
+    idb.stores['workspace_state'].clear();
+    idb.stores['cloud_sync_journal'].clear();
+    prod.toastHistory.length = 0;
+    prod.setSessionUser(uidP23);
+    prod.localStorage.setItem('pharmaLastActiveCloudUid', uidP23);
+
+    // Seed foreign account conflict recovery to verify strict cross-account isolation
+    const foreignRecs23 = [{
+      recoveryId: 'crec_foreign_1',
+      userId: uidForeign23,
+      entityType: 'subjects',
+      entityId: 'sub_f_1',
+      reason: 'concurrent_entity_tie_break',
+      status: 'unresolved',
+      recordedAtIso: '2026-11-10T10:00:00.000Z',
+      losingOperationId: 'op_f_lose_1',
+      winningOperationId: 'op_f_win_1',
+      losingValue: { id: 'sub_f_1', name: 'Foreign Subject' }
+    }];
+    prod.localStorage.setItem('pharmaConflictRecovery_' + uidForeign23, JSON.stringify(foreignRecs23));
+
+    // Seed bloated duplicate + bloated hierarchy records for uidP23
+    const bloatedGroupTree = Array.from({ length: 12 }, (_, gi) => ({
+      id: 700 + gi,
+      name: 'Bloated Group ' + gi,
+      lectures: Array.from({ length: 15 }, (__, li) => ({
+        id: 7000 + gi * 20 + li,
+        name: 'Bloated Lecture ' + li + ' ' + 'X'.repeat(180)
+      }))
+    }));
+    const rawBloatedRecs23 = [
+      {
+        recoveryId: 'crec_p23_dup_win1',
+        userId: uidP23,
+        entityType: 'subjects',
+        entityId: '9700',
+        scopeId: 'entity:subjects:9700',
+        reason: 'concurrent_entity_tie_break',
+        status: 'unresolved',
+        recordedAtIso: '2026-11-01T08:00:00.000Z',
+        losingOperationId: 'op_lose_same_9700',
+        winningOperationId: 'op_win_v1',
+        losingValue: { id: 9700, name: 'Clinical Toxicology Old', groups: bloatedGroupTree }
+      },
+      {
+        recoveryId: 'crec_p23_dup_win2',
+        userId: uidP23,
+        entityType: 'subjects',
+        entityId: '9700',
+        scopeId: 'entity:subjects:9700',
+        reason: 'concurrent_entity_tie_break',
+        status: 'unresolved',
+        recordedAtIso: '2026-11-02T09:00:00.000Z',
+        losingOperationId: 'op_lose_same_9700',
+        winningOperationId: 'op_win_v2',
+        losingValue: { id: 9700, name: 'Clinical Toxicology Old', groups: bloatedGroupTree }
+      },
+      {
+        recoveryId: 'crec_p23_resolved_1',
+        userId: uidP23,
+        entityType: 'groups',
+        entityId: '9710',
+        scopeId: 'entity:groups:9710',
+        reason: 'delete_superseded_concurrent_or_stale_entity',
+        status: 'resolved',
+        recordedAtIso: '2026-11-03T12:00:00.000Z',
+        losingOperationId: 'op_lose_grp_9710',
+        winningOperationId: 'op_win_tomb_9710',
+        losingValue: { id: 9710, name: 'Deleted Chapter Secret Title', lectures: bloatedGroupTree[0].lectures }
+      }
+    ];
+    const rawBloatedJson23 = JSON.stringify(rawBloatedRecs23);
+    prod.localStorage.setItem('pharmaConflictRecovery_' + uidP23, rawBloatedJson23);
+    prod.localStorage.setItem('pharmaAccountWorkspace_' + uidP23, JSON.stringify({
+      user_id: uidP23,
+      subjects: [{ id: 9700, name: 'Clinical Toxicology', groups: [{ id: 9710, name: 'Chapter 1', lectures: [] }] }],
+      schedule: {
+        version: 3,
+        events: [],
+        _conflictRecovery: rawBloatedRecs23
+      }
+    }));
+
+    // 1. Privacy-safe diagnostic inspection before migration
+    const diagBefore23 = prod.inspectConflictRecoveryDiagnostics(uidP23);
+    const diagJsonStr23 = JSON.stringify(diagBefore23);
+    assert(
+      diagBefore23 &&
+      diagBefore23.ok === true &&
+      diagBefore23.idbMigrated === false &&
+      diagBefore23.totalRecords === 3 &&
+      diagBefore23.uniqueRecords === 2 &&
+      diagBefore23.duplicateRecords === 1 &&
+      diagBefore23.duplicateBytesReclaimable > 1000 &&
+      diagBefore23.statusCounts.unresolved === 2 &&
+      diagBefore23.statusCounts.resolved === 1 &&
+      !diagJsonStr23.includes('Clinical Toxicology Old') &&
+      !diagJsonStr23.includes('Deleted Chapter Secret Title'),
+      'P0-R23.1: inspectConflictRecoveryDiagnostics accurately reports total/unique/duplicate counts, reclaimable bytes, and status breakdown without leaking personal titles'
+    );
+
+    // 2. Test interrupted migration (crash after STAGED write before localStorage compaction)
+    prod.window.__exoConflictMigrationTestHooks = {
+      afterStage: () => {
+        throw new Error('SIMULATED_CRASH_AFTER_IDB_STAGE');
+      }
+    };
+    const interruptedMigRes = await prod.migrateConflictRecoveryToIDB(uidP23);
+    prod.window.__exoConflictMigrationTestHooks = null;
+
+    const rawLsAfterInterrupt = prod.localStorage.getItem('pharmaConflictRecovery_' + uidP23);
+    assert(
+      interruptedMigRes &&
+      interruptedMigRes.ok === false &&
+      rawLsAfterInterrupt === rawBloatedJson23,
+      'P0-R23.2: Interrupted migration after STAGED IDB write leaves original pharmaConflictRecovery_<uid> in LocalStorage completely intact'
+    );
+
+    // 3. Resume migration after crash -> detects STAGED journal, verifies SHA-256 & byteLength, compacts LS & account snapshot
+    const migRes23 = await prod.migrateConflictRecoveryToIDB(uidP23);
+    const rawLsAfterMig23 = prod.localStorage.getItem('pharmaConflictRecovery_' + uidP23);
+    const parsedPointer23 = JSON.parse(rawLsAfterMig23 || 'null');
+    const accountSnapAfterMig23 = JSON.parse(prod.localStorage.getItem('pharmaAccountWorkspace_' + uidP23) || 'null');
+    const activeRecsAfterMig23 = prod.getConflictRecoveryRecords(uidP23);
+
+    assert(
+      migRes23 &&
+      migRes23.ok === true &&
+      migRes23.migrated === true &&
+      migRes23.recoveredFromInterruptedStage === true &&
+      migRes23.recordCount === 2 &&
+      parsedPointer23 &&
+      parsedPointer23.__exoIdbMigrated === true &&
+      rawLsAfterMig23.length < 350 &&
+      Array.isArray(accountSnapAfterMig23?.schedule?._conflictRecovery) &&
+      accountSnapAfterMig23.schedule._conflictRecovery.length === 0 &&
+      activeRecsAfterMig23.length === 2 &&
+      prod.localStorage.getItem('pharmaConflictRecovery_' + uidForeign23) === JSON.stringify(foreignRecs23),
+      'P0-R23.3: migrateConflictRecoveryToIDB recovers from interrupted STAGED journal, verifies SHA-256, compacts LocalStorage key to <350B pointer, strips redundant _conflictRecovery from pharmaAccountWorkspace_<uid>, preserves all unique records, and isolates foreign accounts'
+    );
+
+    // 4. Test Tombstone Persistence Cases A, B, C, and D on triggerDeleteGroup
+    prod.setRuntimeState({
+      activeSubjectId: 9700,
+      subjects: [{
+        id: 9700,
+        name: 'Clinical Toxicology',
+        groups: [
+          { id: 9711, name: 'Group A (Case A)', lectures: [{ id: 97110, name: 'Lec A1' }] },
+          { id: 9712, name: 'Group B (Case B)', lectures: [{ id: 97120, name: 'Lec B1' }] },
+          { id: 9713, name: 'Group C (Case C)', lectures: [{ id: 97130, name: 'Lec C1' }] }
+        ]
+      }]
+    });
+    await prod.saveSubjects().idbPersistPromise;
+
+    // Case A: Both LocalStorage and IndexedDB succeed
+    const delCaseARes = await prod.triggerDeleteGroup(9711);
+    const tombsAfterCaseA = prod.getLocalTombstones(uidP23);
+    assert(
+      delCaseARes && delCaseARes.ok === true &&
+      prod.getSubjects()[0].groups.length === 2 &&
+      Boolean(tombsAfterCaseA.groups['9711']) &&
+      Boolean(tombsAfterCaseA.lectures['97110']),
+      'P0-R23.4 (Case A): When both LocalStorage and IndexedDB succeed, triggerDeleteGroup deletes the group and persists tombstones for group and nested lectures'
+    );
+
+    // Case B: LocalStorage fails with QuotaExceededError on pharmaTombstones_<uid>, IndexedDB succeeds on tx.oncomplete
+    prod.setFailNextStorageKeyMatch('pharmaTombstones_');
+    const delCaseBRes = await prod.triggerDeleteGroup(9712); // deletes Group B (9712)
+    prod.setFailNextStorageKeyMatch(null);
+    const tombsAfterCaseB = prod.getLocalTombstones(uidP23);
+    const idbTombDomainB = await prod.readWorkspaceDomainFromIDB('tombstones', uidP23);
+    const journalAfterCaseB = await prod.readDurableCloudSyncJournal(uidP23);
+
+    assert(
+      delCaseBRes &&
+      delCaseBRes.durablePersisted === true &&
+      delCaseBRes.tombstoneDurablePersisted === true &&
+      prod.getSubjects()[0].groups.length === 1 &&
+      prod.getSubjects()[0].groups[0].id === 9713 &&
+      Boolean(tombsAfterCaseB.groups['9712']) &&
+      Boolean(tombsAfterCaseB.lectures['97120']) &&
+      idbTombDomainB && idbTombDomainB.found === true &&
+      Boolean(idbTombDomainB.record?.payload?.groups?.['9712']) &&
+      journalAfterCaseB && journalAfterCaseB.hasDirtyWorkspace === true,
+      'P0-R23.5 (Case B): When LocalStorage throws QuotaExceededError on pharmaTombstones_<uid> but IndexedDB succeeds on tx.oncomplete, triggerDeleteGroup completes deletion, persists tombstones in IDB, and marks cloud_sync_journal dirty'
+    );
+
+    // Case C & D: Both LocalStorage AND IndexedDB fail/abort -> Group C (9713) must NOT be deleted and no orphan tombstone remains
+    prod.toastHistory.length = 0;
+    prod.setFailNextStorageKeyMatch('pharmaTombstones_');
+    idb.failNextTransaction = true;
+    idb.failOnStore = 'workspace_state';
+    idb.failOnMode = 'readwrite';
+    idb.failWithAbort = true;
+    const delCaseDRes = await prod.triggerDeleteGroup(9713); // attempts to delete Group C (9713)
+    prod.setFailNextStorageKeyMatch(null);
+    const tombsAfterCaseD = prod.getLocalTombstones(uidP23);
+
+    assert(
+      delCaseDRes &&
+      delCaseDRes.ok === false &&
+      delCaseDRes.durablePersisted === false &&
+      prod.getSubjects()[0].groups.length === 1 &&
+      prod.getSubjects()[0].groups[0].id === 9713 &&
+      prod.getSubjects()[0].groups[0].lectures.length === 1 &&
+      !tombsAfterCaseD.groups['9713'] &&
+      !tombsAfterCaseD.lectures['97130'] &&
+      prod.toastHistory.some(t => t.type === 'error'),
+      'P0-R23.6 (Cases C & D): When both LocalStorage and IndexedDB fail or abort, triggerDeleteGroup aborts fail-closed, preserves Group C and its lectures, and leaves zero partial tombstones'
+    );
+
+    // Idempotency check: repeating recordTombstonesAtomicBatch for already-tombstoned entity 9712 does not create duplicate operations
+    const existingTomb9712 = prod.getLocalTombstones(uidP23).groups['9712'];
+    const idempBatchRes = prod.recordTombstonesAtomicBatch([{ entityType: 'groups', id: 9712 }], uidP23);
+    assert(
+      idempBatchRes &&
+      idempBatchRes.ok === true &&
+      idempBatchRes.tombstones[0].operationId === existingTomb9712.operationId,
+      'P0-R23.7: recordTombstonesAtomicBatch is idempotent when called repeatedly for an already-tombstoned entity'
     );
   }
 

@@ -11697,13 +11697,20 @@
                         const rawJournalPromise = (typeof recordDurableWorkspaceDirtyJournal === 'function')
                             ? Promise.resolve(recordDurableWorkspaceDirtyJournal(currentUid, true, false, 'subjects')).catch(() => null)
                             : Promise.resolve(null);
-                        failureRes.idbPersistPromise = Promise.all([rawIdbPromise, rawJournalPromise]).then(([idbRes]) => {
+                        failureRes.idbPersistPromise = Promise.all([rawIdbPromise, rawJournalPromise]).then(async ([idbRes]) => {
                             const idbOk = Boolean(idbRes && idbRes.ok === true && idbRes.persisted === true);
                             failureRes.idbPersisted = idbOk;
                             failureRes.durablePersisted = idbOk;
                             failureRes.idbResult = idbRes || { ok: false, persisted: false };
                             if (!idbOk) {
                                 failureRes.idbError = (idbRes && (idbRes.reason || idbRes.error)) || 'idb_persist_failed';
+                            } else if (diag.isQuotaExceeded && typeof migrateConflictRecoveryToIDB === 'function') {
+                                try {
+                                    const migRes = await migrateConflictRecoveryToIDB(currentUid);
+                                    if (migRes && migRes.ok && migRes.freedBytes > 0 && serializedSubjects) {
+                                        try { localStorage.setItem('pharmaSubjectsV4', serializedSubjects); } catch (e) {}
+                                    }
+                                } catch (e) {}
                             }
                             return failureRes;
                         }).catch((idbErr) => {
@@ -12306,28 +12313,63 @@
                         }
                     });
                 });
+                const priorSubjectsSnapshot = Array.isArray(subjects) ? subjects.slice() : [];
+                const priorActiveSubjectId = activeSubjectId;
                 const batchRes = (typeof recordTombstonesAtomicBatch === 'function')
                     ? recordTombstonesAtomicBatch(batchItems)
                     : null;
-                if (!batchRes || !batchRes.ok) {
+                let batchDurableOk = Boolean(batchRes && batchRes.ok);
+                if (!batchDurableOk && batchRes && batchRes.idbPersistPromise) {
+                    try {
+                        const idbBatchRes = await batchRes.idbPersistPromise;
+                        if (idbBatchRes && idbBatchRes.ok && idbBatchRes.idbPersisted === true) {
+                            batchDurableOk = true;
+                        }
+                    } catch (e) {
+                        batchDurableOk = false;
+                    }
+                }
+                if (!batchDurableOk) {
                     showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف المادة حفاظاً على سلامة البيانات ⚠️', 'error');
-                    return { ok: false, persisted: false, reason: 'tombstone_write_failed' };
+                    return { ok: false, persisted: false, idbPersisted: false, durablePersisted: false, reason: 'tombstone_write_failed' };
                 }
                 subjects = subjects.filter(s => String(s.id) !== String(id));
                 if (String(activeSubjectId) === String(id)) activeSubjectId = null;
+                const saveRes = saveSubjects();
+                let idbPersisted = false;
+                if (saveRes && saveRes.persisted !== true && saveRes.queued !== true && saveRes.idbPersistPromise) {
+                    try {
+                        const idbFinal = await saveRes.idbPersistPromise;
+                        idbPersisted = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
+                        saveRes.idbPersisted = idbPersisted;
+                        saveRes.durablePersisted = idbPersisted;
+                    } catch (e) {
+                        saveRes.idbPersisted = false;
+                        saveRes.durablePersisted = false;
+                    }
+                }
+                const durableDeleteConfirmed = Boolean(saveRes && (saveRes.persisted === true || saveRes.idbPersisted === true || saveRes.queued === true));
+                if (!durableDeleteConfirmed) {
+                    subjects = priorSubjectsSnapshot;
+                    activeSubjectId = priorActiveSubjectId;
+                    if (batchRes && typeof batchRes.rollbackDurable === 'function') {
+                        try { await batchRes.rollbackDurable(); } catch (e) {}
+                    }
+                    renderSubjectsList();
+                    showToast('تعذر حفظ حذف المادة في LocalStorage وIndexedDB. لم يتم حذف المادة حفاظاً على سلامة البيانات ⚠️', 'error');
+                    return Object.assign({}, saveRes || {}, {
+                        ok: false,
+                        persisted: false,
+                        idbPersisted: false,
+                        durablePersisted: false,
+                        reason: (saveRes && saveRes.idbError) || (saveRes && saveRes.reason) || 'storage_and_idb_write_failed'
+                    });
+                }
                 if (typeof detachDeletedHierarchyReferences === 'function') {
                     detachDeletedHierarchyReferences({ subjectIds: [targetSub.id], lectureIds: deletedLecIds });
                 }
-                const saveRes = saveSubjects();
                 renderSubjectsList();
-                if (saveRes && (saveRes.persisted === true || saveRes.queued === true)) {
-                    closeModal('confirmModalOverlay');
-                } else if (saveRes && saveRes.idbPersistPromise) {
-                    try {
-                        const idbFinal = await saveRes.idbPersistPromise;
-                        saveRes.idbPersisted = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
-                    } catch (e) {}
-                }
+                closeModal('confirmModalOverlay');
                 if (deletedLecIds.length > 0 && typeof cleanupDeletedLectureLocalArtifacts === 'function') {
                     await cleanupDeletedLectureLocalArtifacts(deletedLecIds);
                 }
@@ -13093,6 +13135,7 @@
                 const targetGroup = cachedTargetGroup || (sub.groups || []).find(g => String(g.id) === String(groupId));
                 if (!targetGroup) return { ok: false, persisted: false, idbPersisted: false, reason: 'group_not_found' };
                 cachedTargetGroup = targetGroup;
+                let lastBatchRes = null;
                 if (!tombstonesRecorded) {
                     const batchItems = [{ entityType: 'groups', id: targetGroup.id, priorEntity: targetGroup }];
                     const deletedLecIds = [];
@@ -13105,14 +13148,30 @@
                     const batchRes = (typeof recordTombstonesAtomicBatch === 'function')
                         ? recordTombstonesAtomicBatch(batchItems)
                         : null;
-                    if (!batchRes || !batchRes.ok) {
+                    lastBatchRes = batchRes;
+                    let batchDurableOk = Boolean(batchRes && batchRes.ok);
+                    if (!batchDurableOk && batchRes && batchRes.idbPersistPromise) {
+                        try {
+                            const idbBatchRes = await batchRes.idbPersistPromise;
+                            if (idbBatchRes && idbBatchRes.ok && idbBatchRes.idbPersisted === true) {
+                                batchDurableOk = true;
+                            }
+                        } catch (e) {
+                            batchDurableOk = false;
+                        }
+                    }
+                    if (!batchDurableOk) {
                         showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف القسم حفاظاً على سلامة البيانات ⚠️', 'error');
-                        return { ok: false, persisted: false, idbPersisted: false, reason: 'tombstone_write_failed' };
+                        return { ok: false, persisted: false, idbPersisted: false, durablePersisted: false, reason: 'tombstone_write_failed' };
                     }
                     cachedDeletedLecIds = deletedLecIds;
                     tombstonesRecorded = true;
                 }
                 const deletedLecIds = cachedDeletedLecIds || [];
+                const priorGroupsSnapshot = Array.isArray(sub.groups) ? sub.groups.slice() : [];
+                const priorExamLectureIdsSnapshot = Array.isArray(sub.examLectureIds) ? sub.examLectureIds.slice() : undefined;
+                const priorSubCausal = sub._causal ? JSON.parse(JSON.stringify(sub._causal)) : undefined;
+                const priorSubDigest = sub._causalDigest;
                 sub.groups = (sub.groups || []).filter(g => String(g.id) !== String(groupId));
                 if (Array.isArray(sub.examLectureIds) && deletedLecIds.length > 0) {
                     const delSet = new Set(deletedLecIds.map(String));
@@ -13122,14 +13181,7 @@
                 if (typeof stampEntityMutation === 'function') {
                     try { stampEntityMutation(sub, 'subjects', sub.id); } catch (e) {}
                 }
-                if (deletedLecIds.length > 0 && typeof detachDeletedHierarchyReferences === 'function') {
-                    detachDeletedHierarchyReferences({ subjectIds: [], lectureIds: deletedLecIds });
-                }
                 const saveRes = saveSubjects();
-                renderGroups();
-                if (saveRes && (saveRes.persisted === true || saveRes.queued === true)) {
-                    closeModal('confirmModalOverlay');
-                }
                 let idbPersisted = false;
                 if (saveRes && saveRes.idbPersistPromise) {
                     try {
@@ -13144,8 +13196,17 @@
                 }
                 const durableDeleteConfirmed = Boolean(saveRes && (saveRes.persisted === true || saveRes.idbPersisted === true || saveRes.queued === true));
                 if (!durableDeleteConfirmed) {
+                    sub.groups = priorGroupsSnapshot;
+                    if (priorExamLectureIdsSnapshot !== undefined) sub.examLectureIds = priorExamLectureIdsSnapshot;
+                    if (priorSubCausal !== undefined) sub._causal = priorSubCausal;
+                    sub._causalDigest = priorSubDigest;
+                    tombstonesRecorded = false;
+                    if (lastBatchRes && typeof lastBatchRes.rollbackDurable === 'function') {
+                        try { await lastBatchRes.rollbackDurable(); } catch (e) {}
+                    }
+                    renderGroups();
                     if (typeof showToast === 'function') {
-                        showToast('تعذر حفظ حذف القسم في LocalStorage وIndexedDB. يمكنك إعادة المحاولة ⚠️', 'error');
+                        showToast('تعذر حفظ حذف القسم في LocalStorage وIndexedDB. لم يتم حذف القسم حفاظاً على سلامة البيانات ⚠️', 'error');
                     }
                     return Object.assign({}, saveRes || {}, {
                         ok: false,
@@ -13155,13 +13216,19 @@
                         reason: (saveRes && saveRes.idbError) || (saveRes && saveRes.reason) || 'storage_and_idb_write_failed'
                     });
                 }
+                if (deletedLecIds.length > 0 && typeof detachDeletedHierarchyReferences === 'function') {
+                    detachDeletedHierarchyReferences({ subjectIds: [], lectureIds: deletedLecIds });
+                }
+                renderGroups();
+                closeModal('confirmModalOverlay');
                 if (deletedLecIds.length > 0 && typeof cleanupDeletedLectureLocalArtifacts === 'function') {
                     await cleanupDeletedLectureLocalArtifacts(deletedLecIds);
                 }
-                if (saveRes && saveRes.ok !== false) {
-                    showToast('تم حذف القسم', 'error');
-                }
-                return saveRes;
+                showToast('تم حذف القسم', 'error');
+                return Object.assign({}, saveRes || {}, {
+                    durablePersisted: true,
+                    tombstoneDurablePersisted: true
+                });
             });
         }
 
@@ -13336,13 +13403,25 @@
                 if(!group) return { ok: false, persisted: false, reason: 'group_not_found' };
                 const targetLec = (group.lectures || []).find(l => String(l.id) === String(lecId));
                 if (!targetLec) return { ok: false, persisted: false, reason: 'lecture_not_found' };
-                const tombRes = (typeof recordTombstone === 'function')
-                    ? recordTombstone('lectures', lecId, null, targetLec)
-                    : null;
-                if (!tombRes) {
-                    showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف المحاضرة حفاظاً على سلامة البيانات ⚠️', 'error');
-                    return { ok: false, persisted: false, reason: 'tombstone_write_failed' };
+                let tombDurableOk = false;
+                let tombDurableRes = null;
+                if (typeof recordTombstoneDurable === 'function') {
+                    tombDurableRes = await recordTombstoneDurable('lectures', lecId, null, targetLec);
+                    tombDurableOk = Boolean(tombDurableRes && tombDurableRes.ok);
+                } else if (typeof recordTombstone === 'function') {
+                    const syncTomb = recordTombstone('lectures', lecId, null, targetLec);
+                    tombDurableOk = Boolean(syncTomb);
                 }
+                if (!tombDurableOk) {
+                    showToast('تعذر حفظ سجل الحذف محلياً. لم يتم حذف المحاضرة حفاظاً على سلامة البيانات ⚠️', 'error');
+                    return { ok: false, persisted: false, idbPersisted: false, durablePersisted: false, reason: 'tombstone_write_failed' };
+                }
+                const priorLecturesSnapshot = Array.isArray(group.lectures) ? group.lectures.slice() : [];
+                const priorExamLectureIdsSnapshot = Array.isArray(sub.examLectureIds) ? sub.examLectureIds.slice() : undefined;
+                const priorGrpCausal = group._causal ? JSON.parse(JSON.stringify(group._causal)) : undefined;
+                const priorGrpDigest = group._causalDigest;
+                const priorSubCausal = sub._causal ? JSON.parse(JSON.stringify(sub._causal)) : undefined;
+                const priorSubDigest = sub._causalDigest;
                 group.lectures = group.lectures.filter(l => String(l.id) !== String(lecId));
                 if (Array.isArray(sub.examLectureIds)) {
                     sub.examLectureIds = sub.examLectureIds.filter(lid => String(lid) !== String(lecId));
@@ -13353,19 +13432,45 @@
                     try { stampEntityMutation(group, 'groups', group.id); } catch (e) {}
                     try { stampEntityMutation(sub, 'subjects', sub.id); } catch (e) {}
                 }
+                const saveRes = saveSubjects();
+                let idbPersisted = false;
+                if (saveRes && saveRes.persisted !== true && saveRes.queued !== true && saveRes.idbPersistPromise) {
+                    try {
+                        const idbFinal = await saveRes.idbPersistPromise;
+                        idbPersisted = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
+                        saveRes.idbPersisted = idbPersisted;
+                        saveRes.durablePersisted = idbPersisted;
+                    } catch (e) {
+                        saveRes.idbPersisted = false;
+                        saveRes.durablePersisted = false;
+                    }
+                }
+                const durableDeleteConfirmed = Boolean(saveRes && (saveRes.persisted === true || saveRes.idbPersisted === true || saveRes.queued === true));
+                if (!durableDeleteConfirmed) {
+                    group.lectures = priorLecturesSnapshot;
+                    if (priorExamLectureIdsSnapshot !== undefined) sub.examLectureIds = priorExamLectureIdsSnapshot;
+                    if (priorGrpCausal !== undefined) group._causal = priorGrpCausal;
+                    group._causalDigest = priorGrpDigest;
+                    if (priorSubCausal !== undefined) sub._causal = priorSubCausal;
+                    sub._causalDigest = priorSubDigest;
+                    if (tombDurableRes && typeof tombDurableRes.rollbackDurable === 'function') {
+                        try { await tombDurableRes.rollbackDurable(); } catch (e) {}
+                    }
+                    renderGroups();
+                    showToast('تعذر حفظ حذف المحاضرة في LocalStorage وIndexedDB. لم يتم حذف المحاضرة حفاظاً على سلامة البيانات ⚠️', 'error');
+                    return Object.assign({}, saveRes || {}, {
+                        ok: false,
+                        persisted: false,
+                        idbPersisted: false,
+                        durablePersisted: false,
+                        reason: (saveRes && saveRes.idbError) || (saveRes && saveRes.reason) || 'storage_and_idb_write_failed'
+                    });
+                }
                 if (typeof detachDeletedHierarchyReferences === 'function') {
                     detachDeletedHierarchyReferences({ subjectIds: [], lectureIds: [lecId] });
                 }
-                const saveRes = saveSubjects();
                 renderGroups();
-                if (saveRes && (saveRes.persisted === true || saveRes.queued === true)) {
-                    closeModal('confirmModalOverlay');
-                } else if (saveRes && saveRes.idbPersistPromise) {
-                    try {
-                        const idbFinal = await saveRes.idbPersistPromise;
-                        saveRes.idbPersisted = Boolean(idbFinal && (idbFinal.idbPersisted === true || (idbFinal.ok === true && idbFinal.persisted === true)));
-                    } catch (e) {}
-                }
+                closeModal('confirmModalOverlay');
                 if (typeof cleanupDeletedLectureLocalArtifacts === 'function') {
                     await cleanupDeletedLectureLocalArtifacts([lecId]);
                 }
@@ -13953,7 +14058,13 @@
                 schedulePayload._tombstones = getLocalTombstones();
             }
             if (typeof getConflictRecoveryRecords === 'function') {
-                schedulePayload._conflictRecovery = getConflictRecoveryRecords();
+                const rawCr = localStorage.getItem('pharmaConflictRecovery_' + currentUid);
+                const isCrIdbMigrated = Boolean(rawCr && rawCr.includes('"__exoIdbMigrated":true'));
+                if (!isCrIdbMigrated && (!rawCr || rawCr.length <= 16384)) {
+                    schedulePayload._conflictRecovery = getConflictRecoveryRecords();
+                } else {
+                    schedulePayload._conflictRecovery = [];
+                }
             }
             if (typeof getLocalDeviceRegistry === 'function') {
                 schedulePayload._deviceRegistry = getLocalDeviceRegistry();
@@ -14062,13 +14173,15 @@
                         const rawJournalPromise = (typeof recordDurableWorkspaceDirtyJournal === 'function')
                             ? Promise.resolve(recordDurableWorkspaceDirtyJournal(currentUid, true, false, 'schedule')).catch(() => null)
                             : Promise.resolve(null);
-                        failureRes.idbPersistPromise = Promise.all([rawIdbPromise, rawJournalPromise]).then(([idbRes]) => {
+                        failureRes.idbPersistPromise = Promise.all([rawIdbPromise, rawJournalPromise]).then(async ([idbRes]) => {
                             const idbOk = Boolean(idbRes && idbRes.ok === true && idbRes.persisted === true);
                             failureRes.idbPersisted = idbOk;
                             failureRes.durablePersisted = idbOk;
                             failureRes.idbResult = idbRes || { ok: false, persisted: false };
                             if (!idbOk) {
                                 failureRes.idbError = (idbRes && (idbRes.reason || idbRes.error)) || 'idb_persist_failed';
+                            } else if (diag.isQuotaExceeded && typeof migrateConflictRecoveryToIDB === 'function') {
+                                try { await migrateConflictRecoveryToIDB(currentUid); } catch (e) {}
                             }
                             return failureRes;
                         }).catch((idbErr) => {
@@ -24608,6 +24721,7 @@
             const subKey = getWorkspaceDomainStateKey('subjects', targetUid);
             const schKey = getWorkspaceDomainStateKey('schedule', targetUid);
             const logKey = getWorkspaceDomainStateKey('logs', targetUid);
+            const tombKey = getWorkspaceDomainStateKey('tombstones', targetUid);
 
             // 1. Read existing IndexedDB workspace_state records + migration journal for this account
             const idbState = await new Promise((resolve) => {
@@ -24618,13 +24732,15 @@
                     const rSub = store.get(subKey);
                     const rSch = store.get(schKey);
                     const rLog = store.get(logKey);
+                    const rTomb = store.get(tombKey);
                     tx.oncomplete = () => {
                         resolve({
                             ok: true,
                             mig: (rMig.result && String(rMig.result.userId) === targetUid) ? rMig.result : null,
                             sub: (rSub.result && String(rSub.result.userId) === targetUid) ? rSub.result : null,
                             sch: (rSch.result && String(rSch.result.userId) === targetUid) ? rSch.result : null,
-                            log: (rLog.result && String(rLog.result.userId) === targetUid) ? rLog.result : null
+                            log: (rLog.result && String(rLog.result.userId) === targetUid) ? rLog.result : null,
+                            tomb: (rTomb.result && String(rTomb.result.userId) === targetUid) ? rTomb.result : null
                         });
                     };
                     tx.onerror = () => resolve({ ok: false });
@@ -24636,6 +24752,14 @@
 
             if (!idbState || !idbState.ok) {
                 return { ok: false, migrated: false, hydrated: false, reason: 'idb_read_failed' };
+            }
+
+            // Migrate and hydrate Conflict Recovery records first to free any multi-megabyte LocalStorage bloat
+            let crMigrationRes = null;
+            if (typeof migrateConflictRecoveryToIDB === 'function') {
+                try {
+                    crMigrationRes = await migrateConflictRecoveryToIDB(targetUid, opCtx);
+                } catch (e) {}
             }
 
             const lastActiveUid = localStorage.getItem('pharmaLastActiveCloudUid')
@@ -24677,16 +24801,50 @@
                 } catch (e) {}
             }
 
-            const tombstones = typeof getLocalTombstones === 'function' ? getLocalTombstones(targetUid) : {};
             let hydratedDomains = [];
             let migratedDomains = [];
+            if (crMigrationRes && crMigrationRes.ok) {
+                if (crMigrationRes.migrated) migratedDomains.push('conflict_recovery');
+                if (crMigrationRes.hydrated) hydratedDomains.push('conflict_recovery');
+            }
+
+            // Reconcile tombstones between IndexedDB workspace_state and localStorage BEFORE reconciling subjects/schedule/logs
+            const tombHadLsFailure = Boolean(idbState.tomb && idbState.tomb.lsPersisted === false);
+            if (idbState.tomb && idbState.tomb.payload && typeof idbState.tomb.payload === 'object') {
+                const rawLsTomb = localStorage.getItem('pharmaTombstones_' + targetUid);
+                if (tombHadLsFailure || !rawLsTomb) {
+                    let lsTombObj = {};
+                    try { if (rawLsTomb) lsTombObj = JSON.parse(rawLsTomb); } catch (e) {}
+                    const mergedStones = (typeof mergeTombstoneMapsWithCausalEngine === 'function')
+                        ? mergeTombstoneMapsWithCausalEngine(idbState.tomb.payload, lsTombObj, targetUid)
+                        : idbState.tomb.payload;
+                    const tombMemMap = (typeof inMemoryTombstonesByUid !== 'undefined' && inMemoryTombstonesByUid instanceof Map)
+                        ? inMemoryTombstonesByUid
+                        : (globalThis.__exoInMemoryTombstonesByUid || (globalThis.__exoInMemoryTombstonesByUid = new Map()));
+                    const tombStateMap = (typeof tombstonesIdbStateByUid !== 'undefined' && tombstonesIdbStateByUid instanceof Map)
+                        ? tombstonesIdbStateByUid
+                        : (globalThis.__exoTombstonesIdbStateByUid || (globalThis.__exoTombstonesIdbStateByUid = new Map()));
+                    tombMemMap.set(targetUid, mergedStones);
+                    let flushedToLs = false;
+                    try {
+                        localStorage.setItem('pharmaTombstones_' + targetUid, JSON.stringify(mergedStones));
+                        flushedToLs = true;
+                    } catch (e) {
+                        flushedToLs = false;
+                    }
+                    tombStateMap.set(targetUid, { hasUnflushedToLs: !flushedToLs, updatedAt: Date.now() });
+                    hydratedDomains.push('tombstones');
+                }
+            }
+
+            const tombstones = typeof getLocalTombstones === 'function' ? getLocalTombstones(targetUid) : {};
             const hadInterruptedMigration = Boolean(idbState.mig && idbState.mig.phase && idbState.mig.phase !== 'COMMITTED');
 
             // Reconcile subjects between IndexedDB workspace_state and localStorage:
             // Only hydrate from IndexedDB over existing localStorage when idbState.sub.lsPersisted === false (meaning a localStorage write failed and IndexedDB caught the newer mutation) or when localStorage has no subjects.
             let reconciledSubjects = null;
             const idbSubjects = (idbState.sub && Array.isArray(idbState.sub.payload)) ? idbState.sub.payload : null;
-            const subHadLsFailure = Boolean(idbState.sub && idbState.sub.lsPersisted === false);
+            const subHadLsFailure = Boolean((idbState.sub && idbState.sub.lsPersisted === false) || tombHadLsFailure);
             if (idbSubjects && Array.isArray(lsSubjects) && lsSubjects.length > 0) {
                 if (subHadLsFailure) {
                     if (typeof mergeSubjectsHierarchyWithCausalEngine === 'function') {
@@ -24703,11 +24861,20 @@
                     }
                 }
             } else if (idbSubjects && subHadLsFailure) {
-                reconciledSubjects = idbSubjects;
+                if (typeof mergeSubjectsHierarchyWithCausalEngine === 'function') {
+                    reconciledSubjects = mergeSubjectsHierarchyWithCausalEngine(idbSubjects, [], tombstones, targetUid).subjects;
+                } else {
+                    reconciledSubjects = idbSubjects;
+                }
                 hydratedDomains.push('subjects');
             } else if (Array.isArray(lsSubjects) && lsSubjects.length > 0) {
-                reconciledSubjects = lsSubjects;
-                migratedDomains.push('subjects');
+                if (tombHadLsFailure && typeof mergeSubjectsHierarchyWithCausalEngine === 'function') {
+                    reconciledSubjects = mergeSubjectsHierarchyWithCausalEngine(lsSubjects, [], tombstones, targetUid).subjects;
+                    hydratedDomains.push('subjects');
+                } else {
+                    reconciledSubjects = lsSubjects;
+                    migratedDomains.push('subjects');
+                }
             } else if (idbSubjects && lsSubjects === null) {
                 reconciledSubjects = idbSubjects;
                 hydratedDomains.push('subjects');
@@ -36346,33 +36513,104 @@ function togglePdfAudioPlayerBar(forceState) {
             };
         }
 
+        const inMemoryConflictRecoveryByUid = globalThis.__exoInMemoryConflictRecoveryByUid || (globalThis.__exoInMemoryConflictRecoveryByUid = new Map());
+        const conflictRecoveryIdbStateByUid = globalThis.__exoConflictRecoveryIdbStateByUid || (globalThis.__exoConflictRecoveryIdbStateByUid = new Map());
+        const inMemoryTombstonesByUid = globalThis.__exoInMemoryTombstonesByUid || (globalThis.__exoInMemoryTombstonesByUid = new Map());
+        const tombstonesIdbStateByUid = globalThis.__exoTombstonesIdbStateByUid || (globalThis.__exoTombstonesIdbStateByUid = new Map());
+
         function getConflictRecoveryRecords(targetUid = null) {
             const uid = targetUid ? String(targetUid) : (currentCloudUser ? String(currentCloudUser.id) : 'local');
+            const memMap = (typeof inMemoryConflictRecoveryByUid !== 'undefined' && inMemoryConflictRecoveryByUid instanceof Map)
+                ? inMemoryConflictRecoveryByUid
+                : (globalThis.__exoInMemoryConflictRecoveryByUid || (globalThis.__exoInMemoryConflictRecoveryByUid = new Map()));
+            const stateMap = (typeof conflictRecoveryIdbStateByUid !== 'undefined' && conflictRecoveryIdbStateByUid instanceof Map)
+                ? conflictRecoveryIdbStateByUid
+                : (globalThis.__exoConflictRecoveryIdbStateByUid || (globalThis.__exoConflictRecoveryIdbStateByUid = new Map()));
             try {
                 const raw = localStorage.getItem('pharmaConflictRecovery_' + uid);
                 if (raw) {
                     const parsed = JSON.parse(raw);
-                    if (Array.isArray(parsed)) return parsed;
+                    if (Array.isArray(parsed)) {
+                        memMap.set(uid, parsed);
+                        return parsed;
+                    }
+                    if (parsed && typeof parsed === 'object' && parsed.__exoIdbMigrated === true && (!parsed.userId || String(parsed.userId) === uid)) {
+                        const cached = memMap.get(uid);
+                        if (Array.isArray(cached)) return cached;
+                        return [];
+                    }
+                } else {
+                    const idbSt = stateMap.get(uid);
+                    if (idbSt && idbSt.quotaFallbackActive === true && Array.isArray(memMap.get(uid))) {
+                        const hasAnyWorkspaceState = Boolean(
+                            localStorage.getItem('pharmaWorkspaceDirty') !== null ||
+                            localStorage.getItem('pharmaWorkspaceDirty_' + uid) !== null ||
+                            localStorage.getItem('pharmaSubjectsV4') !== null ||
+                            localStorage.getItem('pharmaScheduleV4') !== null
+                        );
+                        if (hasAnyWorkspaceState) {
+                            return memMap.get(uid);
+                        }
+                    }
+                    memMap.delete(uid);
                 }
             } catch (e) {}
             return [];
         }
 
         function mergeConflictRecoveryLists(listA = [], listB = []) {
-            const map = new Map();
+            const mapById = new Map();
+            const mapBySemanticSig = new Map();
+            const computeLosingSig = (item) => {
+                if (!item || typeof item !== 'object') return '';
+                const scope = String(item.scopeId || '');
+                const eType = String(item.entityType || '');
+                const eId = String(item.entityId || '');
+                const reason = String(item.reason || '');
+                const lOpId = String(item.losingOperationId || (item.losingCausal && item.losingCausal.operationId) || '');
+                let valDigest = '';
+                try {
+                    if (item.losingValue !== undefined && item.losingValue !== null) {
+                        if (typeof item.losingValue === 'object' && !Array.isArray(item.losingValue)) {
+                            const shallow = {};
+                            Object.keys(item.losingValue).sort().forEach(k => {
+                                if (k === '_causal' || k === '_causalDigest' || k === '_needsCausalStamp' || k === '_updatedAt') return;
+                                if ((eType === 'subjects' || eType === 'groups') && (reason === 'concurrent_update_tie_break' || reason === 'unresolved_legacy_ancestry') && (k === 'groups' || k === 'lectures' || k === 'wirdLogs' || k === 'continuousLogs')) return;
+                                shallow[k] = item.losingValue[k];
+                            });
+                            valDigest = JSON.stringify(shallow);
+                        } else {
+                            valDigest = JSON.stringify(item.losingValue);
+                        }
+                    } else if (item.candidateEnvelope !== undefined) {
+                        valDigest = JSON.stringify(item.candidateEnvelope);
+                    }
+                } catch (e) {
+                    valDigest = String(eId);
+                }
+                return `${scope}::${eType}::${eId}::${reason}::${lOpId}::${valDigest}`;
+            };
             const addList = (arr) => {
                 if (!Array.isArray(arr)) return;
                 arr.forEach(item => {
                     if (!item || typeof item !== 'object') return;
                     const key = String(item.recoveryId || `${item.scopeId || ''}::${item.losingOperationId || ''}::${item.winningOperationId || ''}`);
-                    if (!map.has(key)) {
-                        map.set(key, item);
+                    if (mapById.has(key)) return;
+                    const semSig = computeLosingSig(item);
+                    if (semSig && mapBySemanticSig.has(semSig)) {
+                        const existing = mapBySemanticSig.get(semSig);
+                        const existingValid = Boolean(existing && (existing.losingValue !== undefined || existing.candidateEnvelope !== undefined));
+                        if (existingValid) {
+                            return;
+                        }
                     }
+                    mapById.set(key, item);
+                    if (semSig) mapBySemanticSig.set(semSig, item);
                 });
             };
             addList(listA);
             addList(listB);
-            return Array.from(map.values());
+            return Array.from(mapById.values());
         }
 
         function recordConflictRecoveryCandidate(entry, targetUid = null) {
@@ -36385,9 +36623,39 @@ function togglePdfAudioPlayerBar(forceState) {
 
             const recoveryId = `conflict_${scopeId}_${losingCausal.operationId}_vs_${winningCausal.operationId}`;
             const reason = String(entry.reason || 'concurrent_conflict');
+            const entityType = String(entry.entityType || 'entity');
             let clonedLosingValue = null;
             try {
                 clonedLosingValue = entry.losingValue !== undefined ? JSON.parse(JSON.stringify(entry.losingValue)) : null;
+                if (clonedLosingValue && typeof clonedLosingValue === 'object' && !Array.isArray(clonedLosingValue)) {
+                    const isShallowHierarchyUpdateConflict = (
+                        (entityType === 'subjects' || entityType === 'groups') &&
+                        (reason === 'concurrent_update_tie_break' || reason === 'unresolved_legacy_ancestry')
+                    );
+                    if (isShallowHierarchyUpdateConflict) {
+                        if (Array.isArray(clonedLosingValue.groups)) {
+                            clonedLosingValue._groupOrderIds = clonedLosingValue.groups.map(g => String(g && g.id !== undefined ? g.id : '')).filter(Boolean);
+                            delete clonedLosingValue.groups;
+                        }
+                        if (Array.isArray(clonedLosingValue.lectures)) {
+                            clonedLosingValue._lectureOrderIds = clonedLosingValue.lectures.map(l => String(l && l.id !== undefined ? l.id : '')).filter(Boolean);
+                            delete clonedLosingValue.lectures;
+                        }
+                        if (Array.isArray(clonedLosingValue.wirdLogs)) {
+                            delete clonedLosingValue.wirdLogs;
+                        }
+                        if (Array.isArray(clonedLosingValue.continuousLogs)) {
+                            delete clonedLosingValue.continuousLogs;
+                        }
+                    } else if (entityType === 'annotations_page') {
+                        if (Array.isArray(clonedLosingValue.localStrokes)) {
+                            clonedLosingValue.localStrokes.forEach(s => { if (s && typeof s === 'object') delete s._canonicalGeomOrdinal; });
+                        }
+                        if (Array.isArray(clonedLosingValue.remoteStrokes)) {
+                            clonedLosingValue.remoteStrokes.forEach(s => { if (s && typeof s === 'object') delete s._canonicalGeomOrdinal; });
+                        }
+                    }
+                }
             } catch (e) {
                 clonedLosingValue = entry.losingValue ?? null;
             }
@@ -36395,9 +36663,11 @@ function togglePdfAudioPlayerBar(forceState) {
             const record = {
                 recoveryId: recoveryId,
                 scopeId: scopeId,
-                entityType: String(entry.entityType || 'entity'),
+                entityType: entityType,
                 entityId: String(entry.entityId || ''),
                 reason: reason,
+                status: String(entry.status || 'unresolved'),
+                recordedAtMs: Number(entry.recordedAtMs || Date.now()),
                 losingOperationId: losingCausal.operationId,
                 winningOperationId: winningCausal.operationId,
                 losingCausal: losingCausal,
@@ -36405,12 +36675,558 @@ function togglePdfAudioPlayerBar(forceState) {
                 losingValue: clonedLosingValue
             };
 
+            const memMap = (typeof inMemoryConflictRecoveryByUid !== 'undefined' && inMemoryConflictRecoveryByUid instanceof Map)
+                ? inMemoryConflictRecoveryByUid
+                : (globalThis.__exoInMemoryConflictRecoveryByUid || (globalThis.__exoInMemoryConflictRecoveryByUid = new Map()));
+            const stateMap = (typeof conflictRecoveryIdbStateByUid !== 'undefined' && conflictRecoveryIdbStateByUid instanceof Map)
+                ? conflictRecoveryIdbStateByUid
+                : (globalThis.__exoConflictRecoveryIdbStateByUid || (globalThis.__exoConflictRecoveryIdbStateByUid = new Map()));
+
             const currentList = getConflictRecoveryRecords(uid);
             const merged = mergeConflictRecoveryLists(currentList, [record]);
+            memMap.set(uid, merged);
+
             try {
-                localStorage.setItem('pharmaConflictRecovery_' + uid, JSON.stringify(merged));
-            } catch (e) {}
+                const existingRaw = localStorage.getItem('pharmaConflictRecovery_' + uid);
+                const alreadyMigrated = Boolean(existingRaw && existingRaw.includes('"__exoIdbMigrated":true'));
+                const serialized = JSON.stringify(merged);
+                if (alreadyMigrated || serialized.length > 32768) {
+                    const ptr = JSON.stringify({
+                        __exoIdbMigrated: true,
+                        version: 1,
+                        userId: uid,
+                        count: merged.length,
+                        byteLength: serialized.length,
+                        updatedAt: Date.now()
+                    });
+                    localStorage.setItem('pharmaConflictRecovery_' + uid, ptr);
+                    stateMap.set(uid, { idbMigrated: true, quotaFallbackActive: true, count: merged.length, updatedAt: Date.now() });
+                    if (typeof migrateConflictRecoveryToIDB === 'function') {
+                        Promise.resolve().then(() => migrateConflictRecoveryToIDB(uid)).catch(() => {});
+                    }
+                } else {
+                    localStorage.setItem('pharmaConflictRecovery_' + uid, serialized);
+                }
+            } catch (e) {
+                stateMap.set(uid, { idbMigrated: false, quotaFallbackActive: true, count: merged.length, updatedAt: Date.now() });
+                if (typeof migrateConflictRecoveryToIDB === 'function') {
+                    Promise.resolve().then(() => migrateConflictRecoveryToIDB(uid)).catch(() => {});
+                }
+            }
             return record;
+        }
+
+        function inspectConflictRecoveryDiagnostics(targetUid = null) {
+            const uid = targetUid ? String(targetUid) : (currentCloudUser ? String(currentCloudUser.id) : 'local');
+            let rawLs = null;
+            let localStorageBytes = 0;
+            let idbMigrated = false;
+            let rawParsedList = null;
+            try {
+                rawLs = localStorage.getItem('pharmaConflictRecovery_' + uid);
+                if (rawLs) {
+                    localStorageBytes = rawLs.length * 2;
+                    const parsed = JSON.parse(rawLs);
+                    if (Array.isArray(parsed)) {
+                        rawParsedList = parsed;
+                    } else if (parsed && typeof parsed === 'object' && parsed.__exoIdbMigrated === true) {
+                        idbMigrated = true;
+                    }
+                }
+            } catch (e) {}
+
+            const activeRecords = Array.isArray(rawParsedList) ? rawParsedList : getConflictRecoveryRecords(uid);
+            const totalRecords = Array.isArray(activeRecords) ? activeRecords.length : 0;
+            const statusCounts = { unresolved: 0, resolved: 0, recovered: 0, unknown: 0 };
+            const byEntityType = {};
+            const byReason = {};
+            const recordSummaries = [];
+            const seenSemanticSigs = new Set();
+            let duplicateCount = 0;
+            let reclaimableDuplicateBytes = 0;
+            let totalBytes = 0;
+            let oldestTimestampMs = null;
+            let newestTimestampMs = null;
+
+            (Array.isArray(activeRecords) ? activeRecords : []).forEach((rec, idx) => {
+                if (!rec || typeof rec !== 'object') return;
+                let recJson = '';
+                try { recJson = JSON.stringify(rec); } catch (e) { recJson = ''; }
+                const recBytes = recJson.length * 2;
+                totalBytes += recBytes;
+
+                const rawStatus = String(rec.status || '').toLowerCase();
+                const normStatus = (rawStatus === 'resolved' || rawStatus === 'recovered' || rawStatus === 'unresolved')
+                    ? rawStatus
+                    : (rec.losingValue !== undefined || rec.candidateEnvelope !== undefined ? 'unresolved' : 'unknown');
+                statusCounts[normStatus] = (statusCounts[normStatus] || 0) + 1;
+
+                const eType = String(rec.entityType || 'unknown');
+                const reason = String(rec.reason || 'unknown');
+                const ts = Number(rec.recordedAtMs || (rec.losingCausal && rec.losingCausal.clientTimestamp) || (rec.winningCausal && rec.winningCausal.clientTimestamp) || 0) || null;
+                if (ts) {
+                    if (oldestTimestampMs === null || ts < oldestTimestampMs) oldestTimestampMs = ts;
+                    if (newestTimestampMs === null || ts > newestTimestampMs) newestTimestampMs = ts;
+                }
+
+                let valDigest = '';
+                try {
+                    if (rec.losingValue !== undefined && rec.losingValue !== null) {
+                        if (typeof rec.losingValue === 'object' && !Array.isArray(rec.losingValue)) {
+                            const shallow = {};
+                            Object.keys(rec.losingValue).sort().forEach(k => {
+                                if (k === '_causal' || k === '_causalDigest' || k === '_needsCausalStamp' || k === '_updatedAt') return;
+                                if ((eType === 'subjects' || eType === 'groups') && (reason === 'concurrent_update_tie_break' || reason === 'unresolved_legacy_ancestry') && (k === 'groups' || k === 'lectures' || k === 'wirdLogs' || k === 'continuousLogs')) return;
+                                shallow[k] = rec.losingValue[k];
+                            });
+                            valDigest = JSON.stringify(shallow);
+                        } else {
+                            valDigest = JSON.stringify(rec.losingValue);
+                        }
+                    } else if (rec.candidateEnvelope !== undefined) {
+                        valDigest = JSON.stringify(rec.candidateEnvelope);
+                    }
+                } catch (e) {}
+                const semSig = `${rec.scopeId || ''}::${eType}::${rec.entityId || ''}::${reason}::${rec.losingOperationId || ''}::${valDigest}`;
+                const isDuplicate = seenSemanticSigs.has(semSig);
+                if (isDuplicate) {
+                    duplicateCount++;
+                    reclaimableDuplicateBytes += recBytes;
+                } else {
+                    seenSemanticSigs.add(semSig);
+                }
+
+                if (!byEntityType[eType]) byEntityType[eType] = { count: 0, bytes: 0, pctOfTotalBytes: 0 };
+                byEntityType[eType].count++;
+                byEntityType[eType].bytes += recBytes;
+
+                if (!byReason[reason]) byReason[reason] = { count: 0, bytes: 0, pctOfTotalBytes: 0 };
+                byReason[reason].count++;
+                byReason[reason].bytes += recBytes;
+
+                recordSummaries.push({
+                    index: idx,
+                    recoveryId: String(rec.recoveryId || `rec_${idx}`),
+                    scopeId: String(rec.scopeId || ''),
+                    entityType: eType,
+                    reason: reason,
+                    status: normStatus,
+                    bytes: recBytes,
+                    timestampMs: ts,
+                    isDuplicate: isDuplicate
+                });
+            });
+
+            Object.keys(byEntityType).forEach(k => {
+                byEntityType[k].pctOfTotalBytes = totalBytes > 0 ? Number(((byEntityType[k].bytes / totalBytes) * 100).toFixed(2)) : 0;
+            });
+            Object.keys(byReason).forEach(k => {
+                byReason[k].pctOfTotalBytes = totalBytes > 0 ? Number(((byReason[k].bytes / totalBytes) * 100).toFixed(2)) : 0;
+            });
+
+            return {
+                ok: true,
+                uid,
+                totalRecords,
+                uniqueRecords: totalRecords - duplicateCount,
+                duplicateCount,
+                duplicateRecords: duplicateCount,
+                reclaimableDuplicateBytes,
+                duplicateBytesReclaimable: reclaimableDuplicateBytes,
+                totalBytes,
+                localStorageBytes,
+                idbMigrated,
+                statusCounts,
+                oldestTimestampMs,
+                newestTimestampMs,
+                byEntityType,
+                byReason,
+                recordSummaries
+            };
+        }
+
+        async function migrateConflictRecoveryToIDB(uid = null, opCtx = null) {
+            const targetUid = uid ? String(uid) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : (currentCloudUser ? String(currentCloudUser.id) : 'local'));
+            if (!dbInstance && typeof initPdfDB === 'function') {
+                try { await initPdfDB(); } catch (e) {}
+            }
+            if (!dbInstance || !dbInstance.objectStoreNames || !dbInstance.objectStoreNames.contains('workspace_state')) {
+                return { ok: false, migrated: false, hydrated: false, reason: 'idb_workspace_state_unavailable' };
+            }
+
+            const memMap = (typeof inMemoryConflictRecoveryByUid !== 'undefined' && inMemoryConflictRecoveryByUid instanceof Map)
+                ? inMemoryConflictRecoveryByUid
+                : (globalThis.__exoInMemoryConflictRecoveryByUid || (globalThis.__exoInMemoryConflictRecoveryByUid = new Map()));
+            const stateMap = (typeof conflictRecoveryIdbStateByUid !== 'undefined' && conflictRecoveryIdbStateByUid instanceof Map)
+                ? conflictRecoveryIdbStateByUid
+                : (globalThis.__exoConflictRecoveryIdbStateByUid || (globalThis.__exoConflictRecoveryIdbStateByUid = new Map()));
+
+            const crKey = getWorkspaceDomainStateKey('conflict_recovery', targetUid);
+            const crMigKey = getWorkspaceDomainStateKey('conflict_recovery_mig', targetUid);
+
+            // Step 1: Read raw LocalStorage key without modifying or deleting the source, and read existing IDB records
+            let rawLs = null;
+            let lsArray = null;
+            let lsPointer = null;
+            let rawLsChars = 0;
+            try {
+                rawLs = localStorage.getItem('pharmaConflictRecovery_' + targetUid);
+                if (rawLs) {
+                    rawLsChars = rawLs.length;
+                    const parsed = JSON.parse(rawLs);
+                    if (Array.isArray(parsed)) {
+                        lsArray = parsed;
+                    } else if (parsed && typeof parsed === 'object' && parsed.__exoIdbMigrated === true) {
+                        if (!parsed.userId || String(parsed.userId) === targetUid) {
+                            lsPointer = parsed;
+                        }
+                    }
+                }
+            } catch (e) {}
+
+            const idbRead = await new Promise((resolve) => {
+                try {
+                    const tx = dbInstance.transaction('workspace_state', 'readonly');
+                    const store = tx.objectStore('workspace_state');
+                    const rCr = store.get(crKey);
+                    const rMig = store.get(crMigKey);
+                    tx.oncomplete = () => {
+                        resolve({
+                            ok: true,
+                            cr: (rCr.result && String(rCr.result.userId) === targetUid) ? rCr.result : null,
+                            mig: (rMig.result && String(rMig.result.userId) === targetUid) ? rMig.result : null
+                        });
+                    };
+                    tx.onerror = () => resolve({ ok: false });
+                    tx.onabort = () => resolve({ ok: false });
+                } catch (e) {
+                    resolve({ ok: false });
+                }
+            });
+
+            if (!idbRead || !idbRead.ok) {
+                return { ok: false, migrated: false, hydrated: false, reason: 'idb_read_failed' };
+            }
+
+            // Step 2: Verify structure, ownership, and interrupted migration state
+            const hadInterruptedMigration = Boolean(idbRead.mig && idbRead.mig.phase && idbRead.mig.phase !== 'COMMITTED');
+            const idbArray = (idbRead.cr && Array.isArray(idbRead.cr.payload)) ? idbRead.cr.payload : null;
+            const memArray = Array.isArray(memMap.get(targetUid)) ? memMap.get(targetUid) : null;
+
+            const sanitizeRecordItem = (rec) => {
+                if (!rec || typeof rec !== 'object') return null;
+                const copy = Object.assign({}, rec);
+                if (!copy.status) copy.status = 'unresolved';
+                const eType = String(copy.entityType || '');
+                const reason = String(copy.reason || '');
+                if (copy.losingValue && typeof copy.losingValue === 'object' && !Array.isArray(copy.losingValue)) {
+                    const isShallowHierarchyUpdateConflict = (
+                        (eType === 'subjects' || eType === 'groups') &&
+                        (reason === 'concurrent_update_tie_break' || reason === 'unresolved_legacy_ancestry')
+                    );
+                    if (isShallowHierarchyUpdateConflict) {
+                        const lv = Object.assign({}, copy.losingValue);
+                        if (Array.isArray(lv.groups)) {
+                            lv._groupOrderIds = lv.groups.map(g => String(g && g.id !== undefined ? g.id : '')).filter(Boolean);
+                            delete lv.groups;
+                        }
+                        if (Array.isArray(lv.lectures)) {
+                            lv._lectureOrderIds = lv.lectures.map(l => String(l && l.id !== undefined ? l.id : '')).filter(Boolean);
+                            delete lv.lectures;
+                        }
+                        delete lv.wirdLogs;
+                        delete lv.continuousLogs;
+                        copy.losingValue = lv;
+                    } else if (eType === 'annotations_page') {
+                        const lv = Object.assign({}, copy.losingValue);
+                        if (Array.isArray(lv.localStrokes)) {
+                            lv.localStrokes = lv.localStrokes.map(s => {
+                                if (!s || typeof s !== 'object') return s;
+                                const sc = Object.assign({}, s);
+                                delete sc._canonicalGeomOrdinal;
+                                return sc;
+                            });
+                        }
+                        if (Array.isArray(lv.remoteStrokes)) {
+                            lv.remoteStrokes = lv.remoteStrokes.map(s => {
+                                if (!s || typeof s !== 'object') return s;
+                                const sc = Object.assign({}, s);
+                                delete sc._canonicalGeomOrdinal;
+                                return sc;
+                            });
+                        }
+                        copy.losingValue = lv;
+                    }
+                }
+                return copy;
+            };
+
+            const combinedRaw = [
+                ...(Array.isArray(idbArray) ? idbArray : []),
+                ...(Array.isArray(lsArray) ? lsArray : []),
+                ...(Array.isArray(memArray) ? memArray : [])
+            ].map(sanitizeRecordItem).filter(Boolean);
+
+            const mergedRecords = mergeConflictRecoveryLists(combinedRaw, []);
+
+            // If already migrated with a valid pointer and no interrupted migration or unmigrated array in LS, just hydrate memory
+            if (lsPointer && !lsArray && !hadInterruptedMigration && idbArray && idbArray.length === mergedRecords.length) {
+                memMap.set(targetUid, mergedRecords);
+                stateMap.set(targetUid, {
+                    idbMigrated: true,
+                    quotaFallbackActive: true,
+                    count: mergedRecords.length,
+                    sha256: idbRead.cr.sha256 || lsPointer.sha256 || '',
+                    updatedAt: Date.now()
+                });
+                return {
+                    ok: true,
+                    migrated: false,
+                    hydrated: true,
+                    recoveredFromInterrupted: false,
+                    recoveredFromInterruptedStage: false,
+                    count: mergedRecords.length,
+                    recordCount: mergedRecords.length,
+                    freedBytes: 0
+                };
+            }
+
+            if (mergedRecords.length === 0 && (!lsArray || rawLsChars <= 4)) {
+                memMap.set(targetUid, []);
+                return {
+                    ok: true,
+                    migrated: false,
+                    hydrated: false,
+                    recoveredFromInterrupted: hadInterruptedMigration,
+                    recoveredFromInterruptedStage: hadInterruptedMigration,
+                    count: 0,
+                    recordCount: 0,
+                    freedBytes: 0
+                };
+            }
+
+            // Step 3: Serialize and compute SHA-256 digest before writing to IndexedDB
+            const serializedPayload = JSON.stringify(mergedRecords);
+            const expectedBytes = serializedPayload.length;
+            const expectedSha256 = (typeof computePureSha256 === 'function')
+                ? computePureSha256(serializedPayload)
+                : String(expectedBytes);
+            const txId = 'cr_mig_' + Date.now();
+            const nowMs = Date.now();
+
+            // Step 4: Write STAGED migration journal + full Conflict Recovery payload to IndexedDB and await real tx.oncomplete
+            const stageWriteOk = await new Promise((resolve) => {
+                try {
+                    const tx = dbInstance.transaction('workspace_state', 'readwrite');
+                    const store = tx.objectStore('workspace_state');
+                    store.put({
+                        id: crMigKey,
+                        rawId: '__ws_domain_conflict_recovery_mig_v1__',
+                        userId: targetUid,
+                        txId,
+                        phase: 'STAGED',
+                        expectedCount: mergedRecords.length,
+                        expectedBytes,
+                        expectedSha256,
+                        recoveredFromInterrupted: hadInterruptedMigration,
+                        updatedAt: nowMs
+                    });
+                    store.put({
+                        id: crKey,
+                        rawId: '__ws_domain_conflict_recovery_v1__',
+                        userId: targetUid,
+                        domain: 'conflict_recovery',
+                        payload: JSON.parse(serializedPayload),
+                        count: mergedRecords.length,
+                        byteLength: expectedBytes,
+                        sha256: expectedSha256,
+                        lsPersisted: true,
+                        updatedAt: nowMs
+                    });
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => resolve(false);
+                    tx.onabort = () => resolve(false);
+                } catch (e) {
+                    resolve(false);
+                }
+            });
+
+            if (!stageWriteOk) {
+                return { ok: false, migrated: false, hydrated: false, reason: 'idb_stage_write_failed' };
+            }
+
+            // Fault injection hook for interrupted Conflict Recovery migration testing (between Step 4 and Step 7)
+            const hooks = (typeof window !== 'undefined' && window.__exoConflictMigrationTestHooks)
+                || (typeof globalThis !== 'undefined' && globalThis.__exoConflictMigrationTestHooks)
+                || null;
+            if (hooks && typeof hooks.afterStage === 'function') {
+                try {
+                    const hookRes = await hooks.afterStage({ uid: targetUid, txId, expectedCount: mergedRecords.length, expectedSha256 });
+                    if (hookRes && hookRes.abortBeforeCommit === true) {
+                        return {
+                            ok: false,
+                            migrated: false,
+                            hydrated: false,
+                            interruptedAtStage: true,
+                            reason: 'simulated_interruption_after_stage'
+                        };
+                    }
+                } catch (hookErr) {
+                    return {
+                        ok: false,
+                        migrated: false,
+                        hydrated: false,
+                        interruptedAtStage: true,
+                        reason: 'simulated_interruption_after_stage',
+                        error: hookErr
+                    };
+                }
+            }
+
+            // Step 5: Read back from IndexedDB in a separate transaction
+            const readBackRecord = await new Promise((resolve) => {
+                try {
+                    const tx = dbInstance.transaction('workspace_state', 'readonly');
+                    const store = tx.objectStore('workspace_state');
+                    const req = store.get(crKey);
+                    tx.oncomplete = () => resolve(req.result || null);
+                    tx.onerror = () => resolve(null);
+                    tx.onabort = () => resolve(null);
+                } catch (e) {
+                    resolve(null);
+                }
+            });
+
+            // Step 6: Verify completeness, ownership, record count, byte length, and SHA-256 digest
+            if (!readBackRecord || String(readBackRecord.userId) !== targetUid || !Array.isArray(readBackRecord.payload) || readBackRecord.payload.length !== mergedRecords.length) {
+                return { ok: false, migrated: false, hydrated: false, reason: 'idb_readback_verification_failed' };
+            }
+            const readBackSerialized = JSON.stringify(readBackRecord.payload);
+            const actualSha256 = (typeof computePureSha256 === 'function')
+                ? computePureSha256(readBackSerialized)
+                : String(readBackSerialized.length);
+            if (actualSha256 !== expectedSha256 || readBackSerialized.length !== expectedBytes) {
+                return { ok: false, migrated: false, hydrated: false, reason: 'idb_digest_mismatch' };
+            }
+
+            // Step 7: Commit migration journal in IndexedDB, hydrate in-memory map, and replace bloated LocalStorage key with compact pointer
+            const commitOk = await new Promise((resolve) => {
+                try {
+                    const tx = dbInstance.transaction('workspace_state', 'readwrite');
+                    const store = tx.objectStore('workspace_state');
+                    store.put({
+                        id: crMigKey,
+                        rawId: '__ws_domain_conflict_recovery_mig_v1__',
+                        userId: targetUid,
+                        txId,
+                        phase: 'COMMITTED',
+                        expectedCount: mergedRecords.length,
+                        expectedBytes,
+                        expectedSha256,
+                        recoveredFromInterrupted: hadInterruptedMigration,
+                        committedAt: Date.now(),
+                        updatedAt: Date.now()
+                    });
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => resolve(false);
+                    tx.onabort = () => resolve(false);
+                } catch (e) {
+                    resolve(false);
+                }
+            });
+
+            if (!commitOk) {
+                return { ok: false, migrated: false, hydrated: false, reason: 'idb_commit_journal_failed' };
+            }
+
+            memMap.set(targetUid, mergedRecords);
+            stateMap.set(targetUid, {
+                idbMigrated: true,
+                quotaFallbackActive: true,
+                count: mergedRecords.length,
+                sha256: expectedSha256,
+                byteLength: expectedBytes,
+                updatedAt: Date.now()
+            });
+
+            let freedBytes = 0;
+            const pointerStr = JSON.stringify({
+                __exoIdbMigrated: true,
+                version: 1,
+                userId: targetUid,
+                count: mergedRecords.length,
+                sha256: expectedSha256,
+                byteLength: expectedBytes,
+                updatedAt: Date.now()
+            });
+
+            try {
+                localStorage.setItem('pharmaConflictRecovery_' + targetUid, pointerStr);
+                if (rawLsChars > pointerStr.length) {
+                    freedBytes += (rawLsChars - pointerStr.length) * 2;
+                }
+            } catch (setPtrErr) {
+                try {
+                    localStorage.removeItem('pharmaConflictRecovery_' + targetUid);
+                    if (rawLsChars > 0) freedBytes += rawLsChars * 2;
+                    localStorage.setItem('pharmaConflictRecovery_' + targetUid, pointerStr);
+                } catch (e2) {}
+            }
+
+            // Also strip redundant embedded schedule._conflictRecovery arrays from pharmaAccountWorkspace_<uid> and pharmaScheduleV4 in LocalStorage
+            try {
+                const accountKey = getAccountBackupStorageKey(targetUid);
+                const snapRaw = localStorage.getItem(accountKey);
+                if (snapRaw && snapRaw.includes('"_conflictRecovery"')) {
+                    const snap = JSON.parse(snapRaw);
+                    if (snap && snap.schedule && Array.isArray(snap.schedule._conflictRecovery) && snap.schedule._conflictRecovery.length > 0) {
+                        snap.schedule._conflictRecovery = [];
+                        const compactedSnapStr = JSON.stringify(snap);
+                        if (compactedSnapStr.length < snapRaw.length) {
+                            try {
+                                localStorage.setItem(accountKey, compactedSnapStr);
+                            } catch (e) {
+                                localStorage.removeItem(accountKey);
+                                localStorage.setItem(accountKey, compactedSnapStr);
+                            }
+                            freedBytes += (snapRaw.length - compactedSnapStr.length) * 2;
+                        }
+                    }
+                }
+            } catch (e) {}
+
+            try {
+                const schedRaw = localStorage.getItem('pharmaScheduleV4');
+                if (schedRaw && schedRaw.includes('"_conflictRecovery"')) {
+                    const sched = JSON.parse(schedRaw);
+                    if (sched && Array.isArray(sched._conflictRecovery) && sched._conflictRecovery.length > 0) {
+                        sched._conflictRecovery = [];
+                        const compactedSchedStr = JSON.stringify(sched);
+                        if (compactedSchedStr.length < schedRaw.length) {
+                            try {
+                                localStorage.setItem('pharmaScheduleV4', compactedSchedStr);
+                            } catch (e) {
+                                localStorage.removeItem('pharmaScheduleV4');
+                                localStorage.setItem('pharmaScheduleV4', compactedSchedStr);
+                            }
+                            freedBytes += (schedRaw.length - compactedSchedStr.length) * 2;
+                        }
+                    }
+                }
+            } catch (e) {}
+
+            return {
+                ok: true,
+                migrated: Boolean(lsArray || hadInterruptedMigration),
+                hydrated: Boolean(idbArray && idbArray.length > 0),
+                recoveredFromInterrupted: hadInterruptedMigration,
+                recoveredFromInterruptedStage: hadInterruptedMigration,
+                count: mergedRecords.length,
+                recordCount: mergedRecords.length,
+                sha256: expectedSha256,
+                byteLength: expectedBytes,
+                freedBytes
+            };
         }
 
         function computeEntityContentDigest(entity) {
@@ -36851,10 +37667,16 @@ function togglePdfAudioPlayerBar(forceState) {
 
         function getLocalTombstones(targetUid = null) {
             const uid = targetUid ? String(targetUid) : (currentCloudUser ? String(currentCloudUser.id) : 'local');
+            const tombMemMap = globalThis.__exoInMemoryTombstonesByUid || (globalThis.__exoInMemoryTombstonesByUid = new Map());
+            const tombStateMap = globalThis.__exoTombstonesIdbStateByUid || (globalThis.__exoTombstonesIdbStateByUid = new Map());
             let parsed = null;
+            let rawFound = false;
             try {
                 const raw = localStorage.getItem('pharmaTombstones_' + uid);
-                if (raw) parsed = JSON.parse(raw);
+                if (raw) {
+                    parsed = JSON.parse(raw);
+                    rawFound = true;
+                }
             } catch (e) {}
             if (!parsed) {
                 try {
@@ -36867,7 +37689,25 @@ function togglePdfAudioPlayerBar(forceState) {
                     }
                 } catch (e) {}
             }
-            return normalizeTombstonesObject(parsed, uid);
+            const lsStones = normalizeTombstonesObject(parsed, uid);
+            const idbState = tombStateMap.get(uid);
+            const memStones = tombMemMap.get(uid);
+            if (idbState && idbState.hasUnflushedToLs && memStones) {
+                try {
+                    if (typeof localStorage !== 'undefined' && localStorage.length === 0 && !rawFound) {
+                        tombStateMap.delete(uid);
+                        tombMemMap.delete(uid);
+                        return lsStones;
+                    }
+                } catch (e) {}
+                return typeof mergeTombstoneMapsWithCausalEngine === 'function'
+                    ? mergeTombstoneMapsWithCausalEngine(lsStones, memStones, uid)
+                    : normalizeTombstonesObject(memStones, uid);
+            }
+            if (rawFound) {
+                tombMemMap.set(uid, lsStones);
+            }
+            return lsStones;
         }
 
         function hasAnyTombstoneEntries(stones) {
@@ -36921,8 +37761,48 @@ function togglePdfAudioPlayerBar(forceState) {
             return null;
         }
 
+        async function recordTombstoneDurable(entityType, id, targetUid = null, priorEntityOrCausal = null) {
+            const uid = targetUid ? String(targetUid) : (currentCloudUser ? String(currentCloudUser.id) : 'local');
+            const batchRes = recordTombstonesAtomicBatch([{ entityType, id, priorEntity: priorEntityOrCausal }], uid);
+            if (batchRes && batchRes.ok) {
+                return {
+                    ok: true,
+                    localStoragePersisted: true,
+                    idbPersisted: false,
+                    durablePersisted: true,
+                    tombstone: (batchRes.tombstones && batchRes.tombstones[0]) || null,
+                    rollbackDurable: batchRes.rollbackDurable || null
+                };
+            }
+            if (batchRes && batchRes.idbPersistPromise) {
+                try {
+                    const idbRes = await batchRes.idbPersistPromise;
+                    if (idbRes && idbRes.ok) {
+                        return {
+                            ok: true,
+                            localStoragePersisted: false,
+                            idbPersisted: true,
+                            durablePersisted: true,
+                            tombstone: (idbRes.tombstones && idbRes.tombstones[0]) || null,
+                            rollbackDurable: idbRes.rollbackDurable || batchRes.rollbackDurable || null
+                        };
+                    }
+                } catch (e) {}
+            }
+            return {
+                ok: false,
+                localStoragePersisted: false,
+                idbPersisted: false,
+                durablePersisted: false,
+                tombstone: null,
+                error: batchRes?.error || new Error('TOMBSTONE_DURABLE_PERSIST_FAILED')
+            };
+        }
+
         function recordTombstone(entityType, id, targetUid = null, priorEntityOrCausal = null) {
             const uid = targetUid ? String(targetUid) : (currentCloudUser ? String(currentCloudUser.id) : 'local');
+            const tombMemMap = globalThis.__exoInMemoryTombstonesByUid || (globalThis.__exoInMemoryTombstonesByUid = new Map());
+            const tombStateMap = globalThis.__exoTombstonesIdbStateByUid || (globalThis.__exoTombstonesIdbStateByUid = new Map());
             const { normType, normId, scopeId } = validateAndResolveEntityScope(entityType, id);
             const stones = getLocalTombstones(uid);
             if (!stones[normType]) stones[normType] = {};
@@ -36971,6 +37851,11 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (!verifyRaw) {
                     throw new Error('TOMBSTONE_WRITE_VERIFICATION_FAILED');
                 }
+                tombMemMap.set(uid, stones);
+                tombStateMap.set(uid, { hasUnflushedToLs: false, updatedAt: Date.now() });
+                if (typeof persistWorkspaceDomainToIDB === 'function') {
+                    persistWorkspaceDomainToIDB('tombstones', stones, uid, null, true).catch(() => {});
+                }
             } catch (writeErr) {
                 if (prevCounterSnapshot === undefined) liveActorScopeCounters.delete(key);
                 else liveActorScopeCounters.set(key, prevCounterSnapshot);
@@ -36981,31 +37866,56 @@ function togglePdfAudioPlayerBar(forceState) {
                 return null;
             }
 
-            try {
-                const schedRaw = localStorage.getItem('pharmaScheduleV4');
-                if (schedRaw && (!currentCloudUser || String(currentCloudUser.id) === uid)) {
-                    const sched = JSON.parse(schedRaw);
-                    if (sched && typeof sched === 'object') {
-                        sched._tombstones = stones;
-                        localStorage.setItem('pharmaScheduleV4', JSON.stringify(sched));
-                    }
-                }
-            } catch (e) {}
-
             return tombOp;
         }
 
         function recordTombstonesAtomicBatch(items, targetUid = null) {
             const uid = targetUid ? String(targetUid) : (currentCloudUser ? String(currentCloudUser.id) : 'local');
+            const tombMemMap = globalThis.__exoInMemoryTombstonesByUid || (globalThis.__exoInMemoryTombstonesByUid = new Map());
+            const tombStateMap = globalThis.__exoTombstonesIdbStateByUid || (globalThis.__exoTombstonesIdbStateByUid = new Map());
             const batchList = Array.isArray(items) ? items : [];
             if (batchList.length === 0) {
-                return { ok: true, tombstones: [] };
+                return { ok: true, persisted: true, localStoragePersisted: true, idbPersisted: false, durablePersisted: true, tombstones: [] };
             }
 
             const countersBackup = new Map(liveActorScopeCounters);
             const contextsBackup = new Map();
             liveObservedScopeContexts.forEach((v, k) => contextsBackup.set(k, Object.assign({}, v)));
             const lamportBackup = liveLamportClock;
+            const prevLsRaw = (() => {
+                try { return localStorage.getItem('pharmaTombstones_' + uid); } catch (e) { return null; }
+            })();
+            const prevStonesBackup = JSON.parse(JSON.stringify(getLocalTombstones(uid)));
+            const prevIdbStateBackup = tombStateMap.get(uid) ? Object.assign({}, tombStateMap.get(uid)) : null;
+
+            let stonesAfter = null;
+            let createdOpsAfter = null;
+            let countersAfter = null;
+            let contextsAfter = null;
+            let lamportAfter = liveLamportClock;
+
+            const rollbackDurable = async () => {
+                liveActorScopeCounters.clear();
+                countersBackup.forEach((v, k) => liveActorScopeCounters.set(k, v));
+                liveObservedScopeContexts.clear();
+                contextsBackup.forEach((v, k) => liveObservedScopeContexts.set(k, v));
+                liveLamportClock = lamportBackup;
+                tombMemMap.set(uid, prevStonesBackup);
+                if (prevIdbStateBackup) tombStateMap.set(uid, prevIdbStateBackup);
+                else tombStateMap.delete(uid);
+                try {
+                    if (prevLsRaw === null || prevLsRaw === undefined) {
+                        localStorage.removeItem('pharmaTombstones_' + uid);
+                    } else {
+                        localStorage.setItem('pharmaTombstones_' + uid, prevLsRaw);
+                    }
+                } catch (e) {}
+                if (typeof persistWorkspaceDomainToIDB === 'function') {
+                    try {
+                        await persistWorkspaceDomainToIDB('tombstones', prevStonesBackup, uid, null, Boolean(prevLsRaw));
+                    } catch (e) {}
+                }
+            };
 
             try {
                 const stones = getLocalTombstones(uid);
@@ -37017,10 +37927,15 @@ function togglePdfAudioPlayerBar(forceState) {
                     }
                     const { normType, normId, scopeId } = validateAndResolveEntityScope(item.entityType, item.id);
                     if (!stones[normType]) stones[normType] = {};
+                    const existingTomb = stones[normType][normId] || null;
                     const priorCandidate = item.priorEntity
                         || findPriorEntityInMemoryForTombstone(normType, normId)
-                        || stones[normType][normId]
+                        || existingTomb
                         || null;
+                    if (existingTomb && existingTomb.kind === 'delete' && (!priorCandidate || priorCandidate === existingTomb || isEntitySupersededByTombstone(priorCandidate, existingTomb, normType, normId, uid))) {
+                        createdOps.push(existingTomb);
+                        continue;
+                    }
                     const observedLegacyDigests = [];
                     const observedLegacyOpIds = [];
                     if (priorCandidate && typeof priorCandidate === 'object' && !priorCandidate.kind) {
@@ -37046,6 +37961,13 @@ function togglePdfAudioPlayerBar(forceState) {
                     createdOps.push(tombOp);
                 }
 
+                stonesAfter = JSON.parse(JSON.stringify(stones));
+                createdOpsAfter = createdOps.slice();
+                countersAfter = new Map(liveActorScopeCounters);
+                contextsAfter = new Map();
+                liveObservedScopeContexts.forEach((v, k) => contextsAfter.set(k, Object.assign({}, v)));
+                lamportAfter = liveLamportClock;
+
                 const serialized = JSON.stringify(stones);
                 localStorage.setItem('pharmaTombstones_' + uid, serialized);
                 const verifyRaw = localStorage.getItem('pharmaTombstones_' + uid);
@@ -37053,26 +37975,113 @@ function togglePdfAudioPlayerBar(forceState) {
                     throw new Error('TOMBSTONE_BATCH_WRITE_VERIFICATION_FAILED');
                 }
 
-                try {
-                    const schedRaw = localStorage.getItem('pharmaScheduleV4');
-                    if (schedRaw && (!currentCloudUser || String(currentCloudUser.id) === uid)) {
-                        const sched = JSON.parse(schedRaw);
-                        if (sched && typeof sched === 'object') {
-                            sched._tombstones = stones;
-                            localStorage.setItem('pharmaScheduleV4', JSON.stringify(sched));
-                        }
-                    }
-                } catch (e) {}
+                tombMemMap.set(uid, stonesAfter);
+                tombStateMap.set(uid, { hasUnflushedToLs: false, updatedAt: Date.now() });
 
-                return { ok: true, tombstones: createdOps };
+                let idbPersistPromise = Promise.resolve({ ok: true, idbPersisted: false, localStoragePersisted: true });
+                if (typeof persistWorkspaceDomainToIDB === 'function') {
+                    idbPersistPromise = persistWorkspaceDomainToIDB('tombstones', stonesAfter, uid, null, true).then((res) => ({
+                        ok: true,
+                        localStoragePersisted: true,
+                        idbPersisted: Boolean(res && res.ok),
+                        durablePersisted: true,
+                        tombstones: createdOpsAfter,
+                        rollbackDurable
+                    })).catch(() => ({
+                        ok: true,
+                        localStoragePersisted: true,
+                        idbPersisted: false,
+                        durablePersisted: true,
+                        tombstones: createdOpsAfter,
+                        rollbackDurable
+                    }));
+                }
+
+                return {
+                    ok: true,
+                    persisted: true,
+                    localStoragePersisted: true,
+                    idbPersisted: false,
+                    durablePersisted: true,
+                    tombstones: createdOps,
+                    idbPersistPromise,
+                    rollbackDurable
+                };
             } catch (batchErr) {
                 liveActorScopeCounters.clear();
                 countersBackup.forEach((v, k) => liveActorScopeCounters.set(k, v));
                 liveObservedScopeContexts.clear();
                 contextsBackup.forEach((v, k) => liveObservedScopeContexts.set(k, v));
                 liveLamportClock = lamportBackup;
-                console.error('Atomic tombstone batch failed (fail-closed):', batchErr);
-                return { ok: false, error: batchErr, tombstones: null };
+
+                let idbPersistPromise = null;
+                if (stonesAfter && createdOpsAfter && typeof persistWorkspaceDomainToIDB === 'function') {
+                    idbPersistPromise = (async () => {
+                        try {
+                            const idbRes = await persistWorkspaceDomainToIDB('tombstones', stonesAfter, uid, null, false);
+                            const idbOk = Boolean(idbRes && idbRes.ok);
+                            if (idbOk) {
+                                liveActorScopeCounters.clear();
+                                countersAfter.forEach((v, k) => liveActorScopeCounters.set(k, v));
+                                liveObservedScopeContexts.clear();
+                                contextsAfter.forEach((v, k) => liveObservedScopeContexts.set(k, v));
+                                liveLamportClock = lamportAfter;
+                                tombMemMap.set(uid, stonesAfter);
+                                tombStateMap.set(uid, { hasUnflushedToLs: true, updatedAt: Date.now() });
+                                try {
+                                    localStorage.setItem('pharmaWorkspaceDirty', '1');
+                                    localStorage.setItem('pharmaWorkspaceDirty_' + uid, '1');
+                                } catch (e) {}
+                                if (typeof migrateConflictRecoveryToIDB === 'function') {
+                                    Promise.resolve().then(() => migrateConflictRecoveryToIDB(uid)).then((migRes) => {
+                                        if (migRes && migRes.ok && migRes.migrated) {
+                                            try {
+                                                const latestStones = tombMemMap.get(uid);
+                                                if (latestStones) {
+                                                    localStorage.setItem('pharmaTombstones_' + uid, JSON.stringify(latestStones));
+                                                    tombStateMap.set(uid, { hasUnflushedToLs: false, updatedAt: Date.now() });
+                                                }
+                                            } catch (e) {}
+                                        }
+                                    }).catch(() => {});
+                                }
+                                return {
+                                    ok: true,
+                                    persisted: false,
+                                    localStoragePersisted: false,
+                                    idbPersisted: true,
+                                    durablePersisted: true,
+                                    tombstones: createdOpsAfter,
+                                    rollbackDurable
+                                };
+                            }
+                        } catch (idbErr) {
+                            console.error('IndexedDB tombstone fallback failed (fail-closed):', idbErr);
+                        }
+                        return {
+                            ok: false,
+                            persisted: false,
+                            localStoragePersisted: false,
+                            idbPersisted: false,
+                            durablePersisted: false,
+                            error: batchErr,
+                            tombstones: null
+                        };
+                    })();
+                }
+
+                console.error('Atomic tombstone batch failed in LocalStorage:', batchErr);
+                return {
+                    ok: false,
+                    persisted: false,
+                    localStoragePersisted: false,
+                    idbPersisted: false,
+                    durablePersisted: false,
+                    error: batchErr,
+                    tombstones: null,
+                    idbPersistPromise,
+                    rollbackDurable
+                };
             }
         }
 
@@ -38677,6 +39686,47 @@ function togglePdfAudioPlayerBar(forceState) {
             return hasDirty;
         }
 
+        function getCompactConflictRecoveryForLocalStorage(targetUid = null) {
+            const uid = targetUid ? String(targetUid) : (currentCloudUser ? String(currentCloudUser.id) : 'local');
+            try {
+                const raw = localStorage.getItem('pharmaConflictRecovery_' + uid);
+                if (raw && raw.includes('"__exoIdbMigrated":true')) {
+                    return [];
+                }
+            } catch (e) {}
+            const recs = typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(uid) : [];
+            try {
+                if (JSON.stringify(recs).length > 16384) return [];
+            } catch (e) {
+                return [];
+            }
+            return recs;
+        }
+
+        function persistConflictRecoveryRecordsList(targetUid, mergedRec, opCtx = null) {
+            const uid = targetUid ? String(targetUid) : (currentCloudUser ? String(currentCloudUser.id) : 'local');
+            const cleanRec = Array.isArray(mergedRec) ? mergedRec : [];
+            const crMemMap = globalThis.__exoInMemoryConflictRecoveryByUid || (globalThis.__exoInMemoryConflictRecoveryByUid = new Map());
+            crMemMap.set(uid, cleanRec);
+            let isIdbMigrated = false;
+            try {
+                const raw = localStorage.getItem('pharmaConflictRecovery_' + uid);
+                if (raw && raw.includes('"__exoIdbMigrated":true')) {
+                    isIdbMigrated = true;
+                }
+            } catch (e) {}
+            const serialized = JSON.stringify(cleanRec);
+            if (!isIdbMigrated && serialized.length <= 16384) {
+                try {
+                    localStorage.setItem('pharmaConflictRecovery_' + uid, serialized);
+                    return;
+                } catch (e) {}
+            }
+            if (typeof migrateConflictRecoveryToIDB === 'function') {
+                Promise.resolve().then(() => migrateConflictRecoveryToIDB(uid, opCtx)).catch(() => {});
+            }
+        }
+
         function acknowledgeCommittedOperationsSnapshot(committedOpIds, committedRev, targetUid = null) {
             if (!(committedOpIds instanceof Set) || committedOpIds.size === 0) return;
             const uid = targetUid ? String(targetUid) : (currentCloudUser ? String(currentCloudUser.id) : 'local');
@@ -38736,7 +39786,9 @@ function togglePdfAudioPlayerBar(forceState) {
                     plannerPrefs: plannerPrefs,
                     weeklyReports: weeklyReports || [],
                     _tombstones: tombs,
-                    _conflictRecovery: getConflictRecoveryRecords(uid),
+                    _conflictRecovery: typeof getCompactConflictRecoveryForLocalStorage === 'function'
+                        ? getCompactConflictRecoveryForLocalStorage(uid)
+                        : (typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(uid) : []),
                     _deviceRegistry: getLocalDeviceRegistry(uid)
                 }));
             } catch (e) {}
@@ -38879,9 +39931,11 @@ function togglePdfAudioPlayerBar(forceState) {
                 const mergedRec = typeof mergeConflictRecoveryLists === 'function'
                     ? mergeConflictRecoveryLists(existingRec, remoteRow.schedule._conflictRecovery)
                     : [...existingRec, ...remoteRow.schedule._conflictRecovery];
-                try {
-                    localStorage.setItem('pharmaConflictRecovery_' + uid, JSON.stringify(mergedRec));
-                } catch (e) {}
+                if (typeof persistConflictRecoveryRecordsList === 'function') {
+                    persistConflictRecoveryRecordsList(uid, mergedRec, opCtx);
+                } else {
+                    try { localStorage.setItem('pharmaConflictRecovery_' + uid, JSON.stringify(mergedRec)); } catch (e) {}
+                }
             }
 
             // 2. Always obtain verified local annotations FIRST before mutating local state so we can abort cleanly if DB read/write fails
@@ -39022,7 +40076,9 @@ function togglePdfAudioPlayerBar(forceState) {
                 plannerPrefs: plannerPrefs,
                 weeklyReports: weeklyReports,
                 _tombstones: unifiedTombstones,
-                _conflictRecovery: typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(uid) : [],
+                _conflictRecovery: typeof getCompactConflictRecoveryForLocalStorage === 'function'
+                    ? getCompactConflictRecoveryForLocalStorage(uid)
+                    : (typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(uid) : []),
                 _deviceRegistry: typeof getLocalDeviceRegistry === 'function' ? getLocalDeviceRegistry(uid) : {}
             }));
             localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));
@@ -39089,7 +40145,9 @@ function togglePdfAudioPlayerBar(forceState) {
                         pdfFitMode: currentPdfFitMode || 'height',
                         cloudMediaRegistry: cloudMediaRegistry || {},
                         _tombstones: unifiedTombstones,
-                        _conflictRecovery: typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(uid) : [],
+                        _conflictRecovery: typeof getCompactConflictRecoveryForLocalStorage === 'function'
+                            ? getCompactConflictRecoveryForLocalStorage(uid)
+                            : (typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(uid) : []),
                         _deviceRegistry: typeof getLocalDeviceRegistry === 'function' ? getLocalDeviceRegistry(uid) : {},
                         gdriveSync: {
                             linked: isGdriveBoundToUid && Boolean(localStorage.getItem('exo_gdrive_connected') === '1'),
@@ -39379,8 +40437,15 @@ function togglePdfAudioPlayerBar(forceState) {
                             lightweightVaultCopy = Object.assign({}, payload);
                             delete lightweightVaultCopy.annotations;
                             lightweightVaultCopy.annotationsStoredInIndexedDB = true;
+                            const lsVaultCopy = Object.assign({}, lightweightVaultCopy, {
+                                schedule: Object.assign({}, lightweightVaultCopy.schedule || {}, {
+                                    _conflictRecovery: typeof getCompactConflictRecoveryForLocalStorage === 'function'
+                                        ? getCompactConflictRecoveryForLocalStorage(syncUserId)
+                                        : (typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(syncUserId) : [])
+                                })
+                            });
                             try {
-                                localStorage.setItem(accountKey, JSON.stringify(lightweightVaultCopy));
+                                localStorage.setItem(accountKey, JSON.stringify(lsVaultCopy));
                                 accountSnapshotPersisted = true;
                             } catch (lsVaultErr) {
                                 console.warn('Per-account localStorage vault backup warning in pushWorkspaceToCloud:', lsVaultErr);
@@ -39563,7 +40628,9 @@ function togglePdfAudioPlayerBar(forceState) {
                                     existingVault.schedule.backlog = scheduleBacklog || [];
                                     existingVault.schedule.weeklyReports = weeklyReports || [];
                                     existingVault.schedule._tombstones = getLocalTombstones(syncUserId);
-                                    existingVault.schedule._conflictRecovery = typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(syncUserId) : [];
+                                    existingVault.schedule._conflictRecovery = typeof getCompactConflictRecoveryForLocalStorage === 'function'
+                                        ? getCompactConflictRecoveryForLocalStorage(syncUserId)
+                                        : (typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(syncUserId) : []);
                                     existingVault.schedule._deviceRegistry = typeof getLocalDeviceRegistry === 'function' ? getLocalDeviceRegistry(syncUserId) : {};
                                 }
                                 existingVault.logs = logs || [];
@@ -39752,9 +40819,11 @@ function togglePdfAudioPlayerBar(forceState) {
                 const mergedRec = typeof mergeConflictRecoveryLists === 'function'
                     ? mergeConflictRecoveryLists(existingRec, cloudRow.schedule._conflictRecovery)
                     : [...existingRec, ...cloudRow.schedule._conflictRecovery];
-                try {
-                    localStorage.setItem('pharmaConflictRecovery_' + targetUid, JSON.stringify(mergedRec));
-                } catch (e) {}
+                if (typeof persistConflictRecoveryRecordsList === 'function') {
+                    persistConflictRecoveryRecordsList(targetUid, mergedRec, opCtx);
+                } else {
+                    try { localStorage.setItem('pharmaConflictRecovery_' + targetUid, JSON.stringify(mergedRec)); } catch (e) {}
+                }
             }
 
             // If annotations are present, restore them to IndexedDB FIRST under explicit targetUid & opCtx
@@ -40008,7 +41077,9 @@ function togglePdfAudioPlayerBar(forceState) {
                 plannerPrefs: plannerPrefs,
                 weeklyReports: weeklyReports,
                 _tombstones: unifiedTombstones,
-                _conflictRecovery: typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(targetUid) : [],
+                _conflictRecovery: typeof getCompactConflictRecoveryForLocalStorage === 'function'
+                    ? getCompactConflictRecoveryForLocalStorage(targetUid)
+                    : (typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(targetUid) : []),
                 _deviceRegistry: typeof getLocalDeviceRegistry === 'function' ? getLocalDeviceRegistry(targetUid) : {}
             }));
             localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));

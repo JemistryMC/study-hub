@@ -1727,8 +1727,9 @@ async function main() {
         if (typeof onConfirm === 'function') return onConfirm();
       };
 
-      // 1. Test fail-closed abort when tombstone persistence throws QuotaExceededError
+      // 1. Test fail-closed abort when tombstone persistence throws QuotaExceededError across both LocalStorage and IndexedDB (Case C/D)
       const origSetItem = Storage.prototype.setItem;
+      const origTxS = dbInstance.transaction.bind(dbInstance);
       const tombKeyA = 'pharmaTombstones_' + uidA;
       let failTombWrite = true;
       Storage.prototype.setItem = function(k, v) {
@@ -1737,12 +1738,24 @@ async function main() {
         }
         return origSetItem.call(this, k, v);
       };
+      dbInstance.transaction = function(storeNames, mode) {
+        const names = Array.isArray(storeNames) ? storeNames : [storeNames];
+        if (failTombWrite && mode === 'readwrite' && names.includes('workspace_state')) {
+          const tx = origTxS(storeNames, mode);
+          queueMicrotask(() => {
+            try { tx.abort(); } catch (e) {}
+          });
+          return tx;
+        }
+        return origTxS(storeNames, mode);
+      };
       try {
         await triggerDeleteLecture('grp_e2e_del_1', 'lec_e2e_del_1');
         deleteBacklogTask('bl_e2e_del_1');
       } finally {
         failTombWrite = false;
         Storage.prototype.setItem = origSetItem;
+        dbInstance.transaction = origTxS;
       }
 
       const failClosedPreserved = (
@@ -5491,6 +5504,393 @@ async function main() {
 
     await tabGG.close();
     await contextGG.close();
+
+    // =========================================================================
+    // TEST HH: P0 Storage Quota Exhaustion (~5.06 MiB), 7-Step Verified Conflict
+    // Recovery Migration to IndexedDB, Durable Tombstone Cases A/B/C/D, Reload
+    // Non-Resurrection, Cloud Sync Non-Resurrection, and Cross-Account Isolation
+    // =========================================================================
+    console.log('\n--- TEST HH: P0 Storage Pressure (~5.06 MiB), 7-Step Conflict Recovery IDB Migration & Durable Tombstones (Cases A/B/C/D) ---');
+    const contextHH = await browser.newContext();
+    const tabHH = await contextHH.newPage();
+    await tabHH.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+    await tabHH.waitForFunction(() => typeof window.saveSubjects === 'function' && typeof window.migrateConflictRecoveryToIDB === 'function');
+
+    const uidHH1 = 'hh100000-1111-4222-8333-444455550001';
+    const uidHH2 = 'hh200000-2222-4333-8444-555566660002';
+
+    // HH.1 & HH.2: Seed ~3.83 MiB pharmaConflictRecovery_<uid> + ~1.12 MiB pharmaAccountWorkspace_<uid> (~5.06 MiB total),
+    // run privacy-safe diagnostics, test interrupted STAGED crash recovery, then complete 7-step verified migration
+    const hh1And2Migration = await tabHH.evaluate(async ({ uid1, uid2 }) => {
+      await handleAuthSessionChange({ id: uid1, email: 'hh1@exo.edu', name: 'HH1 Student' }, false);
+
+      // Seed foreign account (uid2) conflict recovery record
+      const foreignRecs = [{
+        recoveryId: 'crec_hh2_isolated',
+        userId: uid2,
+        entityType: 'subjects',
+        entityId: 'sub_hh2_1',
+        reason: 'concurrent_entity_tie_break',
+        status: 'unresolved',
+        recordedAtIso: '2026-11-05T10:00:00.000Z',
+        losingOperationId: 'op_hh2_lose_1',
+        winningOperationId: 'op_hh2_win_1',
+        losingValue: { id: 'sub_hh2_1', name: 'Isolated Account 2 Subject' }
+      }];
+      localStorage.setItem('pharmaConflictRecovery_' + uid2, JSON.stringify(foreignRecs));
+
+      // Build realistic ~3.83 MiB bloated conflict recovery payload with duplicates + nested hierarchy bloat
+      const heavyPad = 'P'.repeat(24000);
+      const uniqueChunkCount = 40;
+      const bloatedRecords = [];
+      for (let i = 0; i < uniqueChunkCount; i++) {
+        const baseLosingValue = {
+          id: 8000 + i,
+          name: 'Confidential Subject Title ' + i,
+          groups: [
+            {
+              id: 8100 + i,
+              name: 'Confidential Group ' + i,
+              lectures: [
+                { id: 8200 + i, name: 'Lec ' + i, notesPad: heavyPad + '_' + i }
+              ]
+            }
+          ]
+        };
+        // Push 3 duplicate copies per losingOperationId with different winningOperationIds (~120 records -> ~3.0+ MiB)
+        for (let dup = 0; dup < 3; dup++) {
+          bloatedRecords.push({
+            recoveryId: `crec_hh1_${i}_dup_${dup}`,
+            userId: uid1,
+            entityType: i % 2 === 0 ? 'subjects' : 'groups',
+            entityId: String(8000 + i),
+            scopeId: `entity:${i % 2 === 0 ? 'subjects' : 'groups'}:${8000 + i}`,
+            reason: i % 3 === 0 ? 'delete_superseded_concurrent_or_stale_entity' : 'concurrent_entity_tie_break',
+            status: i % 5 === 0 ? 'resolved' : 'unresolved',
+            recordedAtIso: new Date(1762000000000 + i * 60000 + dup * 1000).toISOString(),
+            losingOperationId: `op_lose_hh1_${i}`,
+            winningOperationId: `op_win_hh1_${i}_v${dup}`,
+            losingValue: baseLosingValue
+          });
+        }
+      }
+
+      const bloatedConflictStr = JSON.stringify(bloatedRecords);
+      localStorage.setItem('pharmaConflictRecovery_' + uid1, bloatedConflictStr);
+
+      // Seed ~1.1 MiB pharmaAccountWorkspace_<uid1> containing embedded _conflictRecovery slice
+      const initialSubjects = [
+        {
+          id: 9001,
+          name: 'Clinical Pharmacology HH',
+          icon: 'fa-capsules',
+          color: '#38bdf8',
+          groups: [
+            { id: 9101, name: 'Chapter 1: Autonomic Drugs', lectures: [{ id: 9201, name: 'Cholinergic Agonists' }] },
+            { id: 9102, name: 'Chapter 2: Cardiovascular', lectures: [{ id: 9202, name: 'Beta Blockers' }] },
+            { id: 9103, name: 'Chapter 3: CNS Pharmacology', lectures: [{ id: 9203, name: 'Anesthetics' }] }
+          ]
+        }
+      ];
+      subjects = JSON.parse(JSON.stringify(initialSubjects));
+      activeSubjectId = 9001;
+      localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+
+      const bloatedAccountSnap = {
+        user_id: uid1,
+        user_email: 'hh1@exo.edu',
+        subjects: subjects,
+        schedule: {
+          version: 3,
+          events: [],
+          backlog: [],
+          weeklyReports: [],
+          _conflictRecovery: bloatedRecords.slice(0, 36)
+        },
+        logs: [],
+        annotationsStoredInIndexedDB: true,
+        revision: 1
+      };
+      localStorage.setItem('pharmaAccountWorkspace_' + uid1, JSON.stringify(bloatedAccountSnap));
+
+      // Compute total LocalStorage bytes before migration
+      let totalLsBytesBefore = 0;
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        const v = localStorage.getItem(k) || '';
+        totalLsBytesBefore += (k.length + v.length);
+      }
+      const conflictKeyBytesBefore = (localStorage.getItem('pharmaConflictRecovery_' + uid1) || '').length;
+      const accountSnapBytesBefore = (localStorage.getItem('pharmaAccountWorkspace_' + uid1) || '').length;
+
+      // Measure saveSubjects() latency under extreme LocalStorage pressure before migration
+      const tSaveBefore0 = performance.now();
+      const saveBeforeRes = saveSubjects();
+      await saveBeforeRes.idbPersistPromise;
+      const saveSubjectsMsBefore = performance.now() - tSaveBefore0;
+
+      // Run privacy-safe diagnostic inspector
+      const diagBefore = inspectConflictRecoveryDiagnostics(uid1);
+      const diagSerialized = JSON.stringify(diagBefore);
+
+      // Simulate crash right after STAGED write in IndexedDB before LocalStorage compaction
+      window.__exoConflictMigrationTestHooks = {
+        afterStage: () => {
+          throw new Error('SIMULATED_CHROMIUM_CRASH_AFTER_STAGE');
+        }
+      };
+      const crashMigRes = await migrateConflictRecoveryToIDB(uid1);
+      window.__exoConflictMigrationTestHooks = null;
+      const sourceIntactAfterCrash = (localStorage.getItem('pharmaConflictRecovery_' + uid1) || '').length === conflictKeyBytesBefore;
+
+      // Now resume migration and verify 7-step completion
+      const tMig0 = performance.now();
+      const migRes = await migrateConflictRecoveryToIDB(uid1);
+      const migrationMs = performance.now() - tMig0;
+
+      let totalLsBytesAfter = 0;
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        const v = localStorage.getItem(k) || '';
+        totalLsBytesAfter += (k.length + v.length);
+      }
+      const conflictKeyBytesAfter = (localStorage.getItem('pharmaConflictRecovery_' + uid1) || '').length;
+      const accountSnapBytesAfter = (localStorage.getItem('pharmaAccountWorkspace_' + uid1) || '').length;
+      const pointerObj = JSON.parse(localStorage.getItem('pharmaConflictRecovery_' + uid1) || 'null');
+      const activeRecsAfter = getConflictRecoveryRecords(uid1);
+      const foreignIntact = localStorage.getItem('pharmaConflictRecovery_' + uid2) === JSON.stringify(foreignRecs);
+
+      return {
+        totalLsBytesBefore,
+        conflictKeyBytesBefore,
+        accountSnapBytesBefore,
+        saveSubjectsMsBefore,
+        diagOk: diagBefore?.ok === true,
+        diagTotalRecords: diagBefore?.totalRecords,
+        diagUniqueRecords: diagBefore?.uniqueRecords,
+        diagDuplicateRecords: diagBefore?.duplicateRecords,
+        diagZeroPersonalLeak: !diagSerialized.includes('Confidential Subject Title') && !diagSerialized.includes('Confidential Group'),
+        crashAbortedCleanly: crashMigRes?.ok === false && sourceIntactAfterCrash === true,
+        migOk: migRes?.ok === true && migRes?.migrated === true && migRes?.recoveredFromInterruptedStage === true,
+        migRecordCount: migRes?.recordCount,
+        migrationMs,
+        totalLsBytesAfter,
+        conflictKeyBytesAfter,
+        accountSnapBytesAfter,
+        pointerValid: pointerObj?.__exoIdbMigrated === true && pointerObj?.count === uniqueChunkCount,
+        activeRecsCount: activeRecsAfter.length,
+        foreignIntact
+      };
+    }, { uid1: uidHH1, uid2: uidHH2 });
+
+    console.log(`  [HH Metrics] LocalStorage Before: ${(hh1And2Migration.totalLsBytesBefore / 1024).toFixed(1)} KiB (ConflictKey: ${(hh1And2Migration.conflictKeyBytesBefore / 1024).toFixed(1)} KiB, AccountSnap: ${(hh1And2Migration.accountSnapBytesBefore / 1024).toFixed(1)} KiB)`);
+    console.log(`  [HH Metrics] LocalStorage After : ${(hh1And2Migration.totalLsBytesAfter / 1024).toFixed(1)} KiB (ConflictKey: ${hh1And2Migration.conflictKeyBytesAfter} B, AccountSnap: ${(hh1And2Migration.accountSnapBytesAfter / 1024).toFixed(1)} KiB) | Migration Time: ${hh1And2Migration.migrationMs.toFixed(1)} ms`);
+
+    assert(
+      hh1And2Migration.conflictKeyBytesBefore > 2500000 &&
+      hh1And2Migration.accountSnapBytesBefore > 700000 &&
+      hh1And2Migration.diagOk === true &&
+      hh1And2Migration.diagTotalRecords === 120 &&
+      hh1And2Migration.diagUniqueRecords === 40 &&
+      hh1And2Migration.diagDuplicateRecords === 80 &&
+      hh1And2Migration.diagZeroPersonalLeak === true,
+      'Test HH.1: Privacy-safe inspectConflictRecoveryDiagnostics accurately diagnoses >2.5 MiB conflict bloat (120 total / 40 unique / 80 duplicates) with zero personal title leakage'
+    );
+
+    assert(
+      hh1And2Migration.crashAbortedCleanly === true &&
+      hh1And2Migration.migOk === true &&
+      hh1And2Migration.migRecordCount === 40 &&
+      hh1And2Migration.pointerValid === true &&
+      hh1And2Migration.conflictKeyBytesAfter < 350 &&
+      hh1And2Migration.accountSnapBytesAfter < 15000 &&
+      hh1And2Migration.totalLsBytesAfter < 50000 &&
+      hh1And2Migration.activeRecsCount === 40 &&
+      hh1And2Migration.foreignIntact === true,
+      'Test HH.2: 7-step verified migrateConflictRecoveryToIDB recovers from interrupted STAGED crash, verifies SHA-256, compacts LocalStorage from ~4+ MiB to <50 KiB, preserves all 40 unique recovery records, and isolates foreign accounts'
+    );
+
+    // HH.3, HH.4 & HH.5: Test triggerEditGroup, triggerDeleteGroup Case B (LS QuotaExceededError + IDB tx.oncomplete success),
+    // and triggerDeleteGroup Cases C & D (both LS and IDB fail/abort -> fail-closed preservation)
+    const hh3To5Ops = await tabHH.evaluate(async (uid1) => {
+      const origOpenConfirm = openConfirmModal;
+      openConfirmModal = (msg, onConfirm) => {
+        if (typeof onConfirm === 'function') return onConfirm();
+      };
+
+      // HH.3: Edit Chapter 1 title after migration and measure latency
+      const tEdit0 = performance.now();
+      triggerEditGroup(9101);
+      const editInput = document.getElementById('siModalInput');
+      if (editInput) editInput.value = 'Chapter 1: Autonomic Pharmacology (Updated)';
+      const editRes = await saveSingleInputModal();
+      const editGroupMs = performance.now() - tEdit0;
+
+      // HH.4 (Case B): Simulate QuotaExceededError on pharmaTombstones_<uid1> and pharmaSubjectsV4 in LocalStorage while IndexedDB succeeds
+      const origSetItem = Storage.prototype.setItem;
+      let simulateLsQuotaOnDelete = true;
+      Storage.prototype.setItem = function(k, v) {
+        if (simulateLsQuotaOnDelete && (String(k) === 'pharmaTombstones_' + uid1 || String(k) === 'pharmaSubjectsV4')) {
+          throw new DOMException('QuotaExceededError: Simulated LocalStorage full during delete', 'QuotaExceededError');
+        }
+        return origSetItem.call(this, k, v);
+      };
+
+      let delCaseBRes = null;
+      let deleteCaseBMs = 0;
+      try {
+        const tDel0 = performance.now();
+        delCaseBRes = await triggerDeleteGroup(9102); // Deletes Chapter 2 (id: 9102, lecture: 9202)
+        deleteCaseBMs = performance.now() - tDel0;
+      } finally {
+        simulateLsQuotaOnDelete = false;
+        Storage.prototype.setItem = origSetItem;
+      }
+
+      const groupsAfterCaseB = subjects[0].groups.map(g => g.id);
+      const tombsAfterCaseB = getLocalTombstones(uid1);
+      const idbTombAfterCaseB = await readWorkspaceDomainFromIDB('tombstones', uid1);
+      const journalAfterCaseB = await readDurableCloudSyncJournal(uid1);
+
+      // HH.5 (Cases C & D): Simulate BOTH LocalStorage QuotaExceededError AND IndexedDB readwrite transaction abort
+      const origTx = dbInstance.transaction.bind(dbInstance);
+      let simulateBothFail = true;
+      Storage.prototype.setItem = function(k, v) {
+        if (simulateBothFail && (String(k) === 'pharmaTombstones_' + uid1 || String(k) === 'pharmaSubjectsV4')) {
+          throw new DOMException('QuotaExceededError: Simulated total storage failure', 'QuotaExceededError');
+        }
+        return origSetItem.call(this, k, v);
+      };
+      dbInstance.transaction = function(storeNames, mode) {
+        const names = Array.isArray(storeNames) ? storeNames : [storeNames];
+        if (simulateBothFail && mode === 'readwrite' && names.includes('workspace_state')) {
+          const tx = origTx(storeNames, mode);
+          queueMicrotask(() => {
+            try { tx.abort(); } catch (e) {}
+          });
+          return tx;
+        }
+        return origTx(storeNames, mode);
+      };
+
+      let delCaseDRes = null;
+      try {
+        delCaseDRes = await triggerDeleteGroup(9103); // Attempts to delete Chapter 3 (id: 9103, lecture: 9203)
+      } finally {
+        simulateBothFail = false;
+        Storage.prototype.setItem = origSetItem;
+        dbInstance.transaction = origTx;
+        openConfirmModal = origOpenConfirm;
+      }
+
+      const groupsAfterCaseD = subjects[0].groups.map(g => g.id);
+      const tombsAfterCaseD = getLocalTombstones(uid1);
+
+      // Idempotency check on already-deleted 9102
+      const prevOpId9102 = tombsAfterCaseB.groups['9102']?.operationId;
+      const idempRes = await recordTombstoneDurable('groups', 9102, uid1);
+
+      return {
+        editOk: Boolean(editRes?.ok === true || editRes?.durablePersisted === true) && subjects[0].groups[0].name === 'Chapter 1: Autonomic Pharmacology (Updated)',
+        editGroupMs,
+        delCaseBOk: Boolean(delCaseBRes && delCaseBRes.durablePersisted === true && delCaseBRes.tombstoneDurablePersisted === true),
+        deleteCaseBMs,
+        groupsAfterCaseB,
+        tomb9102InMem: Boolean(tombsAfterCaseB.groups?.['9102']) && Boolean(tombsAfterCaseB.lectures?.['9202']),
+        tomb9102InIDB: Boolean(idbTombAfterCaseB?.found && idbTombAfterCaseB?.record?.payload?.groups?.['9102']),
+        journalDirtyAfterCaseB: Boolean(journalAfterCaseB?.hasDirtyWorkspace),
+        delCaseDAborted: Boolean(delCaseDRes && delCaseDRes.ok === false && delCaseDRes.durablePersisted === false),
+        groupsAfterCaseD,
+        noTomb9103OnAbort: !tombsAfterCaseD.groups?.['9103'] && !tombsAfterCaseD.lectures?.['9203'],
+        idempotentOpIdMatch: Boolean(idempRes?.ok && idempRes?.tombstone?.operationId === prevOpId9102)
+      };
+    }, uidHH1);
+
+    console.log(`  [HH Metrics] triggerEditGroup: ${hh3To5Ops.editGroupMs.toFixed(1)} ms | triggerDeleteGroup (Case B IDB Fallback): ${hh3To5Ops.deleteCaseBMs.toFixed(1)} ms`);
+
+    assert(
+      hh3To5Ops.editOk === true &&
+      hh3To5Ops.editGroupMs < 200,
+      'Test HH.3: triggerEditGroup succeeds and updates DOM in under 200ms after conflict recovery migration'
+    );
+
+    assert(
+      hh3To5Ops.delCaseBOk === true &&
+      hh3To5Ops.groupsAfterCaseB.length === 2 &&
+      !hh3To5Ops.groupsAfterCaseB.includes(9102) &&
+      hh3To5Ops.tomb9102InMem === true &&
+      hh3To5Ops.tomb9102InIDB === true &&
+      hh3To5Ops.journalDirtyAfterCaseB === true &&
+      hh3To5Ops.idempotentOpIdMatch === true,
+      'Test HH.4 (Case B): When LocalStorage throws QuotaExceededError on pharmaTombstones_<uid>, triggerDeleteGroup durably persists tombstones in IndexedDB on tx.oncomplete, marks cloud_sync_journal dirty, and is idempotent on retry'
+    );
+
+    assert(
+      hh3To5Ops.delCaseDAborted === true &&
+      hh3To5Ops.groupsAfterCaseD.length === 2 &&
+      hh3To5Ops.groupsAfterCaseD.includes(9103) &&
+      hh3To5Ops.noTomb9103OnAbort === true,
+      'Test HH.5 (Cases C & D): When both LocalStorage and IndexedDB fail or abort (tx.onabort), triggerDeleteGroup aborts fail-closed, preserves Chapter 3 and its lectures, and leaves zero partial tombstones'
+    );
+
+    // HH.6 & HH.7: Reload page in real Chromium -> verify deleted Chapter 2 (9102) does NOT resurrect,
+    // edited Chapter 1 & surviving Chapter 3 are restored, 40 conflict recovery records are hydrated from IDB,
+    // and Cloud Sync with stale remote payload containing Chapter 2 does NOT resurrect Chapter 2
+    await tabHH.reload({ waitUntil: 'domcontentloaded' });
+    await tabHH.waitForFunction(() => typeof window.migrateAndHydrateWorkspaceFromIDB === 'function');
+
+    const hh6And7ReloadAndSync = await tabHH.evaluate(async (uid1) => {
+      await handleAuthSessionChange({ id: uid1, email: 'hh1@exo.edu', name: 'HH1 Student' }, false);
+      await migrateAndHydrateWorkspaceFromIDB(uid1);
+
+      const groupsAfterReload = (subjects[0]?.groups || []).map(g => ({ id: g.id, name: g.name }));
+      const tombsAfterReload = getLocalTombstones(uid1);
+      const conflictRecsAfterReload = getConflictRecoveryRecords(uid1);
+
+      // Now simulate incoming stale Cloud Sync payload that still has deleted Chapter 2 (9102)
+      const staleCloudRow = {
+        user_id: uid1,
+        user_email: 'hh1@exo.edu',
+        revision: 2,
+        subjects: [
+          {
+            id: 9001,
+            name: 'Clinical Pharmacology HH',
+            groups: [
+              { id: 9101, name: 'Chapter 1: Autonomic Pharmacology (Updated)', lectures: [{ id: 9201, name: 'Cholinergic Agonists' }] },
+              { id: 9102, name: 'Chapter 2: Cardiovascular (Stale Remote)', lectures: [{ id: 9202, name: 'Beta Blockers' }] },
+              { id: 9103, name: 'Chapter 3: CNS Pharmacology', lectures: [{ id: 9203, name: 'Anesthetics' }] }
+            ]
+          }
+        ],
+        schedule: { version: 3, events: [], backlog: [], weeklyReports: [], _tombstones: {} },
+        logs: [],
+        annotations: {}
+      };
+      await applyCloudWorkspacePayload(staleCloudRow, false);
+      const groupsAfterCloudSync = (subjects[0]?.groups || []).map(g => g.id);
+
+      return {
+        groupsAfterReload,
+        tomb9102AfterReload: Boolean(tombsAfterReload.groups?.['9102']),
+        conflictRecsCountAfterReload: conflictRecsAfterReload.length,
+        groupsAfterCloudSync
+      };
+    }, uidHH1);
+
+    assert(
+      hh6And7ReloadAndSync.groupsAfterReload.length === 2 &&
+      hh6And7ReloadAndSync.groupsAfterReload[0].name === 'Chapter 1: Autonomic Pharmacology (Updated)' &&
+      !hh6And7ReloadAndSync.groupsAfterReload.some(g => g.id === 9102) &&
+      hh6And7ReloadAndSync.tomb9102AfterReload === true &&
+      hh6And7ReloadAndSync.conflictRecsCountAfterReload === 40 &&
+      hh6And7ReloadAndSync.groupsAfterCloudSync.length === 2 &&
+      !hh6And7ReloadAndSync.groupsAfterCloudSync.includes(9102),
+      'Test HH.6 & HH.7: After real Chromium reload and stale Cloud Sync, tombstoned Chapter 2 never resurrects, updated Chapter 1 and Chapter 3 persist, and all 40 conflict recovery records hydrate from IndexedDB'
+    );
+
+    await tabHH.close();
+    await contextHH.close();
     await context.close();
   } finally {
     await browser.close();

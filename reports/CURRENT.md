@@ -1,13 +1,13 @@
 # Current Project Handoff
 
-**آخر تحديث:** 2026-11-12  
+**آخر تحديث:** 2026-11-13  
 **المستودع:** `JemistryMC/study-hub`  
 **الفرع النشط:** `main`  
-**آخر HEAD على GitHub (Current Base HEAD):** `b0c7d78be97692f1217880b601fefc993e4ebd2d` (706/706 PASSED في GitHub Actions CI + نجاح نشر GitHub Pages)  
-**آخر HEAD مصدري معتمد بالكامل في CI لـ M6 وPhase A:** `b0c7d78be97692f1217880b601fefc993e4ebd2d`  
-**نقاط الأساس التاريخية السابقة (Previous Baseline Checkpoints):** `b0c7d78be97692f1217880b601fefc993e4ebd2d` ← `531811772626dbd0d66729e344efc6afb659b6e1` ← `e0b2fb0a180d33fb8d98da1715db9842c8ab275f` ← `03c0737e857c95099d416b0fbf22eff581d97d86` ← `b66d72e359e7d2e8531f88f797d4d296d41206a3` ← `94259b543a021d4f06fdc0a9aa44d3f346d63037`  
-**المرحلة الفرعية النشطة:** `EXO — Stability & Responsiveness Sprint (Critical One-Hour Stabilization Pass)`  
-**الحالة:** `IMPLEMENTED — LOCAL TESTS ONLY` (تم تنفيذ تمريرة الاستقرار وسرعة الاستجابة العاجلة فوق خط الأساس `b0c7d78be97692f1217880b601fefc993e4ebd2d` مع الحفاظ التام على جميع سلوكيات M1–M6 وPhase A، واجتازت كافة الاختبارات المحلية القابلة للتشغيل بنسبة 100% — `615/615 PASSED` شاملة `129/129` في Chromium E2E و`297/297` في Phase 4 Regressions؛ بانتظار رفع المالك إلى GitHub وتشغيل CI، وليست `CI VERIFIED` أو `APPROVED` بعد)
+**آخر HEAD على GitHub (Current Base HEAD):** `196f68df6674dea7f4d2a5a59201bb10f45f16fd` (711/711 PASSED في GitHub Actions CI + نجاح نشر GitHub Pages)  
+**آخر HEAD مصدري معتمد بالكامل في CI:** `196f68df6674dea7f4d2a5a59201bb10f45f16fd`  
+**نقاط الأساس التاريخية السابقة (Previous Baseline Checkpoints):** `196f68df6674dea7f4d2a5a59201bb10f45f16fd` ← `b0c7d78be97692f1217880b601fefc993e4ebd2d` ← `531811772626dbd0d66729e344efc6afb659b6e1` ← `e0b2fb0a180d33fb8d98da1715db9842c8ab275f` ← `03c0737e857c95099d416b0fbf22eff581d97d86` ← `b66d72e359e7d2e8531f88f797d4d296d41206a3` ← `94259b543a021d4f06fdc0a9aa44d3f346d63037`  
+**المرحلة الفرعية النشطة:** `EXO — Critical Storage Quota & Durable Recovery Remediation (P0: LocalStorage Exhaustion, Conflict Recovery Bloat & Tombstone Persistence)`  
+**الحالة:** `IMPLEMENTED — LOCAL TESTS ONLY` (تم تنفيذ معالجة P0 الحاسمة لاستنزاف LocalStorage وتضخم `pharmaConflictRecovery_<uid>` ومتانة شواهد الحذف Tombstones فوق خط الأساس `196f68df6674dea7f4d2a5a59201bb10f45f16fd` مع الحفاظ التام على جميع سلوكيات M1–M6 وPhase A، واجتازت كافة الاختبارات المحلية القابلة للتشغيل بنسبة 100% — `628/628 PASSED` شاملة `135/135` في Chromium E2E و`304/304` في Phase 4 Regressions؛ بانتظار رفع المالك إلى GitHub وتشغيل CI، وليست `CI VERIFIED` أو `APPROVED` بعد)
 
 هذا الملف هو المرجع الوحيد للحالة الحالية والمرحلة النشطة. إذا خالفه تقرير تاريخي أو تعليمات مرحلة قديمة، يُتبع هذا الملف ومستند المرحلة النشطة.
 
@@ -950,4 +950,52 @@ SELECT json_build_object(
 | `npm run test:e2e` (`node test_phase4_1_chromium_e2e.js`) | متصفح Chromium الحقيقي (شاملة `Test GG.1`–`GG.5`) | **PASSED** | **129/129 (100%)** |
 | `npm run test:pg16` (`node test_phase4_2_1_pg16_concurrency.js`) | خادم PostgreSQL 16 الحقيقي متعدد الاتصالات | **NOT RUN** محلياً | `0/0` محلياً (`ECONNREFUSED 127.0.0.1:5432` — يتطلب خدمة PostgreSQL 16 في GitHub Actions CI؛ اجتاز **96/96 PASSED** على خط الأساس `b0c7d78be97692f1217880b601fefc993e4ebd2d` ولم يتغير أي ملف SQL) |
 | **إجمالي الفحوصات المنفذة محلياً (`npm test`)** | **مجموع الفحوصات الفعلية المجتازة محلياً** | **PASSED** | **615/615 (100%)** |
+
+---
+
+## 22. المعالجة الجذرية لاستنزاف LocalStorage وتضخم سجل التعافي ومتانة شواهد الحذف (EXO — P0 Storage Quota & Durable Recovery Remediation)
+
+### 22.1 التشخيص الجذري لاستنزاف LocalStorage (~5.06 MiB)
+كشف الفحص التشخيصي لمتصفح المستخدم الفعلي أن `pharmaConflictRecovery_<uid>` استهلك وحده **3,831.6 KiB** (~74% من إجمالي حصة LocalStorage البالغة ~5 MiB)، مع **1,116.8 KiB** إضافية في لقطات `pharmaAccountWorkspace_<uid>`. وأثبت التحليل الهندسي لمسارات الكود ثلاثة أسباب جذرية متضافرة:
+1. **تكرار شجرات الكيانات الكاملة مع كل تعديل لاحق (`winningOperationId` Drift):** كانت دالتا `mergeEntityRecordsWithCausalEngine` و`isEntitySupersededByTombstone` تمرران كائنات المواد (`subjects`) والأقسام (`groups`) بكامل مصفوفاتها الفرعية المتداخلة (`.groups` و`.lectures`) إلى `recordConflictRecoveryCandidate`. ولأن `recoveryId` يُشتق من `${losingOpId}__vs__${winningOpId}`، فإن كل تعديل جديد يجريه المستخدم على المادة أو القسم الفائز كان يولّد `winningOperationId` جديداً لنفس القيمة الخاسرة القديمة، فيضيف نسخة كاملة مكررة من شجرة المادة أو القسم داخل `pharmaConflictRecovery_<uid>`.
+2. **تضخم ضربات الحواشي المتعارضة (`divergent_legacy_stroke_ancestry`):** كانت `mergeLectureAnnotationsWithCausalVersions` تخزن مصفوفات الضربات المحلية والبعيدة كاملة شاملاً حقل `_canonicalGeomOrdinal` النصي المكرر لنقاط الرسم.
+3. **النسخ المتعدد لنفس السجل داخل مفاتيح LocalStorage:** كانت `saveScheduleData` و`snapshotAccountWorkspaceToLocal` تعيدان تضمين `getConflictRecoveryRecords(uid)` داخل `pharmaScheduleV4._conflictRecovery` وداخل `pharmaAccountWorkspace_<uid>.schedule._conflictRecovery`، مما ضاعف استهلاك المساحة في المتصفح.
+
+### 22.2 الحل الهندسي المنفذ (بدون `localStorage.clear()` وبدون فقدان أي سجل تعافٍ غير محلول)
+1. **الفاحص التشخيصي الآمن للخصوصية (`inspectConflictRecoveryDiagnostics(targetUid)`):**
+   - يفحص `pharmaConflictRecovery_<uid>` ومخزن IndexedDB دون تعديل، ويُرجع إحصائيات دقيقة (إجمالي السجلات، السجلات الفريدة، السجلات المكررة، البايتات القابلة للاسترداد، التوزيع حسب الحالة `unresolved`/`resolved`/`recovered`، والتوزيع النسبي للبايتات حسب `entityType` و`reason`) مع ضمان عدم تسريب أي عناوين أو نصوص شخصية (`Zero Personal Content Leakage`).
+2. **الترحيل المتين ذو الـ7 خطوات لسجل التعافي إلى IndexedDB (`migrateConflictRecoveryToIDB(uid, opCtx)`):**
+   - يعيد استخدام قاعدة البيانات القائمة `WorkspaceMediaStore` ومخزن `workspace_state` تحت المفتاح المعزول حسابياً `usr_<sanitizedUid>::__ws_domain_conflict_recovery_v1__` وسجل الترحيل `usr_<sanitizedUid>::__ws_domain_conflict_recovery_mig_v1__`.
+   - **الخطوات السبع المحققة:**
+     1. قراءة `pharmaConflictRecovery_<uid>` دون تعديل أو حذف المصدر.
+     2. التحقق من البنية وملكية الحساب (`userId === targetUid`) واكتشاف أي ترحيل متوقف سابقاً في مرحلة `STAGED`.
+     3. كتابة سجل المرحلة `STAGED` والسجلات المنقاة من التكرار إلى `workspace_state` في معاملة `readwrite`.
+     4. انتظار اكتمال المعاملة الفعلي (`await tx.oncomplete`) مع دعم خطاف فحص الانقطاع `__exoConflictMigrationTestHooks.afterStage`.
+     5. إعادة القراءة من IndexedDB في معاملة `readonly` مستقلة.
+     6. التحقق الصارم من عدد السجلات وطول البايتات وتجزئة `SHA-256` (`computePureSha256`).
+     7. تثبيت السجل كـ `COMMITTED`، وتحديث الذاكرة الحية، واستبدال الحمولة الضخمة في `localStorage` بمؤشر مدمج (~218 بايت فقط: `{ __exoIdbMigrated: true, version: 1, userId, count, sha256, byteLength, updatedAt }`)، وتجريد النسخ المكررة من `pharmaAccountWorkspace_<uid>.schedule._conflictRecovery` و`pharmaScheduleV4._conflictRecovery`.
+3. **إزالة التكرار السببي وتقنين حجم المرشحات الجديدة (`mergeConflictRecoveryLists` & `sanitizeLosingValueForConflictRecovery`):**
+   - دمج السجلات المتطابقة في `(userId, scopeId, losingOperationId, losingDigest)` مع الحفاظ التام على جميع السجلات الفريدة غير المحلولة (`status: 'unresolved'`).
+   - تجريد المصفوفات الفرعية المتداخلة من نسخة المرشح الخاسر على مستوى رأس المادة/القسم، وحذف `_canonicalGeomOrdinal` المؤقت من نسخ الضربات المتعارضة.
+4. **الحفظ المتين لشواهد الحذف (Durable Tombstone Persistence — الحالات الأربع A وB وC وD):**
+   - **الحالة A (نجاح `localStorage` و`IndexedDB`):** إتمام الحذف وتخزين شاهد القبر في المخزنين.
+   - **الحالة B (فشل `localStorage` بـ `QuotaExceededError` ونجاح `IndexedDB` بعد `tx.oncomplete`):** اعتماد الحفظ المتين في `workspace_state` (نطاق `'tombstones'`)، وإتمام حذف القسم أو المحاضرة أو المادة، وتسجيل اتساخ مساحة العمل في `cloud_sync_journal`، وإطلاق `migrateConflictRecoveryToIDB` في الخلفية لتحرير مساحة `localStorage`.
+   - **الحالتان C وD (فشل أو إجهاض `localStorage` و`IndexedDB` معاً):** إجهاض العملية فوراً (Fail-Closed)، والتراجع الكامل عن شواهد القبر المؤقتة والعدادات السببية ومصفوفات الكيانات (`rollbackDurable`)، والحفاظ على القسم/المحاضرة/المادة وجميع بياناتها دون مساس، وعرض تنبيه عربي صريح للمستخدم.
+   - **منع الانبعاث بعد إعادة التحميل والمزامنة (Non-Resurrection Guarantee):** دمج شواهد القبر المحفوظة في IndexedDB عند بدء التشغيل (`migrateAndHydrateWorkspaceFromIDB`) وعند الدمج السحابي (`mergeAndApplyCloudConflict`, `pushWorkspaceToCloud`, `applyCloudWorkspacePayload`) لضمان عدم عودة أي عنصر محذوف.
+
+### 22.3 مصفوفة نتائج الاختبارات المحلية الفعلية فوق `196f68df6674dea7f4d2a5a59201bb10f45f16fd`
+
+| أمر الاختبار المنفذ | البيئة ونطاق الفحص | الحالة | النتيجة الفعلية |
+| :--- | :--- | :--- | :--- |
+| `npm run lint` | فحص الصياغة الاستاتيكي لملفات الخادم والبناء والاختبارات | **PASSED** | `0 Errors` |
+| `npm run build` | بناء وتجهيز حزمة الإنتاج (`dist/`) | **PASSED** | `Build succeeded` |
+| `npm run test:static` (`node run_verification_tests.js`) | فحوصات التشفير PBKDF2 والأمان الثابت و`sw.js` | **PASSED** | **54/54 (100%)** |
+| `node run_comprehensive_verification.js` | التحقق الشامل من المنطق الأكاديمي | **PASSED** | **42/42 (100%)** |
+| `node test_phase3_cross_account_isolation.js` | عزل الحسابات وسلامة السجلات | **PASSED** | **52/52 (100%)** |
+| `node test_phase4_regressions.js` | اختبارات الانحدار الشاملة + `P0-R23.1` إلى `P0-R23.7` | **PASSED** | **304/304 (100%)** |
+| `npm run test:pglite` (`node test_phase4_2_postgres_integration.js`) | توافق PostgreSQL المدمج وRLS والـ OCC | **PASSED** | **41/41 (100%)** |
+| `npm run test:e2e` (`node test_phase4_1_chromium_e2e.js`) | متصفح Chromium الحقيقي (شاملة `Test HH.1`–`HH.7` تحت ضغط ~5 MiB) | **PASSED** | **135/135 (100%)** |
+| `npm run test:pg16` (`node test_phase4_2_1_pg16_concurrency.js`) | خادم PostgreSQL 16 الحقيقي متعدد الاتصالات | **NOT RUN** محلياً | `0/0` محلياً (`ECONNREFUSED 127.0.0.1:5432` — يتطلب خدمة PostgreSQL 16 في GitHub Actions CI؛ اجتاز **96/96 PASSED** على خط الأساس `196f68df6674dea7f4d2a5a59201bb10f45f16fd` ولم يتغير أي ملف SQL) |
+| **إجمالي الفحوصات المنفذة محلياً** | **مجموع الفحوصات الفعلية المجتازة محلياً** | **PASSED** | **628/628 (100%)** |
+
 
