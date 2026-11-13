@@ -39,7 +39,7 @@
 
 ## الحالة الحالية
 
-المرحلة النشطة هي **Phase 6 — EXO Personal Study Journal Experience Redesign**. تم رفع تقرير **WP 6.0 Read-Only Baseline Audit** إلى `reports/PHASE_6_BASELINE_AUDIT.md`، وهو الآن بانتظار مراجعة المالك وإغلاق Gate 6.0. لا يبدأ WP 6.1 أو أي تعديل برمجي قبل موافقة المالك الصريحة. راجع `reports/CURRENT.md` للتفاصيل الدقيقة.
+المرحلة النشطة هي **Phase 6 — EXO Personal Study Journal Experience Redesign**. تم اعتماد وإغلاق Gate 6.0 بواسطة المالك، وبدأت **WP 6.1 — Design Foundations, Application Shell & Dashboard**. راجع `reports/CURRENT.md` وخطة `reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md` لمعرفة النطاق المصرح به.
 
 ## دورة العمل — تحكم المالك
 
