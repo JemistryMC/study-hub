@@ -14,14 +14,14 @@
 
 **Phase 6 — EXO Personal Study Journal Experience Redesign**
 
-الحالة: **Phase 6 IN PROGRESS — WP 6.1, WP 6.2 & WP 6.3 CI VERIFIED; WP 6.4 IMPLEMENTED — LOCAL TESTS ONLY (PENDING OWNER SYNC & CI); WP 6.5 INACTIVE; FINAL OWNER PRODUCT REVIEW DEFERRED TO PHASE 6 COMPLETION**.
+الحالة: **Phase 6 IN PROGRESS — WP 6.1–WP 6.4 CI VERIFIED; WP 6.5 ACTIVE; WP 6.6 INACTIVE; FINAL OWNER PRODUCT REVIEW DEFERRED TO PHASE 6 COMPLETION**.
 
 **تقرير WP 6.1:** [PHASE_6_WP_6_1_REPORT.md](PHASE_6_WP_6_1_REPORT.md) — CI Run #53 (`43450226930`) SUCCESS على SHA `86fda9824880c00268db117f1ab8780b106f6fe0`.  
 **تقرير WP 6.2:** [PHASE_6_WP_6_2_REPORT.md](PHASE_6_WP_6_2_REPORT.md) — CI Run #54 (`43458938490`) SUCCESS على SHA `70d1a8446cf9bf2a84af2035788bf7db56e4d589` بإجمالي `766/766`؛ Pages Run #149 SUCCESS.  
 **تقرير WP 6.3:** [PHASE_6_WP_6_3_REPORT.md](PHASE_6_WP_6_3_REPORT.md) — CI Run #55 (`43467239963`) SUCCESS على SHA `c97499e35c006236854a2a43982fb4923e77d838` بإجمالي `776/776`؛ Chromium E2E `161/161`؛ PostgreSQL 16 `96/96`؛ PGlite `41/41`؛ Pages Run #151 (`43467237937`) SUCCESS. Chapter Workspace والتكامل الأساسي اجتازا CI، مع وجود حدود معلنة لم تثبت بعد بعض رحلات إنشاء الموارد من واجهة المستخدم.  
-**تقرير WP 6.4:** [PHASE_6_WP_6_4_REPORT.md](PHASE_6_WP_6_4_REPORT.md) — **IMPLEMENTED — LOCAL TESTS ONLY** (`691/691` assertions محليًا تشمل `167/167` Chromium E2E و`5/5` WP 6.4 unit tests و`54/54` static security و`41/41` PGlite؛ `test:pg16` غير مشغّل محليًا `ECONNREFUSED 127.0.0.1:5432` ومُرحّل إلى CI) + `13` لقطة مصدّقة في `screenshots/wp6-4/`. بانتظار مزامنة المالك ونجاح CI.  
+**تقرير WP 6.4:** [PHASE_6_WP_6_4_REPORT.md](PHASE_6_WP_6_4_REPORT.md) — **CI VERIFIED — TECHNICALLY COMPLETE** على SHA `d7010ff03ac8db3f401f4a4a38a822dca760709d`؛ CI #56 (`43480486440`) نجح بإجمالي **`787/787`**، منها Chromium E2E `167/167` وPostgreSQL 16.16 `96/96` وPGlite `41/41` وWP6.4 unit `5/5`؛ Pages #153 (`43480485880`) SUCCESS. التقرير يوثق أيضًا `691/691` محليًا و`13` لقطة مصدّقة.  
 **Scope holds:** Proposal A (المجموعات المختلطة ونموذج الموارد) وProposal B (تعدد أوراق الملاحظات في الصفحة) موثقان كـ`HELD FOR SEPARATE OWNER REVIEW — NOT IMPLEMENTED IN CODE`؛ لا تنفذ أي تغييرات تخزين أو مزامنة مرتبطة بهما دون تفويض صريح مستقل.  
-**الحزمة القادمة (معلّقة حتى نجاح CI لـ WP 6.4):** WP 6.5 — Remaining screens (**INACTIVE / NOT STARTED**).  
+**الحزمة النشطة التالية:** WP 6.5 — Remaining screens (**ACTIVE / AUTHORIZED TO PROCEED**).  
 **ملاحظة المالك (2026-11-13):** المطلوب إعادة تصميم تجربة العمل لا مجرد Skin؛ يجب أن تبرهن كل حزمة على تغييرات فعلية في رحلة المستخدم والتفاعل وسلوك النظام، مع Before/After evidence.
 
 ## حالة Phase 5.2 السابقة

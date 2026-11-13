@@ -1,13 +1,15 @@
-# EXO — Phase 6 (WP 6.4) Implementation & Local Verification Report
+# EXO — Phase 6 (WP 6.4) Implementation, Local & CI Verification Report
 ## Explain, Guide & Recover — Notifications, Dialogs, Save States & Safe Recovery Experience
 
 **Work Package:** WP 6.4 — Notifications, Dialogs, Save States & Safe Recovery Experience  
 **Repository:** `JemistryMC/study-hub`  
 **Target Branch:** `main`  
 **Starting Documentation HEAD:** `8a9a72c11ed38d616a5660dbece4833de2ed84b0`  
-**Last CI-Verified Application Source SHA:** `c97499e35c006236854a2a43982fb4923e77d838` (WP 6.3 CI Run `#55` [`43467239963`] — `776/776 PASSED`; Pages Run `#151` [`43467237937`] — `SUCCESS`)  
-**WP 6.4 Status:** `IMPLEMENTED — LOCAL TESTS ONLY` *(awaiting owner review, GitHub synchronization, and GitHub Actions CI verification on synced source SHA)*  
-**Phase 6 Status:** `IN PROGRESS — WP 6.1, WP 6.2 & WP 6.3 CI VERIFIED; WP 6.4 IMPLEMENTED — LOCAL TESTS ONLY; WP 6.5 INACTIVE; FINAL OWNER PRODUCT REVIEW AT PHASE 6 COMPLETION`
+**WP 6.4 Uploaded Application Source SHA:** `d7010ff03ac8db3f401f4a4a38a822dca760709d` ([commit](https://github.com/JemistryMC/study-hub/commit/d7010ff03ac8db3f401f4a4a38a822dca760709d))  
+**GitHub Actions CI:** Run `#56` (`43480486440`) — **SUCCESS** on the exact SHA above; unified runner **`787/787 PASSED`**, including PostgreSQL 16.16 (`96/96`) and Chromium E2E (`167/167`).  
+**GitHub Pages:** Run `#153` (`43480485880`) — **SUCCESS** on the same SHA.  
+**WP 6.4 Status:** `CI VERIFIED — TECHNICALLY COMPLETE` *(product acceptance is deferred to the final Phase 6 owner review)*  
+**Phase 6 Status:** `IN PROGRESS — WP 6.1–WP 6.4 CI VERIFIED; WP 6.5 ACTIVE; WP 6.6 INACTIVE; FINAL OWNER PRODUCT REVIEW AT PHASE 6 COMPLETION`
 
 ---
 
@@ -18,7 +20,7 @@ WP 6.4 replaces opaque, conflated save/sync indicators and generic alerts across
 Students no longer have to guess whether notes are durably written to their device, queued for cloud synchronization, acknowledged by the server, blocked by an expired session/permission/cooldown, conflicted via OCC, or temporarily quarantined. Every failure explains **what happened**, **likely cause & uncertainty**, **current data safety status**, **ordered non-destructive next steps**, **direct safe recovery actions** (where verified and safe), and **sanitized diagnostic details** with secrets redacted.
 
 ### Hard Engineering Boundaries Preserved
-- **WP 6.4 Only:** **WP 6.5** (remaining screens) and **WP 6.6** (final Phase 6 acceptance) remain **INACTIVE / NOT STARTED**.
+- **WP 6.4 Only:** WP 6.4 implementation changed only its authorized experience, test, and reporting scope. **WP 6.5** (remaining screens) is now **ACTIVE** after CI verification; **WP 6.6** (final regression/accessibility/performance gate) remains **INACTIVE** until WP 6.5 is complete.
 - **Zero Unapproved Schema, Persistence, Auth, Drive, Sync, or Policy Mutations:**
   - Zero new `localStorage` keys or IndexedDB databases/object stores/version bumps added for UI status (`WorkspaceMediaStore` v5 untouched).
   - Zero changes to Supabase schemas, SQL migrations, RLS policies, RPC signatures (`sync_workspace_with_concurrency`), Cloud OCC 3-way conflict merge semantics, or quarantine gates (`ROLLBACK_FAILED_QUARANTINE`).
@@ -114,6 +116,20 @@ Students no longer have to guess whether notes are durably written to their devi
 
 ---
 
+
+## 5A. GitHub Actions CI Verification on the Uploaded Source SHA
+
+**Verified repository state:** `main` at `d7010ff03ac8db3f401f4a4a38a822dca760709d`.
+
+- GitHub Actions CI Run **#56** (Run ID `43480486440`) completed with **SUCCESS**. All substantive workflow steps succeeded, including deterministic install, lint, production build, static security, unit suites, PGlite, native PostgreSQL 16, Chromium + IndexedDB E2E, and the unified `npm test` runner.
+- Unified result: **`787/787 PASSED`** (`54` static + `429` logic/unit + `41` PGlite + `96` native PostgreSQL 16 + `167` Chromium E2E).
+- Native CI PostgreSQL was **16.16**; the concurrency/parity suite passed **`96/96`**. WP 6.4 unit tests passed **`5/5`**.
+- GitHub Pages Run **#153** (Run ID `43480485880`) completed with **SUCCESS** on the same Source SHA.
+
+This establishes `CI VERIFIED — TECHNICALLY COMPLETE` for WP 6.4. It does **not** constitute final product approval, nor does it represent a live production integration test against hosted Supabase or Google Drive. Browser tests run in the controlled CI test environment; the previously declared WP 6.3 UI-creation coverage limitation remains unchanged.
+
+---
+
 ## 6. Visual Evidence Gallery (`reports/screenshots/wp6-4/`, Synthetic Data)
 
 All `13` sanitized PNG screenshots (`1.6 MB` total) were captured from headless Chromium (`http://localhost:3000`) with `pageErrors: []` and clean fade settlement (`320ms`) across every visual/CSS polish pass:
@@ -145,15 +161,17 @@ All `13` sanitized PNG screenshots (`1.6 MB` total) were captured from headless 
 | `/test_phase4_1_chromium_e2e.js` | **Modified** | Added **Test OO (`OO.1`–`OO.10`)** verifying offline/fail/quota/IDB/401/403/429/409/quarantine recovery flows, UI secret redaction, impact-preview modal + Escape focus restore, mobile unclipped `#pdfAutoSaveStatus`, `#cloudLiveSyncBadge` truthfulness, AR RTL, and reduced motion | `8,676` lines (`427,968` bytes) — `167/167 PASSED` |
 | `/package.json` | **Modified** | Wired `test_wp6_4_unit.js` into `lint` (`node --check`) and `test:unit` (`node --test`) | `30` lines (`1,713` bytes) |
 | `/run_all_tests.js` | **Modified** | Registered `test_wp6_4_unit.js` (`useNodeTest: true`) in Tier 2 | `135` lines (`4,759` bytes) |
-| `/reports/PHASE_6_WP_6_4_REPORT.md` | **Added** | This WP 6.4 implementation, 2-axis truth model, secret redaction, before/after UX, post-final-edit verification (`691/691`), and visual evidence report | — |
+| `/reports/PHASE_6_WP_6_4_REPORT.md` | **Added** | This WP 6.4 implementation, 2-axis truth model, secret redaction, before/after UX, local verification (`691/691`), GitHub CI verification (`787/787` on `d7010ff`), and visual evidence | — |
 | `/reports/screenshots/wp6-4/*.png` | **Added** | `13` sanitized Chromium PNG screenshots (`01`–`13`) | `13` PNGs (`1.6 MB`) |
-| `/reports/CURRENT.md`, `/reports/README.md`, `/reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md` | **Modified** | Synchronized WP 6.4 status to `IMPLEMENTED — LOCAL TESTS ONLY` (pending owner sync & GitHub Actions CI) while keeping WP 6.5 **INACTIVE** and preserving historical sections intact | Verified top headers only |
+| `/reports/CURRENT.md`, `/reports/README.md`, `/reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md` | **Modified** | Reconciled project handoff to WP 6.4 `CI VERIFIED` on `d7010ff`; WP 6.5 is now **ACTIVE**; final Phase 6 product review remains deferred | Documentation-only status reconciliation |
 
 *(Generated `dist/` assets and transient `.playwright-cli/` scratch artifacts remain excluded from tracked deliverables.)*
 
 ---
 
-## 8. Owner Sync Prerequisites & Next Step
+## 8. WP 6.4 Completion & WP 6.5 Handoff
 
-1. **GitHub Sync Required Before WP 6.5:** WP 6.4 is ready in the local AI Studio workspace as **`IMPLEMENTED — LOCAL TESTS ONLY`** (`691/691` local assertions passed; `5/5` Node benchmark tiers passed; `npm run test:pg16` remains queued for GitHub Actions `postgres:16` service). **WP 6.5 remains INACTIVE** until WP 6.4 is synced by the owner and passes GitHub Actions CI (`npm test`) on the uploaded Source SHA.
-2. **Sync Caution:** If Google AI Studio offers only `Force push to main`, treat it as a history-rewriting risk for owner review rather than a routine push. Zero `git` commands were executed locally by Gemini.
+1. **Technical Gate:** PASSED — GitHub Actions CI #56 (`43480486440`) succeeded on exact uploaded Source SHA `d7010ff03ac8db3f401f4a4a38a822dca760709d` with `787/787` assertions; the PostgreSQL 16.16 suite passed `96/96`, Chromium E2E `167/167`, WP 6.4 unit `5/5`, and Pages #153 (`43480485880`) succeeded on the same SHA.
+2. **Local Evidence:** Gemini's post-final-edit local run remains `691/691` (the local PostgreSQL 16 daemon was unavailable); the successful GitHub CI run supplies the missing native PostgreSQL 16 verification. The five Node Tier A benchmarks passed locally; the CI workflow does not run that benchmark.
+3. **Scope & Approval:** WP 6.4 is `CI VERIFIED — TECHNICALLY COMPLETE`, not product-approved. WP 6.5 is now unlocked and active under the sequential progression policy. Final owner product approval remains deferred until the complete Phase 6 review.
+4. **Production Boundary:** This CI run validates the repository test suite and its controlled Chromium/PostgreSQL test environment. It is not a live production Supabase or Google Drive integration test. No production access or protected schema/auth/Drive/sync changes are authorized by this result.
