@@ -1,13 +1,14 @@
 # Exo Academic Platform
 
-منصة Exo لإدارة المحاضرات وملفات الدراسة والتخطيط الأكاديمي. هذا المستودع هو المصدر المرجعي للكود وتقارير المراحل.
+منصة Exo لإدارة الدراسة والمواد والمحاضرات والتخطيط الأكاديمي. هذا المستودع هو المصدر المرجعي للكود وقرارات المنتج والتقارير الهندسية.
 
 ## ابدأ من هنا
 
-1. اقرأ [الحالة الحالية للمشروع](reports/CURRENT.md) لمعرفة المرحلة المصرح بها.
-2. اقرأ [العقد الهندسي الدائم لـGemini](GEMINI.md)؛ وهو يحدد قواعد المشروع العامة ولا يحدد المرحلة الحالية.
-3. افتح مستند المرحلة النشطة كما هو موضح في `reports/CURRENT.md`.
-4. راجع [طريقة العمل والتقارير](reports/README.md).
+1. اقرأ [الحالة الحالية للمشروع](reports/CURRENT.md) لمعرفة المرحلة النشطة والخطوة المصرح بها.
+2. اقرأ [العقد الهندسي الدائم لـGemini](GEMINI.md) قبل أي تعديل.
+3. عند العمل على الواجهة وتجربة الاستخدام، اقرأ [EXO — Personal Study Journal Design Contract](reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md).
+4. اقرأ [Phase 6 — Experience Redesign Plan](reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md) لمعرفة مراحل التنفيذ وبوابات المراجعة.
+5. راجع [طريقة العمل والتقارير](reports/README.md).
 
 ## خريطة المشروع
 
@@ -21,7 +22,7 @@
 | `supabase/schema.sql` | مرجع مخطط قاعدة البيانات؛ لا يُطبق بالكامل تلقائيًا على قاعدة قائمة |
 | `supabase/rollbacks/` | خطط التراجع الموثقة |
 | `test_*.js` و`run_*.js` | اختبارات الأمان والتكامل والمتصفح |
-| `reports/` | تقارير المراحل والمراجعات وسجل التسليم |
+| `reports/` | قرارات التصميم، مراحل التنفيذ، التقارير، وسجل التسليم |
 
 ## الفروع ومصدر الحقيقة
 
@@ -31,38 +32,36 @@
 | `Deploying` | مرجع تاريخي لخط أساس سابق؛ ليس فرع العمل النشط |
 | `backup/pre-gemini-security-2026-11-04` | نقطة استرجاع محمية؛ لا تحذفها أو تعدلها |
 
-`reports/CURRENT.md` هو المرجع الوحيد للمرحلة النشطة. وجود ملف مرحلة قديمة أو تقرير تاريخي لا يعني أن تعليماته ما زالت سارية.
+- `reports/CURRENT.md` هو المرجع الوحيد للمرحلة النشطة والخطوة المصرح بها.
+- `GEMINI.md` هو العقد الدائم للأمان والهندسة والصلاحيات.
+- `reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md` هو المرجع المعتمد لقرارات الشكل وتجربة الاستخدام.
+- `reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md` يحدد مراحل إعادة التصميم وبوابات مراجعتها.
 
 ## الحالة الحالية
 
-العمل الحالي هو **Phase 5.1.1 — Blueprint Technical Validation & Correction**، وحالته **CHANGES REQUESTED — DOCUMENTATION ONLY — NOT APPROVED**.
-
-الملف المستهدف الوحيد:
-`reports/phases/phase-5-storage-sync-audit/phase-5-1-implementation-blueprint.md`
-
-لا يبدأ M1 أو تعديل التطبيق أو SQL قبل تصحيح الـBlueprint ومراجعته وموافقة المالك. راجع `reports/CURRENT.md` للتفاصيل وحدود التنفيذ.
+المرحلة النشطة هي **Phase 6 — EXO Personal Study Journal Experience Redesign**. أول خطوة هي Work Package 6.0: تدقيق وصفي للواجهة والوظائف الحالية وإعداد خريطة التنفيذ، دون تعديل كود التطبيق. راجع `reports/CURRENT.md` للتفاصيل الدقيقة.
 
 ## دورة العمل — تحكم المالك
 
-1. Gemini يقرأ `GEMINI.md` و`reports/CURRENT.md` ومستند المرحلة الحالية.
-2. Gemini يتحقق من المستودع والفرع وBase SHA وحالة التغييرات المحلية.
-3. Gemini يعدل نطاق المرحلة فقط ويعرض Diff كاملًا والملفات والاختبارات.
-4. المالك يراجع المستودع `JemistryMC/study-hub` والفرع `main`.
-5. المالك وحده يقرر GitHub Sync. إذا كانت الواجهة لا تقدم إلا `Force push to main`، فلا يتم استخدامه إلا بعد مراجعة الـDiff والتأكد من وجود نقطة الاسترجاع؛ فقد يعيد Force Push كتابة تاريخ الفرع.
+1. Gemini يقرأ README.md وGEMINI.md وreports/CURRENT.md، ثم مستند التصميم وخطة Phase 6 عند العمل على الواجهة.
+2. Gemini يتحقق من المستودع والفرع وBase SHA وحالة الملفات المحلية.
+3. Gemini يعمل ضمن Work Package محدد، ويحافظ على الوظائف والبيانات الحالية.
+4. قبل المزامنة يعرض Gemini Base SHA والملفات المتغيرة والـDiff والاختبارات والقيود.
+5. المالك وحده يراجع ويقرر GitHub Sync. لا Force Push كإجراء روتيني.
 6. بعد المزامنة نتحقق من Commit SHA والملفات الفعلية وGitHub Actions المرتبطة بنفس SHA.
-7. المراجعة المستقلة وموافقة المالك مطلوبة قبل اعتماد المرحلة أو السماح بالنشر.
+7. المراجعة المستقلة وموافقة المالك مطلوبة قبل اعتماد أي مرحلة.
 
 ## قواعد أساسية
 
 - لا أسرار أو كلمات مرور أو JWTs أو مفاتيح خاصة أو ملفات `.env` في Git.
-- لا اتصال بقاعدة Supabase Production أو تطبيق migrations عليها دون تفويض مستقل؛ لا يوجد حاليًا تفويض لأي تعديل إنتاجي.
+- لا اتصال بقاعدة Supabase Production أو تطبيق migrations عليها دون تفويض مستقل.
 - لا تفترض أن قاعدة البيانات الحية فارغة أو مطابقة لـ`schema.sql`.
 - لا تحذف اختبارات أو تخفف Assertions لإظهار نجاح زائف.
 - لا تخلط PGlite مع PostgreSQL 16 الحقيقي أو mocks مع Chromium E2E.
 - لا تجعل VIP شرطًا للحفظ الأكاديمي الأساسي أو مزامنة Workspace/annotations الأساسية.
-- استحقاق VIP الحالي يدوي من المالك عبر `public.user_workspaces.can_upload_media`؛ لا يوجد تفعيل اشتراك أو دفع آلي.
-- Google Drive media upload منفصل عن مزامنة بيانات Workspace، ولا تفترض أن ملفات Drive الخاصة عامة أو قابلة للوصول من كل الحسابات.
+- استحقاق VIP الحالي يدوي من المالك عبر `public.user_workspaces.can_upload_media`.
+- Google Drive media upload منفصل عن مزامنة بيانات Workspace.
 - كل نتيجة اختبار يجب أن ترتبط بـSource SHA محدد؛ لا تستخدم نتائج تاريخية كأنها اختبارات جديدة.
 - لا تغييرات في `Deploying` أو فرع الاسترجاع.
 
-التفاصيل الدائمة موجودة في [GEMINI.md](GEMINI.md)، والحالة النشطة في [reports/CURRENT.md](reports/CURRENT.md).
+التفاصيل الدائمة في [GEMINI.md](GEMINI.md)، والمرحلة النشطة في [reports/CURRENT.md](reports/CURRENT.md).
