@@ -14,11 +14,13 @@
 
 **Phase 6 — EXO Personal Study Journal Experience Redesign**
 
-الحالة: **IN PROGRESS — WP 6.0 AUDIT DELIVERED; OWNER REVIEW PENDING**.
+الحالة: **IN PROGRESS — WP 6.1 IMPLEMENTATION AUTHORIZED BY OWNER**.
 
 **تقرير WP 6.0:** [PHASE_6_BASELINE_AUDIT.md](PHASE_6_BASELINE_AUDIT.md) تم رفعه إلى GitHub في commit `0a6100439a6d98fee9aaa84683ad4bf7d1247c5f` بعد جولة reconciliation مع قرارات المالك.
 
-**الحالة:** READY FOR GATE 6.0 OWNER REVIEW. المطلوب الآن مراجعة التقرير واعتماد الإغلاق أو طلب تصحيحات محددة. لا يبدأ WP 6.1 أو أي تعديل برمجي قبل موافقة المالك الصريحة.
+**قرار المالك:** تم اعتماد وإغلاق Gate 6.0 بتاريخ 2026-11-13.  
+**حزمة العمل النشطة:** WP 6.1 — Design foundations, application shell, and dashboard.  
+**النطاق الحالي فقط:** التصميم الأساسي، الهيكل العام، Hybrid Navigation، Typography، التأسيس ثنائي اللغة، وDaily-Focus Dashboard. لا يبدأ WP 6.2 أو WP 6.3 ضمن هذا التكليف.
 
 ## حالة Phase 5.2 السابقة
 
