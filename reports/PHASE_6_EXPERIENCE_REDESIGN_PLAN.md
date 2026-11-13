@@ -1,7 +1,7 @@
 # Phase 6 — EXO Personal Study Journal Experience Redesign
 ## Incremental Implementation Plan and Acceptance Gates
 
-**Status:** IN PROGRESS — WP 6.0 AUDIT DELIVERED; GATE 6.0 OWNER REVIEW PENDING  
+**Status:** IN PROGRESS — WP 6.0 APPROVED BY OWNER; WP 6.1 ACTIVE  
 **Design authority:** reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md  
 **Engineering authority:** GEMINI.md  
 **Initial app-source baseline:** c74315a4580d68c61da8a0f49ec2b2f5946301e4 (verify current GitHub HEAD before every task)  
@@ -22,9 +22,9 @@ This is a full experience redesign, not a color/font refresh. Deliver it in revi
 
 ## WP 6.0 — Read-only baseline audit and implementation map
 
-**Status:** IMPLEMENTED — AUDIT REPORT DELIVERED; OWNER REVIEW PENDING.  
+**Status:** APPROVED — OWNER ACCEPTED GATE 6.0 ON 2026-11-13.  
 **Deliverable:** `reports/PHASE_6_BASELINE_AUDIT.md`.  
-The read-only audit task is complete. No application source/style/test changes were made in WP 6.0.
+The read-only audit task is complete and accepted by the owner. No application source/style/test changes were made in WP 6.0.
 
 Required work:
 - Verify repository, main branch, actual HEAD, worktree state, and source SHA.
@@ -50,7 +50,7 @@ Deliverables: create one documentation-only audit report at `reports/PHASE_6_BAS
 8. File-by-file proposed implementation sequence with change boundaries.
 9. Actual baseline tests/build/lint/performance results tied to exact SHA.
 
-**Gate 6.0:** The audit report has been delivered and is awaiting owner review. No WP 6.1 implementation is authorized until the owner explicitly approves Gate 6.0.
+**Gate 6.0:** APPROVED BY OWNER on 2026-11-13. WP 6.1 implementation is now authorized within its documented scope.
 
 ---
 
