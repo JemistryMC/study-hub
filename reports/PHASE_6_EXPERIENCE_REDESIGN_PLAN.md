@@ -1,7 +1,7 @@
 # Phase 6 — EXO Personal Study Journal Experience Redesign
 ## Incremental Implementation Plan and Acceptance Gates
 
-**Status:** IN PROGRESS — DESIGN DIRECTION DOCUMENTED; BASELINE AUDIT NOT STARTED  
+**Status:** IN PROGRESS — WP 6.0 AUDIT DELIVERED; GATE 6.0 OWNER REVIEW PENDING  
 **Design authority:** reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md  
 **Engineering authority:** GEMINI.md  
 **Initial app-source baseline:** c74315a4580d68c61da8a0f49ec2b2f5946301e4 (verify current GitHub HEAD before every task)  
