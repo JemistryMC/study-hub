@@ -1,15 +1,39 @@
 # Current Project Handoff
 
 **آخر تحديث:** 2026-11-13  
-**المستودع:** `JemistryMC/study-hub`  
-**الفرع النشط:** `main`  
-**آخر HEAD على GitHub (Current GitHub HEAD):** `0fba2907c375b166aeb70fe78498546a6d1c6d4b` (734/734 PASSED في GitHub Actions CI Run #50 `43415571477` + نجاح نشر GitHub Pages Run #124 `43415570728`)  
-**آخر HEAD مصدري معتمد بالكامل في CI:** `0fba2907c375b166aeb70fe78498546a6d1c6d4b`  
-**نقاط الأساس التاريخية السابقة (Previous Baseline Checkpoints):** `10a5d5ba55255956653e17de3ca3da4f671c7fa2` (CI Run #49: 724/724 PASSED، Pages Run #123) ← `196f68df6674dea7f4d2a5a59201bb10f45f16fd` ← `b0c7d78be97692f1217880b601fefc993e4ebd2d` ← `531811772626dbd0d66729e344efc6afb659b6e1` ← `e0b2fb0a180d33fb8d98da1715db9842c8ab275f` ← `03c0737e857c95099d416b0fbf22eff581d97d86` ← `b66d72e359e7d2e8531f88f797d4d296d41206a3` ← `94259b543a021d4f06fdc0a9aa44d3f346d63037`  
-**المرحلة الفرعية النشطة:** `EXO — P0.1 Durable Conflict Recovery & Atomic Deletion Rollback Hardening`  
-**الحالة:** `CI VERIFIED` (تم تنفيذ تمريرة التصليب P0.1 فوق خط الأساس `10a5d5ba55255956653e17de3ca3da4f671c7fa2` ورفعها في Commit `0fba2907c375b166aeb70fe78498546a6d1c6d4b`، واجتازت كافة فحوصات GitHub Actions CI Run #50 [`43415571477`] بنسبة `734/734 PASSED` شاملةً Real PostgreSQL 16 `96/96` وChromium E2E `139/139` وPhase 4 Regressions `310/310`، كما نجح نشر GitHub Pages Run #124 [`43415570728`] على `https://jemistrymc.github.io/study-hub/`؛ بانتظار قرار القبول والاعتماد النهائي `APPROVED` من المالك)
+**المستودع:** JemistryMC/study-hub  
+**فرع العمل:** main  
+**آخر commit مصدري معروف قبل توثيق Phase 6:** c74315a4580d68c61da8a0f49ec2b2f5946301e4  
+**رسالة commit المصدر:** feat: implement Google Drive reliability and OAuth  
+**حالة Phase 5.2 عند التسليم:** IMPLEMENTED — LOCAL TESTS REPORTED; CI NOT VERIFIED; OWNER REVIEW PENDING. Gemini أفاد محليًا بـ650/650 ونجاح npm run lint وnpm run build. فحص GitHub Combined Status لهذا SHA لم يُرجع Status Checks في آخر تحقق؛ لا تعتبر ذلك إثبات CI.
+**المرحلة النشطة:** Phase 6 — EXO Personal Study Journal Experience Redesign  
+**حالة Phase 6:** IN PROGRESS — DESIGN DIRECTION DOCUMENTED; BASELINE AUDIT NOT STARTED  
+**الخطوة التالية المصرح بها:** Work Package 6.0 — Read-only baseline audit and implementation map. لا تغيّر كود التطبيق أو CSS أو الاختبارات أو التخزين أو الخدمات في هذه الخطوة.
 
-هذا الملف هو المرجع الوحيد للحالة الحالية والمرحلة النشطة. إذا خالفه تقرير تاريخي أو تعليمات مرحلة قديمة، يُتبع هذا الملف ومستند المرحلة النشطة.
+## مراجع التسليم الحالية
+
+1. العقد الهندسي الدائم: GEMINI.md.
+2. قرارات المنتج وتجربة الاستخدام المعتمدة: reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md.
+3. خطة التنفيذ المرحلية: reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md.
+4. الفهرس والتسليم بين Gemini وChatGPT: reports/README.md.
+
+## قرارات التصميم المثبتة
+
+- EXO — Personal Study Journal؛ Dark identity بخلفية Ink/Charcoal مع أسطح Warm Paper عند الحاجة.
+- Refined Journal كأساس مع تفاصيل Expressive Journal محدودة؛ لا Gaming/Deadlock/Neon/Cyberpunk.
+- الألوان: Ink Black #191B1D، Charcoal #292B2D، Warm Paper #F0E6D4، Sage Green #899982 كلون الهوية، Muted Blue #7898AC، Terracotta #C47D60، Warm Gold #D7B96F.
+- الخطوط: Manrope + Lora للإنجليزية، IBM Plex Sans Arabic + Noto Naskh Arabic للعربية، ولمسات يدوية نادرة.
+- اللغة الافتراضية لأول تشغيل English، مع دعم عربي/إنجليزي كامل وRTL/LTR وحفظ تفضيل المستخدم.
+- Hybrid Navigation؛ Dashboard تتمحور حول Daily Focus؛ Library بأسلوب Digital Bookshelf؛ Table of Contents هو عرض الشابترات الافتراضي.
+- Chapter Workspace هو المظلة الموحدة لكل موارد الشابتر؛ PDF Studio وأدواته الحالية جزء داخلي منه ويجب الحفاظ عليها بالكامل.
+- موارد متعددة الأنواع من مكان واحد، Collections مرنة مختلطة الأنواع، Chapter Overview، واستكمال آخر جلسة مع حفظ السياق المدعوم فعليًا.
+- حالات الحفظ والمزامنة والأخطاء تتبع Explain, Guide & Recover؛ يجب شرح المشكلة وحالة البيانات وطريقة الحل بأمان، لا الاكتفاء بعرض الحالة.
+- الأولوية الوظيفية وسهولة الاستخدام والأداء وسلامة البيانات؛ الحفاظ على العمليات المغلقة القائمة كما هي وعدم اختراع دورة بديلة.
+
+## تنبيه بشأن السجل التاريخي أدناه
+
+المحتوى بعد الفاصل التالي محفوظ لأغراض التتبع التاريخي فقط. قد يحتوي على SHA أو حالات مراحل أو أرقام اختبارات قديمة، بما فيها ادعاء أن مرحلة أقدم هي النشطة. لا تستخدم أي حالة أو SHA تاريخي أدناه باعتباره handoff حاليًا، ولا تعِد فتح Phase 5.1.1 أو أي مرحلة أقدم تلقائيًا. المرجع النشط هو هذا القسم وخطة Phase 6 أعلاه. عند كل مهمة، تحقق من GitHub HEAD والـSource SHA الفعليين من جديد.
+
 
 ---
 
