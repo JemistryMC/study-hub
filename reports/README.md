@@ -16,9 +16,9 @@
 
 الحالة: **IN PROGRESS — DESIGN DIRECTION DOCUMENTED; BASELINE AUDIT NOT STARTED**.
 
-**أول خطوة مصرح بها:** Work Package 6.0 — Read-only baseline audit and implementation map.
+**تقرير WP 6.0:** [PHASE_6_BASELINE_AUDIT.md](PHASE_6_BASELINE_AUDIT.md) تم رفعه إلى GitHub في commit `0a6100439a6d98fee9aaa84683ad4bf7d1247c5f` بعد جولة reconciliation مع قرارات المالك.
 
-لا تعدّل كود التطبيق أو CSS أو الاختبارات أو التخزين أو المصادقة أو قاعدة البيانات في WP 6.0. المطلوب حصر جميع الصفحات والمكونات والحالات والوظائف الحالية، ورسم خريطة من الوضع الحالي إلى التصميم المعتمد، ثم التوقف لمراجعة المالك.
+**الحالة:** READY FOR GATE 6.0 OWNER REVIEW. المطلوب الآن مراجعة التقرير واعتماد الإغلاق أو طلب تصحيحات محددة. لا يبدأ WP 6.1 أو أي تعديل برمجي قبل موافقة المالك الصريحة.
 
 ## حالة Phase 5.2 السابقة
 
