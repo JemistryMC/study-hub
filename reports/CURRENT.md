@@ -21,7 +21,7 @@
 3. خطة التنفيذ المرحلية: `reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md`.
 4. الفهرس والتسليم بين Gemini وChatGPT: `reports/README.md`.
 5. تقرير WP 6.0 المكتمل: `reports/PHASE_6_BASELINE_AUDIT.md`.
-6. تقرير إتمام WP 6.1 المحلي وفحوصاته: `reports/PHASE_6_WP_6_1_REPORT.md`.
+6. تقرير WP 6.1 ونتائج GitHub Actions CI: `reports/PHASE_6_WP_6_1_REPORT.md`.
 
 ## قرارات التصميم المثبتة
 
