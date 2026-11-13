@@ -89,18 +89,14 @@ The journal metaphor may inform tabs, bookmarks, and hierarchy, but may not make
 
 ## 6. Dashboard
 
-**Approved:** Daily Focus first, with a concise overview. The dashboard is a starting point for action, not a page displaying every metric.
+**Approved (Owner Simplified Today Direction):** Daily Focus first — answering one question: *"What should I study today, and where can I continue from?"* The Today dashboard is a calm, focused starting point, not a multi-card metrics board.
 
 Desired hierarchy:
-1. Welcome/date and useful quick actions.
-2. Today's Focus: priorities and next actions.
-3. Daily progress based on real app data.
-4. Weekly overview.
-5. Continue Studying: relevant recent subject/chapter/resource.
-6. Journal Notes/reflection.
-7. Useful quick access.
+1. **Minimal header**: Greeting and current formatted date; no large decorative stat blocks or button clusters.
+2. **Today's plan**: Today's real scheduled study sessions only, preserving working completion interaction, with completion count and tiny progress indicator inside the section heading (`done / total`), at most a compact inline urgent indication backed by existing data when applicable, and one concise empty state with one primary action to schedule a session when none exist.
+3. **Continue studying**: One compact item for the single most recent genuinely resumable incomplete lecture/resource using persisted reading/session state, preserving resume navigation and last-page behavior (omitted or kept minimal when none exists).
 
-Never fabricate counts, progress, completion, or activity. Empty/first-use states must offer useful next steps. Preserve the existing closed-loop operations and their real semantics. Audit source and tests to discover the actual cycle; do not invent, rename, reorder, or replace its stages based on assumptions. Desktop/mobile composition may differ while retaining function.
+Separate Dashboard cards for Daily Progress, Weekly Overview, Journal Notes/Reflection, and Quick Access are excluded from the Today screen while preserving the underlying Planner and Tracker views and existing closed-loop operations. Never fabricate counts, progress, completion, or activity. Desktop/mobile composition adapts cleanly while retaining function.
 
 ## 7. Library, subjects, and chapter index
 

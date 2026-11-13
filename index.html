@@ -7314,8 +7314,8 @@
             .navbar-actions-group { gap: 6px !important; }
             .navbar-actions-group button,
             .navbar-actions-group .icon-btn {
-                min-height: 40px;
-                min-width: 40px;
+                min-height: 44px;
+                min-width: 44px;
             }
             .cloud-status-btn { padding: 6px 10px !important; font-size: 0.74rem !important; }
             .navbar .nav-items {
@@ -8159,75 +8159,45 @@
             .main-content { margin-inline-start: 0 !important; margin-inline-end: 0 !important; }
         }
 
-        /* ================= DASHBOARD (TODAY JOURNAL) ================= */
+        /* ================= DASHBOARD (SIMPLIFIED TODAY JOURNAL) ================= */
         .exo-dash-shell {
             display: flex;
             flex-direction: column;
-            gap: 18px;
+            gap: 20px;
             width: 100%;
-            max-width: 1240px;
+            max-width: 880px;
             margin: 0 auto;
         }
         .exo-dash-header {
             display: flex;
-            flex-wrap: wrap;
-            align-items: flex-end;
-            justify-content: space-between;
-            gap: 16px;
-            padding: 22px 24px;
-            background: #202225;
-            border: 1px solid rgba(240, 230, 212, 0.11);
-            border-radius: 16px;
+            flex-direction: column;
+            gap: 6px;
+            padding: 8px 4px 14px;
+            border-bottom: 1px solid rgba(240, 230, 212, 0.1);
         }
         .exo-dash-eyebrow {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.78rem;
-            font-weight: 700;
-            letter-spacing: 0.03em;
-            color: var(--sage-green);
-            margin-bottom: 6px;
-        }
-        .exo-dash-dot { opacity: 0.55; }
-        .exo-dash-status {
-            color: #C7C3BA;
+            font-size: 0.82rem;
             font-weight: 600;
+            letter-spacing: 0.02em;
+            color: var(--sage-green);
         }
         .exo-dash-title {
-            font-size: clamp(1.55rem, 2.4vw, 2.05rem);
+            font-size: clamp(1.65rem, 2.5vw, 2.2rem);
             font-weight: 700;
             color: var(--warm-paper);
             line-height: 1.25;
             margin: 0;
         }
-        .exo-dash-header-actions {
+        .exo-dash-stack {
             display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-        }
-        .exo-dash-header-actions .btn {
-            min-height: 44px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            font-weight: 700;
-        }
-        .exo-dash-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 16px;
-            align-items: stretch;
-        }
-        .exo-dash-span-2 {
-            grid-column: 1 / -1;
+            flex-direction: column;
+            gap: 18px;
         }
         .exo-journal-card {
             background: #222528;
             border: 1px solid rgba(240, 230, 212, 0.1);
-            border-radius: 15px;
-            padding: 20px 22px;
+            border-radius: 16px;
+            padding: 22px 24px;
             display: flex;
             flex-direction: column;
             min-width: 0;
@@ -8236,24 +8206,24 @@
             background: var(--warm-paper);
             color: #191B1D;
             border-color: rgba(25, 27, 29, 0.16);
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.26);
         }
         .exo-card-head {
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 14px;
+            gap: 14px;
+            margin-bottom: 16px;
         }
         .exo-card-head h2, .exo-card-head h3 {
             margin: 0;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 700;
             color: var(--warm-paper);
             line-height: 1.3;
         }
         .exo-journal-card.paper-surface .exo-card-head h2 {
-            font-size: clamp(1.3rem, 2vw, 1.65rem);
+            font-size: clamp(1.32rem, 2vw, 1.65rem);
             color: #191B1D;
         }
         .exo-card-kicker {
@@ -8264,27 +8234,39 @@
             color: #55544E;
             margin-bottom: 4px;
         }
-        .exo-card-meta-badge {
-            font-size: 0.76rem;
-            font-weight: 700;
-            color: #C7C3BA;
-            background: rgba(240, 230, 212, 0.07);
-            border: 1px solid rgba(240, 230, 212, 0.1);
+        .exo-today-heading-progress {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .exo-paper-pill {
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: #191B1D;
+            background: rgba(25, 27, 29, 0.08);
+            border: 1px solid rgba(25, 27, 29, 0.16);
             border-radius: 8px;
             padding: 4px 10px;
             white-space: nowrap;
             font-variant-numeric: tabular-nums;
         }
-        .exo-paper-pill {
-            font-size: 0.78rem;
-            font-weight: 800;
-            color: #191B1D;
-            background: rgba(25, 27, 29, 0.09);
-            border: 1px solid rgba(25, 27, 29, 0.16);
-            border-radius: 8px;
-            padding: 5px 12px;
-            white-space: nowrap;
-            font-variant-numeric: tabular-nums;
+        .exo-today-mini-track {
+            width: 88px;
+            height: 5px;
+            border-radius: 999px;
+            background: rgba(25, 27, 29, 0.14);
+            overflow: hidden;
+        }
+        .exo-today-mini-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: #2E4B32;
+            transition: width 0.22s ease;
+        }
+        .exo-empty-hero {
+            padding: 6px 0 2px;
         }
         .exo-empty-hero h4 {
             margin: 0 0 6px;
@@ -8293,11 +8275,11 @@
             color: #191B1D;
         }
         .exo-empty-hero p {
-            margin: 0 0 14px;
+            margin: 0 0 16px;
             font-size: 0.92rem;
             line-height: 1.6;
             color: #42413C;
-            max-width: 72ch;
+            max-width: 60ch;
         }
         .exo-empty-actions {
             display: flex;
@@ -8305,38 +8287,25 @@
             gap: 10px;
             align-items: center;
         }
-        .exo-paper-btn-primary,
-        .exo-paper-btn-secondary {
+        .exo-paper-btn-primary {
             min-height: 44px;
-            padding: 10px 16px;
+            padding: 10px 18px;
             border-radius: 10px;
             font-family: inherit;
-            font-size: 0.86rem;
+            font-size: 0.88rem;
             font-weight: 700;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
-        }
-        .exo-paper-btn-primary {
             background: #191B1D;
             color: var(--warm-paper);
             border: 1px solid #191B1D;
+            transition: background-color 0.16s ease, transform 0.16s ease;
         }
         .exo-paper-btn-primary:hover, .exo-paper-btn-primary:focus-visible {
             background: #2D3033;
-            transform: translateY(-1px);
-        }
-        .exo-paper-btn-secondary {
-            background: rgba(25, 27, 29, 0.06);
-            color: #191B1D;
-            border: 1px solid rgba(25, 27, 29, 0.22);
-        }
-        .exo-paper-btn-secondary:hover, .exo-paper-btn-secondary:focus-visible {
-            background: rgba(25, 27, 29, 0.13);
-            border-color: #191B1D;
             transform: translateY(-1px);
         }
         .exo-paper-session-list {
@@ -8348,38 +8317,57 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 10px 14px;
+            padding: 8px 12px;
             border-radius: 11px;
-            background: rgba(25, 27, 29, 0.06);
+            background: rgba(25, 27, 29, 0.055);
             border: 1px solid rgba(25, 27, 29, 0.13);
             transition: background-color 0.15s ease, border-color 0.15s ease;
         }
         .exo-paper-session-item:hover {
-            background: rgba(25, 27, 29, 0.1);
-            border-color: rgba(25, 27, 29, 0.25);
+            background: rgba(25, 27, 29, 0.095);
+            border-color: rgba(25, 27, 29, 0.24);
         }
         .exo-paper-session-item.is-done {
-            opacity: 0.68;
+            opacity: 0.72;
         }
         .exo-paper-session-item.is-done .exo-paper-session-title {
             text-decoration: line-through;
         }
         .exo-paper-check {
-            width: 34px;
-            height: 34px;
-            min-width: 34px;
-            border-radius: 9px;
-            border: 2px solid #292B2D;
-            background: rgba(255, 255, 255, 0.55);
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            min-height: 44px;
+            padding: 0;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
             color: var(--warm-paper);
             display: inline-flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        .exo-paper-check-box {
+            width: 26px;
+            height: 26px;
+            border-radius: 8px;
+            border: 2px solid #292B2D;
+            background: rgba(255, 255, 255, 0.65);
+            color: var(--warm-paper);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
             transition: background-color 0.15s ease, border-color 0.15s ease;
         }
-        .exo-paper-session-item.is-done .exo-paper-check {
+        .exo-paper-check:hover .exo-paper-check-box,
+        .exo-paper-check:focus-visible .exo-paper-check-box {
+            border-color: #191B1D;
+            background: rgba(255, 255, 255, 0.9);
+        }
+        .exo-paper-session-item.is-done .exo-paper-check-box {
             background: #191B1D;
             border-color: #191B1D;
             color: var(--warm-paper);
@@ -8387,188 +8375,85 @@
         .exo-paper-session-main {
             flex: 1;
             min-width: 0;
+            min-height: 44px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            padding: 4px 0;
+            text-align: start;
+            font-family: inherit;
             cursor: pointer;
         }
         .exo-paper-session-title {
-            font-size: 0.94rem;
+            font-size: 0.95rem;
             font-weight: 700;
             color: #191B1D;
             line-height: 1.35;
         }
         .exo-paper-session-meta {
-            font-size: 0.78rem;
+            font-size: 0.79rem;
             color: #4A4945;
             margin-top: 2px;
+            font-variant-numeric: tabular-nums;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px 6px;
         }
-        .exo-paper-signals {
+        .exo-dash-meta-seg {
+            display: inline-block;
+            unicode-bidi: isolate;
+            white-space: nowrap;
+        }
+        .exo-dash-meta-sep {
+            opacity: 0.55;
+        }
+        .exo-paper-urgent-strip {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin-top: 12px;
+            margin-top: 14px;
             padding-top: 12px;
             border-top: 1px dashed rgba(25, 27, 29, 0.18);
         }
         .exo-paper-signal-chip {
-            min-height: 38px;
-            padding: 6px 12px;
-            border-radius: 8px;
-            border: 1px solid rgba(25, 27, 29, 0.18);
-            background: rgba(25, 27, 29, 0.07);
-            color: #191B1D;
+            min-height: 44px;
+            padding: 8px 12px;
+            border-radius: 9px;
+            border: 1px solid rgba(196, 125, 96, 0.45);
+            background: rgba(196, 125, 96, 0.12);
+            color: #3D1F15;
             font-family: inherit;
-            font-size: 0.78rem;
+            font-size: 0.8rem;
             font-weight: 700;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 7px;
+            gap: 8px;
             transition: background-color 0.15s ease;
         }
         .exo-paper-signal-chip:hover, .exo-paper-signal-chip:focus-visible {
-            background: rgba(25, 27, 29, 0.14);
+            background: rgba(196, 125, 96, 0.22);
         }
-        .exo-metric-strip {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
+        .exo-dash-continue-card {
+            padding: 18px 22px;
         }
-        .exo-metric-box {
-            background: #292B2D;
-            border: 1px solid rgba(240, 230, 212, 0.08);
-            border-radius: 12px;
-            padding: 12px 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .exo-metric-val {
-            font-size: 1.3rem;
-            font-weight: 800;
-            color: var(--warm-paper);
-            font-variant-numeric: tabular-nums;
-            line-height: 1.2;
-        }
-        .exo-metric-lbl {
-            font-size: 0.76rem;
-            color: #B4B0A8;
-            font-weight: 600;
-        }
-        .exo-dash-progress-row {
-            margin-top: 14px;
-            padding-top: 12px;
-            border-top: 1px solid rgba(240, 230, 212, 0.08);
-        }
-        .exo-dash-progress-labels {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 0.8rem;
-            color: #C7C3BA;
-            margin-bottom: 6px;
-        }
-        .exo-dash-progress-labels strong {
-            color: var(--warm-paper);
-            font-variant-numeric: tabular-nums;
-        }
-        .exo-week-rhythm {
-            display: grid;
-            grid-template-columns: repeat(7, minmax(0, 1fr));
-            gap: 8px;
-            margin-top: 4px;
-            flex: 1;
-            align-items: end;
-        }
-        .exo-week-col {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 7px;
-            padding: 8px 4px;
-            border-radius: 10px;
-            background: #292B2D;
-            border: 1px solid rgba(240, 230, 212, 0.07);
-        }
-        .exo-week-col.is-today {
-            border-color: var(--sage-green);
-            background: rgba(137, 153, 130, 0.14);
-        }
-        .exo-week-bar-track {
-            width: 22px;
-            height: 76px;
-            border-radius: 6px;
-            background: rgba(240, 230, 212, 0.07);
-            position: relative;
-            overflow: hidden;
-        }
-        .exo-week-bar-planned {
-            position: absolute;
-            bottom: 0;
-            inset-inline: 0;
-            background: rgba(120, 152, 172, 0.38);
-            border-radius: 6px 6px 0 0;
-        }
-        .exo-week-bar-done {
-            position: absolute;
-            bottom: 0;
-            inset-inline: 0;
-            background: var(--sage-green);
-            border-radius: 6px 6px 0 0;
-        }
-        .exo-week-day-label {
-            font-size: 0.72rem;
-            font-weight: 700;
-            color: #C7C3BA;
-        }
-        .exo-week-col.is-today .exo-week-day-label {
-            color: var(--warm-paper);
-        }
-        .exo-dash-card-foot {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            margin-top: 14px;
-            padding-top: 12px;
-            border-top: 1px solid rgba(240, 230, 212, 0.08);
-            font-size: 0.82rem;
-            color: #C7C3BA;
-        }
-        .exo-inline-link {
-            background: rgba(137, 153, 130, 0.12);
-            border: 1px solid rgba(137, 153, 130, 0.3);
-            color: #B4C5AD;
-            border-radius: 8px;
-            padding: 6px 12px;
-            min-height: 36px;
-            font-family: inherit;
-            font-size: 0.78rem;
-            font-weight: 700;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-        }
-        .exo-inline-link:hover, .exo-inline-link:focus-visible {
-            background: rgba(137, 153, 130, 0.24);
-            border-color: var(--sage-green);
-            color: var(--warm-paper);
-        }
-        .exo-dash-list,
-        .exo-dash-notes-list {
-            display: flex;
-            flex-direction: column;
-            gap: 9px;
+        .exo-dash-continue-card .exo-card-head {
+            margin-bottom: 12px;
         }
         .exo-dash-list-item {
             width: 100%;
-            min-height: 52px;
+            min-height: 56px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
-            padding: 11px 14px;
-            border-radius: 11px;
+            gap: 14px;
+            padding: 12px 15px;
+            border-radius: 12px;
             background: #292B2D;
-            border: 1px solid rgba(240, 230, 212, 0.09);
+            border: 1px solid rgba(240, 230, 212, 0.1);
             color: var(--warm-paper);
             font-family: inherit;
             text-align: start;
@@ -8576,7 +8461,7 @@
             transition: border-color 0.16s ease, background-color 0.16s ease;
         }
         .exo-dash-list-item:hover, .exo-dash-list-item:focus-visible {
-            border-color: rgba(137, 153, 130, 0.55);
+            border-color: rgba(137, 153, 130, 0.6);
             background: #303336;
         }
         .exo-dash-item-body {
@@ -8584,109 +8469,49 @@
             min-width: 0;
         }
         .exo-dash-item-title {
-            font-size: 0.9rem;
+            font-size: 0.94rem;
             font-weight: 700;
             color: var(--warm-paper);
-            white-space: nowrap;
+            line-height: 1.38;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
             overflow: hidden;
-            text-overflow: ellipsis;
         }
         .exo-dash-item-meta {
-            font-size: 0.76rem;
-            color: #A8A49B;
-            margin-top: 2px;
+            font-size: 0.78rem;
+            color: #B6B2A9;
+            margin-top: 4px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px 6px;
         }
         .exo-dash-item-badge {
-            margin-top: 4px;
+            margin-top: 6px;
         }
         .exo-dash-resume-pill {
-            font-size: 0.76rem;
+            font-size: 0.8rem;
             font-weight: 700;
             color: #191B1D;
             background: var(--sage-green);
             border-radius: 8px;
-            padding: 5px 10px;
+            padding: 7px 12px;
+            min-height: 36px;
             display: inline-flex;
             align-items: center;
             gap: 6px;
             white-space: nowrap;
-        }
-        .exo-dash-note-item {
-            padding: 11px 13px;
-            border-radius: 11px;
-            background: #292B2D;
-            border: 1px solid rgba(240, 230, 212, 0.08);
-        }
-        .exo-dash-note-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            font-size: 0.74rem;
-            color: #A8A49B;
-            margin-bottom: 5px;
-        }
-        .exo-dash-tag {
-            background: rgba(120, 152, 172, 0.18);
-            color: #B4CDD9;
-            border-radius: 6px;
-            padding: 2px 8px;
-            font-weight: 700;
-        }
-        .exo-dash-note-text {
-            font-size: 0.86rem;
-            color: var(--warm-paper);
-            line-height: 1.5;
-        }
-        .exo-dash-muted-empty {
-            font-size: 0.86rem;
-            color: #A8A49B;
-            line-height: 1.55;
-            padding: 12px 14px;
-            border-radius: 10px;
-            background: rgba(240, 230, 212, 0.03);
-            border: 1px dashed rgba(240, 230, 212, 0.12);
-        }
-        .exo-quick-grid {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 10px;
-        }
-        .exo-quick-tile {
-            min-height: 50px;
-            padding: 11px 14px;
-            border-radius: 11px;
-            background: #292B2D;
-            border: 1px solid rgba(240, 230, 212, 0.1);
-            color: var(--warm-paper);
-            font-family: inherit;
-            font-size: 0.84rem;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-align: start;
-            transition: border-color 0.16s ease, background-color 0.16s ease, transform 0.16s ease;
-        }
-        .exo-quick-tile:hover, .exo-quick-tile:focus-visible {
-            border-color: var(--sage-green);
-            background: #313437;
-            transform: translateY(-1px);
-        }
-        @media (max-width: 1024px) {
-            .exo-quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        }
-        @media (max-width: 900px) {
-            .exo-dash-grid { grid-template-columns: 1fr; }
+            flex-shrink: 0;
         }
         @media (max-width: 600px) {
-            .exo-dash-shell { padding-bottom: 84px; }
-            .exo-dash-header { padding: 16px; }
-            .exo-journal-card { padding: 16px; }
-            .exo-quick-grid { grid-template-columns: 1fr; }
-            .exo-week-rhythm { gap: 5px; }
-            .exo-week-bar-track { width: 16px; height: 64px; }
+            .exo-dash-shell { gap: 16px; padding-bottom: 84px; }
+            .exo-dash-header { padding: 4px 2px 12px; }
+            .exo-journal-card { padding: 18px 16px; }
+            .exo-dash-continue-card { padding: 16px; }
+            .exo-card-head { flex-wrap: wrap; }
+            .exo-today-heading-progress { align-items: flex-start; }
+            .exo-dash-list-item { flex-wrap: wrap; }
         }
 
 
@@ -12103,7 +11928,7 @@
             if(viewId === 'tracker') updateTracker();
         }
 
-        // ================= PAGE 0: TODAY / DAILY-FOCUS JOURNAL DASHBOARD =================
+        // ================= PAGE 0: SIMPLIFIED TODAY / DAILY-FOCUS JOURNAL DASHBOARD =================
         function formatDashHourLabel(hourVal, isEn) {
             if (!isEn && typeof formatHourText === 'function') {
                 return formatHourText(hourVal);
@@ -12122,6 +11947,49 @@
             return escapeHtml(JSON.stringify(String(rawId ?? '')));
         }
 
+        function selectLatestResumableLecture(subjectsList) {
+            const safeSubjects = Array.isArray(subjectsList) ? subjectsList : [];
+            const candidates = [];
+            let seqOrder = 0;
+
+            safeSubjects.forEach(sub => {
+                if (!sub || !Array.isArray(sub.groups)) return;
+                sub.groups.forEach(grp => {
+                    if (!grp || !Array.isArray(grp.lectures)) return;
+                    grp.lectures.forEach(lec => {
+                        seqOrder++;
+                        if (!lec || lec.completed) return;
+                        const lastPage = Number(lec.lastPageNum) || 0;
+                        const totalPages = Number(lec.totalPages) || 0;
+                        const lastAudio = Number(lec.lastAudioSec) || 0;
+                        const lastStudied = Number(lec.lastStudiedAt) || 0;
+                        const hasPageBookmark = lastPage > 1 || (lastPage >= 1 && totalPages > 1 && lastStudied > 0);
+                        const hasAudioBookmark = lastAudio > 5;
+                        const hasSessionTs = lastStudied > 0;
+                        if (!hasPageBookmark && !hasAudioBookmark && !hasSessionTs) return;
+
+                        candidates.push({
+                            sub,
+                            grp,
+                            lec,
+                            lastStudied,
+                            bookmarkScore: (hasPageBookmark ? 2 : 0) + (hasAudioBookmark ? 1 : 0),
+                            seqOrder
+                        });
+                    });
+                });
+            });
+
+            if (candidates.length === 0) return null;
+            candidates.sort((a, b) => {
+                if (b.lastStudied !== a.lastStudied) return b.lastStudied - a.lastStudied;
+                if (b.bookmarkScore !== a.bookmarkScore) return b.bookmarkScore - a.bookmarkScore;
+                return b.seqOrder - a.seqOrder;
+            });
+            return { sub: candidates[0].sub, grp: candidates[0].grp, lec: candidates[0].lec };
+        }
+        window.selectLatestResumableLecture = selectLatestResumableLecture;
+
         function refreshDashboardIfVisible() {
             const dashEl = document.getElementById('dashboard');
             if (dashEl && dashEl.classList.contains('active')) {
@@ -12129,6 +11997,14 @@
             }
         }
         window.refreshDashboardIfVisible = refreshDashboardIfVisible;
+
+        function scheduleSessionFromDashboard(dayIdx, startHour) {
+            switchView('schedule', document.querySelector('.sidebar-nav-item[data-tab="schedule"]'));
+            if (typeof openAddSessionModal === 'function') {
+                openAddSessionModal(dayIdx, startHour);
+            }
+        }
+        window.scheduleSessionFromDashboard = scheduleSessionFromDashboard;
 
         async function resumeLectureFromDashboard(subId, groupId, lecId) {
             const subObj = Array.isArray(subjects) ? subjects.find(s => String(s.id) === String(subId)) : null;
@@ -12187,20 +12063,12 @@
                 : (isEn ? `${greetingPrefix} — Study Desk` : `${greetingPrefix} — مكتب المذاكرة`);
 
             const fullDateStr = now.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-            const workspaceBadge = currentCloudUser
-                ? (isEn ? 'Synced Journal' : 'مزامنة سحابية')
-                : (isEn ? 'Local Study Archive' : 'الأرشيف المحلي');
 
             const safeSubjects = Array.isArray(subjects) ? subjects : [];
             const safeEvents = Array.isArray(scheduleEvents) ? scheduleEvents : [];
-            const safeBacklog = Array.isArray(scheduleBacklog) ? scheduleBacklog : [];
-            const safeLogs = Array.isArray(logs) ? logs : [];
 
-            let totalLectures = 0;
-            let doneLectures = 0;
-            const resumeCandidates = [];
+            const urgentExams = [];
             const dueReviews = [];
-            const examAlerts = [];
             const subMap = new Map();
 
             safeSubjects.forEach(sub => {
@@ -12208,35 +12076,22 @@
                 subMap.set(String(sub.id), sub);
                 if (typeof getSubjectExamRadarInfo === 'function') {
                     const examInfo = getSubjectExamRadarInfo(sub);
-                    if (examInfo) {
-                        examAlerts.push({ sub, examInfo });
+                    if (examInfo && (examInfo.daysLeft === undefined || Number(examInfo.daysLeft) <= 7)) {
+                        urgentExams.push({ sub, examInfo });
                     }
                 }
                 (sub.groups || []).forEach(grp => {
                     (grp.lectures || []).forEach(lec => {
-                        if (!lec) return;
-                        totalLectures++;
-                        if (lec.completed) {
-                            doneLectures++;
-                            if (typeof getSpacedRepetitionInfo === 'function') {
-                                const sr = getSpacedRepetitionInfo(lec);
-                                if (sr && sr.isDue) {
-                                    dueReviews.push({ sub, grp, lec, sr });
-                                }
+                        if (!lec || !lec.completed) return;
+                        if (typeof getSpacedRepetitionInfo === 'function') {
+                            const sr = getSpacedRepetitionInfo(lec);
+                            if (sr && sr.isDue) {
+                                dueReviews.push({ sub, grp, lec, sr });
                             }
-                        } else {
-                            const hasSavedBookmark = (Number(lec.lastPageNum) > 1 && Number(lec.totalPages) > 1) || Number(lec.lastAudioSec) > 5;
-                            resumeCandidates.push({
-                                sub,
-                                grp,
-                                lec,
-                                priority: hasSavedBookmark ? 2 : 1
-                            });
                         }
                     });
                 });
             });
-            resumeCandidates.sort((a, b) => b.priority - a.priority);
 
             const todaySessions = safeEvents
                 .filter(e => {
@@ -12249,303 +12104,123 @@
 
             const todayPlannedCount = todaySessions.length;
             const todayDoneCount = todaySessions.filter(e => Boolean(e.completed)).length;
-            const todayPendingCount = Math.max(0, todayPlannedCount - todayDoneCount);
+            const todayProgressPct = todayPlannedCount > 0 ? Math.round((todayDoneCount / todayPlannedCount) * 100) : 0;
+            const defaultStartHour = Math.max(Number((typeof plannerPrefs !== 'undefined' && plannerPrefs?.dayStartHour) ?? 6), hour);
 
-            let weeklyPlannedHrs = 0;
-            let weeklyDoneHrs = 0;
-            const orderedWeekDays = (typeof getOrderedWeekDays === 'function')
-                ? getOrderedWeekDays()
-                : [];
-            const enWeekShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            const arWeekShort = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
-
-            const weekBarsData = (orderedWeekDays.length === 7 ? orderedWeekDays : [6, 0, 1, 2, 3, 4, 5].map(idx => ({ dayIdx: idx, isToday: idx === todayIdx }))).map(d => {
-                let dPlanned = 0;
-                let dDone = 0;
-                safeEvents.forEach(ev => {
-                    if (!ev || Number(ev.day) !== Number(d.dayIdx) || ev.absent) return;
-                    const actionable = (typeof isActionableStudySession === 'function')
-                        ? isActionableStudySession(ev)
-                        : (!ev.isFixed && ev.type !== 'mandatory');
-                    if (!actionable) return;
-                    const dur = Number(ev.duration) || 1;
-                    dPlanned += dur;
-                    if (ev.completed) dDone += dur;
-                });
-                weeklyPlannedHrs += dPlanned;
-                weeklyDoneHrs += dDone;
-                return {
-                    dayIdx: Number(d.dayIdx),
-                    label: isEn ? enWeekShort[Number(d.dayIdx)] : arWeekShort[Number(d.dayIdx)],
-                    planned: Number(dPlanned.toFixed(1)),
-                    done: Number(dDone.toFixed(1)),
-                    isToday: Boolean(d.isToday)
-                };
-            });
-            const maxBarHrs = Math.max(1, ...weekBarsData.map(b => Math.max(b.planned, b.done)));
-            const weeklyGoalsDone = safeBacklog.filter(g => g && (g.done || g.completed)).length;
-            const streakDays = (typeof calculateStreak === 'function') ? calculateStreak() : 0;
-            const lectureCompletionPct = totalLectures > 0 ? Math.round((doneLectures / totalLectures) * 100) : 0;
-
-            const isWorkspaceEmpty = safeSubjects.length === 0 && safeEvents.length === 0 && safeLogs.length === 0 && safeBacklog.length === 0;
-
-            let todayHeroHtml = '';
-            if (isWorkspaceEmpty) {
-                todayHeroHtml = `
-                    <div class="exo-empty-hero">
-                        <h4>${isEn ? 'Your study desk is ready' : 'مكتبك الدراسي جاهز للبداية'}</h4>
-                        <p>${isEn
-                            ? 'Create your first subject to organize lectures and PDFs, schedule study blocks in the planner, or load a sample workspace to explore.'
-                            : 'أضف مادتك الأولى لتنظيم المحاضرات وملفات الـ PDF، أو خطط جلساتك في الجدول، أو استكشف المنصة ببيانات نموذجية جاهزة.'}</p>
-                        <div class="exo-empty-actions">
-                            <button type="button" class="exo-paper-btn-primary" onclick="openSmartSubjectModal()">
-                                <i class="fa-solid fa-plus"></i> ${isEn ? 'Add First Subject' : 'إضافة أول مادة'}
-                            </button>
-                            <button type="button" class="exo-paper-btn-secondary" onclick="loadDemoData()">
-                                <i class="fa-solid fa-book-open"></i> ${isEn ? 'Load Demo Workspace' : 'تجربة ببيانات جاهزة'}
-                            </button>
-                            <button type="button" class="exo-paper-btn-secondary" onclick="switchView('schedule', document.querySelector('.sidebar-nav-item[data-tab=&quot;schedule&quot;]'))">
-                                <i class="fa-solid fa-calendar-days"></i> ${isEn ? 'Open Planner' : 'فتح الجدول'}
-                            </button>
-                            <button type="button" class="exo-paper-btn-secondary" onclick="openHelpModal()">
-                                <i class="fa-solid fa-circle-question"></i> ${isEn ? 'Platform Guide' : 'الدليل الشامل'}
-                            </button>
+            const headingProgressHtml = todayPlannedCount > 0
+                ? `
+                    <div class="exo-today-heading-progress">
+                        <span class="exo-paper-pill" id="dashTodayRatioPill">${todayDoneCount} / ${todayPlannedCount} ${isEn ? 'done' : 'مكتمل'}</span>
+                        <div class="exo-today-mini-track" role="progressbar" aria-label="${isEn ? 'Today completion progress' : 'تقدم جلسات اليوم'}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${todayProgressPct}">
+                            <div class="exo-today-mini-fill" style="width:${todayProgressPct}%;"></div>
                         </div>
                     </div>
-                `;
-            } else {
-                const sessionRowsHtml = todaySessions.slice(0, 5).map(ev => {
+                `
+                : '';
+
+            const urgentInlineChips = [
+                ...urgentExams.slice(0, 1).map(item => `
+                    <button type="button" class="exo-paper-signal-chip" onclick="switchView('subjects', document.querySelector('.sidebar-nav-item[data-tab=&quot;subjects&quot;]')); openSubject(${serializeDashIdArg(item.sub.id)});">
+                        <i class="fa-solid fa-bullseye"></i>
+                        <span>${escapeHtml(item.sub.name)} — ${escapeHtml(item.examInfo.examTitle || '')} (${escapeHtml(item.examInfo.urgencyLabel || '')})</span>
+                    </button>
+                `),
+                ...dueReviews.slice(0, 1).map(item => `
+                    <button type="button" class="exo-paper-signal-chip" onclick="resumeLectureFromDashboard(${serializeDashIdArg(item.sub.id)}, ${serializeDashIdArg(item.grp.id)}, ${serializeDashIdArg(item.lec.id)})">
+                        <i class="fa-solid fa-rotate"></i>
+                        <span>${isEn ? 'Review due:' : 'مراجعة مستحقة:'} ${escapeHtml(item.lec.title || '')}</span>
+                    </button>
+                `)
+            ].join('');
+
+            let todayPlanBodyHtml = '';
+            if (todayPlannedCount > 0) {
+                const sessionRowsHtml = todaySessions.map(ev => {
                     const sub = ev.subjectId ? subMap.get(String(ev.subjectId)) : null;
                     const subLabel = sub ? escapeHtml(sub.name) : (isEn ? 'General Study' : 'مذاكرة عامة');
                     const timeTxt = formatDashHourLabel(ev.startHour || 9, isEn);
                     const durVal = Number((Number(ev.duration) || 1).toFixed(1));
-                    const durTxt = isEn ? `${durVal}h` : `${durVal} س`;
+                    const durTxt = ev.isOpenDuration && !ev.completed
+                        ? (isEn ? 'Open' : 'مفتوح')
+                        : (isEn ? `${durVal}h` : `${durVal} س`);
                     const evIdArg = serializeDashIdArg(ev.id);
+                    const isDone = Boolean(ev.completed);
                     return `
-                        <div class="exo-paper-session-item ${ev.completed ? 'is-done' : ''}" data-dash-session-id="${escapeHtml(String(ev.id))}">
-                            <button type="button" class="exo-paper-check" onclick="toggleTodaySessionDoneFromDash(${evIdArg}, event)" aria-label="${isEn ? 'Toggle session completion' : 'تبديل إتمام الجلسة'}">
-                                ${ev.completed ? '<i class="fa-solid fa-check"></i>' : ''}
+                        <div class="exo-paper-session-item ${isDone ? 'is-done' : ''}" data-dash-session-id="${escapeHtml(String(ev.id))}">
+                            <button type="button" class="exo-paper-check" onclick="toggleTodaySessionDoneFromDash(${evIdArg}, event)" aria-pressed="${isDone ? 'true' : 'false'}" aria-label="${isEn ? 'Toggle session completion' : 'تبديل إتمام الجلسة'}">
+                                <span class="exo-paper-check-box">${isDone ? '<i class="fa-solid fa-check"></i>' : ''}</span>
                             </button>
-                            <div class="exo-paper-session-main" onclick="if (typeof launchScheduledSessionNow === 'function') launchScheduledSessionNow(${evIdArg});">
-                                <div class="exo-paper-session-title">${escapeHtml(ev.title || (isEn ? 'Study Session' : 'جلسة مذاكرة'))}</div>
-                                <div class="exo-paper-session-meta">${subLabel} • ${timeTxt} • ${durTxt}</div>
-                            </div>
+                            <button type="button" class="exo-paper-session-main" onclick="if (typeof launchScheduledSessionNow === 'function') launchScheduledSessionNow(${evIdArg});">
+                                <div class="exo-paper-session-title" dir="auto">${escapeHtml(ev.title || (isEn ? 'Study Session' : 'جلسة مذاكرة'))}</div>
+                                <div class="exo-paper-session-meta"><span class="exo-dash-meta-seg" dir="auto">${subLabel}</span><span class="exo-dash-meta-sep" aria-hidden="true">•</span><span class="exo-dash-meta-seg" dir="auto">${timeTxt}</span><span class="exo-dash-meta-sep" aria-hidden="true">•</span><span class="exo-dash-meta-seg" dir="auto">${durTxt}</span></div>
+                            </button>
                         </div>
                     `;
                 }).join('');
 
-                const radarAndReviewsHtml = [
-                    ...examAlerts.slice(0, 2).map(item => `
-                        <button type="button" class="exo-paper-signal-chip" onclick="switchView('subjects', document.querySelector('.sidebar-nav-item[data-tab=&quot;subjects&quot;]')); openSubject(${serializeDashIdArg(item.sub.id)});">
-                            <i class="fa-solid fa-bullseye"></i>
-                            <span>${escapeHtml(item.sub.name)} — ${escapeHtml(item.examInfo.examTitle || '')} (${escapeHtml(item.examInfo.urgencyLabel || '')})</span>
-                        </button>
-                    `),
-                    ...dueReviews.slice(0, 2).map(item => `
-                        <button type="button" class="exo-paper-signal-chip" onclick="resumeLectureFromDashboard(${serializeDashIdArg(item.sub.id)}, ${serializeDashIdArg(item.grp.id)}, ${serializeDashIdArg(item.lec.id)})">
-                            <i class="fa-solid fa-rotate"></i>
-                            <span>${isEn ? 'Review due:' : 'مراجعة مستحقة:'} ${escapeHtml(item.lec.title || '')}</span>
-                        </button>
-                    `)
-                ].join('');
-
-                todayHeroHtml = todaySessions.length > 0
-                    ? `
-                        <div class="exo-paper-session-list">${sessionRowsHtml}</div>
-                        ${radarAndReviewsHtml ? `<div class="exo-paper-signals">${radarAndReviewsHtml}</div>` : ''}
-                    `
-                    : `
-                        <div class="exo-empty-hero">
-                            <h4>${isEn ? 'No study sessions scheduled for today yet' : 'لا توجد جلسات مذاكرة مجدولة لليوم بعد'}</h4>
-                            <p>${isEn
-                                ? 'Block a focused study session for today or continue an open lecture below.'
-                                : 'خطط جلسة تركيز لليوم أو واصل مذاكرة محاضرة مفتوحة بالأسفل.'}</p>
-                            <div class="exo-empty-actions">
-                                <button type="button" class="exo-paper-btn-primary" onclick="if (typeof openAddSessionModal === 'function') { switchView('schedule', document.querySelector('.sidebar-nav-item[data-tab=&quot;schedule&quot;]')); openAddSessionModal(${todayIdx}, ${Math.max(Number(plannerPrefs?.dayStartHour ?? 6), hour)}); }">
-                                    <i class="fa-solid fa-plus"></i> ${isEn ? 'Schedule Today' : 'جدولة جلسة لليوم'}
-                                </button>
-                                <button type="button" class="exo-paper-btn-secondary" onclick="switchView('subjects', document.querySelector('.sidebar-nav-item[data-tab=&quot;subjects&quot;]'))">
-                                    <i class="fa-solid fa-layer-group"></i> ${isEn ? 'Browse Subjects' : 'تصفح المواد'}
-                                </button>
-                            </div>
+                todayPlanBodyHtml = `
+                    <div class="exo-paper-session-list">${sessionRowsHtml}</div>
+                    ${urgentInlineChips ? `<div class="exo-paper-urgent-strip">${urgentInlineChips}</div>` : ''}
+                `;
+            } else {
+                todayPlanBodyHtml = `
+                    <div class="exo-empty-hero">
+                        <h4>${isEn ? 'No sessions scheduled for today' : 'لا توجد جلسات مجدولة لليوم'}</h4>
+                        <p>${isEn
+                            ? 'Schedule a focused study block for today to see your plan here.'
+                            : 'أضف جلسة مذاكرة في الجدول لتظهر خطتك لليوم هنا.'}</p>
+                        <div class="exo-empty-actions">
+                            <button type="button" class="exo-paper-btn-primary" id="dashEmptyScheduleBtn" onclick="scheduleSessionFromDashboard(${todayIdx}, ${defaultStartHour})">
+                                <i class="fa-solid fa-calendar-plus"></i> ${isEn ? 'Schedule a session' : 'جدولة جلسة لليوم'}
+                            </button>
                         </div>
-                        ${radarAndReviewsHtml ? `<div class="exo-paper-signals" style="margin-top:12px;">${radarAndReviewsHtml}</div>` : ''}
-                    `;
+                    </div>
+                    ${urgentInlineChips ? `<div class="exo-paper-urgent-strip">${urgentInlineChips}</div>` : ''}
+                `;
             }
 
-            const continueHtml = resumeCandidates.length > 0
-                ? resumeCandidates.slice(0, 4).map(item => {
-                    const badge = (typeof getLectureReadingProgressBadgeHtml === 'function')
-                        ? getLectureReadingProgressBadgeHtml(item.lec)
-                        : '';
-                    return `
-                        <button type="button" class="exo-dash-list-item" onclick="resumeLectureFromDashboard(${serializeDashIdArg(item.sub.id)}, ${serializeDashIdArg(item.grp.id)}, ${serializeDashIdArg(item.lec.id)})">
+            const resumableItem = selectLatestResumableLecture(safeSubjects);
+            let continueSectionHtml = '';
+            if (resumableItem) {
+                const badge = (typeof getLectureReadingProgressBadgeHtml === 'function')
+                    ? getLectureReadingProgressBadgeHtml(resumableItem.lec)
+                    : '';
+                continueSectionHtml = `
+                    <section id="exoContinueStudyingSection" class="exo-journal-card exo-dash-continue-card" aria-labelledby="exoContinueStudyingHeading">
+                        <div class="exo-card-head">
+                            <h3 id="exoContinueStudyingHeading">${isEn ? 'Continue studying' : 'متابعة المذاكرة'}</h3>
+                        </div>
+                        <button type="button" class="exo-dash-list-item" onclick="resumeLectureFromDashboard(${serializeDashIdArg(resumableItem.sub.id)}, ${serializeDashIdArg(resumableItem.grp.id)}, ${serializeDashIdArg(resumableItem.lec.id)})">
                             <div class="exo-dash-item-body">
-                                <div class="exo-dash-item-title">${escapeHtml(item.lec.title || (isEn ? 'Untitled Lecture' : 'محاضرة'))}</div>
-                                <div class="exo-dash-item-meta">${escapeHtml(item.sub.name)} • ${escapeHtml(item.grp.name || '')}</div>
+                                <div class="exo-dash-item-title" dir="auto">${escapeHtml(resumableItem.lec.title || (isEn ? 'Untitled Lecture' : 'محاضرة'))}</div>
+                                <div class="exo-dash-item-meta"><span class="exo-dash-meta-seg" dir="auto">${escapeHtml(resumableItem.sub.name)}</span><span class="exo-dash-meta-sep" aria-hidden="true">•</span><span class="exo-dash-meta-seg" dir="auto">${escapeHtml(resumableItem.grp.name || '')}</span></div>
                                 ${badge ? `<div class="exo-dash-item-badge">${badge}</div>` : ''}
                             </div>
                             <span class="exo-dash-resume-pill">${isEn ? 'Resume' : 'متابعة'} <i class="fa-solid fa-arrow-left exo-rtl-flip"></i></span>
                         </button>
-                    `;
-                }).join('')
-                : `<div class="exo-dash-muted-empty">${isEn
-                    ? 'No pending lectures right now. Add lectures inside any subject to resume reading seamlessly.'
-                    : 'لا توجد محاضرات مفتوحة حالياً. أضف محاضرات داخل المواد للمتابعة من حيث توقفت.'}</div>`;
-
-            const notesHtml = safeLogs.length > 0
-                ? safeLogs.slice(0, 4).map(entry => {
-                    const relSub = entry.subjectId ? subMap.get(String(entry.subjectId)) : null;
-                    return `
-                        <div class="exo-dash-note-item">
-                            <div class="exo-dash-note-top">
-                                <span>${escapeHtml(entry.date || '')}</span>
-                                ${relSub ? `<span class="exo-dash-tag">${escapeHtml(relSub.name)}</span>` : ''}
-                            </div>
-                            <div class="exo-dash-note-text">${escapeHtml(entry.text || '')}</div>
-                        </div>
-                    `;
-                }).join('')
-                : `<div class="exo-dash-muted-empty">${isEn
-                    ? 'Record study milestones, formulas, or daily reflections to track your momentum.'
-                    : 'دوّن إنجازاتك وملاحظاتك اليومية هنا لبناء سجل استمرارية واضح.'}</div>`;
-
-            const weekBarsHtml = weekBarsData.map(b => {
-                const planH = Math.max(8, Math.round((b.planned / maxBarHrs) * 100));
-                const doneH = b.done > 0 ? Math.max(8, Math.round((b.done / maxBarHrs) * 100)) : 0;
-                return `
-                    <div class="exo-week-col ${b.isToday ? 'is-today' : ''}" title="${escapeHtml(b.label)}: ${b.done}/${b.planned} ${isEn ? 'hrs' : 'س'}">
-                        <div class="exo-week-bar-track">
-                            <div class="exo-week-bar-planned" style="height:${b.planned > 0 ? planH : 4}%;"></div>
-                            ${doneH > 0 ? `<div class="exo-week-bar-done" style="height:${doneH}%;"></div>` : ''}
-                        </div>
-                        <span class="exo-week-day-label">${escapeHtml(b.label)}</span>
-                    </div>
+                    </section>
                 `;
-            }).join('');
+            }
 
             container.innerHTML = `
                 <header class="exo-dash-header">
-                    <div>
-                        <div class="exo-dash-eyebrow">
-                            <span>${escapeHtml(fullDateStr)}</span>
-                            <span class="exo-dash-dot">•</span>
-                            <span class="exo-dash-status">${escapeHtml(workspaceBadge)}</span>
-                        </div>
-                        <h1 class="exo-dash-title exo-editorial">${greetingText}</h1>
-                    </div>
-                    <div class="exo-dash-header-actions">
-                        <button type="button" class="btn btn-outline" onclick="openSmartSubjectModal()">
-                            <i class="fa-solid fa-folder-plus"></i> ${isEn ? 'Add Subject' : 'إضافة مادة'}
-                        </button>
-                        <button type="button" class="btn btn-outline" onclick="triggerAddLogPro()">
-                            <i class="fa-solid fa-feather-pointed"></i> ${isEn ? 'Log Note' : 'تدوين إنجاز'}
-                        </button>
-                        <button type="button" class="btn btn-primary" onclick="switchView('schedule', document.querySelector('.sidebar-nav-item[data-tab=&quot;schedule&quot;]'))">
-                            <i class="fa-solid fa-calendar-plus"></i> ${isEn ? 'Planner' : 'الجدول'}
-                        </button>
-                    </div>
+                    <div class="exo-dash-eyebrow">${escapeHtml(fullDateStr)}</div>
+                    <h1 class="exo-dash-title exo-editorial">${greetingText}</h1>
                 </header>
 
-                <div class="exo-dash-grid">
-                    <section class="exo-journal-card paper-surface exo-dash-span-2" aria-labelledby="exoTodayFocusHeading">
+                <div class="exo-dash-stack">
+                    <section id="exoTodayPlanSection" class="exo-journal-card paper-surface" aria-labelledby="exoTodayFocusHeading">
                         <div class="exo-card-head">
                             <div>
-                                <div class="exo-card-kicker">${isEn ? 'TODAY\'S FOCUS' : 'تركيز اليوم'}</div>
-                                <h2 id="exoTodayFocusHeading" class="exo-editorial">${isEn
-                                    ? (todayPendingCount > 0 ? `${todayPendingCount} session${todayPendingCount === 1 ? '' : 's'} remaining today` : (todayPlannedCount > 0 ? 'All scheduled sessions complete' : 'Plan today\'s study focus'))
-                                    : (todayPendingCount > 0 ? `متبقي ${todayPendingCount} جلسة لليوم` : (todayPlannedCount > 0 ? 'أتممت جلسات اليوم بنجاح' : 'حدد تركيز مذاكرتك اليوم'))}</h2>
+                                <div class="exo-card-kicker">${isEn ? 'DAILY FOCUS' : 'تركيز اليوم'}</div>
+                                <h2 id="exoTodayFocusHeading" class="exo-editorial">${isEn ? "Today's plan" : 'خطة اليوم'}</h2>
                             </div>
-                            <span class="exo-paper-pill" id="dashTodayRatioPill">${todayDoneCount}/${todayPlannedCount} ${isEn ? 'done' : 'مكتمل'}</span>
+                            ${headingProgressHtml}
                         </div>
-                        ${todayHeroHtml}
+                        ${todayPlanBodyHtml}
                     </section>
 
-                    <section class="exo-journal-card" aria-labelledby="exoDailyProgressHeading">
-                        <div class="exo-card-head">
-                            <h3 id="exoDailyProgressHeading">${isEn ? 'Daily Progress' : 'التقدم اليومي'}</h3>
-                            <span class="exo-card-meta-badge">${safeSubjects.length} ${isEn ? 'subjects' : 'مادة'}</span>
-                        </div>
-                        <div class="exo-metric-strip">
-                            <div class="exo-metric-box">
-                                <span class="exo-metric-val">${todayDoneCount}/${todayPlannedCount}</span>
-                                <span class="exo-metric-lbl">${isEn ? 'Today Sessions' : 'جلسات اليوم'}</span>
-                            </div>
-                            <div class="exo-metric-box">
-                                <span class="exo-metric-val">${doneLectures}/${totalLectures}</span>
-                                <span class="exo-metric-lbl">${isEn ? 'Lectures Done' : 'محاضرات منجزة'}</span>
-                            </div>
-                            <div class="exo-metric-box">
-                                <span class="exo-metric-val">${streakDays}</span>
-                                <span class="exo-metric-lbl">${isEn ? 'Day Streak' : 'أيام الاستمرارية'}</span>
-                            </div>
-                            <div class="exo-metric-box">
-                                <span class="exo-metric-val">${safeLogs.length}</span>
-                                <span class="exo-metric-lbl">${isEn ? 'Journal Notes' : 'سجلات الإنجاز'}</span>
-                            </div>
-                        </div>
-                        <div class="exo-dash-progress-row">
-                            <div class="exo-dash-progress-labels">
-                                <span>${isEn ? 'Curriculum Completion' : 'إنجاز المحاضرات'}</span>
-                                <strong>${lectureCompletionPct}%</strong>
-                            </div>
-                            <div class="progress-bar-bg" style="height:6px;">
-                                <div class="progress-bar-fill" style="width:${lectureCompletionPct}%; background:var(--sage-green);"></div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="exo-journal-card" aria-labelledby="exoWeeklyOverviewHeading">
-                        <div class="exo-card-head">
-                            <h3 id="exoWeeklyOverviewHeading">${isEn ? 'Weekly Overview' : 'ملخص الأسبوع'}</h3>
-                            <span class="exo-card-meta-badge">${Number(weeklyDoneHrs.toFixed(1))}/${Number(weeklyPlannedHrs.toFixed(1))} ${isEn ? 'hrs' : 'س'}</span>
-                        </div>
-                        <div class="exo-week-rhythm">${weekBarsHtml}</div>
-                        <div class="exo-dash-card-foot">
-                            <span><i class="fa-solid fa-bullseye" style="color:var(--muted-blue);"></i> ${isEn ? 'Weekly Goals:' : 'أهداف الأسبوع:'} <strong>${weeklyGoalsDone}/${safeBacklog.length}</strong></span>
-                            <button type="button" class="exo-inline-link" onclick="switchView('tracker', document.querySelector('.sidebar-nav-item[data-tab=&quot;tracker&quot;]'))">${isEn ? 'Open Analytics' : 'التقارير'}</button>
-                        </div>
-                    </section>
-
-                    <section class="exo-journal-card" aria-labelledby="exoContinueStudyingHeading">
-                        <div class="exo-card-head">
-                            <h3 id="exoContinueStudyingHeading">${isEn ? 'Continue Studying' : 'متابعة المذاكرة'}</h3>
-                            <button type="button" class="exo-inline-link" onclick="switchView('subjects', document.querySelector('.sidebar-nav-item[data-tab=&quot;subjects&quot;]'))">${isEn ? 'All Subjects' : 'كل المواد'}</button>
-                        </div>
-                        <div class="exo-dash-list">${continueHtml}</div>
-                    </section>
-
-                    <section class="exo-journal-card" aria-labelledby="exoJournalNotesHeading">
-                        <div class="exo-card-head">
-                            <h3 id="exoJournalNotesHeading">${isEn ? 'Recent Journal Notes' : 'أحدث تدوينات الإنجاز'}</h3>
-                            <button type="button" class="exo-inline-link" onclick="triggerAddLogPro()">+ ${isEn ? 'Add Note' : 'إضافة'}</button>
-                        </div>
-                        <div class="exo-dash-notes-list">${notesHtml}</div>
-                    </section>
-
-                    <section class="exo-journal-card exo-dash-span-2" aria-labelledby="exoQuickAccessHeading">
-                        <div class="exo-card-head">
-                            <h3 id="exoQuickAccessHeading">${isEn ? 'Quick Access' : 'وصول سريع'}</h3>
-                        </div>
-                        <div class="exo-quick-grid">
-                            <button type="button" class="exo-quick-tile" onclick="switchView('subjects', document.querySelector('.sidebar-nav-item[data-tab=&quot;subjects&quot;]'))">
-                                <i class="fa-solid fa-layer-group" style="color:var(--sage-green);"></i>
-                                <span>${isEn ? 'Subjects Library' : 'مكتبة المواد'}</span>
-                            </button>
-                            <button type="button" class="exo-quick-tile" onclick="switchView('schedule', document.querySelector('.sidebar-nav-item[data-tab=&quot;schedule&quot;]'))">
-                                <i class="fa-solid fa-calendar-days" style="color:var(--muted-blue);"></i>
-                                <span>${isEn ? 'Study Planner' : 'الجدول الأسبوعي'}</span>
-                            </button>
-                            <button type="button" class="exo-quick-tile" onclick="switchView('tracker', document.querySelector('.sidebar-nav-item[data-tab=&quot;tracker&quot;]'))">
-                                <i class="fa-solid fa-chart-line" style="color:var(--warm-gold);"></i>
-                                <span>${isEn ? 'Progress & Reports' : 'السجل والتقارير'}</span>
-                            </button>
-                            <button type="button" class="exo-quick-tile" onclick="openCloudAuthModal()">
-                                <i class="fa-solid fa-cloud" style="color:var(--sage-green);"></i>
-                                <span>${isEn ? 'Account & Backup' : 'الحساب والنسخ الاحتياطي'}</span>
-                            </button>
-                        </div>
-                    </section>
+                    ${continueSectionHtml}
                 </div>
             `;
         }

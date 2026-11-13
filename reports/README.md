@@ -14,13 +14,11 @@
 
 **Phase 6 — EXO Personal Study Journal Experience Redesign**
 
-الحالة: **IN PROGRESS — WP 6.1 IMPLEMENTATION AUTHORIZED BY OWNER**.
+الحالة: **WP 6.1 — IMPLEMENTED — LOCAL TESTS ONLY (`GATE 6.1 OWNER REVIEW PENDING`)**.
 
-**تقرير WP 6.0:** [PHASE_6_BASELINE_AUDIT.md](PHASE_6_BASELINE_AUDIT.md) تم رفعه إلى GitHub في commit `0a6100439a6d98fee9aaa84683ad4bf7d1247c5f` بعد جولة reconciliation مع قرارات المالك.
-
-**قرار المالك:** تم اعتماد وإغلاق Gate 6.0 بتاريخ 2026-11-13.  
-**حزمة العمل النشطة:** WP 6.1 — Design foundations, application shell, and dashboard.  
-**النطاق الحالي فقط:** التصميم الأساسي، الهيكل العام، Hybrid Navigation، Typography، التأسيس ثنائي اللغة، وDaily-Focus Dashboard. لا يبدأ WP 6.2 أو WP 6.3 ضمن هذا التكليف.
+**تقرير WP 6.0:** [PHASE_6_BASELINE_AUDIT.md](PHASE_6_BASELINE_AUDIT.md) تم رفعه إلى GitHub في commit `0a6100439a6d98fee9aaa84683ad4bf7d1247c5f` بعد جولة reconciliation مع قرارات المالك، واعتمده المالك بتاريخ 2026-11-13.  
+**تقرير WP 6.1:** [PHASE_6_WP_6_1_REPORT.md](PHASE_6_WP_6_1_REPORT.md) (نقطة الأساس `ef5b70656530a9f97560bafc87039729c2371f1e` — `659/659` اختبارًا محليًا ناجحًا شاملة Chromium E2E `148/148` و`test_wp6_1_unit.js` `5/5`، بانتظار المزامنة وتشغيل CI لـ PostgreSQL 16 ومراجعة المالك لإغلاق Gate 6.1).  
+**النطاق الحالي فقط:** التصميم الأساسي، الهيكل العام، Hybrid Navigation، Typography، التأسيس ثنائي اللغة، وSimplified Today Dashboard. لا يبدأ WP 6.2 أو WP 6.3 قبل اعتماد Gate 6.1.
 
 ## حالة Phase 5.2 السابقة
 

@@ -6858,7 +6858,7 @@ async function main() {
     await pageKK.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
     await pageKK.waitForFunction(() => typeof renderDashboard === 'function' && typeof window.applyExoLanguage === 'function');
 
-    // KK.1: First-run English default, Today landing active, clock populated immediately, tokens accurate, native Canvas prototype
+    // KK.1: First-run English default, simplified Today landing active, clock populated immediately, tokens accurate, native Canvas prototype, zero clutter
     const kk1State = await pageKK.evaluate(() => {
       const html = document.documentElement;
       const bodyStyle = getComputedStyle(document.body);
@@ -6872,6 +6872,13 @@ async function main() {
       const overflowX = document.documentElement.scrollWidth > window.innerWidth;
       const sidebarRect = document.getElementById('exoAppSidebar')?.getBoundingClientRect();
       const emptyBtns = document.querySelectorAll('#dashboardContent .exo-empty-actions button').length;
+      const hasScheduleEmptyBtn = Boolean(document.getElementById('dashEmptyScheduleBtn'));
+      const noClutterCards =
+        !document.getElementById('exoDailyProgressHeading') &&
+        !document.getElementById('exoWeeklyOverviewHeading') &&
+        !document.getElementById('exoJournalNotesHeading') &&
+        !document.getElementById('exoQuickAccessHeading') &&
+        !document.getElementById('exoContinueStudyingSection');
       return {
         lang: html.lang,
         dir: html.dir,
@@ -6885,6 +6892,8 @@ async function main() {
         overflowX,
         sidebarLeft: sidebarRect ? Math.round(sidebarRect.left) : -1,
         emptyBtns,
+        hasScheduleEmptyBtn,
+        noClutterCards,
         bodyFont: bodyStyle.fontFamily
       };
     });
@@ -6901,12 +6910,14 @@ async function main() {
       kk1State.nativeCanvas === true &&
       kk1State.overflowX === false &&
       kk1State.sidebarLeft === 0 &&
-      kk1State.emptyBtns >= 3,
-      'Test KK.1: First-run defaults to EN LTR on Today Dashboard with Ink/Sage tokens, live sidebar clock, native Canvas prototype, and zero horizontal overflow',
+      kk1State.emptyBtns === 1 &&
+      kk1State.hasScheduleEmptyBtn === true &&
+      kk1State.noClutterCards === true,
+      'Test KK.1: First-run defaults to EN LTR on simplified Today Dashboard with Ink/Sage tokens, single empty-state CTA, zero clutter cards, live clock, and native Canvas prototype',
       JSON.stringify(kk1State)
     );
 
-    // KK.2: Populate real subject/lecture/session/log -> verify Today Dashboard real counts, lecture reading badge p. X/Y, and interactive session completion
+    // KK.2: Populate real subject/lecture/session/log -> verify Today's plan heading count + progress track, single genuine Continue Studying item, p. X/Y badge, and session completion persistence
     const kk2State = await pageKK.evaluate(() => {
       const todayIdx = new Date().getDay();
       subjects = [
@@ -6918,8 +6929,9 @@ async function main() {
               id: 9911,
               name: 'Unit 1',
               lectures: [
-                { id: 9921, title: 'Cholinergic Drugs', path: 'Cholinergic_1.pdf', completed: false, lastPageNum: 2, totalPages: 10 },
-                { id: 9922, title: 'Adrenergic Drugs', path: 'Adrenergic_2.pdf', completed: true, lastStudiedAt: Date.now() - 86400000 * 3, reviewCount: 1 }
+                { id: 9921, title: 'Cholinergic Drugs', path: 'Cholinergic_1.pdf', completed: false, lastPageNum: 2, totalPages: 10, lastStudiedAt: Date.now() - 120000 },
+                { id: 9922, title: 'Adrenergic Drugs', path: 'Adrenergic_2.pdf', completed: true, lastStudiedAt: Date.now() - 86400000 * 3, reviewCount: 1 },
+                { id: 9923, title: 'Unstarted Lecture', path: '', completed: false }
               ]
             }
           ]
@@ -6938,14 +6950,25 @@ async function main() {
       updateSidebarUI();
 
       const ratioBefore = document.getElementById('dashTodayRatioPill')?.innerText.trim() || '';
+      const hasMiniProgress = Boolean(document.querySelector('#exoTodayPlanSection .exo-today-mini-track'));
       const badgeBefore = document.getElementById('sidebarTodayCountBadge')?.innerText.trim() || '';
+      const continueItems = document.querySelectorAll('#exoContinueStudyingSection .exo-dash-list-item');
       const dashHtml = document.getElementById('dashboardContent')?.innerHTML || '';
+      const noClutterCards =
+        !document.getElementById('exoDailyProgressHeading') &&
+        !document.getElementById('exoWeeklyOverviewHeading') &&
+        !document.getElementById('exoJournalNotesHeading') &&
+        !document.getElementById('exoQuickAccessHeading');
       return {
         ratioBefore,
+        hasMiniProgress,
         badgeBefore,
+        continueCount: continueItems.length,
+        continueTitle: continueItems[0]?.querySelector('.exo-dash-item-title')?.innerText.trim() || '',
         hasPageBadgeEn: dashHtml.includes('p. 2/10 (20%)'),
         noAmBug: !dashHtml.includes('AM 2/10'),
-        hasRealSubName: dashHtml.includes('فارماكولوجي — Pharmacology 101')
+        hasRealSubName: dashHtml.includes('فارماكولوجي — Pharmacology 101'),
+        noClutterCards
       };
     });
 
@@ -6953,29 +6976,35 @@ async function main() {
     const kk2AfterToggle = await pageKK.evaluate(() => ({
       completed: Boolean(scheduleEvents[0]?.completed),
       ratioAfter: document.getElementById('dashTodayRatioPill')?.innerText.trim() || '',
-      badgeAfter: document.getElementById('sidebarTodayCountBadge')?.innerText.trim() || ''
+      badgeAfter: document.getElementById('sidebarTodayCountBadge')?.innerText.trim() || '',
+      persistedCompleted: JSON.parse(localStorage.getItem('pharmaScheduleV4') || '{}')?.events?.[0]?.completed === true
     }));
 
     assert(
-      kk2State.ratioBefore === '0/1 done' &&
+      kk2State.ratioBefore === '0 / 1 done' &&
+      kk2State.hasMiniProgress === true &&
       kk2State.badgeBefore === '1' &&
+      kk2State.continueCount === 1 &&
+      kk2State.continueTitle === 'Cholinergic Drugs' &&
       kk2State.hasPageBadgeEn === true &&
       kk2State.noAmBug === true &&
       kk2State.hasRealSubName === true &&
+      kk2State.noClutterCards === true &&
       kk2AfterToggle.completed === true &&
-      kk2AfterToggle.ratioAfter === '1/1 done' &&
-      kk2AfterToggle.badgeAfter === '0',
-      'Test KK.2: Today Dashboard renders real workspace metrics, preserves Arabic subject names & p. 2/10 badge, and persists session completion',
+      kk2AfterToggle.ratioAfter === '1 / 1 done' &&
+      kk2AfterToggle.badgeAfter === '0' &&
+      kk2AfterToggle.persistedCompleted === true,
+      'Test KK.2: Simplified Today Dashboard renders real session heading progress, single genuine resume item, p. 2/10 badge, zero clutter cards, and persists session completion',
       JSON.stringify({ kk2State, kk2AfterToggle })
     );
 
-    // KK.3: Live language switch preserves active screen, unsaved input text, URLs/emails/filenames/unknown Arabic words, and persists choice across reload
+    // KK.3: Live language switch preserves active screen, visible card title & RTL arrows, unsaved search input, URLs/emails/filenames/unknown Arabic words, and persists choice across reload
     await pageKK.click('.sidebar-nav-item[data-tab="subjects"]');
     await pageKK.waitForSelector('#subjects.view-section.active', { state: 'visible' });
-    await pageKK.fill('#searchSubjectInput', 'شابتر 2 — https://example.com/a.pdf');
 
+    // Step 3a: Before filtering, verify visible subject card title & RTL move arrows across EN -> AR -> EN
     await pageKK.click('#sidebarLangToggleBtn'); // Switch EN -> AR
-    const kk3Arabic = await pageKK.evaluate(() => {
+    const kk3VisibleAr = await pageKK.evaluate(() => {
       const subTitle = document.querySelector('.subject-card[data-subject-id="9901"] h3')?.innerText || '';
       const sidebarRect = document.getElementById('exoAppSidebar')?.getBoundingClientRect();
       return {
@@ -6983,31 +7012,50 @@ async function main() {
         dir: document.documentElement.dir,
         saved: localStorage.getItem('exoAppLang'),
         subjectsStillActive: document.getElementById('subjects')?.classList.contains('active'),
-        searchVal: document.getElementById('searchSubjectInput')?.value,
         subTitle,
         sidebarRight: sidebarRect ? Math.round(sidebarRect.right) : -1,
         vw: window.innerWidth,
         clockHasText: Boolean(document.getElementById('sidebarClockTime')?.innerText.trim()),
-        reorderHasFlip: document.querySelectorAll('.subject-card .move-btn i.exo-rtl-flip').length === 2
+        reorderHasFlip: document.querySelectorAll('.subject-card[data-subject-id="9901"] .move-btn i.exo-rtl-flip').length === 2
       };
     });
 
     await pageKK.click('#sidebarLangToggleBtn'); // Switch AR -> EN
-    const kk3EnglishAgain = await pageKK.evaluate(() => {
-      const subTitle = document.querySelector('.subject-card[data-subject-id="9901"] h3')?.innerText || '';
-      const trMixed = exoTranslateText('راجع ملف Lecture_1.pdf على https://example.com/doc.pdf مع التنظيم الخلوي و student@exo.edu');
-      return {
-        lang: document.documentElement.lang,
-        dir: document.documentElement.dir,
-        saved: localStorage.getItem('exoAppLang'),
-        subjectsStillActive: document.getElementById('subjects')?.classList.contains('active'),
-        searchVal: document.getElementById('searchSubjectInput')?.value,
-        subTitle,
-        trMixed
-      };
-    });
+    const kk3VisibleEn = await pageKK.evaluate(() => ({
+      lang: document.documentElement.lang,
+      dir: document.documentElement.dir,
+      saved: localStorage.getItem('exoAppLang'),
+      subjectsStillActive: document.getElementById('subjects')?.classList.contains('active'),
+      subTitle: document.querySelector('.subject-card[data-subject-id="9901"] h3')?.innerText || '',
+      reorderHasFlip: document.querySelectorAll('.subject-card[data-subject-id="9901"] .move-btn i.exo-rtl-flip').length === 2
+    }));
 
-    // Reload with 'ar' persisted to verify saved locale is NOT overwritten by EN default
+    // Step 3b: Type non-matching Arabic+URL query into #searchSubjectInput, verify unsaved input & underlying model preserved across EN -> AR -> EN, then clear search and verify card reappears intact
+    await pageKK.fill('#searchSubjectInput', 'شابتر 2 — https://example.com/a.pdf');
+    await pageKK.click('#sidebarLangToggleBtn'); // EN -> AR while search input is non-empty
+    const kk3SearchAr = await pageKK.evaluate(() => ({
+      lang: document.documentElement.lang,
+      subjectsStillActive: document.getElementById('subjects')?.classList.contains('active'),
+      searchVal: document.getElementById('searchSubjectInput')?.value || '',
+      modelName: subjects.find(s => s.id === 9901)?.name || ''
+    }));
+
+    await pageKK.click('#sidebarLangToggleBtn'); // AR -> EN while search input is non-empty
+    const kk3SearchEn = await pageKK.evaluate(() => ({
+      lang: document.documentElement.lang,
+      subjectsStillActive: document.getElementById('subjects')?.classList.contains('active'),
+      searchVal: document.getElementById('searchSubjectInput')?.value || '',
+      modelName: subjects.find(s => s.id === 9901)?.name || '',
+      trMixed: exoTranslateText('راجع ملف Lecture_1.pdf على https://example.com/doc.pdf مع التنظيم الخلوي و student@exo.edu')
+    }));
+
+    await pageKK.fill('#searchSubjectInput', '');
+    const kk3Cleared = await pageKK.evaluate(() => ({
+      subTitle: document.querySelector('.subject-card[data-subject-id="9901"] h3')?.innerText || '',
+      reorderHasFlip: document.querySelectorAll('.subject-card[data-subject-id="9901"] .move-btn i.exo-rtl-flip').length === 2
+    }));
+
+    // Step 3c: Reload with 'ar' persisted to verify saved locale is NOT overwritten by EN default
     await pageKK.evaluate(() => applyExoLanguage('ar', true));
     await pageKK.reload({ waitUntil: 'domcontentloaded' });
     await pageKK.waitForFunction(() => typeof applyExoLanguage === 'function');
@@ -7019,26 +7067,34 @@ async function main() {
     }));
 
     assert(
-      kk3Arabic.lang === 'ar' && kk3Arabic.dir === 'rtl' && kk3Arabic.saved === 'ar' &&
-      kk3Arabic.subjectsStillActive === true &&
-      kk3Arabic.searchVal === 'شابتر 2 — https://example.com/a.pdf' &&
-      kk3Arabic.subTitle === 'فارماكولوجي — Pharmacology 101' &&
-      kk3Arabic.sidebarRight === kk3Arabic.vw &&
-      kk3Arabic.reorderHasFlip === true &&
-      kk3EnglishAgain.lang === 'en' && kk3EnglishAgain.dir === 'ltr' && kk3EnglishAgain.saved === 'en' &&
-      kk3EnglishAgain.subjectsStillActive === true &&
-      kk3EnglishAgain.searchVal === 'شابتر 2 — https://example.com/a.pdf' &&
-      kk3EnglishAgain.subTitle === 'فارماكولوجي — Pharmacology 101' &&
-      kk3EnglishAgain.trMixed.includes('Lecture_1.pdf') &&
-      kk3EnglishAgain.trMixed.includes('https://example.com/doc.pdf') &&
-      kk3EnglishAgain.trMixed.includes('student@exo.edu') &&
-      kk3EnglishAgain.trMixed.includes('الخلوي') &&
+      kk3VisibleAr.lang === 'ar' && kk3VisibleAr.dir === 'rtl' && kk3VisibleAr.saved === 'ar' &&
+      kk3VisibleAr.subjectsStillActive === true &&
+      kk3VisibleAr.subTitle === 'فارماكولوجي — Pharmacology 101' &&
+      kk3VisibleAr.sidebarRight === kk3VisibleAr.vw &&
+      kk3VisibleAr.clockHasText === true &&
+      kk3VisibleAr.reorderHasFlip === true &&
+      kk3VisibleEn.lang === 'en' && kk3VisibleEn.dir === 'ltr' && kk3VisibleEn.saved === 'en' &&
+      kk3VisibleEn.subjectsStillActive === true &&
+      kk3VisibleEn.subTitle === 'فارماكولوجي — Pharmacology 101' &&
+      kk3VisibleEn.reorderHasFlip === true &&
+      kk3SearchAr.lang === 'ar' && kk3SearchAr.subjectsStillActive === true &&
+      kk3SearchAr.searchVal === 'شابتر 2 — https://example.com/a.pdf' &&
+      kk3SearchAr.modelName === 'فارماكولوجي — Pharmacology 101' &&
+      kk3SearchEn.lang === 'en' && kk3SearchEn.subjectsStillActive === true &&
+      kk3SearchEn.searchVal === 'شابتر 2 — https://example.com/a.pdf' &&
+      kk3SearchEn.modelName === 'فارماكولوجي — Pharmacology 101' &&
+      kk3SearchEn.trMixed.includes('Lecture_1.pdf') &&
+      kk3SearchEn.trMixed.includes('https://example.com/doc.pdf') &&
+      kk3SearchEn.trMixed.includes('student@exo.edu') &&
+      kk3SearchEn.trMixed.includes('الخلوي') &&
+      kk3Cleared.subTitle === 'فارماكولوجي — Pharmacology 101' &&
+      kk3Cleared.reorderHasFlip === true &&
       kk3ReloadAr.lang === 'ar' && kk3ReloadAr.dir === 'rtl' && kk3ReloadAr.saved === 'ar' && kk3ReloadAr.dashActive === true,
-      'Test KK.3: Live language toggle preserves view, unsaved input, user text, URLs/emails/filenames/unknown Arabic words, RTL sidebar alignment, and saved locale across reload',
-      JSON.stringify({ kk3Arabic, kk3EnglishAgain, kk3ReloadAr })
+      'Test KK.3: Live language toggle preserves visible card & RTL arrows, unsaved search input, user text, URLs/emails/filenames/unknown Arabic words, RTL sidebar alignment, and saved locale across reload',
+      JSON.stringify({ kk3VisibleAr, kk3VisibleEn, kk3SearchAr, kk3SearchEn, kk3Cleared, kk3ReloadAr })
     );
 
-    // KK.4: Responsive Tablet (834x1112) & Mobile (390x844) + touch targets >= 44px + reduced motion + zero console/request errors
+    // KK.4: Responsive Tablet (834x1112) & Mobile (390x844) + touch targets >= 44px + reduced motion + PDF Studio regression + zero console/request errors
     await pageKK.evaluate(() => applyExoLanguage('en', true));
     await pageKK.setViewportSize({ width: 834, height: 1112 });
     const kk4Tablet = await pageKK.evaluate(() => {
@@ -7063,24 +7119,40 @@ async function main() {
       const mobNav = document.getElementById('mobileBottomNav');
       const mobDisplay = getComputedStyle(mobNav).display;
       const mobBtns = Array.from(mobNav.querySelectorAll('.mobile-nav-item'));
-      const minH = Math.min(...mobBtns.map(b => b.getBoundingClientRect().height));
+      const minMobH = Math.min(...mobBtns.map(b => b.getBoundingClientRect().height));
+      const dashCheckRect = document.querySelector('#dashboardContent .exo-paper-check')?.getBoundingClientRect();
+      const topActionBtns = Array.from(document.querySelectorAll('.navbar-actions-group button, .navbar-actions-group .icon-btn'));
+      const minTopActionH = topActionBtns.length ? Math.min(...topActionBtns.map(b => b.getBoundingClientRect().height)) : 44;
       return {
         sideDisplay,
         mobDisplay,
         tabCount: mobBtns.length,
-        minH,
+        minMobH,
+        dashCheckH: dashCheckRect ? dashCheckRect.height : 0,
+        minTopActionH,
         overflowX: document.documentElement.scrollWidth > window.innerWidth
       };
     });
+
+    // Verify Resume from Continue Studying opens Subjects & PDF Studio cleanly and closes cleanly
+    await pageKK.click('#exoContinueStudyingSection .exo-dash-list-item');
+    await pageKK.waitForSelector('#pdfViewerModalOverlay.active', { state: 'visible' });
+    const kk4StudioOpened = await pageKK.evaluate(() => ({
+      active: document.getElementById('pdfViewerModalOverlay')?.classList.contains('active'),
+      title: document.getElementById('pdfViewerTitle')?.innerText || ''
+    }));
+    await pageKK.click('#pdfViewerModalOverlay button[onclick*="closePdfViewer"]');
+    const kk4StudioClosed = await pageKK.evaluate(() => !document.getElementById('pdfViewerModalOverlay')?.classList.contains('active'));
 
     assert(
       kk4Tablet.navDisplay !== 'none' && kk4Tablet.navItemsDisplay !== 'none' && kk4Tablet.mobileDisplay === 'none' &&
       kk4Tablet.minH >= 44 && kk4Tablet.overflowX === false &&
       kk4Mobile.sideDisplay === 'none' && kk4Mobile.mobDisplay === 'flex' && kk4Mobile.tabCount === 4 &&
-      kk4Mobile.minH >= 44 && kk4Mobile.overflowX === false &&
+      kk4Mobile.minMobH >= 44 && kk4Mobile.dashCheckH >= 44 && kk4Mobile.minTopActionH >= 44 && kk4Mobile.overflowX === false &&
+      kk4StudioOpened.active === true && kk4StudioClosed === true &&
       kkErrors.length === 0 && kkFailedUrls.length === 0,
-      'Test KK.4: Tablet (834x1112) & Mobile (390x844) hybrid navigation, >=44px touch targets, reduced motion, zero horizontal overflow, and zero console/network errors',
-      JSON.stringify({ kk4Tablet, kk4Mobile, kkErrors, kkFailedUrls })
+      'Test KK.4: Tablet (834x1112) & Mobile (390x844) hybrid navigation, >=44px touch targets, reduced motion, zero horizontal overflow, PDF Studio resume/close regression, and zero console/network errors',
+      JSON.stringify({ kk4Tablet, kk4Mobile, kk4StudioOpened, kk4StudioClosed, kkErrors, kkFailedUrls })
     );
 
     await pageKK.close();

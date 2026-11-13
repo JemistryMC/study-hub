@@ -95,3 +95,77 @@ test('WP 6.1: index.html does not monkey-patch CanvasRenderingContext2D.prototyp
   assert.equal(indexHtml.includes('CanvasRenderingContext2D.prototype.fillText ='), false);
   assert.equal(indexHtml.includes('CanvasRenderingContext2D.prototype.measureText ='), false);
 });
+
+function extractDashboardHelper(fnName) {
+  const match = indexHtml.match(new RegExp(`function ${fnName}\\([^)]*\\)\\s*\\{[\\s\\S]*?\\n\\s{8}\\}`));
+  assert.ok(match, `${fnName} must exist in index.html`);
+  return new Function(`${match[0]}; return ${fnName};`)();
+}
+
+test('WP 6.1: selectLatestResumableLecture selects only the most recent genuinely resumable incomplete lecture', () => {
+  const selectLatestResumableLecture = extractDashboardHelper('selectLatestResumableLecture');
+
+  assert.equal(selectLatestResumableLecture([]), null);
+
+  const unstartedOnly = [
+    {
+      id: 1,
+      name: 'Pharmacology',
+      groups: [
+        {
+          id: 10,
+          name: 'Unit 1',
+          lectures: [
+            { id: 101, title: 'Unopened', completed: false },
+            { id: 102, title: 'Completed with page', completed: true, lastPageNum: 5, totalPages: 10, lastStudiedAt: 9000 }
+          ]
+        }
+      ]
+    }
+  ];
+  assert.equal(selectLatestResumableLecture(unstartedOnly), null);
+
+  const mixedSubjects = [
+    {
+      id: 1,
+      name: 'Pharmacology',
+      groups: [
+        {
+          id: 10,
+          name: 'Unit 1',
+          lectures: [
+            { id: 101, title: 'Older Bookmark', completed: false, lastPageNum: 3, totalPages: 12, lastStudiedAt: 1000 },
+            { id: 102, title: 'Audio Only Resume', completed: false, lastAudioSec: 45, lastStudiedAt: 5000 }
+          ]
+        }
+      ]
+    },
+    {
+      id: 2,
+      name: 'Biochemistry',
+      groups: [
+        {
+          id: 20,
+          name: 'Unit 2',
+          lectures: [
+            { id: 201, title: 'Latest Active Slide', completed: false, lastPageNum: 4, totalPages: 10, lastStudiedAt: 8000 },
+            { id: 202, title: 'Completed Newer', completed: true, lastPageNum: 8, totalPages: 8, lastStudiedAt: 99999 }
+          ]
+        }
+      ]
+    }
+  ];
+  const picked = selectLatestResumableLecture(mixedSubjects);
+  assert.ok(picked);
+  assert.equal(picked.lec.id, 201);
+  assert.equal(picked.sub.id, 2);
+});
+
+test('WP 6.1: formatDashHourLabel formats 12-hour English times cleanly', () => {
+  const formatDashHourLabel = extractDashboardHelper('formatDashHourLabel');
+  assert.equal(formatDashHourLabel(0, true), '12:00 AM');
+  assert.equal(formatDashHourLabel(9.5, true), '9:30 AM');
+  assert.equal(formatDashHourLabel(12, true), '12:00 PM');
+  assert.equal(formatDashHourLabel(15.25, true), '3:15 PM');
+});
+

@@ -3,23 +3,24 @@
 **آخر تحديث:** 2026-11-13  
 **المستودع:** JemistryMC/study-hub  
 **فرع العمل:** main  
-**آخر commit مصدري معروف قبل توثيق Phase 6:** c74315a4580d68c61da8a0f49ec2b2f5946301e4  
+**نقطة الأساس المعتمدة لـ WP 6.1 على GitHub:** `ef5b70656530a9f97560bafc87039729c2371f1e` (مبنية على توثيق واعتماد Gate 6.0 في `8c5dac054294d3e7288061ec35f1c41b5620b009` وعلى آخر commit مصدري قبل Phase 6 `c74315a4580d68c61da8a0f49ec2b2f5946301e4`)  
 **آخر مستند تدقيق WP 6.0 على GitHub:** `reports/PHASE_6_BASELINE_AUDIT.md` — commit `0a6100439a6d98fee9aaa84683ad4bf7d1247c5f`  
-**رسالة commit المصدر:** feat: implement Google Drive reliability and OAuth  
-**حالة Phase 5.2 عند التسليم:** IMPLEMENTED — LOCAL TESTS REPORTED; CI NOT VERIFIED; OWNER REVIEW PENDING. Gemini أفاد محليًا بـ650/650 ونجاح npm run lint وnpm run build. فحص GitHub Combined Status لهذا SHA لم يُرجع Status Checks في آخر تحقق؛ لا تعتبر ذلك إثبات CI.
+**تقرير إتمام WP 6.1 المحلي:** `reports/PHASE_6_WP_6_1_REPORT.md`  
+**حالة Phase 5.2 عند التسليم:** IMPLEMENTED — LOCAL TESTS REPORTED; CI NOT VERIFIED; OWNER REVIEW PENDING.  
 **المرحلة النشطة:** Phase 6 — EXO Personal Study Journal Experience Redesign  
-**حالة Phase 6:** IN PROGRESS — WP 6.1 IMPLEMENTATION AUTHORIZED BY OWNER  
 **حالة Gate 6.0:** APPROVED BY OWNER بتاريخ 2026-11-13 بعد مراجعة التقرير المصحح `reports/PHASE_6_BASELINE_AUDIT.md`.  
-**حزمة العمل النشطة:** WP 6.1 — Design Foundations, Application Shell, Hybrid Navigation, Typography, Bilingual Foundation & Daily-Focus Dashboard.  
-**نطاق التنفيذ:** تنفيذ التصميم الأساسي والهيكل والتنقل واللغتين والـDashboard فقط، وفقًا لخطة Phase 6. يحظر فتح WP 6.2 أو WP 6.3 أو تغيير تخزين الموارد أو Extra Note Sheets أو صلاحيات Free/VIP ضمن هذه المهمة.
+**حزمة العمل النشطة:** WP 6.1 — Design Foundations, Application Shell, Hybrid Navigation, Typography, Bilingual Foundation & Simplified Today Dashboard.  
+**حالة WP 6.1:** **IMPLEMENTED — LOCAL TESTS ONLY** (`GATE 6.1 OWNER REVIEW PENDING` — محليًا في AI Studio: 659/659 ناجحة [Static 54/54 + Unit 416/416 شاملة `test_wp6_1_unit.js` 5/5 + PGlite 41/41 + Chromium E2E 148/148 شاملة `Test KK.1–KK.4` + `lint` + `build` + `benchmark:node` 5/5]، بينما `test:pg16` غير متاح محليًا لغياب PostgreSQL 16 Daemon وبانتظار المزامنة وتشغيل GitHub Actions CI لتأكيد `CI VERIFIED` ثم قرار المالك لـ `APPROVED`).  
+**نطاق التنفيذ الملتزم به:** تم استكمال وإصلاح WP 6.1 (إصلاح فشل `Test KK.3` في CI Run #52 `43444338698`، مواءمة `Simplified Today Dashboard` في الواجهة ووثيقة التصميم والخطة، ضبط عزل الاتجاه Bidi ومساحات اللمس `>=44px`، وربط `test_wp6_1_unit.js` بـ`lint`/`test:unit`/`run_all_tests.js`). لم تُفتح WP 6.2 أو WP 6.3 أو WP 6.4 أو WP 6.5، ولم تُمسّ قواعد Supabase/Auth/Drive/Sync/IndexedDB/Free-VIP/Extra Note Sheets.
 
 ## مراجع التسليم الحالية
 
-1. العقد الهندسي الدائم: GEMINI.md.
-2. قرارات المنتج وتجربة الاستخدام المعتمدة: reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md.
-3. خطة التنفيذ المرحلية: reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md.
-4. الفهرس والتسليم بين Gemini وChatGPT: reports/README.md.
-5. تقرير WP 6.0 المكتمل: reports/PHASE_6_BASELINE_AUDIT.md.
+1. العقد الهندسي الدائم: `GEMINI.md`.
+2. قرارات المنتج وتجربة الاستخدام المعتمدة: `reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md`.
+3. خطة التنفيذ المرحلية: `reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md`.
+4. الفهرس والتسليم بين Gemini وChatGPT: `reports/README.md`.
+5. تقرير WP 6.0 المكتمل: `reports/PHASE_6_BASELINE_AUDIT.md`.
+6. تقرير إتمام WP 6.1 المحلي وفحوصاته: `reports/PHASE_6_WP_6_1_REPORT.md`.
 
 ## قرارات التصميم المثبتة
 

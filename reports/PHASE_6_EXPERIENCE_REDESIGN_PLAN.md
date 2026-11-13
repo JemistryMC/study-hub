@@ -54,11 +54,11 @@ Deliverables: create one documentation-only audit report at `reports/PHASE_6_BAS
 
 ---
 
-## WP 6.1 — Design foundations, application shell, and dashboard
+## WP 6.1 — Design foundations, application shell, and simplified Today dashboard
 
 **Entry:** Owner reviews WP 6.0 mapping.
 
-Implement design tokens and typography, global dark shell, restrained paper surfaces, hybrid navigation, desktop collapsible sidebar, purpose-built tablet/mobile navigation, correct locale persistence/switching, and the Daily Focus dashboard. Introduce shared buttons/cards/inputs/menus/tabs/status/loading/focus primitives only where safe.
+Implement design tokens and typography, global dark shell, restrained paper surfaces, hybrid navigation, desktop collapsible sidebar, purpose-built tablet/mobile navigation, correct locale persistence/switching (`en` first-run default when unset; `ar`/`en` persisted choice preserved), and the **simplified Today dashboard** (minimal greeting/date header, single primary "Today's plan" section with heading completion count + tiny progress indicator and single-CTA empty state, plus at most one compact "Continue studying" item using persisted reading/session state — excluding separate Daily Progress, Weekly Overview, Journal Notes, and Quick Access cards). Introduce shared buttons/cards/inputs/menus/tabs/status/loading/focus primitives only where safe.
 
 Preserve every current destination, permission, event contract, and data behavior. No placeholder metrics in production. Implement RTL/LTR as each component is built. Compare performance to baseline.
 

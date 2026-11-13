@@ -28,6 +28,11 @@ const SUITES = [
     file: 'test_phase4_regressions.js'
   },
   {
+    category: '2. Unit & Asynchronous Logic Isolation Tests',
+    file: 'test_wp6_1_unit.js',
+    useNodeTest: true
+  },
+  {
     category: '3. Embedded PostgreSQL Compatibility Tests (PGlite WASM Single-Connection)',
     file: 'test_phase4_2_postgres_integration.js'
   },
@@ -41,7 +46,17 @@ const SUITES = [
   }
 ];
 
-function parsePassFailCounts(stdout) {
+function parsePassFailCounts(stdout, useNodeTest = false) {
+  if (useNodeTest) {
+    const passMatch = stdout.match(/^#\s*pass\s+(\d+)/im);
+    const failMatch = stdout.match(/^#\s*fail\s+(\d+)/im);
+    if (passMatch || failMatch) {
+      return {
+        passed: passMatch ? Number(passMatch[1]) : 0,
+        failed: failMatch ? Number(failMatch[1]) : 0
+      };
+    }
+  }
   const regex = /PASSED:\s*(\d+)\s*\|\s*FAILED:\s*(\d+)/i;
   const match = stdout.match(regex);
   if (match) {
@@ -58,7 +73,8 @@ function main() {
 
   for (const suite of SUITES) {
     console.log(`\n>>> Running [${suite.category}] -> ${suite.file} ...`);
-    const proc = spawnSync(process.execPath, [suite.file], {
+    const args = suite.useNodeTest ? ['--test', '--test-reporter=tap', suite.file] : [suite.file];
+    const proc = spawnSync(process.execPath, args, {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe']
     });
@@ -66,8 +82,8 @@ function main() {
     if (proc.stdout) process.stdout.write(proc.stdout);
     if (proc.stderr) process.stderr.write(proc.stderr);
 
-    const counts = parsePassFailCounts(proc.stdout || '');
-    const status = proc.status === 0 && counts.failed === 0 ? 'PASS' : 'FAIL';
+    const counts = parsePassFailCounts(proc.stdout || '', Boolean(suite.useNodeTest));
+    const status = proc.status === 0 && counts.failed === 0 && (!suite.useNodeTest || counts.passed > 0) ? 'PASS' : 'FAIL';
     if (status !== 'PASS') anySuiteExitFailure = true;
 
     totalPassed += counts.passed;
