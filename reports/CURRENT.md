@@ -8,9 +8,10 @@
 **رسالة commit المصدر:** feat: implement Google Drive reliability and OAuth  
 **حالة Phase 5.2 عند التسليم:** IMPLEMENTED — LOCAL TESTS REPORTED; CI NOT VERIFIED; OWNER REVIEW PENDING. Gemini أفاد محليًا بـ650/650 ونجاح npm run lint وnpm run build. فحص GitHub Combined Status لهذا SHA لم يُرجع Status Checks في آخر تحقق؛ لا تعتبر ذلك إثبات CI.
 **المرحلة النشطة:** Phase 6 — EXO Personal Study Journal Experience Redesign  
-**حالة Phase 6:** IN PROGRESS — WP 6.0 AUDIT DELIVERED; OWNER REVIEW PENDING  
-**حالة Gate 6.0:** التقرير مرفوع ومصحح وفق Design Contract وImplementation Plan؛ بانتظار مراجعة المالك واعتماد الإغلاق.  
-**الخطوة التالية المصرح بها:** مراجعة Gate 6.0 فقط. لا يبدأ WP 6.1 ولا أي تعديل برمجي قبل موافقة المالك الصريحة.
+**حالة Phase 6:** IN PROGRESS — WP 6.1 IMPLEMENTATION AUTHORIZED BY OWNER  
+**حالة Gate 6.0:** APPROVED BY OWNER بتاريخ 2026-11-13 بعد مراجعة التقرير المصحح `reports/PHASE_6_BASELINE_AUDIT.md`.  
+**حزمة العمل النشطة:** WP 6.1 — Design Foundations, Application Shell, Hybrid Navigation, Typography, Bilingual Foundation & Daily-Focus Dashboard.  
+**نطاق التنفيذ:** تنفيذ التصميم الأساسي والهيكل والتنقل واللغتين والـDashboard فقط، وفقًا لخطة Phase 6. يحظر فتح WP 6.2 أو WP 6.3 أو تغيير تخزين الموارد أو Extra Note Sheets أو صلاحيات Free/VIP ضمن هذه المهمة.
 
 ## مراجع التسليم الحالية
 
