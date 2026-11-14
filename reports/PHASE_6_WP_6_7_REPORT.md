@@ -5,9 +5,9 @@
 **Repository:** `JemistryMC/study-hub`  
 **Target Branch:** `main`  
 **Authoritative GitHub Source Baseline (WP 6.6):** `f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a` (CI #61 `43586175424`: `864/864 PASSED`, Pages #159 `43586174846`: `SUCCESS`)  
-**Last Documented GitHub HEAD:** `ed477ef5b9f892aea8941da6deb4737b81d3f7b3` (documentation-only commit; AI Studio workspace has no `.git` metadata — local edits remain unpushed drafts awaiting owner review & sync)  
-**WP 6.7 Current Status:** **`PARTIALLY IMPLEMENTED — OWNER REJECTED VISUAL/PRODUCT ACCEPTANCE`** *(Corrective rebuild in progress; NOT `CI VERIFIED`; NOT `APPROVED`)*  
-**Phase 6 Product Status:** **`PARTIALLY IMPLEMENTED — OWNER REJECTED VISUAL/PRODUCT ACCEPTANCE (WP 6.7 CORRECTIVE REBUILD UNDERWAY)`**
+**Latest GitHub HEAD / Uploaded Application Source:** `efcc665a84790172874fbb813eea7e9da21b099e` (WP 6.7 second pass; CI #64 `43609175986`: `927/927 PASSED`; Pages #164 `43609175604`: SUCCESS)  
+**WP 6.7 Current Status:** **`CI VERIFIED — TECHNICAL GATE PASSED; OWNER VISUAL/PRODUCT ACCEPTANCE PENDING`** on `efcc665a84790172874fbb813eea7e9da21b099e` (CI #64: `927/927`; Pages #164: SUCCESS). **NOT `APPROVED`.**  
+**Phase 6 Product Status:** **`CHANGES REQUESTED / OWNER PRODUCT REVIEW PENDING`** — second-pass engineering gate passed, but the supplied visual evidence does not demonstrate the complete handcrafted reconstruction or Imperfect Paper Cutouts requirement.
 
 ---
 
@@ -23,6 +23,43 @@
 > 8. **Tablet (`768×1024`) & Android (`390×844` / `360×740`)** lacked purpose-built touch-first ergonomics across rebuilt screens.
 > 9. **Login & Dashboard** lacked artistic cohesion with the handcrafted Paper Craft system.
 > 10. **P0 `QuotaExceededError`** root causes (unguarded `localStorage.setItem` calls, redundant workspace/quarantine duplication, missing direct `saveSubjects()` paths) remained unresolved.
+
+---
+
+## 1.1 Second Uploaded Pass — GitHub CI Verification & Owner Visual Review (2026-11-14)
+
+### Exact source and CI evidence
+- **Uploaded source SHA:** `efcc665a84790172874fbb813eea7e9da21b099e` — [commit](https://github.com/JemistryMC/study-hub/commit/efcc665a84790172874fbb813eea7e9da21b099e).
+- **GitHub Actions CI #64:** [Run `43609175986`](https://github.com/JemistryMC/study-hub/actions/runs/43609175986) — **SUCCESS, `927/927 PASSED`, `0` failures**.
+- **GitHub Pages #164:** [Run `43609175604`](https://github.com/JemistryMC/study-hub/actions/runs/43609175604) — **SUCCESS**.
+- CI completed lint, production build, static/security, all unit/regression suites, PGlite, native PostgreSQL 16, Chromium E2E, and unified `npm test`. Native PostgreSQL 16 passed `96/96`; PGlite passed `41/41`; WP 6.7 Chromium E2E passed `50/50`; WP 6.7 unit passed `13/13`; aggregate runner reported `927/927`.
+- CI runtime used Node.js `20.20.2` and PostgreSQL `16.16`. The successful GitHub run is authoritative for this exact SHA; it does not retroactively change the result of failed CI #63 on the previous docs-only SHA.
+
+### Second-pass code/test changes observed on GitHub
+The comparison `8cd850f...` → `efcc665...` shows six modified implementation/test files plus newly added/updated screenshots:
+- `index.html`: storage-write diagnostics, throttled quota-reclaim state, `exoReclaimSafeLocalStorageSpace`, safe LocalStorage write helpers, cloud-media registry compaction and pointer resolution, plus corresponding UI/test support.
+- `test_phase3_cross_account_isolation.js`: repaired test extraction/coverage for safe storage helpers; CI #64 now passes the account-isolation suite, including the previously failing re-authentication restoration path.
+- `test_phase4_regressions.js` and `test_phase4_2_postgres_integration.js`: expanded regression/integration coverage.
+- `test_wp6_7_unit.js`: expanded to `13/13`, including source invariants for quota-domain tracking, registry compaction, recovery-pointer handling and the inline SVG icon symbol set.
+- `test_wp6_7_chromium_e2e.js`: expanded to `50/50`, including synthetic LocalStorage quota failure, recovery/reload assertions, quota-toast deduplication, registry compaction, Help search, touch-target and responsive checks.
+
+### Quota test boundary — do not overclaim
+The new Chromium quota scenario injects a synthetic `QuotaExceededError` by overriding `Storage.prototype.setItem` for `pharmaSubjectsV4`. It then checks the IndexedDB fallback, episode-level toast suppression, recovery/compaction behavior, foreign-account isolation, and persistence after reload. This is useful regression evidence for the fallback path, but it is **not** a reproduction of the owner's original browser reaching its real origin storage quota during ordinary navigation/opening/downloading. The owner must still verify that the repeated warning no longer occurs in real usage. No claim of complete production storage-quota resolution is made from the synthetic test alone.
+
+### Visual evidence and remaining product gap
+New/updated evidence in `reports/screenshots/wp6-7/` includes:
+- `after-desktop-bookshelf.png`
+- `after-desktop-dashboard.png`
+- `after-desktop-help.png`
+- `after-desktop-planner.png`
+- `after-desktop-tracker.png`
+- `after-mobile-dashboard.png`
+- Updated `desktop-chapter-studio-en.png`, `desktop-drive-hub-en.png`, `desktop-home-en.png`, `desktop-planner-en.png`, `desktop-tracker-en.png`, `mobile-home-en.png`, and `mobile-tracker-ar.png`.
+
+Independent review of the supplied desktop screenshots finds some useful refinements (notably the warm-paper Daily Focus panel and revised Help search/guide presentation), but Materials, Planner and Tracker still predominantly use conventional rectangular cards/panels and the current Help remains a tabbed modal. The inline SVG symbols verified by the new unit test are standard functional icons (`book`, `layers`, `calendar`, `pen`, etc.); they are **not** evidence of the requested bespoke irregular hand-cut paper SVG library. No separate paper-cutout asset set is present in the changed-file list. The visual brief therefore remains **not demonstrated / owner review required**; this is separate from the successful technical CI gate.
+
+### Current acceptance state
+`CI VERIFIED — TECHNICAL GATE PASSED; OWNER VISUAL/PRODUCT ACCEPTANCE PENDING`. The owner has not yet accepted this second pass. Do not mark Phase 6 `APPROVED`.
 
 ---
 
@@ -145,3 +182,19 @@ WP 6.7 directly addresses the owner's hands-on product review feedback on WP 6.6
 1. Owner reviews local Workspace changes and decides whether to sync to `JemistryMC/study-hub` branch `main`.
 2. After sync, GitHub Actions CI must verify all suites including native `postgres:16` (`test_phase4_2_1_pg16_concurrency.js`) on the exact uploaded commit SHA before updating status to `CI VERIFIED`.
 3. Owner conducts hands-on review of the deployed application before any final Phase 6 `APPROVED` decision. No Phase 7 work is authorized by this report.
+
+
+---
+
+## 7. Second-Pass GitHub Verification Addendum (2026-11-14)
+
+This addendum supersedes the original report's local-only / unpushed status for the second uploaded pass. The initial-pass narrative and its limitations remain historical.
+
+- **Current source SHA:** `efcc665a84790172874fbb813eea7e9da21b099e`.
+- **CI #64:** `43609175986` — SUCCESS, `927/927 PASSED`.
+- **Pages #164:** `43609175604` — SUCCESS.
+- **WP 6.7 tests in CI:** Unit `13/13`; Chromium E2E `50/50`.
+- **Infrastructure:** PGlite `41/41`; native PostgreSQL 16 `96/96`; legacy Chromium `167/167`; WP 6.5 Chromium `43/43`; WP 6.6 Chromium `22/22`.
+- **Aggregate:** `927/927 PASSED`, `0` failed.
+- **Unresolved owner acceptance:** complete visual/artistic reconstruction, actual Imperfect Paper Cutouts, and real-world confirmation that the original repeated quota warning has stopped.
+- **Next action:** owner hands-on review of the deployed build; preserve all prior data and protected contracts.

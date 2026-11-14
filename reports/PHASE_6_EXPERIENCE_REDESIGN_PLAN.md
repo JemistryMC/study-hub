@@ -1,7 +1,7 @@
 # Phase 6 — EXO Personal Study Journal Experience Redesign
 ## Incremental Implementation Plan and Acceptance Gates
 
-**Status:** **READY FOR FINAL OWNER PRODUCT REVIEW — NOT YET APPROVED** — WP 6.1–WP 6.6 are technically CI VERIFIED (WP 6.3 retains explicit authorization-boundary limitations; Proposal A & B HELD; Drive/Supabase mocks do not establish live production integration). WP 6.6 source SHA `f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a`: CI #61 (`43586175424`) **SUCCESS — `864/864 PASSED`**; Pages #159 (`43586174846`) **SUCCESS**. Owner hands-on product review and final `APPROVED` decision remain pending.  
+**Status:** **WP 6.7 TECHNICAL GATE VERIFIED — OWNER VISUAL/PRODUCT ACCEPTANCE PENDING; NOT APPROVED.** Latest source SHA `efcc665a84790172874fbb813eea7e9da21b099e`: CI #64 (`43609175986`) **SUCCESS — `927/927 PASSED`**; Pages #164 (`43609175604`) **SUCCESS**. The initial WP 6.7 attempt was rejected by the owner; the second uploaded pass fixes the CI regression and adds quota fallback/compaction tests, but the supplied screenshots do not yet demonstrate the full artistic rebuild or genuine Imperfect Paper Cutouts. Owner hands-on review remains required.  
 **Design authority:** reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md  
 **Engineering authority:** GEMINI.md  
 **Initial app-source baseline:** c74315a4580d68c61da8a0f49ec2b2f5946301e4 (verify current GitHub HEAD before every task)  
@@ -175,9 +175,10 @@ Tie every result to source SHA, command, environment, and actual output. Disting
 
 ## WP 6.7 — The Handcrafted Experience Rebuild (Owner Feedback Remediation)
 
-**Status:** **`PARTIALLY IMPLEMENTED — OWNER REJECTED VISUAL/PRODUCT ACCEPTANCE`** *(Corrective full rebuild & QuotaExceededError closure underway; unpushed local AI Studio workspace changes; NOT `CI VERIFIED`, NOT `APPROVED`)*.  
-**Deliverable & Evidence (Initial Pass Preserved Plumbing):** `reports/PHASE_6_WP_6_7_REPORT.md` + `reports/screenshots/wp6-7/*.png` + `test_wp6_7_unit.js` (`8/8`) + `test_wp6_7_chromium_e2e.js` (`34/34`).  
-**Rejection Summary:** Initial pass delivered P0 XSS escaping, `closePdfViewer()` bookmark ordering, embedded Studio mount container, global fullscreen removal, consolidated audio helper, and separated Drive Hub modal, but fell short on genuine Imperfect Paper Cutouts SVG library, Digital Bookshelf/Chapter Workspace/Planner/Tracker/Sidebar/Help/Login/Dashboard architectural rebuilds, Tablet/Android touch ergonomics, and P0 `QuotaExceededError` root-cause remediation. Corrective rebuild is active.
+**Status:** **`CI VERIFIED — TECHNICAL GATE PASSED; OWNER VISUAL/PRODUCT ACCEPTANCE PENDING`** on `efcc665a84790172874fbb813eea7e9da21b099e` (CI #64 `43609175986`: `927/927`; Pages #164 `43609175604`: SUCCESS). **NOT `APPROVED`.**  
+**Initial-pass status:** The first WP 6.7 attempt (`70467f5`) was rejected by the owner as insufficiently visual/functional.  
+**Second-pass scope:** Added LocalStorage quota diagnostics/fallback/reclaim and cloud-media registry compaction, repaired the prior cross-account test harness regression, extended regression tests, and added desktop/mobile screenshots. WP 6.7 unit `13/13` and Chromium E2E `50/50` passed in CI. Native PostgreSQL 16 `96/96`, PGlite `41/41`, and aggregate CI `927/927` also passed.  
+**Visual acceptance boundary:** Screenshots show refinements, but conventional card/panel layouts still dominate Materials, Planner and Tracker. The verified inline SVG symbol set consists of interface icons and does not prove the requested irregular hand-cut paper assets. The full artistic redesign and owner real-use quota verification remain open; do not mark Phase 6 `APPROVED`.
 
 ---
 
