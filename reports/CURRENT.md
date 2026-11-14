@@ -22,6 +22,10 @@
 
 **P0 RUNTIME STABILITY BLOCKER — OWNER TESTING BLOCKED; VISUAL/PRODUCT ACCEPTANCE PENDING; NOT APPROVED.** أفاد المالك بتكرار تجمّد المتصفح/الموقع بالكامل أثناء الاستخدام إلى درجة تمنع إكمال الاختبار. وأكد أن اعتراضه السابق على التصميم ما زال قائمًا؛ WP 6.7 لا يثبت تنفيذ Imperfect Paper Cutouts حقيقية ولا إعادة البناء التحريرية المطلوبة. لا يُعد نجاح CI #64 (`927/927`) نفيًا لهذه المشكلة؛ اختبار الـ900 محاضرة يقيس أزمنة استدعاء مباشرة ولا يرصد Long Tasks أو frame gaps أو input-to-paint أثناء الاستخدام المتكرر. سجل الاستعادة الاصطناعي ~48.5 MB كان ~11.4 ثانية ويجب فصله عن قياس التنقل المعتاد. المرجع التفصيلي وخطة P0: `reports/PHASE_6_RUNTIME_STABILITY_BLOCKER_2026-11-14.md`. الأولوية الآن لتشخيص/إزالة التجمّد دون أي تغيير في العقود المحمية؛ ويظل التصميم مرحلة منفصلة بعد استقرار التطبيق. لا تطلب من المالك مسح بيانات الموقع أو IndexedDB كحل مؤقت.
 
+## WP 6.8 — مراجعة الرفع الجزئي (2026-11-14)
+
+**الحالة:** `PARTIALLY UPLOADED — APP PERFORMANCE REFACTOR PRESENT; NEW SUITES NOT EXECUTED/REGISTERED; ROOT CAUSE NOT ESTABLISHED; OWNER RETEST REQUIRED`. رفع المالك commit `ebcff2fd892de30de30eb2f3668943ea3d04219b` بعد إلغاء Gemini بسبب انتهاء الكوتة. CI #65 (`43613608259`) نجح وPages #169 (`43613607169`) نجحا، لكن CI نفذ الاختبارات القديمة حتى WP 6.7 فقط: `927/927`. لم تُسجل ملفات `test_wp6_8_unit.js` و`test_wp6_8_chromium_e2e.js` أو `benchmark_wp6_8_profile.js` في `package.json` أو `run_all_tests.js`؛ لذلك لم تُشغّل في CI. يوجد في `index.html` عدد من تحسينات الأداء الفعلية، لكن لا يوجد Root Cause مثبت أو مقارنة قبل/بعد محفوظة. المراجعة رصدت كذلك اختلافًا في أولوية اختيار أحداث التعويض داخل `reconcileRecoveryAndAbsentLogsWithSchedule()` بما قد يغير روابط السجلات، ومشكلة محتملة لإخفاء نتائج Tracker عند فلترة أكثر من خمسة تواريخ. يجب إصلاح هاتين النقطتين، وإضافة الاختبارات إلى runners، وإنتاج ملفات قياس فعلية قبل ادعاء اكتمال WP 6.8. التقرير التفصيلي: `reports/PHASE_6_WP_6_8_PARTIAL_REVIEW_2026-11-14.md`. **Phase 6 NOT APPROVED**؛ التصميم لا يزال بانتظار قبول المالك.
+
 ## مراجع التسليم الحالية
 
 1. العقد الهندسي الدائم: `GEMINI.md`.
