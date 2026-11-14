@@ -103,3 +103,18 @@ Correct metric labels or implement the actual metric, record separate pre-fix an
 No Production Supabase, SQL/Migrations/RLS/RPC/Auth/OAuth, Drive permissions, sync contracts, IndexedDB schema, LocalStorage key schema, account isolation, Free/VIP policy, or academic closed-loop behavior changes without separate explicit owner authorization. WP 6.3 Proposals A/B remain HELD. Do not force-push or modify Git history.
 
 **Current status:** `WP 6.8 PARTIALLY UPLOADED — APP PERFORMANCE REFACTOR PRESENT; NEW SUITES NOT EXECUTED/REGISTERED; ROOT CAUSE NOT ESTABLISHED; PROTECTED RECOVERY SEMANTICS REQUIRE CORRECTION; OWNER RETEST REQUIRED. Overall Phase 6 remains NOT APPROVED.`
+
+## 7. Owner hands-on retest result — 2026-11-14 16:16Z
+
+The owner explicitly reports that they tested the deployed application after uploading WP 6.8 partial source `ebcff2fd892de30de30eb2f3668943ea3d04219b` and **the full-site freeze is still present**.
+
+This is direct owner-side evidence that the partial WP 6.8 changes have **not resolved the P0 runtime blocker in the owner's deployed environment**. The previously recorded CI #65 success is not contradictory: it ran only the already-registered suites through WP 6.7 and did not execute either new WP 6.8 test or profiler. The current deployed behavior must therefore remain classified as:
+
+**P0 RUNTIME FREEZE — REPRODUCED BY OWNER AFTER WP 6.8 PARTIAL DEPLOYMENT; NOT FIXED; OWNER TESTING STILL BLOCKED.**
+
+Continuation requirements are strengthened:
+- Do not ask the owner to repeat the same test on the same partial WP 6.8 build.
+- Do not describe the WP 6.8 performance changes as a fix or stabilization success.
+- The next Gemini pass must use the baseline/candidate source comparison, complete profiler instrumentation, and corrected tests already specified above; investigate the remaining full-site freeze rather than polishing metrics that do not correlate with the owner's report.
+- Since the root cause remains unidentified and the deployed candidate did not fix the problem, retain the P0 blocker and owner retest requirement until a materially new candidate is produced and validated.
+- Do not alter academic recovery/closed-loop semantics or weaken protected contracts while pursuing performance.
