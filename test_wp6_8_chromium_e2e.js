@@ -349,7 +349,7 @@ async function main() {
     const cwSearchRes = await page.evaluate(() => ({
       focused: document.activeElement?.id === 'cwResourceSearchInput',
       val: document.getElementById('cwResourceSearchInput')?.value || '',
-      visibleRows: document.querySelectorAll('#cwResourcesList .cw-resource-card').length
+      visibleRows: document.querySelectorAll('#cwResourcesList .exo-cw-res-row').length
     }));
     assert(cwSearchRes.focused && cwSearchRes.val === 'Lecture 1.1.2' && cwSearchRes.visibleRows === 1,
       `CW search preserves focus (${cwSearchRes.focused}), exact text ("${cwSearchRes.val}"), & filters to ${cwSearchRes.visibleRows} row`);
@@ -421,7 +421,7 @@ async function main() {
     await page.click('#schPillTasks');
     await page.waitForTimeout(150);
     const goalsInitial = await page.evaluate(() => ({
-      cardCount: document.querySelectorAll('#tasksBacklogList .backlog-goal-card').length,
+      cardCount: document.querySelectorAll('#tasksBacklogList .backlog-card').length,
       hasMoreBtn: Boolean(document.getElementById('exoShowMoreGoalsBtn'))
     }));
     assert(goalsInitial.cardCount <= 40 && goalsInitial.hasMoreBtn,
@@ -429,20 +429,106 @@ async function main() {
 
     await page.click('#exoShowMoreGoalsBtn');
     await page.waitForTimeout(120);
-    const goalsExpanded = await page.evaluate(() => document.querySelectorAll('#tasksBacklogList .backlog-goal-card').length);
+    const goalsExpanded = await page.evaluate(() => document.querySelectorAll('#tasksBacklogList .backlog-card').length);
     assert(goalsExpanded > goalsInitial.cardCount, `Clicking #exoShowMoreGoalsBtn loads more goals (${goalsInitial.cardCount} -> ${goalsExpanded})`);
 
-    console.log('\n--- 5. Tracker 1,000-Log Collapsed Accordion Windowing & Offscreen Unmount ---');
+    console.log('\n--- 5. Tracker 1,000-Log Collapsed Accordion, Multi-Day Filters (>5d), >40 Load More & Offscreen Unmount ---');
     await page.click('.sidebar-nav-item[data-tab="tracker"]');
     await page.waitForTimeout(200);
     const trackerState = await page.evaluate(() => ({
       statTotalLogs: document.getElementById('statTotalLogs')?.innerText || '',
       accordionGroups: document.querySelectorAll('#logsContainer .log-day-group').length,
-      collapsedBodies: Array.from(document.querySelectorAll('#logsContainer .log-day-group:not(.open) .log-day-body')).length,
-      renderedLogCards: document.querySelectorAll('#logsContainer .log-item-actionable').length
+      collapsedBodies: document.querySelectorAll('#logsContainer .log-day-group:not(.is-open) .log-day-body > *').length,
+      renderedLogCards: document.querySelectorAll('#logsContainer .log-item-actionable').length,
+      hasOlderArchiveBtn: Boolean(document.querySelector('#logsContainer button[onclick*="toggleShowAllLogDays"]'))
     }));
-    assert(trackerState.statTotalLogs === '1000' && trackerState.accordionGroups > 10 && trackerState.collapsedBodies === 0,
-      `Tracker computes KPI across all 1000 logs (stat=${trackerState.statTotalLogs}) with 0 collapsed body DOM nodes (rendered cards=${trackerState.renderedLogCards})`);
+    assert(trackerState.statTotalLogs === '1000' && trackerState.accordionGroups === 5 && trackerState.hasOlderArchiveBtn && trackerState.collapsedBodies === 0,
+      `Tracker computes KPI across all 1000 logs (stat=${trackerState.statTotalLogs}), windows days (${trackerState.accordionGroups} + olderBtn=${trackerState.hasOlderArchiveBtn}) with 0 collapsed body nodes (rendered cards=${trackerState.renderedLogCards})`);
+
+    // Priority 2a: Search keyword matching across >= 6 distinct dates must open all matching date groups immediately
+    await page.fill('#logSearchInput', 'Study record 1');
+    await page.waitForTimeout(100);
+    const multiDaySearch = await page.evaluate(() => ({
+      statTotalLogs: document.getElementById('statTotalLogs')?.innerText || '',
+      openGroups: document.querySelectorAll('#logsContainer .log-day-group.is-open').length,
+      totalGroups: document.querySelectorAll('#logsContainer .log-day-group').length,
+      visibleCards: document.querySelectorAll('#logsContainer .log-item-actionable').length
+    }));
+    assert(
+      multiDaySearch.totalGroups >= 6 &&
+      multiDaySearch.openGroups === multiDaySearch.totalGroups &&
+      multiDaySearch.visibleCards >= 6 &&
+      multiDaySearch.statTotalLogs === '1000',
+      `Search across >=6 dates immediately opens all ${multiDaySearch.openGroups}/${multiDaySearch.totalGroups} groups (${multiDaySearch.visibleCards} cards) with full KPI=${multiDaySearch.statTotalLogs}`
+    );
+    await page.fill('#logSearchInput', '');
+
+    // Priority 2b: Mood select filter ('missed') across >5 dates must open all matching date groups immediately
+    await page.selectOption('#logFilterMoodSelect', 'missed');
+    await page.waitForTimeout(100);
+    const moodSearch = await page.evaluate(() => ({
+      openGroups: document.querySelectorAll('#logsContainer .log-day-group.is-open').length,
+      totalGroups: document.querySelectorAll('#logsContainer .log-day-group').length,
+      visibleCards: document.querySelectorAll('#logsContainer .log-item-actionable').length
+    }));
+    assert(
+      moodSearch.totalGroups > 5 &&
+      moodSearch.openGroups === moodSearch.totalGroups &&
+      moodSearch.visibleCards > 5,
+      `Mood filter ("missed") across >5 dates opens all ${moodSearch.openGroups} groups (${moodSearch.visibleCards} cards)`
+    );
+    await page.selectOption('#logFilterMoodSelect', 'all');
+
+    // Priority 2c: Single day with 55 entries -> windows at 40, Load More reveals all 55, KPI & recovery/delete actions work
+    await page.evaluate(() => {
+      for (let k = 1; k <= 55; k++) {
+        logs.unshift({
+          id: 99000 + k,
+          date: '2026-12-01',
+          text: `DecemberBurst entry ${k}`,
+          mood: k % 2 === 0 ? 'missed' : 'fire',
+          subjectId: subjects[0]?.id || ''
+        });
+      }
+      saveLogs();
+      updateTracker();
+    });
+    await page.fill('#logSearchInput', 'DecemberBurst');
+    await page.waitForTimeout(100);
+    const burstInitial = await page.evaluate(() => ({
+      statTotalLogs: document.getElementById('statTotalLogs')?.innerText || '',
+      cards: document.querySelectorAll('#logsContainer .log-item-actionable').length,
+      loadMoreText: document.querySelector('#logsContainer .log-day-body button.btn-outline')?.innerText || ''
+    }));
+    assert(
+      burstInitial.statTotalLogs === '1055' && burstInitial.cards === 40 && burstInitial.loadMoreText.includes('15'),
+      `Single day >40 entries windows to ${burstInitial.cards} with Load More ("${burstInitial.loadMoreText.trim()}") & KPI=${burstInitial.statTotalLogs}`
+    );
+
+    await page.click('#logsContainer .log-day-body button.btn-outline');
+    await page.waitForTimeout(100);
+    const burstExpanded = await page.evaluate(() => document.querySelectorAll('#logsContainer .log-item-actionable').length);
+    assert(burstExpanded === 55, `Clicking Load More reveals all remaining single-day entries (${burstInitial.cards} -> ${burstExpanded})`);
+
+    // Recovery action button opens linker modal cleanly
+    await page.locator('#logsContainer button[onclick*="openLogRecoveryLinkerModal"]').first().click();
+    await page.waitForSelector('#logRecoveryLinkerModalOverlay.active', { timeout: 5000 });
+    await page.click('#logRecoveryLinkerCloseBtn');
+    await page.waitForTimeout(80);
+
+    // Delete action updates logs cleanly via confirm modal without losing other logs
+    await page.locator('#logsContainer .icon-btn.delete').first().click();
+    await page.waitForSelector('#confirmModalOverlay.active', { timeout: 5000 });
+    await page.click('#confirmModalBtn');
+    await page.waitForTimeout(100);
+    const afterDeleteState = await page.evaluate(() => ({
+      statTotalLogs: document.getElementById('statTotalLogs')?.innerText || '',
+      cards: document.querySelectorAll('#logsContainer .log-item-actionable').length
+    }));
+    assert(afterDeleteState.statTotalLogs === '1054' && afterDeleteState.cards === 54,
+      `Log delete & recovery actions work cleanly with zero unintended data loss (KPI=${afterDeleteState.statTotalLogs}, cards=${afterDeleteState.cards})`);
+    await page.fill('#logSearchInput', '');
+    await page.evaluate(() => { window.exoLogsDayRenderLimit = 40; });
 
     await page.click('.sidebar-nav-item[data-tab="dashboard"]');
     await page.waitForTimeout(100);

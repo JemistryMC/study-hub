@@ -14075,7 +14075,7 @@
                     <span style="font-size: 0.75rem; color: #e2e8f0; font-weight: 800;">Exit Focus (Z)</span>
                 </div>
 
-                <div class="pdf-pages-scroll-container" id="pdfPagesScrollContainer">
+                <div class="pdf-pages-scroll-container" id="pdfPagesScrollContainer" data-exo-no-i18n="1">
                     <!-- Pages rendered dynamically here via PDF.js -->
                 </div>
                 <!-- Floating Quick Slide Stepper (Up / Down) -->
@@ -28572,21 +28572,23 @@
             if (logs.length !== beforeLen) logsChanged = true;
 
             const studySessionById = new Map();
-            const catchupByLogId = new Map();
-            const catchupBySubId = new Map();
-            const fallbackCatchups = [];
-            const dayStudyIdsMap = new Map();
-            const absentInvestStudyIds = [];
+            const firstByRecoveredLogId = new Map();
+            let firstCatchupEntry = null;
+            const dayStudyEntriesMap = new Map();
+            const absentInvestStudyEntries = [];
             const absentCollegeById = new Map();
             const absentCollegeByDay = new Map();
 
             for (let i = 0; i < scheduleEvents.length; i++) {
                 const ev = scheduleEvents[i];
-                if (!ev) continue;
                 if (isCollegeCommitmentSession(ev)) {
-                    if (ev.absent) {
-                        if (ev.id !== undefined && ev.id !== null) absentCollegeById.set(String(ev.id), ev);
-                        if (ev.day !== undefined && ev.day !== null) absentCollegeByDay.set(Number(ev.day), ev);
+                    if (ev && ev.absent) {
+                        const idKey = String(ev.id);
+                        if (!absentCollegeById.has(idKey)) absentCollegeById.set(idKey, { ev, idx: i });
+                        const dNum = Number(ev.day);
+                        if (!Number.isNaN(dNum) && !absentCollegeByDay.has(dNum)) {
+                            absentCollegeByDay.set(dNum, { ev, idx: i });
+                        }
                     }
                     continue;
                 }
@@ -28594,28 +28596,27 @@
 
                 studySessionById.set(String(ev.id), ev);
                 const dNum = Number(ev.day);
-                if (!dayStudyIdsMap.has(dNum)) dayStudyIdsMap.set(dNum, []);
-                dayStudyIdsMap.get(dNum).push(ev.id);
-                if (ev.notes && ev.notes.includes('استغلال وقت غياب')) {
-                    absentInvestStudyIds.push(ev.id);
+                if (!Number.isNaN(dNum)) {
+                    if (!dayStudyEntriesMap.has(dNum)) dayStudyEntriesMap.set(dNum, []);
+                    dayStudyEntriesMap.get(dNum).push({ id: ev.id, idx: i });
+                }
+                if (ev && ev.notes && ev.notes.includes('استغلال وقت غياب')) {
+                    absentInvestStudyEntries.push({ id: ev.id, idx: i });
                 }
 
-                if (ev.recoveredFromLogId) {
-                    catchupByLogId.set(String(ev.recoveredFromLogId), ev);
+                const recKey = String(ev.recoveredFromLogId);
+                if (!firstByRecoveredLogId.has(recKey)) {
+                    firstByRecoveredLogId.set(recKey, { ev, idx: i });
                 }
                 const t = String(ev.title || '').toLowerCase();
                 const n = String(ev.notes || '').toLowerCase();
                 const isCatchupTask = ev.type === 'catchup' || t.includes('تعويض') || n.includes('تعويض') || n.includes('إنقاذ');
-                if (isCatchupTask) {
-                    if (ev.subjectId) {
-                        const sk = String(ev.subjectId);
-                        if (!catchupBySubId.has(sk)) catchupBySubId.set(sk, ev);
-                    }
-                    fallbackCatchups.push(ev);
+                if (isCatchupTask && !firstCatchupEntry) {
+                    firstCatchupEntry = { ev, idx: i };
                 }
             }
 
-            // 2. Reconcile 'missed', 'wasted_time', and 'college_absent' logs with O(1) indexed lookups
+            // 2. Reconcile 'missed', 'wasted_time', and 'college_absent' logs in exact schedule order via O(1) indexed lookups
             for (let i = 0; i < logs.length; i++) {
                 const log = logs[i];
                 if (!log) continue;
@@ -28629,10 +28630,11 @@
                         continue;
                     }
 
-                    const matchedCatchup = catchupByLogId.get(String(log.id))
-                        || (log.subjectId ? catchupBySubId.get(String(log.subjectId)) : null)
-                        || fallbackCatchups[0]
-                        || null;
+                    const recCand = firstByRecoveredLogId.get(String(log.id)) || null;
+                    const matchedEntry = (recCand && firstCatchupEntry)
+                        ? (recCand.idx <= firstCatchupEntry.idx ? recCand : firstCatchupEntry)
+                        : (recCand || firstCatchupEntry);
+                    const matchedCatchup = matchedEntry ? matchedEntry.ev : null;
 
                     if (matchedCatchup) {
                         log.linkedRecoveryEventId = matchedCatchup.id;
@@ -28647,16 +28649,38 @@
                     const inferredDay = (log.absentDayIdx !== undefined && log.absentDayIdx !== null)
                         ? Number(log.absentDayIdx)
                         : parseDayIdxFromArabicLogText(log.text);
-                    const absentColEv = (log.sourceEventId !== undefined && log.sourceEventId !== null ? absentCollegeById.get(String(log.sourceEventId)) : null)
-                        || (inferredDay !== null && !Number.isNaN(inferredDay) ? absentCollegeByDay.get(inferredDay) : null);
+                    const colByIdCand = absentCollegeById.get(String(log.sourceEventId)) || null;
+                    const colByDayCand = (inferredDay !== null && !Number.isNaN(inferredDay))
+                        ? (absentCollegeByDay.get(inferredDay) || null)
+                        : null;
+                    const absentColEntry = (colByIdCand && colByDayCand)
+                        ? (colByIdCand.idx <= colByDayCand.idx ? colByIdCand : colByDayCand)
+                        : (colByIdCand || colByDayCand);
+                    const absentColEv = absentColEntry ? absentColEntry.ev : null;
                     const targetDay = absentColEv ? Number(absentColEv.day) : inferredDay;
 
                     const manualIds = (Array.isArray(log.linkedRecoveryEventIds) ? log.linkedRecoveryEventIds : (log.linkedRecoveryEventId ? [log.linkedRecoveryEventId] : []))
                         .filter(id => studySessionById.has(String(id)));
 
-                    const dayStudyIds = (targetDay !== null && !Number.isNaN(targetDay))
-                        ? Array.from(new Set([...(dayStudyIdsMap.get(targetDay) || []), ...absentInvestStudyIds]))
-                        : [];
+                    let dayStudyIds = [];
+                    if (targetDay !== null) {
+                        const listA = (!Number.isNaN(targetDay) ? dayStudyEntriesMap.get(targetDay) : null) || [];
+                        const listB = absentInvestStudyEntries;
+                        let pA = 0;
+                        let pB = 0;
+                        while (pA < listA.length && pB < listB.length) {
+                            if (listA[pA].idx < listB[pB].idx) {
+                                dayStudyIds.push(listA[pA++].id);
+                            } else if (listB[pB].idx < listA[pA].idx) {
+                                dayStudyIds.push(listB[pB++].id);
+                            } else {
+                                dayStudyIds.push(listA[pA++].id);
+                                pB++;
+                            }
+                        }
+                        while (pA < listA.length) dayStudyIds.push(listA[pA++].id);
+                        while (pB < listB.length) dayStudyIds.push(listB[pB++].id);
+                    }
 
                     const combinedIds = Array.from(new Set([...manualIds.map(String), ...dayStudyIds.map(String)]));
                     if (combinedIds.length !== (log.linkedRecoveryEventIds ? log.linkedRecoveryEventIds.length : 0)) {
@@ -28834,7 +28858,7 @@
             const groupHtmlParts = [];
             visibleDayKeys.forEach((dKey) => {
                 const dayItems = dayGroupsMap.get(dKey) || [];
-                const isOpen = (isFilteredMode && visibleDayKeys.length <= 5) || openLogDateAccordions.has(dKey);
+                const isOpen = isFilteredMode || openLogDateAccordions.has(dKey);
                 let doneCount = 0;
                 let missedCount = 0;
                 let dayHoursSum = 0;
@@ -43373,14 +43397,13 @@ function togglePdfAudioPlayerBar(forceState) {
             if (closingLecRef && closingLecRef.lec && typeof getCwAccountCacheScope === 'function' && typeof chapterAnnotationsMetaCache !== 'undefined') {
                 chapterAnnotationsMetaCache.delete(`${getCwAccountCacheScope()}::${String(closingLecRef.lec.id)}`);
             }
-            if (activeSubjectId && document.getElementById('groupsContainer')) {
+            const cwEl = document.getElementById('chapter-workspace-view');
+            const isCwOpen = Boolean(cwEl && cwEl.style.display !== 'none' && typeof activeChapterWorkspaceGroupId !== 'undefined' && activeChapterWorkspaceGroupId);
+            if (!isCwOpen && activeSubjectId && document.getElementById('groupsContainer')) {
                 renderGroups();
             }
-            if (typeof activeChapterWorkspaceGroupId !== 'undefined' && activeChapterWorkspaceGroupId && typeof renderChapterWorkspace === 'function') {
-                const cwEl = document.getElementById('chapter-workspace-view');
-                if (cwEl && cwEl.style.display !== 'none') {
-                    renderChapterWorkspace(false);
-                }
+            if (isCwOpen && typeof renderChapterWorkspace === 'function') {
+                renderChapterWorkspace(false);
             }
             cwStudioOpenedFromWorkspace = false;
             currentPdfDoc = null;
@@ -59107,11 +59130,15 @@ function togglePdfAudioPlayerBar(forceState) {
                     activeBox.innerHTML = endedHtml;
                 }
             } else {
-                activeBox.innerHTML = `
+                const emptySlotHtml = `
                     <button class="btn btn-outline" style="padding:5px 12px; font-size:0.76rem; border-radius:9px;" onclick="openAddSessionModal(${todayIdx}, ${Math.max(Number(plannerPrefs.dayStartHour||6), new Date().getHours())})">
                         <i class="fa-solid fa-plus"></i> ${isEn ? 'Schedule task now' : 'جدولة مهمة في الوقت الحالي'}
                     </button>
                 `;
+                if (forceUpdate || cache.activeHtml !== emptySlotHtml) {
+                    cache.activeHtml = emptySlotHtml;
+                    activeBox.innerHTML = emptySlotHtml;
+                }
             }
         }
 
@@ -59753,7 +59780,11 @@ function togglePdfAudioPlayerBar(forceState) {
                 const ev = scheduleEvents.find(e => String(e.id) === String(evId));
                 if (ev && !ev.completed) {
                     const startPref = ev.smartStartTimeFormatted ? `بدأت ${ev.smartStartTimeFormatted} • ` : '';
-                    el.innerHTML = `<i class="fa-solid ${ev.openTimerStartedAt ? 'fa-compass fa-spin' : 'fa-compass'}"></i> تتبع ذكي: ${startPref}${formatOpenTimerElapsed(ev)}`;
+                    const nextOpenHtml = `<i class="fa-solid ${ev.openTimerStartedAt ? 'fa-compass fa-spin' : 'fa-compass'}"></i> تتبع ذكي: ${startPref}${formatOpenTimerElapsed(ev)}`;
+                    if (el.dataset.lastOpenTimerHtml !== nextOpenHtml) {
+                        el.dataset.lastOpenTimerHtml = nextOpenHtml;
+                        el.innerHTML = nextOpenHtml;
+                    }
                 }
             });
         }, 1000);
@@ -60686,6 +60717,10 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (typeof updateWp62StaticLabels === 'function') updateWp62StaticLabels(targetLang);
                 if (typeof updateWp65StaticLabels === 'function') updateWp65StaticLabels(targetLang);
                 if (typeof updateWp63ChapterWorkspaceLabels === 'function') updateWp63ChapterWorkspaceLabels(targetLang);
+                const pdfOverlayNow = document.getElementById('pdfViewerModalOverlay');
+                if (pdfOverlayNow && pdfOverlayNow.classList.contains('active') && typeof syncExtraNoteButtonsLockUI === 'function') {
+                    syncExtraNoteButtonsLockUI();
+                }
 
                 const isViewActive = (id) => Boolean(document.getElementById(id)?.classList.contains('active'));
                 if (isViewActive('dashboard')) {

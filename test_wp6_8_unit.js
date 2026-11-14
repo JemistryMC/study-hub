@@ -204,3 +204,188 @@ test('WP 6.8: Live clock memoizes DOM updates & Tracker/Planner use single-pass 
   assert.ok(fnLogs.includes('if (isOpen)') && fnLogs.includes('window.exoLogsDayRenderLimit'),
     'renderLogs must skip rendering collapsed day-group HTML and window open groups cleanly');
 });
+
+test('WP 6.8 (Priority 1): reconcileRecoveryAndAbsentLogsWithSchedule matches exact efcc665 schedule-order semantics across all edge cases', () => {
+  const fnCol = extractFunctionSource('isCollegeCommitmentSession');
+  const fnWasted = extractFunctionSource('isWastedTimeSession');
+  const fnPersonal = extractFunctionSource('isPersonalNeutralSession');
+  const fnParseDay = extractFunctionSource('parseDayIdxFromArabicLogText');
+  const fnReconcile = extractFunctionSource('reconcileRecoveryAndAbsentLogsWithSchedule');
+
+  // Exact verbatim efcc665 baseline reference implementation (from commit efcc665a84790172874fbb813eea7e9da21b099e)
+  const baselineReferenceSource = `
+    function baselineReconcile() {
+      if (!Array.isArray(logs)) return;
+      let logsChanged = false;
+      const beforeLen = logs.length;
+      logs = logs.filter(l => {
+        if (l && l.mood === 'missed' && l.text) {
+          const txt = String(l.text);
+          if (txt.includes('وقت ضائع') || txt.includes('لعب وتضييع وقت')) return false;
+        }
+        return true;
+      });
+      if (logs.length !== beforeLen) logsChanged = true;
+
+      const studySessions = scheduleEvents.filter(e => !isCollegeCommitmentSession(e) && !isWastedTimeSession(e) && !isPersonalNeutralSession(e));
+      logs.forEach(log => {
+        if (!log) return;
+        if (log.mood === 'missed' || log.mood === 'wasted_time') {
+          const existingIds = (Array.isArray(log.linkedRecoveryEventIds) ? log.linkedRecoveryEventIds : (log.linkedRecoveryEventId ? [log.linkedRecoveryEventId] : []))
+            .filter(id => studySessions.some(e => String(e.id) === String(id)));
+          if (existingIds.length > 0) {
+            log.linkedRecoveryEventIds = existingIds;
+            log.linkedRecoveryEventId = existingIds[0];
+            return;
+          }
+          const matchedCatchup = studySessions.find(ev => {
+            if (String(ev.recoveredFromLogId) === String(log.id)) return true;
+            const t = String(ev.title || '').toLowerCase();
+            const n = String(ev.notes || '').toLowerCase();
+            const isCatchupTask = ev.type === 'catchup' || t.includes('تعويض') || n.includes('تعويض') || n.includes('إنقاذ');
+            if (!isCatchupTask) return false;
+            if (log.subjectId && ev.subjectId && String(log.subjectId) === String(ev.subjectId)) return true;
+            if (!log.subjectId && log.mood === 'wasted_time') return true;
+            return isCatchupTask;
+          });
+          if (matchedCatchup) {
+            log.linkedRecoveryEventId = matchedCatchup.id;
+            log.linkedRecoveryEventIds = [matchedCatchup.id];
+            log.linkedRecoveryTitle = matchedCatchup.title;
+            logsChanged = true;
+          } else {
+            log.linkedRecoveryEventId = null;
+            log.linkedRecoveryEventIds = [];
+          }
+        } else if (log.mood === 'college_absent') {
+          const inferredDay = (log.absentDayIdx !== undefined && log.absentDayIdx !== null)
+            ? Number(log.absentDayIdx)
+            : parseDayIdxFromArabicLogText(log.text);
+          const absentColEv = scheduleEvents.find(e => isCollegeCommitmentSession(e) && e.absent && (String(e.id) === String(log.sourceEventId) || (inferredDay !== null && Number(e.day) === inferredDay)));
+          const targetDay = absentColEv ? Number(absentColEv.day) : inferredDay;
+          const manualIds = (Array.isArray(log.linkedRecoveryEventIds) ? log.linkedRecoveryEventIds : (log.linkedRecoveryEventId ? [log.linkedRecoveryEventId] : []))
+            .filter(id => studySessions.some(e => String(e.id) === String(id)));
+          const dayStudyIds = targetDay !== null
+            ? studySessions.filter(e => Number(e.day) === targetDay || (e.notes && e.notes.includes('استغلال وقت غياب'))).map(e => e.id)
+            : [];
+          const combinedIds = Array.from(new Set([...manualIds.map(String), ...dayStudyIds.map(String)]));
+          if (combinedIds.length !== (log.linkedRecoveryEventIds ? log.linkedRecoveryEventIds.length : 0)) {
+            log.linkedRecoveryEventIds = combinedIds;
+            log.linkedRecoveryEventId = combinedIds[0] || null;
+            logsChanged = true;
+          }
+        }
+      });
+      if (logsChanged) saveLogs();
+    }
+  `;
+
+  function runImpl(useBaseline, rawLogs, rawEvents) {
+    let saveCalls = 0;
+    const sandbox = new Function('initialLogs', 'initialEvents', 'onSave', `
+      let logs = JSON.parse(JSON.stringify(initialLogs));
+      const scheduleEvents = JSON.parse(JSON.stringify(initialEvents));
+      function saveLogs() { onSave(); }
+      ${fnCol}
+      ${fnWasted}
+      ${fnPersonal}
+      ${fnParseDay}
+      ${useBaseline ? baselineReferenceSource : fnReconcile}
+      ${useBaseline ? 'baselineReconcile();' : 'reconcileRecoveryAndAbsentLogsWithSchedule();'}
+      return logs;
+    `);
+    const resultLogs = sandbox(rawLogs, rawEvents, () => { saveCalls++; });
+    return { logs: resultLogs, saveCalls };
+  }
+
+  // Case A: Reordered catchups — earlier cross-subject catchup vs later exact recoveredFromLogId
+  // Original .find() picks the FIRST catchup in schedule order!
+  const eventsCaseA = [
+    { id: 101, title: 'خطة تعويض عامة', type: 'catchup', subjectId: 20, day: 1 },
+    { id: 102, title: 'تعويض مباشر للمحاضرة', type: 'study', subjectId: 10, recoveredFromLogId: 5001, day: 2 }
+  ];
+  const logsCaseA = [
+    { id: 5001, mood: 'missed', subjectId: 10, text: 'محاضرة فائتة' },
+    { id: 5002, mood: 'wasted_time', text: 'تضييع وقت' }
+  ];
+  assert.deepEqual(
+    runImpl(false, logsCaseA, eventsCaseA),
+    runImpl(true, logsCaseA, eventsCaseA),
+    'Reordered earlier catchup vs later exact recoveredFromLogId must match baseline .find() order identically'
+  );
+  // Flip order: exact recoveredFromLogId first -> exact recoveredFromLogId wins
+  const eventsCaseAFlipped = [eventsCaseA[1], eventsCaseA[0]];
+  assert.deepEqual(
+    runImpl(false, logsCaseA, eventsCaseAFlipped),
+    runImpl(true, logsCaseA, eventsCaseAFlipped),
+    'Exact recoveredFromLogId appearing earlier in scheduleEvents must win identically'
+  );
+
+  // Case B: No catchup events -> exact recoveredFromLogId vs cross-subject study vs unlinked
+  const eventsCaseB = [
+    { id: 201, title: 'Normal study', type: 'study', subjectId: 10, day: 1 },
+    { id: 202, title: 'إنقاذ سريع', type: 'study', subjectId: 99, day: 3 }
+  ];
+  const logsCaseB = [
+    { id: 6001, mood: 'missed', subjectId: 10, text: 'فائتة بدون ربط' },
+    { id: 6002, mood: 'missed', text: 'مهمة لم تتم في يومها: وقت ضائع' } // bogus log must be filtered
+  ];
+  const resB = runImpl(false, logsCaseB, eventsCaseB);
+  assert.deepEqual(resB, runImpl(true, logsCaseB, eventsCaseB), 'Bogus log filtering and cross-subject catchup fallback must match baseline');
+  assert.equal(resB.logs.length, 1);
+
+  // Case C: Multiple same-day absent college commitments + interleaved day study & 'استغلال وقت غياب' notes
+  const eventsCaseC = [
+    { id: 's_invest_early', title: 'Early Absent Exploit', type: 'study', day: 5, notes: 'استغلال وقت غياب مبكر' },
+    { id: 'c_day2_first', title: 'College AM', type: 'mandatory', isFixed: true, absent: true, day: 2 },
+    { id: 'c_dup_id', title: 'College PM (diff day)', type: 'mandatory', isFixed: true, absent: true, day: 4 },
+    { id: 'c_dup_id', title: 'College Dup ID Later', type: 'mandatory', isFixed: true, absent: true, day: 6 },
+    { id: 's_day2_a', title: 'Day 2 Session A', type: 'review', day: 2 },
+    { id: 's_invest_mid', title: 'Mid Absent Exploit', type: 'practice', day: 3, notes: 'استغلال وقت غياب متوسط' },
+    { id: 's_day2_b', title: 'Day 2 Session B', type: 'review', day: 2 },
+    { id: 's_manual', title: 'Manual Link', type: 'review', day: 6 }
+  ];
+  const logsCaseC = [
+    { id: 7001, mood: 'college_absent', absentDayIdx: 2, sourceEventId: 'c_dup_id', linkedRecoveryEventId: 's_manual', text: 'غياب يوم' },
+    { id: 7002, mood: 'college_absent', absentDayIdx: null, sourceEventId: 'missing', text: 'غياب بدون يوم محدد' }
+  ];
+  assert.deepEqual(
+    runImpl(false, logsCaseC, eventsCaseC),
+    runImpl(true, logsCaseC, eventsCaseC),
+    'Multiple same-day absent commitments, sourceEventId vs inferredDay order, and interleaved study IDs must match baseline 100%'
+  );
+
+  // Case D: Existing linked IDs still present vs stale linked IDs removed
+  const eventsCaseD = [
+    { id: 'e_valid', title: 'Valid Study', type: 'study', day: 1 },
+    { id: 'e_catch', title: 'Catchup Later', type: 'catchup', day: 2 }
+  ];
+  const logsCaseD = [
+    { id: 8001, mood: 'missed', linkedRecoveryEventIds: ['e_deleted', 'e_valid'], text: 'Log 1' },
+    { id: 8002, mood: 'missed', linkedRecoveryEventIds: ['e_deleted_only'], text: 'Log 2' }
+  ];
+  assert.deepEqual(
+    runImpl(false, logsCaseD, eventsCaseD),
+    runImpl(true, logsCaseD, eventsCaseD),
+    'Existing valid linked IDs retention and stale IDs fallback must match baseline'
+  );
+});
+
+test('WP 6.8 (Priority 2): renderLogs opens all filtered date groups regardless of >5 day count while preserving dayCardLimit', () => {
+  const fnLogs = extractFunctionSource('renderLogs');
+  assert.ok(fnLogs.includes('const isOpen = isFilteredMode || openLogDateAccordions.has(dKey);'),
+    'Filtered search/mood/category mode must open every matching date group even when >5 days match');
+  assert.ok(!fnLogs.includes('isFilteredMode && visibleDayKeys.length <= 5'),
+    'Must not hide filtered matches when visibleDayKeys.length > 5');
+  assert.ok(fnLogs.includes('const visibleDayItems = dayItems.slice(0, dayCardLimit);'),
+    'Per-day progressive windowing (dayCardLimit) must remain active');
+});
+
+test('WP 6.8: PDF container skips heavy MutationObserver subtree walk & keeps active Studio localized on language switch', () => {
+  assert.ok(indexHtml.includes('id="pdfPagesScrollContainer" data-exo-no-i18n="1"'),
+    'pdfPagesScrollContainer must opt out of domObserver walks across 100+ page placeholders');
+  const fnApply = extractFunctionSource('applyExoLanguage');
+  assert.ok(fnApply.includes('syncExtraNoteButtonsLockUI()'),
+    'applyExoLanguage must re-sync active PDF Studio extra-note buttons/headers when switching language');
+});
+

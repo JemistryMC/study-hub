@@ -1,9 +1,10 @@
 // ============================================================================
 // EXO — Personal Study Journal | WP 6.8 Real Headless Chromium Profiler
 // Measures real UI interactions, Long Tasks (>=50ms), event-loop lag, rAF
-// frame gaps, input-to-next-paint, nav-to-visible-content, DOM node growth,
-// JS heap growth, JSON/localStorage/IDB/MutationObserver overhead across
-// 5 dataset tiers and 4 real user journeys (+ near-full quota test).
+// frame gaps, Event Timing entries (where supported), action-to-second-rAF
+// wall time, DOM node growth, JS heap growth, JSON/localStorage/IDB/MutationObserver
+// overhead across 5 dataset tiers and 4 real user journeys (+ near-full quota test).
+// Note: Uses offline mocked Supabase/Google routes + deterministic PDF.js shim.
 // ============================================================================
 
 const fs = require('fs');
@@ -114,6 +115,8 @@ const PROFILER_INIT_SCRIPT = `
   // Runtime Profiler State
   const prof = {
     longTasks: [],
+    eventTimings: [],
+    eventTimingSupported: false,
     rafGaps: [],
     eventLoopDrifts: [],
     mutationsTotal: 0,
@@ -125,6 +128,9 @@ const PROFILER_INIT_SCRIPT = `
     jsonParseMs: 0,
     jsonStringifyCalls: 0,
     jsonStringifyMs: 0,
+    idbOpsCount: 0,
+    idbTotalMs: 0,
+    idbMaxOpMs: 0,
     lastRafTs: 0,
     lastBeatTs: 0,
     activePhase: 'startup',
@@ -132,7 +138,7 @@ const PROFILER_INIT_SCRIPT = `
   };
   window.__wp68Prof = prof;
 
-  // 1. Long Task Observer
+  // 1. Long Task & W3C Event Timing Observers
   try {
     if (typeof PerformanceObserver !== 'undefined') {
       const obs = new PerformanceObserver((list) => {
@@ -145,6 +151,22 @@ const PROFILER_INIT_SCRIPT = `
         }
       });
       obs.observe({ entryTypes: ['longtask'] });
+
+      if (Array.isArray(PerformanceObserver.supportedEntryTypes) && PerformanceObserver.supportedEntryTypes.includes('event')) {
+        prof.eventTimingSupported = true;
+        const evObs = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            prof.eventTimings.push({
+              name: entry.name || 'event',
+              duration: Number(entry.duration.toFixed(2)),
+              processingStart: entry.processingStart !== undefined ? Number(entry.processingStart.toFixed(2)) : null,
+              processingEnd: entry.processingEnd !== undefined ? Number(entry.processingEnd.toFixed(2)) : null,
+              phase: prof.activePhase
+            });
+          }
+        });
+        evObs.observe({ type: 'event', buffered: true, durationThreshold: 16 });
+      }
     }
   } catch (e) {}
 
@@ -206,6 +228,49 @@ const PROFILER_INIT_SCRIPT = `
     }
   };
 
+  // 4b. Non-invasive IndexedDB operation timing wrappers
+  try {
+    if (typeof IDBFactory !== 'undefined' && IDBFactory.prototype && typeof IDBFactory.prototype.open === 'function') {
+      const origIdbOpen = IDBFactory.prototype.open;
+      IDBFactory.prototype.open = function() {
+        const t0 = performance.now();
+        const req = origIdbOpen.apply(this, arguments);
+        if (req && typeof req.addEventListener === 'function') {
+          const done = () => {
+            const dt = performance.now() - t0;
+            prof.idbOpsCount++;
+            prof.idbTotalMs += dt;
+            if (dt > prof.idbMaxOpMs) prof.idbMaxOpMs = dt;
+          };
+          req.addEventListener('success', done, { once: true });
+          req.addEventListener('error', done, { once: true });
+        }
+        return req;
+      };
+    }
+    if (typeof IDBObjectStore !== 'undefined' && IDBObjectStore.prototype) {
+      for (const methodName of ['get', 'put', 'add', 'delete', 'getAll', 'clear', 'count']) {
+        const origMethod = IDBObjectStore.prototype[methodName];
+        if (typeof origMethod !== 'function') continue;
+        IDBObjectStore.prototype[methodName] = function() {
+          const t0 = performance.now();
+          const req = origMethod.apply(this, arguments);
+          if (req && typeof req.addEventListener === 'function') {
+            const done = () => {
+              const dt = performance.now() - t0;
+              prof.idbOpsCount++;
+              prof.idbTotalMs += dt;
+              if (dt > prof.idbMaxOpMs) prof.idbMaxOpMs = dt;
+            };
+            req.addEventListener('success', done, { once: true });
+            req.addEventListener('error', done, { once: true });
+          }
+          return req;
+        };
+      }
+    }
+  } catch (e) {}
+
   // 5. Passive body mutation counter (to quantify domObserver pressure)
   window.addEventListener('DOMContentLoaded', () => {
     try {
@@ -220,6 +285,7 @@ const PROFILER_INIT_SCRIPT = `
   window.__wp68ResetCounters = function(phaseName) {
     prof.activePhase = phaseName || 'phase';
     prof.longTasks.length = 0;
+    prof.eventTimings.length = 0;
     prof.rafGaps.length = 0;
     prof.eventLoopDrifts.length = 0;
     prof.mutationsTotal = 0;
@@ -231,6 +297,9 @@ const PROFILER_INIT_SCRIPT = `
     prof.jsonParseMs = 0;
     prof.jsonStringifyCalls = 0;
     prof.jsonStringifyMs = 0;
+    prof.idbOpsCount = 0;
+    prof.idbTotalMs = 0;
+    prof.idbMaxOpMs = 0;
     prof.lastRafTs = performance.now();
     prof.lastBeatTs = performance.now();
   };
@@ -238,6 +307,7 @@ const PROFILER_INIT_SCRIPT = `
   window.__wp68Snapshot = function() {
     const maxLongTaskMs = prof.longTasks.reduce((m, x) => Math.max(m, x.duration), 0);
     const totalLongTaskMs = prof.longTasks.reduce((s, x) => s + x.duration, 0);
+    const maxEventTimingMs = prof.eventTimings.reduce((m, x) => Math.max(m, x.duration), 0);
     const maxFrameGapMs = prof.rafGaps.reduce((m, x) => Math.max(m, x.gap), 0);
     const framesOver50 = prof.rafGaps.filter(x => x.gap >= 50).length;
     const framesOver100 = prof.rafGaps.filter(x => x.gap >= 100).length;
@@ -249,6 +319,10 @@ const PROFILER_INIT_SCRIPT = `
       maxLongTaskMs: Number(maxLongTaskMs.toFixed(1)),
       totalLongTaskMs: Number(totalLongTaskMs.toFixed(1)),
       longTasksSample: prof.longTasks.slice(0, 12),
+      eventTimingSupported: prof.eventTimingSupported,
+      eventTimingCount: prof.eventTimings.length,
+      maxEventTimingMs: Number(maxEventTimingMs.toFixed(1)),
+      eventTimingSample: prof.eventTimings.slice(0, 8),
       maxFrameGapMs: Number(maxFrameGapMs.toFixed(1)),
       framesOver50,
       framesOver100,
@@ -263,6 +337,9 @@ const PROFILER_INIT_SCRIPT = `
       jsonParseMs: Number(prof.jsonParseMs.toFixed(2)),
       jsonStringifyCalls: prof.jsonStringifyCalls,
       jsonStringifyMs: Number(prof.jsonStringifyMs.toFixed(2)),
+      idbOpsCount: prof.idbOpsCount,
+      idbTotalMs: Number(prof.idbTotalMs.toFixed(2)),
+      idbMaxOpMs: Number(prof.idbMaxOpMs.toFixed(2)),
       domNodeCount: document.querySelectorAll('*').length,
       usedJSHeapMB: (performance && performance.memory)
         ? Number((performance.memory.usedJSHeapSize / (1024 * 1024)).toFixed(2))
@@ -405,8 +482,8 @@ async function measureClickInteraction(page, label, clickAction) {
       });
     });
   });
-  const wallMs = Number((afterPaint.endTs - t0).toFixed(1));
-  return Object.assign({ step: label, wallToSecondPaintMs: wallMs }, afterPaint.snap);
+  const actionToSecondFrameWallMs = Number((afterPaint.endTs - t0).toFixed(1));
+  return Object.assign({ step: label, actionToSecondFrameWallMs }, afterPaint.snap);
 }
 
 const SUPABASE_MINIMAL_MOCK = `
@@ -453,7 +530,7 @@ async function installOfflineRoutes(page) {
   });
 }
 
-async function profileTier(browser, tierName) {
+async function profileTier(browser, tierName, targetUrl) {
   const cfg = buildTierConfig(tierName);
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   await context.addInitScript(PROFILER_INIT_SCRIPT);
@@ -466,7 +543,7 @@ async function profileTier(browser, tierName) {
   });
 
   // First load empty to seed IDB + LS
-  await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+  await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(300);
   await seedDatasetInPage(page, cfg);
 
@@ -483,7 +560,7 @@ async function profileTier(browser, tierName) {
   // Idle stability check (4 seconds sitting on Dashboard in EN mode)
   await page.evaluate(() => window.__wp68ResetCounters('idle_4s_dashboard'));
   await page.waitForTimeout(4000);
-  steps.push(await page.evaluate(() => Object.assign({ step: 'idle_4s_dashboard', wallToSecondPaintMs: 4000 }, window.__wp68Snapshot())));
+  steps.push(await page.evaluate(() => Object.assign({ step: 'idle_4s_dashboard', actionToSecondFrameWallMs: 4000 }, window.__wp68Snapshot())));
 
   // Journey 1: Dashboard -> Materials -> Subject -> TOC -> Chapter Workspace -> Search Typing -> PDF Studio -> Scroll & Draw -> Back
   steps.push(await measureClickInteraction(page, 'nav_to_subjects', async () => {
@@ -522,7 +599,7 @@ async function profileTier(browser, tierName) {
         const typeSnap = await page.evaluate(() => window.__wp68Snapshot());
         steps.push(Object.assign({
           step: 'cw_search_typing',
-          wallToSecondPaintMs: Date.now() - tType0,
+          actionToSecondFrameWallMs: Date.now() - tType0,
           focusPreserved: hasFocusAfterType,
           typedValueLen: typedVal.length
         }, typeSnap));
@@ -623,7 +700,7 @@ async function profileTier(browser, tierName) {
     heapMB: (performance && performance.memory) ? Number((performance.memory.usedJSHeapSize / (1024 * 1024)).toFixed(2)) : null
   }));
   steps.push(await measureClickInteraction(page, 'rapid_nav_20_cycles', async () => {
-    const tabs = ['dashboard', 'subjects', 'schedule', 'tracker'];
+    const tabs = ['subjects', 'schedule', 'tracker', 'dashboard'];
     for (let c = 0; c < 5; c++) {
       for (const tab of tabs) {
         await page.click(`.sidebar-nav-item[data-tab="${tab}"]`);
@@ -656,12 +733,12 @@ async function profileTier(browser, tierName) {
   };
 }
 
-async function runQuotaNearFullCheck(browser) {
+async function runQuotaNearFullCheck(browser, targetUrl) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   await context.addInitScript(PROFILER_INIT_SCRIPT);
   const page = await context.newPage();
   await installOfflineRoutes(page);
-  await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+  await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(300);
 
   const res = await page.evaluate(async () => {
@@ -707,35 +784,67 @@ async function runQuotaNearFullCheck(browser) {
   return res;
 }
 
+function parseCliArgs(argv) {
+  let outPath = null;
+  let targetUrl = 'http://localhost:3000';
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === '--url' && argv[i + 1]) {
+      targetUrl = argv[++i];
+    } else if (arg.startsWith('--url=')) {
+      targetUrl = arg.slice('--url='.length);
+    } else if (arg === '--out' && argv[i + 1]) {
+      outPath = argv[++i];
+    } else if (arg.startsWith('--out=')) {
+      outPath = arg.slice('--out='.length);
+    } else if (!arg.startsWith('--') && !outPath) {
+      outPath = arg;
+    }
+  }
+  return {
+    targetUrl,
+    outPath: outPath || path.join(__dirname, '.playwright-cli', 'wp6_8_before_baseline.json')
+  };
+}
+
 async function main() {
-  const outPath = process.argv[2] || path.join(__dirname, '.playwright-cli', 'wp6_8_before_baseline.json');
+  const { targetUrl, outPath } = parseCliArgs(process.argv.slice(2));
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  const spawnedServer = await ensureLocalServerRunning();
+  const isDefaultLocal3000 = targetUrl.startsWith('http://localhost:3000') || targetUrl.startsWith('http://127.0.0.1:3000');
+  const spawnedServer = isDefaultLocal3000 ? await ensureLocalServerRunning() : null;
   const launchOpts = resolveChromiumLaunchOptions();
   const browser = await chromium.launch(launchOpts);
 
   const tiers = ['empty', 'medium', 'large', 'tier900', 'stress'];
   const report = {
     timestamp: new Date().toISOString(),
+    targetUrl,
     os: `${os.type()} ${os.release()} (${os.arch()})`,
     nodeVersion: process.version,
     chromiumVersion: browser.version(),
+    environmentBoundaries: {
+      supabase: 'offline_mocked_client (not live hosted Supabase Auth/PostgREST)',
+      googleDriveAndGis: 'offline_mocked_gis_client (not live Google OAuth/Drive)',
+      pdfRenderer: 'deterministic_pdfjs_canvas_shim (not live CDN PDF.js decoding real user binary PDFs)',
+      quotaCheck: 'synthetic_localStorage_filler (simulated near-full storage quota)'
+    },
     tiers: {},
     nearFullQuota: null
   };
 
   try {
     for (const t of tiers) {
-      console.log(`\n=== Profiling Tier: ${t} ===`);
-      const tRes = await profileTier(browser, t);
+      console.log(`\n=== Profiling Tier: ${t} (${targetUrl}) ===`);
+      const tRes = await profileTier(browser, t, targetUrl);
       report.tiers[t] = tRes;
-      console.log(`  Startup Wall: ${tRes.startupWallMs} ms | LongTasks: ${tRes.startup.longTaskCount} (max ${tRes.startup.maxLongTaskMs} ms) | DOM: ${tRes.startup.domNodeCount}`);
+      console.log(`  Startup Wall: ${tRes.startupWallMs} ms | LongTasks: ${tRes.startup.longTaskCount} (max ${tRes.startup.maxLongTaskMs} ms) | IDB ops: ${tRes.startup.idbOpsCount}/${tRes.startup.idbTotalMs}ms | DOM: ${tRes.startup.domNodeCount}`);
       for (const s of tRes.steps) {
         console.log(
-          `  [${s.step.padEnd(24)}] wall=${String(s.wallToSecondPaintMs).padStart(7)}ms | ` +
+          `  [${s.step.padEnd(24)}] frame2Wall=${String(s.actionToSecondFrameWallMs).padStart(7)}ms | ` +
+          `evTiming=${s.eventTimingSupported ? `${s.eventTimingCount}/${s.maxEventTimingMs}ms` : 'n/a'} | ` +
           `LT=${s.longTaskCount} (max ${s.maxLongTaskMs}ms, tot ${s.totalLongTaskMs}ms) | ` +
           `maxGap=${s.maxFrameGapMs}ms | muts=${s.mutationsTotal} | ` +
-          `LS=${s.lsSetCalls}/${s.lsSetMs}ms | JSON=${s.jsonParseCalls}+${s.jsonStringifyCalls}/${(s.jsonParseMs + s.jsonStringifyMs).toFixed(1)}ms` +
+          `IDB=${s.idbOpsCount}/${s.idbTotalMs}ms | LS=${s.lsSetCalls}/${s.lsSetMs}ms | JSON=${s.jsonParseCalls}+${s.jsonStringifyCalls}/${(s.jsonParseMs + s.jsonStringifyMs).toFixed(1)}ms` +
           (s.focusPreserved !== undefined ? ` | focusOK=${s.focusPreserved}` : '')
         );
       }
@@ -746,11 +855,11 @@ async function main() {
     }
 
     console.log('\n=== Profiling Near-Full LocalStorage Quota Test ===');
-    report.nearFullQuota = await runQuotaNearFullCheck(browser);
-    console.log(`  Filled keys: ${report.nearFullQuota.filledKeys} | Wall: ${report.nearFullQuota.wallMs}ms | LongTasks: ${report.nearFullQuota.snap.longTaskCount} (max ${report.nearFullQuota.snap.maxLongTaskMs}ms) | lsSetCalls: ${report.nearFullQuota.snap.lsSetCalls}`);
+    report.nearFullQuota = await runQuotaNearFullCheck(browser, targetUrl);
+    console.log(`  Filled keys: ${report.nearFullQuota.filledKeys} | Wall: ${report.nearFullQuota.wallMs}ms | LongTasks: ${report.nearFullQuota.snap.longTaskCount} (max ${report.nearFullQuota.snap.maxLongTaskMs}ms) | IDB=${report.nearFullQuota.snap.idbOpsCount}/${report.nearFullQuota.snap.idbTotalMs}ms | lsSetCalls: ${report.nearFullQuota.snap.lsSetCalls}`);
 
     fs.writeFileSync(outPath, JSON.stringify(report, null, 2));
-    console.log(`\nSaved sanitized baseline profile -> ${outPath}`);
+    console.log(`\nSaved sanitized profile -> ${outPath}`);
   } finally {
     await browser.close();
     if (spawnedServer) spawnedServer.kill();
