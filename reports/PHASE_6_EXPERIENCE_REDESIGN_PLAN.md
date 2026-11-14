@@ -1,7 +1,7 @@
 # Phase 6 — EXO Personal Study Journal Experience Redesign
 ## Incremental Implementation Plan and Acceptance Gates
 
-**Status:** IN PROGRESS — WP 6.1–WP 6.5 CI VERIFIED (WP 6.3 retains explicit authorization-boundary limitations; Proposal A & B HELD; Drive/Supabase mocks do not establish live production integration); **WP 6.6 `IMPLEMENTED — LOCAL TESTS ONLY` (unpushed local workspace changes awaiting owner GitHub sync & CI)**; FINAL OWNER PRODUCT REVIEW AT PHASE 6 COMPLETION  
+**Status:** **READY FOR FINAL OWNER PRODUCT REVIEW — NOT YET APPROVED** — WP 6.1–WP 6.6 are technically CI VERIFIED (WP 6.3 retains explicit authorization-boundary limitations; Proposal A & B HELD; Drive/Supabase mocks do not establish live production integration). WP 6.6 source SHA `f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a`: CI #61 (`43586175424`) **SUCCESS — `864/864 PASSED`**; Pages #159 (`43586174846`) **SUCCESS**. Owner hands-on product review and final `APPROVED` decision remain pending.  
 **Design authority:** reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md  
 **Engineering authority:** GEMINI.md  
 **Initial app-source baseline:** c74315a4580d68c61da8a0f49ec2b2f5946301e4 (verify current GitHub HEAD before every task)  
@@ -154,8 +154,8 @@ Do not leave legacy-looking screens behind. Do not invent or delete product beha
 
 ## WP 6.6 — Full regression, accessibility, and performance acceptance
 
-**Status:** `IMPLEMENTED — LOCAL TESTS ONLY` (Base Source SHA: `7482dcd23db314b14f8fa09ebd473b48c09bb4ec`; local uncommitted drafts awaiting owner GitHub sync & GitHub Actions CI run).  
-**Deliverable & Evidence:** `reports/PHASE_6_WP_6_6_REPORT.md` + `reports/screenshots/wp6-6/*.png` (`7` sanitized screenshots) + `test_wp6_6_unit.js` (`5/5`) + `test_wp6_6_chromium_e2e.js` (`22/22`) + `768/768` total local assertions + `5/5` Node & Chromium Tier A benchmarks (`0.00 MB` heap delta). `test_phase4_2_1_pg16_concurrency.js` (`ECONNREFUSED 127.0.0.1:5432` locally) awaits GitHub Actions CI `postgres:16`.  
+**Status:** **`CI VERIFIED — TECHNICALLY COMPLETE`** on uploaded source SHA `f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a` — GitHub Actions CI #61 (`43586175424`) **SUCCESS — `864/864 PASSED`**; GitHub Pages #159 (`43586174846`) **SUCCESS**. This verifies the technical gate only; final product approval remains pending owner hands-on review.  
+**Deliverable & Evidence:** `reports/PHASE_6_WP_6_6_REPORT.md` + `reports/screenshots/wp6-6/*.png` (`7` sanitized screenshots) + `test_wp6_6_unit.js` (`5/5`) + `test_wp6_6_chromium_e2e.js` (`22/22`) + WP6.5 Chromium `43/43` + Legacy Chromium `167/167` + PGlite `41/41` + real PostgreSQL 16 `96/96`. Unified GitHub CI grand total: **`864/864`**. Local runnable assertions: `768/768`; local PG16 was unavailable (`ECONNREFUSED 127.0.0.1:5432`) but the CI `postgres:16` service passed `96/96`. Local Tier A Node and Chromium benchmarks each passed `5/5`; these are local measurements, not CI benchmark results.  
 
 Run the real scripts from package.json and existing workflows; do not invent commands. Required evidence:
 - Current full regression, security, account isolation, storage, cloud, PostgreSQL, and Chromium E2E checks.
@@ -169,7 +169,7 @@ Run the real scripts from package.json and existing workflows; do not invent com
 
 Tie every result to source SHA, command, environment, and actual output. Distinguish local tests from GitHub Actions; CI VERIFIED is not APPROVED.
 
-**Gate 6.6:** submit full diff, evidence, limitations, screenshots/baseline comparisons, and file-by-file checklist. Stop for owner review.
+**Gate 6.6:** **PASSED — CI VERIFIED** on `f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a` (CI #61: `864/864`; Pages #159: SUCCESS). The full report, evidence gallery, test results, and limitations are recorded in `reports/PHASE_6_WP_6_6_REPORT.md`. **Stop here for final owner product review. Do not mark Phase 6 APPROVED until the owner has tested the deployed app, supplied feedback, and made the explicit final decision.**
 
 ---
 

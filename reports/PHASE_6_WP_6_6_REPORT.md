@@ -5,9 +5,9 @@
 **Repository:** `JemistryMC/study-hub`  
 **Target Branch:** `main`  
 **Authoritative GitHub Source Baseline (WP 6.5):** `7482dcd23db314b14f8fa09ebd473b48c09bb4ec` ([commit](https://github.com/JemistryMC/study-hub/commit/7482dcd23db314b14f8fa09ebd473b48c09bb4ec)) — GitHub Actions CI #60 (`43582133533`: `837/837 PASSED`), GitHub Pages #158 (`43582132737`: `SUCCESS`)  
-**Local Workspace State:** `/app/applet` contains no `.git` metadata directory (`fatal: not a git repository`); all WP 6.6 edits are **unpushed local workspace drafts** awaiting owner inspection and GitHub synchronization.  
-**WP 6.6 Current Status:** `IMPLEMENTED — LOCAL TESTS ONLY` *(Awaiting owner GitHub sync & GitHub Actions CI verification on the uploaded source SHA, plus final owner Phase 6 product review. Gemini never declares `CI VERIFIED` for unpushed edits or `APPROVED`.)*  
-**Phase 6 Status:** `IN PROGRESS — WP 6.1–WP 6.5 CI VERIFIED; WP 6.6 IMPLEMENTED — LOCAL TESTS ONLY; FINAL OWNER PRODUCT REVIEW & APPROVED DECISION DEFERRED UNTIL GITHUB CI & OWNER REVIEW`
+**Uploaded GitHub Source:** WP 6.6 changes are present on `main` at source commit `f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a` ([commit](https://github.com/JemistryMC/study-hub/commit/f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a)); this report is documentation for that uploaded source, not an unpushed draft.  
+**WP 6.6 Current Status:** **`CI VERIFIED — TECHNICALLY COMPLETE`** on source SHA `f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a` — GitHub Actions CI #61 ([Run ID `43586175424`]( https://github.com/JemistryMC/study-hub/actions/runs/43586175424 )): **`864/864 PASSED`**; GitHub Pages #159 ([Run ID `43586174846`]( https://github.com/JemistryMC/study-hub/actions/runs/43586174846 )): **SUCCESS**. This is technical verification only; the owner's hands-on product review and final `APPROVED` decision remain pending.  
+**Phase 6 Status:** **`READY FOR FINAL OWNER PRODUCT REVIEW — NOT YET APPROVED`**. All WP 6.1–WP 6.6 technical gates are CI verified on their respective source SHAs. The final WP 6.6 source is `f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a` (CI #61: `864/864`; Pages #159: SUCCESS). Final product approval is reserved for the owner after hands-on testing and review of any remaining UX defects.
 
 ---
 
@@ -160,8 +160,27 @@ Seven sanitized PNG screenshots captured via `playwright-cli` on `http://localho
 
 ---
 
-## 9. Owner Review Readiness & Required Decisions
+## 9. GitHub CI Verification & Final Owner Review
 
-1. **GitHub Sync (Owner Controlled):** Review the local changes above and sync them to `JemistryMC/study-hub` (`main`) so GitHub Actions CI runs the complete suite **including `test_phase4_2_1_pg16_concurrency.js` (`postgres:16`)** alongside all `768` local assertions.
-2. **Phase 6 Final Product Approval (`APPROVED`):** Once GitHub Actions CI passes on the uploaded source SHA, the owner holds the sole final decision to mark Phase 6 `APPROVED`.
-3. **Separate Decisions Still Held (`HELD`):** WP 6.3 **Proposal A** (mixed-type Collections / resource schema) and **Proposal B** (multiple Extra Note Sheets per slide) remain unimplemented and await separate explicit owner authorization if desired in a future phase.
+### Uploaded source and CI evidence
+
+- **Authoritative WP 6.6 source SHA:** `f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a` ([commit](https://github.com/JemistryMC/study-hub/commit/f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a)).
+- **GitHub Actions CI #61:** [Run ID `43586175424`](https://github.com/JemistryMC/study-hub/actions/runs/43586175424) — **SUCCESS**, unified runner **`864/864 PASSED`**, zero failed assertions.
+- **GitHub Pages #159:** [Run ID `43586174846`](https://github.com/JemistryMC/study-hub/actions/runs/43586174846) — **SUCCESS** on the same source SHA.
+- **WP 6.6-specific evidence:** Unit `5/5`; Chromium E2E `22/22`; WP 6.5 Chromium `43/43`; Legacy Chromium `167/167`; native PostgreSQL 16 `96/96`; PGlite `41/41`.
+- CI steps 1–14 completed successfully, including the unified `npm test` step and the real PostgreSQL 16 service. The CI runner reported `GRAND TOTAL ASSERTIONS: 864 | PASSED: 864 | FAILED: 0`.
+
+### Local-vs-CI distinction
+
+The local run recorded `768/768` runnable assertions, but local `npm test` could not run the native PostgreSQL 16 service because no server was listening on `127.0.0.1:5432`. That is a local-environment limitation, not a CI failure: CI #61 ran the native PostgreSQL 16 suite and passed `96/96`, bringing the unified CI total to `864/864`. Node and Chromium Tier A benchmarks (`5/5` each) are locally reported measurements; do not relabel them as CI benchmark results.
+
+### Evidence boundaries and remaining limitations
+
+- Supabase Auth/RPC and Google Drive E2E use deterministic mocks; they do not establish live Production Supabase or Google Drive OAuth/upload/download behavior.
+- PDF Studio E2E uses synthetic PDF/WAV fixtures and a deterministic PDF.js shim. It proves the listed browser interactions under that test harness, not every native file-picker path.
+- WP 6.3 UI-driven creation-coverage limitations remain documented in `reports/CURRENT.md`.
+- WP 6.3 Proposal A (mixed-type Collections/resource schema) and Proposal B (multiple Extra Note Sheets per slide) remain **`HELD — NOT IMPLEMENTED`**.
+
+### Final owner product review — pending
+
+**Phase 6 is `READY FOR FINAL OWNER PRODUCT REVIEW — NOT YET APPROVED`.** CI verification closes the technical WP 6.6 gate but does not certify that every screen meets the owner's product expectations. The owner has not yet completed the hands-on app review or supplied the final consolidated UX/functional defect list. Record and triage that feedback before declaring the product `APPROVED`. No Phase 7 work is authorized by this report.
