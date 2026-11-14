@@ -6,7 +6,7 @@
 **Target Branch:** `main`  
 **Authoritative GitHub Source Baseline (WP 6.5):** `7482dcd23db314b14f8fa09ebd473b48c09bb4ec` ([commit](https://github.com/JemistryMC/study-hub/commit/7482dcd23db314b14f8fa09ebd473b48c09bb4ec)) — GitHub Actions CI #60 (`43582133533`: `837/837 PASSED`), GitHub Pages #158 (`43582132737`: `SUCCESS`)  
 **Uploaded GitHub Source:** WP 6.6 changes are present on `main` at source commit `f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a` ([commit](https://github.com/JemistryMC/study-hub/commit/f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a)); this report is documentation for that uploaded source, not an unpushed draft.  
-**WP 6.6 Current Status:** **`CI VERIFIED — TECHNICALLY COMPLETE`** on source SHA `f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a` — GitHub Actions CI #61 ([Run ID `43586175424`]( https://github.com/JemistryMC/study-hub/actions/runs/43586175424 )): **`864/864 PASSED`**; GitHub Pages #159 ([Run ID `43586174846`]( https://github.com/JemistryMC/study-hub/actions/runs/43586174846 )): **SUCCESS**. This is technical verification only; the owner's hands-on product review and final `APPROVED` decision remain pending.  
+**WP 6.6 Current Status:** **`CI VERIFIED — TECHNICALLY COMPLETE`** on source SHA `f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a` — GitHub Actions CI #61 ([Run ID `43586175424`](https://github.com/JemistryMC/study-hub/actions/runs/43586175424)): **`864/864 PASSED`**; GitHub Pages #159 ([Run ID `43586174846`](https://github.com/JemistryMC/study-hub/actions/runs/43586174846)): **SUCCESS**. This is technical verification only; the owner's hands-on product review and final `APPROVED` decision remain pending.  
 **Phase 6 Status:** **`READY FOR FINAL OWNER PRODUCT REVIEW — NOT YET APPROVED`**. All WP 6.1–WP 6.6 technical gates are CI verified on their respective source SHAs. The final WP 6.6 source is `f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a` (CI #61: `864/864`; Pages #159: SUCCESS). Final product approval is reserved for the owner after hands-on testing and review of any remaining UX defects.
 
 ---
@@ -155,7 +155,7 @@ Seven sanitized PNG screenshots captured via `playwright-cli` on `http://localho
 | `test_wp6_6_unit.js` | Created | `5` `node:test` pure-logic & static invariant checks for WP 6.6 fixes | `7233bf34638a141bf3d6024bca78c41586e29dd181b9fcd8141eca2c7771fb34` |
 | `test_wp6_6_chromium_e2e.js` | Created | `22`-assertion Chromium E2E acceptance suite covering 60-cell matrix, contrast, focus trap, PDF Studio parity, reduced motion, and 900-lecture latency | `dbf7c3be5892d988288c45cc644cab5bee507d155645721da34a5860974e51c6` |
 | `reports/PHASE_6_WP_6_6_REPORT.md` | Created | Final WP 6.6 acceptance verification report | — |
-| `reports/CURRENT.md`, `reports/README.md`, `reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md` | Modified | Reconciled WP 6.6 status to `IMPLEMENTED — LOCAL TESTS ONLY` | — |
+| `reports/CURRENT.md`, `reports/README.md`, `reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md` | Modified | Initially recorded WP 6.6 as `IMPLEMENTED — LOCAL TESTS ONLY`; status was subsequently updated after CI #61 to `CI VERIFIED — TECHNICALLY COMPLETE`, with Phase 6 awaiting owner product review | — |
 | `reports/screenshots/wp6-6/*.png` | Created | `7` sanitized visual verification PNGs | — |
 
 ---
