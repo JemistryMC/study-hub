@@ -169,7 +169,16 @@ Run the real scripts from package.json and existing workflows; do not invent com
 
 Tie every result to source SHA, command, environment, and actual output. Distinguish local tests from GitHub Actions; CI VERIFIED is not APPROVED.
 
-**Gate 6.6:** **PASSED — CI VERIFIED** on `f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a` (CI #61: `864/864`; Pages #159: SUCCESS). The full report, evidence gallery, test results, and limitations are recorded in `reports/PHASE_6_WP_6_6_REPORT.md`. **Stop here for final owner product review. Do not mark Phase 6 APPROVED until the owner has tested the deployed app, supplied feedback, and made the explicit final decision.**
+**Gate 6.6:** **PASSED — CI VERIFIED** on `f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a` (CI #61: `864/864`; Pages #159: SUCCESS). The full report, evidence gallery, test results, and limitations are recorded in `reports/PHASE_6_WP_6_6_REPORT.md`. Owner hands-on testing identified UX/functional issues captured in WP 6.7 remediation below.
+
+---
+
+## WP 6.7 — The Handcrafted Experience Rebuild (Owner Feedback Remediation)
+
+**Status:** **`IMPLEMENTED — LOCAL TESTS ONLY`** *(unpushed local AI Studio workspace changes; NOT `CI VERIFIED`, NOT `APPROVED`)*.  
+**Deliverable & Evidence:** `reports/PHASE_6_WP_6_7_REPORT.md` + `reports/screenshots/wp6-7/*.png` (`7` post-rebuild captures + archived pre-rebuild baselines) + `test_wp6_7_unit.js` (`8/8`) + `test_wp6_7_chromium_e2e.js` (`34/34`).  
+**Scope Executed:** P0 XSS escaping across Planner/dropdowns/log linkers (`escapeHtml`) and `closePdfViewer()` reading bookmark persistence ordering (`persistCurrentLectureReadingBookmark(true)` prior to state reset); P1 embedded PDF Studio inside `#cwEmbeddedStudioMount` with internal `#pdfFullscreenBtn` expand/collapse and `<50 ms` unmount, removal of global fullscreen toggles, consolidated `attachAudioRecordingFileToLecture()`, separated Google Drive Hub modal (`#driveHubModalOverlay` via single-instance host mover), asymmetric Living Journal Tracker & Planner cutout cards, bilingual Auth/Drive/VIP/Help Panes 1–6 updates, and `GEMINI.md` §6 Free/VIP copy compliance.  
+**Local Post-Final-Edit Results:** `compile_applet`, `lint_applet` (`18` JS checks), `npm run build`, `810/810` runnable local assertions (`npm test` excluding local `test_phase4_2_1_pg16_concurrency.js` due to missing PG16 daemon on `127.0.0.1:5432`), plus Tier A Node (`5/5`) and Tier A Chromium (`5/5`, `0.00 MB` heap delta). Awaiting owner review, GitHub sync, GitHub Actions CI (including `postgres:16`), and final Phase 6 owner decision.
 
 ---
 
