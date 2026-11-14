@@ -18,6 +18,10 @@
 **نموذج المراجعة:** CI #64 أصبح ناجحًا على المصدر المرفوع. الخطوة التالية هي اختبار المالك للتطبيق المنشور، مع التركيز على تكرار `QuotaExceededError` في الاستخدام العادي، وفتح PDF داخل Workspace، والتنظيم الفعلي للمواد، والجدول، والمتابعة، والشريط الجانبي، والمساعدة، والقصاصات الورقية. لا تعتمد Phase 6 قبل مراجعة المنتج الصريحة.  
 **حدود لا يتضمنها هذا التفويض:** لا تغييرات في Production Supabase أو SQL/Migrations/RLS/RPC/Auth/OAuth/Google Drive permissions أو عقود المزامنة أو مخططات التخزين أو عزل الحسابات أو سياسة Free/VIP أو العمليات الأكاديمية المغلقة دون تفويض صريح مستقل. مقترحا WP 6.3 A/B لا يمنحان أي تفويض ضمني.  
 **مراجع المصدر الحالية:** `reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md`, `reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md`, `reports/PHASE_6_BASELINE_AUDIT.md`, `reports/PHASE_6_WP_6_1_REPORT.md`, `reports/PHASE_6_WP_6_2_REPORT.md`, `reports/PHASE_6_WP_6_3_REPORT.md`, `reports/PHASE_6_WP_6_4_REPORT.md`, `reports/PHASE_6_WP_6_5_REPORT.md`, `reports/PHASE_6_WP_6_6_REPORT.md`, `reports/PHASE_6_WP_6_7_REPORT.md`, `reports/screenshots/wp6-3/`, `reports/screenshots/wp6-4/`, `reports/screenshots/wp6-5/`, `reports/screenshots/wp6-6/`, `reports/screenshots/wp6-7/`.
+## آخر ملاحظة من اختبار المالك — 2026-11-14
+
+**P0 RUNTIME STABILITY BLOCKER — OWNER TESTING BLOCKED; VISUAL/PRODUCT ACCEPTANCE PENDING; NOT APPROVED.** أفاد المالك بتكرار تجمّد المتصفح/الموقع بالكامل أثناء الاستخدام إلى درجة تمنع إكمال الاختبار. وأكد أن اعتراضه السابق على التصميم ما زال قائمًا؛ WP 6.7 لا يثبت تنفيذ Imperfect Paper Cutouts حقيقية ولا إعادة البناء التحريرية المطلوبة. لا يُعد نجاح CI #64 (`927/927`) نفيًا لهذه المشكلة؛ اختبار الـ900 محاضرة يقيس أزمنة استدعاء مباشرة ولا يرصد Long Tasks أو frame gaps أو input-to-paint أثناء الاستخدام المتكرر. سجل الاستعادة الاصطناعي ~48.5 MB كان ~11.4 ثانية ويجب فصله عن قياس التنقل المعتاد. المرجع التفصيلي وخطة P0: `reports/PHASE_6_RUNTIME_STABILITY_BLOCKER_2026-11-14.md`. الأولوية الآن لتشخيص/إزالة التجمّد دون أي تغيير في العقود المحمية؛ ويظل التصميم مرحلة منفصلة بعد استقرار التطبيق. لا تطلب من المالك مسح بيانات الموقع أو IndexedDB كحل مؤقت.
+
 ## مراجع التسليم الحالية
 
 1. العقد الهندسي الدائم: `GEMINI.md`.
