@@ -634,14 +634,25 @@ async function main() {
       if (startIdx !== -1) break;
     }
     if (startIdx === -1) throw new Error(`Function ${funcName} not found in index.html`);
+    let parenDepth = 0;
+    let passedParams = false;
     let depth = 0;
     let inFunc = false;
     let endIdx = startIdx;
     for (let i = startIdx; i < code.length; i++) {
-      if (code[i] === '{') {
+      const ch = code[i];
+      if (!passedParams) {
+        if (ch === '(') parenDepth++;
+        else if (ch === ')') {
+          parenDepth--;
+          if (parenDepth === 0) passedParams = true;
+        }
+        continue;
+      }
+      if (ch === '{') {
         depth++;
         inFunc = true;
-      } else if (code[i] === '}') {
+      } else if (ch === '}') {
         depth--;
         if (inFunc && depth === 0) {
           endIdx = i + 1;
@@ -773,6 +784,14 @@ async function main() {
 
       const setTimeout = () => {};
 
+      let lastStorageWriteFailureDiagnostics = null;
+      let _exoLastLocalQuotaReclaimAt = 0;
+      let _exoPendingQuotaReclaimPromise = null;
+
+      ${extractFunctionSource(indexHtml, 'diagnoseStorageWriteFailure')}
+      ${extractFunctionSource(indexHtml, 'exoReclaimSafeLocalStorageSpace')}
+      ${extractFunctionSource(indexHtml, 'exoSafeLocalStorageSetItem')}
+      ${extractFunctionSource(indexHtml, 'exoSafeLocalStorageJsonSet')}
       ${extractFunctionSource(indexHtml, 'bumpAccountSessionGeneration')}
       ${extractFunctionSource(indexHtml, 'getCanonicalUserId')}
       ${extractFunctionSource(indexHtml, 'sanitizeUserIdForPrefix')}

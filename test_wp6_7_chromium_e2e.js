@@ -375,17 +375,31 @@ async function main() {
       const container = document.getElementById('pdfModalContainer');
       const cwView = document.getElementById('chapter-workspace-view');
       const backBtn = document.getElementById('pdfBackToChapterBtn');
+      const recOpts = Array.from(document.querySelectorAll('#lectureRecordingsSelect option')).map(o => o.value);
+      const studioSvgs = Array.from(document.querySelectorAll('#pdfViewerModalOverlay svg.exo-svg-icon')).filter(el => {
+        const host = el.parentElement;
+        return host && host.offsetParent !== null && getComputedStyle(el).display !== 'none';
+      });
+      const zeroSvgs = studioSvgs.filter(el => {
+        const r = el.getBoundingClientRect();
+        return r.width <= 0 || r.height <= 0;
+      }).length;
       return {
         isMountedInsideCw: Boolean(overlay && mount && overlay.parentElement === mount),
         hasEmbeddedClass: Boolean(overlay && overlay.classList.contains('exo-studio-embedded')),
         cwVisible: Boolean(cwView && cwView.style.display !== 'none'),
         isFullscreenInitially: Boolean(container && container.classList.contains('is-fullscreen')),
-        backBtnVisible: Boolean(backBtn && getComputedStyle(backBtn).display !== 'none')
+        backBtnVisible: Boolean(backBtn && getComputedStyle(backBtn).display !== 'none'),
+        hasDupAddNewOpt: recOpts.includes('__add_new__'),
+        studioSvgCount: studioSvgs.length,
+        zeroSvgs
       };
     });
     assert(embeddedState.isMountedInsideCw && embeddedState.hasEmbeddedClass, 'PDF Studio opens embedded inside Chapter Workspace by default');
     assert(embeddedState.cwVisible && embeddedState.backBtnVisible, 'Chapter Workspace stays visible with Back to Chapter button');
     assert(!embeddedState.isFullscreenInitially, 'Studio does not hijack fullscreen on initial launch');
+    assert(!embeddedState.hasDupAddNewOpt, 'Audio recordings selector does not duplicate + Add Audio with __add_new__ option');
+    assert(embeddedState.studioSvgCount > 5 && embeddedState.zeroSvgs === 0, `Offline Studio SVG icons render cleanly with non-zero size (${embeddedState.studioSvgCount} checked, ${embeddedState.zeroSvgs} zero)`);
     await page.screenshot({ path: path.join(screenshotDir, 'desktop-chapter-studio-en.png') });
 
     // Expand Studio fullscreen and collapse back to embedded
@@ -453,14 +467,20 @@ async function main() {
     await page.click('#schPillToday');
     await page.waitForTimeout(150);
 
-    const xssCheck = await page.evaluate(() => ({
-      xssFlags: Boolean(window.__xssSub || window.__xssEv || window.__xssNote || window.__xss2 || window.__xssGoal),
-      injectedImgs: document.querySelectorAll('#schedule img[src="x"], #schedule svg[onload]').length,
-      hasLiteralEscapedText: (document.getElementById('schedule')?.textContent || '').includes('<img src=x'),
-      hasCutoutStrip: Boolean(document.getElementById('plannerJournalSummaryStrip')?.classList.contains('exo-cutout-strip'))
-    }));
+    const xssCheck = await page.evaluate(() => {
+      const schEl = document.getElementById('schedule');
+      const schSelectOpts = Array.from(document.querySelectorAll('#schFilterType option, #schFilterSubject option, #newTaskSubject option, #prefWeekStartDaySelect option')).map(o => o.textContent || '').join(' ');
+      return {
+        xssFlags: Boolean(window.__xssSub || window.__xssEv || window.__xssNote || window.__xss2 || window.__xssGoal),
+        injectedImgs: document.querySelectorAll('#schedule img[src="x"], #schedule svg[onload]').length,
+        hasLiteralEscapedText: (schEl?.textContent || '').includes('<img src=x'),
+        hasCutoutStrip: Boolean(document.getElementById('plannerJournalSummaryStrip')?.classList.contains('exo-cutout-strip')),
+        schVisibleArabic: /[\u0600-\u06FF]/.test((schEl?.innerText || '') + ' ' + schSelectOpts)
+      };
+    });
     assert(!xssCheck.xssFlags && xssCheck.injectedImgs === 0 && xssCheck.hasLiteralEscapedText, 'Planner Today/Week/Goals safely escape <img/svg/script> payloads');
     assert(xssCheck.hasCutoutStrip, 'Planner summary strip uses Living Journal cutout styling');
+    assert(!xssCheck.schVisibleArabic, 'Planner view & selects have zero Arabic text in EN mode');
     await page.screenshot({ path: path.join(screenshotDir, 'desktop-planner-en.png') });
 
     // ------------------------------------------------------------------------
@@ -572,18 +592,47 @@ async function main() {
     });
     assert(vipCopyCheck, 'Help Center Section 6 truthfully marks Annotated PDF Export & Extra Note Sheets as free');
 
+    // Test Help Center search filtering & toast vs clock non-overlap
+    await page.fill('#helpSearchInput', 'shortcuts');
+    await page.waitForTimeout(80);
+    const helpSearchHit = await page.evaluate(() => ({
+      pane5Shown: document.getElementById('acadPane_5')?.style.display === 'block',
+      emptyHidden: document.getElementById('helpSearchEmptyState')?.style.display !== 'block'
+    }));
+    assert(helpSearchHit.pane5Shown && helpSearchHit.emptyHidden, 'Help Center search reveals matching Shortcuts pane cleanly');
+
+    await page.fill('#helpSearchInput', 'zzzz_no_match_999');
+    await page.waitForTimeout(80);
+    const helpSearchEmpty = await page.evaluate(() => document.getElementById('helpSearchEmptyState')?.style.display === 'block');
+    assert(helpSearchEmpty, 'Help Center search displays #helpSearchEmptyState on unmatched queries');
+
+    await page.fill('#helpSearchInput', '');
+    await page.waitForTimeout(80);
+
     await page.click('#helpVipDetailsBtn');
     await page.waitForSelector('#vipMediaLockModalOverlay.active', { timeout: 5000 });
     const vipModalEn = await page.evaluate(() => document.getElementById('vipMediaLockModalOverlay')?.innerText || '');
     assert(!arRegexCheck.test(vipModalEn) && vipModalEn.toLowerCase().includes('free forever'), 'VIP Pro modal displays crisp EN copy respecting GEMINI.md Section 6');
     await page.click('#vipMediaLockCloseBtn');
 
-    // Verify EN Tracker & Planner have zero Arabic leakage
-    const trackerEnLeak = await page.evaluate(() => {
+    // Verify EN Tracker has zero Arabic leakage & desktop toast avoids #sidebarLiveClock
+    const trackerAndToast = await page.evaluate(() => {
       const el = document.getElementById('tracker');
-      return el ? el.innerText : '';
+      const trOpts = Array.from(document.querySelectorAll('#logFilterMoodSelect option')).map(o => o.textContent || '').join(' ');
+      if (typeof showToast === 'function') showToast('Non-overlap toast check');
+      const toastRect = document.getElementById('toastContainer')?.getBoundingClientRect();
+      const clockRect = document.getElementById('sidebarLiveClock')?.getBoundingClientRect();
+      const overlaps = Boolean(
+        toastRect && clockRect && toastRect.width > 0 && clockRect.width > 0 &&
+        !(toastRect.right < clockRect.left || toastRect.left > clockRect.right || toastRect.bottom < clockRect.top || toastRect.top > clockRect.bottom)
+      );
+      return {
+        trackerText: (el ? el.innerText : '') + ' ' + trOpts,
+        toastClockOverlap: overlaps
+      };
     });
-    assert(!arRegexCheck.test(trackerEnLeak), 'Tracker page has zero Arabic text in EN mode');
+    assert(!arRegexCheck.test(trackerAndToast.trackerText), 'Tracker page & filter selects have zero Arabic text in EN mode');
+    assert(!trackerAndToast.toastClockOverlap, 'Desktop .toast-container does not overlap #sidebarLiveClock');
 
     // Switch live to Arabic and verify RTL & Arabic rendering
     await page.evaluate(() => applyExoLanguage('ar', false));
@@ -616,22 +665,181 @@ async function main() {
       }, vp.lang);
       await m.page.waitForTimeout(220);
 
-      const layout = await m.page.evaluate(() => {
+      const layout = await m.page.evaluate((vpHeight) => {
         const overflow = document.documentElement.scrollWidth > window.innerWidth + 1;
         const navBtns = Array.from(document.querySelectorAll('.mobile-nav-item, .mobile-header-actions button')).filter(b => b.offsetParent !== null);
         const smallBtns = navBtns.filter(b => {
           const r = b.getBoundingClientRect();
-          return r.width < 40 || r.height < 40;
+          return r.width < 44 || r.height < 44;
         }).map(b => `${b.id || b.className}(${Math.round(b.getBoundingClientRect().width)}x${Math.round(b.getBoundingClientRect().height)})`);
-        return { overflow, smallBtns, navCount: navBtns.length };
-      });
+        const navEl = document.querySelector('.navbar');
+        const bottomEl = document.getElementById('mobileBottomNav');
+        const stickyHeight = (navEl && getComputedStyle(navEl).display !== 'none' ? navEl.getBoundingClientRect().height : 0) +
+          (bottomEl && getComputedStyle(bottomEl).display !== 'none' ? bottomEl.getBoundingClientRect().height : 0);
+        const stickyRatio = vpHeight > 0 ? (stickyHeight / vpHeight) : 0;
+        const mobileSvgs = Array.from(document.querySelectorAll('#mobileBottomNav svg.exo-svg-icon, .navbar svg.exo-svg-icon')).filter(el => {
+          const host = el.parentElement;
+          return host && host.offsetParent !== null && getComputedStyle(el).display !== 'none';
+        });
+        const zeroMobileSvgs = mobileSvgs.filter(el => {
+          const r = el.getBoundingClientRect();
+          return r.width <= 0 || r.height <= 0;
+        }).length;
+        return { overflow, smallBtns, navCount: navBtns.length, stickyHeight, stickyRatio, mobileSvgCount: mobileSvgs.length, zeroMobileSvgs };
+      }, vp.height);
       assert(!layout.overflow, `${vp.name}: zero horizontal overflow`);
-      assert(layout.smallBtns.length === 0, `${vp.name}: mobile header & bottom nav buttons meet touch size (${layout.smallBtns.join(', ')})`);
+      assert(layout.smallBtns.length === 0, `${vp.name}: mobile header & bottom nav buttons meet >=44px touch size (${layout.smallBtns.join(', ')})`);
+      if (vp.width < 768) {
+        assert(layout.stickyRatio <= 0.155, `${vp.name}: combined mobile sticky chrome height (${Math.round(layout.stickyHeight)}px = ${(layout.stickyRatio * 100).toFixed(1)}%) stays within <=15% cap`);
+      }
+      assert(layout.zeroMobileSvgs === 0, `${vp.name}: inline SVG icons render cleanly offline`);
       if (vp.shot) {
         await m.page.screenshot({ path: path.join(screenshotDir, vp.shot) });
       }
       assert(m.pageErrors.length === 0 && m.consoleErrors.length === 0, `${vp.name}: zero pageerror/console.error`);
       await m.context.close();
+    }
+
+    // ------------------------------------------------------------------------
+    // 7. Step B: P0 Quota Overflow, Registry Compaction, Toast Deduplication & Reload Recovery
+    // ------------------------------------------------------------------------
+    console.log('\n--- 7. Step B: P0 Storage Quota, Registry Compaction & PDF Session Resilience ---');
+    {
+      const q = await openFreshPage(browser, { width: 1280, height: 800 });
+      const quotaResult = await q.page.evaluate(async () => {
+        if (typeof initPdfDB === 'function') await initPdfDB();
+        cloudMediaRegistry = {};
+        const uidActive = 'local';
+        const uidForeign = 'foreign-quota-test-uid';
+        for (let i = 1; i <= 25; i++) {
+          const idKey = `id:${uidActive}:pdfs:${1000 + i}`;
+          const legacyEntry = {
+            uploaded: true,
+            storeName: 'pdfs',
+            lecId: String(1000 + i),
+            driveId: `drv_file_${i}_abcdef`,
+            path: `lectures/pharma_${i}.pdf`,
+            url: `https://drive.google.com/file/d/drv_file_${i}_abcdef/view`,
+            size: 102400 + i,
+            fileName: `pharma_${i}.pdf`,
+            title: `lecture title ${i}`,
+            syncedAt: Date.now()
+          };
+          cloudMediaRegistry[idKey] = legacyEntry;
+          cloudMediaRegistry[`title:${uidActive}:pdfs:lecture title ${i}`] = JSON.parse(JSON.stringify(legacyEntry));
+          cloudMediaRegistry[`fp:${uidActive}:pdfs:pharma_${i}.pdf:${102400 + i}`] = JSON.parse(JSON.stringify(legacyEntry));
+        }
+        saveCloudMediaRegistry();
+        const regBeforeBytes = (localStorage.getItem('pharmaCloudMediaRegistryV1') || '').length * 2;
+        const compactStats = compactCloudMediaRegistry(true);
+        const regAfterBytes = (localStorage.getItem('pharmaCloudMediaRegistryV1') || '').length * 2;
+        const resolvedLookup = findMediaInCloudRegistry('pdfs', { id: 1005, title: 'Lecture Title 5', path: 'pharma_5.pdf', cloudPdfSize: 102405 }, null, uidActive);
+
+        // Seed oversized raw pharmaConflictRecovery_<uidForeign> (>4KB) to test safe per-UID reclamation
+        const foreignRecs = Array.from({ length: 12 }, (_, idx) => ({
+          recoveryId: `rec_f_${idx}`,
+          userId: uidForeign,
+          scopeId: `entity:lectures:90${idx}`,
+          entityType: 'lectures',
+          entityId: `90${idx}`,
+          reason: 'concurrent_conflict',
+          status: 'unresolved',
+          recordedAtMs: Date.now() - idx * 1000,
+          losingOperationId: `op_l_${idx}`,
+          winningOperationId: `op_w_${idx}`,
+          losingValue: { title: 'Foreign payload '.repeat(15) + idx }
+        }));
+        localStorage.setItem('pharmaConflictRecovery_' + uidForeign, JSON.stringify(foreignRecs));
+
+        // Capture quota toasts cleanly while simulating QuotaExceededError ONLY on pharmaSubjectsV4
+        const quotaToasts = [];
+        const origShowToast = window.showToast;
+        window.showToast = function(msg, type, opts) {
+          const s = (msg && typeof msg === 'object') ? (msg.en || msg.ar || '') : String(msg || '');
+          if (opts?.dedupKey === 'exo_ls_quota_idb_ok' || s.includes('IndexedDB') || s.includes('Quota')) {
+            quotaToasts.push({ s, type, dedupKey: opts?.dedupKey || '' });
+          }
+          if (typeof origShowToast === 'function') return origShowToast.apply(this, arguments);
+        };
+
+        const origSetItem = Storage.prototype.setItem;
+        let throwSubjectsQuota = true;
+        Storage.prototype.setItem = function(k, v) {
+          if (throwSubjectsQuota && String(k) === 'pharmaSubjectsV4') {
+            throw new DOMException('QuotaExceededError: Simulated full LS on subjects', 'QuotaExceededError');
+          }
+          return origSetItem.call(this, k, v);
+        };
+
+        // Reset reclaim debounce for deterministic testing
+        if (typeof _exoLastLocalQuotaReclaimAt !== 'undefined') _exoLastLocalQuotaReclaimAt = 0;
+
+        subjects = [{ id: 7701, name: 'Clinical Therapeutics QuotaTest', color: '#899982', icon: 'fa-pills', isDivided: true, groups: [{ id: 7711, name: 'Unit 1', lectures: [{ id: 7721, title: 'Asthma Therapy', path: '', completed: false, lastPageNum: 3, totalPages: 12 }] }] }];
+        const subFailRes = saveSubjects();
+        await subFailRes.idbPersistPromise;
+
+        // Tiny logs & schedule saves succeed — must NOT clear lsQuotaFailedDomains('subjects') or reset lsQuotaNotifiedEpisode!
+        logs = [{ id: 8801, date: '2026-11-14', text: 'Reviewed Unit 1', mood: 'focus', hours: 1 }];
+        const logRes = saveLogs();
+        if (logRes?.idbPersistPromise) await logRes.idbPersistPromise;
+        const schRes = saveScheduleData(false);
+        if (schRes?.idbPersistPromise) await schRes.idbPersistPromise;
+
+        // Second subjects save under continued quota pressure must NOT re-emit quota toast or reset episode
+        subjects[0].groups[0].lectures[0].lastPageNum = 7;
+        const subFailRes2 = saveSubjects();
+        await subFailRes2.idbPersistPromise;
+
+        throwSubjectsQuota = false;
+        Storage.prototype.setItem = origSetItem;
+        window.showToast = origShowToast;
+
+        const failedDomainsAfterLogs = Array.from(exoRuntimeStatusState.lsQuotaFailedDomains || []);
+        const foreignLsAfterReclaim = localStorage.getItem('pharmaConflictRecovery_' + uidForeign) || '';
+        const localForeignIsolation = getConflictRecoveryRecords('local').length;
+
+        return {
+          regBeforeBytes,
+          regAfterBytes,
+          compactedCount: compactStats.compacted,
+          resolvedDriveId: resolvedLookup ? resolvedLookup.driveId : null,
+          quotaToastCount: quotaToasts.length,
+          failedDomainsAfterLogs,
+          foreignCompactedToPointer: foreignLsAfterReclaim.includes('"__exoIdbMigrated":true') && foreignLsAfterReclaim.length < 400,
+          localForeignIsolation
+        };
+      });
+
+      assert(
+        quotaResult.compactedCount >= 50 &&
+        quotaResult.regAfterBytes < quotaResult.regBeforeBytes * 0.6 &&
+        quotaResult.resolvedDriveId === 'drv_file_5_abcdef',
+        `Step B: compactCloudMediaRegistry shrinks bloated registry (${quotaResult.regBeforeBytes}B -> ${quotaResult.regAfterBytes}B) & resolves __ref pointers`
+      );
+      assert(
+        quotaResult.quotaToastCount <= 1,
+        `Step B: QuotaExceededError toast fires at most once per episode (got ${quotaResult.quotaToastCount})`
+      );
+      assert(
+        quotaResult.foreignCompactedToPointer === true && quotaResult.localForeignIsolation === 0,
+        'Step B: exoReclaimSafeLocalStorageSpace compacts foreign raw recovery keys into UID-scoped IDB without cross-account bleed'
+      );
+
+      // Reload page in real Chromium and confirm subjects edited under QuotaExceededError survived in IDB
+      await q.page.reload({ waitUntil: 'domcontentloaded' });
+      await q.page.waitForTimeout(600);
+      const reloadedSubjects = await q.page.evaluate(async () => {
+        if (typeof initPdfDB === 'function') await initPdfDB();
+        if (typeof migrateAndHydrateWorkspaceFromIDB === 'function') await migrateAndHydrateWorkspaceFromIDB();
+        return subjects;
+      });
+      const persistedLecture = reloadedSubjects?.[0]?.groups?.[0]?.lectures?.[0];
+      assert(
+        persistedLecture && persistedLecture.title === 'Asthma Therapy' && Number(persistedLecture.lastPageNum) === 7,
+        'Step B: Subject mutations persisted via IDB during LS QuotaExceededError survive real browser reload'
+      );
+      assert(q.pageErrors.length === 0 && q.consoleErrors.length === 0, `Step B: Zero pageerror/console.error during quota fallback session (page=${q.pageErrors.length}, console=${q.consoleErrors.length})`);
+      await q.context.close();
     }
 
     assert(pageErrors.length === 0 && consoleErrors.length === 0, `Desktop session zero runtime errors (pageErrors=${pageErrors.length}, consoleErrors=${consoleErrors.length})`);

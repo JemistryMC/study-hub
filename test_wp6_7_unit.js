@@ -128,3 +128,82 @@ test('WP 6.7: updateWp67BilingualStaticUI handles Auth, Drive, VIP, Help, Planne
   const wp65Match = indexHtml.match(/function updateWp65StaticLabels\(targetLang\)\s*\{[\s\S]*?\n        \}/);
   assert.ok(wp65Match && wp65Match[0].includes('updateWp67BilingualStaticUI(targetLang)'), 'updateWp65StaticLabels must invoke updateWp67BilingualStaticUI');
 });
+
+test('WP 6.7 Step B: Per-domain LS quota tracking prevents tiny domain saves from resetting quota toast suppression', () => {
+  assert.ok(indexHtml.includes('lsQuotaFailedDomains: new Set()'), 'exoRuntimeStatusState must track per-domain quota failures');
+  assert.ok(indexHtml.includes('lsQuotaNotifiedEpisode: false'), 'exoRuntimeStatusState must track single-episode quota notification');
+  const subFn = indexHtml.match(/function saveSubjects\(\)\s*\{[\s\S]*?\n        \}/)?.[0] || '';
+  const schFn = indexHtml.match(/function saveScheduleData\([^)]*\)\s*\{[\s\S]*?\n        \}/)?.[0] || '';
+  const logFn = indexHtml.match(/function saveLogs\(\)\s*\{[\s\S]*?\n        \}/)?.[0] || '';
+  for (const [label, fnBody] of [['saveSubjects', subFn], ['saveScheduleData', schFn], ['saveLogs', logFn]]) {
+    assert.ok(fnBody.includes('dbReadyPromise'), `${label} must treat in-flight dbReadyPromise as active IDB fallback`);
+    assert.ok(fnBody.includes('lsQuotaFailedDomains.add('), `${label} must add only its own domain to lsQuotaFailedDomains`);
+    assert.ok(fnBody.includes('lsQuotaFailedDomains.delete('), `${label} must delete only its own domain on LS success`);
+    assert.ok(fnBody.includes('exoReclaimSafeLocalStorageSpace'), `${label} must invoke exoReclaimSafeLocalStorageSpace on quota fallback`);
+  }
+});
+
+test('WP 6.7 Step B: cloudMediaRegistry deduplicates entries with __ref pointers and batches bulk snapshots', () => {
+  assert.ok(indexHtml.includes('function resolveCloudMediaRegistryEntry('), 'resolveCloudMediaRegistryEntry helper must exist');
+  assert.ok(indexHtml.includes('function compactCloudMediaRegistry('), 'compactCloudMediaRegistry helper must exist');
+  const recFn = indexHtml.match(/function recordUploadedMediaInRegistry\([\s\S]*?\n        \}/)?.[0] || '';
+  const snapFn = indexHtml.match(/function snapshotCurrentSubjectsMediaToRegistry\([\s\S]*?\n        \}/)?.[0] || '';
+  const healFn = indexHtml.match(/function healSubjectsFromCloudRegistry\([\s\S]*?\n        \}/)?.[0] || '';
+  assert.ok(recFn.includes('{ __ref: idKey }'), 'recordUploadedMediaInRegistry must store compact __ref pointers for secondary keys');
+  assert.ok(recFn.includes('opts.skipSave'), 'recordUploadedMediaInRegistry must support skipSave batching');
+  assert.ok(snapFn.includes('skipSave: true') && snapFn.includes('if (registryChanged)'), 'snapshotCurrentSubjectsMediaToRegistry must batch saves');
+  assert.ok(healFn.includes('skipSave: true') && healFn.includes('if (registryChanged)'), 'healSubjectsFromCloudRegistry must batch saves');
+});
+
+test('WP 6.7 Step B: pointer fast-path compacts embedded _conflictRecovery and reclamation scans all raw recovery keys', () => {
+  const migFn = indexHtml.match(/async function _runMigrateConflictRecoveryToIDB\([\s\S]*?\n        \}/)?.[0] || '';
+  assert.ok(migFn.includes('embeddedSnapArray || embeddedSchedArray'), 'Pointer fast-path must detect embedded _conflictRecovery');
+  assert.ok(migFn.includes('compactAccountAndScheduleConflictRecoveryInLS(targetUid)'), 'Pointer fast-path must compact embedded _conflictRecovery');
+  const reclaimFn = indexHtml.match(/function exoReclaimSafeLocalStorageSpace\([\s\S]*?\n        \}/)?.[0] || '';
+  assert.ok(reclaimFn.includes("k.startsWith('pharmaConflictRecovery_')"), 'exoReclaimSafeLocalStorageSpace must scan oversized raw pharmaConflictRecovery_* keys');
+});
+
+test('WP 6.7 Steps C-D: Inline SVG symbol library, toast position away from clock, and Studio cleanups', () => {
+  const requiredIcons = [
+    'exo-ico-book', 'exo-ico-layers', 'exo-ico-calendar', 'exo-ico-chart',
+    'exo-ico-drive', 'exo-ico-globe', 'exo-ico-help', 'exo-ico-cloud',
+    'exo-ico-pen', 'exo-ico-highlighter', 'exo-ico-eraser', 'exo-ico-text',
+    'exo-ico-laser', 'exo-ico-undo', 'exo-ico-eye', 'exo-ico-eye-slash',
+    'exo-ico-note', 'exo-ico-search', 'exo-ico-audio', 'exo-ico-expand', 'exo-ico-compress'
+  ];
+  for (const ico of requiredIcons) {
+    assert.ok(indexHtml.includes(`id="${ico}"`), `SVG <symbol id="${ico}"> must exist for offline icons`);
+  }
+  assert.ok(indexHtml.includes('.toast-container'), 'Toast container CSS must exist');
+  const toastCssMatch = indexHtml.match(/\.toast-container\s*\{[^}]*\}/);
+  assert.ok(toastCssMatch && toastCssMatch[0].includes('inset-inline-end:') && toastCssMatch[0].includes('bottom:'), 'Desktop .toast-container must sit at bottom-end away from sidebar clock');
+
+  const recSelFn = indexHtml.match(/function renderLectureRecordingsSelector\([\s\S]*?\n        \}/)?.[0] || '';
+  assert.ok(recSelFn && !recSelFn.includes('__add_new__'), 'renderLectureRecordingsSelector must not duplicate + Add Audio with __add_new__ option');
+
+  const toggleAnnoFn = indexHtml.match(/function toggleAnnotationsVisibility\(\)\s*\{[\s\S]*?\n        \}/)?.[0] || '';
+  assert.ok(toggleAnnoFn.includes('#exo-ico-eye') && toggleAnnoFn.includes('#exo-ico-eye-slash'), 'toggleAnnotationsVisibility must update SVG <use> href cleanly');
+  assert.ok(toggleAnnoFn.includes("icon.className = 'fa-solid fa-eye'"), 'toggleAnnotationsVisibility must keep mock fallback compatibility');
+
+  assert.ok(indexHtml.includes('function renderExtraNoteHeaderHTML('), 'renderExtraNoteHeaderHTML helper must exist');
+});
+
+test('WP 6.7 Steps E-F: TASK_TYPE_ARCHITECTURE hintEn, Goal Linker escaping, Help search & no Help fullscreen', () => {
+  const archMatch = indexHtml.match(/const TASK_TYPE_ARCHITECTURE = \{[\s\S]*?\};\s*\n\s*function getTaskTypeMeta[\s\S]*?\n        \}/);
+  assert.ok(archMatch, 'TASK_TYPE_ARCHITECTURE and getTaskTypeMeta must exist');
+  const runner = new Function('exoGetLang', `${archMatch[0]}; return { getTaskTypeMeta };`);
+  const enMeta = runner(() => 'en').getTaskTypeMeta('important');
+  const arMeta = runner(() => 'ar').getTaskTypeMeta('important');
+  assert.ok(enMeta.label === 'Study & Notes' && !/[\u0600-\u06FF]/.test(enMeta.hint), 'EN getTaskTypeMeta must return English hint without Arabic');
+  assert.ok(/[\u0600-\u06FF]/.test(arMeta.hint), 'AR getTaskTypeMeta must preserve Arabic hint');
+
+  const linkerFn = indexHtml.match(/function renderGoalTaskLinkerModalContent\(\)\s*\{[\s\S]*?\n        \}/)?.[0] || '';
+  assert.ok(linkerFn.includes('escapeHtml(subName)') && linkerFn.includes('escapeHtml(goal.title'), 'renderGoalTaskLinkerModalContent must escape subName and goal.title');
+
+  assert.ok(indexHtml.includes('id="helpSearchInput"'), 'Help Center must contain #helpSearchInput');
+  assert.ok(indexHtml.includes('id="helpSearchEmptyState"'), 'Help Center must contain #helpSearchEmptyState');
+  assert.ok(indexHtml.includes('function filterHelpCenterContent('), 'filterHelpCenterContent helper must exist');
+  assert.ok(!indexHtml.includes('helpFullscreenBtn'), 'Help modal must not include a fullscreen button');
+});
+
+

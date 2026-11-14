@@ -331,6 +331,9 @@ function sanitizeUserText(val, maxLen = 250) {
   return String(val || '').trim().slice(0, maxLen);
 }
 let lastStorageFailureDiagnostics = null;
+let lastStorageWriteFailureDiagnostics = null;
+let _exoLastLocalQuotaReclaimAt = 0;
+let _exoPendingQuotaReclaimPromise = null;
 let activeSingleInputCallback = null;
 let activeDoubleInputCallback = null;
 let currentCloudUser = null;
@@ -449,6 +452,8 @@ ${extractFunctionSource(indexHtmlContent, 'triggerDeleteLog')}
 ${extractFunctionSource(indexHtmlContent, 'deleteEventFromPdfAdjuster')}
 ${extractFunctionSource(indexHtmlContent, 'deleteWeeklyEvaluationReport')}
 ${extractFunctionSource(indexHtmlContent, 'markMissedSessionDoneOffline')}
+${extractFunctionSource(indexHtmlContent, 'resolveCloudMediaRegistryEntry')}
+${extractFunctionSource(indexHtmlContent, 'compactCloudMediaRegistry')}
 ${extractFunctionSource(indexHtmlContent, 'saveCloudMediaRegistry')}
 ${extractFunctionSource(indexHtmlContent, 'normMediaKeyStr')}
 ${extractFunctionSource(indexHtmlContent, 'recordUploadedMediaInRegistry')}
@@ -570,6 +575,9 @@ ${extractFunctionSource(indexHtmlContent, 'applyQueuedAnnotationWritesAfterImpor
 ${extractFunctionSource(indexHtmlContent, 'flushQueuedDomainWritesAfterImport')}
 ${extractFunctionSource(indexHtmlContent, 'diagnoseStorageWriteFailure')}
 ${extractFunctionSource(indexHtmlContent, 'getLastStorageFailureDiagnostics')}
+${extractFunctionSource(indexHtmlContent, 'exoReclaimSafeLocalStorageSpace')}
+${extractFunctionSource(indexHtmlContent, 'exoSafeLocalStorageSetItem')}
+${extractFunctionSource(indexHtmlContent, 'exoSafeLocalStorageJsonSet')}
 ${extractFunctionSource(indexHtmlContent, 'openSingleInputModal')}
 ${extractFunctionSource(indexHtmlContent, 'saveSingleInputModal')}
 ${extractFunctionSource(indexHtmlContent, 'openDoubleInputModal')}
@@ -8093,6 +8101,9 @@ async function main() {
       let liveTabActorId = null;
       let liveLamportClock = 0;
       let lastStorageFailureDiagnostics = null;
+      let lastStorageWriteFailureDiagnostics = null;
+      let _exoLastLocalQuotaReclaimAt = 0;
+      let _exoPendingQuotaReclaimPromise = null;
       let renderPdfCalls = [];
       let pushCloudCalls = 0;
       let authModalOpened = 0;
@@ -8142,6 +8153,11 @@ async function main() {
         if (typeof setPdfDriveReactivateBannerState === 'function') setPdfDriveReactivateBannerState({ visible: false });
       }
       function saveSubjects() {}
+      ${extractFunctionSource(indexHtmlContent, 'diagnoseStorageWriteFailure')}
+      ${extractFunctionSource(indexHtmlContent, 'exoReclaimSafeLocalStorageSpace')}
+      ${extractFunctionSource(indexHtmlContent, 'exoSafeLocalStorageSetItem')}
+      ${extractFunctionSource(indexHtmlContent, 'exoSafeLocalStorageJsonSet')}
+      ${extractFunctionSource(indexHtmlContent, 'persistSubjectsSnapshotSafely')}
       ${extractFunctionSource(indexHtmlContent, 'formatUploadSpeed')}
       ${extractFunctionSource(indexHtmlContent, 'escapeHtml')}
       ${extractFunctionSource(indexHtmlContent, 'extractGoogleDriveFileId')}
@@ -8163,6 +8179,8 @@ async function main() {
       ${extractFunctionSource(indexHtmlContent, 'isValidPdfBlob')}
       ${extractFunctionSource(indexHtmlContent, 'saveMediaToDB')}
       ${extractFunctionSource(indexHtmlContent, 'getMediaFromDB')}
+      ${extractFunctionSource(indexHtmlContent, 'resolveCloudMediaRegistryEntry')}
+      ${extractFunctionSource(indexHtmlContent, 'compactCloudMediaRegistry')}
       ${extractFunctionSource(indexHtmlContent, 'saveCloudMediaRegistry')}
       ${extractFunctionSource(indexHtmlContent, 'normMediaKeyStr')}
       ${extractFunctionSource(indexHtmlContent, 'isSecondaryAudioRecording')}

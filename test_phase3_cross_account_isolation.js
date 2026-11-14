@@ -257,11 +257,20 @@ let liveLamportClock = 0;
 let testCryptoProviderOverride = undefined;
 const liveActorScopeCounters = new Map();
 const liveObservedScopeContexts = new Map();
+let lastStorageWriteFailureDiagnostics = null;
+let _exoLastLocalQuotaReclaimAt = 0;
+let _exoPendingQuotaReclaimPromise = null;
 
+${extractFunctionSource(indexHtmlContent, 'diagnoseStorageWriteFailure')}
+${extractFunctionSource(indexHtmlContent, 'exoReclaimSafeLocalStorageSpace')}
+${extractFunctionSource(indexHtmlContent, 'exoSafeLocalStorageSetItem')}
+${extractFunctionSource(indexHtmlContent, 'exoSafeLocalStorageJsonSet')}
 ${extractFunctionSource(indexHtmlContent, 'getLocalIsoDate')}
 ${extractFunctionSource(indexHtmlContent, 'getWeekStartDateForDate')}
 ${extractFunctionSource(indexHtmlContent, 'initScheduleData')}
 ${extractFunctionSource(indexHtmlContent, 'saveScheduleData')}
+${extractFunctionSource(indexHtmlContent, 'resolveCloudMediaRegistryEntry')}
+${extractFunctionSource(indexHtmlContent, 'compactCloudMediaRegistry')}
 ${extractFunctionSource(indexHtmlContent, 'saveCloudMediaRegistry')}
 ${extractFunctionSource(indexHtmlContent, 'normMediaKeyStr')}
 ${extractFunctionSource(indexHtmlContent, 'recordUploadedMediaInRegistry')}
