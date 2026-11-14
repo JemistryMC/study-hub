@@ -68,6 +68,11 @@ const SUITES = [
     useNodeTest: true
   },
   {
+    category: '2. Unit & Asynchronous Logic Isolation Tests',
+    file: 'test_wp6_9_unit.js',
+    useNodeTest: true
+  },
+  {
     category: '3. Embedded PostgreSQL Compatibility Tests (PGlite WASM Single-Connection)',
     file: 'test_phase4_2_postgres_integration.js'
   },
@@ -94,6 +99,10 @@ const SUITES = [
   {
     category: '5. Real Headless Chromium Browser E2E Tests (WP 6.8 P0 Runtime Stabilization)',
     file: 'test_wp6_8_chromium_e2e.js'
+  },
+  {
+    category: '5. Real Headless Chromium Browser E2E Tests (WP 6.9 Forensic Diagnostics & Freeze Fixes)',
+    file: 'test_wp6_9_chromium_e2e.js'
   }
 ];
 

@@ -24,6 +24,431 @@
             }
         })();
     </script>
+    <script id="exo-forensic-diag-head">
+        (function exoInitForensicDiagnostics() {
+            if (typeof window === 'undefined' || window.__exoForensicDiag) return;
+            var RING_CAP = 200;
+            function createRingBuffer(cap) {
+                var buf = new Array(cap);
+                var count = 0;
+                return {
+                    capacity: cap,
+                    push: function(item) {
+                        buf[count % cap] = item;
+                        count++;
+                    },
+                    toArray: function() {
+                        var len = Math.min(count, cap);
+                        var out = new Array(len);
+                        var start = count > cap ? (count - cap) : 0;
+                        for (var i = 0; i < len; i++) {
+                            out[i] = buf[(start + i) % cap];
+                        }
+                        return out;
+                    },
+                    totalCount: function() { return count; },
+                    droppedCount: function() { return count > cap ? (count - cap) : 0; },
+                    clear: function() {
+                        count = 0;
+                        for (var i = 0; i < cap; i++) buf[i] = undefined;
+                    }
+                };
+            }
+
+            function redactStr(raw, maxLen) {
+                if (raw === null || raw === undefined) return '';
+                var s = String(raw);
+                s = s
+                    .replace(/bearer\s+[a-zA-Z0-9_\-\.=]+/gi, 'Bearer [REDACTED]')
+                    .replace(/basic\s+[a-zA-Z0-9_\-\.=+/]+/gi, 'Basic [REDACTED]')
+                    .replace(/ya29\.[a-zA-Z0-9_\-\.]+/gi, 'ya29.[REDACTED]')
+                    .replace(/eyJ[a-zA-Z0-9_-]{4,}\.[a-zA-Z0-9_-]{4,}(?:\.[a-zA-Z0-9_-]*)?/g, '[REDACTED_JWT]')
+                    .replace(/(apikey|api_key|service_role|access_token|refresh_token|authorization|secret|password|token)\s*[:=]\s*[^\s&"',}]+/gi, '$1=[REDACTED]')
+                    .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[REDACTED_EMAIL]')
+                    .replace(/https?:\/\/[^\s"'<>]+/gi, '[REDACTED_URL]')
+                    .replace(/\?[^\s"'<>]+/g, '?[REDACTED]')
+                    .replace(/(file:\/\/\/[^\s"'<>]+|\/Users\/[^\s"'<>]+|\/home\/[^\s"'<>]+|[A-Z]:\\[^\s"'<>]+|\bat\s+\S+\s+\([^)]+\))/gi, '[REDACTED_PATH]')
+                    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '[REDACTED_UUID]');
+                var capLen = maxLen || 240;
+                return s.length > capLen ? s.slice(0, capLen) + '...' : s;
+            }
+
+            function getActiveViewName() {
+                try {
+                    var active = document.querySelector('.view-section.active');
+                    if (active && active.id) return String(active.id);
+                    var pdfOv = document.getElementById('pdfViewerModalOverlay');
+                    if (pdfOv && pdfOv.classList.contains('active')) return 'pdf_studio';
+                } catch (e) {}
+                return 'unknown';
+            }
+
+            function classifySafeStorageKey(keyStr) {
+                var k = String(keyStr || '');
+                if (!k) return 'empty';
+                if (k.indexOf('pharmaConflictRecovery_') === 0) return 'conflict_recovery';
+                if (k.indexOf('pharmaAccountWorkspace_') === 0) return 'account_snapshot';
+                if (k.indexOf('pharmaSubjects') === 0) return 'subjects';
+                if (k.indexOf('pharmaSchedule') === 0) return 'schedule';
+                if (k.indexOf('pharmaLogs') === 0) return 'logs';
+                if (k.indexOf('pharmaTombstones_') === 0) return 'tombstones';
+                if (k.indexOf('exo') === 0) return 'exo_pref';
+                return 'other';
+            }
+
+            var rings = {
+                longTasks: createRingBuffer(RING_CAP),
+                eventTimings: createRingBuffer(RING_CAP),
+                frameGaps: createRingBuffer(RING_CAP),
+                timerDriftStalls: createRingBuffer(RING_CAP),
+                mutationBursts: createRingBuffer(RING_CAP),
+                idbEvents: createRingBuffer(RING_CAP),
+                storageEvents: createRingBuffer(RING_CAP),
+                canvasSnapshots: createRingBuffer(RING_CAP),
+                errors: createRingBuffer(RING_CAP),
+                syncPhases: createRingBuffer(RING_CAP)
+            };
+
+            var startMs = Date.now();
+            var eventTimingSupported = false;
+            var longTaskSupported = false;
+
+            try {
+                if (typeof PerformanceObserver !== 'undefined') {
+                    var supp = Array.isArray(PerformanceObserver.supportedEntryTypes) ? PerformanceObserver.supportedEntryTypes : [];
+                    if (supp.length === 0 || supp.indexOf('longtask') !== -1) {
+                        longTaskSupported = true;
+                        var ltObs = new PerformanceObserver(function(list) {
+                            var entries = list.getEntries();
+                            for (var i = 0; i < entries.length; i++) {
+                                var en = entries[i];
+                                rings.longTasks.push({
+                                    tMs: Math.round(en.startTime),
+                                    durMs: Math.round(en.duration * 10) / 10,
+                                    name: redactStr(en.name || 'self', 48),
+                                    view: getActiveViewName(),
+                                    hidden: Boolean(document.hidden)
+                                });
+                            }
+                        });
+                        ltObs.observe({ entryTypes: ['longtask'] });
+                    }
+                    if (supp.indexOf('event') !== -1) {
+                        eventTimingSupported = true;
+                        var evObs = new PerformanceObserver(function(list) {
+                            var entries = list.getEntries();
+                            for (var i = 0; i < entries.length; i++) {
+                                var en = entries[i];
+                                if (en.duration < 40) continue;
+                                rings.eventTimings.push({
+                                    tMs: Math.round(en.startTime),
+                                    durMs: Math.round(en.duration),
+                                    procMs: (typeof en.processingEnd === 'number' && typeof en.processingStart === 'number')
+                                        ? Math.round((en.processingEnd - en.processingStart) * 10) / 10 : null,
+                                    name: redactStr(en.name || 'event', 32),
+                                    view: getActiveViewName()
+                                });
+                            }
+                        });
+                        evObs.observe({ type: 'event', buffered: true, durationThreshold: 40 });
+                    }
+                }
+            } catch (e) {}
+
+            // Visibility-aware rAF frame-gap detector (only logs stalls >= 100ms; paused when tab hidden)
+            var rafId = 0;
+            var lastRafTs = 0;
+            var rafStarted = false;
+            function onRafTick(ts) {
+                rafId = 0;
+                if (document.hidden) {
+                    lastRafTs = 0;
+                    return;
+                }
+                if (lastRafTs > 0) {
+                    var gap = ts - lastRafTs;
+                    if (gap >= 100) {
+                        rings.frameGaps.push({
+                            tMs: Math.round(ts),
+                            gapMs: Math.round(gap * 10) / 10,
+                            view: getActiveViewName()
+                        });
+                    }
+                }
+                lastRafTs = ts;
+                rafId = requestAnimationFrame(onRafTick);
+            }
+            function startRafMonitor() {
+                if (rafStarted || document.hidden || typeof requestAnimationFrame !== 'function') return;
+                rafStarted = true;
+                lastRafTs = 0;
+                rafId = requestAnimationFrame(onRafTick);
+            }
+            document.addEventListener('visibilitychange', function() {
+                if (document.hidden) {
+                    lastRafTs = 0;
+                    if (rafId && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(rafId);
+                    rafId = 0;
+                    rafStarted = false;
+                } else {
+                    startRafMonitor();
+                }
+            });
+            startRafMonitor();
+
+            // 1000ms timer drift detector (logs drifts >= 100ms while visible)
+            var lastDriftTick = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            var driftIntervalId = setInterval(function() {
+                var nowP = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                var drift = nowP - lastDriftTick - 1000;
+                lastDriftTick = nowP;
+                if (!document.hidden && drift >= 100) {
+                    rings.timerDriftStalls.push({
+                        tMs: Math.round(nowP),
+                        driftMs: Math.round(drift),
+                        view: getActiveViewName()
+                    });
+                }
+            }, 1000);
+            if (driftIntervalId && typeof driftIntervalId.unref === 'function') driftIntervalId.unref();
+
+            // Global redacted error & unhandledrejection hooks
+            window.addEventListener('error', function(ev) {
+                rings.errors.push({
+                    ts: new Date().toISOString(),
+                    kind: 'error',
+                    msg: redactStr((ev && ev.message) || 'Unknown error', 200),
+                    view: getActiveViewName()
+                });
+            });
+            window.addEventListener('unhandledrejection', function(ev) {
+                var r = ev ? ev.reason : null;
+                var msg = (r && r.message) ? r.message : String(r || 'Unhandled rejection');
+                rings.errors.push({
+                    ts: new Date().toISOString(),
+                    kind: 'unhandledrejection',
+                    msg: redactStr(msg, 200),
+                    view: getActiveViewName()
+                });
+            });
+
+            // Passive non-invasive IDB timing instrumentation (records >= 50ms or error only)
+            try {
+                if (typeof IDBObjectStore !== 'undefined' && IDBObjectStore.prototype) {
+                    var origTx = typeof IDBDatabase !== 'undefined' ? IDBDatabase.prototype.transaction : null;
+                    ['get', 'put', 'add', 'delete', 'getAll', 'count', 'clear'].forEach(function(opName) {
+                        var origFn = IDBObjectStore.prototype[opName];
+                        if (typeof origFn !== 'function') return;
+                        IDBObjectStore.prototype[opName] = function() {
+                            var req = origFn.apply(this, arguments);
+                            try {
+                                var storeName = String(this && this.name || 'unknown');
+                                var opStart = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                                if (req && typeof req.addEventListener === 'function') {
+                                    req.addEventListener('success', function() {
+                                        var dur = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - opStart;
+                                        if (dur >= 50) {
+                                            rings.idbEvents.push({
+                                                ts: new Date().toISOString(),
+                                                op: opName,
+                                                store: storeName,
+                                                durMs: Math.round(dur * 10) / 10,
+                                                ok: true,
+                                                view: getActiveViewName()
+                                            });
+                                        }
+                                    }, { once: true });
+                                    req.addEventListener('error', function() {
+                                        var dur = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - opStart;
+                                        var errName = req.error && req.error.name ? String(req.error.name) : 'IDBError';
+                                        rings.idbEvents.push({
+                                            ts: new Date().toISOString(),
+                                            op: opName,
+                                            store: storeName,
+                                            durMs: Math.round(dur * 10) / 10,
+                                            ok: false,
+                                            errCode: redactStr(errName, 48),
+                                            view: getActiveViewName()
+                                        });
+                                    }, { once: true });
+                                }
+                            } catch (wrapErr) {}
+                            return req;
+                        };
+                    });
+                    if (origTx) {
+                        IDBDatabase.prototype.transaction = function(storeNames, mode) {
+                            var tx = origTx.apply(this, arguments);
+                            try {
+                                var txStart = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                                var sLabel = Array.isArray(storeNames) ? storeNames.join(',') : String(storeNames || '');
+                                var mLabel = String(mode || 'readonly');
+                                if (tx && typeof tx.addEventListener === 'function') {
+                                    tx.addEventListener('abort', function() {
+                                        var dur = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - txStart;
+                                        rings.idbEvents.push({
+                                            ts: new Date().toISOString(),
+                                            op: 'tx_abort:' + mLabel,
+                                            store: redactStr(sLabel, 64),
+                                            durMs: Math.round(dur * 10) / 10,
+                                            ok: false,
+                                            errCode: redactStr(tx.error && tx.error.name ? tx.error.name : 'AbortError', 48),
+                                            view: getActiveViewName()
+                                        });
+                                    }, { once: true });
+                                }
+                            } catch (wrapTxErr) {}
+                            return tx;
+                        };
+                    }
+                }
+            } catch (idbPatchErr) {}
+
+            function captureCanvasDomSnapshot(phaseLabel) {
+                var totalCanvases = 0;
+                var allocCanvases = 0;
+                var totalPixels = 0;
+                var domNodes = 0;
+                try {
+                    domNodes = document.getElementsByTagName('*').length;
+                    var cvs = document.getElementsByTagName('canvas');
+                    totalCanvases = cvs.length;
+                    for (var i = 0; i < cvs.length; i++) {
+                        var w = cvs[i].width || 0;
+                        var h = cvs[i].height || 0;
+                        if (w > 1 || h > 1) {
+                            allocCanvases++;
+                            totalPixels += (w * h);
+                        }
+                    }
+                } catch (e) {}
+                var heapMb = null;
+                try {
+                    if (typeof performance !== 'undefined' && performance.memory && typeof performance.memory.usedJSHeapSize === 'number') {
+                        heapMb = Math.round((performance.memory.usedJSHeapSize / (1024 * 1024)) * 100) / 100;
+                    }
+                } catch (e) {}
+                var snap = {
+                    ts: new Date().toISOString(),
+                    phase: redactStr(phaseLabel || 'snapshot', 48),
+                    view: getActiveViewName(),
+                    domNodes: domNodes,
+                    canvasCount: totalCanvases,
+                    allocatedCanvases: allocCanvases,
+                    estimatedCanvasRgbaMB: Math.round(((totalPixels * 4) / (1024 * 1024)) * 100) / 100,
+                    jsHeapUsedMB: heapMb
+                };
+                rings.canvasSnapshots.push(snap);
+                return snap;
+            }
+
+            function buildReport() {
+                var curSnap = captureCanvasDomSnapshot('report_export');
+                var channels = {};
+                var keys = Object.keys(rings);
+                for (var i = 0; i < keys.length; i++) {
+                    var k = keys[i];
+                    channels[k] = {
+                        cap: rings[k].capacity,
+                        totalRecorded: rings[k].totalCount(),
+                        droppedOldest: rings[k].droppedCount(),
+                        entries: rings[k].toArray()
+                    };
+                }
+                return {
+                    schema: 'exo_forensic_diag_v1',
+                    generatedAt: new Date().toISOString(),
+                    uptimeMs: Date.now() - startMs,
+                    privacyRedacted: true,
+                    storageSideEffects: false,
+                    lang: (typeof window.currentExoLang === 'string') ? window.currentExoLang : (document.documentElement ? document.documentElement.lang : 'en'),
+                    capabilities: {
+                        longtask: longTaskSupported,
+                        eventTiming: eventTimingSupported,
+                        memoryApi: Boolean(typeof performance !== 'undefined' && performance.memory)
+                    },
+                    currentSnapshot: curSnap,
+                    channels: channels
+                };
+            }
+
+            window.__exoForensicDiag = {
+                ringCapacity: RING_CAP,
+                recordMutationBurst: function(count, durMs, phase) {
+                    if ((count || 0) < 50 && (durMs || 0) < 16) return;
+                    rings.mutationBursts.push({
+                        tMs: Math.round((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()),
+                        count: Number(count || 0),
+                        durMs: Math.round((durMs || 0) * 10) / 10,
+                        phase: redactStr(phase || 'observer', 32),
+                        view: getActiveViewName()
+                    });
+                },
+                recordStorageEvent: function(keyStr, opName, bytesLen, durMs, ok, errCode) {
+                    rings.storageEvents.push({
+                        ts: new Date().toISOString(),
+                        keyCategory: classifySafeStorageKey(keyStr),
+                        op: redactStr(opName || 'set', 24),
+                        bytes: Number(bytesLen || 0),
+                        durMs: Math.round((durMs || 0) * 10) / 10,
+                        ok: Boolean(ok),
+                        errCode: errCode ? redactStr(errCode, 40) : null,
+                        view: getActiveViewName()
+                    });
+                },
+                markSyncPhase: function(phase, status, meta) {
+                    var safeMeta = {};
+                    if (meta && typeof meta === 'object') {
+                        if (typeof meta.count === 'number') safeMeta.count = meta.count;
+                        if (typeof meta.bytes === 'number') safeMeta.bytes = meta.bytes;
+                        if (typeof meta.durMs === 'number') safeMeta.durMs = Math.round(meta.durMs * 10) / 10;
+                        if (meta.reason) safeMeta.reason = redactStr(meta.reason, 48);
+                    }
+                    rings.syncPhases.push({
+                        ts: new Date().toISOString(),
+                        phase: redactStr(phase || 'sync', 40),
+                        status: redactStr(status || 'info', 24),
+                        meta: safeMeta,
+                        view: getActiveViewName()
+                    });
+                },
+                captureCanvasSnapshot: captureCanvasDomSnapshot,
+                buildReport: buildReport,
+                redact: redactStr,
+                rings: rings
+            };
+
+            window.exoBuildForensicDiagnosticsReport = buildReport;
+            window.exoExportForensicDiagnosticsJson = async function() {
+                var report = buildReport();
+                var jsonText = JSON.stringify(report, null, 2);
+                var blob = new Blob([jsonText], { type: 'application/json' });
+                var stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                var fileName = 'exo-forensic-diagnostics-' + stamp + '.json';
+                if (typeof window.triggerBrowserFileDownload === 'function') {
+                    await window.triggerBrowserFileDownload(blob, fileName);
+                } else {
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(function() {
+                        if (a.parentNode) a.parentNode.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 3000);
+                }
+                if (typeof showToast === 'function') {
+                    showToast({
+                        en: 'Exported redacted forensic log (.json) safely — contains timings only, no notes or credentials.',
+                        ar: 'تم تصدير سجل التشخيص المنقّى (.json) بأمان — يحتوي على الأزمنة فقط دون أي محتوى خاص أو بيانات دخول.'
+                    }, 'success');
+                }
+                return { ok: true, fileName: fileName, bytes: jsonText.length, report: report };
+            };
+        })();
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,400&family=Noto+Naskh+Arabic:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="./favicon.png" id="appFaviconLink">
     <link rel="shortcut icon" type="image/png" href="./favicon.png">
@@ -13433,6 +13858,11 @@
                 <div id="cloudAuthSecurityNote" style="text-align: center; margin-top: 10px; font-size: 0.74rem; color: var(--text-muted); background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 8px 10px;">
                     <i class="fa-solid fa-lock" style="color: var(--primary);"></i> جميع موادك وجدولك وملخصاتك محفوظة ومعزولة داخل حسابك الشخصي تلقائياً.
                 </div>
+                <div style="display: flex; justify-content: center; margin-top: 10px;">
+                    <button type="button" id="cloudLoggedOutForensicExportBtn" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.76rem;" onclick="if(window.exoExportForensicDiagnosticsJson) window.exoExportForensicDiagnosticsJson();">
+                        <i class="fa-solid fa-stethoscope"></i> <span data-exo-no-i18n="1" class="exo-forensic-export-lbl">Export Forensic Log (.json)</span>
+                    </button>
+                </div>
             </div>
 
             <!-- VIEW B: LOGGED IN (STUDENT PROFILE HUB & AUTO-SAVE STATUS) -->
@@ -13583,7 +14013,10 @@
                     <div id="cloudMediaProgressText" style="display: none; margin-top: 8px; font-size: 0.75rem; color: var(--primary); font-weight: 700; line-height: 1.55;"></div>
                 </div>
 
-                <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--border-color);">
+                    <button type="button" id="cloudHubForensicExportBtn" class="btn btn-outline" style="padding: 7px 12px; font-size: 0.76rem;" onclick="if(window.exoExportForensicDiagnosticsJson) window.exoExportForensicDiagnosticsJson();">
+                        <i class="fa-solid fa-stethoscope"></i> <span data-exo-no-i18n="1" class="exo-forensic-export-lbl">Export Forensic Log (.json)</span>
+                    </button>
                     <button type="button" id="cloudSignOutBtn" class="btn btn-danger" style="padding: 7px 15px; font-size: 0.8rem;" onclick="handleCloudSignOut()">
                         <i class="fa-solid fa-right-from-bracket"></i> <span id="cloudSignOutBtnText">تسجيل الخروج</span>
                     </button>
@@ -14051,7 +14484,7 @@
                         <input type="text" id="pdfThumbSearchInput" placeholder="Jump by slide number..." aria-label="Search slides by page number" oninput="handlePdfThumbSearch(this.value)">
                     </div>
                     <!-- Thumbnails Grid/List -->
-                    <div class="pdf-thumbnails-grid" id="pdfThumbnailsGrid">
+                    <div class="pdf-thumbnails-grid" id="pdfThumbnailsGrid" data-exo-no-i18n="1">
                         <!-- Populated dynamically via renderPdfThumbnailsList -->
                     </div>
                 </aside>
@@ -17066,6 +17499,7 @@
                 actionsEl.innerHTML = `
                     ${signals.isLoggedIn && !signals.isLocalOnlyAccount && signals.isOnline ? `<button type="button" class="exo-action-btn is-primary" onclick="executeExoRecoveryAction('retry_sync', '')"><i class="fa-solid fa-arrows-rotate"></i> ${isEn ? 'Sync Now' : 'مزامنة الآن'}</button>` : ''}
                     ${exoHasPendingLocalEditsNow() ? `<button type="button" class="exo-action-btn" onclick="executeExoRecoveryAction('retry_local_save', '')"><i class="fa-solid fa-floppy-disk"></i> ${isEn ? 'Save on Device' : 'حفظ على الجهاز'}</button>` : ''}
+                    <button type="button" class="exo-action-btn" id="exoRecoveryForensicExportBtn" onclick="if(window.exoExportForensicDiagnosticsJson) window.exoExportForensicDiagnosticsJson();"><i class="fa-solid fa-stethoscope"></i> ${isEn ? 'Export Forensic Log (.json)' : 'تصدير سجل التشخيص (.json)'}</button>
                     <button type="button" class="exo-action-btn" onclick="closeModal('exoRecoveryModalOverlay')">${isEn ? 'Close' : 'إغلاق'}</button>
                 `;
             } else {
@@ -17132,7 +17566,7 @@
                         ? (isEn ? `Retry available in ${remSec}s` : `المحاولة متاحة بعد ${remSec} ث`)
                         : (isEn ? spec.en : spec.ar);
                     return `<button type="button" class="exo-action-btn ${spec.primary ? 'is-primary' : ''}" data-exo-recovery-action="${aid}" ${disabledAttr} onclick="executeExoRecoveryAction('${aid}', '${keyEsc}')"><i class="fa-solid ${spec.icon}"></i> <span>${exoEscapeHtmlSafe(lbl)}</span></button>`;
-                }).join('') + `<button type="button" class="exo-action-btn" onclick="closeModal('exoRecoveryModalOverlay')">${isEn ? 'Close' : 'إغلاق'}</button>`;
+                }).join('') + `<button type="button" class="exo-action-btn" id="exoRecoveryForensicExportBtn" onclick="if(window.exoExportForensicDiagnosticsJson) window.exoExportForensicDiagnosticsJson();"><i class="fa-solid fa-stethoscope"></i> ${isEn ? 'Export Forensic Log (.json)' : 'تصدير سجل التشخيص (.json)'}</button>` + `<button type="button" class="exo-action-btn" onclick="closeModal('exoRecoveryModalOverlay')">${isEn ? 'Close' : 'إغلاق'}</button>`;
 
                 if (remSec > 0) {
                     exoRuntimeStatusState.recoveryCountdownTimer = setInterval(() => {
@@ -17877,11 +18311,20 @@
         function exoSafeLocalStorageSetItem(key, value, opts = {}) {
             const safeKey = String(key || '');
             const strVal = typeof value === 'string' ? value : String(value ?? '');
+            const t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
             try {
                 localStorage.setItem(safeKey, strVal);
+                const dur = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - t0;
+                if (dur >= 25 && typeof window !== 'undefined' && window.__exoForensicDiag) {
+                    window.__exoForensicDiag.recordStorageEvent(safeKey, 'ls_set', strVal.length, dur, true, null);
+                }
                 return { ok: true, persisted: true, isQuotaExceeded: false, key: safeKey };
             } catch (err) {
+                const dur = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - t0;
                 const diag = diagnoseStorageWriteFailure(err, safeKey, strVal, []);
+                if (typeof window !== 'undefined' && window.__exoForensicDiag) {
+                    window.__exoForensicDiag.recordStorageEvent(safeKey, 'ls_set', strVal.length, dur, false, diag.reason || diag.errorName || 'StorageError');
+                }
                 if (typeof exoRuntimeStatusState !== 'undefined' && diag.isQuotaExceeded) {
                     exoRuntimeStatusState.lsQuotaFallbackActive = true;
                 }
@@ -17905,10 +18348,19 @@
 
         function exoSafeLocalStorageJsonSet(key, obj, opts = {}) {
             let serialized = null;
+            const t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
             try {
                 serialized = JSON.stringify(obj);
+                const sDur = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - t0;
+                if (sDur >= 25 && typeof window !== 'undefined' && window.__exoForensicDiag) {
+                    window.__exoForensicDiag.recordStorageEvent(String(key || ''), 'json_stringify', serialized.length, sDur, true, null);
+                }
             } catch (serErr) {
+                const sDur = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - t0;
                 const diag = diagnoseStorageWriteFailure(serErr, String(key || ''), obj, []);
+                if (typeof window !== 'undefined' && window.__exoForensicDiag) {
+                    window.__exoForensicDiag.recordStorageEvent(String(key || ''), 'json_stringify', 0, sDur, false, diag.reason || 'SerializeError');
+                }
                 return {
                     ok: false,
                     persisted: false,
@@ -30834,67 +31286,97 @@
 
         // Pure JS standard SHA-256 fallback (used when Web Crypto is absent or in non-secure test contexts)
         function computePureSha256(inputStr) {
-            function rightRotate(value, amount) { return (value >>> amount) | (value << (32 - amount)); }
-            const mathPow = Math.pow;
-            const maxWord = mathPow(2, 32);
-            let result = '';
-            const words = [];
-            let ascii = '';
-            try {
-                ascii = unescape(encodeURIComponent(String(inputStr || '')));
-            } catch (e) {
-                ascii = String(inputStr || '');
-            }
-            const asciiBitLength = ascii.length * 8;
-            let hash = [];
-            const k = [];
-            let primeCounter = 0;
-            const isComposite = {};
-            for (let candidate = 2; primeCounter < 64; candidate++) {
-                if (!isComposite[candidate]) {
-                    for (let i = candidate * candidate; i < 312; i += candidate) isComposite[i] = true;
-                    hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
-                    k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+            let tables = globalThis.__exoSha256Tables;
+            if (!tables) {
+                const H0 = new Int32Array(8);
+                const K = new Int32Array(64);
+                const isComp = new Uint8Array(312);
+                const maxWord = 4294967296;
+                let primeCounter = 0;
+                for (let candidate = 2; primeCounter < 64; candidate++) {
+                    if (!isComp[candidate]) {
+                        for (let m = candidate * candidate; m < 312; m += candidate) isComp[m] = 1;
+                        if (primeCounter < 8) H0[primeCounter] = (Math.pow(candidate, 0.5) * maxWord) | 0;
+                        K[primeCounter++] = (Math.pow(candidate, 1 / 3) * maxWord) | 0;
+                    }
                 }
+                tables = {
+                    H0,
+                    K,
+                    W: new Int32Array(64),
+                    encoder: (typeof TextEncoder === 'function') ? new TextEncoder() : null
+                };
+                globalThis.__exoSha256Tables = tables;
             }
-            ascii += '\x80';
-            while (ascii.length % 64 - 56) ascii += '\x00';
-            for (let i = 0; i < ascii.length; i++) {
-                const j = ascii.charCodeAt(i);
-                words[i >> 2] |= j << ((3 - i) % 4) * 8;
+            const str = String(inputStr || '');
+            let bytes;
+            if (tables.encoder) {
+                bytes = tables.encoder.encode(str);
+            } else {
+                let ascii = '';
+                try {
+                    ascii = unescape(encodeURIComponent(str));
+                } catch (e) {
+                    ascii = str;
+                }
+                bytes = new Uint8Array(ascii.length);
+                for (let i = 0; i < ascii.length; i++) bytes[i] = ascii.charCodeAt(i) & 255;
             }
-            words[words.length] = ((asciiBitLength / maxWord) | 0);
-            words[words.length] = (asciiBitLength | 0);
-            for (let j = 0; j < words.length;) {
-                const w = words.slice(j, j += 16);
-                const oldHash = hash;
-                hash = hash.slice(0, 8);
+            const msgLen = bytes.length;
+            const paddedLen = ((msgLen + 9 + 63) >> 6) << 6;
+            const padded = new Uint8Array(paddedLen);
+            padded.set(bytes);
+            padded[msgLen] = 0x80;
+            const totalBits = msgLen * 8;
+            const bitHi = Math.floor(totalBits / 4294967296) >>> 0;
+            const bitLo = totalBits >>> 0;
+            padded[paddedLen - 8] = (bitHi >>> 24) & 255;
+            padded[paddedLen - 7] = (bitHi >>> 16) & 255;
+            padded[paddedLen - 6] = (bitHi >>> 8) & 255;
+            padded[paddedLen - 5] = bitHi & 255;
+            padded[paddedLen - 4] = (bitLo >>> 24) & 255;
+            padded[paddedLen - 3] = (bitLo >>> 16) & 255;
+            padded[paddedLen - 2] = (bitLo >>> 8) & 255;
+            padded[paddedLen - 1] = bitLo & 255;
+
+            const H0 = tables.H0;
+            const K = tables.K;
+            const W = tables.W;
+            let h0 = H0[0], h1 = H0[1], h2 = H0[2], h3 = H0[3];
+            let h4 = H0[4], h5 = H0[5], h6 = H0[6], h7 = H0[7];
+
+            for (let off = 0; off < paddedLen; off += 64) {
+                for (let i = 0; i < 16; i++) {
+                    const p = off + (i << 2);
+                    W[i] = (padded[p] << 24) | (padded[p + 1] << 16) | (padded[p + 2] << 8) | padded[p + 3];
+                }
+                for (let i = 16; i < 64; i++) {
+                    const w15 = W[i - 15];
+                    const w2 = W[i - 2];
+                    const s0 = ((w15 >>> 7) | (w15 << 25)) ^ ((w15 >>> 18) | (w15 << 14)) ^ (w15 >>> 3);
+                    const s1 = ((w2 >>> 17) | (w2 << 15)) ^ ((w2 >>> 19) | (w2 << 13)) ^ (w2 >>> 10);
+                    W[i] = (W[i - 16] + s0 + W[i - 7] + s1) | 0;
+                }
+                let a = h0, b = h1, c = h2, d = h3, e = h4, f = h5, g = h6, h = h7;
                 for (let i = 0; i < 64; i++) {
-                    const w15 = w[i - 15], w2 = w[i - 2];
-                    const a = hash[0], e = hash[4];
-                    const temp1 = hash[7]
-                        + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
-                        + ((e & hash[5]) ^ ((~e) & hash[6]))
-                        + k[i]
-                        + (w[i] = (i < 16) ? w[i] : (
-                            w[i - 16]
-                            + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
-                            + w[i - 7]
-                            + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
-                        ) | 0
-                        );
-                    const temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
-                        + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
-                    hash = [(temp1 + temp2) | 0].concat(hash);
-                    hash[4] = (hash[4] + temp1) | 0;
+                    const S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+                    const ch = (e & f) ^ ((~e) & g);
+                    const temp1 = (h + S1 + ch + K[i] + W[i]) | 0;
+                    const S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+                    const maj = (a & b) ^ (a & c) ^ (b & c);
+                    const temp2 = (S0 + maj) | 0;
+                    h = g; g = f; f = e;
+                    e = (d + temp1) | 0;
+                    d = c; c = b; b = a;
+                    a = (temp1 + temp2) | 0;
                 }
-                for (let i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+                h0 = (h0 + a) | 0; h1 = (h1 + b) | 0; h2 = (h2 + c) | 0; h3 = (h3 + d) | 0;
+                h4 = (h4 + e) | 0; h5 = (h5 + f) | 0; h6 = (h6 + g) | 0; h7 = (h7 + h) | 0;
             }
+            const outH = [h0, h1, h2, h3, h4, h5, h6, h7];
+            let result = '';
             for (let i = 0; i < 8; i++) {
-                for (let j = 3; j >= 0; j--) {
-                    const b = (hash[i] >> (8 * j)) & 255;
-                    result += (b < 16 ? '0' : '') + b.toString(16);
-                }
+                result += (outH[i] >>> 0).toString(16).padStart(8, '0');
             }
             return result.toLowerCase();
         }
@@ -38435,21 +38917,32 @@ then(onFulfilled, onRejected) {
                         const initDpr = Math.min(window.devicePixelRatio || 1, 2);
                         const initW = Math.max(1, Math.floor(defVp.width * initDpr));
                         const initH = Math.max(1, Math.floor(defVp.height * initDpr));
-                        pdfCanvas.width = initW; pdfCanvas.height = initH;
-                        inkCanvas.width = initW; inkCanvas.height = initH;
-                        laserCanvas.width = initW; laserCanvas.height = initH;
+                        const hasSlideInk = Array.isArray(pageAnnotations[compositeKey]) && pageAnnotations[compositeKey].length > 0;
+                        pdfCanvas.width = 1; pdfCanvas.height = 1;
+                        inkCanvas.width = hasSlideInk ? initW : 1; inkCanvas.height = hasSlideInk ? initH : 1;
+                        laserCanvas.width = 1; laserCanvas.height = 1;
                     }
                 } catch (e) {}
             }
 
             scrollContainer.innerHTML = '';
             scrollContainer.appendChild(frag);
+            if (typeof window !== 'undefined' && window.__exoForensicDiag) {
+                window.__exoForensicDiag.captureCanvasSnapshot('merged_stream_open');
+            }
 
-            // Now that all canvases are attached to document, immediately draw saved annotations & pins, and lazy-render PDF slides via IntersectionObserver
+            // Lazy-only draw saved annotations & pins for slides that actually carry them; PDF pages render on demand
             mergedSlideKeysOrder.forEach(cKey => {
-                redrawPageAnnotations(cKey);
-                redrawPageAnnotations(`note_${cKey}`);
-                renderAudioPinsForPage(cKey);
+                if (Array.isArray(pageAnnotations[cKey]) && pageAnnotations[cKey].length > 0) {
+                    redrawPageAnnotations(cKey);
+                }
+                const noteKey = `note_${cKey}`;
+                if (Array.isArray(pageAnnotations[noteKey]) && pageAnnotations[noteKey].length > 0) {
+                    redrawPageAnnotations(noteKey);
+                }
+                if (pageAnnotations._audioPins && Array.isArray(pageAnnotations._audioPins[cKey]) && pageAnnotations._audioPins[cKey].length > 0) {
+                    renderAudioPinsForPage(cKey);
+                }
             });
 
             pageObserver = new IntersectionObserver((entries) => {
@@ -40120,8 +40613,16 @@ function togglePdfAudioPlayerBar(forceState) {
             const laserCanvas = document.getElementById(`pdfLaserCanvas_${compositeKey}`);
             if (!wrapper || !pdfCanvas || !inkCanvas || !laserCanvas) return;
 
+            pdfPageRenderGen[compositeKey] = (pdfPageRenderGen[compositeKey] || 0) + 1;
+            const myGen = pdfPageRenderGen[compositeKey];
+            if (activePdfRenderTasks[compositeKey]) {
+                try { activePdfRenderTasks[compositeKey].cancel(); } catch (e) {}
+                delete activePdfRenderTasks[compositeKey];
+            }
+
             try {
                 const page = await mInfo.pdfDoc.getPage(mInfo.localPageNum);
+                if (myGen !== pdfPageRenderGen[compositeKey] || !mergedContinuousPdfMode) return;
                 const pageScale = (currentPdfFitMode === 'height' || currentPdfFitMode === 'width')
                     ? computeScaleForPageFit(page, currentPdfFitMode)
                     : currentPdfZoom;
@@ -40144,12 +40645,23 @@ function togglePdfAudioPlayerBar(forceState) {
                 const offCtx = offCanvas.getContext('2d', { alpha: false });
                 offCtx.fillStyle = '#ffffff';
                 offCtx.fillRect(0, 0, targetW, targetH);
-                await page.render({ canvasContext: offCtx, viewport: renderVp }).promise;
+                const renderTask = page.render({ canvasContext: offCtx, viewport: renderVp });
+                activePdfRenderTasks[compositeKey] = renderTask;
+                await renderTask.promise;
+                delete activePdfRenderTasks[compositeKey];
+
+                if (myGen !== pdfPageRenderGen[compositeKey] || !mergedContinuousPdfMode) {
+                    offCanvas.width = 0;
+                    offCanvas.height = 0;
+                    return;
+                }
 
                 pdfCanvas.width = targetW;
                 pdfCanvas.height = targetH;
                 const visCtx = pdfCanvas.getContext('2d', { alpha: false });
                 visCtx.drawImage(offCanvas, 0, 0);
+                offCanvas.width = 0;
+                offCanvas.height = 0;
 
                 inkCanvas.width = targetW;
                 inkCanvas.height = targetH;
@@ -40159,6 +40671,36 @@ function togglePdfAudioPlayerBar(forceState) {
                 redrawPageAnnotations(compositeKey);
                 syncExtraNoteSheetSize(compositeKey, w, Math.floor(h * 0.75));
                 renderAudioPinsForPage(compositeKey);
+
+                if (mergedSlideKeysOrder.length > 36 && typeof renderedPagesSet !== 'undefined') {
+                    const curIdx = mergedSlideKeysOrder.indexOf(compositeKey);
+                    if (curIdx !== -1) {
+                        renderedPagesSet.forEach((renderedKey) => {
+                            const rIdx = mergedSlideKeysOrder.indexOf(renderedKey);
+                            if (rIdx !== -1 && Math.abs(rIdx - curIdx) > 16) {
+                                const distantPdf = document.getElementById(`pdfRenderCanvas_${renderedKey}`);
+                                if (distantPdf) {
+                                    distantPdf.width = 0;
+                                    distantPdf.height = 0;
+                                }
+                                const hasInk = Array.isArray(pageAnnotations[renderedKey]) && pageAnnotations[renderedKey].length > 0;
+                                if (!hasInk) {
+                                    const distantInk = document.getElementById(`pdfInkCanvas_${renderedKey}`);
+                                    if (distantInk && distantInk.width > 1) {
+                                        distantInk.width = 1;
+                                        distantInk.height = 1;
+                                    }
+                                }
+                                const distantLaser = document.getElementById(`pdfLaserCanvas_${renderedKey}`);
+                                if (distantLaser && distantLaser.width > 1) {
+                                    distantLaser.width = 1;
+                                    distantLaser.height = 1;
+                                }
+                                renderedPagesSet.delete(renderedKey);
+                            }
+                        });
+                    }
+                }
             } catch (e) {}
         }
 
@@ -40213,21 +40755,20 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (myZoomToken !== pdfZoomSessionToken) return;
                 lockScrollContainerToPageAnchor(savedKey, offsetRatio);
 
-                // Re-render remaining slides smoothly in background starting from neighbors
+                // Re-render immediate neighbors smoothly while honoring cancellation
                 const curIdx = Math.max(0, mergedSlideKeysOrder.indexOf(savedKey));
-                const neighborIndices = [curIdx - 1, curIdx + 1, curIdx - 2, curIdx + 2];
-                for (const ni of neighborIndices) {
-                    if (ni >= 0 && ni < mergedSlideKeysOrder.length) {
-                        renderSingleMergedSlideAtZoom(mergedSlideKeysOrder[ni]);
-                    }
-                }
+                const neighborIndices = [curIdx - 1, curIdx + 1].filter(ni => ni >= 0 && ni < mergedSlideKeysOrder.length);
                 renderedPagesSet.clear();
                 renderedPagesSet.add(savedKey);
-                neighborIndices.forEach(ni => {
-                    if (ni >= 0 && ni < mergedSlideKeysOrder.length) {
-                        renderedPagesSet.add(mergedSlideKeysOrder[ni]);
-                    }
-                });
+                for (const ni of neighborIndices) {
+                    if (myZoomToken !== pdfZoomSessionToken || !mergedContinuousPdfMode) return;
+                    const nk = mergedSlideKeysOrder[ni];
+                    renderedPagesSet.add(nk);
+                    await renderSingleMergedSlideAtZoom(nk);
+                }
+                if (typeof window !== 'undefined' && window.__exoForensicDiag) {
+                    window.__exoForensicDiag.captureCanvasSnapshot('merged_stream_zoom');
+                }
             } finally {
                 programmaticScrollTimer = setTimeout(() => {
                     isProgrammaticPageScroll = false;
@@ -43184,6 +43725,10 @@ function togglePdfAudioPlayerBar(forceState) {
 
                 const pdfPagesData = [];
 
+                const exportStartMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                if (typeof window !== 'undefined' && window.__exoForensicDiag) {
+                    window.__exoForensicDiag.markSyncPhase('pdf_export', 'start', { count: slideKeysToExport.length });
+                }
                 for (let idx = 0; idx < slideKeysToExport.length; idx++) {
                     const p = slideKeysToExport[idx];
                     if (statusEl) {
@@ -43199,113 +43744,130 @@ function togglePdfAudioPlayerBar(forceState) {
                     let offCanvas = document.createElement('canvas');
                     offCanvas.setAttribute('dir', 'ltr');
                     offCanvas.style.direction = 'ltr';
-                    let renderedOk = false;
+                    let noteCanvas = null;
+                    try {
+                        let renderedOk = false;
 
-                    if (docToUse) {
-                        try {
-                            const page = await docToUse.getPage(pageNumToGet);
-                            const pageRotation = (typeof page.rotate === 'number') ? ((page.rotate % 360) + 360) % 360 : 0;
-                            const vp = page.getViewport({ scale: 1.65, rotation: pageRotation });
-                            offCanvas.width = Math.max(1, Math.floor(vp.width));
-                            offCanvas.height = Math.max(1, Math.floor(vp.height));
-                            const ctx = offCanvas.getContext('2d', { alpha: false });
-                            ctx.setTransform(1, 0, 0, 1, 0, 0);
-                            ctx.direction = 'ltr';
-                            ctx.fillStyle = '#ffffff';
-                            ctx.fillRect(0, 0, offCanvas.width, offCanvas.height);
-                            await page.render({ canvasContext: ctx, viewport: vp }).promise;
-                            renderedOk = true;
-                        } catch (pageErr) {}
-                    }
-
-                    // Fallback to DOM canvas if offscreen getPage failed
-                    if (!renderedOk) {
-                        const domPdfCanvas = document.getElementById(`pdfRenderCanvas_${p}`);
-                        if (domPdfCanvas && domPdfCanvas.width > 0 && domPdfCanvas.height > 0) {
-                            offCanvas.width = domPdfCanvas.width;
-                            offCanvas.height = domPdfCanvas.height;
-                            const ctx = offCanvas.getContext('2d', { alpha: false });
-                            ctx.fillStyle = '#ffffff';
-                            ctx.fillRect(0, 0, offCanvas.width, offCanvas.height);
-                            ctx.drawImage(domPdfCanvas, 0, 0);
-                            renderedOk = true;
+                        if (docToUse) {
+                            try {
+                                const page = await docToUse.getPage(pageNumToGet);
+                                const pageRotation = (typeof page.rotate === 'number') ? ((page.rotate % 360) + 360) % 360 : 0;
+                                const vp = page.getViewport({ scale: 1.65, rotation: pageRotation });
+                                offCanvas.width = Math.max(1, Math.floor(vp.width));
+                                offCanvas.height = Math.max(1, Math.floor(vp.height));
+                                const ctx = offCanvas.getContext('2d', { alpha: false });
+                                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                                ctx.direction = 'ltr';
+                                ctx.fillStyle = '#ffffff';
+                                ctx.fillRect(0, 0, offCanvas.width, offCanvas.height);
+                                await page.render({ canvasContext: ctx, viewport: vp }).promise;
+                                renderedOk = true;
+                            } catch (pageErr) {}
                         }
-                    }
 
-                    if (!renderedOk) continue;
-
-                    // Draw saved pen/highlighter strokes & keyboard text annotations for this slide
-                    const ctx = offCanvas.getContext('2d');
-                    let strokes = pageAnnotations[p];
-                    if ((!strokes || strokes.length === 0) && mInfo && mInfo.lecAnnos) {
-                        strokes = mInfo.lecAnnos[mInfo.localPageNum] || [];
-                    }
-                    if (Array.isArray(strokes)) {
-                        for (const s of strokes) {
-                            drawSingleStrokeOnCanvas(ctx, offCanvas.width, offCanvas.height, s, true);
-                        }
-                    }
-
-                    const slideJpegUrl = offCanvas.toDataURL('image/jpeg', 0.92);
-                    pdfPagesData.push({
-                        width: offCanvas.width,
-                        height: offCanvas.height,
-                        jpegBytes: dataUrlToUint8Bytes(slideJpegUrl)
-                    });
-
-                    // Check if this slide also has an Extra Note Sheet (either with strokes or explicitly opened)
-                    const noteKey = `note_${p}`;
-                    let noteStrokes = pageAnnotations[noteKey];
-                    if ((!noteStrokes || noteStrokes.length === 0) && mInfo && mInfo.lecAnnos) {
-                        noteStrokes = mInfo.lecAnnos[`note_${mInfo.localPageNum}`] || [];
-                    }
-                    const isExtraOpened = Boolean(
-                        (pageAnnotations._extraNotes && pageAnnotations._extraNotes[p]) ||
-                        (mInfo && mInfo.lecAnnos && mInfo.lecAnnos._extraNotes && mInfo.lecAnnos._extraNotes[mInfo.localPageNum])
-                    );
-
-                    if ((Array.isArray(noteStrokes) && noteStrokes.length > 0) || isExtraOpened) {
-                        const noteCanvas = document.createElement('canvas');
-                        noteCanvas.width = offCanvas.width;
-                        noteCanvas.height = Math.max(1, Math.floor(offCanvas.height * 0.75));
-                        const nCtx = noteCanvas.getContext('2d', { alpha: false });
-
-                        // Warm cream paper background
-                        nCtx.fillStyle = '#fcfaf5';
-                        nCtx.fillRect(0, 0, noteCanvas.width, noteCanvas.height);
-
-                        // Subtle dotted grid pattern
-                        nCtx.fillStyle = '#cbd5e1';
-                        const stepPx = Math.max(18, Math.round(noteCanvas.width / 45));
-                        for (let gx = stepPx; gx < noteCanvas.width; gx += stepPx) {
-                            for (let gy = stepPx + 36; gy < noteCanvas.height; gy += stepPx) {
-                                nCtx.fillRect(gx, gy, 2, 2);
+                        // Fallback to DOM canvas if offscreen getPage failed
+                        if (!renderedOk) {
+                            const domPdfCanvas = document.getElementById(`pdfRenderCanvas_${p}`);
+                            if (domPdfCanvas && domPdfCanvas.width > 0 && domPdfCanvas.height > 0) {
+                                offCanvas.width = domPdfCanvas.width;
+                                offCanvas.height = domPdfCanvas.height;
+                                const ctx = offCanvas.getContext('2d', { alpha: false });
+                                ctx.fillStyle = '#ffffff';
+                                ctx.fillRect(0, 0, offCanvas.width, offCanvas.height);
+                                ctx.drawImage(domPdfCanvas, 0, 0);
+                                renderedOk = true;
                             }
                         }
 
-                        // Header band
-                        nCtx.fillStyle = 'rgba(45, 212, 191, 0.16)';
-                        nCtx.fillRect(0, 0, noteCanvas.width, 40);
-                        nCtx.fillStyle = '#0f766e';
-                        nCtx.font = 'bold 18px Tajawal, sans-serif';
-                        const pageLabel = mInfo
-                            ? `${mInfo.item.lec.title} - صفحة ${mInfo.localPageNum}`
-                            : `صفحة ${p}`;
-                        nCtx.fillText(`ورقة تلخيص وملاحظات إضافية — ${pageLabel}`, 24, 26);
+                        if (!renderedOk) continue;
 
-                        if (Array.isArray(noteStrokes)) {
-                            for (const ns of noteStrokes) {
-                                drawSingleStrokeOnCanvas(nCtx, noteCanvas.width, noteCanvas.height, ns, true);
+                        // Draw saved pen/highlighter strokes & keyboard text annotations for this slide
+                        const ctx = offCanvas.getContext('2d');
+                        let strokes = pageAnnotations[p];
+                        if ((!strokes || strokes.length === 0) && mInfo && mInfo.lecAnnos) {
+                            strokes = mInfo.lecAnnos[mInfo.localPageNum] || [];
+                        }
+                        if (Array.isArray(strokes)) {
+                            for (const s of strokes) {
+                                drawSingleStrokeOnCanvas(ctx, offCanvas.width, offCanvas.height, s, true);
                             }
                         }
 
-                        const noteJpegUrl = noteCanvas.toDataURL('image/jpeg', 0.92);
+                        const slideJpegUrl = offCanvas.toDataURL('image/jpeg', 0.92);
                         pdfPagesData.push({
-                            width: noteCanvas.width,
-                            height: noteCanvas.height,
-                            jpegBytes: dataUrlToUint8Bytes(noteJpegUrl)
+                            width: offCanvas.width,
+                            height: offCanvas.height,
+                            jpegBytes: dataUrlToUint8Bytes(slideJpegUrl)
                         });
+
+                        // Check if this slide also has an Extra Note Sheet (either with strokes or explicitly opened)
+                        const noteKey = `note_${p}`;
+                        let noteStrokes = pageAnnotations[noteKey];
+                        if ((!noteStrokes || noteStrokes.length === 0) && mInfo && mInfo.lecAnnos) {
+                            noteStrokes = mInfo.lecAnnos[`note_${mInfo.localPageNum}`] || [];
+                        }
+                        const isExtraOpened = Boolean(
+                            (pageAnnotations._extraNotes && pageAnnotations._extraNotes[p]) ||
+                            (mInfo && mInfo.lecAnnos && mInfo.lecAnnos._extraNotes && mInfo.lecAnnos._extraNotes[mInfo.localPageNum])
+                        );
+
+                        if ((Array.isArray(noteStrokes) && noteStrokes.length > 0) || isExtraOpened) {
+                            noteCanvas = document.createElement('canvas');
+                            noteCanvas.width = offCanvas.width;
+                            noteCanvas.height = Math.max(1, Math.floor(offCanvas.height * 0.75));
+                            const nCtx = noteCanvas.getContext('2d', { alpha: false });
+
+                            // Warm cream paper background
+                            nCtx.fillStyle = '#fcfaf5';
+                            nCtx.fillRect(0, 0, noteCanvas.width, noteCanvas.height);
+
+                            // Subtle dotted grid pattern
+                            nCtx.fillStyle = '#cbd5e1';
+                            const stepPx = Math.max(18, Math.round(noteCanvas.width / 45));
+                            for (let gx = stepPx; gx < noteCanvas.width; gx += stepPx) {
+                                for (let gy = stepPx + 36; gy < noteCanvas.height; gy += stepPx) {
+                                    nCtx.fillRect(gx, gy, 2, 2);
+                                }
+                            }
+
+                            // Header band
+                            nCtx.fillStyle = 'rgba(45, 212, 191, 0.16)';
+                            nCtx.fillRect(0, 0, noteCanvas.width, 40);
+                            nCtx.fillStyle = '#0f766e';
+                            nCtx.font = 'bold 18px Tajawal, sans-serif';
+                            const pageLabel = mInfo
+                                ? `${mInfo.item.lec.title} - صفحة ${mInfo.localPageNum}`
+                                : `صفحة ${p}`;
+                            nCtx.fillText(`ورقة تلخيص وملاحظات إضافية — ${pageLabel}`, 24, 26);
+
+                            if (Array.isArray(noteStrokes)) {
+                                for (const ns of noteStrokes) {
+                                    drawSingleStrokeOnCanvas(nCtx, noteCanvas.width, noteCanvas.height, ns, true);
+                                }
+                            }
+
+                            const noteJpegUrl = noteCanvas.toDataURL('image/jpeg', 0.92);
+                            pdfPagesData.push({
+                                width: noteCanvas.width,
+                                height: noteCanvas.height,
+                                jpegBytes: dataUrlToUint8Bytes(noteJpegUrl)
+                            });
+                        }
+                    } finally {
+                        offCanvas.width = 0;
+                        offCanvas.height = 0;
+                        if (noteCanvas) {
+                            noteCanvas.width = 0;
+                            noteCanvas.height = 0;
+                            noteCanvas = null;
+                        }
                     }
+                    // Yield to event loop per page so paint, input, and progress updates remain responsive
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+                if (typeof window !== 'undefined' && window.__exoForensicDiag) {
+                    const expDur = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - exportStartMs;
+                    window.__exoForensicDiag.markSyncPhase('pdf_export', 'done', { count: pdfPagesData.length, durMs: expDur });
                 }
 
                 if (pdfPagesData.length === 0) {
@@ -43410,7 +43972,18 @@ function togglePdfAudioPlayerBar(forceState) {
             renderedPagesSet.clear();
 
             const scrollContainer = document.getElementById('pdfPagesScrollContainer');
-            if (scrollContainer) scrollContainer.innerHTML = '';
+            if (scrollContainer) {
+                try {
+                    const cvs = scrollContainer.querySelectorAll('canvas');
+                    for (let i = 0; i < cvs.length; i++) {
+                        if (cvs[i].width > 0 || cvs[i].height > 0) {
+                            cvs[i].width = 0;
+                            cvs[i].height = 0;
+                        }
+                    }
+                } catch (e) {}
+                scrollContainer.innerHTML = '';
+            }
 
             const iframe = document.getElementById('pdfViewerIframe');
             if (iframe) exoClearRevocableObjectUrl(iframe, 'src', '_exoPdfBlobUrl', 'about:blank');
@@ -48437,6 +49010,7 @@ function togglePdfAudioPlayerBar(forceState) {
             const qTotal = queueMeta?.total || 1;
             const deferWorkspaceSync = Boolean(queueMeta?.deferWorkspaceSync);
             const opCtx = queueMeta?.opCtx || (typeof createAccountOperationContext === 'function' ? createAccountOperationContext() : null);
+            try { if (window.__exoForensicDiag && window.__exoForensicDiag.markSyncPhase) window.__exoForensicDiag.markSyncPhase('drive_upload', 'start', { store: storeName, bytes: fileBlob.size || 0 }); } catch (e) {}
 
             updateLiveUploadMonitorUI({
                 active: true,
@@ -48609,12 +49183,14 @@ function togglePdfAudioPlayerBar(forceState) {
                         ar: `☁️ تم رفع ${labelAr} «${lecObj.title}» إلى Google Drive بنجاح (100% • السرعة: ${lastSpeedText})!`
                     }, 'success');
                 }
+                try { if (window.__exoForensicDiag && window.__exoForensicDiag.markSyncPhase) window.__exoForensicDiag.markSyncPhase('drive_upload', 'done', { store: storeName, ok: true }); } catch (e) {}
                 return { ok: true, speedText: lastSpeedText, driveFileId, method: uploadRes.method };
             } else {
                 if (!deferWorkspaceSync) {
                     setTimeout(() => updateLiveUploadMonitorUI({ active: false }), 1500);
                 }
                 const cleanErr = redactDriveSecrets(uploadRes?.error || 'gdrive_upload_failed');
+                try { if (window.__exoForensicDiag && window.__exoForensicDiag.markSyncPhase) window.__exoForensicDiag.markSyncPhase('drive_upload', 'error', { store: storeName, status: uploadRes?.status || 0 }); } catch (e) {}
                 if (typeof exoRecordIncident === 'function') {
                     exoRecordIncident('drive_media', { status: uploadRes?.status || 0, code: uploadRes?.code || 'gdrive_upload_failed', message: cleanErr }, { domain: 'drive_media', status: uploadRes?.status || 0 });
                 }
@@ -48760,7 +49336,10 @@ function togglePdfAudioPlayerBar(forceState) {
 
             inFlightMediaDownloads.set(inflightKey, downloadPromise);
             try {
-                return await downloadPromise;
+                try { if (window.__exoForensicDiag && window.__exoForensicDiag.markSyncPhase) window.__exoForensicDiag.markSyncPhase('drive_download', 'start', { store: storeName }); } catch (e) {}
+                const dlOutcome = await downloadPromise;
+                try { if (window.__exoForensicDiag && window.__exoForensicDiag.markSyncPhase) window.__exoForensicDiag.markSyncPhase('drive_download', dlOutcome && dlOutcome.ok ? 'done' : 'error', { store: storeName, status: dlOutcome?.status || 0 }); } catch (e) {}
+                return dlOutcome;
             } finally {
                 inFlightMediaDownloads.delete(inflightKey);
             }
@@ -50704,6 +51283,9 @@ function togglePdfAudioPlayerBar(forceState) {
 
         function sanitizeRecordItem(rec, targetUid = null) {
             if (!rec || typeof rec !== 'object') return null;
+            if (targetUid && rec.__exoSanitizedForUid === String(targetUid)) {
+                return rec;
+            }
             const copy = Object.assign({}, rec);
             if (!copy.status) copy.status = 'unresolved';
             if (targetUid && !copy.userId) copy.userId = String(targetUid);
@@ -50722,6 +51304,18 @@ function togglePdfAudioPlayerBar(forceState) {
                     copy.losingValue = clonedLv;
                 } catch (e) {}
             }
+            try {
+                if (typeof rec.__exoCRValDigest === 'string') {
+                    Object.defineProperty(copy, '__exoCRValDigest', { value: rec.__exoCRValDigest, enumerable: false, configurable: true });
+                }
+                if (typeof rec.__exoCRSemSig === 'string') {
+                    Object.defineProperty(copy, '__exoCRSemSig', { value: rec.__exoCRSemSig, enumerable: false, configurable: true });
+                }
+                Object.defineProperty(copy, '__exoCRImmutable', { value: true, enumerable: false, configurable: true });
+                if (targetUid) {
+                    Object.defineProperty(copy, '__exoSanitizedForUid', { value: String(targetUid), enumerable: false, configurable: true });
+                }
+            } catch (e) {}
             return copy;
         }
 
@@ -50774,24 +51368,39 @@ function togglePdfAudioPlayerBar(forceState) {
         function mergeConflictRecoveryLists(listA = [], listB = []) {
             const mapById = new Map();
             const mapBySemanticSig = new Map();
+            const computeValDigest = (item) => {
+                if (item && typeof item.__exoCRValDigest === 'string') return item.__exoCRValDigest;
+                let d = '';
+                try {
+                    if (item.losingValue !== undefined && item.losingValue !== null) {
+                        d = JSON.stringify(canonicalizeRecoveryValueForDigest(item.losingValue));
+                    } else if (item.candidateEnvelope !== undefined) {
+                        d = JSON.stringify(canonicalizeRecoveryValueForDigest(item.candidateEnvelope));
+                    }
+                } catch (e) {
+                    d = String(item && item.entityId || '');
+                }
+                if (item && item.__exoCRImmutable === true) {
+                    try { Object.defineProperty(item, '__exoCRValDigest', { value: d, enumerable: false, configurable: true }); } catch (e) {}
+                }
+                return d;
+            };
             const computeLosingSig = (item) => {
                 if (!item || typeof item !== 'object') return '';
+                if (item.__exoCRImmutable === true && typeof item.__exoCRSemSig === 'string') {
+                    return item.__exoCRSemSig;
+                }
                 const scope = String(item.scopeId || '');
                 const eType = String(item.entityType || '');
                 const eId = String(item.entityId || '');
                 const reason = String(item.reason || '');
                 const lOpId = String(item.losingOperationId || (item.losingCausal && item.losingCausal.operationId) || '');
-                let valDigest = '';
-                try {
-                    if (item.losingValue !== undefined && item.losingValue !== null) {
-                        valDigest = JSON.stringify(canonicalizeRecoveryValueForDigest(item.losingValue));
-                    } else if (item.candidateEnvelope !== undefined) {
-                        valDigest = JSON.stringify(canonicalizeRecoveryValueForDigest(item.candidateEnvelope));
-                    }
-                } catch (e) {
-                    valDigest = String(eId);
+                const valDigest = computeValDigest(item);
+                const sig = `${scope}::${eType}::${eId}::${reason}::${lOpId}::${valDigest}`;
+                if (item.__exoCRImmutable === true) {
+                    try { Object.defineProperty(item, '__exoCRSemSig', { value: sig, enumerable: false, configurable: true }); } catch (e) {}
                 }
-                return `${scope}::${eType}::${eId}::${reason}::${lOpId}::${valDigest}`;
+                return sig;
             };
             const addList = (arr) => {
                 if (!Array.isArray(arr)) return;
@@ -50819,6 +51428,15 @@ function togglePdfAudioPlayerBar(forceState) {
                         const disambiguatedKey = `${baseKey}_v_${sigHash}`;
                         if (mapById.has(disambiguatedKey)) return;
                         itemToStore = Object.assign({}, rawItem, { recoveryId: disambiguatedKey });
+                        if (rawItem.__exoCRImmutable === true) {
+                            try {
+                                Object.defineProperty(itemToStore, '__exoCRImmutable', { value: true, enumerable: false, configurable: true });
+                                Object.defineProperty(itemToStore, '__exoCRSemSig', { value: semSig, enumerable: false, configurable: true });
+                                if (typeof rawItem.__exoCRValDigest === 'string') {
+                                    Object.defineProperty(itemToStore, '__exoCRValDigest', { value: rawItem.__exoCRValDigest, enumerable: false, configurable: true });
+                                }
+                            } catch (e) {}
+                        }
                         baseKey = disambiguatedKey;
                     }
                     mapById.set(baseKey, itemToStore);
@@ -50880,6 +51498,15 @@ function togglePdfAudioPlayerBar(forceState) {
                 losingValue: clonedLosingValue
             };
 
+            const targetValDigest = JSON.stringify(canonicalizeRecoveryValueForDigest(record.losingValue));
+            const targetSemSig = `${scopeId}::${entityType}::${record.entityId}::${reason}::${losingCausal.operationId}::${targetValDigest}`;
+            try {
+                Object.defineProperty(record, '__exoCRImmutable', { value: true, enumerable: false, configurable: true });
+                Object.defineProperty(record, '__exoCRValDigest', { value: targetValDigest, enumerable: false, configurable: true });
+                Object.defineProperty(record, '__exoCRSemSig', { value: targetSemSig, enumerable: false, configurable: true });
+                Object.defineProperty(record, '__exoSanitizedForUid', { value: uid, enumerable: false, configurable: true });
+            } catch (e) {}
+
             const memMap = (typeof inMemoryConflictRecoveryByUid !== 'undefined' && inMemoryConflictRecoveryByUid instanceof Map)
                 ? inMemoryConflictRecoveryByUid
                 : (globalThis.__exoInMemoryConflictRecoveryByUid || (globalThis.__exoInMemoryConflictRecoveryByUid = new Map()));
@@ -50889,14 +51516,17 @@ function togglePdfAudioPlayerBar(forceState) {
 
             const currentList = getConflictRecoveryRecords(uid);
             const merged = mergeConflictRecoveryLists(currentList, [record]);
-            const targetValDigest = JSON.stringify(canonicalizeRecoveryValueForDigest(record.losingValue));
             const storedRec = merged.find(r => {
                 if (!r) return false;
-                if (r.recoveryId === record.recoveryId && JSON.stringify(canonicalizeRecoveryValueForDigest(r.losingValue)) === targetValDigest) return true;
+                if (r === record) return true;
+                const rValDigest = (typeof r.__exoCRValDigest === 'string')
+                    ? r.__exoCRValDigest
+                    : JSON.stringify(canonicalizeRecoveryValueForDigest(r.losingValue));
+                if (r.recoveryId === record.recoveryId && rValDigest === targetValDigest) return true;
                 return r.losingOperationId === record.losingOperationId &&
                     r.winningOperationId === record.winningOperationId &&
                     r.entityId === record.entityId &&
-                    JSON.stringify(canonicalizeRecoveryValueForDigest(r.losingValue)) === targetValDigest;
+                    rValDigest === targetValDigest;
             }) || record;
             if (storedRec && storedRec.recoveryId) {
                 record.recoveryId = storedRec.recoveryId;
@@ -50904,26 +51534,32 @@ function togglePdfAudioPlayerBar(forceState) {
             memMap.set(uid, merged);
 
             let lsPersistedSynchronously = false;
+            const prevSt = stateMap.get(uid);
+            let exceedsLsCap = Boolean(prevSt && prevSt.exceededLsCap === true && merged.length >= Number(prevSt.count || 0));
             try {
                 const existingRaw = localStorage.getItem('pharmaConflictRecovery_' + uid);
-                const prevSt = stateMap.get(uid);
                 const alreadyMigrated = Boolean(
                     (existingRaw && existingRaw.includes('"__exoIdbMigrated":true')) ||
                     (prevSt && prevSt.idbMigrated === true)
                 );
-                const serialized = JSON.stringify(merged);
-                if (!alreadyMigrated && serialized.length <= 32768) {
-                    localStorage.setItem('pharmaConflictRecovery_' + uid, serialized);
-                    const verifyRaw = localStorage.getItem('pharmaConflictRecovery_' + uid);
-                    if (verifyRaw === serialized) {
-                        lsPersistedSynchronously = true;
-                        stateMap.set(uid, {
-                            idbMigrated: false,
-                            quotaFallbackActive: false,
-                            hasUnpersistedInMemory: false,
-                            count: merged.length,
-                            updatedAt: Date.now()
-                        });
+                if (!alreadyMigrated && !exceedsLsCap) {
+                    const serialized = JSON.stringify(merged);
+                    if (serialized.length <= 32768) {
+                        localStorage.setItem('pharmaConflictRecovery_' + uid, serialized);
+                        const verifyRaw = localStorage.getItem('pharmaConflictRecovery_' + uid);
+                        if (verifyRaw === serialized) {
+                            lsPersistedSynchronously = true;
+                            stateMap.set(uid, {
+                                idbMigrated: false,
+                                quotaFallbackActive: false,
+                                hasUnpersistedInMemory: false,
+                                exceededLsCap: false,
+                                count: merged.length,
+                                updatedAt: Date.now()
+                            });
+                        }
+                    } else {
+                        exceedsLsCap = true;
                     }
                 }
             } catch (e) {
@@ -50944,11 +51580,11 @@ function togglePdfAudioPlayerBar(forceState) {
             }
 
             // P0-A: Never write or update the compact LocalStorage pointer BEFORE the IndexedDB write completes and is verified!
-            const prevSt = stateMap.get(uid);
             stateMap.set(uid, {
                 idbMigrated: Boolean(prevSt && prevSt.idbMigrated),
                 quotaFallbackActive: true,
                 hasUnpersistedInMemory: true,
+                exceededLsCap: exceedsLsCap,
                 count: merged.length,
                 updatedAt: Date.now()
             });
@@ -51395,19 +52031,59 @@ function togglePdfAudioPlayerBar(forceState) {
             const queueMap = (typeof conflictRecoveryQueueByUid !== 'undefined' && conflictRecoveryQueueByUid instanceof Map)
                 ? conflictRecoveryQueueByUid
                 : (globalThis.__exoConflictRecoveryQueueByUid || (globalThis.__exoConflictRecoveryQueueByUid = new Map()));
-            const prevChain = queueMap.get(targetUid) || Promise.resolve();
-            const currentTask = prevChain.catch(() => {}).then(() => _runMigrateConflictRecoveryToIDB(targetUid, opCtx));
-            queueMap.set(targetUid, currentTask);
+            const coalMap = globalThis.__exoConflictRecoveryCoalescerByUid || (globalThis.__exoConflictRecoveryCoalescerByUid = new Map());
+
+            let entry = coalMap.get(targetUid);
+            if (!entry) {
+                entry = { running: null, pending: null };
+                coalMap.set(targetUid, entry);
+            }
+
+            // Burst coalescing: if a pending batch is already queued to run after any in-flight migration,
+            // join it instead of enqueueing N redundant full-list IDB/SHA-256 migrations.
+            if (entry.pending) {
+                return await entry.pending;
+            }
+
+            const runAfter = entry.running ? entry.running.catch(() => {}) : Promise.resolve();
+            const batchPromise = runAfter.then(async () => {
+                await Promise.resolve();
+                if (entry.pending === batchPromise) {
+                    entry.pending = null;
+                }
+                const activeRun = _runMigrateConflictRecoveryToIDB(targetUid, opCtx);
+                entry.running = activeRun;
+                try {
+                    return await activeRun;
+                } finally {
+                    if (entry.running === activeRun) {
+                        entry.running = null;
+                    }
+                }
+            });
+
+            entry.pending = batchPromise;
+            queueMap.set(targetUid, batchPromise);
             try {
-                return await currentTask;
+                return await batchPromise;
             } finally {
-                if (queueMap.get(targetUid) === currentTask) {
+                if (entry.pending === batchPromise) {
+                    entry.pending = null;
+                }
+                if (queueMap.get(targetUid) === batchPromise) {
                     queueMap.delete(targetUid);
+                }
+                if (!entry.running && !entry.pending && coalMap.get(targetUid) === entry) {
+                    coalMap.delete(targetUid);
                 }
             }
         }
 
         async function _runMigrateConflictRecoveryToIDB(targetUid, opCtx = null) {
+            const migStartMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            if (typeof window !== 'undefined' && window.__exoForensicDiag) {
+                window.__exoForensicDiag.markSyncPhase('conflict_recovery_migration', 'start', {});
+            }
             if (!dbInstance && typeof initPdfDB === 'function') {
                 try { await initPdfDB(); } catch (e) {}
             }
@@ -51513,6 +52189,16 @@ function togglePdfAudioPlayerBar(forceState) {
 
             const mergedRecords = mergeConflictRecoveryLists(combinedRaw, []);
 
+            const _hashPayloadSha256 = async (str) => {
+                if (typeof computeCanonicalSha256 === 'function') {
+                    return await computeCanonicalSha256(str);
+                }
+                if (typeof computePureSha256 === 'function') {
+                    return computePureSha256(str);
+                }
+                return String(str.length);
+            };
+
             // Strict pointer validation for fast hydration
             let pointerValidAndMatchesIdb = false;
             let pointerMismatchReason = null;
@@ -51526,9 +52212,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 } else {
                     const actualIdbSerialized = JSON.stringify(idbArray);
                     const actualIdbBytes = actualIdbSerialized.length;
-                    const actualIdbSha256 = (typeof computePureSha256 === 'function')
-                        ? computePureSha256(actualIdbSerialized)
-                        : String(actualIdbBytes);
+                    const actualIdbSha256 = await _hashPayloadSha256(actualIdbSerialized);
                     if (Number(lsPointer.count) !== idbArray.length) {
                         pointerMismatchReason = 'pointer_count_mismatch';
                     } else if (lsPointer.byteLength !== undefined && Number(lsPointer.byteLength) !== actualIdbBytes) {
@@ -51563,6 +52247,10 @@ function togglePdfAudioPlayerBar(forceState) {
                             freedEmbeddedBytes += compactionResult.freedBytes;
                         }
                     } catch (e) {}
+                }
+                if (typeof window !== 'undefined' && window.__exoForensicDiag) {
+                    const dur = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - migStartMs;
+                    window.__exoForensicDiag.markSyncPhase('conflict_recovery_migration', 'hydrated', { count: mergedRecords.length, durMs: dur });
                 }
                 return {
                     ok: true,
@@ -51610,9 +52298,7 @@ function togglePdfAudioPlayerBar(forceState) {
             // Step 3: Serialize and compute SHA-256 digest before writing to IndexedDB
             const serializedPayload = JSON.stringify(mergedRecords);
             const expectedBytes = serializedPayload.length;
-            const expectedSha256 = (typeof computePureSha256 === 'function')
-                ? computePureSha256(serializedPayload)
-                : String(expectedBytes);
+            const expectedSha256 = await _hashPayloadSha256(serializedPayload);
             const txId = 'cr_mig_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
             const nowMs = Date.now();
 
@@ -51713,9 +52399,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 return { ok: false, migrated: false, hydrated: false, persisted: false, reason: 'idb_readback_verification_failed' };
             }
             const readBackSerialized = JSON.stringify(readBackRecord.payload);
-            const actualSha256 = (typeof computePureSha256 === 'function')
-                ? computePureSha256(readBackSerialized)
-                : String(readBackSerialized.length);
+            const actualSha256 = await _hashPayloadSha256(readBackSerialized);
             if (actualSha256 !== expectedSha256 || readBackSerialized.length !== expectedBytes) {
                 return { ok: false, migrated: false, hydrated: false, persisted: false, reason: 'idb_digest_mismatch' };
             }
@@ -51813,6 +52497,10 @@ function togglePdfAudioPlayerBar(forceState) {
                 freedBytes += compactionResult.freedBytes;
             }
 
+            if (typeof window !== 'undefined' && window.__exoForensicDiag) {
+                const dur = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - migStartMs;
+                window.__exoForensicDiag.markSyncPhase('conflict_recovery_migration', 'committed', { count: mergedRecords.length, bytes: expectedBytes, durMs: dur });
+            }
             return {
                 ok: true,
                 migrated: Boolean(lsArray || hadInterruptedMigration || pointerMismatchReason || hasUnpersistedInMemory),
@@ -54527,10 +55215,16 @@ function togglePdfAudioPlayerBar(forceState) {
 
         async function flushPendingConflictRecoveryWrites(targetUid = null, opCtx = null) {
             const uid = targetUid ? String(targetUid) : (currentCloudUser ? String(currentCloudUser.id) : 'local');
-            const queueMap = globalThis.__exoConflictRecoveryQueueByUid || (globalThis.__exoConflictRecoveryQueueByUid = new Map());
-            const stateMap = globalThis.__exoConflictRecoveryIdbStateByUid || (globalThis.__exoConflictRecoveryIdbStateByUid = new Map());
-            const pendingTask = queueMap.get(uid);
-            if (pendingTask) {
+            const queueMap = (typeof conflictRecoveryQueueByUid !== 'undefined' && conflictRecoveryQueueByUid instanceof Map)
+                ? conflictRecoveryQueueByUid
+                : (globalThis.__exoConflictRecoveryQueueByUid || (globalThis.__exoConflictRecoveryQueueByUid = new Map()));
+            const stateMap = (typeof conflictRecoveryIdbStateByUid !== 'undefined' && conflictRecoveryIdbStateByUid instanceof Map)
+                ? conflictRecoveryIdbStateByUid
+                : (globalThis.__exoConflictRecoveryIdbStateByUid || (globalThis.__exoConflictRecoveryIdbStateByUid = new Map()));
+            let guard = 0;
+            while (queueMap.has(uid) && guard++ < 16) {
+                const pendingTask = queueMap.get(uid);
+                if (!pendingTask) break;
                 try { await pendingTask; } catch (e) {}
             }
             const st = stateMap.get(uid);
@@ -55162,6 +55856,9 @@ function togglePdfAudioPlayerBar(forceState) {
                 exoBumpStatusSeq();
                 exoRuntimeStatusState.cloudSyncing = true;
             }
+            if (typeof window !== 'undefined' && window.__exoForensicDiag) {
+                window.__exoForensicDiag.markSyncPhase('cloud_push', 'start', {});
+            }
             updateCloudNavUI('syncing');
 
             let syncPromise = null;
@@ -55655,6 +56352,9 @@ function togglePdfAudioPlayerBar(forceState) {
                     const currentEntry = activeCloudSyncByAccount.get(syncUserId);
                     if (currentEntry && currentEntry.promise === syncPromise) {
                         activeCloudSyncByAccount.delete(syncUserId);
+                    }
+                    if (typeof window !== 'undefined' && window.__exoForensicDiag) {
+                        window.__exoForensicDiag.markSyncPhase('cloud_push', 'end', {});
                     }
                     // Only clear global sync indicators if this operation still belongs to the active account session!
                     if (opCtx.isCurrent()) {
@@ -60359,6 +61059,9 @@ function togglePdfAudioPlayerBar(forceState) {
             setText('profileStatLbl3', 'Week Hours', 'ساعات الأسبوع');
             setText('profileStatLbl4', 'Done Tasks', 'مهام منجزة');
             setText('cloudSignOutBtnText', 'Sign Out', 'تسجيل الخروج');
+            document.querySelectorAll('.exo-forensic-export-lbl').forEach(el => {
+                el.textContent = isEn ? 'Export Forensic Log (.json)' : 'تصدير سجل التشخيص (.json)';
+            });
 
             // 2. Dedicated Google Drive Hub Modal (#driveHubModalOverlay)
             setText('driveHubModalTitle', 'Google Drive Media Vault', 'مخزن وسائط Google Drive');
@@ -60799,6 +61502,7 @@ function togglePdfAudioPlayerBar(forceState) {
         // MutationObserver to automatically translate any dynamic DOM updates & newly opened modal overlays
         const domObserver = new MutationObserver(function(mutations) {
             if (isApplyingI18n) return;
+            const obsStartMs = (mutations.length >= 25 && typeof performance !== 'undefined' && performance.now) ? performance.now() : 0;
             const activeLang = (window.currentExoLang === 'ar') ? 'ar' : 'en';
             isApplyingI18n = true;
             try {
@@ -60827,6 +61531,12 @@ function togglePdfAudioPlayerBar(forceState) {
                 }
             } finally {
                 isApplyingI18n = false;
+                if (typeof window !== 'undefined' && window.__exoForensicDiag && (mutations.length >= 50 || obsStartMs > 0)) {
+                    const obsDur = obsStartMs > 0 ? (performance.now() - obsStartMs) : 0;
+                    if (mutations.length >= 50 || obsDur >= 16) {
+                        window.__exoForensicDiag.recordMutationBurst(mutations.length, obsDur, 'i18n_observer');
+                    }
+                }
             }
         });
 
