@@ -5,7 +5,7 @@
 **Repository:** `JemistryMC/study-hub`  
 **Target Branch:** `main`  
 **Authoritative GitHub Source Baseline (WP 6.6):** `f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a` (CI #61 `43586175424`: `864/864 PASSED`, Pages #159 `43586174846`: `SUCCESS`)  
-**Latest GitHub HEAD / Uploaded Application Source:** `efcc665a84790172874fbb813eea7e9da21b099e` (WP 6.7 second pass; CI #64 `43609175986`: `927/927 PASSED`; Pages #164 `43609175604`: SUCCESS)  
+**Latest uploaded Application Source SHA with passing CI:** `efcc665a84790172874fbb813eea7e9da21b099e` (WP 6.7 second pass; CI #64 `43609175986`: `927/927 PASSED`; Pages #164 `43609175604`: SUCCESS). **Latest documentation-only GitHub HEAD at report update:** `742ff7644a8b9836abea96ff25ccc25d21b4ae01`.  
 **WP 6.7 Current Status:** **`CI VERIFIED — TECHNICAL GATE PASSED; OWNER VISUAL/PRODUCT ACCEPTANCE PENDING`** on `efcc665a84790172874fbb813eea7e9da21b099e` (CI #64: `927/927`; Pages #164: SUCCESS). **NOT `APPROVED`.**  
 **Phase 6 Product Status:** **`CHANGES REQUESTED / OWNER PRODUCT REVIEW PENDING`** — second-pass engineering gate passed, but the supplied visual evidence does not demonstrate the complete handcrafted reconstruction or Imperfect Paper Cutouts requirement.
 
