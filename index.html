@@ -331,7 +331,7 @@
             margin-bottom: 18px;
             border: 1px solid var(--border-color);
             box-shadow: 0 6px 18px rgba(0,0,0,0.15);
-            transition: all 0.2s ease;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
         }
         .group-header {
             display: flex;
@@ -363,6 +363,8 @@
             margin-bottom: 10px;
             border-right: 4px solid var(--primary);
             border: 1px solid rgba(255,255,255,0.04);
+            content-visibility: auto;
+            contain-intrinsic-size: auto 66px;
             transition: transform 0.18s ease, background-color 0.18s ease;
         }
         .lecture-item:hover {
@@ -3666,6 +3668,8 @@
             flex-direction: column;
             gap: 8px;
             contain: layout style;
+            content-visibility: auto;
+            contain-intrinsic-size: auto 92px;
         }
         .fluid-session-card:hover {
             transform: none !important;
@@ -6427,6 +6431,8 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
             border-right: 3px solid var(--primary);
             border-radius: 12px;
+            content-visibility: auto;
+            contain-intrinsic-size: auto 74px;
             transition: border-color 0.15s ease, background-color 0.15s ease;
         }
         .log-item-actionable:hover { background: rgba(22, 27, 39, 0.95); border-color: rgba(255, 255, 255, 0.1); }
@@ -17301,6 +17307,7 @@
         }
 
         // --- View Switching (Smooth & Instant) ---
+        window._exoDirtyViews = window._exoDirtyViews || { dashboard: false, subjects: false, schedule: false, tracker: false };
         function switchView(viewId, element) {
             if (typeof pdfBookmarkSaveTimer !== 'undefined' && pdfBookmarkSaveTimer && typeof persistCurrentLectureReadingBookmark === 'function') {
                 persistCurrentLectureReadingBookmark(true);
@@ -17314,6 +17321,29 @@
             const target = document.getElementById(viewId);
             if(target) target.classList.add('active');
             if(element) element.classList.add('active');
+
+            // Unmount heavy inactive DOM subtrees to prevent cross-view layout/style recalc stalls
+            if (viewId !== 'schedule') {
+                const calWrap = document.getElementById('calendarInteractiveWrapper');
+                if (calWrap && calWrap.firstChild) calWrap.innerHTML = '';
+                const todayWrap = document.getElementById('todayTimelineList');
+                if (todayWrap && todayWrap.firstChild) todayWrap.innerHTML = '';
+                const tasksWrap = document.getElementById('tasksBacklogList');
+                if (tasksWrap && tasksWrap.firstChild) tasksWrap.innerHTML = '';
+                window._exoDirtyViews.schedule = true;
+            }
+            if (viewId !== 'tracker') {
+                const logsWrap = document.getElementById('logsContainer');
+                if (logsWrap && logsWrap.firstChild) logsWrap.innerHTML = '';
+                window._exoDirtyViews.tracker = true;
+            }
+            if (viewId !== 'subjects') {
+                const grpWrap = document.getElementById('groupsContainer');
+                if (grpWrap && grpWrap.children.length > 0 && grpWrap.querySelectorAll('.lecture-item').length > 60) {
+                    grpWrap.innerHTML = '';
+                    window._exoDirtyViews.subjects = true;
+                }
+            }
 
             // Sync with mobile bottom navigation bar
             document.querySelectorAll('.mobile-nav-item').forEach(btn => {
@@ -17334,17 +17364,38 @@
             if (viewId !== 'subjects' && typeof cwStopAudioPreview === 'function') {
                 cwStopAudioPreview();
             }
+            const activeLangNow = (typeof window.currentExoLang === 'string') ? window.currentExoLang : (document.documentElement?.lang || 'en');
+            if (target && target.dataset && target.dataset.exoLangTranslated !== activeLangNow) {
+                if (typeof window.exoTranslateSubtreeIfNeeded === 'function') {
+                    window.exoTranslateSubtreeIfNeeded(target, activeLangNow);
+                }
+                if (viewId === 'subjects' && typeof updateWp63ChapterWorkspaceLabels === 'function') {
+                    updateWp63ChapterWorkspaceLabels(activeLangNow);
+                }
+            }
             if(viewId === 'dashboard' && typeof renderDashboard === 'function') {
+                window._exoDirtyViews.dashboard = false;
                 renderDashboard();
             }
             if(viewId === 'subjects') {
+                window._exoDirtyViews.subjects = false;
                 if (typeof renderSubjectsList === 'function') renderSubjectsList();
                 if (activeSubjectId && document.getElementById('groupsContainer') && typeof renderGroups === 'function') {
                     renderGroups();
                 }
+                const cwEl = document.getElementById('chapter-workspace-view');
+                if (cwEl && cwEl.style.display !== 'none' && typeof activeChapterWorkspaceGroupId !== 'undefined' && activeChapterWorkspaceGroupId && typeof renderChapterWorkspace === 'function') {
+                    renderChapterWorkspace(true);
+                }
             }
-            if(viewId === 'schedule') renderSchedule();
-            if(viewId === 'tracker') updateTracker();
+            if(viewId === 'schedule') {
+                window._exoDirtyViews.schedule = false;
+                renderSchedule();
+            }
+            if(viewId === 'tracker') {
+                window._exoDirtyViews.tracker = false;
+                updateTracker();
+            }
         }
 
         // ================= PAGE 0: SIMPLIFIED TODAY / DAILY-FOCUS JOURNAL DASHBOARD =================
@@ -20505,7 +20556,11 @@
             if (changed && (!opCtx || opCtx.isCurrent()) && String(activeChapterWorkspaceGroupId) === String(expectedGroupId)) {
                 const cwEl = document.getElementById('chapter-workspace-view');
                 if (cwEl && cwEl.style.display !== 'none') {
-                    renderChapterWorkspace(true);
+                    if (document.activeElement && document.activeElement.id === 'cwResourceSearchInput' && typeof updateChapterWorkspaceResourcesInPlace === 'function') {
+                        updateChapterWorkspaceResourcesInPlace();
+                    } else {
+                        renderChapterWorkspace(true);
+                    }
                 }
             }
         }
@@ -21491,15 +21546,15 @@
                 const visibleResources = filterAndSortChapterResources(allResources, cwSearchQuery, cwResourceFilter, cwResourceSort);
                 bodyEl.innerHTML = `
                     <div class="exo-cw-resource-toolbar">
-                        <input type="text" id="cwResourceSearchInput" value="${escapeHtml(cwSearchQuery)}" placeholder="${isEn ? 'Search chapter resources...' : 'ابحث في موارد الفصل...'}" aria-label="${isEn ? 'Search chapter resources' : 'بحث في موارد الفصل'}" style="flex:1 1 200px; min-width:170px;" oninput="cwSearchQuery = this.value; renderChapterWorkspace(true);">
-                        <select id="cwResourceFilterSelect" aria-label="${isEn ? 'Filter resource type' : 'تصفية نوع المورد'}" onchange="cwResourceFilter = this.value; renderChapterWorkspace(true);">
+                        <input type="text" id="cwResourceSearchInput" value="${escapeHtml(cwSearchQuery)}" placeholder="${isEn ? 'Search chapter resources...' : 'ابحث في موارد الفصل...'}" aria-label="${isEn ? 'Search chapter resources' : 'بحث في موارد الفصل'}" style="flex:1 1 200px; min-width:170px;" oninput="cwSearchQuery = this.value; updateChapterWorkspaceResourcesInPlace();">
+                        <select id="cwResourceFilterSelect" aria-label="${isEn ? 'Filter resource type' : 'تصفية نوع المورد'}" onchange="cwResourceFilter = this.value; updateChapterWorkspaceResourcesInPlace();">
                             <option value="all" ${cwResourceFilter === 'all' ? 'selected' : ''}>${isEn ? 'All Resources' : 'كل الموارد'}</option>
                             <option value="pdf" ${cwResourceFilter === 'pdf' ? 'selected' : ''}>${isEn ? 'PDFs & Web Links' : 'ملفات PDF والروابط'}</option>
                             <option value="audio" ${cwResourceFilter === 'audio' ? 'selected' : ''}>${isEn ? 'Audio Recordings' : 'التسجيلات الصوتية'}</option>
                             <option value="note" ${cwResourceFilter === 'note' ? 'selected' : ''}>${isEn ? 'Notes, Sheets & Pins' : 'الملاحظات والدبابيس'}</option>
                             <option value="needs_action" ${cwResourceFilter === 'needs_action' ? 'selected' : ''}>${isEn ? 'Needs File / Cloud Download' : 'يحتاج ملفاً أو تنزيلاً'}</option>
                         </select>
-                        <select id="cwResourceSortSelect" aria-label="${isEn ? 'Sort resources' : 'ترتيب الموارد'}" onchange="cwResourceSort = this.value; renderChapterWorkspace(true);">
+                        <select id="cwResourceSortSelect" aria-label="${isEn ? 'Sort resources' : 'ترتيب الموارد'}" onchange="cwResourceSort = this.value; updateChapterWorkspaceResourcesInPlace();">
                             <option value="order" ${cwResourceSort === 'order' ? 'selected' : ''}>${isEn ? 'Chapter Order' : 'ترتيب الفصل'}</option>
                             <option value="incomplete" ${cwResourceSort === 'incomplete' ? 'selected' : ''}>${isEn ? 'Incomplete First' : 'غير المكتمل أولاً'}</option>
                             <option value="notes_first" ${cwResourceSort === 'notes_first' ? 'selected' : ''}>${isEn ? 'Notes & Audio First' : 'الملاحظات والصوت أولاً'}</option>
@@ -21507,13 +21562,7 @@
                         </select>
                     </div>
                     <div class="exo-cw-resource-list" id="cwResourcesList">
-                        ${visibleResources.length === 0 ? `
-                            <div class="exo-empty-bookshelf" style="padding:26px;">
-                                <div class="exo-empty-bookshelf-icon"><i class="fa-solid fa-folder-open"></i></div>
-                                <h3 class="exo-editorial">${isEn ? 'No chapter resources match' : 'لا توجد موارد مطابقة'}</h3>
-                                <p>${isEn ? 'Add a PDF lecture, audio recording, or web link, or reset active filters.' : 'أضف محاضرة PDF أو تسجيلاً صوتياً أو رابطاً، أو أعِد ضبط الفلاتر.'}</p>
-                            </div>
-                        ` : visibleResources.map(item => renderCwResourceRowHtml(item, group, isEn)).join('')}
+                        ${renderChapterWorkspaceResourcesListInnerHtml(visibleResources, group, isEn)}
                     </div>
                 `;
                 return;
@@ -21558,6 +21607,40 @@
                     ` : noteItems.map(item => renderCwResourceRowHtml(item, group, isEn)).join('')}
                 </div>
             `;
+        }
+
+        function renderChapterWorkspaceResourcesListInnerHtml(visibleResources, group, isEn) {
+            if (!visibleResources || visibleResources.length === 0) {
+                return `
+                    <div class="exo-empty-bookshelf" style="padding:26px;">
+                        <div class="exo-empty-bookshelf-icon"><i class="fa-solid fa-folder-open"></i></div>
+                        <h3 class="exo-editorial">${isEn ? 'No chapter resources match' : 'لا توجد موارد مطابقة'}</h3>
+                        <p>${isEn ? 'Add a PDF lecture, audio recording, or web link, or reset active filters.' : 'أضف محاضرة PDF أو تسجيلاً صوتياً أو رابطاً، أو أعِد ضبط الفلاتر.'}</p>
+                    </div>
+                `;
+            }
+            return visibleResources.map(item => renderCwResourceRowHtml(item, group, isEn)).join('');
+        }
+
+        function updateChapterWorkspaceResourcesInPlace() {
+            const listEl = document.getElementById('cwResourcesList');
+            if (!listEl) {
+                renderChapterWorkspace(true);
+                return;
+            }
+            const sub = subjects.find(s => String(s.id) === String(activeSubjectId));
+            const group = (sub && Array.isArray(sub.groups)) ? sub.groups.find(g => String(g.id) === String(activeChapterWorkspaceGroupId)) : null;
+            if (!sub || !group) {
+                renderChapterWorkspace(true);
+                return;
+            }
+            const isEn = (window.currentExoLang || document.documentElement?.lang) !== 'ar';
+            const localPdfSet = (typeof localMediaCache !== 'undefined' && localMediaCache.pdfs) ? localMediaCache.pdfs : new Set();
+            const localAudioSet = (typeof localMediaCache !== 'undefined' && localMediaCache.audios) ? localMediaCache.audios : new Set();
+            const annByLecMap = getChapterCachedAnnotationsMap(group);
+            const allResources = buildUnifiedChapterResources(sub, group, localPdfSet, localAudioSet, annByLecMap);
+            const visibleResources = filterAndSortChapterResources(allResources, cwSearchQuery, cwResourceFilter, cwResourceSort);
+            listEl.innerHTML = renderChapterWorkspaceResourcesListInnerHtml(visibleResources, group, isEn);
         }
 
         function renderCwResourceRowHtml(item, group, isEn) {
@@ -24037,6 +24120,19 @@
             document.querySelectorAll('.sch-subview-content').forEach(v => v.classList.remove('active'));
             const targetView = document.getElementById(`subview-${subViewId}`);
             if(targetView) targetView.classList.add('active');
+
+            if (subViewId !== 'week') {
+                const calWrap = document.getElementById('calendarInteractiveWrapper');
+                if (calWrap && calWrap.firstChild) calWrap.innerHTML = '';
+            }
+            if (subViewId !== 'today') {
+                const todayWrap = document.getElementById('todayTimelineList');
+                if (todayWrap && todayWrap.firstChild) todayWrap.innerHTML = '';
+            }
+            if (subViewId !== 'tasks') {
+                const tasksWrap = document.getElementById('tasksBacklogList');
+                if (tasksWrap && tasksWrap.firstChild) tasksWrap.innerHTML = '';
+            }
             
             renderSchedule();
         }
@@ -24139,31 +24235,40 @@
             if (typeof refreshDashboardIfVisible === 'function') refreshDashboardIfVisible();
         }
 
-        function populateSubjectDropdowns() {
+        function populateSubjectDropdowns(forceRebuild = false) {
             const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
+            const startH = Number(plannerPrefs.dayStartHour ?? 6);
+            const endH = Math.min(23, Number(plannerPrefs.dayEndHour ?? 23));
+            const weekStartD = Number(plannerPrefs.weekStartDay ?? 6);
+            const todayKey = new Date().toDateString();
+            const subSig = Array.isArray(subjects) ? subjects.map(s => `${s.id}:${s.name || ''}`).join('\x1f') : '';
+            const fullSig = `${isEn ? 'en' : 'ar'}|${startH}|${endH}|${weekStartD}|${todayKey}|${subSig}`;
+            const firstSel = document.getElementById('schFilterSubject');
+            if (!forceRebuild && populateSubjectDropdowns._lastSig === fullSig && firstSel && firstSel.options.length > 0) {
+                return;
+            }
+            populateSubjectDropdowns._lastSig = fullSig;
+
             const selects = ['schFilterSubject', 'sessionSubjectSelect', 'newTaskSubject', 'timerSubjectSelect', 'logSubjectSelect'];
+            const sharedUserOpts = [];
+            for (let i = 0; i < subjects.length; i++) {
+                sharedUserOpts.push(`<option value="${escapeHtml(String(subjects[i].id))}">${escapeHtml(subjects[i].name || '')}</option>`);
+            }
+            const sharedUserOptsHtml = sharedUserOpts.join('');
             selects.forEach(selId => {
                 const el = document.getElementById(selId);
                 if (!el) return;
                 const curVal = el.value;
-                if (selId === 'schFilterSubject') {
-                    el.innerHTML = `<option value="all">${isEn ? 'All Subjects' : '📚 جميع المواد الدراسية'}</option>`;
-                } else {
-                    el.innerHTML = `<option value="">${isEn ? 'General (No Subject)' : 'بدون مادة (عام)'}</option>`;
-                }
-                const opts = [el.innerHTML];
-                for (let i = 0; i < subjects.length; i++) {
-                    opts.push(`<option value="${escapeHtml(String(subjects[i].id))}">${escapeHtml(subjects[i].name || '')}</option>`);
-                }
-                el.innerHTML = opts.join('');
+                const firstOpt = selId === 'schFilterSubject'
+                    ? `<option value="all">${isEn ? 'All Subjects' : '📚 جميع المواد الدراسية'}</option>`
+                    : `<option value="">${isEn ? 'General (No Subject)' : 'بدون مادة (عام)'}</option>`;
+                el.innerHTML = firstOpt + sharedUserOptsHtml;
                 if (curVal) el.value = curVal;
             });
             
             const hourSel = document.getElementById('sessionStartHourSelect');
             if (hourSel) {
                 const curHourVal = hourSel.value;
-                const startH = Number(plannerPrefs.dayStartHour ?? 6);
-                const endH = Math.min(23, Number(plannerPrefs.dayEndHour ?? 23));
                 const hOpts = [];
                 for (let h = startH; h <= endH; h++) {
                     hOpts.push(`<option value="${h}">${formatHourText(h)}</option>`);
@@ -24996,36 +25101,41 @@
                 : (isEn ? 'Group by Subject' : 'تجميع بالمواد');
             if (typeof updateWeekViewOptionsBadge === 'function') updateWeekViewOptionsBadge();
 
+            const eventsByDay = new Map();
+            for (let i = 0; i < scheduleEvents.length; i++) {
+                const ev = scheduleEvents[i];
+                if (!ev) continue;
+                if (window.hideFixedInWeekGrid && (ev.isFixed || ev.type === 'mandatory')) continue;
+                if (filterType !== 'all') {
+                    if (filterType === 'important') {
+                        if (ev.type !== 'important' && ev.type !== 'practice') continue;
+                    } else if (filterType === 'review') {
+                        if (ev.type !== 'review' && ev.type !== 'catchup' && ev.type !== 'urgent') continue;
+                    } else if (filterType === 'mandatory') {
+                        if (!isCollegeCommitmentSession(ev)) continue;
+                    } else if (filterType === 'personal' || filterType === 'wasted') {
+                        if (!isPersonalNeutralSession(ev) && !isWastedTimeSession(ev)) continue;
+                    } else if (ev.type !== filterType) {
+                        continue;
+                    }
+                }
+                if (filterSubject !== 'all' && String(ev.subjectId) !== String(filterSubject)) continue;
+                if (!eventsByDay.has(ev.day)) eventsByDay.set(ev.day, []);
+                eventsByDay.get(ev.day).push(ev);
+            }
+
             const parts = [`<div class="fluid-week-board ${isHorizBoard ? 'mobile-horizontal-board' : ''}">`];
             
             orderedDays.forEach((dayObj) => {
                 const dIdx = dayObj.dayIdx;
                 const dayName = dayObj.dayName;
                 const isToday = dayObj.isToday;
-                const dayEvents = scheduleEvents.filter(ev => {
-                    if (ev.day !== dIdx) return false;
-                    if (window.hideFixedInWeekGrid && (ev.isFixed || ev.type === 'mandatory')) return false;
-                    if (filterType !== 'all') {
-                        if (filterType === 'important') {
-                            if (ev.type !== 'important' && ev.type !== 'practice') return false;
-                        } else if (filterType === 'review') {
-                            if (ev.type !== 'review' && ev.type !== 'catchup' && ev.type !== 'urgent') return false;
-                        } else if (filterType === 'mandatory') {
-                            if (!isCollegeCommitmentSession(ev)) return false;
-                        } else if (filterType === 'personal' || filterType === 'wasted') {
-                            if (!isPersonalNeutralSession(ev) && !isWastedTimeSession(ev)) return false;
-                        } else if (ev.type !== filterType) {
-                            return false;
-                        }
-                    }
-                    if (filterSubject !== 'all' && String(ev.subjectId) !== String(filterSubject)) return false;
-                    return true;
-                }).sort((a, b) => a.startHour - b.startHour);
+                const dayEvents = (eventsByDay.get(dIdx) || []).sort((a, b) => a.startHour - b.startHour);
 
                 let dayStudyHours = 0;
-                dayEvents.forEach(e => {
-                    if (isActionableStudySession(e)) dayStudyHours += (Number(e.duration) || 1);
-                });
+                for (let eIdx = 0; eIdx < dayEvents.length; eIdx++) {
+                    if (isActionableStudySession(dayEvents[eIdx])) dayStudyHours += (Number(dayEvents[eIdx].duration) || 1);
+                }
                 dayStudyHours = Number(dayStudyHours.toFixed(1));
 
                 parts.push(`
@@ -25541,7 +25651,7 @@
             return { key: 'future', label: isEn ? 'Upcoming' : '📅 مستقبلية', color: '#38bdf8' };
         }
 
-        function getGoalLinkedEventsList(goalItem) {
+        function getGoalLinkedEventsList(goalItem, eventByIdMap = null) {
             if (!goalItem) return [];
             const idSet = new Set();
             if (Array.isArray(goalItem.linkedEventIds)) {
@@ -25552,7 +25662,9 @@
             }
             const events = [];
             idSet.forEach(idStr => {
-                const ev = scheduleEvents.find(e => String(e.id) === idStr);
+                const ev = eventByIdMap
+                    ? eventByIdMap.get(idStr)
+                    : scheduleEvents.find(e => String(e.id) === idStr);
                 if (ev && !ev.isFixed && ev.type !== 'mandatory') {
                     events.push(ev);
                 }
@@ -25562,10 +25674,19 @@
 
         function syncAllBacklogGoalsWithLinkedSessions() {
             if (!Array.isArray(scheduleBacklog)) return false;
+            const eventByIdMap = new Map();
+            if (Array.isArray(scheduleEvents)) {
+                for (let i = 0; i < scheduleEvents.length; i++) {
+                    const e = scheduleEvents[i];
+                    if (e && e.id !== undefined && e.id !== null) {
+                        eventByIdMap.set(String(e.id), e);
+                    }
+                }
+            }
             let changed = false;
             scheduleBacklog.forEach(item => {
                 if (!item) return;
-                const linkedEvents = getGoalLinkedEventsList(item);
+                const linkedEvents = getGoalLinkedEventsList(item, eventByIdMap);
                 const validIds = linkedEvents.map(e => e.id);
 
                 if (!Array.isArray(item.linkedEventIds) || item.linkedEventIds.length !== validIds.length) {
@@ -25796,24 +25917,36 @@
         }
 
 
-        function findSmartMatchingEventsForGoal(goalItem) {
+        function findSmartMatchingEventsForGoal(goalItem, preindexed = null) {
             if (!goalItem || !Array.isArray(scheduleEvents)) return [];
-            const alreadyLinked = new Set(getGoalLinkedEventsList(goalItem).map(e => String(e.id)));
+            const eventByIdMap = preindexed && preindexed.eventByIdMap ? preindexed.eventByIdMap : null;
+            const alreadyLinked = new Set(getGoalLinkedEventsList(goalItem, eventByIdMap).map(e => String(e.id)));
             const goalTitle = (goalItem.title || '').trim().toLowerCase();
             const goalWords = goalTitle.split(/\s+/).filter(w => w.length >= 3);
             const goalSubId = goalItem.subjectId ? String(goalItem.subjectId) : '';
 
-            return scheduleEvents.filter(ev => {
-                if (!ev || ev.isFixed || ev.type === 'mandatory') return false;
-                if (alreadyLinked.has(String(ev.id))) return false;
-                const evTitle = (ev.title || '').trim().toLowerCase();
+            let candidateList;
+            if (preindexed) {
+                candidateList = goalSubId
+                    ? (preindexed.bySubId.get(goalSubId) || [])
+                    : preindexed.studyEvents;
+            } else {
+                candidateList = scheduleEvents;
+            }
+
+            const matches = [];
+            for (let i = 0; i < candidateList.length; i++) {
+                const ev = candidateList[i];
+                if (!ev || ev.isFixed || ev.type === 'mandatory') continue;
+                if (alreadyLinked.has(String(ev.id))) continue;
+                const evTitle = (ev._lcTitle !== undefined) ? ev._lcTitle : (ev.title || '').trim().toLowerCase();
                 const sameSub = goalSubId && ev.subjectId && String(ev.subjectId) === goalSubId;
                 const titleOverlap = (goalTitle && evTitle && (evTitle.includes(goalTitle) || goalTitle.includes(evTitle))) ||
                     goalWords.some(w => evTitle.includes(w));
-                if (sameSub && (titleOverlap || goalWords.length <= 2)) return true;
-                if (!goalSubId && titleOverlap) return true;
-                return false;
-            });
+                if (sameSub && (titleOverlap || goalWords.length <= 2)) matches.push(ev);
+                else if (!goalSubId && titleOverlap) matches.push(ev);
+            }
+            return matches;
         }
 
         function autoLinkSmartMatchedSessionsToGoal(goalId, event) {
@@ -25854,20 +25987,48 @@
             const subMap = new Map();
             for (let i = 0; i < subjects.length; i++) subMap.set(String(subjects[i].id), subjects[i].name);
 
-            const totalTasks = scheduleBacklog.length;
-            const doneTasks = scheduleBacklog.filter(t => t.done).length;
-            const linkedTasksCount = scheduleBacklog.filter(t => getGoalLinkedEventsList(t).length > 0).length;
-            let totalMins = 0;
-            scheduleBacklog.forEach(t => {
-                const linkedEvs = getGoalLinkedEventsList(t);
-                if (linkedEvs.length > 0) {
-                    linkedEvs.forEach(ev => {
-                        totalMins += Math.round(getSessionDisplayTiming(ev).effectiveDurationHours * 60);
-                    });
-                } else if (Number(t.duration) > 0 && !t.autoTimeTracked) {
-                    totalMins += Math.round(Number(t.duration) * 60);
+            const eventByIdMap = new Map();
+            const studyEventsBySubId = new Map();
+            const studyEvents = [];
+            for (let i = 0; i < scheduleEvents.length; i++) {
+                const ev = scheduleEvents[i];
+                if (!ev) continue;
+                if (ev.id !== undefined && ev.id !== null) eventByIdMap.set(String(ev.id), ev);
+                if (!ev.isFixed && ev.type !== 'mandatory') {
+                    const indexedEv = Object.assign({ _lcTitle: (ev.title || '').trim().toLowerCase() }, ev);
+                    studyEvents.push(indexedEv);
+                    if (ev.subjectId) {
+                        const sk = String(ev.subjectId);
+                        if (!studyEventsBySubId.has(sk)) studyEventsBySubId.set(sk, []);
+                        studyEventsBySubId.get(sk).push(indexedEv);
+                    }
                 }
-            });
+            }
+            const preindexed = { eventByIdMap, bySubId: studyEventsBySubId, studyEvents };
+
+            const totalTasks = scheduleBacklog.length;
+            let doneTasks = 0;
+            let linkedTasksCount = 0;
+            let totalMins = 0;
+            const filteredGoals = [];
+            for (let i = 0; i < scheduleBacklog.length; i++) {
+                const item = scheduleBacklog[i];
+                if (item.done) doneTasks++;
+                const linkedEvs = getGoalLinkedEventsList(item, eventByIdMap);
+                const hasLink = linkedEvs.length > 0;
+                if (hasLink) {
+                    linkedTasksCount++;
+                    for (let j = 0; j < linkedEvs.length; j++) {
+                        totalMins += Math.round(getSessionDisplayTiming(linkedEvs[j]).effectiveDurationHours * 60);
+                    }
+                } else if (Number(item.duration) > 0 && !item.autoTimeTracked) {
+                    totalMins += Math.round(Number(item.duration) * 60);
+                }
+                if (currentBacklogFilterMode === 'unlinked' && !(!hasLink && !item.done)) continue;
+                if (currentBacklogFilterMode === 'linked' && !hasLink) continue;
+                if (currentBacklogFilterMode === 'done' && !Boolean(item.done)) continue;
+                filteredGoals.push(item);
+            }
 
             const summaryStrip = document.getElementById('tasksSummaryStatsStrip');
             if (summaryStrip) {
@@ -25881,14 +26042,6 @@
                     <span class="studio-pill" style="color:#6ee7b7;">${isEn ? 'Completed:' : 'المكتمل:'} <b>${doneTasks}/${totalTasks}</b></span>
                 `;
             }
-
-            const filteredGoals = scheduleBacklog.filter(item => {
-                const hasLink = getGoalLinkedEventsList(item).length > 0;
-                if (currentBacklogFilterMode === 'unlinked') return !hasLink && !item.done;
-                if (currentBacklogFilterMode === 'linked') return hasLink;
-                if (currentBacklogFilterMode === 'done') return Boolean(item.done);
-                return true;
-            });
 
             if (filteredGoals.length === 0) {
                 const emptyMsg = scheduleBacklog.length === 0
@@ -25904,10 +26057,12 @@
                 return;
             }
 
+            const renderLimit = Math.max(40, Number(window.exoGoalsRenderLimit) || 40);
+            const visibleGoals = filteredGoals.slice(0, renderLimit);
             const taskParts = [];
-            filteredGoals.forEach(item => {
+            visibleGoals.forEach(item => {
                 const subName = item.subjectId ? (subMap.get(String(item.subjectId)) || (isEn ? 'General' : 'عام')) : (isEn ? 'General' : 'عام');
-                const linkedEvs = getGoalLinkedEventsList(item);
+                const linkedEvs = getGoalLinkedEventsList(item, eventByIdMap);
                 const isLinked = linkedEvs.length > 0;
 
                 let goalTotalMins = 0;
@@ -25926,7 +26081,7 @@
                 });
                 const goalPct = item.done ? 100 : (goalTotalMins > 0 ? Math.min(100, Math.round((goalCompletedMins / goalTotalMins) * 100)) : 0);
 
-                const smartSuggestions = findSmartMatchingEventsForGoal(item);
+                const smartSuggestions = isLinked ? [] : findSmartMatchingEventsForGoal(item, preindexed);
 
                 let statusBadgeHtml = '';
                 if (item.done) {
@@ -26014,6 +26169,16 @@
                     </div>
                 `);
             });
+            if (filteredGoals.length > visibleGoals.length) {
+                const remGoals = filteredGoals.length - visibleGoals.length;
+                taskParts.push(`
+                    <div style="grid-column: 1 / -1; display:flex; justify-content:center; padding:8px 0;">
+                        <button type="button" class="btn btn-outline" id="exoShowMoreGoalsBtn" style="border-style:dashed; min-height:42px; padding:8px 18px;" onclick="window.exoGoalsRenderLimit = (Number(window.exoGoalsRenderLimit) || 40) + 60; renderTasksView();">
+                            <i class="fa-solid fa-angles-down"></i> ${isEn ? `Show more goals (${remGoals} remaining)` : `عرض المزيد من الأهداف (متبقي ${remGoals})`}
+                        </button>
+                    </div>
+                `);
+            }
             list.innerHTML = taskParts.join('');
         }
 
@@ -28393,7 +28558,7 @@
             if (!Array.isArray(logs)) return;
             let logsChanged = false;
 
-            // 1. Clean up any bogus 'missed' log that was auto-generated for a 'wasted_time' task (e.g., "مهمة لم تتم في يومها: وقت ضائع")
+            // 1. Clean up any bogus 'missed' log that was auto-generated for a 'wasted_time' task
             const beforeLen = logs.length;
             logs = logs.filter(l => {
                 if (l && l.mood === 'missed' && l.text) {
@@ -28406,33 +28571,68 @@
             });
             if (logs.length !== beforeLen) logsChanged = true;
 
-            const studySessions = scheduleEvents.filter(e => !isCollegeCommitmentSession(e) && !isWastedTimeSession(e) && !isPersonalNeutralSession(e));
+            const studySessionById = new Map();
+            const catchupByLogId = new Map();
+            const catchupBySubId = new Map();
+            const fallbackCatchups = [];
+            const dayStudyIdsMap = new Map();
+            const absentInvestStudyIds = [];
+            const absentCollegeById = new Map();
+            const absentCollegeByDay = new Map();
 
-            // 2. Reconcile 'missed' and 'wasted_time' logs with compensation sessions
-            logs.forEach(log => {
-                if (!log) return;
+            for (let i = 0; i < scheduleEvents.length; i++) {
+                const ev = scheduleEvents[i];
+                if (!ev) continue;
+                if (isCollegeCommitmentSession(ev)) {
+                    if (ev.absent) {
+                        if (ev.id !== undefined && ev.id !== null) absentCollegeById.set(String(ev.id), ev);
+                        if (ev.day !== undefined && ev.day !== null) absentCollegeByDay.set(Number(ev.day), ev);
+                    }
+                    continue;
+                }
+                if (isWastedTimeSession(ev) || isPersonalNeutralSession(ev)) continue;
+
+                studySessionById.set(String(ev.id), ev);
+                const dNum = Number(ev.day);
+                if (!dayStudyIdsMap.has(dNum)) dayStudyIdsMap.set(dNum, []);
+                dayStudyIdsMap.get(dNum).push(ev.id);
+                if (ev.notes && ev.notes.includes('استغلال وقت غياب')) {
+                    absentInvestStudyIds.push(ev.id);
+                }
+
+                if (ev.recoveredFromLogId) {
+                    catchupByLogId.set(String(ev.recoveredFromLogId), ev);
+                }
+                const t = String(ev.title || '').toLowerCase();
+                const n = String(ev.notes || '').toLowerCase();
+                const isCatchupTask = ev.type === 'catchup' || t.includes('تعويض') || n.includes('تعويض') || n.includes('إنقاذ');
+                if (isCatchupTask) {
+                    if (ev.subjectId) {
+                        const sk = String(ev.subjectId);
+                        if (!catchupBySubId.has(sk)) catchupBySubId.set(sk, ev);
+                    }
+                    fallbackCatchups.push(ev);
+                }
+            }
+
+            // 2. Reconcile 'missed', 'wasted_time', and 'college_absent' logs with O(1) indexed lookups
+            for (let i = 0; i < logs.length; i++) {
+                const log = logs[i];
+                if (!log) continue;
                 if (log.mood === 'missed' || log.mood === 'wasted_time') {
-                    // Verify existing linked event still exists
                     const existingIds = (Array.isArray(log.linkedRecoveryEventIds) ? log.linkedRecoveryEventIds : (log.linkedRecoveryEventId ? [log.linkedRecoveryEventId] : []))
-                        .filter(id => studySessions.some(e => String(e.id) === String(id)));
+                        .filter(id => studySessionById.has(String(id)));
 
                     if (existingIds.length > 0) {
                         log.linkedRecoveryEventIds = existingIds;
                         log.linkedRecoveryEventId = existingIds[0];
-                        return;
+                        continue;
                     }
 
-                    // Auto-match with any scheduled catchup/recovery task
-                    const matchedCatchup = studySessions.find(ev => {
-                        if (String(ev.recoveredFromLogId) === String(log.id)) return true;
-                        const t = String(ev.title || '').toLowerCase();
-                        const n = String(ev.notes || '').toLowerCase();
-                        const isCatchupTask = ev.type === 'catchup' || t.includes('تعويض') || n.includes('تعويض') || n.includes('إنقاذ');
-                        if (!isCatchupTask) return false;
-                        if (log.subjectId && ev.subjectId && String(log.subjectId) === String(ev.subjectId)) return true;
-                        if (!log.subjectId && log.mood === 'wasted_time') return true;
-                        return isCatchupTask;
-                    });
+                    const matchedCatchup = catchupByLogId.get(String(log.id))
+                        || (log.subjectId ? catchupBySubId.get(String(log.subjectId)) : null)
+                        || fallbackCatchups[0]
+                        || null;
 
                     if (matchedCatchup) {
                         log.linkedRecoveryEventId = matchedCatchup.id;
@@ -28444,18 +28644,18 @@
                         log.linkedRecoveryEventIds = [];
                     }
                 } else if (log.mood === 'college_absent') {
-                    // 3. Reconcile 'college_absent' logs with study sessions added on that absent college day
                     const inferredDay = (log.absentDayIdx !== undefined && log.absentDayIdx !== null)
                         ? Number(log.absentDayIdx)
                         : parseDayIdxFromArabicLogText(log.text);
-                    const absentColEv = scheduleEvents.find(e => isCollegeCommitmentSession(e) && e.absent && (String(e.id) === String(log.sourceEventId) || (inferredDay !== null && Number(e.day) === inferredDay)));
+                    const absentColEv = (log.sourceEventId !== undefined && log.sourceEventId !== null ? absentCollegeById.get(String(log.sourceEventId)) : null)
+                        || (inferredDay !== null && !Number.isNaN(inferredDay) ? absentCollegeByDay.get(inferredDay) : null);
                     const targetDay = absentColEv ? Number(absentColEv.day) : inferredDay;
 
                     const manualIds = (Array.isArray(log.linkedRecoveryEventIds) ? log.linkedRecoveryEventIds : (log.linkedRecoveryEventId ? [log.linkedRecoveryEventId] : []))
-                        .filter(id => studySessions.some(e => String(e.id) === String(id)));
+                        .filter(id => studySessionById.has(String(id)));
 
-                    const dayStudyIds = targetDay !== null
-                        ? studySessions.filter(e => Number(e.day) === targetDay || (e.notes && e.notes.includes('استغلال وقت غياب'))).map(e => e.id)
+                    const dayStudyIds = (targetDay !== null && !Number.isNaN(targetDay))
+                        ? Array.from(new Set([...(dayStudyIdsMap.get(targetDay) || []), ...absentInvestStudyIds]))
                         : [];
 
                     const combinedIds = Array.from(new Set([...manualIds.map(String), ...dayStudyIds.map(String)]));
@@ -28465,23 +28665,26 @@
                         logsChanged = true;
                     }
                 }
-            });
+            }
 
             if (logsChanged) {
                 saveLogs();
             }
         }
 
-        function getLogLinkedScheduleEvents(log) {
+        function getLogLinkedScheduleEvents(log, eventByIdMap = null) {
             if (!log) return [];
             const ids = Array.isArray(log.linkedRecoveryEventIds) && log.linkedRecoveryEventIds.length > 0
                 ? log.linkedRecoveryEventIds
                 : (log.linkedRecoveryEventId ? [log.linkedRecoveryEventId] : []);
             const found = [];
-            ids.forEach(id => {
-                const ev = scheduleEvents.find(e => String(e.id) === String(id));
+            for (let i = 0; i < ids.length; i++) {
+                const idStr = String(ids[i]);
+                const ev = eventByIdMap
+                    ? eventByIdMap.get(idStr)
+                    : scheduleEvents.find(e => String(e.id) === idStr);
                 if (ev) found.push(ev);
-            });
+            }
             return found;
         }
 
@@ -28506,12 +28709,23 @@
             container.innerHTML = '';
 
             reconcileRecoveryAndAbsentLogsWithSchedule();
+
+            const eventByIdMap = new Map();
+            for (let i = 0; i < scheduleEvents.length; i++) {
+                const e = scheduleEvents[i];
+                if (e && e.id !== undefined && e.id !== null) eventByIdMap.set(String(e.id), e);
+            }
             
             const filterKeyword = document.getElementById('logSearchInput') ? document.getElementById('logSearchInput').value.trim().toLowerCase() : '';
             const filterMood = document.getElementById('logFilterMoodSelect') ? document.getElementById('logFilterMoodSelect').value : 'all';
 
-            // Update badge count for items STILL needing recovery (exclude already compensated logs!)
-            const recoverTotalCount = logs.filter(l => (l.mood === 'missed' || l.mood === 'wasted_time') && getLogLinkedScheduleEvents(l).length === 0).length;
+            let recoverTotalCount = 0;
+            for (let i = 0; i < logs.length; i++) {
+                const l = logs[i];
+                if ((l.mood === 'missed' || l.mood === 'wasted_time') && getLogLinkedScheduleEvents(l, eventByIdMap).length === 0) {
+                    recoverTotalCount++;
+                }
+            }
             const recoverBadgeEl = document.getElementById('logRecoverCountBadge');
             if (recoverBadgeEl) recoverBadgeEl.innerText = String(recoverTotalCount);
 
@@ -28615,134 +28829,151 @@
             const isFilteredMode = Boolean(filterKeyword) || filterMood !== 'all' || activeLogQuickCategory !== 'all';
             const maxVisibleDays = (showAllLogDaysExpandedList || isFilteredMode) ? allDayKeys.length : Math.min(5, allDayKeys.length);
             const visibleDayKeys = allDayKeys.slice(0, maxVisibleDays);
+            const dayCardLimit = Math.max(40, Number(window.exoLogsDayRenderLimit) || 40);
 
             const groupHtmlParts = [];
             visibleDayKeys.forEach((dKey) => {
                 const dayItems = dayGroupsMap.get(dKey) || [];
-                const isOpen = isFilteredMode || openLogDateAccordions.has(dKey);
-                const doneCount = dayItems.filter(i => !['missed', 'wasted_time'].includes(i.mood) || getLogLinkedScheduleEvents(i).length > 0).length;
-                const missedCount = dayItems.filter(i => ['missed', 'wasted_time'].includes(i.mood) && getLogLinkedScheduleEvents(i).length === 0).length;
+                const isOpen = (isFilteredMode && visibleDayKeys.length <= 5) || openLogDateAccordions.has(dKey);
+                let doneCount = 0;
+                let missedCount = 0;
                 let dayHoursSum = 0;
-                dayItems.forEach(item => {
+                for (let idx = 0; idx < dayItems.length; idx++) {
+                    const item = dayItems[idx];
+                    const isRecOrMissed = item.mood === 'missed' || item.mood === 'wasted_time';
+                    if (!isRecOrMissed || getLogLinkedScheduleEvents(item, eventByIdMap).length > 0) doneCount++;
+                    else missedCount++;
                     if (!['missed', 'wasted_time', 'weekly_report'].includes(item.mood)) {
                         const p = parseActionableLogItem(item, subMap);
                         dayHoursSum += (p.durationHours || 0);
                     }
-                });
+                }
                 dayHoursSum = Number(dayHoursSum.toFixed(1));
                 const escapedKey = dKey.replace(/'/g, "\\'");
 
-                const itemsHtml = dayItems.map(log => {
-                    const parsed = parseActionableLogItem(log, subMap);
-                    const linkedScheduleEvents = getLogLinkedScheduleEvents(log);
-                    const isCompensatedOrInvested = linkedScheduleEvents.length > 0;
+                let itemsHtml = '';
+                if (isOpen) {
+                    const visibleDayItems = dayItems.slice(0, dayCardLimit);
+                    itemsHtml = visibleDayItems.map(log => {
+                        const parsed = parseActionableLogItem(log, subMap);
+                        const linkedScheduleEvents = getLogLinkedScheduleEvents(log, eventByIdMap);
+                        const isCompensatedOrInvested = linkedScheduleEvents.length > 0;
 
-                    const subTag = parsed.subjectName
-                        ? `<span class="sc-subject-tag" style="cursor:${parsed.subjectId ? 'pointer' : 'default'};" ${parsed.subjectId ? `onclick="openSubjectFromLog('${parsed.subjectId}')"` : ''} title="${isEn ? 'Open course' : 'اضغط لفتح المادة'}"><i class="fa-solid fa-book"></i> ${escapeHtml(parsed.subjectName)}</span>`
-                        : '';
-                    const durDisplay = log.mood === 'college_absent' ? (isEn ? '1 day off' : '1 يوم غياب') : parsed.durationBadgeText;
-                    const durTag = durDisplay
-                        ? `<span class="log-duration-chip"><i class="fa-regular ${log.mood === 'college_absent' ? 'fa-calendar-check' : 'fa-clock'}" style="color:var(--sage-green, #899982);"></i> ${durDisplay}</span>`
-                        : '';
+                        const subTag = parsed.subjectName
+                            ? `<span class="sc-subject-tag" style="cursor:${parsed.subjectId ? 'pointer' : 'default'};" ${parsed.subjectId ? `onclick="openSubjectFromLog('${parsed.subjectId}')"` : ''} title="${isEn ? 'Open course' : 'اضغط لفتح المادة'}"><i class="fa-solid fa-book"></i> ${escapeHtml(parsed.subjectName)}</span>`
+                            : '';
+                        const durDisplay = log.mood === 'college_absent' ? (isEn ? '1 day off' : '1 يوم غياب') : parsed.durationBadgeText;
+                        const durTag = durDisplay
+                            ? `<span class="log-duration-chip"><i class="fa-regular ${log.mood === 'college_absent' ? 'fa-calendar-check' : 'fa-clock'}" style="color:var(--sage-green, #899982);"></i> ${durDisplay}</span>`
+                            : '';
 
-                    let linkedStatusBadgeHtml = '';
-                    let rowExtraClass = '';
-                    let actionBtnHtml = '';
+                        let linkedStatusBadgeHtml = '';
+                        let rowExtraClass = '';
+                        let actionBtnHtml = '';
 
-                    if (log.mood === 'missed' || log.mood === 'wasted_time') {
-                        if (isCompensatedOrInvested) {
-                            rowExtraClass = 'is-compensated-log';
-                            const names = linkedScheduleEvents.map(e => e.title).join(', ');
-                            const allDone = linkedScheduleEvents.every(e => e.completed);
-                            linkedStatusBadgeHtml = `
-                                <span class="log-compensated-pill" onclick="openLogRecoveryLinkerModal(${log.id}, event)" style="cursor:pointer;">
-                                    <i class="fa-solid fa-circle-check"></i> ${isEn ? `Recovered via «${escapeHtml(names)}» ${allDone ? '(Done ✓)' : '(Scheduled)'}` : `تم التعويض بـ: «${escapeHtml(names)}» ${allDone ? '(مكتملة ✓)' : '(مجدولة 📅)'}`}
-                                </span>
-                            `;
+                        if (log.mood === 'missed' || log.mood === 'wasted_time') {
+                            if (isCompensatedOrInvested) {
+                                rowExtraClass = 'is-compensated-log';
+                                const names = linkedScheduleEvents.map(e => e.title).join(', ');
+                                const allDone = linkedScheduleEvents.every(e => e.completed);
+                                linkedStatusBadgeHtml = `
+                                    <span class="log-compensated-pill" onclick="openLogRecoveryLinkerModal(${log.id}, event)" style="cursor:pointer;">
+                                        <i class="fa-solid fa-circle-check"></i> ${isEn ? `Recovered via «${escapeHtml(names)}» ${allDone ? '(Done ✓)' : '(Scheduled)'}` : `تم التعويض بـ: «${escapeHtml(names)}» ${allDone ? '(مكتملة ✓)' : '(مجدولة 📅)'}`}
+                                    </span>
+                                `;
+                                actionBtnHtml = `
+                                    <button type="button" class="log-act-btn" style="color:#cde0c5; border-color:rgba(137,153,130,0.45); background:rgba(137,153,130,0.14);" onclick="openLogRecoveryLinkerModal(${log.id}, event)">
+                                        <i class="fa-solid fa-check-double"></i> ${isEn ? 'Recovered ✓' : 'تم التعويض ✓'}
+                                    </button>
+                                `;
+                            } else {
+                                rowExtraClass = 'is-missed-log';
+                                actionBtnHtml = `
+                                    <button type="button" class="log-act-btn recover" onclick="actionRecoverMissedFromLog(${log.id})">
+                                        <i class="fa-solid fa-bolt"></i> ${isEn ? 'Recover Now' : 'تعويض الآن'}
+                                    </button>
+                                    <button type="button" class="log-act-btn" onclick="openLogRecoveryLinkerModal(${log.id}, event)">
+                                        <i class="fa-solid fa-link"></i> ${isEn ? 'Link Block' : 'ربط بمهمة'}
+                                    </button>
+                                `;
+                            }
+                        } else if (log.mood === 'weekly_report') {
+                            rowExtraClass = 'is-report-log';
                             actionBtnHtml = `
-                                <button type="button" class="log-act-btn" style="color:#cde0c5; border-color:rgba(137,153,130,0.45); background:rgba(137,153,130,0.14);" onclick="openLogRecoveryLinkerModal(${log.id}, event)">
-                                    <i class="fa-solid fa-check-double"></i> ${isEn ? 'Recovered ✓' : 'تم التعويض ✓'}
+                                <button type="button" class="log-act-btn" style="color:#b7cad6; border-color:rgba(120,152,172,0.38); background:rgba(120,152,172,0.12);" onclick="scrollToWeeklyEvaluationsSection()">
+                                    <i class="fa-solid fa-chart-pie"></i> ${isEn ? 'Reports' : 'التقارير'}
                                 </button>
                             `;
+                        } else if (log.mood === 'college_absent') {
+                            if (isCompensatedOrInvested) {
+                                rowExtraClass = 'is-compensated-log';
+                                let invHrs = 0;
+                                linkedScheduleEvents.forEach(e => { invHrs += getSessionDisplayTiming(e).effectiveDurationHours; });
+                                invHrs = Number(invHrs.toFixed(1));
+                                const names = linkedScheduleEvents.map(e => e.title).join(', ');
+                                linkedStatusBadgeHtml = `
+                                    <span class="log-compensated-pill" onclick="openLogRecoveryLinkerModal(${log.id}, event)" style="cursor:pointer;">
+                                        <i class="fa-solid fa-circle-check"></i> ${isEn ? `Reclaimed in «${escapeHtml(names)}» (${invHrs}h)` : `تم استثمار الغياب في: «${escapeHtml(names)}» (${invHrs} س)`}
+                                    </span>
+                                `;
+                                actionBtnHtml = `
+                                    <button type="button" class="log-act-btn" style="color:#cde0c5; border-color:rgba(137,153,130,0.45); background:rgba(137,153,130,0.14);" onclick="actionInvestAbsentFromLog(${log.id})">
+                                        <i class="fa-solid fa-plus"></i> ${isEn ? 'Add Block' : 'مهمة أخرى'}
+                                    </button>
+                                    <button type="button" class="log-act-btn" onclick="openLogRecoveryLinkerModal(${log.id}, event)" aria-label="${isEn ? 'Link scheduled block' : 'ربط بمهمة بالجدول'}" title="${isEn ? 'Link scheduled block' : 'ربط بمهمة'}">
+                                        <i class="fa-solid fa-link"></i>
+                                    </button>
+                                `;
+                            } else {
+                                rowExtraClass = 'is-absent-log';
+                                actionBtnHtml = `
+                                    <button type="button" class="log-act-btn" style="color:#f3e1b3; border-color:rgba(215,185,111,0.38); background:rgba(215,185,111,0.12);" onclick="actionInvestAbsentFromLog(${log.id})">
+                                        <i class="fa-solid fa-calendar-check"></i> ${isEn ? 'Reclaim Time' : 'استثمار بالجدول'}
+                                    </button>
+                                    <button type="button" class="log-act-btn" onclick="openLogRecoveryLinkerModal(${log.id}, event)">
+                                        <i class="fa-solid fa-link"></i> ${isEn ? 'Link Block' : 'ربط بمهمة'}
+                                    </button>
+                                `;
+                            }
                         } else {
-                            rowExtraClass = 'is-missed-log';
                             actionBtnHtml = `
-                                <button type="button" class="log-act-btn recover" onclick="actionRecoverMissedFromLog(${log.id})">
-                                    <i class="fa-solid fa-bolt"></i> ${isEn ? 'Recover Now' : 'تعويض الآن'}
-                                </button>
-                                <button type="button" class="log-act-btn" onclick="openLogRecoveryLinkerModal(${log.id}, event)">
-                                    <i class="fa-solid fa-link"></i> ${isEn ? 'Link Block' : 'ربط بمهمة'}
+                                <button type="button" class="log-act-btn" onclick="actionScheduleReviewFromLog(${log.id})">
+                                    <i class="fa-solid fa-rotate"></i> ${isEn ? 'Schedule Review' : 'جدولة مراجعة'}
                                 </button>
                             `;
                         }
-                    } else if (log.mood === 'weekly_report') {
-                        rowExtraClass = 'is-report-log';
-                        actionBtnHtml = `
-                            <button type="button" class="log-act-btn" style="color:#b7cad6; border-color:rgba(120,152,172,0.38); background:rgba(120,152,172,0.12);" onclick="scrollToWeeklyEvaluationsSection()">
-                                <i class="fa-solid fa-chart-pie"></i> ${isEn ? 'Reports' : 'التقارير'}
-                            </button>
+
+                        return `
+                            <div class="log-item-actionable ${rowExtraClass}">
+                                <div style="min-width: 0; flex: 1;">
+                                    <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:wrap;">
+                                        ${moodIcons[log.mood] || ''}
+                                        ${subTag}
+                                        ${durTag}
+                                        ${linkedStatusBadgeHtml}
+                                    </div>
+                                    <div style="font-weight: 800; font-size: 0.9rem; color: var(--warm-paper, #F0E6D4); line-height: 1.4; word-break: break-word;">
+                                        ${parsed.cleanTitle}
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; flex-wrap: wrap;">
+                                    ${actionBtnHtml}
+                                    <button type="button" class="icon-btn delete" style="width:28px; height:28px;" onclick="triggerDeleteLog(${log.id})" aria-label="${isEn ? 'Delete log entry' : 'حذف من السجل'}">
+                                        <i class="fa-solid fa-trash" style="font-size:0.74rem;"></i>
+                                    </button>
+                                </div>
+                            </div>
                         `;
-                    } else if (log.mood === 'college_absent') {
-                        if (isCompensatedOrInvested) {
-                            rowExtraClass = 'is-compensated-log';
-                            let invHrs = 0;
-                            linkedScheduleEvents.forEach(e => { invHrs += getSessionDisplayTiming(e).effectiveDurationHours; });
-                            invHrs = Number(invHrs.toFixed(1));
-                            const names = linkedScheduleEvents.map(e => e.title).join(', ');
-                            linkedStatusBadgeHtml = `
-                                <span class="log-compensated-pill" onclick="openLogRecoveryLinkerModal(${log.id}, event)" style="cursor:pointer;">
-                                    <i class="fa-solid fa-circle-check"></i> ${isEn ? `Reclaimed in «${escapeHtml(names)}» (${invHrs}h)` : `تم استثمار الغياب في: «${escapeHtml(names)}» (${invHrs} س)`}
-                                </span>
-                            `;
-                            actionBtnHtml = `
-                                <button type="button" class="log-act-btn" style="color:#cde0c5; border-color:rgba(137,153,130,0.45); background:rgba(137,153,130,0.14);" onclick="actionInvestAbsentFromLog(${log.id})">
-                                    <i class="fa-solid fa-plus"></i> ${isEn ? 'Add Block' : 'مهمة أخرى'}
-                                </button>
-                                <button type="button" class="log-act-btn" onclick="openLogRecoveryLinkerModal(${log.id}, event)" aria-label="${isEn ? 'Link scheduled block' : 'ربط بمهمة بالجدول'}" title="${isEn ? 'Link scheduled block' : 'ربط بمهمة'}">
-                                    <i class="fa-solid fa-link"></i>
-                                </button>
-                            `;
-                        } else {
-                            rowExtraClass = 'is-absent-log';
-                            actionBtnHtml = `
-                                <button type="button" class="log-act-btn" style="color:#f3e1b3; border-color:rgba(215,185,111,0.38); background:rgba(215,185,111,0.12);" onclick="actionInvestAbsentFromLog(${log.id})">
-                                    <i class="fa-solid fa-calendar-check"></i> ${isEn ? 'Reclaim Time' : 'استثمار بالجدول'}
-                                </button>
-                                <button type="button" class="log-act-btn" onclick="openLogRecoveryLinkerModal(${log.id}, event)">
-                                    <i class="fa-solid fa-link"></i> ${isEn ? 'Link Block' : 'ربط بمهمة'}
-                                </button>
-                            `;
-                        }
-                    } else {
-                        actionBtnHtml = `
-                            <button type="button" class="log-act-btn" onclick="actionScheduleReviewFromLog(${log.id})">
-                                <i class="fa-solid fa-rotate"></i> ${isEn ? 'Schedule Review' : 'جدولة مراجعة'}
+                    }).join('');
+                    if (dayItems.length > visibleDayItems.length) {
+                        const remItems = dayItems.length - visibleDayItems.length;
+                        itemsHtml += `
+                            <button type="button" class="btn btn-outline" style="width:100%; justify-content:center; padding:8px; font-size:0.8rem; border-style:dashed; margin-top:6px;" onclick="window.exoLogsDayRenderLimit = (Number(window.exoLogsDayRenderLimit) || 40) + 80; renderLogs();">
+                                <i class="fa-solid fa-angles-down"></i> ${isEn ? `Load more entries (${remItems} remaining)` : `عرض المزيد من السجلات (متبقي ${remItems})`}
                             </button>
                         `;
                     }
-
-                    return `
-                        <div class="log-item-actionable ${rowExtraClass}">
-                            <div style="min-width: 0; flex: 1;">
-                                <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:wrap;">
-                                    ${moodIcons[log.mood] || ''}
-                                    ${subTag}
-                                    ${durTag}
-                                    ${linkedStatusBadgeHtml}
-                                </div>
-                                <div style="font-weight: 800; font-size: 0.9rem; color: var(--warm-paper, #F0E6D4); line-height: 1.4; word-break: break-word;">
-                                    ${parsed.cleanTitle}
-                                </div>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; flex-wrap: wrap;">
-                                ${actionBtnHtml}
-                                <button type="button" class="icon-btn delete" style="width:28px; height:28px;" onclick="triggerDeleteLog(${log.id})" aria-label="${isEn ? 'Delete log entry' : 'حذف من السجل'}">
-                                    <i class="fa-solid fa-trash" style="font-size:0.74rem;"></i>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+                }
 
                 const toWesternDigits = (str) => String(str || '').replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]).replace(/[\u200E\u200F]/g, '');
                 const enTodayDisplay = new Date().toLocaleDateString('en-US');
@@ -39143,6 +39374,11 @@ function togglePdfAudioPlayerBar(forceState) {
             const countNotes = document.getElementById('pdfThumbFilterCount_notes');
             if (countNotes) countNotes.innerText = pagesWithNotes.size;
 
+            const thumbDrawer = document.getElementById('pdfThumbnailsDrawer');
+            if (!thumbDrawer || !thumbDrawer.classList.contains('open')) {
+                return;
+            }
+
             grid.innerHTML = '';
             if (total === 0 && customPages.length === 0) {
                 grid.innerHTML = '<div style="color:var(--text-muted); font-size:0.75rem; text-align:center; padding:20px;">لا توجد صفحات متاحة للعرض</div>';
@@ -39386,7 +39622,9 @@ function togglePdfAudioPlayerBar(forceState) {
             if (!scrollContainer || pdfScrollDetectAttached) return;
             pdfScrollDetectAttached = true;
 
-            scrollContainer.addEventListener('scroll', () => {
+            let pdfScrollDetectRafId = 0;
+            const runScrollDetection = () => {
+                pdfScrollDetectRafId = 0;
                 if (isProgrammaticPageScroll || (!currentPdfDoc && !mergedContinuousPdfMode)) return;
                 const containerRect = scrollContainer.getBoundingClientRect();
                 const focusY = containerRect.top + containerRect.height * 0.42;
@@ -39394,22 +39632,26 @@ function togglePdfAudioPlayerBar(forceState) {
                 let bestDist = Infinity;
 
                 const wrappers = scrollContainer.querySelectorAll('.pdf-page-wrapper:not(.pdf-extra-note-sheet)');
-                wrappers.forEach((w, idx) => {
+                for (let i = 0; i < wrappers.length; i++) {
+                    const w = wrappers[i];
                     const pKey = mergedContinuousPdfMode ? w.dataset.compositeKey : parseInt(w.dataset.pageNumber);
-                    if (!pKey) return;
+                    if (!pKey) continue;
                     const r = w.getBoundingClientRect();
+                    if (r.bottom < containerRect.top - 400 && i < wrappers.length - 1) continue;
+                    if (r.top > containerRect.bottom + 400 && bestDist < Infinity) break;
                     if (focusY >= r.top && focusY <= r.bottom) {
                         bestPage = pKey;
                         bestDist = 0;
+                        break;
                     } else if (bestDist > 0) {
-                        const center = (r.top + r.bottom) / 2;
+                        const center = (r.top + r.bottom) * 0.5;
                         const d = Math.abs(center - focusY);
                         if (d < bestDist) {
                             bestDist = d;
                             bestPage = pKey;
                         }
                     }
-                });
+                }
                 if (bestPage !== currentActivePageNum) {
                     if (mergedContinuousPdfMode) {
                         updateMergedSlideCounterUI(bestPage);
@@ -39417,6 +39659,12 @@ function togglePdfAudioPlayerBar(forceState) {
                         updatePdfPageCounterUI(bestPage);
                     }
                 }
+            };
+
+            scrollContainer.addEventListener('scroll', () => {
+                if (isProgrammaticPageScroll || (!currentPdfDoc && !mergedContinuousPdfMode)) return;
+                if (pdfScrollDetectRafId) return;
+                pdfScrollDetectRafId = requestAnimationFrame(runScrollDetection);
             }, { passive: true });
         }
 
@@ -39730,6 +39978,8 @@ function togglePdfAudioPlayerBar(forceState) {
                 const visCtx = pdfCanvas.getContext('2d', { alpha: false });
                 visCtx.setTransform(1, 0, 0, 1, 0, 0);
                 visCtx.drawImage(offCanvas, 0, 0);
+                offCanvas.width = 0;
+                offCanvas.height = 0;
 
                 // Sync overlay annotation canvases at full HiDPI (targetPixelW x targetPixelH) for silky-smooth zero-grain strokes!
                 inkCanvas.width = targetPixelW;
@@ -39740,6 +39990,18 @@ function togglePdfAudioPlayerBar(forceState) {
                 redrawPageAnnotations(pageNum);
                 renderAudioPinsForPage(pageNum);
                 syncExtraNoteSheetSize(pageNum, cssWidth, Math.floor(cssHeight * 0.75));
+                if (totalPdfPages > 36 && typeof renderedPagesSet !== 'undefined') {
+                    renderedPagesSet.forEach((renderedP) => {
+                        if (typeof renderedP === 'number' && Math.abs(renderedP - pageNum) > 16) {
+                            const distantCanvas = document.getElementById(`pdfRenderCanvas_${renderedP}`);
+                            if (distantCanvas) {
+                                distantCanvas.width = 0;
+                                distantCanvas.height = 0;
+                            }
+                            renderedPagesSet.delete(renderedP);
+                        }
+                    });
+                }
             } catch (e) {
                 // Ignore RenderingCancelledException when user zooms rapidly
             }
@@ -42627,6 +42889,8 @@ function togglePdfAudioPlayerBar(forceState) {
             sheet.id = `pdfExtraNoteWrapper_${pageNum}`;
             sheet.dataset.pageNum = String(pageNum);
             if (customLabel) sheet.dataset.customLabel = String(customLabel);
+            sheet.dataset.pendingWidth = String(widthPx);
+            sheet.dataset.pendingHeight = String(heightPx);
             sheet.style.width = `${widthPx}px`;
             sheet.style.height = `${heightPx}px`;
             sheet.style.display = isOpened ? 'block' : 'none';
@@ -42639,15 +42903,15 @@ function togglePdfAudioPlayerBar(forceState) {
             const inkCanvas = document.createElement('canvas');
             inkCanvas.className = 'pdf-ink-canvas';
             inkCanvas.id = `pdfInkCanvas_${noteKey}`;
-            inkCanvas.width = Math.max(1, Math.floor(widthPx * noteDpr));
-            inkCanvas.height = Math.max(1, Math.floor(heightPx * noteDpr));
+            inkCanvas.width = isOpened ? Math.max(1, Math.floor(widthPx * noteDpr)) : 1;
+            inkCanvas.height = isOpened ? Math.max(1, Math.floor(heightPx * noteDpr)) : 1;
             inkCanvas.style.opacity = annotationsVisible ? '1' : '0';
 
             const laserCanvas = document.createElement('canvas');
             laserCanvas.className = 'pdf-laser-canvas';
             laserCanvas.id = `pdfLaserCanvas_${noteKey}`;
-            laserCanvas.width = Math.max(1, Math.floor(widthPx * noteDpr));
-            laserCanvas.height = Math.max(1, Math.floor(heightPx * noteDpr));
+            laserCanvas.width = isOpened ? Math.max(1, Math.floor(widthPx * noteDpr)) : 1;
+            laserCanvas.height = isOpened ? Math.max(1, Math.floor(heightPx * noteDpr)) : 1;
 
             const textLayer = document.createElement('div');
             textLayer.className = 'pdf-text-layer';
@@ -42670,9 +42934,15 @@ function togglePdfAudioPlayerBar(forceState) {
             const laserCanvas = document.getElementById(`pdfLaserCanvas_${noteKey}`);
             if (!sheet || !inkCanvas || !laserCanvas) return;
 
-            const noteDpr = Math.min(window.devicePixelRatio || 1, 2);
+            sheet.dataset.pendingWidth = String(widthPx);
+            sheet.dataset.pendingHeight = String(heightPx);
             sheet.style.width = `${widthPx}px`;
             sheet.style.height = `${heightPx}px`;
+            if (sheet.style.display === 'none') {
+                return;
+            }
+
+            const noteDpr = Math.min(window.devicePixelRatio || 1, 2);
             inkCanvas.width = Math.max(1, Math.floor(widthPx * noteDpr));
             inkCanvas.height = Math.max(1, Math.floor(heightPx * noteDpr));
             laserCanvas.width = Math.max(1, Math.floor(widthPx * noteDpr));
@@ -42691,7 +42961,23 @@ function togglePdfAudioPlayerBar(forceState) {
             const nextState = isHidden ? true : false;
             if (isHidden) {
                 sheet.style.display = 'block';
-                redrawPageAnnotations(`note_${targetPage}`);
+                const noteKey = `note_${targetPage}`;
+                const targetW = Number(sheet.dataset.pendingWidth) || sheet.clientWidth || 800;
+                const targetH = Number(sheet.dataset.pendingHeight) || sheet.clientHeight || 600;
+                const inkCanvas = document.getElementById(`pdfInkCanvas_${noteKey}`);
+                const laserCanvas = document.getElementById(`pdfLaserCanvas_${noteKey}`);
+                const noteDpr = Math.min(window.devicePixelRatio || 1, 2);
+                const reqW = Math.max(1, Math.floor(targetW * noteDpr));
+                const reqH = Math.max(1, Math.floor(targetH * noteDpr));
+                if (inkCanvas && (inkCanvas.width !== reqW || inkCanvas.height !== reqH)) {
+                    inkCanvas.width = reqW;
+                    inkCanvas.height = reqH;
+                }
+                if (laserCanvas && (laserCanvas.width !== reqW || laserCanvas.height !== reqH)) {
+                    laserCanvas.width = reqW;
+                    laserCanvas.height = reqH;
+                }
+                redrawPageAnnotations(noteKey);
                 sheet.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 showToast(isEn ? 'Extra summary sheet opened beneath slide' : '📄 تم فتح مساحة تلخيص إضافية أسفل السلايد');
             } else {
@@ -51540,7 +51826,7 @@ function togglePdfAudioPlayerBar(forceState) {
             }
         }
 
-        function stampEntityMutation(entity, entityType, id, targetUid = null) {
+        function stampEntityMutation(entity, entityType, id, targetUid = null, precomputedDigest = null) {
             if (!entity || typeof entity !== 'object') {
                 throw new Error('INVALID_ENTITY_OBJECT: entity must be a non-null object');
             }
@@ -51550,7 +51836,9 @@ function togglePdfAudioPlayerBar(forceState) {
                 : (entity.id ?? entity.weekStartIso ?? entity.timestamp);
             const { normType, normId, scopeId } = validateAndResolveEntityScope(entityType, resolvedId);
 
-            const currentDigest = computeEntityContentDigest(entity);
+            const currentDigest = (typeof precomputedDigest === 'string' && precomputedDigest.length > 0)
+                ? precomputedDigest
+                : computeEntityContentDigest(entity);
             const observedLegacyDigests = [];
             const observedLegacyOpIds = [];
 
@@ -51646,7 +51934,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 (entity._causalDigest !== undefined && entity._causalDigest !== digest)
             );
             if (needsStamp) {
-                stampEntityMutation(entity, normType, normId, targetUid);
+                stampEntityMutation(entity, normType, normId, targetUid, digest);
                 return { status: 'stamped', scopeId, entityType: normType, entityId: normId };
             }
             observeCausalOperation(entity._causal, targetUid);
@@ -58661,22 +58949,47 @@ function togglePdfAudioPlayerBar(forceState) {
         }
 
         // --- Live Time-Sync Banner & Current Session Radar ---
-        function updateLiveTimeSyncBanner() {
+        function updateLiveTimeSyncBanner(forceUpdate = false) {
+            const cache = updateLiveTimeSyncBanner._cache || (updateLiveTimeSyncBanner._cache = {});
             const isEn = (window.currentExoLang || document.documentElement?.lang) !== 'ar';
             const locale = isEn ? 'en-US' : 'ar-EG';
             const now = new Date();
 
             const navDateEl = document.getElementById('currentDate');
             if (navDateEl) {
+                navDateEl.setAttribute('data-exo-no-i18n', '1');
                 const navDateStr = now.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' });
-                navDateEl.innerHTML = `<i class="fa-regular fa-calendar"></i> <span>${navDateStr}</span>`;
+                const navKey = `${locale}|${navDateStr}`;
+                if (forceUpdate || cache.navDateKey !== navKey) {
+                    cache.navDateKey = navKey;
+                    navDateEl.innerHTML = `<i class="fa-regular fa-calendar"></i> <span>${navDateStr}</span>`;
+                }
             }
 
-            // Update Desktop Sidebar Live Clock unconditionally on load & locale switch
+            // Update Desktop Sidebar Live Clock only when formatted minute/date changes
             const sideTime = document.getElementById('sidebarClockTime');
             const sideDate = document.getElementById('sidebarClockDate');
-            if (sideTime) sideTime.innerText = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
-            if (sideDate) sideDate.innerText = now.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
+            if (sideTime) {
+                sideTime.setAttribute('data-exo-no-i18n', '1');
+                const sideTimeStr = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+                if (forceUpdate || cache.sideTimeStr !== sideTimeStr) {
+                    cache.sideTimeStr = sideTimeStr;
+                    sideTime.innerText = sideTimeStr;
+                }
+            }
+            if (sideDate) {
+                sideDate.setAttribute('data-exo-no-i18n', '1');
+                const sideDateStr = now.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
+                if (forceUpdate || cache.sideDateStr !== sideDateStr) {
+                    cache.sideDateStr = sideDateStr;
+                    sideDate.innerText = sideDateStr;
+                }
+            }
+
+            const scheduleSec = document.getElementById('schedule');
+            if (!forceUpdate && scheduleSec && !scheduleSec.classList.contains('active')) {
+                return;
+            }
 
             const clockEl = document.getElementById('livePlannerClockText');
             const rangeEl = document.getElementById('livePlannerWeekRangeBadge');
@@ -58684,17 +58997,26 @@ function togglePdfAudioPlayerBar(forceState) {
             const activeBox = document.getElementById('livePlannerActiveSessionBox');
             if (!clockEl) return;
 
+            clockEl.setAttribute('data-exo-no-i18n', '1');
             const datePart = now.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
             const timePart = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            clockEl.innerText = `${datePart} • ${timePart}`;
+            const nextClockStr = `${datePart} • ${timePart}`;
+            if (forceUpdate || cache.clockStr !== nextClockStr) {
+                cache.clockStr = nextClockStr;
+                clockEl.innerText = nextClockStr;
+            }
 
             const orderedDays = getOrderedWeekDays();
             if (rangeEl && orderedDays.length === 7) {
                 const firstD = orderedDays[0];
                 const lastD = orderedDays[6];
-                rangeEl.innerText = isEn
+                const nextRangeStr = isEn
                     ? `Week Cycle (${firstD.dayName} ${firstD.dateShortStr} – ${lastD.dayName} ${lastD.dateShortStr}) • Day: ${formatHourText(plannerPrefs.dayStartHour ?? 6)} to ${formatHourText(plannerPrefs.dayEndHour ?? 23)}`
                     : `دورة الأسبوع (${firstD.dayName} ${firstD.dateShortStr} – ${lastD.dayName} ${lastD.dateShortStr}) • يومك: ${formatHourText(plannerPrefs.dayStartHour ?? 6)} إلى ${formatHourText(plannerPrefs.dayEndHour ?? 23)}`;
+                if (forceUpdate || cache.rangeStr !== nextRangeStr) {
+                    cache.rangeStr = nextRangeStr;
+                    rangeEl.innerText = nextRangeStr;
+                }
             }
 
             if (!activeBox) return;
@@ -58737,7 +59059,7 @@ function togglePdfAudioPlayerBar(forceState) {
                         : '✨ جلسة نشاط عام / راحة جارية الآن وفق جدولك.';
                 }
 
-                activeBox.innerHTML = `
+                const nextActiveHtml = `
                     <div class="stsb-active-task-pill">
                         <span style="color:#899982; font-weight:900;"><i class="fa-solid fa-satellite-dish"></i> ${isEn ? 'Live Now:' : 'موعدك الحالي الآن:'}</span>
                         <b style="color:var(--text-main);">${liveNowEv.title}</b>
@@ -58745,7 +59067,14 @@ function togglePdfAudioPlayerBar(forceState) {
                         ${actionBtnHtml}
                     </div>
                 `;
-                if (subEl) subEl.innerText = helperText;
+                if (forceUpdate || cache.activeHtml !== nextActiveHtml) {
+                    cache.activeHtml = nextActiveHtml;
+                    activeBox.innerHTML = nextActiveHtml;
+                }
+                if (subEl && (forceUpdate || cache.subText !== helperText)) {
+                    cache.subText = helperText;
+                    subEl.innerText = helperText;
+                }
                 return;
             }
 
@@ -58755,20 +59084,28 @@ function togglePdfAudioPlayerBar(forceState) {
                 const waitStr = isEn
                     ? (diffMins >= 60 ? `${Math.floor(diffMins / 60)}h ${diffMins % 60}m` : `${diffMins}m`)
                     : (diffMins >= 60 ? `${Math.floor(diffMins / 60)} س و ${diffMins % 60} د` : `${diffMins} دقيقة`);
-                activeBox.innerHTML = `
+                const nextUpHtml = `
                     <span class="studio-pill" style="color:var(--steel-blue, #7898AC); border-color:rgba(120,152,172,0.35);">
                         <i class="fa-regular fa-clock"></i> ${isEn ? `Next Today: <b>${upcomingEv.title}</b> at ${formatHourText(upcomingEv.startHour)} (in ${waitStr})` : `الجلسة القادمة اليوم: <b>${upcomingEv.title}</b> الساعة ${formatHourText(upcomingEv.startHour)} (بعد ${waitStr})`}
                     </span>
                 `;
+                if (forceUpdate || cache.activeHtml !== nextUpHtml) {
+                    cache.activeHtml = nextUpHtml;
+                    activeBox.innerHTML = nextUpHtml;
+                }
                 return;
             }
 
             if (curDecHour >= Number(plannerPrefs.dayEndHour ?? 23)) {
-                activeBox.innerHTML = `
+                const endedHtml = `
                     <span class="studio-pill" style="color:var(--sand, #C8BA99); border-color:rgba(200,186,153,0.35);">
                         <i class="fa-solid fa-moon"></i> ${isEn ? `Study day ended (${formatHourText(plannerPrefs.dayEndHour ?? 23)}) — today's status updated automatically` : `انتهى وقت اليوم المحدد (${formatHourText(plannerPrefs.dayEndHour ?? 23)}) — تم تحديث حالة مهام اليوم تلقائياً`}
                     </span>
                 `;
+                if (forceUpdate || cache.activeHtml !== endedHtml) {
+                    cache.activeHtml = endedHtml;
+                    activeBox.innerHTML = endedHtml;
+                }
             } else {
                 activeBox.innerHTML = `
                     <button class="btn btn-outline" style="padding:5px 12px; font-size:0.76rem; border-radius:9px;" onclick="openAddSessionModal(${todayIdx}, ${Math.max(Number(plannerPrefs.dayStartHour||6), new Date().getHours())})">
@@ -59513,13 +59850,21 @@ function togglePdfAudioPlayerBar(forceState) {
             }
         } catch (e) {}
 
-        // Init App
+        // Init App — defer hidden views (Planner/Tracker) until visited for instant startup
+        window._exoDirtyViews = Object.assign(window._exoDirtyViews || {}, { schedule: true, tracker: true });
         renderSubjectsList();
-        renderSchedule();
-        updateTracker();
+        if (document.getElementById('schedule')?.classList.contains('active')) {
+            window._exoDirtyViews.schedule = false;
+            renderSchedule();
+        }
+        if (document.getElementById('tracker')?.classList.contains('active')) {
+            window._exoDirtyViews.tracker = false;
+            updateTracker();
+        }
         if (typeof initDesktopSidebar === 'function') initDesktopSidebar();
         if (typeof renderDashboard === 'function') renderDashboard();
-        if (typeof updateLiveTimeSyncBanner === 'function') updateLiveTimeSyncBanner();
+        if (typeof updateSidebarUI === 'function') updateSidebarUI();
+        if (typeof updateLiveTimeSyncBanner === 'function') updateLiveTimeSyncBanner(false);
     </script>
 
     <script id="exo-i18n-engine">
@@ -60275,6 +60620,20 @@ function togglePdfAudioPlayerBar(forceState) {
             updateWp67BilingualStaticUI(targetLang);
         }
 
+        function exoTranslateSubtreeIfNeeded(rootEl, lang) {
+            if (!rootEl) return;
+            const targetLang = (lang === 'ar') ? 'ar' : 'en';
+            const prevFlag = isApplyingI18n;
+            isApplyingI18n = true;
+            try {
+                walkAndTranslateDOM(rootEl, targetLang);
+                if (rootEl.dataset) rootEl.dataset.exoLangTranslated = targetLang;
+            } finally {
+                isApplyingI18n = prevFlag;
+            }
+        }
+        window.exoTranslateSubtreeIfNeeded = exoTranslateSubtreeIfNeeded;
+
         function applyExoLanguage(lang, saveChoice) {
             const targetLang = (lang === 'ar') ? 'ar' : 'en';
             window.currentExoLang = targetLang;
@@ -60297,25 +60656,75 @@ function togglePdfAudioPlayerBar(forceState) {
                 }
 
                 updateExoShellLanguageUI(targetLang);
-                walkAndTranslateDOM(document.body, targetLang);
+
+                // Translate visible shell + active view + active overlays only; mark hidden views dirty for zero-lag switchView()
+                const activeRoots = [];
+                const pushRoot = (el) => { if (el) activeRoots.push(el); };
+                pushRoot(document.querySelector('.navbar'));
+                pushRoot(document.getElementById('exoSidebar'));
+                pushRoot(document.getElementById('mobileBottomNav'));
+                document.querySelectorAll('.view-section').forEach(sec => {
+                    if (sec.classList.contains('active')) {
+                        activeRoots.push(sec);
+                    } else {
+                        if (sec.dataset) sec.dataset.exoLangTranslated = '';
+                        if (window._exoDirtyViews && sec.id) window._exoDirtyViews[sec.id] = true;
+                    }
+                });
+                document.querySelectorAll('.glass-overlay.active, #spotlightTourFloatingCard.active').forEach(ov => {
+                    activeRoots.push(ov);
+                });
+                for (let r = 0; r < activeRoots.length; r++) {
+                    walkAndTranslateDOM(activeRoots[r], targetLang);
+                    if (activeRoots[r].dataset) activeRoots[r].dataset.exoLangTranslated = targetLang;
+                }
 
                 if (typeof syncSidebarToggleIconDirection === 'function') syncSidebarToggleIconDirection();
                 if (typeof syncGlobalFullscreenButtonUI === 'function') syncGlobalFullscreenButtonUI();
                 if (typeof updateSidebarUI === 'function') updateSidebarUI();
-                if (typeof updateLiveTimeSyncBanner === 'function') updateLiveTimeSyncBanner();
-                if (typeof renderDashboard === 'function') renderDashboard();
+                if (typeof updateLiveTimeSyncBanner === 'function') updateLiveTimeSyncBanner(true);
                 if (typeof updateWp62StaticLabels === 'function') updateWp62StaticLabels(targetLang);
                 if (typeof updateWp65StaticLabels === 'function') updateWp65StaticLabels(targetLang);
-                if (typeof renderSubjectsList === 'function') renderSubjectsList();
-                if (typeof activeSubjectId !== 'undefined' && activeSubjectId && typeof renderGroups === 'function') renderGroups();
                 if (typeof updateWp63ChapterWorkspaceLabels === 'function') updateWp63ChapterWorkspaceLabels(targetLang);
+
+                const isViewActive = (id) => Boolean(document.getElementById(id)?.classList.contains('active'));
+                if (isViewActive('dashboard')) {
+                    if (window._exoDirtyViews) window._exoDirtyViews.dashboard = false;
+                    if (typeof renderDashboard === 'function') renderDashboard();
+                } else if (window._exoDirtyViews) {
+                    window._exoDirtyViews.dashboard = true;
+                }
+
+                if (isViewActive('subjects')) {
+                    if (window._exoDirtyViews) window._exoDirtyViews.subjects = false;
+                    if (typeof renderSubjectsList === 'function') renderSubjectsList();
+                    if (typeof activeSubjectId !== 'undefined' && activeSubjectId && typeof renderGroups === 'function') renderGroups();
+                    const cwEl = document.getElementById('chapter-workspace-view');
+                    if (cwEl && cwEl.style.display !== 'none' && typeof activeChapterWorkspaceGroupId !== 'undefined' && activeChapterWorkspaceGroupId && typeof renderChapterWorkspace === 'function') {
+                        renderChapterWorkspace(true);
+                    }
+                } else if (window._exoDirtyViews) {
+                    window._exoDirtyViews.subjects = true;
+                }
                 const mergeDrawer = document.getElementById('subjectMergeLecturesDrawer');
                 if (mergeDrawer && mergeDrawer.classList.contains('open') && typeof renderSubjectMergeLecturesDrawer === 'function') {
                     renderSubjectMergeLecturesDrawer();
                 }
 
-                if (typeof renderSchedule === 'function') renderSchedule();
-                if (typeof updateTracker === 'function') updateTracker();
+                if (isViewActive('schedule')) {
+                    if (window._exoDirtyViews) window._exoDirtyViews.schedule = false;
+                    if (typeof renderSchedule === 'function') renderSchedule();
+                } else if (window._exoDirtyViews) {
+                    window._exoDirtyViews.schedule = true;
+                }
+
+                if (isViewActive('tracker')) {
+                    if (window._exoDirtyViews) window._exoDirtyViews.tracker = false;
+                    if (typeof updateTracker === 'function') updateTracker();
+                } else if (window._exoDirtyViews) {
+                    window._exoDirtyViews.tracker = true;
+                }
+
                 if (typeof updateGoogleDriveUI === 'function') updateGoogleDriveUI();
                 if (typeof renderDriveHubStateBanner === 'function') renderDriveHubStateBanner();
 
@@ -60352,13 +60761,25 @@ function togglePdfAudioPlayerBar(forceState) {
             applyExoLanguage(nextLang, true);
         };
 
-        // MutationObserver to automatically translate any dynamic DOM updates in real time without touching protected user fields
+        // MutationObserver to automatically translate any dynamic DOM updates & newly opened modal overlays
         const domObserver = new MutationObserver(function(mutations) {
-            if (isApplyingI18n || window.currentExoLang !== 'en') return;
+            if (isApplyingI18n) return;
+            const activeLang = (window.currentExoLang === 'ar') ? 'ar' : 'en';
             isApplyingI18n = true;
             try {
                 for (let i = 0; i < mutations.length; i++) {
                     const m = mutations[i];
+                    if (m.type === 'attributes' && m.attributeName === 'class') {
+                        const tgt = m.target;
+                        if (tgt && tgt.nodeType === 1 && tgt.id !== 'pdfViewerModalOverlay' && tgt.classList && (tgt.classList.contains('glass-overlay') || tgt.id === 'spotlightTourFloatingCard') && tgt.classList.contains('active')) {
+                            if (tgt.dataset && tgt.dataset.exoLangTranslated !== activeLang) {
+                                walkAndTranslateDOM(tgt, activeLang);
+                                tgt.dataset.exoLangTranslated = activeLang;
+                            }
+                        }
+                        continue;
+                    }
+                    if (activeLang !== 'en') continue;
                     if (m.type === 'childList') {
                         for (let j = 0; j < m.addedNodes.length; j++) {
                             walkAndTranslateDOM(m.addedNodes[j], 'en');
@@ -60389,7 +60810,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     subtree: true,
                     characterData: true,
                     attributes: true,
-                    attributeFilter: TRANSLATABLE_ATTRS
+                    attributeFilter: [...TRANSLATABLE_ATTRS, 'class']
                 });
             }
         }
