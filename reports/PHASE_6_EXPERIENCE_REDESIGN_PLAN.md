@@ -175,10 +175,9 @@ Tie every result to source SHA, command, environment, and actual output. Disting
 
 ## WP 6.7 — The Handcrafted Experience Rebuild (Owner Feedback Remediation)
 
-**Status:** **`IMPLEMENTED — LOCAL TESTS ONLY`** *(unpushed local AI Studio workspace changes; NOT `CI VERIFIED`, NOT `APPROVED`)*.  
-**Deliverable & Evidence:** `reports/PHASE_6_WP_6_7_REPORT.md` + `reports/screenshots/wp6-7/*.png` (`7` post-rebuild captures + archived pre-rebuild baselines) + `test_wp6_7_unit.js` (`8/8`) + `test_wp6_7_chromium_e2e.js` (`34/34`).  
-**Scope Executed:** P0 XSS escaping across Planner/dropdowns/log linkers (`escapeHtml`) and `closePdfViewer()` reading bookmark persistence ordering (`persistCurrentLectureReadingBookmark(true)` prior to state reset); P1 embedded PDF Studio inside `#cwEmbeddedStudioMount` with internal `#pdfFullscreenBtn` expand/collapse and `<50 ms` unmount, removal of global fullscreen toggles, consolidated `attachAudioRecordingFileToLecture()`, separated Google Drive Hub modal (`#driveHubModalOverlay` via single-instance host mover), asymmetric Living Journal Tracker & Planner cutout cards, bilingual Auth/Drive/VIP/Help Panes 1–6 updates, and `GEMINI.md` §6 Free/VIP copy compliance.  
-**Local Post-Final-Edit Results:** `compile_applet`, `lint_applet` (`18` JS checks), `npm run build`, `810/810` runnable local assertions (`npm test` excluding local `test_phase4_2_1_pg16_concurrency.js` due to missing PG16 daemon on `127.0.0.1:5432`), plus Tier A Node (`5/5`) and Tier A Chromium (`5/5`, `0.00 MB` heap delta). Awaiting owner review, GitHub sync, GitHub Actions CI (including `postgres:16`), and final Phase 6 owner decision.
+**Status:** **`PARTIALLY IMPLEMENTED — OWNER REJECTED VISUAL/PRODUCT ACCEPTANCE`** *(Corrective full rebuild & QuotaExceededError closure underway; unpushed local AI Studio workspace changes; NOT `CI VERIFIED`, NOT `APPROVED`)*.  
+**Deliverable & Evidence (Initial Pass Preserved Plumbing):** `reports/PHASE_6_WP_6_7_REPORT.md` + `reports/screenshots/wp6-7/*.png` + `test_wp6_7_unit.js` (`8/8`) + `test_wp6_7_chromium_e2e.js` (`34/34`).  
+**Rejection Summary:** Initial pass delivered P0 XSS escaping, `closePdfViewer()` bookmark ordering, embedded Studio mount container, global fullscreen removal, consolidated audio helper, and separated Drive Hub modal, but fell short on genuine Imperfect Paper Cutouts SVG library, Digital Bookshelf/Chapter Workspace/Planner/Tracker/Sidebar/Help/Login/Dashboard architectural rebuilds, Tablet/Android touch ergonomics, and P0 `QuotaExceededError` root-cause remediation. Corrective rebuild is active.
 
 ---
 

@@ -6,12 +6,27 @@
 **Target Branch:** `main`  
 **Authoritative GitHub Source Baseline (WP 6.6):** `f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a` (CI #61 `43586175424`: `864/864 PASSED`, Pages #159 `43586174846`: `SUCCESS`)  
 **Last Documented GitHub HEAD:** `ed477ef5b9f892aea8941da6deb4737b81d3f7b3` (documentation-only commit; AI Studio workspace has no `.git` metadata — local edits remain unpushed drafts awaiting owner review & sync)  
-**WP 6.7 Current Status:** **`IMPLEMENTED — LOCAL TESTS ONLY`** *(NOT `CI VERIFIED`; NOT `APPROVED`)*  
-**Phase 6 Product Status:** **`IMPLEMENTED — LOCAL TESTS ONLY (AWAITING OWNER SYNC, CI RUN & HANDS-ON PRODUCT REVIEW)`**
+**WP 6.7 Current Status:** **`PARTIALLY IMPLEMENTED — OWNER REJECTED VISUAL/PRODUCT ACCEPTANCE`** *(Corrective rebuild in progress; NOT `CI VERIFIED`; NOT `APPROVED`)*  
+**Phase 6 Product Status:** **`PARTIALLY IMPLEMENTED — OWNER REJECTED VISUAL/PRODUCT ACCEPTANCE (WP 6.7 CORRECTIVE REBUILD UNDERWAY)`**
 
 ---
 
-## 1. Executive Summary & Priorities Executed
+> **Owner Rejection Notice (10-Point Corrective Audit):**  
+> The initial WP 6.7 implementation preserved P0 safety fixes (`escapeHtml` XSS escaping, `closePdfViewer()` reading bookmark save ordering) and functional plumbing (`mountPdfStudioInWorkspace()`, Drive Hub modal host separation, global fullscreen toggle removal), **but was rejected by the owner** for failing the full artistic & functional reconstruction brief:
+> 1. Missing genuine hand-drawn **Imperfect Paper Cutouts** SVG library and irregular cutout edges across screens (used subtle CSS rounded boxes instead).
+> 2. **Materials / Digital Bookshelf** was not genuinely reconstructed.
+> 3. **Chapter Workspace** remained old panels + mounted `#pdfViewerModalOverlay` instead of an integrated handcrafted study desk.
+> 4. **Planner** lacked a personal weekly spread reconstruction.
+> 5. **Tracker** kept the legacy KPI card layout under a minimal strip.
+> 6. **Sidebar** remained largely untouched rather than a redesigned journal index rail.
+> 7. **Help Center** lacked fresh content aligned with the rebuilt app.
+> 8. **Tablet (`768×1024`) & Android (`390×844` / `360×740`)** lacked purpose-built touch-first ergonomics across rebuilt screens.
+> 9. **Login & Dashboard** lacked artistic cohesion with the handcrafted Paper Craft system.
+> 10. **P0 `QuotaExceededError`** root causes (unguarded `localStorage.setItem` calls, redundant workspace/quarantine duplication, missing direct `saveSubjects()` paths) remained unresolved.
+
+---
+
+## 1. Executive Summary & Priorities Executed (Initial Pass — Preserved Plumbing)
 
 WP 6.7 directly addresses the owner's hands-on product review feedback on WP 6.6 across three strict priority tiers (**P0 Data Safety → P1 Core Experience Rebuild → P2 App-Wide Artistic Consistency**), reconstructing the live study workflow from a visual overlay into an integrated, tactile **Personal Study Journal** while leaving every protected database, auth, sync, Drive, storage, and academic business contract untouched.
 

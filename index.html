@@ -11382,7 +11382,7 @@
                 repeating-linear-gradient(0deg, rgba(240, 230, 212, 0.008) 0px, rgba(240, 230, 212, 0.008) 1px, transparent 1px, transparent 28px);
         }
 
-        /* Reusable Imperfect Paper Cutouts System */
+        /* Reusable Imperfect Paper Cutouts & SVG Silhouette System */
         .exo-cutout-card {
             position: relative;
             background: var(--paper-cutout-bg);
@@ -11391,25 +11391,48 @@
             box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28), inset 0 1px 0 var(--paper-cutout-edge);
             transition: border-color 0.18s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease;
         }
+        .exo-paper-cut-plate {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background: var(--paper-cutout-bg);
+            clip-path: url(#exo-clip-folio);
+            border: 1px solid rgba(240, 230, 212, 0.08);
+        }
+        .exo-cutout-outline-svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            overflow: visible;
+        }
+        .exo-cutout-card > :not(.exo-paper-cut-plate):not(.exo-cutout-outline-svg):not(.exo-bookmark-ribbon):not(.exo-book-spine-svg):not(.exo-corner-ticks-svg) {
+            position: relative;
+            z-index: 2;
+        }
         .exo-cutout-card::after {
             content: "";
             position: absolute;
             top: 0;
             inset-inline-end: 0;
-            width: 14px;
-            height: 14px;
+            width: 16px;
+            height: 16px;
             pointer-events: none;
-            background: linear-gradient(225deg, rgba(240, 230, 212, 0.09) 0%, rgba(240, 230, 212, 0.02) 55%, transparent 56%);
+            z-index: 2;
+            background: linear-gradient(225deg, rgba(240, 230, 212, 0.11) 0%, rgba(240, 230, 212, 0.03) 55%, transparent 56%);
             border-bottom-left-radius: 5px;
-            opacity: 0.72;
+            opacity: 0.78;
         }
         html[dir="rtl"] .exo-cutout-card::after {
-            background: linear-gradient(135deg, rgba(240, 230, 212, 0.09) 0%, rgba(240, 230, 212, 0.02) 55%, transparent 56%);
+            background: linear-gradient(135deg, rgba(240, 230, 212, 0.11) 0%, rgba(240, 230, 212, 0.03) 55%, transparent 56%);
             border-bottom-left-radius: 0;
             border-bottom-right-radius: 5px;
         }
         .exo-cutout-card:hover {
-            border-color: rgba(137, 153, 130, 0.38);
+            border-color: rgba(137, 153, 130, 0.42);
         }
 
         .exo-cutout-strip {
@@ -11425,10 +11448,9 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 3px 10px;
-            border-radius: var(--cutout-radius-tab);
-            background: rgba(240, 230, 212, 0.055);
-            border: 1px solid rgba(240, 230, 212, 0.14);
+            padding: 4px 12px 4px 10px;
+            clip-path: url(#exo-clip-index-tab);
+            background: rgba(240, 230, 212, 0.07);
             color: var(--warm-paper, #F0E6D4);
             font-size: 0.73rem;
             font-weight: 700;
@@ -11440,30 +11462,64 @@
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            padding: 3px 10px 5px;
-            border-radius: 3px 3px 8px 8px;
-            background: rgba(137, 153, 130, 0.18);
-            border: 1px solid rgba(137, 153, 130, 0.36);
+            padding: 3px 10px 6px;
+            background: rgba(137, 153, 130, 0.22);
             color: #d7e6cf;
             font-size: 0.71rem;
             font-weight: 700;
-            clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+            clip-path: url(#exo-clip-ribbon-bookmark);
+            z-index: 3;
         }
-        .exo-bookmark-ribbon.tone-gold {
-            background: rgba(215, 185, 111, 0.18);
-            border-color: rgba(215, 185, 111, 0.38);
-            color: #f3dfae;
+        .exo-bookmark-ribbon.tone-gold,
+        .exo-bookmark-ribbon.is-exam {
+            background: rgba(196, 125, 96, 0.28);
+            color: #f6d5c5;
         }
-        .exo-bookmark-ribbon.tone-terra {
-            background: rgba(196, 125, 96, 0.18);
-            border-color: rgba(196, 125, 96, 0.38);
-            color: #f3cab9;
+        .exo-bookmark-ribbon.tone-sage,
+        .exo-bookmark-ribbon.is-done {
+            background: rgba(137, 153, 130, 0.28);
+            color: #dcebd3;
+        }
+
+        .exo-ink-underline-svg {
+            display: block;
+            width: 140px;
+            height: 10px;
+            color: var(--sage-green, #899982);
+            opacity: 0.78;
+            margin-top: 3px;
+            pointer-events: none;
+        }
+        .exo-ink-divider-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 2px 0 8px 0;
+            color: rgba(240, 230, 212, 0.28);
+            pointer-events: none;
+        }
+        .exo-ink-divider-wrap svg {
+            width: min(320px, 85%);
+            height: 12px;
+        }
+        .exo-corner-ticks-svg {
+            position: absolute;
+            top: 8px;
+            inset-inline-end: 8px;
+            width: 24px;
+            height: 24px;
+            color: rgba(240, 230, 212, 0.28);
+            pointer-events: none;
+            z-index: 2;
+        }
+        html[dir="rtl"] .exo-corner-ticks-svg {
+            transform: scaleX(-1);
         }
 
         .exo-margin-note {
             font-family: var(--font-editorial-en);
             font-style: italic;
-            font-size: 0.8rem;
+            font-size: 0.81rem;
             line-height: 1.55;
             color: var(--text-muted, #ABA69D);
             border-inline-start: 2px solid rgba(137, 153, 130, 0.42);
@@ -11476,29 +11532,165 @@
             padding: 2px 11px 2px 0;
         }
 
-        /* Digital Bookshelf & TOC Tactile Refinements */
+        /* Batch 1 — Current Desk Book Spotlight & Bound Book Cover Craft */
+        .exo-bookshelf-spotlight {
+            position: relative;
+            background: linear-gradient(148deg, rgba(48, 50, 46, 0.94) 0%, rgba(30, 32, 35, 0.98) 100%);
+            border: 1px solid rgba(240, 230, 212, 0.16);
+            border-radius: 16px 20px 14px 18px;
+            padding: 18px 22px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            flex-wrap: wrap;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(240, 230, 212, 0.08);
+            overflow: hidden;
+        }
+        .exo-bookshelf-spotlight::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            clip-path: url(#exo-clip-folio);
+            background: radial-gradient(circle at 12% 18%, rgba(137, 153, 130, 0.1) 0%, transparent 55%);
+            pointer-events: none;
+        }
+        .exo-spotlight-main {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            min-width: 0;
+            flex: 1 1 320px;
+        }
+        .exo-spotlight-book-badge {
+            position: relative;
+            width: 54px;
+            height: 70px;
+            flex-shrink: 0;
+            background: linear-gradient(160deg, var(--spotlight-accent, #899982) 0%, rgba(25, 27, 29, 0.95) 130%);
+            clip-path: url(#exo-clip-book-cover);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--warm-paper, #F0E6D4);
+            font-size: 1.25rem;
+            box-shadow: inset 6px 0 0 rgba(16, 18, 20, 0.45);
+        }
+        .exo-spotlight-meta {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px 8px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+            margin-top: 4px;
+        }
+        .exo-spotlight-actions {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        /* Bound Notebook Book Cards with SVG Stitched Spine & Cut Silhouette */
         #subjects .subject-card {
-            background: var(--paper-cutout-bg);
-            border: 1px solid rgba(240, 230, 212, 0.13);
-            border-radius: var(--cutout-radius-card);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(240, 230, 212, 0.05);
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            padding: 20px 20px 18px 28px;
+            min-height: 214px;
+            overflow: visible;
         }
-        #subjects .subject-card:hover {
-            border-color: rgba(137, 153, 130, 0.48);
+        html[dir="rtl"] #subjects .subject-card {
+            padding: 20px 28px 18px 20px;
         }
+        #subjects .subject-card .exo-book-cut-plate {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            background: linear-gradient(155deg, rgba(46, 48, 51, 0.97) 0%, rgba(33, 35, 38, 0.99) 100%);
+            clip-path: url(#exo-clip-book-cover);
+            border: 1px solid rgba(240, 230, 212, 0.14);
+            box-shadow: inset 0 1px 0 rgba(240, 230, 212, 0.06);
+            transition: background 0.18s ease, border-color 0.18s ease;
+            pointer-events: none;
+        }
+        #subjects .subject-card:hover .exo-book-cut-plate,
+        #subjects .subject-card:focus-within .exo-book-cut-plate {
+            background: linear-gradient(155deg, rgba(53, 56, 59, 0.99) 0%, rgba(37, 39, 43, 0.99) 100%);
+            border-color: rgba(137, 153, 130, 0.45);
+        }
+        #subjects .subject-card .exo-book-spine-svg {
+            position: absolute;
+            top: 8px;
+            bottom: 8px;
+            inset-inline-start: 5px;
+            width: 16px;
+            height: calc(100% - 16px);
+            color: var(--subject-accent, var(--sage-green));
+            opacity: 0.78;
+            pointer-events: none;
+            z-index: 1;
+        }
+        #subjects .subject-card::after {
+            display: none;
+        }
+        #subjects .subject-card .exo-bookmark-ribbon {
+            position: absolute;
+            top: 0;
+            inset-inline-end: 22px;
+        }
+        .exo-book-index-tab {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 10px;
+            min-width: 34px;
+            background: rgba(240, 230, 212, 0.08);
+            clip-path: url(#exo-clip-index-tab);
+            color: var(--warm-paper);
+            font-size: 0.74rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.04em;
+        }
+        #subjects .subjects-grid.is-list-view .subject-card {
+            padding: 14px 18px 14px 26px;
+            min-height: auto;
+        }
+        html[dir="rtl"] #subjects .subjects-grid.is-list-view .subject-card {
+            padding: 14px 26px 14px 18px;
+        }
+        #subjects .subjects-grid.is-list-view .exo-book-cut-plate {
+            clip-path: url(#exo-clip-folio);
+        }
+
+        /* Subject TOC & Chapter Workspace Handcrafted Folios */
+        #subjects .exo-subject-hero,
         #subjects .exo-toc-chapter-card,
         #subjects .exo-toc-exam-banner,
         #subjects .continuous-sub-shell {
+            position: relative;
             background: var(--paper-cutout-bg);
             border-radius: var(--cutout-radius-card);
-            border-color: rgba(240, 230, 212, 0.13);
+            border-color: rgba(240, 230, 212, 0.14);
+        }
+        #subjects .exo-subject-hero {
+            overflow: visible;
         }
         #subjects .exo-toc-header-card,
         #chapter-workspace-view .exo-cw-hero,
         #chapter-workspace-view .exo-cw-card {
+            position: relative;
             background: var(--paper-cutout-bg);
             border-radius: var(--cutout-radius-card);
-            border-color: rgba(240, 230, 212, 0.13);
+            border-color: rgba(240, 230, 212, 0.14);
             box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(240, 230, 212, 0.05);
         }
         #chapter-workspace-view .exo-cw-card-resume {
@@ -11509,8 +11701,37 @@
             background: var(--paper-cutout-bg);
             border-radius: var(--cutout-radius-strip);
         }
+        .exo-toc-lec-meta-line {
+            display: inline-flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px 7px;
+            font-size: 0.76rem;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+        .exo-cw-tab-btn.active {
+            clip-path: url(#exo-clip-index-tab);
+            background: rgba(137, 153, 130, 0.24);
+            color: var(--warm-paper);
+        }
 
-        /* Embedded PDF Studio Inside Chapter Workspace (Default Non-Hijacking Desk) */
+        /* Chapter Workspace Desk Bar Framing Embedded PDF Studio */
+        .exo-cw-studio-desk-bar {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px 16px;
+            background: linear-gradient(155deg, rgba(35, 38, 41, 0.98) 0%, rgba(25, 27, 30, 0.99) 100%);
+            border: 1px solid rgba(137, 153, 130, 0.32);
+            border-bottom: none;
+            border-radius: 13px 16px 0 0;
+        }
+        .exo-cw-studio-desk-bar.active {
+            display: flex;
+        }
         .exo-cw-embedded-studio-mount {
             display: none;
             width: 100%;
@@ -11536,8 +11757,8 @@
             padding: 0 !important;
             margin: 0 !important;
             background: #141618 !important;
-            border: 1px solid rgba(240, 230, 212, 0.16);
-            border-radius: var(--cutout-radius-card);
+            border: 1px solid rgba(137, 153, 130, 0.32);
+            border-radius: 0 0 12px 15px;
             box-shadow: 0 16px 38px rgba(0, 0, 0, 0.42);
             overflow: hidden !important;
         }
@@ -11835,6 +12056,76 @@
 
 </head>
 <body>
+    <!-- EXO Imperfect Paper Craft SVG Asset Library (Hand-Cut Silhouettes & Fountain-Pen Symbols) -->
+    <svg id="exo-paper-craft-defs" aria-hidden="true" style="position:absolute; width:0; height:0; overflow:hidden; pointer-events:none;">
+        <defs>
+            <!-- 7 Irregular Hand-Cut Silhouettes -->
+            <clipPath id="exo-clip-folio" clipPathUnits="objectBoundingBox">
+                <polygon points="0.004,0.018 0.48,0.004 0.962,0.002 0.998,0.055 0.996,0.68 0.998,0.978 0.955,0.998 0.52,0.994 0.018,0.997 0.002,0.945 0.005,0.42" />
+            </clipPath>
+            <clipPath id="exo-clip-book-cover" clipPathUnits="objectBoundingBox">
+                <polygon points="0,0.014 0.22,0.012 0.248,0.001 0.46,0.001 0.488,0.013 0.966,0.015 0.998,0.052 0.995,0.54 0.998,0.964 0.97,0.998 0.022,0.997 0,0.975" />
+            </clipPath>
+            <clipPath id="exo-clip-sheet-torn" clipPathUnits="objectBoundingBox">
+                <polygon points="0.008,0.012 0.34,0.004 0.68,0.01 0.988,0.006 0.996,0.52 0.988,0.974 0.84,0.994 0.66,0.981 0.48,0.996 0.31,0.982 0.14,0.995 0.005,0.978 0.003,0.48" />
+            </clipPath>
+            <clipPath id="exo-clip-index-tab" clipPathUnits="objectBoundingBox">
+                <polygon points="0.035,0.03 0.915,0.02 0.995,0.28 0.982,0.965 0.015,0.985 0.005,0.22" />
+            </clipPath>
+            <clipPath id="exo-clip-margin-note" clipPathUnits="objectBoundingBox">
+                <polygon points="0.008,0.016 0.905,0.006 0.995,0.14 0.992,0.982 0.018,0.992 0.004,0.54" />
+            </clipPath>
+            <clipPath id="exo-clip-ribbon-bookmark" clipPathUnits="objectBoundingBox">
+                <polygon points="0,0 1,0 1,0.99 0.5,0.8 0,0.99" />
+            </clipPath>
+            <clipPath id="exo-clip-arch-card" clipPathUnits="objectBoundingBox">
+                <polygon points="0.012,0.04 0.5,0.002 0.988,0.04 0.996,0.972 0.96,0.998 0.03,0.995 0.004,0.965" />
+            </clipPath>
+
+            <!-- 9 Hand-Drawn Fountain-Pen & Bookbinding SVG Symbols -->
+            <symbol id="exo-ink-underline" viewBox="0 0 180 14" fill="none">
+                <path d="M3 9.5C38 5.2 84 4.1 132 7.8C152 9.4 167 8.1 177 5.8" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" />
+                <path d="M24 12.1C64 9.8 112 9.2 154 11.4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity="0.55" />
+            </symbol>
+            <symbol id="exo-ink-bracket" viewBox="0 0 18 64" fill="none">
+                <path d="M14 4C9.5 4.4 7.5 6.8 7.5 11.2V26.5C7.5 29.5 5.2 31.2 3 32C5.2 32.8 7.5 34.5 7.5 37.5V52.8C7.5 57.2 9.5 59.6 14 60" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+            </symbol>
+            <symbol id="exo-ink-stitch" viewBox="0 0 16 120" fill="none">
+                <line x1="8" y1="4" x2="8" y2="116" stroke="currentColor" stroke-width="1.2" stroke-dasharray="5 5" opacity="0.52" />
+                <path d="M3 16H13M3 40H13M3 64H13M3 88H13M3 108H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.82" />
+            </symbol>
+            <symbol id="exo-ink-spine-band" viewBox="0 0 20 160" fill="none">
+                <line x1="12" y1="6" x2="12" y2="154" stroke="currentColor" stroke-width="1.4" stroke-dasharray="4 4" opacity="0.55" />
+                <path d="M3 22H16M3 56H16M3 104H16M3 138H16" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" opacity="0.88" />
+                <circle cx="7" cy="39" r="1.4" fill="currentColor" opacity="0.65" />
+                <circle cx="7" cy="80" r="1.4" fill="currentColor" opacity="0.65" />
+                <circle cx="7" cy="121" r="1.4" fill="currentColor" opacity="0.65" />
+            </symbol>
+            <symbol id="exo-ink-corner-ticks" viewBox="0 0 28 28" fill="none">
+                <path d="M4 5H21V22" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M12 2L26 16" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity="0.55" />
+            </symbol>
+            <symbol id="exo-ink-divider-rule" viewBox="0 0 320 14" fill="none">
+                <path d="M8 7H144" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.7" />
+                <polygon points="160,2 165,7 160,12 155,7" stroke="currentColor" stroke-width="1.3" fill="none" />
+                <path d="M176 7H312" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.7" />
+            </symbol>
+            <symbol id="exo-ink-compass-rose" viewBox="0 0 48 48" fill="none">
+                <circle cx="24" cy="24" r="18" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2.5" opacity="0.65" />
+                <polygon points="24,6 28.5,19.5 42,24 28.5,28.5 24,42 19.5,28.5 6,24 19.5,19.5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                <circle cx="24" cy="24" r="3" fill="currentColor" />
+            </symbol>
+            <symbol id="exo-ink-leaf-seal" viewBox="0 0 44 44" fill="none">
+                <circle cx="22" cy="22" r="18" stroke="currentColor" stroke-width="1.4" opacity="0.6" />
+                <path d="M22 32C22 21 26.5 14.5 32 11C24.5 11.5 18 15 15 22C13.5 25.5 14 29 16 31.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M16 31.5C19 27.5 22 23 26.5 17.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+            </symbol>
+            <symbol id="exo-ink-bookmark-stitch" viewBox="0 0 36 52" fill="none">
+                <path d="M6 3H30V47L18 38L6 47V3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                <path d="M11 9H25M18 14V32" stroke="currentColor" stroke-width="1.2" stroke-dasharray="3 3" stroke-linecap="round" opacity="0.75" />
+            </symbol>
+        </defs>
+    </svg>
     <!-- Modern Collapsible Desktop Sidebar (LTR/RTL) -->
     <aside class="exo-sidebar" id="exoAppSidebar" aria-label="Primary Navigation">
         <div>
@@ -12029,6 +12320,7 @@
                         </div>
                     </div>
 
+                    <div id="exoBookshelfSpotlight" class="exo-bookshelf-spotlight" style="display: none;"></div>
                     <div class="subjects-grid" id="mainSubjectsGrid"></div>
                 </div>
             </div>
@@ -12125,6 +12417,7 @@
                     <audio id="cwAudioPreviewEl" controls style="height:36px; max-width:340px; flex:1 1 220px;"></audio>
                     <button type="button" class="icon-btn" onclick="cwStopAudioPreview()" aria-label="Close audio preview"><i class="fa-solid fa-xmark"></i></button>
                 </div>
+                <div id="cwStudioDeskBar" class="exo-cw-studio-desk-bar" style="display: none;" data-exo-no-i18n="1"></div>
                 <div id="cwEmbeddedStudioMount" class="exo-cw-embedded-studio-mount" style="display: none;"></div>
                 <div id="cwBody"></div>
             </div>
@@ -17090,6 +17383,121 @@
             return diag;
         }
 
+        let _exoLastLocalQuotaReclaimAt = 0;
+        let _exoPendingQuotaReclaimPromise = null;
+        function exoReclaimSafeLocalStorageSpace(targetUid = null) {
+            if (_exoPendingQuotaReclaimPromise) return _exoPendingQuotaReclaimPromise;
+            const now = Date.now();
+            if ((now - _exoLastLocalQuotaReclaimAt) < 15000) {
+                return Promise.resolve({ ok: true, skipped: true, reason: 'debounced', freedBytes: 0 });
+            }
+            _exoLastLocalQuotaReclaimAt = now;
+            const uid = targetUid ? String(targetUid) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : (currentCloudUser ? String(currentCloudUser.id) : 'local'));
+            _exoPendingQuotaReclaimPromise = (async () => {
+                let freedBytes = 0;
+                const reclaimedKeys = [];
+                try {
+                    if (typeof migrateConflictRecoveryToIDB === 'function') {
+                        const migRes = await migrateConflictRecoveryToIDB(uid);
+                        if (migRes && migRes.ok && Number(migRes.freedBytes) > 0) {
+                            freedBytes += Number(migRes.freedBytes);
+                            reclaimedKeys.push('pharmaConflictRecovery_' + uid);
+                        }
+                    }
+                } catch (e) {}
+                return { ok: true, freedBytes, reclaimedKeys };
+            })().finally(() => {
+                _exoPendingQuotaReclaimPromise = null;
+            });
+            return _exoPendingQuotaReclaimPromise;
+        }
+
+        function exoSafeLocalStorageSetItem(key, value, opts = {}) {
+            const safeKey = String(key || '');
+            const strVal = typeof value === 'string' ? value : String(value ?? '');
+            try {
+                localStorage.setItem(safeKey, strVal);
+                return { ok: true, persisted: true, isQuotaExceeded: false, key: safeKey };
+            } catch (err) {
+                const diag = diagnoseStorageWriteFailure(err, safeKey, strVal, []);
+                if (typeof exoRuntimeStatusState !== 'undefined' && diag.isQuotaExceeded) {
+                    exoRuntimeStatusState.lsQuotaFallbackActive = true;
+                }
+                if (diag.isQuotaExceeded && !opts.skipReclaim) {
+                    try { exoReclaimSafeLocalStorageSpace(opts.targetUid || null); } catch (e) {}
+                }
+                if (!opts.silent) {
+                    console.warn(`exoSafeLocalStorageSetItem fallback for key "${safeKey}":`, diag.reason, diag.errorName);
+                }
+                return {
+                    ok: false,
+                    persisted: false,
+                    isQuotaExceeded: Boolean(diag.isQuotaExceeded),
+                    key: safeKey,
+                    reason: diag.reason,
+                    diagnostics: diag,
+                    error: diag.errorMessage
+                };
+            }
+        }
+
+        function exoSafeLocalStorageJsonSet(key, obj, opts = {}) {
+            let serialized = null;
+            try {
+                serialized = JSON.stringify(obj);
+            } catch (serErr) {
+                const diag = diagnoseStorageWriteFailure(serErr, String(key || ''), obj, []);
+                return {
+                    ok: false,
+                    persisted: false,
+                    isQuotaExceeded: false,
+                    serializationFailed: true,
+                    key: String(key || ''),
+                    reason: diag.reason,
+                    diagnostics: diag,
+                    error: diag.errorMessage
+                };
+            }
+            return exoSafeLocalStorageSetItem(key, serialized, opts);
+        }
+
+        async function persistSubjectsSnapshotSafely(targetUid = null, opts = {}) {
+            const uid = targetUid ? String(targetUid) : (currentCloudUser && currentCloudUser.id ? String(currentCloudUser.id) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local'));
+            const lsRes = exoSafeLocalStorageJsonSet('pharmaSubjectsV4', Array.isArray(subjects) ? subjects : [], Object.assign({ targetUid: uid }, opts));
+            const lsOk = Boolean(lsRes && lsRes.persisted === true);
+            let idbOk = false;
+            if (typeof persistWorkspaceDomainToIDB === 'function') {
+                try {
+                    const idbRes = await persistWorkspaceDomainToIDB('subjects', Array.isArray(subjects) ? subjects : [], uid, opts.opCtx || null, lsOk);
+                    idbOk = Boolean(idbRes && idbRes.ok === true && idbRes.persisted === true);
+                } catch (e) {
+                    idbOk = false;
+                }
+            }
+            if (!lsOk && idbOk && typeof exoRuntimeStatusState !== 'undefined') {
+                exoRuntimeStatusState.lsQuotaFallbackActive = Boolean(lsRes && lsRes.isQuotaExceeded);
+                exoRuntimeStatusState.localLastIdbOk = true;
+                exoRuntimeStatusState.localVerified = true;
+                exoRuntimeStatusState.lastLocalSaveAt = Date.now();
+                exoRuntimeStatusState.lastLocalMethod = 'idb_fallback';
+            }
+            if (!lsOk && typeof recordDurableWorkspaceDirtyJournal === 'function') {
+                try { await recordDurableWorkspaceDirtyJournal(uid, true, false, opts.reason || 'subjects_safe_persist'); } catch (e) {}
+            }
+            return {
+                ok: lsOk || idbOk,
+                lsPersisted: lsOk,
+                idbPersisted: idbOk,
+                durablePersisted: idbOk,
+                isQuotaExceeded: Boolean(lsRes && lsRes.isQuotaExceeded),
+                diagnostics: lsRes ? lsRes.diagnostics : null
+            };
+        }
+        window.exoSafeLocalStorageSetItem = exoSafeLocalStorageSetItem;
+        window.exoSafeLocalStorageJsonSet = exoSafeLocalStorageJsonSet;
+        window.exoReclaimSafeLocalStorageSpace = exoReclaimSafeLocalStorageSpace;
+        window.persistSubjectsSnapshotSafely = persistSubjectsSnapshotSafely;
+
         function saveSingleInputModal() {
             const btn = document.getElementById('siModalSaveBtn');
             if (btn && typeof btn.onclick === 'function') {
@@ -18450,7 +18858,7 @@
 
         function handleSubjectSortChange(mode) {
             subjectSortMode = mode || 'custom';
-            localStorage.setItem('pharmaSubjectSortModeV1', subjectSortMode);
+            exoSafeLocalStorageSetItem('pharmaSubjectSortModeV1', subjectSortMode);
             renderSubjectsList();
             const labels = {
                 custom: 'ترتيبك اليدوي الخاص ✋',
@@ -18466,7 +18874,7 @@
             if (event) event.stopPropagation();
             if (subjectSortMode !== 'custom') {
                 subjectSortMode = 'custom';
-                localStorage.setItem('pharmaSubjectSortModeV1', 'custom');
+                exoSafeLocalStorageSetItem('pharmaSubjectSortModeV1', 'custom');
                 const sel = document.getElementById('subjectSortOrderSelect');
                 if (sel) sel.value = 'custom';
             }
@@ -18515,7 +18923,7 @@
             subjects.splice(toIdx, 0, movedItem);
 
             subjectSortMode = 'custom';
-            localStorage.setItem('pharmaSubjectSortModeV1', 'custom');
+            exoSafeLocalStorageSetItem('pharmaSubjectSortModeV1', 'custom');
             const sel = document.getElementById('subjectSortOrderSelect');
             if (sel) sel.value = 'custom';
 
@@ -18537,7 +18945,7 @@
         function toggleOnboardingHub(forceOpen = null) {
             if (forceOpen === true) {
                 onboardingHubDismissed = false;
-                localStorage.setItem('pharmaHideOnboardingV2', '0');
+                exoSafeLocalStorageSetItem('pharmaHideOnboardingV2', '0');
                 const navItems = document.querySelectorAll('.nav-item');
                 if (navItems[0] && !navItems[0].classList.contains('active')) {
                     switchView('subjects', navItems[0]);
@@ -18545,10 +18953,10 @@
                 if (activeSubjectId) backToSubjects();
             } else if (forceOpen === false) {
                 onboardingHubDismissed = true;
-                localStorage.setItem('pharmaHideOnboardingV2', '1');
+                exoSafeLocalStorageSetItem('pharmaHideOnboardingV2', '1');
             } else {
                 onboardingHubDismissed = !onboardingHubDismissed;
-                localStorage.setItem('pharmaHideOnboardingV2', onboardingHubDismissed ? '1' : '0');
+                exoSafeLocalStorageSetItem('pharmaHideOnboardingV2', onboardingHubDismissed ? '1' : '0');
             }
             renderNewUserOnboardingHub();
         }
@@ -19990,6 +20398,44 @@
             }
         }
 
+        function syncCwStudioDeskBar(visible = false) {
+            const deskBar = document.getElementById('cwStudioDeskBar');
+            if (!deskBar) return;
+            if (!visible || !currentViewingLec) {
+                deskBar.style.display = 'none';
+                deskBar.classList.remove('active');
+                deskBar.innerHTML = '';
+                return;
+            }
+            const isEn = (window.currentExoLang || document.documentElement?.lang) !== 'ar';
+            const grpName = currentViewingLec.group ? currentViewingLec.group.name : '';
+            const lecTitle = currentViewingLec.lec ? currentViewingLec.lec.title : '';
+            deskBar.classList.add('active');
+            deskBar.style.display = 'flex';
+            deskBar.innerHTML = `
+                <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1 1 240px;">
+                    <span class="exo-cutout-index-tab" style="color:var(--sage-green); flex-shrink:0;">
+                        <i class="fa-solid fa-pen-nib"></i> ${isEn ? 'Study Desk' : 'مكتب المذاكرة'}
+                    </span>
+                    <div style="min-width:0; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        <span data-exo-no-i18n="1" dir="auto" style="font-weight:700; font-size:0.86rem; color:var(--warm-paper); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:340px;">${escapeHtml(lecTitle)}</span>
+                        ${grpName ? `<span style="color:var(--text-muted); font-size:0.78rem;" aria-hidden="true">·</span><span data-exo-no-i18n="1" dir="auto" style="font-size:0.78rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px;">${escapeHtml(grpName)}</span>` : ''}
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                    <button type="button" class="exo-toc-util-btn" onclick="togglePdfChapterContextDrawer()" style="min-height:36px; padding:5px 11px;">
+                        <i class="fa-solid fa-diagram-project" style="color:var(--sage-green);"></i> ${isEn ? 'Chapter Index' : 'فهرس الفصل'}
+                    </button>
+                    <button type="button" class="exo-toc-util-btn" onclick="togglePdfFullscreen()" style="min-height:36px; padding:5px 11px;">
+                        <i class="fa-solid fa-expand"></i> ${isEn ? 'Fullscreen (F)' : 'ملء الشاشة (F)'}
+                    </button>
+                    <button type="button" class="exo-toc-util-btn" onclick="returnToChapterWorkspaceFromStudio()" style="min-height:36px; padding:5px 11px;">
+                        <i class="fa-solid fa-xmark"></i> ${isEn ? 'Close Desk' : 'إغلاق الاستوديو'}
+                    </button>
+                </div>
+            `;
+        }
+
         function mountPdfStudioInWorkspace(embed = true) {
             const overlay = document.getElementById('pdfViewerModalOverlay');
             const mount = document.getElementById('cwEmbeddedStudioMount');
@@ -19997,19 +20443,28 @@
             if (!overlay) return;
             if (embed && mount) {
                 mount.style.display = 'block';
+                mount.classList.add('active');
                 if (overlay.parentElement !== mount) {
                     mount.appendChild(overlay);
                 }
                 overlay.classList.add('exo-studio-embedded');
                 overlay.classList.remove('is-fullscreen');
                 if (container) container.classList.remove('is-fullscreen');
+                syncCwStudioDeskBar(true);
                 try {
+                    if (typeof updateWp63ChapterWorkspaceLabels === 'function') {
+                        updateWp63ChapterWorkspaceLabels(window.currentExoLang || document.documentElement?.lang || 'en', true);
+                    }
                     if (typeof mount.scrollIntoView === 'function') {
                         mount.scrollIntoView({ behavior: 'auto', block: 'nearest' });
                     }
                 } catch (_) {}
             } else {
-                if (mount) mount.style.display = 'none';
+                if (mount) {
+                    mount.style.display = 'none';
+                    mount.classList.remove('active');
+                }
+                syncCwStudioDeskBar(false);
                 overlay.classList.remove('exo-studio-embedded');
                 if (overlay.parentElement !== document.body) {
                     document.body.appendChild(overlay);
@@ -20174,17 +20629,103 @@
             }
         }
 
-        function updateWp63ChapterWorkspaceLabels(targetLang) {
+        function updateWp63ChapterWorkspaceLabels(targetLang, skipWorkspaceRerender = false) {
             const isEn = (targetLang || window.currentExoLang || document.documentElement?.lang) !== 'ar';
+            const setText = (id, enTxt, arTxt) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = isEn ? enTxt : arTxt;
+            };
+            const setTitle = (selector, enTxt, arTxt) => {
+                const el = document.querySelector(selector);
+                if (el) el.setAttribute('title', isEn ? enTxt : arTxt);
+            };
+            const setHtml = (selector, enHtml, arHtml) => {
+                const el = document.querySelector(selector);
+                if (el) el.innerHTML = isEn ? enHtml : arHtml;
+            };
+
             const backBtn = document.getElementById('pdfBackToChapterBtn');
             const backLbl = document.getElementById('pdfBackToChapterLabel');
             const ctxBtn = document.getElementById('pdfChapterContextToggleBtn');
             if (backBtn) backBtn.title = isEn ? 'Return to Chapter Workspace' : 'العودة لمساحة الفصل';
             if (backLbl) backLbl.textContent = isEn ? 'Chapter' : 'الفصل';
             if (ctxBtn) ctxBtn.title = isEn ? 'Chapter Context & Switcher' : 'سياق الفصل والتبديل السريع';
-            const cwView = document.getElementById('chapter-workspace-view');
-            if (cwView && cwView.style.display !== 'none' && activeChapterWorkspaceGroupId) {
-                renderChapterWorkspace(true);
+
+            // Localize PDF Studio chrome & controls cleanly in EN & AR
+            const viewerTitle = document.getElementById('pdfViewerTitle');
+            if (viewerTitle && (!currentViewingLec || viewerTitle.textContent === 'عرض المحاضرة' || viewerTitle.textContent === 'Lecture Studio')) {
+                viewerTitle.textContent = isEn ? 'Lecture Studio' : 'عرض المحاضرة';
+            }
+            setText('pdfAudioBarToggleText', 'Audio', 'الريكورد');
+            setText('pdfZenModeText', 'Zen Focus Mode (Z)', 'وضع التركيز الصافي (Z)');
+            setText('pdfTwoPageSpreadText', 'Two-Page Spread', 'عرض صفحتين جنباً إلى جنب');
+            setText('pdfMenuExtraNoteText', 'Add / Toggle Summary Sheet', 'إضافة / إظهار ورقة تلخيص');
+            setText('pdfMenuDownloadDiskText', 'Save PDF Copy to Device', 'حفظ نسخة PDF على جهازك (Downloads)');
+            setText('pdfMenuExportPdfText', 'Export Annotated PDF', 'تصدير المحاضرة بالكتابة (PDF)');
+            setText('pdfMenuUploadCloudBtnText', 'Upload PDF & Audio to Cloud', 'رفع الـ PDF والريكورد على الحساب');
+            setText('pdfMenuAttachAudioText', 'Attach Audio Recording', 'ربط ريكورد صوتي للمحاضرة');
+            setText('pdfMergedContinuousToggleTxt', 'Continuous Merged Slides', 'دمج كل السلايدات متتالية');
+
+            setTitle('#pdfBackToChapterBtn', 'Return to Chapter Workspace', 'العودة لمساحة الفصل');
+            setTitle('button[onclick*="stepPdfPage(-1)"]', 'Previous slide (Up Arrow)', 'الصفحة السابقة (سهم لأعلى)');
+            setTitle('button[onclick*="stepPdfPage(1)"]', 'Next slide (Down Arrow)', 'الصفحة التالية (سهم لأسفل)');
+            setTitle('#pdfPageCounterBadge', 'Jump to slide', 'الانتقال لسلايد محدد');
+            setTitle('button[onclick*="changePdfZoom(-0.15)"]', 'Zoom out (-)', 'تصغير (-)');
+            setTitle('#pdfZoomLevelText', 'Toggle fit width / height', 'تبديل ملء العرض / الارتفاع');
+            setTitle('button[onclick*="changePdfZoom(0.15)"]', 'Zoom in (+)', 'تكبير (+)');
+            setTitle('#pdfFullscreenBtn', 'Fullscreen (F)', 'ملء الشاشة (F)');
+            setTitle('#pdfBookmarkCurrentSlideBtn', 'Bookmark slide for exam (B)', 'تمييز السلايد كمهم للاختبار (B)');
+            setTitle('#pdfThumbnailsToggleBtn', 'Slides index & thumbnails (M)', 'فهرس ومصغرات السلايدات (M)');
+            setTitle('#pdfAudioBarToggleBtn', 'Audio player bar', 'مشغل الريكورد الصوتي');
+            setTitle('#pdfCollapseDockBtn', 'Show / hide drawing dock', 'إظهار / إخفاء شريط أدوات الرسم');
+            setTitle('#toolBtn_pan', 'Pan & scroll slide', 'تصفح وتحريك السلايد');
+            setTitle('#toolBtn_pen', 'Smooth ink pen', 'قلم للكتابة السلسة');
+            setTitle('#toolBtn_highlighter', 'Highlighter', 'قلم تظليل شفاف');
+            setTitle('#toolBtn_eraser', 'Smart eraser', 'ممحاة ذكية');
+            setTitle('#toolBtn_text', 'Keyboard text note', 'إضافة نص بالكيبورد');
+            setTitle('#toolBtn_laser', 'Laser pointer', 'مؤشر ليزر للشرح');
+            setTitle('#pdfTogglePenOptionsBtn', 'Pen color & stroke width', 'خيارات القلم (الألوان والسمك)');
+            setTitle('#toggleAnnoVisBtn', 'Show / hide annotations', 'إخفاء أو إظهار الكتابة');
+            setTitle('#pdfMobileCollapseDockBtn', 'Collapse drawing dock', 'طي الأدوات');
+            setTitle('#pdfMobileDockFloatingTriggerBtn', 'Show drawing dock', 'إظهار أدوات الرسم');
+            setTitle('button[onclick="closePdfViewer()"]', 'Close Studio (Esc)', 'إغلاق العارض (Esc)');
+
+            setHtml('.pdf-thumb-drawer-title span:first-of-type', 'Slides Index &amp; Thumbnails', 'فهرس ومصغرات السلايدات');
+            setHtml('#pdfThumbnailsDrawer button[onclick*="addBlankNotePageToLecture"]', '<i class="fa-solid fa-file-circle-plus"></i> + Add Blank Note Page', '<i class="fa-solid fa-file-circle-plus"></i> + إضافة صفحة بيضاء للملاحظات');
+            const thumbSearch = document.getElementById('pdfThumbSearchInput');
+            if (thumbSearch) thumbSearch.placeholder = isEn ? 'Jump by slide number...' : 'بحث برقم السلايد...';
+            const setThumbTabLabel = (id, prefixHtml, enWord, arWord) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const countSpan = el.querySelector('span[id^="pdfThumbFilterCount_"]');
+                const cnt = countSpan ? countSpan.textContent : '0';
+                const cntId = countSpan ? countSpan.id : '';
+                el.innerHTML = `${prefixHtml}${isEn ? enWord : arWord} (<span id="${cntId}">${cnt}</span>)`;
+            };
+            setThumbTabLabel('pdfThumbTab_all', '', 'All', 'الكل');
+            setThumbTabLabel('pdfThumbTab_bookmarks', '<i class="fa-solid fa-star" style="color:#f59e0b;"></i> ', 'Starred', 'المهمة');
+            setThumbTabLabel('pdfThumbTab_notes', '<i class="fa-solid fa-pen-to-square" style="color:#38bdf8;"></i> ', 'Notes', 'ملاحظات');
+            setThumbTabLabel('pdfThumbTab_deleted', '<i class="fa-solid fa-trash-can" style="color:#f87171;"></i> ', 'Hidden', 'المحذوفة');
+
+            setHtml('#pdfFloatingPageNav button[onclick*="stepPdfPage(-1)"]', isEn ? '<i class="fa-solid fa-arrow-up"></i> Prev' : '<i class="fa-solid fa-arrow-up"></i> السابقة');
+            setHtml('#pdfFloatingPageNav button[onclick*="stepPdfPage(1)"]', isEn ? 'Next <i class="fa-solid fa-arrow-down"></i>' : 'التالية <i class="fa-solid fa-arrow-down"></i>');
+            setHtml('#pdfFallbackBox h3', isEn ? 'Attach a PDF file to open the Reading &amp; Ink Studio' : 'افتح ملف الـ PDF لتفعيل استوديو القراءة والكتابة');
+            setHtml('#pdfFallbackBox p', isEn ? 'Select the PDF from your device once and it is cached privately in IndexedDB for instant offline ink, text notes, and export.' : 'اختر ملف الـ PDF من جهازك مرة واحدة فقط وسيُحفظ تلقائياً داخل المتصفح للكتابة عليه بالقلم أو الكيبورد في أي وقت.');
+            setHtml('#pdfFallbackBox button', isEn ? '<i class="fa-solid fa-folder-open"></i> Choose Local PDF' : '<i class="fa-solid fa-folder-open"></i> اختيار ملف الـ PDF');
+            setHtml('.pdf-audio-player-bar button[onclick*="addRecordingToCurrentLecture"]', isEn ? '<i class="fa-solid fa-plus"></i> <span class="hide-on-xs">Add Audio</span>' : '<i class="fa-solid fa-plus"></i> <span class="hide-on-xs">إضافة ريكورد</span>');
+            setHtml('.pdf-audio-player-bar button[onclick*="addAudioTimestampPin"]', isEn ? '<i class="fa-solid fa-thumbtack"></i> <span class="hide-on-xs">Pin Moment</span>' : '<i class="fa-solid fa-thumbtack"></i> <span class="hide-on-xs">تثبيت لحظة</span>');
+            setHtml('#pdfQuickJumpTitle', isEn ? 'Quick Jump in Lecture' : 'انتقال سريع في المحاضرة');
+
+            const deskBar = document.getElementById('cwStudioDeskBar');
+            if (deskBar && deskBar.classList.contains('active')) {
+                syncCwStudioDeskBar(true);
+            }
+
+            if (!skipWorkspaceRerender) {
+                const cwView = document.getElementById('chapter-workspace-view');
+                if (cwView && cwView.style.display !== 'none' && activeChapterWorkspaceGroupId) {
+                    renderChapterWorkspace(true);
+                }
             }
             const ctxDrawer = document.getElementById('pdfChapterContextDrawer');
             if (ctxDrawer && ctxDrawer.classList.contains('open')) {
@@ -20235,6 +20776,7 @@
             }).join('');
 
             headerEl.innerHTML = `
+                <svg class="exo-corner-ticks-svg" aria-hidden="true"><use href="#exo-ink-corner-ticks"/></svg>
                 <div class="exo-cw-breadcrumbs">
                     <button type="button" class="exo-cw-crumb-btn" id="cwBackToLibraryBtn" onclick="backToSubjects()">
                         <i class="fa-solid fa-book-bookmark"></i> ${isEn ? 'Library' : 'المكتبة'}
@@ -20244,7 +20786,7 @@
                         <i class="fa-solid fa-arrow-right exo-rtl-flip"></i> <span data-exo-no-i18n="1" dir="auto">${escapeHtml(sub.name)}</span>
                     </button>
                     <span aria-hidden="true">/</span>
-                    <span class="exo-lec-status-tag is-sage">${isEn ? `Chapter ${summary.chapterIndexLabel}` : `فصل ${summary.chapterIndexLabel}`}</span>
+                    <span class="exo-cutout-index-tab" style="color:var(--sage-green);">${isEn ? `Chapter ${summary.chapterIndexLabel}` : `فصل ${summary.chapterIndexLabel}`}</span>
                 </div>
                 <div class="exo-cw-header-main">
                     <div class="exo-cw-title-block">
@@ -20253,6 +20795,7 @@
                             <h2 class="exo-editorial" id="cwActiveChapterTitle" data-exo-no-i18n="1" dir="auto">${escapeHtml(group.name)}</h2>
                             <button type="button" class="icon-btn edit" style="width:36px; height:36px;" onclick="triggerEditGroup(${serializeCwIdArg(group.id)})" title="${isEn ? 'Rename chapter' : 'تعديل اسم الفصل'}" aria-label="${isEn ? 'Rename chapter' : 'تعديل اسم الفصل'}"><i class="fa-solid fa-pen"></i></button>
                         </div>
+                        <svg class="exo-ink-underline-svg" aria-hidden="true"><use href="#exo-ink-underline"/></svg>
                         <div class="exo-cw-meta-row" id="cwHeaderMetaRow">
                             <span>${isEn ? `${summary.doneLectures}/${summary.totalLectures} lectures done (${summary.pct}%)` : `${summary.doneLectures}/${summary.totalLectures} محاضرة مكتملة (${summary.pct}%)`}</span>
                             <span aria-hidden="true">·</span>
@@ -20643,6 +21186,76 @@
             `;
         }
 
+        function resolveBookshelfSpotlightItem(items) {
+            if (!Array.isArray(items) || items.length === 0) return null;
+            if (typeof activeSubjectId !== 'undefined' && activeSubjectId) {
+                const activeMatch = items.find(i => String(i.sub.id) === String(activeSubjectId));
+                if (activeMatch) return activeMatch;
+            }
+            const inProgress = items.find(i => i.totalLec > 0 && i.doneLec < i.totalLec && i.doneLec > 0);
+            if (inProgress) return inProgress;
+            const pending = items.find(i => i.totalLec > 0 && i.doneLec < i.totalLec);
+            return pending || items[0];
+        }
+
+        function renderBookshelfSpotlight(items, isEn) {
+            const spotEl = document.getElementById('exoBookshelfSpotlight');
+            if (!spotEl) return;
+            const spotlight = resolveBookshelfSpotlightItem(items);
+            if (!spotlight) {
+                spotEl.style.display = 'none';
+                spotEl.innerHTML = '';
+                return;
+            }
+            const { sub, totalLec, doneLec, progressPct, scheduledHours } = spotlight;
+            const idx = items.indexOf(spotlight);
+            const iconClass = getSubjectEmblemIcon(sub, Math.max(0, idx));
+            const accentColor = getSubjectColorTheme(sub, Math.max(0, idx));
+            const divided = isSubjectDivided(sub);
+            let nextLecture = null;
+            let nextGroup = null;
+            if (divided && Array.isArray(sub.groups)) {
+                for (const g of sub.groups) {
+                    const lecs = Array.isArray(g.lectures) ? g.lectures : [];
+                    const found = lecs.find(l => !l.completed) || lecs[0];
+                    if (found) {
+                        nextLecture = found;
+                        nextGroup = g;
+                        break;
+                    }
+                }
+            }
+            const metaLine = divided
+                ? `${(sub.groups || []).length} ${isEn ? 'chapters' : 'فصول'} · ${doneLec}/${totalLec} ${isEn ? 'lectures done' : 'محاضرة مكتملة'} · ${progressPct}%`
+                : `${isEn ? 'Continuous Journal Track' : 'مسار تعلّم مستمر'}${scheduledHours > 0 ? ` · ${scheduledHours}${isEn ? 'h planned' : ' س بالجدول'}` : ''}`;
+
+            spotEl.style.display = 'flex';
+            spotEl.style.setProperty('--spotlight-accent', accentColor);
+            spotEl.innerHTML = `
+                <svg class="exo-corner-ticks-svg" aria-hidden="true"><use href="#exo-ink-corner-ticks"/></svg>
+                <div class="exo-spotlight-main">
+                    <div class="exo-spotlight-book-badge" aria-hidden="true">
+                        <i class="fa-solid ${iconClass}"></i>
+                    </div>
+                    <div style="min-width:0; flex:1;">
+                        <div style="font-size:0.72rem; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; color:var(--sage-green);">
+                            ${isEn ? 'CURRENT DESK BOOK' : 'الكتاب المفتوح على مكتبك'}
+                        </div>
+                        <h3 class="exo-editorial" data-exo-no-i18n="1" dir="auto" style="margin:3px 0 2px 0; font-size:clamp(1.2rem, 2vw, 1.55rem); color:var(--warm-paper); line-height:1.25;">${escapeHtml(sub.name)}</h3>
+                        <svg class="exo-ink-underline-svg" aria-hidden="true"><use href="#exo-ink-underline"/></svg>
+                        <div class="exo-spotlight-meta">${metaLine}</div>
+                        ${nextLecture ? `<div class="exo-margin-note" data-exo-no-i18n="1" dir="auto">${isEn ? 'Next chapter cue:' : 'نقطة الاستئناف التالية:'} ${escapeHtml(nextGroup ? nextGroup.name + ' — ' : '')}${escapeHtml(nextLecture.title)}</div>` : ''}
+                    </div>
+                </div>
+                <div class="exo-spotlight-actions">
+                    ${nextGroup ? `<button type="button" class="btn btn-outline" style="min-height:44px; padding:9px 14px;" onclick="activeSubjectId=${sub.id}; openChapterWorkspace(${serializeCwIdArg(nextGroup.id)}, 'overview', event)"><i class="fa-solid fa-layer-group"></i> ${isEn ? 'Open Chapter Desk' : 'فتح مساحة الفصل'}</button>` : ''}
+                    <button type="button" class="exo-library-primary-btn" onclick="openSubject(${sub.id})">
+                        <i class="fa-solid fa-book-open"></i> ${isEn ? 'Open Table of Contents' : 'تصفح فهرس الكتاب'}
+                    </button>
+                </div>
+            `;
+        }
+
         function renderSubjectsList() {
             const grid = document.getElementById('mainSubjectsGrid');
             if(!grid) return;
@@ -20682,6 +21295,7 @@
             const enriched = filterAndSortBookshelfItems(stats.items, searchVal, subjectFilterMode, subjectSortMode, isSubjectDivided);
 
             renderNewUserOnboardingHub();
+            renderBookshelfSpotlight(stats.items, isEn);
 
             if (enriched.length === 0) {
                 if (searchVal || subjectFilterMode !== 'all') {
@@ -20747,7 +21361,7 @@
                     const isQSub = /قر[آا]ن|مصحف|تلاو|تجويد|حفظ/i.test(sub.name);
                     const isPSub = /برمج|كود|code|dev|python|java|web|flutter|front|back|sql|cs|c\+\+/i.test(sub.name);
                     const contBadgeTxt = isEn
-                        ? (isQSub ? 'Reading / Memorization Track' : (isPSub ? 'Coding Practice Track' : 'Continuous Track'))
+                        ? (isQSub ? 'Reading Track' : (isPSub ? 'Coding Track' : 'Continuous Track'))
                         : (isQSub ? 'ورد / تلاوة مستمرة' : (isPSub ? 'مسار برمجي مستمر' : 'مسار تعلّم حر'));
                     const contBadgeIcon = isQSub ? 'fa-book-quran' : (isPSub ? 'fa-laptop-code' : 'fa-seedling');
                     const bookmarkSeg = sub.continuousBookmark
@@ -20824,13 +21438,15 @@
                          ondrop="handleSubjectDrop(event, ${sub.id})"
                          ondragend="handleSubjectDragEnd(event)"
                          onclick="openSubject(${sub.id})">
+                        <div class="exo-book-cut-plate" aria-hidden="true"></div>
+                        <svg class="exo-book-spine-svg" aria-hidden="true"><use href="#exo-ink-spine-band"/></svg>
                         ${ribbonHtml}
                         <div class="exo-book-body-wrap">
                             <div style="width: 100%;">
                                 <div class="sc-card-top">
                                     <div style="display: flex; align-items: center; gap: 9px;">
                                         <div class="subject-emblem"><i class="fa-solid ${iconClass}"></i></div>
-                                        <span class="exo-book-index-num">${orderNum}</span>
+                                        <span class="exo-book-index-tab">${orderNum}</span>
                                     </div>
                                     <div class="card-actions-always">
                                         <button type="button" class="icon-btn move-btn" title="${movePrevTitle}" aria-label="${movePrevTitle}" onclick="moveSubjectOrder(${sub.id}, -1, event)"><i class="fa-solid fa-arrow-right exo-rtl-flip"></i></button>
@@ -21891,23 +22507,31 @@
                         const audioNeedsUpload = (hasLocalAudio || hasAudioDefined) && !isAudioCloud;
                         const isFullyUploaded = (isPdfCloud || isAudioCloud) && !pdfNeedsUpload && !audioNeedsUpload;
 
-                        let pdfBadgeHtml = '';
+                        let pdfMetaSeg = '';
+                        let pdfActionBtn = '';
                         if (isPdfCloud && !hasLocalPdf) {
-                            pdfBadgeHtml = `<button type="button" class="exo-lec-status-tag is-blue" onclick="downloadSingleLectureMediaItem(${g.id}, ${lec.id}, 'pdfs', event)"><i class="fa-solid fa-cloud-arrow-down"></i> ${isEn ? 'Download PDF' : 'تحميل PDF'} ${lec.cloudPdfSize ? '(' + (lec.cloudPdfSize / (1024*1024)).toFixed(1) + 'MB)' : ''}</button>`;
+                            pdfActionBtn = `<button type="button" class="exo-lec-status-tag is-blue" onclick="downloadSingleLectureMediaItem(${g.id}, ${lec.id}, 'pdfs', event)"><i class="fa-solid fa-cloud-arrow-down"></i> ${isEn ? 'Download PDF' : 'تحميل PDF'} ${lec.cloudPdfSize ? '(' + (lec.cloudPdfSize / (1024*1024)).toFixed(1) + 'MB)' : ''}</button>`;
                         } else if (isPdfCloud) {
-                            pdfBadgeHtml = `<span class="exo-lec-status-tag is-sage"><i class="fa-solid fa-cloud"></i> ${isEn ? 'PDF synced' : 'PDF سحابي'}</span>`;
+                            pdfMetaSeg = `<span style="color:var(--sage-green); font-weight:600;"><i class="fa-solid fa-cloud"></i> ${isEn ? 'PDF synced' : 'PDF سحابي'}</span>`;
                         } else if (hasPdfDefined) {
-                            pdfBadgeHtml = `<span class="exo-lec-status-tag is-gold"><i class="fa-solid fa-file-pdf"></i> ${isEn ? 'PDF local' : 'PDF محلي'}</span>`;
+                            pdfMetaSeg = `<span style="color:var(--warm-gold); font-weight:600;"><i class="fa-solid fa-file-pdf"></i> ${isEn ? 'PDF local' : 'PDF محلي'}</span>`;
                         }
 
-                        let audioBadgeHtml = '';
+                        let audioMetaSeg = '';
+                        let audioActionBtn = '';
                         if (isAudioCloud && !hasLocalAudio) {
-                            audioBadgeHtml = `<button type="button" class="exo-lec-status-tag is-blue" onclick="downloadSingleLectureMediaItem(${g.id}, ${lec.id}, 'audios', event)"><i class="fa-solid fa-cloud-arrow-down"></i> ${isEn ? 'Download Audio' : 'تحميل الصوت'} ${lec.cloudAudioSize ? '(' + (lec.cloudAudioSize / (1024*1024)).toFixed(1) + 'MB)' : ''}</button>`;
+                            audioActionBtn = `<button type="button" class="exo-lec-status-tag is-blue" onclick="downloadSingleLectureMediaItem(${g.id}, ${lec.id}, 'audios', event)"><i class="fa-solid fa-cloud-arrow-down"></i> ${isEn ? 'Download Audio' : 'تحميل الصوت'} ${lec.cloudAudioSize ? '(' + (lec.cloudAudioSize / (1024*1024)).toFixed(1) + 'MB)' : ''}</button>`;
                         } else if (isAudioCloud) {
-                            audioBadgeHtml = `<span class="exo-lec-status-tag is-blue"><i class="fa-solid fa-headphones"></i> ${isEn ? 'Audio synced' : 'ريكورد سحابي'}</span>`;
+                            audioMetaSeg = `<span style="color:#B2CBE0; font-weight:600;"><i class="fa-solid fa-headphones"></i> ${isEn ? 'Audio synced' : 'ريكورد سحابي'}</span>`;
                         } else if (lec.audioPath) {
-                            audioBadgeHtml = `<span class="exo-lec-status-tag is-blue"><i class="fa-solid fa-headphones"></i> ${isEn ? 'Audio local' : 'ريكورد محلي'}</span>`;
+                            audioMetaSeg = `<span style="color:#B2CBE0; font-weight:600;"><i class="fa-solid fa-headphones"></i> ${isEn ? 'Audio local' : 'ريكورد محلي'}</span>`;
                         }
+                        const pdfBadgeHtml = pdfActionBtn;
+                        const audioBadgeHtml = audioActionBtn;
+                        const unboxedStatusParts = [pdfMetaSeg, audioMetaSeg].filter(Boolean);
+                        const unboxedStatusHtml = unboxedStatusParts.length
+                            ? `<span class="exo-toc-lec-meta-line">${unboxedStatusParts.join('<span aria-hidden="true">·</span>')}</span>`
+                            : '';
 
                         let uploadActionBtnHtml = '';
                         if (isFullyUploaded) {
@@ -21947,6 +22571,7 @@
                                         <span class="exo-lec-idx">${lecOrderDisplay}</span>
                                         <i class="fa-solid fa-file-pdf" style="color: ${lec.completed ? 'var(--sage-green)' : 'var(--terracotta)'}; font-size: 1.05rem;"></i>
                                         <span data-exo-no-i18n="1" dir="auto" style="font-weight: 700; color: ${lec.completed ? 'var(--text-muted)' : 'var(--warm-paper)'}; ${lec.completed ? 'text-decoration: line-through;' : ''}">${escapeHtml(lec.title)}</span>
+                                        ${unboxedStatusHtml}
                                         ${pdfBadgeHtml}
                                         ${audioBadgeHtml}
                                         ${readingProgressBadge}
@@ -22197,7 +22822,7 @@
             if (!plannerPrefs.currentWeekStartIso) {
                 plannerPrefs.currentWeekStartIso = currentWeekIso;
                 if (hadStoredScheduleOrPrefs) {
-                    localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
+                    exoSafeLocalStorageJsonSet('pharmaPlannerPrefsV1', plannerPrefs);
                 }
             }
         }
@@ -22624,8 +23249,8 @@
 
         function setAutoCloudMediaUploadEnabled(enabled, showToastMsg = false) {
             plannerPrefs.autoUploadCloudMedia = false;
-            localStorage.setItem('pharmaAutoUploadMediaCloudV1', '0');
-            localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
+            exoSafeLocalStorageSetItem('pharmaAutoUploadMediaCloudV1', '0');
+            exoSafeLocalStorageJsonSet('pharmaPlannerPrefsV1', plannerPrefs);
         }
 
         function toggleAutoUploadCloudMediaSetting() {
@@ -22814,13 +23439,18 @@
                 }
             });
             if (changed) {
-                localStorage.setItem('pharmaScheduleV4', JSON.stringify({
+                const schedNormPayload = {
                     version: 3,
                     events: scheduleEvents,
                     backlog: scheduleBacklog,
                     plannerPrefs: plannerPrefs,
                     weeklyReports: weeklyReports
-                }));
+                };
+                const lsNormRes = exoSafeLocalStorageJsonSet('pharmaScheduleV4', schedNormPayload);
+                if (typeof persistWorkspaceDomainToIDB === 'function') {
+                    const uidNorm = (currentCloudUser && currentCloudUser.id) ? String(currentCloudUser.id) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local');
+                    persistWorkspaceDomainToIDB('schedule', schedNormPayload, uidNorm, null, Boolean(lsNormRes && lsNormRes.persisted)).catch(() => {});
+                }
             }
             return changed;
         }
@@ -23735,7 +24365,7 @@
 
         function toggleWeekGroupBySubject() {
             window.weekGroupBySubjectMode = !window.weekGroupBySubjectMode;
-            localStorage.setItem('pharmaWeekGroupSubV1', window.weekGroupBySubjectMode ? '1' : '0');
+            exoSafeLocalStorageSetItem('pharmaWeekGroupSubV1', window.weekGroupBySubjectMode ? '1' : '0');
             renderWeekGrid();
             const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
             showToast(window.weekGroupBySubjectMode
@@ -24076,7 +24706,7 @@
 
         function setHourlyDisplayMode(isCompact) {
             hourlyCompactMode = Boolean(isCompact);
-            localStorage.setItem('pharmaHourlyModeV2', hourlyCompactMode ? 'compact' : 'full');
+            exoSafeLocalStorageSetItem('pharmaHourlyModeV2', hourlyCompactMode ? 'compact' : 'full');
             renderTodayView(selectedHourlyDayIdx);
             const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
             showToast(hourlyCompactMode
@@ -26057,7 +26687,7 @@
 
         function toggleWeekBoardMobileLayout() {
             window.weekBoardHorizontalMode = !window.weekBoardHorizontalMode;
-            localStorage.setItem('pharmaWeekBoardHorizV1', window.weekBoardHorizontalMode ? '1' : '0');
+            exoSafeLocalStorageSetItem('pharmaWeekBoardHorizV1', window.weekBoardHorizontalMode ? '1' : '0');
             renderWeekGrid();
             const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
             if (window.weekBoardHorizontalMode) {
@@ -38753,7 +39383,7 @@ function togglePdfAudioPlayerBar(forceState) {
             const anchor = captureLiveVisiblePdfPageAnchor();
             currentPdfFitMode = mode;
             if (mode === 'height' || mode === 'width') {
-                localStorage.setItem('pharmaPdfFitMode', mode);
+                exoSafeLocalStorageSetItem('pharmaPdfFitMode', mode);
             }
             updatePdfFitButtonsUI();
             if (mergedContinuousPdfMode) {
@@ -39176,7 +39806,7 @@ function togglePdfAudioPlayerBar(forceState) {
 
         function togglePalmRejectionMode(forceVal = null, silent = false) {
             palmRejectionMode = (forceVal !== null) ? Boolean(forceVal) : !palmRejectionMode;
-            localStorage.setItem('pharmaPalmRejectV1', palmRejectionMode ? '1' : '0');
+            exoSafeLocalStorageSetItem('pharmaPalmRejectV1', palmRejectionMode ? '1' : '0');
             syncPalmRejectionButtonUI();
             if (!silent) {
                 if (palmRejectionMode) {
@@ -41087,7 +41717,11 @@ function togglePdfAudioPlayerBar(forceState) {
                     if (overlay.parentElement !== document.body) {
                         document.body.appendChild(overlay);
                     }
-                    if (mount) mount.style.display = 'none';
+                    if (mount) {
+                        mount.style.display = 'none';
+                        mount.classList.remove('active');
+                    }
+                    if (typeof syncCwStudioDeskBar === 'function') syncCwStudioDeskBar(false);
                 } else {
                     overlay.classList.remove('is-fullscreen');
                     const canReEmbed = Boolean(typeof activeChapterWorkspaceGroupId !== 'undefined' && activeChapterWorkspaceGroupId && !mergedContinuousPdfMode && mount && document.getElementById('chapter-workspace-view')?.style.display !== 'none');
@@ -41742,7 +42376,11 @@ function togglePdfAudioPlayerBar(forceState) {
                 }
             }
             const cwStudioMount = document.getElementById('cwEmbeddedStudioMount');
-            if (cwStudioMount) cwStudioMount.style.display = 'none';
+            if (cwStudioMount) {
+                cwStudioMount.style.display = 'none';
+                cwStudioMount.classList.remove('active');
+            }
+            if (typeof syncCwStudioDeskBar === 'function') syncCwStudioDeskBar(false);
             const fsIcon = document.getElementById('pdfFullscreenIcon');
             if (fsIcon) fsIcon.className = 'fa-solid fa-expand';
             const menuFsIcon = document.getElementById('pdfMenuFullscreenIcon');
@@ -43320,9 +43958,9 @@ function togglePdfAudioPlayerBar(forceState) {
                         autoCompletePct: 75,
                         currentWeekStartIso: getLocalIsoDate(getWeekStartDateForDate(new Date(), 6))
                     };
-                    localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
+                    exoSafeLocalStorageJsonSet('pharmaPlannerPrefsV1', plannerPrefs);
                     currentPdfFitMode = 'height';
-                    localStorage.setItem('pharmaPdfFitMode', 'height');
+                    exoSafeLocalStorageSetItem('pharmaPdfFitMode', 'height');
                     subjects = [];
                     scheduleEvents = [];
                     scheduleBacklog = [];
@@ -43332,14 +43970,14 @@ function togglePdfAudioPlayerBar(forceState) {
                     cloudMediaRegistry = {};
                     dirtyAnnotationsForCloud = false;
                     lastUploadedAnnotationsSignature = '';
-                    localStorage.setItem('pharmaSubjectsV4', '[]');
-                    localStorage.setItem('pharmaWeeklyReportsV1', '[]');
-                    localStorage.setItem('pharmaScheduleV4', JSON.stringify({ version: 3, events: [], backlog: [], plannerPrefs: plannerPrefs, weeklyReports: [] }));
-                    localStorage.setItem('pharmaScheduleBacklogV1', '[]');
-                    localStorage.setItem('pharmaLogsV4', '[]');
-                    localStorage.setItem('pharmaAcademyProgressV1', '[]');
-                    localStorage.setItem('pharmaCloudMediaRegistryV1', '{}');
-                    localStorage.removeItem('pharmaWorkspaceDirty');
+                    exoSafeLocalStorageSetItem('pharmaSubjectsV4', '[]');
+                    exoSafeLocalStorageSetItem('pharmaWeeklyReportsV1', '[]');
+                    exoSafeLocalStorageJsonSet('pharmaScheduleV4', { version: 3, events: [], backlog: [], plannerPrefs: plannerPrefs, weeklyReports: [] });
+                    exoSafeLocalStorageSetItem('pharmaScheduleBacklogV1', '[]');
+                    exoSafeLocalStorageSetItem('pharmaLogsV4', '[]');
+                    exoSafeLocalStorageSetItem('pharmaAcademyProgressV1', '[]');
+                    exoSafeLocalStorageSetItem('pharmaCloudMediaRegistryV1', '{}');
+                    try { localStorage.removeItem('pharmaWorkspaceDirty'); } catch (e) {}
                 }
             }
 
@@ -43348,8 +43986,8 @@ function togglePdfAudioPlayerBar(forceState) {
             // Only record activeCtx.uid as the last active cloud UID immediately if we already archived the outgoing account (isSwitchingDifferentCloudUser),
             // or if we are not running initial login sync from an unverified 'local' guest session (so syncWorkspaceOnLogin can verify guest provenance!).
             if (currentCloudUser && activeCtx.uid && activeCtx.uid !== 'local' && (!shouldInitialSync || isSwitchingDifferentCloudUser || prevUid === activeCtx.uid)) {
-                localStorage.setItem('pharmaLastActiveUserIdV1', activeCtx.uid);
-                localStorage.setItem('pharmaLastActiveCloudUid', activeCtx.uid);
+                exoSafeLocalStorageSetItem('pharmaLastActiveUserIdV1', activeCtx.uid);
+                exoSafeLocalStorageSetItem('pharmaLastActiveCloudUid', activeCtx.uid);
             }
 
             // Reset in-memory caches for the new session
@@ -43399,13 +44037,13 @@ function togglePdfAudioPlayerBar(forceState) {
                     if (userVaultRaw) {
                         const uVault = JSON.parse(userVaultRaw);
                         if (uVault && uVault.linked && uVault.userEmail) {
-                            localStorage.setItem('exo_gdrive_connected', '1');
-                            localStorage.setItem('exo_gdrive_user_email', uVault.userEmail);
-                            if (uVault.folderId) localStorage.setItem('exo_gdrive_folder_id', uVault.folderId);
-                            else localStorage.removeItem('exo_gdrive_folder_id');
-                            if (uVault.quotaInfo) localStorage.setItem('exo_gdrive_quota_info', uVault.quotaInfo);
-                            else localStorage.removeItem('exo_gdrive_quota_info');
-                            localStorage.setItem('exo_gdrive_bound_user_id', activeCtx.uid);
+                            exoSafeLocalStorageSetItem('exo_gdrive_connected', '1');
+                            exoSafeLocalStorageSetItem('exo_gdrive_user_email', uVault.userEmail);
+                            if (uVault.folderId) exoSafeLocalStorageSetItem('exo_gdrive_folder_id', uVault.folderId);
+                            else try { localStorage.removeItem('exo_gdrive_folder_id'); } catch (e) {}
+                            if (uVault.quotaInfo) exoSafeLocalStorageSetItem('exo_gdrive_quota_info', uVault.quotaInfo);
+                            else try { localStorage.removeItem('exo_gdrive_quota_info'); } catch (e) {}
+                            exoSafeLocalStorageSetItem('exo_gdrive_bound_user_id', activeCtx.uid);
                         }
                     }
                 } catch (e) {}
@@ -43685,7 +44323,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 });
             });
             if (healedAny) {
-                localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+                persistSubjectsSnapshotSafely(uid, { reason: 'heal_subjects_cloud_registry' }).catch(() => {});
             }
             return healedAny;
         }
@@ -43837,7 +44475,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 }
 
                 if (healedCount > 0) {
-                    localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+                    await persistSubjectsSnapshotSafely(uid, { reason: 'legacy_reconcile_cloud_media' });
                     if (activeSubjectId) renderGroups();
                     if (pushIfHealed) {
                         await pushWorkspaceToCloud(false);
@@ -43920,7 +44558,7 @@ function togglePdfAudioPlayerBar(forceState) {
             const newSpec = sanitizeUserText(specIn ? specIn.value : '', 80);
 
             if (newSpec !== undefined) {
-                localStorage.setItem('pharmaUserSpecialtyTitleV1', newSpec);
+                exoSafeLocalStorageSetItem('pharmaUserSpecialtyTitleV1', newSpec);
             }
             if (newName && currentCloudUser) {
                 currentCloudUser.name = newName;
@@ -43937,12 +44575,12 @@ function togglePdfAudioPlayerBar(forceState) {
                     const savedSess = JSON.parse(localStorage.getItem('pharmaActiveAccountSessionV1') || 'null');
                     if (savedSess) {
                         savedSess.name = newName;
-                        localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify(savedSess));
+                        exoSafeLocalStorageJsonSet('pharmaActiveAccountSessionV1', savedSess);
                     }
                     const reg = JSON.parse(localStorage.getItem('pharmaAccountsRegistryV1') || '{}');
                     if (currentCloudUser.email && reg[currentCloudUser.email.toLowerCase()]) {
                         reg[currentCloudUser.email.toLowerCase()].name = newName;
-                        localStorage.setItem('pharmaAccountsRegistryV1', JSON.stringify(reg));
+                        exoSafeLocalStorageJsonSet('pharmaAccountsRegistryV1', reg);
                     }
                 } catch (e) {}
 
@@ -45004,15 +45642,15 @@ function togglePdfAudioPlayerBar(forceState) {
                                     return finish(null);
                                 }
                                 if (infoRes && infoRes.email) {
-                                    localStorage.setItem('exo_gdrive_user_email', infoRes.email);
+                                    exoSafeLocalStorageSetItem('exo_gdrive_user_email', infoRes.email);
                                 }
                                 if (infoRes && infoRes.quotaText) {
-                                    localStorage.setItem('exo_gdrive_quota_info', infoRes.quotaText);
+                                    exoSafeLocalStorageSetItem('exo_gdrive_quota_info', infoRes.quotaText);
                                 }
 
-                                localStorage.setItem('exo_gdrive_connected', '1');
+                                exoSafeLocalStorageSetItem('exo_gdrive_connected', '1');
                                 if (currentCloudUser && currentCloudUser.id) {
-                                    localStorage.setItem('exo_gdrive_bound_user_id', currentCloudUser.id);
+                                    exoSafeLocalStorageSetItem('exo_gdrive_bound_user_id', currentCloudUser.id);
                                 }
                                 googleDriveAuthState = 'connected';
                                 googleDriveLastError = null;
@@ -45025,7 +45663,7 @@ function togglePdfAudioPlayerBar(forceState) {
                                         folderId: localStorage.getItem('exo_gdrive_folder_id') || '',
                                         quotaInfo: localStorage.getItem('exo_gdrive_quota_info') || ''
                                     };
-                                    localStorage.setItem('pharmaGdriveSync_' + currentCloudUser.id, JSON.stringify(vaultData));
+                                    exoSafeLocalStorageJsonSet('pharmaGdriveSync_' + currentCloudUser.id, vaultData, { targetUid: currentCloudUser.id });
                                     if (typeof pushWorkspaceToCloud === 'function') {
                                         pushWorkspaceToCloud(false).catch(() => {});
                                     }
@@ -45300,7 +45938,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 (val) => {
                     const cleanVal = (val || '').trim();
                     if (cleanVal) {
-                        localStorage.setItem('exo_gdrive_custom_client_id', cleanVal);
+                        exoSafeLocalStorageSetItem('exo_gdrive_custom_client_id', cleanVal);
                         showToast('✅ تم حفظ Google Client ID بنجاح', 'success');
                         connectGoogleDriveAccount(true);
                     } else {
@@ -45420,10 +46058,10 @@ function togglePdfAudioPlayerBar(forceState) {
                     }
                     if (!opts.skipLocalStorageWrite) {
                         if (email) {
-                            localStorage.setItem('exo_gdrive_user_email', email);
+                            exoSafeLocalStorageSetItem('exo_gdrive_user_email', email);
                         }
                         if (quotaText) {
-                            localStorage.setItem('exo_gdrive_quota_info', quotaText);
+                            exoSafeLocalStorageSetItem('exo_gdrive_quota_info', quotaText);
                         }
                     }
                     if (!opts.skipPush) {
@@ -45551,7 +46189,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 });
                 if (listRes.ok && listRes.data && Array.isArray(listRes.data.files) && listRes.data.files.length > 0) {
                     const fId = listRes.data.files[0].id;
-                    localStorage.setItem('exo_gdrive_folder_id', fId);
+                    exoSafeLocalStorageSetItem('exo_gdrive_folder_id', fId);
                     return fId;
                 }
 
@@ -45567,7 +46205,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     expectJson: true
                 });
                 if (createRes.ok && createRes.data && createRes.data.id) {
-                    localStorage.setItem('exo_gdrive_folder_id', createRes.data.id);
+                    exoSafeLocalStorageSetItem('exo_gdrive_folder_id', createRes.data.id);
                     return createRes.data.id;
                 }
                 return 'root';
@@ -45608,7 +46246,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (folderId && folderId !== rootId && folderId !== 'root' && subObj.driveFolderId !== folderId) {
                     subObj.driveFolderId = folderId;
                     subObj._needsCausalStamp = true;
-                    localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+                    await persistSubjectsSnapshotSafely(null, { reason: 'ensure_subject_drive_folder' });
                 }
                 return folderId || rootId;
             })();
@@ -45647,7 +46285,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (folderId && folderId !== parentSubId && folderId !== 'root' && groupObj.driveFolderId !== folderId) {
                     groupObj.driveFolderId = folderId;
                     groupObj._needsCausalStamp = true;
-                    localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+                    await persistSubjectsSnapshotSafely(null, { reason: 'ensure_group_drive_folder' });
                 }
                 return folderId || parentSubId;
             })();
@@ -46773,7 +47411,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     fileName: driveFileName
                 });
 
-                localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+                await persistSubjectsSnapshotSafely(null, { reason: 'upload_media_to_drive' });
                 if (!deferWorkspaceSync) {
                     await pushWorkspaceToCloud(false);
                     updateCloudMediaStatsUI();
@@ -47359,7 +47997,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 }
 
                 if (autoHealedCount > 0) {
-                    localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+                    await persistSubjectsSnapshotSafely(null, { reason: 'sync_all_media_auto_heal' });
                     await pushWorkspaceToCloud(false);
                     if (activeSubjectId) renderGroups();
                     updateCloudMediaStatsUI();
@@ -47406,7 +48044,7 @@ function togglePdfAudioPlayerBar(forceState) {
                                 item.storeName,
                                 item.lec,
                                 item.blob,
-                                false,
+                               false,
                                 {
                                     index: itemNum,
                                     total: queue.length,
@@ -47419,7 +48057,7 @@ function togglePdfAudioPlayerBar(forceState) {
                             );
                             if (res && res.ok) {
                                 uploadedCount++;
-                                localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+                                await persistSubjectsSnapshotSafely(null, { reason: 'sync_all_media_item', opCtx: bulkOpCtx });
                                 updateCloudMediaStatsUI();
                             } else {
                                 failedCount++;
@@ -47436,7 +48074,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
 
                 // Step 3: Push workspace metadata once cleanly at the end of the batch
-                localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+                await persistSubjectsSnapshotSafely(null, { reason: 'sync_all_media_batch_end' });
                 await pushWorkspaceToCloud(false);
                 if (activeSubjectId) renderGroups();
                 updateCloudMediaStatsUI();
@@ -47627,9 +48265,9 @@ function togglePdfAudioPlayerBar(forceState) {
                         createdAt: new Date().toISOString()
                     };
                     accountsRegistry[email] = newUser;
-                    localStorage.setItem('pharmaAccountsRegistryV1', JSON.stringify(accountsRegistry));
+                    exoSafeLocalStorageJsonSet('pharmaAccountsRegistryV1', accountsRegistry);
                     const sessionCopy = { id: newUser.id, email: newUser.email, name: newUser.name, createdAt: newUser.createdAt };
-                    localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify(sessionCopy));
+                    exoSafeLocalStorageJsonSet('pharmaActiveAccountSessionV1', sessionCopy);
 
                     authFailedAttemptsCount = 0;
                     document.getElementById('cloudAuthPassword').value = '';
@@ -47655,13 +48293,13 @@ function togglePdfAudioPlayerBar(forceState) {
                     // Seamless auto-upgrade of legacy hashes
                     if (authCheck.upgradedHash) {
                         existingUser.passwordHash = authCheck.upgradedHash;
-                        localStorage.setItem('pharmaAccountsRegistryV1', JSON.stringify(accountsRegistry));
+                        exoSafeLocalStorageJsonSet('pharmaAccountsRegistryV1', accountsRegistry);
                     }
 
                     authFailedAttemptsCount = 0;
                     document.getElementById('cloudAuthPassword').value = '';
                     const sessionCopy = { id: existingUser.id, email: existingUser.email, name: existingUser.name, createdAt: existingUser.createdAt };
-                    localStorage.setItem('pharmaActiveAccountSessionV1', JSON.stringify(sessionCopy));
+                    exoSafeLocalStorageJsonSet('pharmaActiveAccountSessionV1', sessionCopy);
                     await handleAuthSessionChange(sessionCopy, true);
                     closeModal('cloudAuthModalOverlay');
                     showToast(`👋 مرحباً بعودتك يا ${existingUser.name}! تم تحميل حسابك بأمان.`);
@@ -53014,7 +53652,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 return { ok: false, reason: 'account_switched' };
             }
 
-            localStorage.setItem('pharmaTombstones_' + uid, JSON.stringify(unifiedTombstones));
+            exoSafeLocalStorageJsonSet('pharmaTombstones_' + uid, unifiedTombstones, { targetUid: uid });
 
             // 3. Merge Subjects, Groups, Lectures & Continuous Wird Logs using Causal Engine
             const remoteSubs = Array.isArray(remoteRow.subjects) ? remoteRow.subjects : [];
@@ -53031,7 +53669,13 @@ function togglePdfAudioPlayerBar(forceState) {
 
             if (typeof snapshotCurrentSubjectsMediaToRegistry === 'function') snapshotCurrentSubjectsMediaToRegistry(subjects, uid);
             if (typeof healSubjectsFromCloudRegistry === 'function') healSubjectsFromCloudRegistry(uid);
-            localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
+            const lsMergeSubRes = exoSafeLocalStorageJsonSet('pharmaSubjectsV4', subjects, { targetUid: uid });
+            const lsMergeSubOk = Boolean(lsMergeSubRes && lsMergeSubRes.persisted === true);
+            if (typeof persistWorkspaceDomainToIDB === 'function') {
+                try {
+                    await persistWorkspaceDomainToIDB('subjects', subjects, uid, opCtx, lsMergeSubOk);
+                } catch (e) {}
+            }
 
             // Clean up local IndexedDB artifacts for any lectures deleted locally or via remote tombstones
             if (subMergeResult.deletedLectureIds && subMergeResult.deletedLectureIds.length > 0 && typeof cleanupDeletedLectureLocalArtifacts === 'function') {
@@ -53054,12 +53698,12 @@ function togglePdfAudioPlayerBar(forceState) {
             const remoteReports = Array.isArray(remoteRow.schedule?.weeklyReports) ? remoteRow.schedule.weeklyReports : [];
             const localReports = Array.isArray(localPayload.schedule?.weeklyReports) ? localPayload.schedule.weeklyReports : [];
             weeklyReports = _mergeFlat(localReports, remoteReports, 'weekly_reports', unifiedTombstones, uid, (r) => String(r.weekStartIso || r.id));
-            localStorage.setItem('pharmaWeeklyReportsV1', JSON.stringify(weeklyReports));
+            const lsMergeRepRes = exoSafeLocalStorageJsonSet('pharmaWeeklyReportsV1', weeklyReports, { targetUid: uid });
 
             // 6. Merge Planner Preferences & Persist Full Schedule State Immediately (F-13: 0ms persistence)
             plannerPrefs = Object.assign({}, plannerPrefs, remoteRow.schedule?.plannerPrefs, localPayload.schedule?.plannerPrefs);
-            localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
-            localStorage.setItem('pharmaScheduleV4', JSON.stringify({
+            const lsMergePrefsRes = exoSafeLocalStorageJsonSet('pharmaPlannerPrefsV1', plannerPrefs, { targetUid: uid });
+            const mergedSchedulePayload = {
                 version: 3,
                 events: scheduleEvents,
                 backlog: scheduleBacklog,
@@ -53070,14 +53714,32 @@ function togglePdfAudioPlayerBar(forceState) {
                     ? getCompactConflictRecoveryForLocalStorage(uid)
                     : (typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(uid) : []),
                 _deviceRegistry: typeof getLocalDeviceRegistry === 'function' ? getLocalDeviceRegistry(uid) : {}
-            }));
-            localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));
+            };
+            const lsMergeSchedRes = exoSafeLocalStorageJsonSet('pharmaScheduleV4', mergedSchedulePayload, { targetUid: uid });
+            const lsMergeBacklogRes = exoSafeLocalStorageJsonSet('pharmaScheduleBacklogV1', scheduleBacklog, { targetUid: uid });
+            const lsMergeSchOk = Boolean(
+                lsMergePrefsRes && lsMergePrefsRes.persisted &&
+                lsMergeRepRes && lsMergeRepRes.persisted &&
+                lsMergeSchedRes && lsMergeSchedRes.persisted &&
+                lsMergeBacklogRes && lsMergeBacklogRes.persisted
+            );
+            if (typeof persistWorkspaceDomainToIDB === 'function') {
+                try {
+                    await persistWorkspaceDomainToIDB('schedule', mergedSchedulePayload, uid, opCtx, lsMergeSchOk);
+                } catch (e) {}
+            }
 
             // 7. Merge Logs using Causal Engine + Tombstones
             const remoteLogs = Array.isArray(remoteRow.logs) ? remoteRow.logs : [];
             const localLogs = Array.isArray(localPayload.logs) ? localPayload.logs : [];
             logs = _mergeFlat(localLogs, remoteLogs, 'logs', unifiedTombstones, uid, (l) => String(l.id ?? l.timestamp));
-            localStorage.setItem('pharmaLogsV4', JSON.stringify(logs));
+            const lsMergeLogRes = exoSafeLocalStorageJsonSet('pharmaLogsV4', logs, { targetUid: uid });
+            const lsMergeLogOk = Boolean(lsMergeLogRes && lsMergeLogRes.persisted === true);
+            if (typeof persistWorkspaceDomainToIDB === 'function') {
+                try {
+                    await persistWorkspaceDomainToIDB('logs', logs, uid, opCtx, lsMergeLogOk);
+                } catch (e) {}
+            }
 
             if (typeof flushPendingConflictRecoveryWrites === 'function') {
                 await flushPendingConflictRecoveryWrites(uid, opCtx);
@@ -53090,7 +53752,7 @@ function togglePdfAudioPlayerBar(forceState) {
             const remoteAcad = Array.isArray(remoteRow.academy_progress) ? remoteRow.academy_progress : [];
             const localAcad = Array.isArray(localPayload.academy_progress) ? localPayload.academy_progress : [];
             completedAcademyModules = Array.from(new Set([...remoteAcad, ...localAcad]));
-            localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(completedAcademyModules));
+            exoSafeLocalStorageJsonSet('pharmaAcademyProgressV1', completedAcademyModules, { targetUid: uid });
             if (typeof updateAcademyXpUI === 'function') updateAcademyXpUI();
 
             // 9. Merge Cloud Media Registry & Persist Immediately
@@ -53107,17 +53769,17 @@ function togglePdfAudioPlayerBar(forceState) {
             if (typeof saveCloudMediaRegistry === 'function') {
                 saveCloudMediaRegistry();
             } else {
-                localStorage.setItem('pharmaCloudMediaRegistryV1', JSON.stringify(cloudMediaRegistry));
+                exoSafeLocalStorageJsonSet('pharmaCloudMediaRegistryV1', cloudMediaRegistry, { targetUid: uid });
             }
 
             // 10. Update local revision to remote revision & keep workspace dirty until cloud acknowledgement
             currentCloudWorkspaceRevision = Number(remoteRow.revision || 1);
             const userRevKey = 'pharmaWorkspaceRevision_' + uid;
-            localStorage.setItem(userRevKey, String(currentCloudWorkspaceRevision));
-            localStorage.setItem('pharmaLastCloudSyncIso', remoteRow.updated_at || new Date().toISOString());
-            localStorage.setItem('pharmaWorkspaceUpdatedAt', String(Date.now()));
-            localStorage.setItem('pharmaWorkspaceDirty', '1');
-            localStorage.setItem('pharmaWorkspaceDirty_' + uid, '1');
+            exoSafeLocalStorageSetItem(userRevKey, String(currentCloudWorkspaceRevision), { targetUid: uid });
+            exoSafeLocalStorageSetItem('pharmaLastCloudSyncIso', remoteRow.updated_at || new Date().toISOString(), { targetUid: uid });
+            exoSafeLocalStorageSetItem('pharmaWorkspaceUpdatedAt', String(Date.now()), { targetUid: uid });
+            exoSafeLocalStorageSetItem('pharmaWorkspaceDirty', '1', { targetUid: uid });
+            exoSafeLocalStorageSetItem('pharmaWorkspaceDirty_' + uid, '1', { targetUid: uid });
 
             // Re-render UI with merged in-memory state
             renderSubjectsList();
@@ -53574,7 +54236,7 @@ function togglePdfAudioPlayerBar(forceState) {
 
                     if (serverSyncConfirmed && rpcResultData) {
                         currentCloudWorkspaceRevision = Number(rpcResultData.revision);
-                        localStorage.setItem(userRevKey, String(currentCloudWorkspaceRevision));
+                        exoSafeLocalStorageSetItem(userRevKey, String(currentCloudWorkspaceRevision), { targetUid: syncUserId });
 
                         // Acknowledge ONLY the exact operation IDs that were sent in this push
                         if (typeof acknowledgeCommittedOperationsSnapshot === 'function') {
@@ -54049,12 +54711,11 @@ function togglePdfAudioPlayerBar(forceState) {
             }
             snapshotCurrentSubjectsMediaToRegistry(subjects, targetUid);
             healSubjectsFromCloudRegistry(targetUid);
-            try {
-                localStorage.setItem('pharmaSubjectsV4', JSON.stringify(subjects));
-            } catch (e) {}
+            const lsApplySubRes = exoSafeLocalStorageJsonSet('pharmaSubjectsV4', subjects, { targetUid });
+            const lsApplySubOk = Boolean(lsApplySubRes && lsApplySubRes.persisted === true);
             if (typeof persistWorkspaceDomainToIDB === 'function') {
                 try {
-                    await persistWorkspaceDomainToIDB('subjects', subjects, targetUid, opCtx);
+                    await persistWorkspaceDomainToIDB('subjects', subjects, targetUid, opCtx, lsApplySubOk);
                 } catch (e) {}
             }
 
@@ -54081,6 +54742,8 @@ function togglePdfAudioPlayerBar(forceState) {
                     : (typeof getWeekStartSaturdayIso === 'function' ? getWeekStartSaturdayIso(new Date()) : new Date().toISOString().slice(0, 10))
             };
 
+            let lsApplyPrefsOk = true;
+            let lsApplyRepOk = true;
             if (cloudRow.schedule && typeof cloudRow.schedule === 'object') {
                 const rawEvents = Array.isArray(cloudRow.schedule.events) ? cloudRow.schedule.events : [];
                 scheduleEvents = _mergeFlat([], rawEvents, 'events', unifiedTombstones, targetUid, (e) => String(e.id));
@@ -54097,28 +54760,28 @@ function togglePdfAudioPlayerBar(forceState) {
                 } else {
                     plannerPrefs = defaultPlannerPrefs;
                 }
-                localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
+                lsApplyPrefsOk = Boolean(exoSafeLocalStorageJsonSet('pharmaPlannerPrefsV1', plannerPrefs, { targetUid }).persisted);
                 // Always overwrite weeklyReports from account payload (or empty array if none) so reports never leak between accounts
                 const rawReports = Array.isArray(cloudRow.schedule.weeklyReports) ? cloudRow.schedule.weeklyReports : [];
                 weeklyReports = _mergeFlat([], rawReports, 'weekly_reports', unifiedTombstones, targetUid, (r) => String(r.weekStartIso || r.id));
-                localStorage.setItem('pharmaWeeklyReportsV1', JSON.stringify(weeklyReports));
+                lsApplyRepOk = Boolean(exoSafeLocalStorageJsonSet('pharmaWeeklyReportsV1', weeklyReports, { targetUid }).persisted);
 
                 currentPdfFitMode = cloudRow.schedule.pdfFitMode ? cloudRow.schedule.pdfFitMode : 'height';
-                localStorage.setItem('pharmaPdfFitMode', currentPdfFitMode);
+                exoSafeLocalStorageSetItem('pharmaPdfFitMode', currentPdfFitMode, { targetUid });
 
                 if (opCtx.isCurrent()) {
                     const syncInfo = (cloudRow.schedule.gdriveSync && typeof cloudRow.schedule.gdriveSync === 'object')
                         ? cloudRow.schedule.gdriveSync
                         : null;
                     if (syncInfo && syncInfo.linked && syncInfo.userEmail) {
-                        localStorage.setItem('exo_gdrive_connected', '1');
-                        localStorage.setItem('exo_gdrive_user_email', syncInfo.userEmail);
-                        if (syncInfo.folderId) localStorage.setItem('exo_gdrive_folder_id', syncInfo.folderId);
-                        else localStorage.removeItem('exo_gdrive_folder_id');
-                        if (syncInfo.quotaInfo) localStorage.setItem('exo_gdrive_quota_info', syncInfo.quotaInfo);
-                        else localStorage.removeItem('exo_gdrive_quota_info');
-                        localStorage.setItem('exo_gdrive_bound_user_id', targetUid);
-                        localStorage.setItem('pharmaGdriveSync_' + targetUid, JSON.stringify(syncInfo));
+                        exoSafeLocalStorageSetItem('exo_gdrive_connected', '1', { targetUid });
+                        exoSafeLocalStorageSetItem('exo_gdrive_user_email', syncInfo.userEmail, { targetUid });
+                        if (syncInfo.folderId) exoSafeLocalStorageSetItem('exo_gdrive_folder_id', syncInfo.folderId, { targetUid });
+                        else try { localStorage.removeItem('exo_gdrive_folder_id'); } catch (e) {}
+                        if (syncInfo.quotaInfo) exoSafeLocalStorageSetItem('exo_gdrive_quota_info', syncInfo.quotaInfo, { targetUid });
+                        else try { localStorage.removeItem('exo_gdrive_quota_info'); } catch (e) {}
+                        exoSafeLocalStorageSetItem('exo_gdrive_bound_user_id', targetUid, { targetUid });
+                        exoSafeLocalStorageJsonSet('pharmaGdriveSync_' + targetUid, syncInfo, { targetUid });
                         if (typeof updateGoogleDriveUI === 'function') {
                             updateGoogleDriveUI();
                         }
@@ -54127,13 +54790,13 @@ function togglePdfAudioPlayerBar(forceState) {
                             const userVaultRaw = localStorage.getItem('pharmaGdriveSync_' + targetUid);
                             const uVault = userVaultRaw ? JSON.parse(userVaultRaw) : null;
                             if (uVault && uVault.linked && uVault.userEmail) {
-                                localStorage.setItem('exo_gdrive_connected', '1');
-                                localStorage.setItem('exo_gdrive_user_email', uVault.userEmail);
-                                if (uVault.folderId) localStorage.setItem('exo_gdrive_folder_id', uVault.folderId);
-                                else localStorage.removeItem('exo_gdrive_folder_id');
-                                if (uVault.quotaInfo) localStorage.setItem('exo_gdrive_quota_info', uVault.quotaInfo);
-                                else localStorage.removeItem('exo_gdrive_quota_info');
-                                localStorage.setItem('exo_gdrive_bound_user_id', targetUid);
+                                exoSafeLocalStorageSetItem('exo_gdrive_connected', '1', { targetUid });
+                                exoSafeLocalStorageSetItem('exo_gdrive_user_email', uVault.userEmail, { targetUid });
+                                if (uVault.folderId) exoSafeLocalStorageSetItem('exo_gdrive_folder_id', uVault.folderId, { targetUid });
+                                else try { localStorage.removeItem('exo_gdrive_folder_id'); } catch (e) {}
+                                if (uVault.quotaInfo) exoSafeLocalStorageSetItem('exo_gdrive_quota_info', uVault.quotaInfo, { targetUid });
+                                else try { localStorage.removeItem('exo_gdrive_quota_info'); } catch (e) {}
+                                exoSafeLocalStorageSetItem('exo_gdrive_bound_user_id', targetUid, { targetUid });
                             } else {
                                 const boundUser = localStorage.getItem('exo_gdrive_bound_user_id');
                                 if (boundUser && String(boundUser) !== targetUid) {
@@ -54164,12 +54827,12 @@ function togglePdfAudioPlayerBar(forceState) {
                 weeklyReports = [];
                 plannerPrefs = defaultPlannerPrefs;
                 currentPdfFitMode = 'height';
-                localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
-                localStorage.setItem('pharmaPdfFitMode', 'height');
-                localStorage.setItem('pharmaWeeklyReportsV1', '[]');
+                lsApplyPrefsOk = Boolean(exoSafeLocalStorageJsonSet('pharmaPlannerPrefsV1', plannerPrefs, { targetUid }).persisted);
+                exoSafeLocalStorageSetItem('pharmaPdfFitMode', 'height', { targetUid });
+                lsApplyRepOk = Boolean(exoSafeLocalStorageSetItem('pharmaWeeklyReportsV1', '[]', { targetUid }).persisted);
             }
 
-            localStorage.setItem('pharmaScheduleV4', JSON.stringify({
+            const applyScheduleStoragePayload = {
                 version: 3,
                 events: scheduleEvents,
                 backlog: scheduleBacklog,
@@ -54180,12 +54843,30 @@ function togglePdfAudioPlayerBar(forceState) {
                     ? getCompactConflictRecoveryForLocalStorage(targetUid)
                     : (typeof getConflictRecoveryRecords === 'function' ? getConflictRecoveryRecords(targetUid) : []),
                 _deviceRegistry: typeof getLocalDeviceRegistry === 'function' ? getLocalDeviceRegistry(targetUid) : {}
-            }));
-            localStorage.setItem('pharmaScheduleBacklogV1', JSON.stringify(scheduleBacklog));
+            };
+            const lsApplySchedRes = exoSafeLocalStorageJsonSet('pharmaScheduleV4', applyScheduleStoragePayload, { targetUid });
+            const lsApplyBacklogRes = exoSafeLocalStorageJsonSet('pharmaScheduleBacklogV1', scheduleBacklog, { targetUid });
+            const lsApplySchOk = Boolean(
+                lsApplyPrefsOk &&
+                lsApplyRepOk &&
+                lsApplySchedRes && lsApplySchedRes.persisted &&
+                lsApplyBacklogRes && lsApplyBacklogRes.persisted
+            );
+            if (typeof persistWorkspaceDomainToIDB === 'function') {
+                try {
+                    await persistWorkspaceDomainToIDB('schedule', applyScheduleStoragePayload, targetUid, opCtx, lsApplySchOk);
+                } catch (e) {}
+            }
 
             const rawLogs = Array.isArray(cloudRow.logs) ? cloudRow.logs : [];
             logs = _mergeFlat([], rawLogs, 'logs', unifiedTombstones, targetUid, (l) => String(l.id ?? l.timestamp));
-            localStorage.setItem('pharmaLogsV4', JSON.stringify(logs));
+            const lsApplyLogRes = exoSafeLocalStorageJsonSet('pharmaLogsV4', logs, { targetUid });
+            const lsApplyLogOk = Boolean(lsApplyLogRes && lsApplyLogRes.persisted === true);
+            if (typeof persistWorkspaceDomainToIDB === 'function') {
+                try {
+                    await persistWorkspaceDomainToIDB('logs', logs, targetUid, opCtx, lsApplyLogOk);
+                } catch (e) {}
+            }
 
             if (typeof flushPendingConflictRecoveryWrites === 'function') {
                 await flushPendingConflictRecoveryWrites(targetUid, opCtx);
@@ -54199,7 +54880,7 @@ function togglePdfAudioPlayerBar(forceState) {
             } else if (!Array.isArray(completedAcademyModules)) {
                 completedAcademyModules = JSON.parse(localStorage.getItem('pharmaAcademyProgressV1') || '[]') || [];
             }
-            localStorage.setItem('pharmaAcademyProgressV1', JSON.stringify(completedAcademyModules));
+            exoSafeLocalStorageJsonSet('pharmaAcademyProgressV1', completedAcademyModules, { targetUid });
             updateAcademyXpUI();
 
             await refreshLocalMediaCache(opCtx);
@@ -54218,21 +54899,19 @@ function togglePdfAudioPlayerBar(forceState) {
 
             if (cloudRow.revision !== undefined && cloudRow.revision !== null) {
                 currentCloudWorkspaceRevision = Number(cloudRow.revision);
-                localStorage.setItem('pharmaWorkspaceRevision_' + targetUid, String(currentCloudWorkspaceRevision));
+                exoSafeLocalStorageSetItem('pharmaWorkspaceRevision_' + targetUid, String(currentCloudWorkspaceRevision), { targetUid });
             }
             if (cloudRow.updated_at) {
-                localStorage.setItem('pharmaLastCloudSyncIso', cloudRow.updated_at);
+                exoSafeLocalStorageSetItem('pharmaLastCloudSyncIso', cloudRow.updated_at, { targetUid });
             }
             if (cloudRow.dirty || localStorage.getItem('pharmaWorkspaceDirty_' + targetUid) === '1' || durableApplyJournal.hasDirtyWorkspace || durableApplyJournal.hasDirtyAnnotations) {
-                try { localStorage.setItem('pharmaWorkspaceDirty', '1'); } catch (e) {}
+                exoSafeLocalStorageSetItem('pharmaWorkspaceDirty', '1', { targetUid });
             } else {
                 try { localStorage.removeItem('pharmaWorkspaceDirty'); } catch (e) {}
             }
             if (targetUid && targetUid !== 'local') {
-                try {
-                    localStorage.setItem('pharmaLastActiveUserIdV1', targetUid);
-                    localStorage.setItem('pharmaLastActiveCloudUid', targetUid);
-                } catch (e) {}
+                exoSafeLocalStorageSetItem('pharmaLastActiveUserIdV1', targetUid, { targetUid });
+                exoSafeLocalStorageSetItem('pharmaLastActiveCloudUid', targetUid, { targetUid });
             }
 
             renderSubjectsList();
@@ -55161,8 +55840,8 @@ function togglePdfAudioPlayerBar(forceState) {
                     return { ok: false, status: 'aborted', reason: 'account_switched' };
                 }
                 const isPushSuccess = Boolean(pushRes && pushRes.status === 'success');
-                localStorage.setItem('pharmaLastActiveUserIdV1', opCtx.uid);
-                localStorage.setItem('pharmaLastActiveCloudUid', opCtx.uid);
+                exoSafeLocalStorageSetItem('pharmaLastActiveUserIdV1', opCtx.uid, { targetUid: opCtx.uid });
+                exoSafeLocalStorageSetItem('pharmaLastActiveCloudUid', opCtx.uid, { targetUid: opCtx.uid });
                 return {
                     ok: true,
                     status: isPushSuccess ? 'reconciled_and_synced' : 'reconciled_locally',
@@ -55172,8 +55851,8 @@ function togglePdfAudioPlayerBar(forceState) {
                 };
             }
 
-            localStorage.setItem('pharmaLastActiveUserIdV1', opCtx.uid);
-            localStorage.setItem('pharmaLastActiveCloudUid', opCtx.uid);
+            exoSafeLocalStorageSetItem('pharmaLastActiveUserIdV1', opCtx.uid, { targetUid: opCtx.uid });
+            exoSafeLocalStorageSetItem('pharmaLastActiveCloudUid', opCtx.uid, { targetUid: opCtx.uid });
             return { ok: true, status: 'reconciled_locally', reconciled: true, revision: currentCloudWorkspaceRevision };
         }
 
@@ -55785,9 +56464,9 @@ function togglePdfAudioPlayerBar(forceState) {
                             ? getLocalIsoDate(getWeekStartDateForDate(new Date(), 6))
                             : (typeof getWeekStartSaturdayIso === 'function' ? getWeekStartSaturdayIso(new Date()) : new Date().toISOString().slice(0, 10))
                     };
-                    localStorage.setItem('pharmaPlannerPrefsV1', JSON.stringify(plannerPrefs));
+                    exoSafeLocalStorageJsonSet('pharmaPlannerPrefsV1', plannerPrefs, { targetUid: opCtx.uid });
                     currentPdfFitMode = 'height';
-                    localStorage.setItem('pharmaPdfFitMode', 'height');
+                    exoSafeLocalStorageSetItem('pharmaPdfFitMode', 'height', { targetUid: opCtx.uid });
 
                     subjects = [];
                     scheduleEvents = [];
@@ -55802,14 +56481,14 @@ function togglePdfAudioPlayerBar(forceState) {
                     pendingAnnoSaveMap = {};
                     dirtyAnnotationsForCloud = false;
                     lastUploadedAnnotationsSignature = '';
-                    localStorage.setItem('pharmaSubjectsV4', '[]');
-                    localStorage.setItem('pharmaWeeklyReportsV1', '[]');
-                    localStorage.setItem('pharmaScheduleV4', JSON.stringify({ version: 3, events: [], backlog: [], plannerPrefs: plannerPrefs, weeklyReports: [] }));
-                    localStorage.setItem('pharmaScheduleBacklogV1', '[]');
-                    localStorage.setItem('pharmaLogsV4', '[]');
-                    localStorage.setItem('pharmaAcademyProgressV1', '[]');
-                    localStorage.setItem('pharmaCloudMediaRegistryV1', '{}');
-                    localStorage.removeItem('pharmaWorkspaceDirty');
+                    exoSafeLocalStorageSetItem('pharmaSubjectsV4', '[]', { targetUid: opCtx.uid });
+                    exoSafeLocalStorageSetItem('pharmaWeeklyReportsV1', '[]', { targetUid: opCtx.uid });
+                    exoSafeLocalStorageJsonSet('pharmaScheduleV4', { version: 3, events: [], backlog: [], plannerPrefs: plannerPrefs, weeklyReports: [] }, { targetUid: opCtx.uid });
+                    exoSafeLocalStorageSetItem('pharmaScheduleBacklogV1', '[]', { targetUid: opCtx.uid });
+                    exoSafeLocalStorageSetItem('pharmaLogsV4', '[]', { targetUid: opCtx.uid });
+                    exoSafeLocalStorageSetItem('pharmaAcademyProgressV1', '[]', { targetUid: opCtx.uid });
+                    exoSafeLocalStorageSetItem('pharmaCloudMediaRegistryV1', '{}', { targetUid: opCtx.uid });
+                    try { localStorage.removeItem('pharmaWorkspaceDirty'); } catch (e) {}
                     // Data Protection: Preserving local IndexedDB stores without destructive clearing
                     localMediaCache.pdfs.clear();
                     localMediaCache.audios.clear();
@@ -55822,11 +56501,11 @@ function togglePdfAudioPlayerBar(forceState) {
                         if (userVaultRaw) {
                             const uVault = JSON.parse(userVaultRaw);
                             if (uVault && uVault.linked && uVault.userEmail) {
-                                localStorage.setItem('exo_gdrive_connected', '1');
-                                localStorage.setItem('exo_gdrive_user_email', uVault.userEmail);
-                                if (uVault.folderId) localStorage.setItem('exo_gdrive_folder_id', uVault.folderId);
-                                if (uVault.quotaInfo) localStorage.setItem('exo_gdrive_quota_info', uVault.quotaInfo);
-                                localStorage.setItem('exo_gdrive_bound_user_id', opCtx.uid);
+                                exoSafeLocalStorageSetItem('exo_gdrive_connected', '1', { targetUid: opCtx.uid });
+                                exoSafeLocalStorageSetItem('exo_gdrive_user_email', uVault.userEmail, { targetUid: opCtx.uid });
+                                if (uVault.folderId) exoSafeLocalStorageSetItem('exo_gdrive_folder_id', uVault.folderId, { targetUid: opCtx.uid });
+                                if (uVault.quotaInfo) exoSafeLocalStorageSetItem('exo_gdrive_quota_info', uVault.quotaInfo, { targetUid: opCtx.uid });
+                                exoSafeLocalStorageSetItem('exo_gdrive_bound_user_id', opCtx.uid, { targetUid: opCtx.uid });
                             }
                         }
                     } catch (e) {}
@@ -56052,8 +56731,8 @@ function togglePdfAudioPlayerBar(forceState) {
                     if (!opCtx.isCurrent()) {
                         return { status: 'aborted', reason: 'account_switched' };
                     }
-                    localStorage.setItem('pharmaLastActiveUserIdV1', opCtx.uid);
-                    localStorage.setItem('pharmaLastActiveCloudUid', opCtx.uid);
+                    exoSafeLocalStorageSetItem('pharmaLastActiveUserIdV1', opCtx.uid, { targetUid: opCtx.uid });
+                    exoSafeLocalStorageSetItem('pharmaLastActiveCloudUid', opCtx.uid, { targetUid: opCtx.uid });
                     await pushWorkspaceToCloud(false, false, opCtx);
                     return applyRes;
                 }
