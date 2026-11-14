@@ -1,26 +1,23 @@
 # Current Project Handoff
 
-**آخر تحديث:** 2026-11-13  
+**آخر تحديث:** 2026-11-14  
 **المستودع:** JemistryMC/study-hub  
 **فرع العمل:** main  
-**Documentation baseline عند بدء WP 6.4:** `8a9a72c11ed38d616a5660dbece4833de2ed84b0`  
-**آخر Application Source SHA اجتاز GitHub Actions CI:** `d7010ff03ac8db3f401f4a4a38a822dca760709d`  
-**دليل CI:** GitHub Actions CI Run [#56](https://github.com/JemistryMC/study-hub/actions/runs/43480486440) — Run ID `43480486440` — **SUCCESS** على SHA `d7010ff03ac8db3f401f4a4a38a822dca760709d`؛ **`787/787` assertions**، تشمل Chromium E2E `167/167` وPostgreSQL 16.16 الحقيقي `96/96` وPGlite `41/41` وWP 6.4 unit `5/5`.  
-**دليل النشر:** GitHub Pages Run [#153](https://github.com/JemistryMC/study-hub/actions/runs/43480485880) — Run ID `43480485880` — **SUCCESS** على SHA نفسه.  
-**نقطة الأساس عند بدء WP 6.4:** Source SHA `c97499e35c006236854a2a43982fb4923e77d838` / Documentation HEAD `8a9a72c11ed38d616a5660dbece4833de2ed84b0`.  
-**Commit تنفيذ WP 6.4 (CI VERIFIED):** `d7010ff03ac8db3f401f4a4a38a822dca760709d` — [عرض commit](https://github.com/JemistryMC/study-hub/commit/d7010ff03ac8db3f401f4a4a38a822dca760709d).  
-**حالة Phase 6:** IN PROGRESS — WP 6.1–WP 6.4 CI VERIFIED (WP 6.3 retains declared authorization-boundary limitations); **WP 6.5 ACTIVE**; WP 6.6 remains the final regression/accessibility/performance gate; FINAL OWNER PRODUCT REVIEW DEFERRED TO PHASE 6 COMPLETION.  
+**آخر Application Source SHA اجتاز GitHub Actions CI بالكامل (WP 6.4):** `d7010ff03ac8db3f401f4a4a38a822dca760709d` (CI #56 `43480486440`: `787/787`؛ Pages #153 `43480485880`: SUCCESS).  
+**خط أساس WP 6.5 قبل تعثّر E2E:** Commit `64e1689b1daac2b01d7422475c125d89a61fee9a` اجتاز CI #58 بنتيجة **`794/794`** مع `test_wp6_5_unit.js` (`7/7`).  
+**HEAD المرجعي الفاشل على GitHub:** `1a8309d99fe9290e51953e86d41c0480395853b1` — أضاف `test_wp6_5_chromium_e2e.js` وسجّل CI #59 (`43501607489`) **FAILURE** بسبب سقوط تحقق واحد فقط وهو `S6.4` (`42/43` في WP 6.5 Chromium E2E، بينما اجتازت جميع المجموعات الأخرى بما فيها Legacy Chromium E2E `167/167` وPostgreSQL 16 `96/96`).  
+**حالة المعالجة المحلية الحالية لـWP 6.5:** **`IMPLEMENTED — LOCAL TESTS ONLY`** *(تم إصلاح سباق الانتظار في `S6.4` وإضافة خصائص `data-audit-state`/`data-scanned-count`/`data-public-count` وتنسيق نافذة `#gdrivePrivacyAuditOverlay` المركزية بالوضع الداكن المعتمد، واجتازت كافة الاختبارات القابلة للتشغيل محليًا `741/741` منها `43/43` WP 6.5 Chromium E2E و`167/167` Legacy Chromium E2E و`7/7` WP 6.5 unit و`41/41` PGlite؛ بانتظار مزامنة المالك ونجاح GitHub Actions CI على SHA الجديد).*  
+**حالة Phase 6:** IN PROGRESS — WP 6.1–WP 6.4 CI VERIFIED (WP 6.3 retains declared authorization-boundary limitations); **WP 6.5 IMPLEMENTED — LOCAL TESTS ONLY (PENDING GITHUB SYNC & CI)**; **WP 6.6 INACTIVE**; FINAL OWNER PRODUCT REVIEW DEFERRED TO PHASE 6 COMPLETION.  
 **حالة WP 6.0:** READ-ONLY BASELINE AUDIT — ACCEPTED.  
-**حالة WP 6.1:** CI VERIFIED — COMPLETE.  
-**حالة WP 6.2:** CI VERIFIED — TECHNICALLY COMPLETE؛ CI #54 `766/766` وPages #149 SUCCESS.  
-**حالة WP 6.3:** `CI VERIFIED — CORE IMPLEMENTATION PASSED; DECLARED SCOPE LIMITATIONS HELD FOR SEPARATE AUTHORIZATION`. CI #55 passed `776/776`, Pages #151 SUCCESS. Implemented Chapter Workspace, unified index over currently persisted formats, honest resume summary, inline audio preview, Studio context drawer, and return-to-chapter flow. **Proposal A (mixed-type Collections / resource schema) and Proposal B (multiple Extra Note Sheets) remain NOT IMPLEMENTED**; both need separate explicit owner authorization.  
+**حالة WP 6.1:** CI VERIFIED — COMPLETE (`86fda98`, CI #53 `755/755`).  
+**حالة WP 6.2:** CI VERIFIED — TECHNICALLY COMPLETE (`70d1a84`, CI #54 `766/766`).  
+**حالة WP 6.3:** `CI VERIFIED — CORE IMPLEMENTATION PASSED; DECLARED SCOPE LIMITATIONS HELD FOR SEPARATE AUTHORIZATION` (`c97499e`, CI #55 `776/776`). **Proposal A (mixed-type Collections / resource schema) and Proposal B (multiple Extra Note Sheets) remain NOT IMPLEMENTED**; both need separate explicit owner authorization.  
 **ملاحظة تحقق مستقلة لـWP 6.3 (مستمرة):** Chromium Test MM.2 seeds bookmark/extra-note/pin/custom-page state directly in the test page; its PDF/WAV binaries are also seeded in IndexedDB. Test MM.3 exercises Add Web Link through the UI and audio playback through UI. Therefore the current E2E proves indexing, search/filter/sort, playback, links, Studio navigation, and reload behavior for those fixtures, but does **not** prove complete UI-driven create/edit flows for every resource type (especially PDF/audio creation and notes/pins/bookmarks). This is a test-coverage limit, not evidence that those UI flows are broken.  
-**حالة WP 6.4:** `CI VERIFIED — TECHNICALLY COMPLETE` على Source SHA `d7010ff03ac8db3f401f4a4a38a822dca760709d`؛ CI #56 (`43480486440`) **`787/787 PASSED`** وPages #153 (`43480485880`) **SUCCESS**. محليًا Gemini سجل `691/691` + `5/5` Node Tier A benchmarks؛ وعلى GitHub CI اكتملت خطوة PostgreSQL 16.16 (`96/96`) وChromium E2E (`167/167`) والـ unified runner (`787/787`). هذا اعتماد هندسي للحزمة فقط، وليس موافقة المنتج النهائية.  
-**حالة WP 6.5:** **ACTIVE / AUTHORIZED TO PROCEED** — WP 6.4 اجتاز CI على SHA المرفوع؛ ابدأ الحزمة التالية وفق خطة Phase 6، مع بقاء مراجعة المنتج النهائية عند اكتمال Phase 6.  
-**ملاحظة المالك — معيار تجربة المنتج:** لا يكفي أن يبدو التطبيق كـ`skin` جديد. الحزم القادمة مطالبة بإثبات إعادة تصميم فعلية لرحلات المستخدم والتفاعلات وسير العمل، لا الاكتفاء بتغيير CSS أو ترتيب البطاقات.  
+**حالة WP 6.4:** `CI VERIFIED — TECHNICALLY COMPLETE` على Source SHA `d7010ff03ac8db3f401f4a4a38a822dca760709d`؛ CI #56 (`43480486440`) **`787/787 PASSED`**.  
+**حالة WP 6.5:** `IMPLEMENTED — LOCAL TESTS ONLY` — تم توثيق السبب الجذري لـ`S6.4` وإصلاحه محليًا مع تحقق `43/43` في `test_wp6_5_chromium_e2e.js` و`741/741` عبر `npm test` (باستثناء `test_phase4_2_1_pg16_concurrency.js` لعدم توفر خادم PostgreSQL 16 محليًا)، إضافة إلى `5/5` في `benchmark:node`. **لم يكتمل CI بعد؛ لا تبدأ WP 6.6 حتى يجتاز CI الكامل (بما فيه PostgreSQL 16 `96/96` ليبلغ الإجمالي `837/837`) على SHA المزامَن.**  
 **نموذج المراجعة:** يستمر العمل في Work Packages بالتسلسل بعد التحقق الهندسي ونجاح GitHub Actions CI على Source SHA المرفوع. لا يُطلب اعتماد منفصل بعد كل حزمة. للمالك حق طلب تعديلات أو إيقاف التنفيذ، والاعتماد النهائي بعد مراجعة Phase 6 كاملة.  
 **حدود لا يتضمنها هذا التفويض:** لا تغييرات في Production Supabase أو SQL/Migrations/RLS/RPC/Auth/OAuth/Google Drive permissions أو عقود المزامنة أو مخططات التخزين أو عزل الحسابات أو سياسة Free/VIP أو العمليات الأكاديمية المغلقة دون تفويض صريح مستقل. مقترحا WP 6.3 A/B لا يمنحان أي تفويض ضمني.  
-**مراجع المصدر الحالية:** `reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md`, `reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md`, `reports/PHASE_6_BASELINE_AUDIT.md`, `reports/PHASE_6_WP_6_1_REPORT.md`, `reports/PHASE_6_WP_6_2_REPORT.md`, `reports/PHASE_6_WP_6_3_REPORT.md`, `reports/PHASE_6_WP_6_4_REPORT.md`, `reports/screenshots/wp6-3/`, `reports/screenshots/wp6-4/`.
+**مراجع المصدر الحالية:** `reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md`, `reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md`, `reports/PHASE_6_BASELINE_AUDIT.md`, `reports/PHASE_6_WP_6_1_REPORT.md`, `reports/PHASE_6_WP_6_2_REPORT.md`, `reports/PHASE_6_WP_6_3_REPORT.md`, `reports/PHASE_6_WP_6_4_REPORT.md`, `reports/PHASE_6_WP_6_5_REPORT.md`, `reports/screenshots/wp6-3/`, `reports/screenshots/wp6-4/`, `reports/screenshots/wp6-5/`.
 ## مراجع التسليم الحالية
 
 1. العقد الهندسي الدائم: `GEMINI.md`.
@@ -31,7 +28,8 @@
 6. تقرير WP 6.1 ونتائج GitHub Actions CI: `reports/PHASE_6_WP_6_1_REPORT.md`.
 7. تقرير WP 6.2 ونتائج CI والتحقق التقني: `reports/PHASE_6_WP_6_2_REPORT.md`.
 8. تقرير WP 6.3 ونتائج CI والمقترحين المعلقين: `reports/PHASE_6_WP_6_3_REPORT.md` (مع صور `reports/screenshots/wp6-3/*.png`).
-9. تقرير WP 6.4 ونتائج التحقق المحلي والأدلة البصرية: `reports/PHASE_6_WP_6_4_REPORT.md` (مع صور `reports/screenshots/wp6-4/*.png`).
+9. تقرير WP 6.4 ونتائج CI والأدلة البصرية: `reports/PHASE_6_WP_6_4_REPORT.md` (مع صور `reports/screenshots/wp6-4/*.png`).
+10. تقرير WP 6.5 ومعالجة تعثّر `S6.4` ونتائج التحقق المحلي: `reports/PHASE_6_WP_6_5_REPORT.md` (مع صور `reports/screenshots/wp6-5/*.png`).
 
 ## قرارات التصميم المثبتة
 

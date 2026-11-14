@@ -43477,17 +43477,17 @@ function togglePdfAudioPlayerBar(forceState) {
             if (existingAudit) existingAudit.remove();
 
             const modalHtml = `
-            <div id="gdrivePrivacyAuditOverlay" class="di-modal-overlay active" role="dialog" aria-modal="true" aria-labelledby="gdrivePrivacyAuditTitle" style="z-index:999999;">
-                <div class="di-modal-box" style="max-width:620px; width:92%; background:var(--bg-card); border-radius:18px; border:1px solid rgba(45,212,191,0.25); box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding:16px 20px;">
-                        <h3 id="gdrivePrivacyAuditTitle" style="margin:0; font-size:1.15rem; color:var(--text-main); font-weight:800; display:flex; align-items:center; gap:8px;">
-                            <i class="fa-solid fa-shield-halved" style="color:var(--primary);"></i> ${isEn ? 'Google Drive File Privacy Check' : 'فحص أمان وخصوصية ملفات Google Drive'}
+            <div id="gdrivePrivacyAuditOverlay" class="glass-overlay active" role="dialog" aria-modal="true" aria-labelledby="gdrivePrivacyAuditTitle" onclick="if (event.target === this) this.remove()" style="z-index:999999; background: rgba(10, 12, 15, 0.86);">
+                <div class="glass-modal" style="max-width:580px; width:92%; background:var(--charcoal, #292B2D); border-radius:14px; border:1px solid rgba(240, 230, 212, 0.16); padding:0; box-shadow:0 24px 56px rgba(0,0,0,0.65);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; border-bottom:1px solid rgba(240, 230, 212, 0.12); padding:16px 20px;">
+                        <h3 id="gdrivePrivacyAuditTitle" style="margin:0; font-size:1.1rem; color:var(--warm-paper, #F0E6D4); font-weight:800; display:flex; align-items:center; gap:10px;">
+                            <i class="fa-solid fa-shield-halved" style="color:var(--sage-green, #899982);"></i> ${isEn ? 'Google Drive File Privacy Check' : 'فحص أمان وخصوصية ملفات Google Drive'}
                         </h3>
-                        <button type="button" onclick="document.getElementById('gdrivePrivacyAuditOverlay').remove()" aria-label="${isEn ? 'Close' : 'إغلاق'}" style="background:none; border:none; color:var(--text-muted); font-size:1.2rem; cursor:pointer; min-width:36px; min-height:36px;">&times;</button>
+                        <button type="button" onclick="document.getElementById('gdrivePrivacyAuditOverlay').remove()" aria-label="${isEn ? 'Close' : 'إغلاق'}" style="background:rgba(240,230,212,0.06); border:1px solid rgba(240,230,212,0.14); border-radius:8px; color:var(--text-muted); font-size:1.2rem; cursor:pointer; min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center;">&times;</button>
                     </div>
-                    <div id="gdriveAuditContent" style="padding:20px; max-height:400px; overflow-y:auto;">
-                        <div style="text-align:center; padding:30px; color:var(--text-muted);">
-                            <i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--primary); margin-bottom:12px;"></i>
+                    <div id="gdriveAuditContent" data-audit-state="loading" style="padding:20px; max-height:420px; overflow-y:auto;">
+                        <div style="text-align:center; padding:30px 16px; color:var(--text-muted);">
+                            <i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--sage-green, #899982); margin-bottom:12px;"></i>
                             <div>${isEn ? 'Checking Google Drive files and verifying private access...' : 'جاري فحص جميع الملفات على Google Drive والتأكد من خصوصيتها...'}</div>
                         </div>
                     </div>
@@ -43512,32 +43512,38 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (!container) return;
 
                 if (publicFiles.length === 0) {
+                    container.setAttribute('data-audit-state', 'complete');
+                    container.setAttribute('data-scanned-count', String(files.length));
+                    container.setAttribute('data-public-count', '0');
                     container.innerHTML = `
-                    <div style="text-align:center; padding:35px 20px;">
-                        <div style="width:64px; height:64px; border-radius:50%; background:rgba(16,185,129,0.15); color:#10b981; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:1.8rem;">
+                    <div style="text-align:center; padding:28px 18px; background:rgba(25, 27, 29, 0.72); border:1px solid rgba(137, 153, 130, 0.25); border-radius:12px;">
+                        <div style="width:58px; height:58px; border-radius:50%; background:rgba(137, 153, 130, 0.16); color:var(--sage-green, #899982); display:flex; align-items:center; justify-content:center; margin:0 auto 14px; font-size:1.6rem;">
                             <i class="fa-solid fa-lock"></i>
                         </div>
-                        <h4 style="margin:0 0 8px; color:#10b981; font-weight:800; font-size:1.1rem;">${isEn ? 'All scanned files are private and secure!' : 'جميع ملفاتك خاصة وآمنة 100%!'}</h4>
+                        <h4 style="margin:0 0 8px; color:var(--sage-green, #899982); font-weight:800; font-size:1.08rem;">${isEn ? 'All scanned files are private and secure!' : 'جميع ملفاتك خاصة وآمنة 100%!'}</h4>
                         <p style="margin:0; color:var(--text-muted); font-size:0.9rem; line-height:1.6;">${isEn ? `Scanned ${files.length} file(s) on Google Drive; all remain private to your account.` : `تم فحص ${files.length} ملفاً على Google Drive، وجميعها خاصة بحسابك فقط.`}</p>
                     </div>`;
                 } else {
+                    container.setAttribute('data-audit-state', 'complete');
+                    container.setAttribute('data-scanned-count', String(files.length));
+                    container.setAttribute('data-public-count', String(publicFiles.length));
                     let itemsHtml = publicFiles.map(pf => `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-radius:10px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); margin-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px; border-radius:10px; background:rgba(196, 125, 96, 0.1); border:1px solid rgba(196, 125, 96, 0.3); margin-bottom:10px;">
                         <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:65%;">
-                            <div style="font-weight:700; color:var(--text-main); font-size:0.95rem;"><i class="fa-solid fa-file-pdf" style="color:#ef4444; margin-inline-end:6px;"></i> ${escapeHtml(pf.name)}</div>
-                            <span style="font-size:0.8rem; color:#ef4444;"><i class="fa-solid fa-globe"></i> ${isEn ? 'Shared publicly with an open link' : 'مشارك علنياً برابط مفتوح'}</span>
+                            <div style="font-weight:700; color:var(--warm-paper, #F0E6D4); font-size:0.95rem;"><i class="fa-solid fa-file-pdf" style="color:var(--terracotta, #C47D60); margin-inline-end:6px;"></i> ${escapeHtml(pf.name)}</div>
+                            <span style="font-size:0.8rem; color:var(--terracotta, #C47D60);"><i class="fa-solid fa-globe"></i> ${isEn ? 'Shared publicly with an open link' : 'مشارك علنياً برابط مفتوح'}</span>
                         </div>
-                        <button type="button" onclick="handleRevokeSingleFile('${escapeHtml(pf.id)}', this)" style="padding:6px 12px; border-radius:8px; background:#ef4444; color:#fff; border:none; font-weight:700; font-size:0.85rem; cursor:pointer; min-height:36px;">
+                        <button type="button" onclick="handleRevokeSingleFile('${escapeHtml(pf.id)}', this)" style="padding:8px 12px; border-radius:8px; background:var(--terracotta, #C47D60); color:#191B1D; border:none; font-weight:700; font-size:0.85rem; cursor:pointer; min-height:44px;">
                             ${isEn ? 'Revoke Public Link 🔒' : 'إلغاء المشاركة 🔒'}
                         </button>
                     </div>`).join('');
 
                     container.innerHTML = `
-                    <div style="margin-bottom:14px; padding:10px 14px; border-radius:10px; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.3); color:#f59e0b; font-size:0.88rem;">
+                    <div style="margin-bottom:14px; padding:10px 14px; border-radius:10px; background:rgba(215, 185, 111, 0.12); border:1px solid rgba(215, 185, 111, 0.32); color:var(--warm-gold, #D7B96F); font-size:0.88rem;">
                         <i class="fa-solid fa-triangle-exclamation"></i> ${isEn ? `Found <b>${publicFiles.length}</b> publicly shared file(s). Revoking public sharing protects your academic privacy:` : `تم العثور على <b>${publicFiles.length}</b> ملفاً مشاركاً علنياً. يُنصح بإلغاء المشاركة لحماية خصوصيتك الأكاديمية:`}
                     </div>
                     <div style="margin-bottom:16px;">${itemsHtml}</div>
-                    <button type="button" id="btnRevokeAllPublicFiles" style="width:100%; padding:10px; border-radius:10px; background:var(--primary); color:#090d16; font-weight:800; border:none; cursor:pointer; min-height:42px;">
+                    <button type="button" id="btnRevokeAllPublicFiles" style="width:100%; padding:10px; border-radius:10px; background:var(--sage-green, #899982); color:#191B1D; font-weight:800; border:none; cursor:pointer; min-height:44px;">
                         <i class="fa-solid fa-lock"></i> ${isEn ? 'Revoke Public Sharing for All Listed Files' : 'إلغاء المشاركة العامة لجميع هذه الملفات بنقرة واحدة'}
                     </button>`;
 
@@ -43554,7 +43560,8 @@ function togglePdfAudioPlayerBar(forceState) {
             } catch (err) {
                 const container = document.getElementById('gdriveAuditContent');
                 if (container) {
-                    container.innerHTML = `<div style="color:#ef4444; text-align:center; padding:20px;">${isEn ? 'Error checking files:' : 'خطأ أثناء فحص الملفات:'} ${escapeHtml(redactDriveSecrets(err.message || (isEn ? 'Unknown error' : 'خطأ غير معروف')))}</div>`;
+                    container.setAttribute('data-audit-state', 'error');
+                    container.innerHTML = `<div style="color:var(--terracotta, #C47D60); text-align:center; padding:20px; background:rgba(25,27,29,0.72); border:1px solid rgba(196,125,96,0.3); border-radius:10px;">${isEn ? 'Error checking files:' : 'خطأ أثناء فحص الملفات:'} ${escapeHtml(redactDriveSecrets(err.message || (isEn ? 'Unknown error' : 'خطأ غير معروف')))}</div>`;
                 }
             }
         }

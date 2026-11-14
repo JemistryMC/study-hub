@@ -398,6 +398,9 @@ async function installMockNetworkRoutes(page, mockState) {
 
     if (url.startsWith('https://www.googleapis.com/drive/v3/files')) {
       mockState.driveAuditCalls += 1;
+      if (url.includes('permissions') || url.includes('trashed')) {
+        mockState.drivePrivacyAuditScanCalls += 1;
+      }
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -453,7 +456,8 @@ async function main() {
     workspaces: {},
     pushCount: 0,
     pullCount: 0,
-    driveAuditCalls: 0
+    driveAuditCalls: 0,
+    drivePrivacyAuditScanCalls: 0
   };
 
   try {
@@ -823,27 +827,92 @@ async function main() {
 
       const prevPushes = mockState.pushCount;
       await p.click('#btnManualCloudPush');
-      await p.waitForTimeout(300);
+      await p.waitForFunction(() => !document.getElementById('btnManualCloudPush')?.disabled, { timeout: 5000 });
       const prevPulls = mockState.pullCount;
       await p.click('#btnManualCloudPull');
-      await p.waitForTimeout(300);
+      await p.waitForFunction(() => !document.getElementById('btnManualCloudPull')?.disabled, { timeout: 5000 });
       assert(mockState.pushCount > prevPushes && mockState.pullCount > prevPulls, 'S6.3 Manual Push & Pull trigger verified Supabase RPC & SELECT mocks');
 
-      // Link Google Drive + verify Private-by-Default + Privacy Check modal
-      const privacyPill = await p.locator('#gdrivePrivacySummaryPill').innerText();
+      // Link Google Drive + verify post-connection Private-by-Default state + Privacy Check modal
       await p.click('#btnConnectGoogleDrive');
       await p.waitForFunction(() => {
         const badge = document.getElementById('gdriveStatusBadge')?.innerText || '';
         const auditBtn = document.getElementById('btnAuditGdrivePrivacy');
-        return badge.includes('Connected') && auditBtn && auditBtn.style.display !== 'none';
+        const disconnectBtn = document.getElementById('btnDisconnectGoogleDrive');
+        const auditVisible = auditBtn && window.getComputedStyle(auditBtn).display !== 'none';
+        const disconnectVisible = disconnectBtn && window.getComputedStyle(disconnectBtn).display !== 'none';
+        return badge.includes('Connected') && Boolean(auditVisible) && Boolean(disconnectVisible);
+      }, { timeout: 6000 });
+
+      const postConnectState = await p.evaluate(() => {
+        const auditBtn = document.getElementById('btnAuditGdrivePrivacy');
+        return {
+          badgeText: (document.getElementById('gdriveStatusBadge')?.innerText || '').trim(),
+          privacyPillText: (document.getElementById('gdrivePrivacySummaryPill')?.innerText || '').trim(),
+          mediaStripText: (document.getElementById('gdriveMediaRegistryStrip')?.innerText || '').trim(),
+          auditBtnVisible: Boolean(auditBtn && window.getComputedStyle(auditBtn).display !== 'none')
+        };
       });
+
+      const prevAuditScans = mockState.drivePrivacyAuditScanCalls;
       await p.click('#btnAuditGdrivePrivacy');
       await p.waitForSelector('#gdrivePrivacyAuditOverlay.active', { timeout: 4000 });
-      await p.waitForFunction(() => (document.getElementById('gdriveAuditContent')?.innerText || '').includes('private'));
-      const auditBodyText = await p.locator('#gdriveAuditContent').innerText();
+      await p.waitForFunction(() => {
+        const el = document.getElementById('gdriveAuditContent');
+        if (!el) return false;
+        const state = el.getAttribute('data-audit-state');
+        const hasSpinner = Boolean(el.querySelector('.fa-spinner'));
+        const txt = el.innerText || '';
+        return !hasSpinner && (state === 'complete' || state === 'error' || Boolean(el.querySelector('h4')) || txt.includes('Scanned ') || txt.includes('Error checking files'));
+      }, { timeout: 6000 });
+
+      const auditResult = await p.evaluate(() => {
+        const el = document.getElementById('gdriveAuditContent');
+        const txt = (el?.innerText || '').trim();
+        const state = el?.getAttribute('data-audit-state') || '';
+        const scannedAttr = el?.getAttribute('data-scanned-count');
+        const hasSpinner = Boolean(el?.querySelector('.fa-spinner'));
+        const hasLockIcon = Boolean(el?.querySelector('.fa-lock'));
+        const headingText = (el?.querySelector('h4')?.innerText || '').trim();
+        const fileCountMatch = txt.match(/Scanned\s+(\d+)\s+file/i);
+        const parsedFileCount = fileCountMatch ? Number(fileCountMatch[1]) : (scannedAttr !== null ? Number(scannedAttr) : null);
+        const tokenExposureDetected = (
+          txt.includes('mock-drive-token') ||
+          txt.includes('mock-session-tok') ||
+          /Bearer\s+/i.test(txt) ||
+          /ya29\./i.test(txt) ||
+          /access_token\s*=/i.test(txt)
+        );
+        return {
+          state,
+          hasSpinner,
+          hasLockIcon,
+          headingPrivateConfirmed: headingText.toLowerCase().includes('private') && !headingText.toLowerCase().includes('checking'),
+          allPrivateTextConfirmed: txt.includes('All scanned files are private') && txt.includes('remain private to your account'),
+          parsedFileCount,
+          tokenExposureDetected
+        };
+      });
+
+      const auditScanDelta = mockState.drivePrivacyAuditScanCalls - prevAuditScans;
+      const connectionCompleted = Boolean(postConnectState.badgeText.includes('Connected') && postConnectState.auditBtnVisible);
+      const privacyPillMatched = postConnectState.privacyPillText.includes('Private-by-Default');
+      const auditCompleted = !auditResult.hasSpinner && auditResult.state === 'complete' && auditResult.hasLockIcon && auditResult.headingPrivateConfirmed && auditResult.allPrivateTextConfirmed;
+      const scannedCountCorrect = auditResult.parsedFileCount === 2 && auditScanDelta >= 1;
+      const noTokenExposed = !auditResult.tokenExposureDetected;
+      const s64Diagnostics = JSON.stringify({
+        connectionCompleted,
+        privacyPillMatched,
+        auditCompleted,
+        scannedCountCorrect,
+        parsedFileCount: auditResult.parsedFileCount,
+        auditScanDelta,
+        noTokenExposed
+      });
       assert(
-        privacyPill.includes('Private-by-Default') && auditBodyText.includes('2 file') && !auditBodyText.includes('mock-drive-token'),
-        'S6.4 Drive Private-by-Default & Privacy Check audit scanned files without exposing OAuth tokens'
+        connectionCompleted && privacyPillMatched && auditCompleted && scannedCountCorrect && noTokenExposed,
+        'S6.4 Drive Private-by-Default & Privacy Check audit scanned files without exposing OAuth tokens',
+        s64Diagnostics
       );
       await p.keyboard.press('Escape');
       const auditDismissed = (await p.locator('#gdrivePrivacyAuditOverlay').count()) === 0;

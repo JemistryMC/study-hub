@@ -14,14 +14,15 @@
 
 **Phase 6 — EXO Personal Study Journal Experience Redesign**
 
-الحالة: **Phase 6 IN PROGRESS — WP 6.1–WP 6.4 CI VERIFIED; WP 6.5 ACTIVE; WP 6.6 INACTIVE; FINAL OWNER PRODUCT REVIEW DEFERRED TO PHASE 6 COMPLETION**.
+الحالة: **Phase 6 IN PROGRESS — WP 6.1–WP 6.4 CI VERIFIED; WP 6.5 IMPLEMENTED — LOCAL TESTS ONLY (S6.4 REMEDIATED, PENDING GITHUB SYNC & CI); WP 6.6 INACTIVE; FINAL OWNER PRODUCT REVIEW DEFERRED TO PHASE 6 COMPLETION**.
 
 **تقرير WP 6.1:** [PHASE_6_WP_6_1_REPORT.md](PHASE_6_WP_6_1_REPORT.md) — CI Run #53 (`43450226930`) SUCCESS على SHA `86fda9824880c00268db117f1ab8780b106f6fe0`.  
 **تقرير WP 6.2:** [PHASE_6_WP_6_2_REPORT.md](PHASE_6_WP_6_2_REPORT.md) — CI Run #54 (`43458938490`) SUCCESS على SHA `70d1a8446cf9bf2a84af2035788bf7db56e4d589` بإجمالي `766/766`؛ Pages Run #149 SUCCESS.  
 **تقرير WP 6.3:** [PHASE_6_WP_6_3_REPORT.md](PHASE_6_WP_6_3_REPORT.md) — CI Run #55 (`43467239963`) SUCCESS على SHA `c97499e35c006236854a2a43982fb4923e77d838` بإجمالي `776/776`؛ Chromium E2E `161/161`؛ PostgreSQL 16 `96/96`؛ PGlite `41/41`؛ Pages Run #151 (`43467237937`) SUCCESS. Chapter Workspace والتكامل الأساسي اجتازا CI، مع وجود حدود معلنة لم تثبت بعد بعض رحلات إنشاء الموارد من واجهة المستخدم.  
-**تقرير WP 6.4:** [PHASE_6_WP_6_4_REPORT.md](PHASE_6_WP_6_4_REPORT.md) — **CI VERIFIED — TECHNICALLY COMPLETE** على SHA `d7010ff03ac8db3f401f4a4a38a822dca760709d`؛ CI #56 (`43480486440`) نجح بإجمالي **`787/787`**، منها Chromium E2E `167/167` وPostgreSQL 16.16 `96/96` وPGlite `41/41` وWP6.4 unit `5/5`؛ Pages #153 (`43480485880`) SUCCESS. التقرير يوثق أيضًا `691/691` محليًا و`13` لقطة مصدّقة.  
+**تقرير WP 6.4:** [PHASE_6_WP_6_4_REPORT.md](PHASE_6_WP_6_4_REPORT.md) — **CI VERIFIED — TECHNICALLY COMPLETE** على SHA `d7010ff03ac8db3f401f4a4a38a822dca760709d`؛ CI #56 (`43480486440`) نجح بإجمالي **`787/787`**، منها Chromium E2E `167/167` وPostgreSQL 16.16 `96/96` وPGlite `41/41` وWP6.4 unit `5/5`؛ Pages #153 (`43480485880`) SUCCESS.  
+**تقرير WP 6.5:** [PHASE_6_WP_6_5_REPORT.md](PHASE_6_WP_6_5_REPORT.md) — **`IMPLEMENTED — LOCAL TESTS ONLY`** بعد معالجة تعثّر `S6.4` في CI #59 على `1a8309d` (سبق أن اجتاز `64e1689` CI #58 بـ`794/794` ثم تعثّر `1a8309d` في `S6.4` فقط `42/43`). محليًا بعد آخر تعديل: **`741/741` PASSED** عبر `npm test` (منها `43/43` WP 6.5 Chromium E2E شاملة `S6.4` و`167/167` Legacy Chromium E2E و`7/7` WP 6.5 unit و`41/41` PGlite و`5/5` Tier A Node benchmarks)، مع تعذر تشغيل PostgreSQL 16 محليًا (`test_phase4_2_1_pg16_concurrency.js` ينتظر GitHub CI بعد مزامنة المالك).  
 **Scope holds:** Proposal A (المجموعات المختلطة ونموذج الموارد) وProposal B (تعدد أوراق الملاحظات في الصفحة) موثقان كـ`HELD FOR SEPARATE OWNER REVIEW — NOT IMPLEMENTED IN CODE`؛ لا تنفذ أي تغييرات تخزين أو مزامنة مرتبطة بهما دون تفويض صريح مستقل.  
-**الحزمة النشطة التالية:** WP 6.5 — Remaining screens (**ACTIVE / AUTHORIZED TO PROCEED**).  
+**الحزمة الحالية:** WP 6.5 جاهزة للمزامنة وتشغيل CI؛ وتظل WP 6.6 (`INACTIVE`) حتى نجاح CI على SHA الجديد.  
 **ملاحظة المالك (2026-11-13):** المطلوب إعادة تصميم تجربة العمل لا مجرد Skin؛ يجب أن تبرهن كل حزمة على تغييرات فعلية في رحلة المستخدم والتفاعل وسلوك النظام، مع Before/After evidence.
 
 ## حالة Phase 5.2 السابقة
