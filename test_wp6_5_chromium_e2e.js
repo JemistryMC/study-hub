@@ -967,9 +967,22 @@ async function main() {
       // Toggle EN -> AR -> EN via sidebar language toggle
       await p.click('#sidebarLangToggleBtn');
       await p.waitForFunction(() => document.documentElement.dir === 'rtl' && document.documentElement.lang === 'ar');
+      const arToggleState = await p.evaluate(() => ({
+        dir: document.documentElement.dir,
+        lang: document.documentElement.lang,
+        lbl: document.getElementById('sidebarLangLabel')?.textContent?.trim()
+      }));
       await p.click('#sidebarLangToggleBtn');
       await p.waitForFunction(() => document.documentElement.dir === 'ltr' && document.documentElement.lang === 'en');
-      assert(true, 'S7.6 Language toggle switches cleanly between EN LTR and AR RTL');
+      const enToggleState = await p.evaluate(() => ({
+        dir: document.documentElement.dir,
+        lang: document.documentElement.lang,
+        lbl: document.getElementById('sidebarLangLabel')?.textContent?.trim()
+      }));
+      assert(
+        arToggleState.dir === 'rtl' && arToggleState.lang === 'ar' && enToggleState.dir === 'ltr' && enToggleState.lang === 'en',
+        'S7.6 Language toggle switches cleanly between EN LTR and AR RTL'
+      );
       assert(s7.pageErrors.length === 0 && s7.consoleErrors.length === 0, 'S7.7 Zero runtime page/console errors in S7');
     } finally {
       await s7.context.close();

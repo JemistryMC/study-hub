@@ -1,7 +1,7 @@
 # Phase 6 — EXO Personal Study Journal Experience Redesign
 ## Incremental Implementation Plan and Acceptance Gates
 
-**Status:** IN PROGRESS — WP 6.1–WP 6.4 CI VERIFIED (WP 6.3 retains explicit authorization-boundary limitations); **WP 6.5 IMPLEMENTED — LOCAL TESTS ONLY (S6.4 REMEDIATED, PENDING GITHUB SYNC & CI)**; **WP 6.6 INACTIVE**; FINAL OWNER PRODUCT REVIEW AT PHASE 6 COMPLETION  
+**Status:** IN PROGRESS — WP 6.1–WP 6.5 CI VERIFIED (WP 6.3 retains explicit authorization-boundary limitations; Proposal A & B HELD; Drive/Supabase mocks do not establish live production integration); **WP 6.6 `IMPLEMENTED — LOCAL TESTS ONLY` (unpushed local workspace changes awaiting owner GitHub sync & CI)**; FINAL OWNER PRODUCT REVIEW AT PHASE 6 COMPLETION  
 **Design authority:** reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md  
 **Engineering authority:** GEMINI.md  
 **Initial app-source baseline:** c74315a4580d68c61da8a0f49ec2b2f5946301e4 (verify current GitHub HEAD before every task)  
@@ -141,19 +141,21 @@ Cover real states in current services: offline, retryable network failure, expir
 
 ## WP 6.5 — Remaining screens, screen by screen
 
-**Status:** `IMPLEMENTED — LOCAL TESTS ONLY` — Prior commit `64e1689` passed CI #58 (`794/794`); commit `1a8309d` added Chromium E2E `test_wp6_5_chromium_e2e.js` and failed CI #59 (`43501607489`) solely on `S6.4` (`42/43`). The `S6.4` spinner-wait timing race, pre-connection pill check order, `#gdrivePrivacyAuditOverlay` centered modal styling/layout, and safe non-sensitive failure diagnostics have been remediated locally.  
+**Status:** `CI VERIFIED — TECHNICALLY COMPLETE` on Source SHA `7482dcd23db314b14f8fa09ebd473b48c09bb4ec` ([CI Run #60 `43582133533`](https://github.com/JemistryMC/study-hub/actions/runs/43582133533): **`837/837 PASSED`**; [Pages Run #158 `43582132737`](https://github.com/JemistryMC/study-hub/actions/runs/43582132737): **SUCCESS**). Prior commit `64e1689` passed CI #58 (`794/794`); commit `1a8309d` added Chromium E2E `test_wp6_5_chromium_e2e.js` and failed CI #59 (`43501607489`) solely on `S6.4` (`42/43`). The `S6.4` spinner-wait timing race, pre-connection pill check order, `#gdrivePrivacyAuditOverlay` centered modal styling/layout, and safe non-sensitive failure diagnostics were remediated and verified across all `837/837` assertions in CI #60 (`43/43` WP 6.5 Chromium E2E incl. `S6.4`, `167/167` Legacy Chromium E2E, `96/96` PostgreSQL 16, `41/41` PGlite, `54/54` static, `42/42` comprehensive, `52/52` cross-account isolation, `317/317` Phase 4 regressions, `25/25` WP 6.1–6.5 unit). CI verification is technical only (NOT final owner `APPROVED`), Drive/Supabase tests run against mocks rather than live production, and Proposals A & B remain `HELD — NOT IMPLEMENTED`.  
 **Deliverable & Evidence:** `reports/PHASE_6_WP_6_5_REPORT.md` + `reports/screenshots/wp6-5/*.png` (`17` sanitized screenshots).  
-**Local Post-Final-Edit Results:** `741/741` runnable local assertions passed via `npm test` (`npm run lint` across `14` JS files, `npm run build`, `54/54` static security, `42/42` comprehensive unit, `52/52` cross-account isolation, `317/317` Phase 4 regressions, `5/5` WP 6.1 unit, `4/4` WP 6.2 unit, `4/4` WP 6.3 unit, `5/5` WP 6.4 unit, `7/7` WP 6.5 unit, `41/41` PGlite, `167/167` Legacy Chromium E2E, `43/43` WP 6.5 Chromium E2E including `S6.4` — executed once per run), plus `5/5` Tier A Node benchmarks (`benchmark:node`). `test_phase4_2_1_pg16_concurrency.js` exited non-zero locally solely due to missing local PostgreSQL 16 (`ECONNREFUSED 127.0.0.1:5432`) and remains queued for GitHub Actions CI (`postgres:16` service, expected `837/837` total on synced SHA). WP 6.6 remains **INACTIVE** until CI passes.
 
 Use the actual WP 6.0 inventory; the following is illustrative, not exhaustive: planner, tasks, backlog, projects, schedules, flashcards, evaluations, reports, logs, settings, account flows, Drive controls, backup/restore, and all other screens found in source.
 
 Do not leave legacy-looking screens behind. Do not invent or delete product behavior for visual consistency. Preserve the existing closed-loop operations exactly unless the owner separately authorizes a business-logic change. Each screen must be bilingual, responsive, and coherent with the design system.
 
-**Gate 6.5:** complete inventory coverage and independent engineering review of every major screen family, with responsive/accessibility/regression evidence. Owner review is deferred to the overall Phase 6 final review.
+**Gate 6.5:** PASSED CI #60 (`43582133533`, `837/837`) on `7482dcd23db314b14f8fa09ebd473b48c09bb4ec`; WP 6.6 is unlocked. Final owner review remains deferred to the overall Phase 6 completion.
 
 ---
 
 ## WP 6.6 — Full regression, accessibility, and performance acceptance
+
+**Status:** `IMPLEMENTED — LOCAL TESTS ONLY` (Base Source SHA: `7482dcd23db314b14f8fa09ebd473b48c09bb4ec`; local uncommitted drafts awaiting owner GitHub sync & GitHub Actions CI run).  
+**Deliverable & Evidence:** `reports/PHASE_6_WP_6_6_REPORT.md` + `reports/screenshots/wp6-6/*.png` (`7` sanitized screenshots) + `test_wp6_6_unit.js` (`5/5`) + `test_wp6_6_chromium_e2e.js` (`22/22`) + `768/768` total local assertions + `5/5` Node & Chromium Tier A benchmarks (`0.00 MB` heap delta). `test_phase4_2_1_pg16_concurrency.js` (`ECONNREFUSED 127.0.0.1:5432` locally) awaits GitHub Actions CI `postgres:16`.  
 
 Run the real scripts from package.json and existing workflows; do not invent commands. Required evidence:
 - Current full regression, security, account isolation, storage, cloud, PostgreSQL, and Chromium E2E checks.

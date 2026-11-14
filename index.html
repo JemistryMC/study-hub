@@ -1345,9 +1345,9 @@
             position: absolute;
             bottom: 8px;
             right: 10px;
-            background: rgba(15, 18, 26, 0.85);
-            border: 1px solid rgba(45, 212, 191, 0.4);
-            color: #5eead4;
+            background: rgba(25, 27, 29, 0.92);
+            border: 1px solid rgba(137, 153, 130, 0.45);
+            color: #d8e4d3;
             padding: 3px 10px;
             border-radius: 8px;
             font-size: 0.72rem;
@@ -1359,7 +1359,7 @@
             gap: 5px;
             transition: background-color 0.15s ease;
         }
-        .slide-extra-space-btn:hover { background: var(--primary); color: #0c0d11; }
+        .slide-extra-space-btn:hover { background: var(--sage-green, #899982); color: #191B1D; }
         .pdf-extra-note-sheet {
             position: relative;
             background-color: #fcfaf5;
@@ -1394,15 +1394,15 @@
             position: absolute;
             bottom: 8px;
             left: 10px;
-            background: rgba(12, 13, 17, 0.78);
-            color: #cbd5e1;
+            background: rgba(18, 20, 22, 0.92);
+            color: #E5DFD3;
             padding: 2px 8px;
             border-radius: 6px;
             font-size: 0.72rem;
             font-weight: 700;
             z-index: 8;
             pointer-events: none;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.14);
         }
         .pdf-frame {
             width: 100%;
@@ -4119,9 +4119,9 @@
         .planner-settings-footer-card.is-collapsed { padding: 13px 18px !important; }
         .planner-settings-footer-card.is-collapsed .psf-collapsible-body { display: none !important; }
         .psf-toggle-pill-btn {
-            background: rgba(45, 212, 191, 0.12);
-            border: 1px solid rgba(45, 212, 191, 0.35);
-            color: var(--primary);
+            background: rgba(137, 153, 130, 0.14);
+            border: 1px solid rgba(137, 153, 130, 0.42);
+            color: #B8C7B2;
             padding: 6px 14px;
             border-radius: 999px;
             font-size: 0.78rem;
@@ -4132,7 +4132,7 @@
             gap: 6px;
             transition: all 0.16s ease;
         }
-        .psf-toggle-pill-btn:hover { background: var(--primary); color: #061318; }
+        .psf-toggle-pill-btn:hover { background: var(--sage-green, #899982); color: #191B1D; }
         .subject-card.dragging-card { opacity: 0.45 !important; border: 2px dashed var(--primary) !important; }
         .subject-card.drag-over-card {
             border-color: #38bdf8 !important;
@@ -8377,6 +8377,7 @@
         .exo-empty-hero {
             padding: 6px 0 2px;
         }
+        .exo-empty-hero h3,
         .exo-empty-hero h4 {
             margin: 0 0 6px;
             font-size: 1.05rem;
@@ -8855,6 +8856,7 @@
             border-bottom: 1px solid rgba(240, 230, 212, 0.1);
             margin-bottom: 4px;
         }
+        .exo-library-title-wrap h2,
         .exo-library-title-wrap h3 {
             margin: 0 0 6px 0;
             font-size: clamp(1.5rem, 2.4vw, 1.9rem);
@@ -11333,6 +11335,8 @@
             #schedule .filter-chip-btn,
             #schedule .notion-day-pill,
             #schedule .psf-toggle-pill-btn,
+            #schedule .sfw-hour-chip,
+            #subjects button.exo-lec-status-tag,
             #schedule .btn,
             #schedule .week-view-options-trigger,
             #tracker .btn,
@@ -11563,7 +11567,7 @@
                     <div class="exo-library-header">
                         <div class="exo-library-title-wrap">
                             <div class="exo-library-kicker" id="libraryKickerLabel">PERSONAL LIBRARY</div>
-                            <h3 id="libraryTitleHeading" class="exo-editorial">Study Library</h3>
+                            <h2 id="libraryTitleHeading" class="exo-editorial">Study Library</h2>
                             <div class="minimal-Inline-Stats" id="semesterSummaryRibbon">
                                 <span id="ribbonTotalSubjects">0 books</span>
                                 <span class="dot-sep" aria-hidden="true">·</span>
@@ -12349,16 +12353,16 @@
                     </div>
                 </div>
 
-                <label style="font-size: 0.8rem; color: #cbd5e1; margin-bottom: 5px; display: block; font-weight: 700;">البريد الإلكتروني الأكاديمي أو الشخصي:</label>
+                <label for="cloudAuthEmail" style="font-size: 0.8rem; color: #cbd5e1; margin-bottom: 5px; display: block; font-weight: 700;">البريد الإلكتروني الأكاديمي أو الشخصي:</label>
                 <div class="auth-input-group ltr-field">
                     <i class="fa-solid fa-envelope auth-field-icon"></i>
-                    <input type="email" id="cloudAuthEmail" dir="ltr" placeholder="name@example.com" style="text-align: left;">
+                    <input type="email" id="cloudAuthEmail" dir="ltr" placeholder="name@example.com" aria-label="Email address" style="text-align: left;">
                 </div>
 
-                <label style="font-size: 0.8rem; color: #cbd5e1; margin-bottom: 5px; display: block; font-weight: 700;">كلمة المرور:</label>
+                <label for="cloudAuthPassword" style="font-size: 0.8rem; color: #cbd5e1; margin-bottom: 5px; display: block; font-weight: 700;">كلمة المرور:</label>
                 <div class="auth-input-group ltr-field" style="margin-bottom: 16px;">
                     <i class="fa-solid fa-key auth-field-icon"></i>
-                    <input type="password" id="cloudAuthPassword" dir="ltr" placeholder="••••••••" style="text-align: left;" onkeypress="if(event.key==='Enter') handleCloudEmailAuth()">
+                    <input type="password" id="cloudAuthPassword" dir="ltr" placeholder="••••••••" aria-label="Password" style="text-align: left;" onkeypress="if(event.key==='Enter') handleCloudEmailAuth()">
                     <button type="button" class="auth-pass-toggle-btn" onclick="toggleAuthPasswordVisibility()" title="إظهار / إخفاء كلمة المرور">
                         <i class="fa-solid fa-eye" id="authPassToggleIcon"></i>
                     </button>
@@ -12956,7 +12960,7 @@
                     <!-- Quick Search / Slide Filter -->
                     <div class="pdf-thumb-search-wrap">
                         <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="pdfThumbSearchInput" placeholder="بحث برقم السلايد..." oninput="handlePdfThumbSearch(this.value)">
+                        <input type="text" id="pdfThumbSearchInput" placeholder="بحث برقم السلايد..." aria-label="Search slides by page number" oninput="handlePdfThumbSearch(this.value)">
                     </div>
                     <!-- Thumbnails Grid/List -->
                     <div class="pdf-thumbnails-grid" id="pdfThumbnailsGrid">
@@ -13037,7 +13041,7 @@
                 <!-- Center: Scrubber & Exact Time -->
                 <div class="audio-scrubber-track" style="flex: 1; display: flex; align-items: center; gap: 8px; max-width: 580px; margin: 0 8px;">
                     <span id="audioCurrentTime" style="font-size: 0.74rem; font-family: monospace; color: var(--text-main); min-width: 38px; text-align: center;">00:00</span>
-                    <input type="range" id="audioScrubber" class="audio-scrubber-slider" min="0" max="100" value="0" oninput="handleAudioScrubberInput()" style="flex: 1; accent-color: var(--primary); cursor: pointer;">
+                    <input type="range" id="audioScrubber" class="audio-scrubber-slider" min="0" max="100" value="0" aria-label="Audio playback position" oninput="handleAudioScrubberInput()" style="flex: 1; accent-color: var(--primary); cursor: pointer;">
                     <span id="audioDurationTime" style="font-size: 0.74rem; font-family: monospace; color: var(--text-muted); min-width: 38px; text-align: center;">00:00</span>
                 </div>
 
@@ -13093,7 +13097,7 @@
             </div>
 
             <div style="margin: 16px 0;">
-                <input type="range" id="qjPageSlider" min="1" max="1" value="1" style="width:100%; accent-color:var(--primary); cursor:pointer;" oninput="handleQjSliderInput(this.value)">
+                <input type="range" id="qjPageSlider" min="1" max="1" value="1" aria-label="Slide page slider" style="width:100%; accent-color:var(--primary); cursor:pointer;" oninput="handleQjSliderInput(this.value)">
             </div>
 
             <div style="display:flex; gap:8px; justify-content:center; margin-bottom:16px;">
@@ -13103,7 +13107,7 @@
             </div>
 
             <div style="display:flex; gap:10px;">
-                <input type="number" id="qjNumberInput" min="1" max="1" value="1" style="flex:1; padding:8px 12px; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:white; font-size:0.95rem; font-weight:700; text-align:center;" onkeydown="if(event.key==='Enter') applyQjJumpFromInput();">
+                <input type="number" id="qjNumberInput" min="1" max="1" value="1" aria-label="Jump to slide number" style="flex:1; padding:8px 12px; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:white; font-size:0.95rem; font-weight:700; text-align:center;" onkeydown="if(event.key==='Enter') applyQjJumpFromInput();">
                 <button type="button" class="btn btn-primary" onclick="applyQjJumpFromInput()" style="padding:8px 18px; font-weight:800;">انتقال ↵</button>
             </div>
         </div>
@@ -13701,8 +13705,8 @@
             <!-- Row 2: Subject + Collapsible Multi-Lecture Picker -->
             <div class="csm-row-2">
                 <div>
-                    <label>المادة الدراسية:</label>
-                    <select id="sessionSubjectSelect" style="width: 100%;" onchange="populateSessionLecturesDropdown()">
+                    <label for="sessionSubjectSelect">المادة الدراسية:</label>
+                    <select id="sessionSubjectSelect" aria-label="Study subject" style="width: 100%;" onchange="populateSessionLecturesDropdown()">
                         <option value="">بدون مادة (عام)</option>
                     </select>
                 </div>
@@ -13734,8 +13738,8 @@
             <!-- Row 3: Day + Start Time + Duration / Smart Tracking -->
             <div class="csm-row-3">
                 <div>
-                    <label>اليوم:</label>
-                    <select id="sessionDaySelect" style="width: 100%;">
+                    <label for="sessionDaySelect">اليوم:</label>
+                    <select id="sessionDaySelect" aria-label="Session day" style="width: 100%;">
                         <option value="0">الأحد</option>
                         <option value="1">الإثنين</option>
                         <option value="2">الثلاثاء</option>
@@ -13746,12 +13750,12 @@
                     </select>
                 </div>
                 <div>
-                    <label id="sessionStartHourLabel">وقت البدء:</label>
-                    <select id="sessionStartHourSelect" style="width: 100%;" onchange="updateCalculatedEndTime()"></select>
+                    <label for="sessionStartHourSelect" id="sessionStartHourLabel">وقت البدء:</label>
+                    <select id="sessionStartHourSelect" aria-label="Session start time" style="width: 100%;" onchange="updateCalculatedEndTime()"></select>
                 </div>
                 <div>
-                    <label>مدة الجلسة:</label>
-                    <select id="sessionDurationSelect" style="width: 100%;" onchange="handleDurationSelectChange()">
+                    <label for="sessionDurationSelect">مدة الجلسة:</label>
+                    <select id="sessionDurationSelect" aria-label="Session duration" style="width: 100%;" onchange="handleDurationSelectChange()">
                         <option value="open">وقت مفتوح (غير محدد)</option>
                         <option value="0.5">30 دقيقة (0.5 س)</option>
                         <option value="1" selected>1 ساعة</option>
@@ -13769,11 +13773,11 @@
             </div>
 
             <!-- Custom exact duration box -->
-            <div id="customDurationBox" style="display: none; background: rgba(45, 212, 191, 0.08); border: 1px solid var(--border-hover); border-radius: 10px; padding: 8px 12px; margin-bottom: 10px;">
+            <div id="customDurationBox" style="display: none; background: rgba(137, 153, 130, 0.1); border: 1px solid var(--border-hover); border-radius: 10px; padding: 8px 12px; margin-bottom: 10px;">
                 <div style="display: flex; gap: 10px; align-items: center; justify-content: space-between;">
                     <span style="font-size: 0.78rem; color: var(--primary); font-weight: 800;">عدد الساعات المخصص:</span>
                     <div style="display: flex; gap: 6px; align-items: center;">
-                        <input type="number" id="sessionCustomHoursInput" min="0.25" max="24" step="0.25" value="5" style="width: 90px;" oninput="updateCalculatedEndTime()">
+                        <input type="number" id="sessionCustomHoursInput" min="0.25" max="24" step="0.25" value="5" aria-label="Custom session hours" style="width: 90px;" oninput="updateCalculatedEndTime()">
                         <span style="color: white; font-weight: 800; font-size: 0.82rem;">ساعة</span>
                     </div>
                 </div>
@@ -13781,12 +13785,12 @@
 
             <!-- Row 4: Notes + Live Summary Pill -->
             <div style="margin-bottom: 10px;">
-                <input type="text" id="sessionNotesInput" placeholder="📝 ملاحظات سريعة أو أرقام صفحات (اختياري)..." style="width: 100%;">
+                <input type="text" id="sessionNotesInput" placeholder="📝 ملاحظات سريعة أو أرقام صفحات (اختياري)..." aria-label="Session notes" style="width: 100%;">
             </div>
 
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 9px; padding: 6px 12px; margin-bottom: 12px; font-size: 0.78rem; flex-wrap: wrap;">
-                <span style="color: var(--text-muted);"><i class="fa-regular fa-clock" style="color: var(--primary);"></i> نظام التوقيت:</span>
-                <span id="calculatedEndTimePill" style="font-weight: 800; color: var(--primary);">من 09:00 ص إلى 10:00 ص (1 س)</span>
+                <span style="color: var(--text-muted);"><i class="fa-regular fa-clock" style="color: #B8C7B2;"></i> نظام التوقيت:</span>
+                <span id="calculatedEndTimePill" style="font-weight: 800; color: #B8C7B2;">من 09:00 ص إلى 10:00 ص (1 س)</span>
             </div>
 
             <div class="modal-actions" style="justify-content: space-between; margin-top: 8px;">
@@ -13805,16 +13809,16 @@
     <div class="glass-overlay" id="addLogModalOverlay" role="dialog" aria-modal="true" aria-labelledby="addLogModalTitle">
         <div class="glass-modal" style="max-width: 480px;">
             <h3 id="addLogModalTitle"><i class="fa-solid fa-trophy" style="color: var(--primary);"></i> تدوين إنجاز جديد</h3>
-            <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">ما الذي أنجزته اليوم؟</label>
+            <label for="logTextInput" style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">ما الذي أنجزته اليوم؟</label>
             <input type="text" id="logTextInput" placeholder="مثال: إنهاء مراجعة شابتر 2 وحل 30 سؤالاً...">
             
-            <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">المادة الدراسية (اختياري):</label>
-            <select id="logSubjectSelect" style="width: 100%;">
+            <label for="logSubjectSelect" style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">المادة الدراسية (اختياري):</label>
+            <select id="logSubjectSelect" aria-label="Log subject" style="width: 100%;">
                 <option value="">عام / بدون مادة</option>
             </select>
             
-            <label style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">مستوى الإنجاز والشعور:</label>
-            <select id="logMoodSelect" style="width: 100%;">
+            <label for="logMoodSelect" style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">مستوى الإنجاز والشعور:</label>
+            <select id="logMoodSelect" aria-label="Achievement mood" style="width: 100%;">
                 <option value="fire">🔥 إنتاجية استثنائية (Deep Work)</option>
                 <option value="bolt" selected>⚡ إنجاز متقن وفعال</option>
                 <option value="lightbulb">💡 فهم عميق واستيعاب جديد</option>
@@ -13885,11 +13889,11 @@
             <!-- 2. Clean Basic Header Fields (Title & Student Name) -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 12px;">
                 <div>
-                    <label style="font-size: 0.73rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 4px;">عنوان الجدول:</label>
-                    <input type="text" id="pdfScheduleCustomTitleInput" value="جدولي الدراسي وخطة الأسبوع" oninput="refreshSchedulePdfPreview()" style="width: 100%; padding: 7px 11px; font-size: 0.81rem; margin: 0;">
+                    <label for="pdfScheduleCustomTitleInput" style="font-size: 0.73rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 4px;">عنوان الجدول:</label>
+                    <input type="text" id="pdfScheduleCustomTitleInput" value="جدولي الدراسي وخطة الأسبوع" aria-label="Schedule title" oninput="refreshSchedulePdfPreview()" style="width: 100%; padding: 7px 11px; font-size: 0.81rem; margin: 0;">
                 </div>
                 <div>
-                    <label style="font-size: 0.73rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 4px;">الاسم أو الفرقة الدراسية:</label>
+                    <label for="pdfScheduleStudentNameInput" style="font-size: 0.73rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 4px;">الاسم أو الفرقة الدراسية:</label>
                     <input type="text" id="pdfScheduleStudentNameInput" placeholder="مثال: د. أحمد — الفرقة الثالثة" oninput="refreshSchedulePdfPreview()" style="width: 100%; padding: 7px 11px; font-size: 0.81rem; margin: 0;">
                 </div>
             </div>
@@ -14131,8 +14135,8 @@
                     <button type="button" style="background: none; border: none; color: var(--text-muted); font-size: 0.7rem; cursor: pointer;" onclick="document.getElementById('smartSubjectExamDateInput').value=''; document.getElementById('smartSubjectExamTitleInput').value='';">مسح الموعد</button>
                 </div>
                 <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px;">
-                    <input type="text" id="smartSubjectExamTitleInput" placeholder="مثال: كويز 1 / ميدترم..." style="margin: 0; font-size: 0.8rem; padding: 7px 10px;">
-                    <input type="date" id="smartSubjectExamDateInput" style="margin: 0; font-size: 0.8rem; padding: 7px 10px;">
+                    <input type="text" id="smartSubjectExamTitleInput" placeholder="مثال: كويز 1 / ميدترم..." aria-label="Upcoming quiz or exam title" style="margin: 0; font-size: 0.8rem; padding: 7px 10px;">
+                    <input type="date" id="smartSubjectExamDateInput" aria-label="Upcoming quiz or exam date" style="margin: 0; font-size: 0.8rem; padding: 7px 10px;">
                 </div>
             </div>
 
@@ -14172,12 +14176,12 @@
 
             <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 10px; margin-bottom: 12px;">
                 <div>
-                    <label style="font-size: 0.78rem; color: #e2e8f0; font-weight: 800; display: block; margin-bottom: 5px;">عنوان الكويز / الامتحان:</label>
+                    <label for="examRadarTitleInput" style="font-size: 0.78rem; color: #e2e8f0; font-weight: 800; display: block; margin-bottom: 5px;">عنوان الكويز / الامتحان:</label>
                     <input type="text" id="examRadarTitleInput" placeholder="مثال: كويز الشابتر الأول / ميدترم" style="margin: 0; width: 100%;">
                 </div>
                 <div>
-                    <label style="font-size: 0.78rem; color: #e2e8f0; font-weight: 800; display: block; margin-bottom: 5px;">تاريخ الامتحان:</label>
-                    <input type="date" id="examRadarDateInput" style="margin: 0; width: 100%;">
+                    <label for="examRadarDateInput" style="font-size: 0.78rem; color: #e2e8f0; font-weight: 800; display: block; margin-bottom: 5px;">تاريخ الامتحان:</label>
+                    <input type="date" id="examRadarDateInput" aria-label="Exam date" style="margin: 0; width: 100%;">
                 </div>
             </div>
 
@@ -16445,7 +16449,7 @@
             } else {
                 todayPlanBodyHtml = `
                     <div class="exo-empty-hero">
-                        <h4>${isEn ? 'No sessions scheduled for today' : 'لا توجد جلسات مجدولة لليوم'}</h4>
+                        <h3>${isEn ? 'No sessions scheduled for today' : 'لا توجد جلسات مجدولة لليوم'}</h3>
                         <p>${isEn
                             ? 'Schedule a focused study block for today to see your plan here.'
                             : 'أضف جلسة مذاكرة في الجدول لتظهر خطتك لليوم هنا.'}</p>
@@ -16853,11 +16857,12 @@
                 exoRuntimeStatusState.confirmCancelCb = null;
                 try { cancelCb(); } catch (e) {}
             }
-            const focusTarget = (id === 'confirmModalOverlay')
+            let focusTarget = (id === 'confirmModalOverlay')
                 ? exoRuntimeStatusState.confirmFocusReturnEl
-                : (id === 'exoRecoveryModalOverlay' ? exoRuntimeStatusState.recoveryFocusReturnEl : null);
+                : (id === 'exoRecoveryModalOverlay' ? exoRuntimeStatusState.recoveryFocusReturnEl : el._exoReturnFocusEl);
             if (id === 'confirmModalOverlay') exoRuntimeStatusState.confirmFocusReturnEl = null;
             if (id === 'exoRecoveryModalOverlay') exoRuntimeStatusState.recoveryFocusReturnEl = null;
+            el._exoReturnFocusEl = null;
             if (focusTarget && typeof focusTarget.focus === 'function' && focusTarget.isConnected) {
                 setTimeout(() => { try { focusTarget.focus(); } catch (e) {} }, 10);
             }
@@ -16865,29 +16870,76 @@
 
         if (typeof document !== 'undefined' && !window.__exoModalA11yWired) {
             window.__exoModalA11yWired = true;
+            const dialogIds = [
+                'exoRecoveryModalOverlay',
+                'confirmModalOverlay',
+                'singleInputModalOverlay',
+                'doubleInputModalOverlay',
+                'backupImportPreflightModalOverlay',
+                'shareSchedulePdfModalOverlay',
+                'helpModalOverlay',
+                'sessionModalOverlay',
+                'goalTaskLinkerModalOverlay',
+                'weeklyReportModalOverlay',
+                'subjectExamRadarModalOverlay',
+                'logRecoveryLinkerModalOverlay',
+                'smartStudyVerifyModalOverlay',
+                'clearScheduleModalOverlay',
+                'smartSubjectModalOverlay',
+                'addLogModalOverlay',
+                'cloudAuthModalOverlay',
+                'vipMediaLockModalOverlay',
+                'pdfQuickJumpModalOverlay',
+                'gdrivePrivacyAuditOverlay'
+            ];
+            const getDialogFocusables = (overlay) => {
+                if (!overlay) return [];
+                return Array.from(overlay.querySelectorAll('button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+                    .filter(node => node.offsetParent !== null);
+            };
+            const observeModalActivation = () => {
+                if (typeof MutationObserver !== 'function') return;
+                const modalObserver = new MutationObserver((mutations) => {
+                    for (let i = 0; i < mutations.length; i++) {
+                        const target = mutations[i].target;
+                        if (!target || !target.classList || !target.classList.contains('glass-overlay')) continue;
+                        const isActiveNow = target.classList.contains('active');
+                        if (isActiveNow && !target._exoWasActive) {
+                            target._exoWasActive = true;
+                            const ae = document.activeElement;
+                            if (ae && ae !== document.body && !target.contains(ae)) {
+                                target._exoReturnFocusEl = ae;
+                            }
+                            setTimeout(() => {
+                                if (!target.classList.contains('active')) return;
+                                if (!target.contains(document.activeElement)) {
+                                    const focusables = getDialogFocusables(target);
+                                    const preferred = focusables.find(n => n.tagName === 'INPUT' || n.tagName === 'SELECT') || focusables[0];
+                                    if (preferred && typeof preferred.focus === 'function') {
+                                        try { preferred.focus(); } catch (err) {}
+                                    }
+                                }
+                            }, 15);
+                        } else if (!isActiveNow && target._exoWasActive) {
+                            target._exoWasActive = false;
+                        }
+                    }
+                });
+                dialogIds.forEach((did) => {
+                    const el = document.getElementById(did);
+                    if (el) {
+                        el._exoWasActive = el.classList.contains('active');
+                        modalObserver.observe(el, { attributes: true, attributeFilter: ['class'] });
+                    }
+                });
+            };
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', observeModalActivation);
+            } else {
+                observeModalActivation();
+            }
+
             document.addEventListener('keydown', (e) => {
-                const dialogIds = [
-                    'exoRecoveryModalOverlay',
-                    'confirmModalOverlay',
-                    'singleInputModalOverlay',
-                    'doubleInputModalOverlay',
-                    'backupImportPreflightModalOverlay',
-                    'shareSchedulePdfModalOverlay',
-                    'helpModalOverlay',
-                    'sessionModalOverlay',
-                    'goalTaskLinkerModalOverlay',
-                    'weeklyReportModalOverlay',
-                    'subjectExamRadarModalOverlay',
-                    'logRecoveryLinkerModalOverlay',
-                    'smartStudyVerifyModalOverlay',
-                    'clearScheduleModalOverlay',
-                    'smartSubjectModalOverlay',
-                    'addLogModalOverlay',
-                    'cloudAuthModalOverlay',
-                    'vipMediaLockModalOverlay',
-                    'pdfQuickJumpModalOverlay',
-                    'gdrivePrivacyAuditOverlay'
-                ];
                 let topActive = null;
                 let highestZ = -Infinity;
                 for (let i = 0; i < dialogIds.length; i++) {
@@ -16900,6 +16952,10 @@
                             topActive = candidate;
                         }
                     }
+                }
+                if (!topActive) {
+                    const dynamicAudit = document.getElementById('gdrivePrivacyAuditOverlay');
+                    if (dynamicAudit) topActive = dynamicAudit;
                 }
                 if (!topActive) {
                     const spotlight = document.getElementById('spotlightTourFloatingCard');
@@ -16918,12 +16974,14 @@
                     return;
                 }
                 if (e.key === 'Tab') {
-                    const focusables = Array.from(topActive.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
-                        .filter(node => node.offsetParent !== null);
+                    const focusables = getDialogFocusables(topActive);
                     if (focusables.length === 0) return;
                     const first = focusables[0];
                     const last = focusables[focusables.length - 1];
-                    if (e.shiftKey && document.activeElement === first) {
+                    if (!topActive.contains(document.activeElement)) {
+                        e.preventDefault();
+                        (e.shiftKey ? last : first).focus();
+                    } else if (e.shiftKey && document.activeElement === first) {
                         e.preventDefault();
                         last.focus();
                     } else if (!e.shiftKey && document.activeElement === last) {
@@ -26004,7 +26062,7 @@
                         <div class="wp65-compass-top">
                             <span class="wp65-compass-badge"><i class="fa-solid ${m.icon}"></i> ${escapeHtml(m.badge)}</span>
                         </div>
-                        <h4 class="wp65-compass-title">${escapeHtml(m.title)}</h4>
+                        <h3 class="wp65-compass-title">${escapeHtml(m.title)}</h3>
                         <div class="wp65-compass-why"><strong>${whyLabel}</strong> ${escapeHtml(m.why)}</div>
                         <div class="wp65-compass-action"><strong>${nextLabel}</strong> ${escapeHtml(m.nextAction)}</div>
                         <button type="button" class="smart-rec-action-btn" onclick="${r.onClick}">
@@ -38342,16 +38400,27 @@ function togglePdfAudioPlayerBar(forceState) {
                 }
             });
 
+            const isEnNow = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : false;
             if (annotationsVisible) {
-                btn.classList.remove('toggle-hidden');
-                icon.className = 'fa-solid fa-eye';
-                txt.innerText = 'إخفاء الكتابة';
-                showToast('تم إظهار الكتابة والتعليقات 👁️');
+                if (btn) {
+                    btn.classList.remove('toggle-hidden');
+                    const lbl = isEnNow ? 'Hide annotations' : 'إخفاء الكتابة';
+                    btn.setAttribute('title', lbl);
+                    btn.setAttribute('aria-label', lbl);
+                }
+                if (icon) icon.className = 'fa-solid fa-eye';
+                if (txt) txt.innerText = isEnNow ? 'Hide Annotations' : 'إخفاء الكتابة';
+                showToast({ en: 'Annotations & notes revealed 👁️', ar: 'تم إظهار الكتابة والتعليقات 👁️' });
             } else {
-                btn.classList.add('toggle-hidden');
-                icon.className = 'fa-solid fa-eye-slash';
-                txt.innerText = 'إظهار الكتابة';
-                showToast('تم إخفاء الكتابة مؤقتاً لقراءة السلايد صافية');
+                if (btn) {
+                    btn.classList.add('toggle-hidden');
+                    const lbl = isEnNow ? 'Show annotations' : 'إظهار الكتابة';
+                    btn.setAttribute('title', lbl);
+                    btn.setAttribute('aria-label', lbl);
+                }
+                if (icon) icon.className = 'fa-solid fa-eye-slash';
+                if (txt) txt.innerText = isEnNow ? 'Show Annotations' : 'إظهار الكتابة';
+                showToast({ en: 'Annotations temporarily hidden for active recall', ar: 'تم إخفاء الكتابة مؤقتاً لقراءة السلايد صافية' });
             }
         }
 
@@ -56770,6 +56839,43 @@ function togglePdfAudioPlayerBar(forceState) {
     <script id="exo-i18n-engine">
     (function() {
         const EXO_I18N_EXACT = {
+    "💊 كلية الصيدلة": "💊 Faculty of Pharmacy",
+    "🩺 كلية الطب البشري": "🩺 Faculty of Medicine",
+    "🦷 كلية طب الأسنان": "🦷 Faculty of Dentistry",
+    "🏃‍♂️ كلية العلاج الطبيعي": "🏃‍♂️ Faculty of Physical Therapy",
+    "💉 كلية التمريض": "💉 Faculty of Nursing",
+    "🔬 كلية العلوم": "🔬 Faculty of Science",
+    "📐 كلية الهندسة": "📐 Faculty of Engineering",
+    "🎓 تخصص أكاديمي آخر": "🎓 Other Academic Major",
+    "الفرقة الأولى": "Year 1",
+    "الفرقة الثانية": "Year 2",
+    "الفرقة الثالثة": "Year 3",
+    "الفرقة الرابعة": "Year 4",
+    "الفرقة الخامسة": "Year 5",
+    "سنة الامتياز / دراسات": "Internship / Postgraduate",
+    "انتقال سريع لسلايد": "Quick jump to slide",
+    "تبديل ملء العرض / الارتفاع": "Toggle fit width / height",
+    "تمييز السلايد كمهم للاختبار (B)": "Bookmark slide as important for exam (B)",
+    "فهرس ومصغرات السلايدات (M)": "Slides index & thumbnails (M)",
+    "فهرس ومصغرات السلايدات": "Slides Index & Thumbnails",
+    "مشغل الريكورد الصوتي": "Audio recording player",
+    "عرض صفحتين جنباً إلى جنب": "Two-page spread view",
+    "الانتقال للسلايد المهم التالي ⭐": "Jump to Next Important Slide ⭐",
+    "إغلاق العارض (Esc)": "Close Viewer (Esc)",
+    "وضع المعاينة فقط: فعّل Google Drive لتحميل الـ PDF وتفعيل أدوات القلم والاستوديو.": "Preview mode only: Connect Google Drive to download PDF and enable pen & Studio tools.",
+    "قلم للكتابة السلسة": "Smooth Writing Pen",
+    "أحمر": "Red",
+    "أزرق": "Blue",
+    "أخضر": "Green",
+    "أصفر": "Yellow",
+    "بنفسجي": "Purple",
+    "لون مخصص": "Custom color",
+    "إغلاق الفهرس (M)": "Close Index (M)",
+    "المحذوفة (": "Hidden (",
+    "المحذوفة": "Hidden",
+    "تشغيل / إيقاف مؤقت (مسافة)": "Play / Pause (Space)",
+    "ترجيع 5 ثوانٍ": "Rewind 5 seconds",
+    "إخفاء مشغل الصوت": "Hide audio player",
     "حصري لمشتركي VIP Pro": "Exclusive for VIP Pro",
     "ترقية لـ VIP لربط Google Drive": "Upgrade to VIP to Link Google Drive",
     "مزامنة Google Drive السحابية غير المحدودة": "Unlimited Google Drive Cloud Sync",
@@ -57324,6 +57430,7 @@ function togglePdfAudioPlayerBar(forceState) {
             }
             const initialLang = detectDefaultExoLanguage();
             applyExoLanguage(initialLang, false);
+            window.__exoI18nAppliedLang = initialLang;
             if (document.body) {
                 domObserver.observe(document.body, {
                     childList: true,
@@ -57341,7 +57448,10 @@ function togglePdfAudioPlayerBar(forceState) {
             initExoI18n();
         }
         window.addEventListener('load', function() {
-            applyExoLanguage(window.currentExoLang || detectDefaultExoLanguage(), false);
+            const targetLang = window.currentExoLang || detectDefaultExoLanguage();
+            if (window.__exoI18nAppliedLang === targetLang) return;
+            window.__exoI18nAppliedLang = targetLang;
+            applyExoLanguage(targetLang, false);
         });
     })();
     </script>

@@ -5,9 +5,12 @@
 **Repository:** `JemistryMC/study-hub`  
 **Target Branch:** `main`  
 **Prior Passing WP 6.5 Unit Commit:** `64e1689b1daac2b01d7422475c125d89a61fee9a` (CI Run `#58`: `794/794 PASSED`)  
-**Authoritative Failed Baseline HEAD:** `1a8309d99fe9290e51953e86d41c0480395853b1` (added `test_wp6_5_chromium_e2e.js`; GitHub Actions CI Run `#59` [`43501607489`] failed solely on `S6.4`: `42/43` WP 6.5 Chromium E2E)  
-**WP 6.5 Current Status:** `IMPLEMENTED — LOCAL TESTS ONLY` *(awaiting owner GitHub sync & GitHub Actions CI verification on the updated Source SHA; product acceptance deferred to Phase 6 completion)*  
-**Phase 6 Status:** `IN PROGRESS — WP 6.1–WP 6.4 CI VERIFIED; WP 6.5 IMPLEMENTED — LOCAL TESTS ONLY (S6.4 REMEDIATED); WP 6.6 INACTIVE; FINAL OWNER PRODUCT REVIEW AT PHASE 6 COMPLETION`
+**Historical Failed CI Baseline:** `1a8309d99fe9290e51953e86d41c0480395853b1` (added `test_wp6_5_chromium_e2e.js`; GitHub Actions CI Run `#59` [`43501607489`] failed solely on `S6.4`: `42/43` WP 6.5 Chromium E2E)  
+**Verified WP 6.5 Source SHA (Authoritative Baseline):** `7482dcd23db314b14f8fa09ebd473b48c09bb4ec` ([commit](https://github.com/JemistryMC/study-hub/commit/7482dcd23db314b14f8fa09ebd473b48c09bb4ec))  
+**GitHub Actions CI #60:** [`43582133533`](https://github.com/JemistryMC/study-hub/actions/runs/43582133533) — **SUCCESS (`837/837`)** on `7482dcd23db314b14f8fa09ebd473b48c09bb4ec`  
+**GitHub Pages #158:** [`43582132737`](https://github.com/JemistryMC/study-hub/actions/runs/43582132737) — **SUCCESS** on `7482dcd23db314b14f8fa09ebd473b48c09bb4ec`  
+**WP 6.5 Current Status:** `CI VERIFIED — TECHNICALLY COMPLETE` *(GitHub Actions CI verifies technical checks only; final Phase 6 product `APPROVED` decision remains reserved solely for the owner at Phase 6 completion)*  
+**Phase 6 Status:** `IN PROGRESS — WP 6.1–WP 6.5 CI VERIFIED; WP 6.6 ACTIVE (FINAL REGRESSION, ACCESSIBILITY & PERFORMANCE ACCEPTANCE GATE); FINAL OWNER PRODUCT REVIEW AT PHASE 6 COMPLETION`
 
 ---
 
@@ -139,8 +142,17 @@ Confirmation of unified runner inclusion (`/run_all_tests.js` & `/package.json`)
 
 ---
 
-## 8. GitHub Sync Readiness & Next Gate
+## 8. GitHub Sync, CI #60 Verification & Next Gate
 
-- **Target Repository & Branch:** `JemistryMC/study-hub` -> `main` (verified before sync by owner; Gemini did not execute push/commit).
-- **Expected CI Total Upon Sync:** `741` local assertions + `96` CI PostgreSQL 16 assertions = **`837` assertions** across all 13 `run_all_tests.js` suites + CI individual step checks.
-- **Next Authorized Step After CI Passes:** Unlock **WP 6.6** (full regression, accessibility, bilingual matrix & performance acceptance) before submitting Phase 6 for final owner product review (`APPROVED` remains reserved solely for the owner).
+- **Target Repository & Branch:** `JemistryMC/study-hub` -> `main`
+- **Verified Source Commit (WP 6.5 Closure):** `7482dcd23db314b14f8fa09ebd473b48c09bb4ec` ([commit link](https://github.com/JemistryMC/study-hub/commit/7482dcd23db314b14f8fa09ebd473b48c09bb4ec))
+- **GitHub Actions CI Run #60:** [`43582133533`](https://github.com/JemistryMC/study-hub/actions/runs/43582133533) — **SUCCESS**, **`837/837`** unified assertions on exact Source SHA `7482dcd23db314b14f8fa09ebd473b48c09bb4ec`, including:
+  - WP 6.5 Chromium E2E (`test_wp6_5_chromium_e2e.js`, incl. `S6.4`): **`43/43 PASSED`**
+  - Legacy Chromium E2E (`test_phase4_1_chromium_e2e.js`): **`167/167 PASSED`**
+  - Native PostgreSQL 16 (`test_phase4_2_1_pg16_concurrency.js`): **`96/96 PASSED`**
+  - Embedded PGlite (`test_phase4_2_postgres_integration.js`): **`41/41 PASSED`**
+  - Static Security (`54/54`), Comprehensive (`42/42`), Cross-Account Isolation (`52/52`), Phase 4 Regressions (`317/317`), WP 6.1–6.5 Pure Unit Suites (`25/25`): **ALL PASSED**
+- **GitHub Pages Run #158:** [`43582132737`](https://github.com/JemistryMC/study-hub/actions/runs/43582132737) — **SUCCESS** on `7482dcd23db314b14f8fa09ebd473b48c09bb4ec`.
+- **Mock / Non-Production Boundaries:** Supabase and Google Drive assertions in WP 6.5 Chromium E2E validate client logic against intercepted Playwright HTTP/RPC/Drive mocks and do **not** establish live production Supabase or real Google Drive integration. WP 6.3 **Proposal A** and **Proposal B** remain **`HELD — NOT IMPLEMENTED`**.
+- **Governance Separation:** `CI VERIFIED — TECHNICALLY COMPLETE` confirms technical verification only and does **not** constitute final Phase 6 `APPROVED` status, which remains solely the owner's decision after WP 6.6 completion.
+- **Next Authorized Step:** **WP 6.6** (final regression, accessibility, bilingual/responsive matrix, PDF Studio behavioral parity, and performance acceptance gate) is now **ACTIVE**.
