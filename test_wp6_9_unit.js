@@ -313,4 +313,80 @@ test('WP 6.9: structural freeze-fix & forensic UI contracts exist cleanly in ind
 
   const fnExport = extractFunctionSource('exportAnnotatedSlides');
   assert.ok(fnExport.includes('offCanvas.width = 0;') && fnExport.includes('noteCanvas.width = 0;') && fnExport.includes('setTimeout(resolve, 0)'), 'exportAnnotatedSlides must free per-page canvases and yield to browser loop');
+  assert.ok(fnExport.includes('willReadFrequently: true') && fnExport.includes('canvasToJpegUint8Bytes('), 'exportAnnotatedSlides must use willReadFrequently CPU export canvases and async canvasToJpegUint8Bytes');
+
+  assert.ok(/<canvas id="schedulePdfPreviewCanvas" width="1" height="1"/.test(indexHtml), '#schedulePdfPreviewCanvas must boot lazily at 1x1 rather than allocating 27MB upfront');
+  const closeModalMatch = indexHtml.match(/function closeModal\([^)]*\)\s*\{[\s\S]*?\n        \}/);
+  assert.ok(closeModalMatch && closeModalMatch[0].includes("shareSchedulePdfModalOverlay") && closeModalMatch[0].includes('spCanvas.width = 1'), 'closeModal must reset #schedulePdfPreviewCanvas back to 1x1');
+
+  const fnLoginSync = extractFunctionSource('syncWorkspaceOnLogin');
+  assert.ok(fnLoginSync.includes('remoteRowMissingOnline') && fnLoginSync.includes('isCleanSyncedCloudMirror'), 'syncWorkspaceOnLogin must drop obsolete clean mirrors when cloud row is verified absent online');
+
+  const fnPullSync = extractFunctionSource('pullWorkspaceFromCloud');
+  assert.ok(fnPullSync.includes('remoteRowMissingOnline') && fnPullSync.includes('isCleanSyncedCloudMirror'), 'pullWorkspaceFromCloud must avoid resurrecting obsolete clean mirrors when cloud row is absent online');
+
+  const fnPushSync = extractFunctionSource('pushWorkspaceToCloud');
+  assert.ok(fnPushSync.includes("reason: 'stale_revision_missing_remote_row'"), 'pushWorkspaceToCloud must surface explicit error instead of offline fallback when OCC reports missing remote row');
 });
+
+test('WP 6.9: canvasToJpegUint8Bytes uses async canvas.toBlob with toDataURL fallback', async () => {
+  const fnDataUrl = extractFunctionSource('dataUrlToUint8Bytes');
+  const fnToJpeg = extractFunctionSource('canvasToJpegUint8Bytes');
+  const canvasToJpegUint8Bytes = new Function(`${fnDataUrl}\n${fnToJpeg}\nreturn canvasToJpegUint8Bytes;`)();
+
+  let capturedMime = '';
+  let capturedQuality = 0;
+  const toBlobBytes = await canvasToJpegUint8Bytes({
+    toBlob(cb, mime, quality) {
+      capturedMime = mime;
+      capturedQuality = quality;
+      cb({
+        async arrayBuffer() {
+          return new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 42]).buffer;
+        }
+      });
+    },
+    toDataURL() {
+      throw new Error('should not fall back when toBlob succeeds');
+    }
+  }, 0.88);
+  assert.equal(capturedMime, 'image/jpeg');
+  assert.equal(capturedQuality, 0.88);
+  assert.deepEqual(Array.from(toBlobBytes), [0xff, 0xd8, 0xff, 0xe0, 42]);
+
+  const rawFallback = Buffer.from([0xff, 0xd8, 1, 2, 3]).toString('base64');
+  const fallbackBytes = await canvasToJpegUint8Bytes({
+    toBlob(cb) { cb(null); },
+    toDataURL() { return `data:image/jpeg;base64,${rawFallback}`; }
+  }, 0.92);
+  assert.deepEqual(Array.from(fallbackBytes), [0xff, 0xd8, 1, 2, 3]);
+});
+
+test('WP 6.9: __exoForensicDiag.recordError redacts secrets cleanly and enforces bounded ring', () => {
+  const headMatch = indexHtml.match(/<script id="exo-forensic-diag-head">([\s\S]*?)<\/script>/);
+  assert.ok(headMatch, 'Expected <script id="exo-forensic-diag-head"> in index.html');
+  const ctx = {
+    Math, Date, Array, Object, String, Number, Boolean, RegExp, JSON, Error, Blob: class { constructor(parts) { this.parts = parts; } },
+    performance: { now: () => 50, memory: { usedJSHeapSize: 1024 } },
+    document: { hidden: false, documentElement: { lang: 'en' }, querySelector: () => null, getElementsByTagName: () => [], addEventListener: () => {} },
+    localStorage: { setItem: () => {}, getItem: () => null },
+    addEventListener: () => {},
+    setInterval: () => ({ unref: () => {} }),
+    requestAnimationFrame: () => 1,
+    cancelAnimationFrame: () => {}
+  };
+  ctx.window = ctx;
+  ctx.globalThis = ctx;
+  vm.createContext(ctx);
+  vm.runInContext(headMatch[1], ctx);
+
+  assert.equal(typeof ctx.__exoForensicDiag.recordError, 'function');
+  for (let i = 0; i < 205; i++) {
+    ctx.__exoForensicDiag.recordError('cloud_sync', `fail_${i} student@mail.org Bearer eyJhbGciOiJIUzI1NiJ9.a.b https://db.supabase.co/rest?apikey=k123`);
+  }
+  const rep = ctx.exoBuildForensicDiagnosticsReport();
+  assert.equal(rep.channels.errors.entries.length, 200);
+  const json = JSON.stringify(rep.channels.errors.entries);
+  assert.ok(!json.includes('student@mail.org') && !json.includes('eyJhbGciOiJIUzI1NiJ9') && !json.includes('https://db.supabase.co'));
+});
+

@@ -9,6 +9,10 @@
 //   3. Probe A & E Canvas/Export Regression: 120-page merged continuous stream
 //      bounds initial canvas allocation (<= 24) & distant slide eviction,
 //      and 40-page exportAnnotatedSlides yields per page and frees canvases
+//   4. Clean-Slate Recovery & Canvas Release: cleared-cloud non-resurrection,
+//      dirty draft preservation, OCC missing-remote-row explicit error, and
+//      lazy #schedulePdfPreviewCanvas 1x1 boot & close release
+//   5. Heavy Tier D Interactive Navigation, EN/AR Toggle & Studio Stress
 // ============================================================================
 
 const fs = require('fs');
@@ -412,6 +416,209 @@ async function run() {
     assert(probeAE.jumpAlloc <= 30, `Distant canvas eviction bounds allocation after jumping to slide 115 (alloc=${probeAE.jumpAlloc})`);
     assert(probeAE.closedPdfWrapperCount === 0, 'closePdfViewer clears PDF DOM cleanly');
     assert(probeAE.exportDone && probeAE.maxExpLt < 1500, `40-page exportAnnotatedSlides completed & stayed non-blocking (wall=${probeAE.expMs}ms, maxLT=${probeAE.maxExpLt}ms vs prior 4226ms)`);
+
+    // =========================================================================
+    // CASE 4: Cleared-Cloud Non-Resurrection, OCC Missing-Row Error & Lazy Schedule Canvas
+    // =========================================================================
+    console.log('\n[WP 6.9 E2E] Case 4: Cleared-cloud isolation, OCC rev=0 error & lazy schedule canvas');
+    const case4 = await page.evaluate(async () => {
+      if (typeof initDB === 'function') await initDB();
+
+      const schedCanvas = document.getElementById('schedulePdfPreviewCanvas');
+      const schedBootW = schedCanvas ? schedCanvas.width : -1;
+      const schedBootH = schedCanvas ? schedCanvas.height : -1;
+      if (typeof openShareSchedulePdfModal === 'function') openShareSchedulePdfModal();
+      await new Promise(r => setTimeout(r, 60));
+      const schedOpenW = schedCanvas ? schedCanvas.width : -1;
+      if (typeof closeModal === 'function') closeModal('shareSchedulePdfModalOverlay');
+      await new Promise(r => setTimeout(r, 40));
+      const schedClosedW = schedCanvas ? schedCanvas.width : -1;
+
+      const repInit = window.exoBuildForensicDiagnosticsReport();
+      const migEntries = repInit.channels.syncPhases.entries.filter(e => e.phase === 'conflict_recovery_migration');
+      const migClosedCleanly = migEntries.some(e => e.status === 'skipped' || e.status === 'committed' || e.status === 'aborted');
+
+      const uidClean = 'wp69_e2e_clean_wipe';
+      const committedSub = {
+        id: 'old_pre_wipe_sub',
+        name: 'Pre-Wipe Ghost Subject',
+        groups: [],
+        _causal: {
+          operationId: 'op_clean_1',
+          scopeId: 'entity:subjects:old_pre_wipe_sub',
+          lamportClock: 3,
+          wallTimeMs: 1700000000000,
+          dirty: false,
+          committedWorkspaceRevision: 15
+        }
+      };
+      localStorage.setItem('pharmaLastActiveCloudUid', uidClean);
+      localStorage.setItem('pharmaLastActiveUserIdV1', uidClean);
+      localStorage.setItem('pharmaWorkspaceRevision_' + uidClean, '15');
+      localStorage.setItem('pharmaAccountWorkspace_' + uidClean, JSON.stringify({
+        schemaVersion: 2,
+        user_id: uidClean,
+        revision: 15,
+        dirty: false,
+        annotationsStoredInIndexedDB: true,
+        subjects: [committedSub],
+        schedule: { version: 3, events: [], backlog: [], weeklyReports: [] },
+        logs: []
+      }));
+
+      supabaseClient = {
+        from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }),
+        rpc: async () => ({ data: { status: 'success', revision: 1 }, error: null })
+      };
+      subjects = [JSON.parse(JSON.stringify(committedSub))];
+      scheduleEvents = [];
+      scheduleBacklog = [];
+      logs = [];
+
+      await handleAuthSessionChange({ id: uidClean, email: 'clean_e2e@exo.local' }, true);
+      await new Promise(r => setTimeout(r, 120));
+      const cleanResurrected = subjects.length;
+      const revResetTo = localStorage.getItem('pharmaWorkspaceRevision_' + uidClean);
+
+      // OCC conflict with current_revision: 0 and freshRemote: null must return explicit error (not offline)
+      supabaseClient.rpc = async () => ({ data: { status: 'conflict', current_revision: 0 }, error: null });
+      localStorage.setItem('pharmaWorkspaceRevision_' + uidClean, '15');
+      subjects = [{ id: 'fresh_post_wipe', name: 'New Post-Wipe Subject', groups: [] }];
+      localStorage.setItem('pharmaWorkspaceDirty', '1');
+      localStorage.setItem('pharmaWorkspaceDirty_' + uidClean, '1');
+      const occMissingRes = await pushWorkspaceToCloud(false, false);
+
+      // Dirty local work must still be preserved when cloud row is absent
+      const uidDirty = 'wp69_e2e_dirty_keep';
+      supabaseClient.rpc = async () => ({ data: { status: 'success', revision: 1 }, error: null });
+      localStorage.setItem('pharmaLastActiveCloudUid', uidDirty);
+      localStorage.setItem('pharmaLastActiveUserIdV1', uidDirty);
+      localStorage.setItem('pharmaWorkspaceRevision_' + uidDirty, '15');
+      localStorage.setItem('pharmaWorkspaceDirty_' + uidDirty, '1');
+      localStorage.setItem('pharmaAccountWorkspace_' + uidDirty, JSON.stringify({
+        schemaVersion: 2,
+        user_id: uidDirty,
+        revision: 15,
+        dirty: true,
+        annotationsStoredInIndexedDB: true,
+        subjects: [committedSub],
+        schedule: { version: 3, events: [], backlog: [], weeklyReports: [] },
+        logs: []
+      }));
+      subjects = [JSON.parse(JSON.stringify(committedSub))];
+      await handleAuthSessionChange({ id: uidDirty, email: 'dirty_e2e@exo.local' }, true);
+      await new Promise(r => setTimeout(r, 100));
+      const dirtyPreservedLen = subjects.length;
+
+      await handleAuthSessionChange(null, false);
+      supabaseClient = null;
+      localStorage.clear();
+      subjects = [];
+      scheduleEvents = [];
+      scheduleBacklog = [];
+      logs = [];
+
+      return {
+        schedBootW,
+        schedBootH,
+        schedOpenW,
+        schedClosedW,
+        migClosedCleanly,
+        cleanResurrected,
+        revResetTo,
+        occMissingRes,
+        dirtyPreservedLen
+      };
+    });
+
+    assert(case4.schedBootW === 1 && case4.schedBootH === 1 && case4.schedOpenW > 1000 && case4.schedClosedW === 1, `Schedule PDF preview canvas boots lazily (1x1), renders when open (${case4.schedOpenW}), and resets on close (${case4.schedClosedW})`);
+    assert(case4.migClosedCleanly, 'conflict_recovery_migration syncPhase transitions cleanly to terminal state');
+    assert(case4.cleanResurrected === 0 && case4.revResetTo === '1', `Cleared cloud drops clean pre-wipe mirror without resurrection (subjects=${case4.cleanResurrected}, rev=${case4.revResetTo})`);
+    assert(case4.occMissingRes && case4.occMissingRes.status === 'error' && case4.occMissingRes.reason === 'stale_revision_missing_remote_row', `OCC missing-remote-row returns explicit error instead of offline fallback (${JSON.stringify(case4.occMissingRes)})`);
+    assert(case4.dirtyPreservedLen === 1, 'Dirty unsynced local draft is preserved on empty cloud');
+
+    // =========================================================================
+    // CASE 5: Heavy Tier D Interactive Navigation, EN/AR Toggle & Studio Stress
+    // =========================================================================
+    console.log('\n[WP 6.9 E2E] Case 5: Tier D interactive view/language stress & Studio open/close');
+    const case5 = await page.evaluate(async () => {
+      const stressSubs = Array.from({ length: 15 }, (_, s) => ({
+        id: `sub_s_${s}`,
+        name: `Subject ${s + 1}`,
+        groups: [{
+          id: `grp_s_${s}`,
+          name: `Chapter ${s + 1}`,
+          lectures: Array.from({ length: 20 }, (_, l) => ({
+            id: `lec_s_${s}_${l}`,
+            title: `Lecture ${s + 1}.${l + 1}`,
+            completed: l % 3 === 0,
+            hasPdf: l === 0
+          }))
+        }]
+      }));
+      const stressEvents = Array.from({ length: 240 }, (_, i) => ({
+        id: `ev_s_${i}`,
+        title: `Study Block ${i + 1}`,
+        day: i % 7,
+        startHour: 8 + (i % 10),
+        duration: 1.5,
+        subjectId: `sub_s_${i % 15}`,
+        completed: i % 2 === 0
+      }));
+      const stressLogs = Array.from({ length: 400 }, (_, i) => ({
+        id: `log_s_${i}`,
+        date: `2026-11-${String((i % 28) + 1).padStart(2, '0')}`,
+        subjectId: `sub_s_${i % 15}`,
+        durationMinutes: 45,
+        notes: `Review notes #${i + 1}`
+      }));
+
+      subjects = stressSubs;
+      scheduleEvents = stressEvents;
+      logs = stressLogs;
+      localMediaCache.pdfs.add('lec_s_0_0');
+      const pdfStr = '%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Count 5 >> endobj\n%%EOF';
+      await saveMediaToDB('pdfs', 'lec_s_0_0', new Blob([new TextEncoder().encode(pdfStr)], { type: 'application/pdf' }));
+
+      const ltStart = window.__exoForensicDiag.rings.longTasks.totalCount();
+      const t0 = performance.now();
+
+      for (const tab of ['today', 'subjects', 'schedule', 'tracker']) {
+        const navEl = document.querySelector(`.sidebar-nav-item[data-tab="${tab}"]`);
+        switchView(tab, navEl);
+        await new Promise(r => setTimeout(r, 30));
+      }
+      for (const lang of ['ar', 'en', 'ar', 'en']) {
+        applyExoLanguage(lang);
+        await new Promise(r => setTimeout(r, 30));
+      }
+
+      activeSubjectId = 'sub_s_0';
+      for (let k = 0; k < 3; k++) {
+        await openLectureDocument('grp_s_0', 'lec_s_0_0');
+        await new Promise(r => setTimeout(r, 60));
+        closePdfViewer();
+        await new Promise(r => setTimeout(r, 30));
+      }
+
+      const wallMs = Math.round(performance.now() - t0);
+      await new Promise(r => setTimeout(r, 50));
+      const ltDelta = window.__exoForensicDiag.rings.longTasks.totalCount() - ltStart;
+      const newLts = ltDelta > 0 ? window.__exoForensicDiag.rings.longTasks.toArray().slice(-ltDelta) : [];
+      const maxLt = newLts.reduce((m, e) => Math.max(m, e.durMs || 0), 0);
+      const finalSnap = window.__exoForensicDiag.captureCanvasSnapshot('wp69_case5_end');
+
+      return {
+        wallMs,
+        maxLt,
+        allocAfter: finalSnap.allocatedCanvases,
+        mbAfter: finalSnap.estimatedCanvasRgbaMB,
+        lang: document.documentElement.lang,
+        dir: document.documentElement.dir
+      };
+    });
+
+    assert(case5.maxLt < 1500 && case5.allocAfter <= 6 && case5.lang === 'en' && case5.dir === 'ltr', `Tier D interactive stress & Studio open/close stayed responsive (wall=${case5.wallMs}ms, maxLT=${case5.maxLt}ms, alloc=${case5.allocAfter}, ${case5.mbAfter} MB)`);
     assert(pageErrors.length === 0, `Zero unexpected uncaught page errors (${pageErrors.join('; ')})`);
 
     await context.close();

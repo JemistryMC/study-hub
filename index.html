@@ -412,6 +412,15 @@
                         view: getActiveViewName()
                     });
                 },
+                recordError: function(kind, msgOrErr) {
+                    var msg = (msgOrErr && msgOrErr.message) ? msgOrErr.message : String(msgOrErr || 'Unknown error');
+                    rings.errors.push({
+                        ts: new Date().toISOString(),
+                        kind: redactStr(kind || 'app_error', 40),
+                        msg: redactStr(msg, 200),
+                        view: getActiveViewName()
+                    });
+                },
                 captureCanvasSnapshot: captureCanvasDomSnapshot,
                 buildReport: buildReport,
                 redact: redactStr,
@@ -15493,7 +15502,7 @@
 
             <!-- Live Canvas Preview Stage -->
             <div class="pdf-canvas-preview-stage" id="schedulePdfPreviewStage">
-                <canvas id="schedulePdfPreviewCanvas" width="3200" height="2262" onclick="toggleSchedulePdfPreviewZoom()" title="اضغط لتكبير أو تصغير المعاينة"></canvas>
+                <canvas id="schedulePdfPreviewCanvas" width="1" height="1" onclick="toggleSchedulePdfPreviewZoom()" title="اضغط لتكبير أو تصغير المعاينة"></canvas>
             </div>
 
             <!-- Modal Footer Actions -->
@@ -18655,6 +18664,13 @@
             if (id === 'exoRecoveryModalOverlay' && exoRuntimeStatusState.recoveryCountdownTimer) {
                 clearInterval(exoRuntimeStatusState.recoveryCountdownTimer);
                 exoRuntimeStatusState.recoveryCountdownTimer = null;
+            }
+            if (id === 'shareSchedulePdfModalOverlay') {
+                const spCanvas = document.getElementById('schedulePdfPreviewCanvas');
+                if (spCanvas) {
+                    spCanvas.width = 1;
+                    spCanvas.height = 1;
+                }
             }
             if (!wasActive) return;
             if (id === 'confirmModalOverlay' && typeof exoRuntimeStatusState.confirmCancelCb === 'function') {
@@ -43805,6 +43821,23 @@ function togglePdfAudioPlayerBar(forceState) {
             return bytes;
         }
 
+        async function canvasToJpegUint8Bytes(canvas, quality = 0.92) {
+            if (canvas && typeof canvas.toBlob === 'function') {
+                const blob = await new Promise(resolve => {
+                    try {
+                        canvas.toBlob(b => resolve(b), 'image/jpeg', quality);
+                    } catch (e) {
+                        resolve(null);
+                    }
+                });
+                if (blob && typeof blob.arrayBuffer === 'function') {
+                    const buf = await blob.arrayBuffer();
+                    return new Uint8Array(buf);
+                }
+            }
+            return dataUrlToUint8Bytes(canvas.toDataURL('image/jpeg', quality));
+        }
+
         function buildMultiPagePdfFromJpegs(pages) {
             const encoder = new TextEncoder();
             const chunks = [];
@@ -43965,7 +43998,7 @@ function togglePdfAudioPlayerBar(forceState) {
                                 const vp = page.getViewport({ scale: 1.65, rotation: pageRotation });
                                 offCanvas.width = Math.max(1, Math.floor(vp.width));
                                 offCanvas.height = Math.max(1, Math.floor(vp.height));
-                                const ctx = offCanvas.getContext('2d', { alpha: false });
+                                const ctx = offCanvas.getContext('2d', { alpha: false, willReadFrequently: true });
                                 ctx.setTransform(1, 0, 0, 1, 0, 0);
                                 ctx.direction = 'ltr';
                                 ctx.fillStyle = '#ffffff';
@@ -43981,7 +44014,7 @@ function togglePdfAudioPlayerBar(forceState) {
                             if (domPdfCanvas && domPdfCanvas.width > 0 && domPdfCanvas.height > 0) {
                                 offCanvas.width = domPdfCanvas.width;
                                 offCanvas.height = domPdfCanvas.height;
-                                const ctx = offCanvas.getContext('2d', { alpha: false });
+                                const ctx = offCanvas.getContext('2d', { alpha: false, willReadFrequently: true });
                                 ctx.fillStyle = '#ffffff';
                                 ctx.fillRect(0, 0, offCanvas.width, offCanvas.height);
                                 ctx.drawImage(domPdfCanvas, 0, 0);
@@ -44003,11 +44036,11 @@ function togglePdfAudioPlayerBar(forceState) {
                             }
                         }
 
-                        const slideJpegUrl = offCanvas.toDataURL('image/jpeg', 0.92);
+                        const slideJpegBytes = await canvasToJpegUint8Bytes(offCanvas, 0.92);
                         pdfPagesData.push({
                             width: offCanvas.width,
                             height: offCanvas.height,
-                            jpegBytes: dataUrlToUint8Bytes(slideJpegUrl)
+                            jpegBytes: slideJpegBytes
                         });
 
                         // Check if this slide also has an Extra Note Sheet (either with strokes or explicitly opened)
@@ -44025,7 +44058,7 @@ function togglePdfAudioPlayerBar(forceState) {
                             noteCanvas = document.createElement('canvas');
                             noteCanvas.width = offCanvas.width;
                             noteCanvas.height = Math.max(1, Math.floor(offCanvas.height * 0.75));
-                            const nCtx = noteCanvas.getContext('2d', { alpha: false });
+                            const nCtx = noteCanvas.getContext('2d', { alpha: false, willReadFrequently: true });
 
                             // Warm cream paper background
                             nCtx.fillStyle = '#fcfaf5';
@@ -44056,11 +44089,11 @@ function togglePdfAudioPlayerBar(forceState) {
                                 }
                             }
 
-                            const noteJpegUrl = noteCanvas.toDataURL('image/jpeg', 0.92);
+                            const noteJpegBytes = await canvasToJpegUint8Bytes(noteCanvas, 0.92);
                             pdfPagesData.push({
                                 width: noteCanvas.width,
                                 height: noteCanvas.height,
-                                jpegBytes: dataUrlToUint8Bytes(noteJpegUrl)
+                                jpegBytes: noteJpegBytes
                             });
                         }
                     } finally {
@@ -52298,6 +52331,10 @@ function togglePdfAudioPlayerBar(forceState) {
                 try { await initPdfDB(); } catch (e) {}
             }
             if (!dbInstance || !dbInstance.objectStoreNames || !dbInstance.objectStoreNames.contains('workspace_state')) {
+                if (typeof window !== 'undefined' && window.__exoForensicDiag) {
+                    const dur = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - migStartMs;
+                    window.__exoForensicDiag.markSyncPhase('conflict_recovery_migration', 'aborted', { reason: 'idb_workspace_state_unavailable', durMs: dur });
+                }
                 return { ok: false, migrated: false, hydrated: false, persisted: false, reason: 'idb_workspace_state_unavailable' };
             }
 
@@ -52378,6 +52415,10 @@ function togglePdfAudioPlayerBar(forceState) {
             });
 
             if (!idbRead || !idbRead.ok) {
+                if (typeof window !== 'undefined' && window.__exoForensicDiag) {
+                    const dur = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - migStartMs;
+                    window.__exoForensicDiag.markSyncPhase('conflict_recovery_migration', 'aborted', { reason: 'idb_read_failed', durMs: dur });
+                }
                 return { ok: false, migrated: false, hydrated: false, persisted: false, reason: 'idb_read_failed' };
             }
 
@@ -52479,6 +52520,10 @@ function togglePdfAudioPlayerBar(forceState) {
 
             // If a pointer claims records exist in IDB, but the IDB record is missing and no records could be recovered from any source, fail closed without overwriting the pointer
             if (lsPointer && Number(lsPointer.count || 0) > 0 && (!idbArray || idbArray.length === 0) && mergedRecords.length === 0) {
+                if (typeof window !== 'undefined' && window.__exoForensicDiag) {
+                    const dur = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - migStartMs;
+                    window.__exoForensicDiag.markSyncPhase('conflict_recovery_migration', 'aborted', { reason: 'idb_record_missing_for_pointer', durMs: dur });
+                }
                 return {
                     ok: false,
                     migrated: false,
@@ -52492,6 +52537,10 @@ function togglePdfAudioPlayerBar(forceState) {
 
             if (mergedRecords.length === 0 && (!lsArray || rawLsChars <= 4) && !lsPointer) {
                 memMap.set(targetUid, []);
+                if (typeof window !== 'undefined' && window.__exoForensicDiag) {
+                    const dur = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - migStartMs;
+                    window.__exoForensicDiag.markSyncPhase('conflict_recovery_migration', 'skipped', { count: 0, durMs: dur });
+                }
                 return {
                     ok: true,
                     migrated: false,
@@ -56339,6 +56388,41 @@ function togglePdfAudioPlayerBar(forceState) {
                                         };
                                     }
                                     return { status: 'conflict', current_revision: rpcRes.current_revision };
+                                } else {
+                                    console.warn('Concurrency conflict with missing remote workspace row (current_revision:', rpcRes.current_revision, ')');
+                                    const revErr = new Error('CLOUD_ROW_MISSING_FOR_STALE_REVISION: remote row missing (current_revision=' + Number(rpcRes.current_revision || 0) + ')');
+                                    try {
+                                        localStorage.setItem('pharmaWorkspaceDirty', '1');
+                                        localStorage.setItem('pharmaWorkspaceDirty_' + syncUserId, '1');
+                                    } catch (e) {}
+                                    if (typeof exoRuntimeStatusState !== 'undefined') {
+                                        exoRuntimeStatusState.cloudAckConfirmed = false;
+                                    }
+                                    if (typeof window !== 'undefined' && window.__exoForensicDiag && typeof window.__exoForensicDiag.recordError === 'function') {
+                                        window.__exoForensicDiag.recordError('cloud_sync', revErr.message);
+                                    }
+                                    if (typeof exoRecordIncident === 'function') {
+                                        exoRecordIncident('cloud_sync', revErr, { domain: 'cloud_sync', rpcResponse: rpcRes });
+                                    }
+                                    updateCloudNavUI('error');
+                                    if (typeof refreshWp64StatusSurfaces === 'function') refreshWp64StatusSurfaces();
+                                    if (manualNotify && typeof showToast === 'function') {
+                                        const isEnT = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : false;
+                                        showToast(
+                                            isEnT
+                                                ? 'Cloud sync blocked because the remote workspace row is missing for this local revision — local edits remain safe.'
+                                                : 'تعذرت المزامنة لأن سجل السحابة غير موجود لهذا الإصدار المحلي — تعديلاتك محفوظة بأمان على الجهاز.',
+                                            'error',
+                                            { incidentKey: 'cloud_sync' }
+                                        );
+                                    }
+                                    return {
+                                        status: 'error',
+                                        ok: false,
+                                        reason: 'stale_revision_missing_remote_row',
+                                        current_revision: Number(rpcRes.current_revision || 0),
+                                        error: String(rpcRes.message || 'Workspace does not exist for stale revision')
+                                    };
                                 }
                             } else if (rpcRes.status === 'success') {
                                 serverSyncConfirmed = true;
@@ -56538,6 +56622,9 @@ function togglePdfAudioPlayerBar(forceState) {
                         return { status: 'aborted', reason: 'account_switched' };
                     }
                     console.error('Cloud synchronization failure:', err);
+                    if (typeof window !== 'undefined' && window.__exoForensicDiag && typeof window.__exoForensicDiag.recordError === 'function') {
+                        window.__exoForensicDiag.recordError('cloud_sync', err);
+                    }
                     const diag = typeof classifySupabaseError === 'function' ? classifySupabaseError(err) : null;
                     try {
                         localStorage.setItem('pharmaWorkspaceDirty', '1');
@@ -57999,6 +58086,7 @@ function togglePdfAudioPlayerBar(forceState) {
             updateCloudNavUI('syncing');
             try {
                 let data = null;
+                let remoteRowMissingOnline = false;
                 if (supabaseClient && navigator.onLine) {
                     const res = await supabaseClient
                         .from('user_workspaces')
@@ -58010,6 +58098,9 @@ function togglePdfAudioPlayerBar(forceState) {
                     }
                     if (res && res.error) {
                         console.error('pullWorkspaceFromCloud remote SELECT failed (fail-closed):', res.error);
+                        if (typeof window !== 'undefined' && window.__exoForensicDiag && typeof window.__exoForensicDiag.recordError === 'function') {
+                            window.__exoForensicDiag.recordError('cloud_pull', res.error);
+                        }
                         const diag = typeof classifySupabaseError === 'function' ? classifySupabaseError(res.error) : null;
                         if (typeof exoRuntimeStatusState !== 'undefined') exoRuntimeStatusState.cloudAckConfirmed = false;
                         if (typeof exoRecordIncident === 'function') {
@@ -58034,11 +58125,38 @@ function togglePdfAudioPlayerBar(forceState) {
                             diagnostics: diag
                         };
                     }
-                    if (res && res.data) data = res.data;
+                    if (res && res.data) {
+                        data = res.data;
+                    } else if (res && !res.error && !res.data) {
+                        remoteRowMissingOnline = true;
+                    }
                 }
                 if (!data) {
                     const accountKey = getAccountBackupStorageKey(opCtx.uid);
-                    data = JSON.parse(localStorage.getItem(accountKey) || 'null');
+                    const candidateSnap = JSON.parse(localStorage.getItem(accountKey) || 'null');
+                    const hasLsDirtyForPull = Boolean(
+                        localStorage.getItem('pharmaWorkspaceDirty') === '1' ||
+                        localStorage.getItem('pharmaWorkspaceDirty_' + opCtx.uid) === '1' ||
+                        localStorage.getItem('pharmaAnnotationsDirty_' + opCtx.uid) === '1' ||
+                        dirtyAnnotationsForCloud
+                    );
+                    const isCleanSyncedCloudMirror = Boolean(
+                        remoteRowMissingOnline &&
+                        candidateSnap &&
+                        candidateSnap.dirty !== true &&
+                        candidateSnap.annotationsStoredInIndexedDB === true &&
+                        !hasLsDirtyForPull
+                    );
+                    if (isCleanSyncedCloudMirror) {
+                        try { localStorage.removeItem(accountKey); } catch (e) {}
+                        const prevRevVal = Number(localStorage.getItem('pharmaWorkspaceRevision_' + opCtx.uid) || candidateSnap.revision || 0);
+                        if (prevRevVal > 1) {
+                            try { localStorage.removeItem('pharmaWorkspaceRevision_' + opCtx.uid); } catch (e) {}
+                            currentCloudWorkspaceRevision = 1;
+                        }
+                    } else {
+                        data = candidateSnap;
+                    }
                     if (typeof migrateLegacyAccountAnnotationsToIDB === 'function' && data && ((data.annotations && typeof data.annotations === 'object' && Object.keys(data.annotations).length > 0) || !data.annotationsStoredInIndexedDB)) {
                         const migRes = await migrateLegacyAccountAnnotationsToIDB(data, opCtx.uid, opCtx);
                         if (!migRes || !migRes.ok) {
@@ -58063,6 +58181,19 @@ function togglePdfAudioPlayerBar(forceState) {
                     return { status: 'aborted', reason: 'account_switched' };
                 }
                 if (!data) {
+                    if (remoteRowMissingOnline) {
+                        const prevRevClean = Number(localStorage.getItem('pharmaWorkspaceRevision_' + opCtx.uid) || 0);
+                        const hasLsDirtyReset = Boolean(
+                            localStorage.getItem('pharmaWorkspaceDirty') === '1' ||
+                            localStorage.getItem('pharmaWorkspaceDirty_' + opCtx.uid) === '1' ||
+                            localStorage.getItem('pharmaAnnotationsDirty_' + opCtx.uid) === '1' ||
+                            dirtyAnnotationsForCloud
+                        );
+                        if (prevRevClean > 1 && !hasLsDirtyReset) {
+                            try { localStorage.removeItem('pharmaWorkspaceRevision_' + opCtx.uid); } catch (e) {}
+                            currentCloudWorkspaceRevision = 1;
+                        }
+                    }
                     return await pushWorkspaceToCloud(isManual, false, opCtx);
                 }
 
@@ -58639,6 +58770,8 @@ function togglePdfAudioPlayerBar(forceState) {
 
                 let data = null;
                 let loadedFromLocalAccountSnapshot = false;
+                let remoteRowMissingOnline = false;
+                let droppedObsoleteCleanCloudMirror = false;
                 if (supabaseClient && navigator.onLine) {
                     const res = await supabaseClient
                         .from('user_workspaces')
@@ -58650,6 +58783,9 @@ function togglePdfAudioPlayerBar(forceState) {
                     }
                     if (res && res.error) {
                         console.error('syncWorkspaceOnLogin remote SELECT failed (fail-closed):', res.error);
+                        if (typeof window !== 'undefined' && window.__exoForensicDiag && typeof window.__exoForensicDiag.recordError === 'function') {
+                            window.__exoForensicDiag.recordError('cloud_login_pull', res.error);
+                        }
                         const diag = typeof classifySupabaseError === 'function' ? classifySupabaseError(res.error) : null;
                         if (typeof exoRuntimeStatusState !== 'undefined') exoRuntimeStatusState.cloudAckConfirmed = false;
                         if (typeof exoRecordIncident === 'function') {
@@ -58664,11 +58800,41 @@ function togglePdfAudioPlayerBar(forceState) {
                             diagnostics: diag
                         };
                     }
-                    if (res && res.data) data = res.data;
+                    if (res && res.data) {
+                        data = res.data;
+                    } else if (res && !res.error && !res.data) {
+                        remoteRowMissingOnline = true;
+                    }
                 }
                 if (!data) {
                     const accountKey = getAccountBackupStorageKey(opCtx.uid);
-                    data = JSON.parse(localStorage.getItem(accountKey) || 'null');
+                    const candidateSnap = JSON.parse(localStorage.getItem(accountKey) || 'null');
+                    const hasLsDirtyForLogin = Boolean(
+                        localStorage.getItem('pharmaWorkspaceDirty') === '1' ||
+                        localStorage.getItem('pharmaWorkspaceDirty_' + opCtx.uid) === '1' ||
+                        localStorage.getItem('pharmaAnnotationsDirty_' + opCtx.uid) === '1' ||
+                        dirtyAnnotationsForCloud ||
+                        (typeof pendingAnnoSaveMap !== 'undefined' && pendingAnnoSaveMap && Object.keys(pendingAnnoSaveMap).length > 0) ||
+                        (typeof hasAnyUncommittedOperationsInMemory === 'function' && hasAnyUncommittedOperationsInMemory(opCtx.uid))
+                    );
+                    const isCleanSyncedCloudMirror = Boolean(
+                        remoteRowMissingOnline &&
+                        candidateSnap &&
+                        candidateSnap.dirty !== true &&
+                        candidateSnap.annotationsStoredInIndexedDB === true &&
+                        !hasLsDirtyForLogin
+                    );
+                    if (isCleanSyncedCloudMirror) {
+                        droppedObsoleteCleanCloudMirror = true;
+                        try { localStorage.removeItem(accountKey); } catch (e) {}
+                        const prevRevVal = Number(localStorage.getItem('pharmaWorkspaceRevision_' + opCtx.uid) || candidateSnap.revision || 0);
+                        if (prevRevVal > 1) {
+                            try { localStorage.removeItem('pharmaWorkspaceRevision_' + opCtx.uid); } catch (e) {}
+                            currentCloudWorkspaceRevision = 1;
+                        }
+                    } else {
+                        data = candidateSnap;
+                    }
                     if (data) {
                         loadedFromLocalAccountSnapshot = true;
                         if (typeof migrateLegacyAccountAnnotationsToIDB === 'function' && ((data.annotations && typeof data.annotations === 'object' && Object.keys(data.annotations).length > 0) || !data.annotationsStoredInIndexedDB)) {
@@ -58841,12 +59007,38 @@ function togglePdfAudioPlayerBar(forceState) {
                     }
                     return applyRes;
                 } else {
-                    // Brand new account with no cloud row yet (F-15): preserve pre-login academy_progress
+                    // Brand new or clean-reset cloud account with no cloud row yet (F-15): preserve pre-login academy_progress
+                    const priorRevOnEmpty = Number(localStorage.getItem('pharmaWorkspaceRevision_' + opCtx.uid) || 0);
+                    const hasAnyDirtyJournalNow = Boolean(
+                        durableLoginJournal.hasDirtyWorkspace ||
+                        durableLoginJournal.hasDirtyAnnotations ||
+                        localStorage.getItem('pharmaWorkspaceDirty') === '1' ||
+                        localStorage.getItem('pharmaWorkspaceDirty_' + opCtx.uid) === '1' ||
+                        localStorage.getItem('pharmaAnnotationsDirty_' + opCtx.uid) === '1' ||
+                        dirtyAnnotationsForCloud
+                    );
+                    if (remoteRowMissingOnline && !hasAnyDirtyJournalNow && (droppedObsoleteCleanCloudMirror || (priorRevOnEmpty > 1 && String(lastLoggedUserId || '') === opCtx.uid))) {
+                        try { localStorage.removeItem('pharmaWorkspaceRevision_' + opCtx.uid); } catch (e) {}
+                        currentCloudWorkspaceRevision = 1;
+                        if (!isSwitchingDifferentUser && String(lastLoggedUserId || '') === opCtx.uid) {
+                            subjects = [];
+                            scheduleEvents = [];
+                            scheduleBacklog = [];
+                            weeklyReports = [];
+                            logs = [];
+                            cloudMediaRegistry = {};
+                            inMemoryAnnotationsCache = {};
+                            inMemoryAnnotationsCacheNormalized = {};
+                            lastUploadedAnnotationsSignature = '';
+                            try { localStorage.removeItem('pharmaTombstones_' + opCtx.uid); } catch (e) {}
+                        }
+                    }
                     const preservedAcademyProgress = (Array.isArray(completedAcademyModules) && completedAcademyModules.length > 0)
                         ? completedAcademyModules.slice()
                         : (JSON.parse(localStorage.getItem('pharmaAcademyProgressV1') || '[]') || []);
                     const applyRes = await applyCloudWorkspacePayload({
                         user_id: opCtx.uid,
+                        revision: 1,
                         can_upload_media: false,
                         subjects: subjects,
                         schedule: { version: 3, events: scheduleEvents, backlog: scheduleBacklog, plannerPrefs: plannerPrefs, weeklyReports: weeklyReports, pdfFitMode: currentPdfFitMode },

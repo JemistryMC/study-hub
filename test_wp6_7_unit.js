@@ -69,7 +69,7 @@ test('WP 6.7: Planner cards, Week grid, Today timeline & Weekly Goals escape use
   assert.ok(!todayFn[0].includes('${subName}'), 'renderTodayView must not interpolate raw subName');
   assert.ok(!todayFn[0].includes('${ev.notes}'), 'renderTodayView must not interpolate raw ev.notes');
 
-  const tasksFn = indexHtml.match(/function renderTasksView\(\)\s*\{[\s\S]*?\n        \}/);
+  const tasksFn = indexHtml.match(/function renderTasksView\([^)]*\)\s*\{[\s\S]*?\n        \}/);
   assert.ok(tasksFn, 'renderTasksView must exist');
   assert.ok(!tasksFn[0].includes('${item.title}'), 'renderTasksView must not interpolate raw item.title');
   assert.ok(!tasksFn[0].includes('${ev.title}'), 'renderTasksView must not interpolate raw ev.title');
