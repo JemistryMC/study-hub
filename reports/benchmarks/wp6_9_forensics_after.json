@@ -1,0 +1,6040 @@
+{
+  "timestamp": "2026-11-17T09:05:08.510Z",
+  "targetUrl": "http://localhost:3000",
+  "os": "Linux 4.19.0-gvisor (x64)",
+  "nodeVersion": "v22.23.2",
+  "chromiumVersion": "155.0.8059.12",
+  "environmentBoundaries": {
+    "supabase": "offline_mocked_client (not live hosted Supabase Auth/PostgREST)",
+    "googleDriveAndGis": "offline_mocked_gis_client (not live Google OAuth/Drive)",
+    "pdfRenderer": "deterministic_pdfjs_canvas_shim (not live CDN PDF.js decoding real user binary PDFs)",
+    "quotaCheck": "synthetic_localStorage_filler (simulated near-full storage quota)"
+  },
+  "tiers": {
+    "empty": {
+      "tier": "empty",
+      "config": {
+        "subjectsCount": 0,
+        "chaptersPerSub": 0,
+        "lecsPerChap": 0,
+        "eventsCount": 0,
+        "logsCount": 0,
+        "goalsCount": 0,
+        "pdfPages": 5
+      },
+      "startupWallMs": 923,
+      "startup": {
+        "phase": "startup",
+        "longTaskCount": 1,
+        "maxLongTaskMs": 60,
+        "totalLongTaskMs": 60,
+        "longTasksSample": [
+          {
+            "duration": 60,
+            "startTime": 374.7,
+            "phase": "startup"
+          }
+        ],
+        "eventTimingSupported": true,
+        "eventTimingCount": 0,
+        "maxEventTimingMs": 0,
+        "eventTimingSample": [],
+        "maxFrameGapMs": 83.4,
+        "framesOver50": 1,
+        "framesOver100": 0,
+        "framesOver500": 0,
+        "maxDriftMs": 90.7,
+        "mutationsTotal": 0,
+        "mutationObserverBatches": 0,
+        "lsSetCalls": 2,
+        "lsSetMs": 0.2,
+        "lsSetKB": 0.2,
+        "jsonParseCalls": 37,
+        "jsonParseMs": 0,
+        "jsonStringifyCalls": 4,
+        "jsonStringifyMs": 0,
+        "idbOpsCount": 20,
+        "idbTotalMs": 92.8,
+        "idbMaxOpMs": 11.1,
+        "domNodeCount": 2435,
+        "usedJSHeapMB": 9.54
+      },
+      "steps": [
+        {
+          "step": "idle_4s_dashboard",
+          "actionToSecondFrameWallMs": 4000,
+          "phase": "idle_4s_dashboard",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 0,
+          "mutationObserverBatches": 0,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 2435,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "nav_to_subjects",
+          "actionToSecondFrameWallMs": 86.4,
+          "phase": "nav_to_subjects",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 81,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 1,
+          "lsSetMs": 0.1,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 2435,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "nav_to_planner",
+          "actionToSecondFrameWallMs": 112,
+          "phase": "nav_to_planner",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 33.3,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 33.8,
+          "mutationsTotal": 31,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 2506,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "planner_week_tab",
+          "actionToSecondFrameWallMs": 77.8,
+          "phase": "planner_week_tab",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 23,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 2586,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "planner_goals_tab",
+          "actionToSecondFrameWallMs": 78.2,
+          "phase": "planner_goals_tab",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 22,
+          "maxEventTimingMs": 56,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 56,
+              "processingStart": 5173.4,
+              "processingEnd": 5173.4,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 5173.5,
+              "processingEnd": 5173.5,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 5173.5,
+              "processingEnd": 5173.5,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 5173.5,
+              "processingEnd": 5173.5,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 5173.5,
+              "processingEnd": 5173.5,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 5173.5,
+              "processingEnd": 5173.5,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerover",
+              "duration": 56,
+              "processingStart": 5173.5,
+              "processingEnd": 5173.5,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 5173.5,
+              "processingEnd": 5173.5,
+              "phase": "planner_goals_tab"
+            }
+          ],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 21,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 2508,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "nav_to_tracker",
+          "actionToSecondFrameWallMs": 94.9,
+          "phase": "nav_to_tracker",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 13,
+          "maxEventTimingMs": 48,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 48,
+              "processingStart": 5258.5,
+              "processingEnd": 5258.5,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 48,
+              "processingStart": 5258.5,
+              "processingEnd": 5258.5,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 48,
+              "processingStart": 5258.5,
+              "processingEnd": 5258.5,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerover",
+              "duration": 48,
+              "processingStart": 5258.5,
+              "processingEnd": 5258.5,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 48,
+              "processingStart": 5258.5,
+              "processingEnd": 5258.5,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 48,
+              "processingStart": 5258.5,
+              "processingEnd": 5258.5,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "mouseout",
+              "duration": 48,
+              "processingStart": 5258.5,
+              "processingEnd": 5258.5,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "mouseover",
+              "duration": 48,
+              "processingStart": 5258.5,
+              "processingEnd": 5258.5,
+              "phase": "nav_to_tracker"
+            }
+          ],
+          "maxFrameGapMs": 33.4,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 30.3,
+          "mutationsTotal": 40,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 2567,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "nav_to_dashboard",
+          "actionToSecondFrameWallMs": 61,
+          "phase": "nav_to_dashboard",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 2,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 2563,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "open_help_modal",
+          "actionToSecondFrameWallMs": 80.2,
+          "phase": "open_help_modal",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 13,
+          "maxEventTimingMs": 32,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 32,
+              "processingStart": 5439.3,
+              "processingEnd": 5439.3,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 32,
+              "processingStart": 5439.3,
+              "processingEnd": 5439.3,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 32,
+              "processingStart": 5439.3,
+              "processingEnd": 5439.3,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerover",
+              "duration": 32,
+              "processingStart": 5439.3,
+              "processingEnd": 5439.3,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 32,
+              "processingStart": 5439.3,
+              "processingEnd": 5439.3,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 32,
+              "processingStart": 5439.3,
+              "processingEnd": 5439.3,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "mouseout",
+              "duration": 32,
+              "processingStart": 5439.3,
+              "processingEnd": 5439.3,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "mouseover",
+              "duration": 32,
+              "processingStart": 5439.3,
+              "processingEnd": 5439.3,
+              "phase": "open_help_modal"
+            }
+          ],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 72,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 2593,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "lang_toggle_6x",
+          "actionToSecondFrameWallMs": 877.2,
+          "phase": "lang_toggle_6x",
+          "longTaskCount": 2,
+          "maxLongTaskMs": 110,
+          "totalLongTaskMs": 164,
+          "longTasksSample": [
+            {
+              "duration": 110,
+              "startTime": 5997,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "duration": 54,
+              "startTime": 6206.9,
+              "phase": "lang_toggle_6x"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 160,
+          "maxEventTimingMs": 184,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 184,
+              "processingStart": 5996.8,
+              "processingEnd": 5996.8,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 184,
+              "processingStart": 5996.8,
+              "processingEnd": 5996.8,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 184,
+              "processingStart": 5996.8,
+              "processingEnd": 5996.8,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 184,
+              "processingStart": 5996.8,
+              "processingEnd": 5996.8,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 184,
+              "processingStart": 5996.8,
+              "processingEnd": 5996.8,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 184,
+              "processingStart": 5996.8,
+              "processingEnd": 5996.8,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerover",
+              "duration": 184,
+              "processingStart": 5996.8,
+              "processingEnd": 5996.9,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 184,
+              "processingStart": 5996.9,
+              "processingEnd": 5996.9,
+              "phase": "lang_toggle_6x"
+            }
+          ],
+          "maxFrameGapMs": 100,
+          "framesOver50": 3,
+          "framesOver100": 1,
+          "framesOver500": 0,
+          "maxDriftMs": 113.8,
+          "mutationsTotal": 2082,
+          "mutationObserverBatches": 6,
+          "lsSetCalls": 6,
+          "lsSetMs": 0.3,
+          "lsSetKB": 0,
+          "jsonParseCalls": 18,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 2592,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "rapid_nav_20_cycles",
+          "actionToSecondFrameWallMs": 1009.8,
+          "phase": "rapid_nav_20_cycles",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 249,
+          "maxEventTimingMs": 40,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 24,
+              "processingStart": 6854.5,
+              "processingEnd": 6854.5,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 24,
+              "processingStart": 6854.5,
+              "processingEnd": 6854.5,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerover",
+              "duration": 24,
+              "processingStart": 6854.5,
+              "processingEnd": 6854.6,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 24,
+              "processingStart": 6854.6,
+              "processingEnd": 6854.6,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 24,
+              "processingStart": 6854.6,
+              "processingEnd": 6854.6,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 24,
+              "processingStart": 6854.6,
+              "processingEnd": 6854.6,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 24,
+              "processingStart": 6854.6,
+              "processingEnd": 6854.6,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 24,
+              "processingStart": 6854.6,
+              "processingEnd": 6854.6,
+              "phase": "rapid_nav_20_cycles"
+            }
+          ],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 608,
+          "mutationObserverBatches": 20,
+          "lsSetCalls": 5,
+          "lsSetMs": 0.2,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 2593,
+          "usedJSHeapMB": 9.54
+        }
+      ],
+      "leakCheck20Nav": {
+        "domBefore": 2592,
+        "domAfter": 2593,
+        "domDelta": 1,
+        "heapBeforeMB": 9.54,
+        "heapAfterMB": 9.54,
+        "heapDeltaMB": 0
+      },
+      "runtimeErrors": []
+    },
+    "medium": {
+      "tier": "medium",
+      "config": {
+        "subjectsCount": 5,
+        "chaptersPerSub": 2,
+        "lecsPerChap": 3,
+        "eventsCount": 30,
+        "logsCount": 40,
+        "goalsCount": 12,
+        "pdfPages": 12
+      },
+      "startupWallMs": 944,
+      "startup": {
+        "phase": "startup",
+        "longTaskCount": 1,
+        "maxLongTaskMs": 62,
+        "totalLongTaskMs": 62,
+        "longTasksSample": [
+          {
+            "duration": 62,
+            "startTime": 391,
+            "phase": "startup"
+          }
+        ],
+        "eventTimingSupported": true,
+        "eventTimingCount": 0,
+        "maxEventTimingMs": 0,
+        "eventTimingSample": [],
+        "maxFrameGapMs": 83.3,
+        "framesOver50": 2,
+        "framesOver100": 0,
+        "framesOver500": 0,
+        "maxDriftMs": 88.8,
+        "mutationsTotal": 0,
+        "mutationObserverBatches": 0,
+        "lsSetCalls": 2,
+        "lsSetMs": 0,
+        "lsSetKB": 0.2,
+        "jsonParseCalls": 39,
+        "jsonParseMs": 0.5,
+        "jsonStringifyCalls": 6,
+        "jsonStringifyMs": 0,
+        "idbOpsCount": 24,
+        "idbTotalMs": 156.7,
+        "idbMaxOpMs": 25.8,
+        "domNodeCount": 2668,
+        "usedJSHeapMB": 9.54
+      },
+      "steps": [
+        {
+          "step": "idle_4s_dashboard",
+          "actionToSecondFrameWallMs": 4000,
+          "phase": "idle_4s_dashboard",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 0,
+          "mutationObserverBatches": 0,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 2668,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "nav_to_subjects",
+          "actionToSecondFrameWallMs": 102.2,
+          "phase": "nav_to_subjects",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 21.6,
+          "mutationsTotal": 82,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 1,
+          "lsSetMs": 0.1,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 2668,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "open_subject_toc",
+          "actionToSecondFrameWallMs": 93.3,
+          "phase": "open_subject_toc",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 33.3,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 67,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 2,
+          "lsSetMs": 0.1,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 2899,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "open_chapter_workspace",
+          "actionToSecondFrameWallMs": 98.9,
+          "phase": "open_chapter_workspace",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 5,
+          "maxEventTimingMs": 16,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 16,
+              "processingStart": 5134.5,
+              "processingEnd": 5134.5,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 16,
+              "processingStart": 5134.5,
+              "processingEnd": 5134.5,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "pointerover",
+              "duration": 16,
+              "processingStart": 5134.5,
+              "processingEnd": 5134.5,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "mouseout",
+              "duration": 16,
+              "processingStart": 5134.5,
+              "processingEnd": 5134.5,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "mouseover",
+              "duration": 16,
+              "processingStart": 5134.6,
+              "processingEnd": 5134.6,
+              "phase": "open_chapter_workspace"
+            }
+          ],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 6,
+          "mutationObserverBatches": 2,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 17,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 3,
+          "idbTotalMs": 42.4,
+          "idbMaxOpMs": 14.2,
+          "domNodeCount": 3005,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "cw_search_typing",
+          "actionToSecondFrameWallMs": 139,
+          "focusPreserved": true,
+          "typedValueLen": 7,
+          "phase": "cw_search_typing",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 60,
+          "maxEventTimingMs": 32,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 32,
+              "processingStart": 5304.9,
+              "processingEnd": 5304.9,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 32,
+              "processingStart": 5304.9,
+              "processingEnd": 5304.9,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 32,
+              "processingStart": 5304.9,
+              "processingEnd": 5304.9,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 32,
+              "processingStart": 5304.9,
+              "processingEnd": 5304.9,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 32,
+              "processingStart": 5304.9,
+              "processingEnd": 5304.9,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 32,
+              "processingStart": 5304.9,
+              "processingEnd": 5304.9,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerover",
+              "duration": 32,
+              "processingStart": 5304.9,
+              "processingEnd": 5304.9,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 32,
+              "processingStart": 5304.9,
+              "processingEnd": 5304.9,
+              "phase": "cw_search_typing"
+            }
+          ],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 7,
+          "mutationObserverBatches": 7,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3029,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "open_pdf_studio",
+          "actionToSecondFrameWallMs": 223.4,
+          "phase": "open_pdf_studio",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 27,
+          "maxEventTimingMs": 56,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 56,
+              "processingStart": 5654.4,
+              "processingEnd": 5654.4,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 5654.4,
+              "processingEnd": 5654.4,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 5654.4,
+              "processingEnd": 5654.4,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 5654.4,
+              "processingEnd": 5654.4,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 5654.4,
+              "processingEnd": 5654.4,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerover",
+              "duration": 56,
+              "processingStart": 5654.4,
+              "processingEnd": 5654.4,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 5654.4,
+              "processingEnd": 5654.4,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 5654.4,
+              "processingEnd": 5654.4,
+              "phase": "open_pdf_studio"
+            }
+          ],
+          "maxFrameGapMs": 50,
+          "framesOver50": 2,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 69.2,
+          "mutationsTotal": 71,
+          "mutationObserverBatches": 5,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 18,
+          "jsonParseMs": 0.1,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 5,
+          "idbTotalMs": 90.3,
+          "idbMaxOpMs": 29.4,
+          "domNodeCount": 3237,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "pdf_scroll_zoom_ink",
+          "actionToSecondFrameWallMs": 977.9,
+          "phase": "pdf_scroll_zoom_ink",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 142,
+          "maxEventTimingMs": 80,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 80,
+              "processingStart": 5872.3,
+              "processingEnd": 5872.3,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 5872.3,
+              "processingEnd": 5872.3,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 5872.3,
+              "processingEnd": 5872.3,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 5872.3,
+              "processingEnd": 5872.3,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerover",
+              "duration": 80,
+              "processingStart": 5872.3,
+              "processingEnd": 5872.3,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 5872.4,
+              "processingEnd": 5872.4,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 5872.4,
+              "processingEnd": 5872.4,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 5872.4,
+              "processingEnd": 5872.4,
+              "phase": "pdf_scroll_zoom_ink"
+            }
+          ],
+          "maxFrameGapMs": 33.4,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 41.4,
+          "mutationsTotal": 22,
+          "mutationObserverBatches": 10,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3237,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "close_pdf_studio",
+          "actionToSecondFrameWallMs": 93.3,
+          "phase": "close_pdf_studio",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 46,
+          "maxEventTimingMs": 56,
+          "eventTimingSample": [
+            {
+              "name": "pointerover",
+              "duration": 56,
+              "processingStart": 6871,
+              "processingEnd": 6871,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 6871,
+              "processingEnd": 6871,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 6871,
+              "processingEnd": 6871,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 6871,
+              "processingEnd": 6871,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 6871,
+              "processingEnd": 6871,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 6871,
+              "processingEnd": 6871,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 6871,
+              "processingEnd": 6871,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 6871,
+              "processingEnd": 6871,
+              "phase": "close_pdf_studio"
+            }
+          ],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 20.5,
+          "mutationsTotal": 22,
+          "mutationObserverBatches": 2,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 13,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 3,
+          "idbTotalMs": 70.3,
+          "idbMaxOpMs": 25,
+          "domNodeCount": 3043,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "nav_to_planner",
+          "actionToSecondFrameWallMs": 107.6,
+          "phase": "nav_to_planner",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 33.3,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 31.2,
+          "mutationsTotal": 31,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3256,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "planner_week_tab",
+          "actionToSecondFrameWallMs": 111.4,
+          "phase": "planner_week_tab",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 21,
+          "maxEventTimingMs": 72,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 72,
+              "processingStart": 7121,
+              "processingEnd": 7121,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7121,
+              "processingEnd": 7121,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7121,
+              "processingEnd": 7121,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7121,
+              "processingEnd": 7121,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7121,
+              "processingEnd": 7121,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7121,
+              "processingEnd": 7121,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7121,
+              "processingEnd": 7121,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7121,
+              "processingEnd": 7121,
+              "phase": "planner_week_tab"
+            }
+          ],
+          "maxFrameGapMs": 33.4,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 38.5,
+          "mutationsTotal": 23,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3796,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "planner_goals_tab",
+          "actionToSecondFrameWallMs": 109.6,
+          "phase": "planner_goals_tab",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 22,
+          "maxEventTimingMs": 72,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 72,
+              "processingStart": 7241,
+              "processingEnd": 7241,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7241,
+              "processingEnd": 7241,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7241,
+              "processingEnd": 7241,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7241,
+              "processingEnd": 7241,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7241,
+              "processingEnd": 7241,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7241,
+              "processingEnd": 7241,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerover",
+              "duration": 72,
+              "processingStart": 7241,
+              "processingEnd": 7241,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 72,
+              "processingStart": 7241,
+              "processingEnd": 7241,
+              "phase": "planner_goals_tab"
+            }
+          ],
+          "maxFrameGapMs": 33.3,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 38,
+          "mutationsTotal": 21,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3552,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "nav_to_tracker",
+          "actionToSecondFrameWallMs": 110.6,
+          "phase": "nav_to_tracker",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 13,
+          "maxEventTimingMs": 72,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 72,
+              "processingStart": 7358.2,
+              "processingEnd": 7358.2,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7358.2,
+              "processingEnd": 7358.2,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7358.2,
+              "processingEnd": 7358.2,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerover",
+              "duration": 72,
+              "processingStart": 7358.2,
+              "processingEnd": 7358.2,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 72,
+              "processingStart": 7358.2,
+              "processingEnd": 7358.2,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 72,
+              "processingStart": 7358.2,
+              "processingEnd": 7358.2,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "mouseout",
+              "duration": 72,
+              "processingStart": 7358.2,
+              "processingEnd": 7358.2,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "mouseover",
+              "duration": 72,
+              "processingStart": 7358.2,
+              "processingEnd": 7358.2,
+              "phase": "nav_to_tracker"
+            }
+          ],
+          "maxFrameGapMs": 33.4,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 29.1,
+          "mutationsTotal": 41,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3389,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "nav_to_dashboard",
+          "actionToSecondFrameWallMs": 78.5,
+          "phase": "nav_to_dashboard",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 22,
+          "maxEventTimingMs": 72,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 72,
+              "processingStart": 7473.5,
+              "processingEnd": 7473.5,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7473.5,
+              "processingEnd": 7473.5,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7473.5,
+              "processingEnd": 7473.5,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7473.5,
+              "processingEnd": 7473.5,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7473.5,
+              "processingEnd": 7473.5,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7473.5,
+              "processingEnd": 7473.5,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7473.5,
+              "processingEnd": 7473.5,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 7473.5,
+              "processingEnd": 7473.5,
+              "phase": "nav_to_dashboard"
+            }
+          ],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 2,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3278,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "open_help_modal",
+          "actionToSecondFrameWallMs": 112.4,
+          "phase": "open_help_modal",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 13,
+          "maxEventTimingMs": 56,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 56,
+              "processingStart": 7589.4,
+              "processingEnd": 7589.4,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 7589.4,
+              "processingEnd": 7589.4,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 7589.4,
+              "processingEnd": 7589.4,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerover",
+              "duration": 56,
+              "processingStart": 7589.4,
+              "processingEnd": 7589.4,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 7589.4,
+              "processingEnd": 7589.4,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 7589.4,
+              "processingEnd": 7589.4,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "mouseout",
+              "duration": 56,
+              "processingStart": 7589.4,
+              "processingEnd": 7589.4,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "mouseover",
+              "duration": 56,
+              "processingStart": 7589.4,
+              "processingEnd": 7589.4,
+              "phase": "open_help_modal"
+            }
+          ],
+          "maxFrameGapMs": 33.3,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 18.9,
+          "mutationsTotal": 72,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3308,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "lang_toggle_6x",
+          "actionToSecondFrameWallMs": 918.7,
+          "phase": "lang_toggle_6x",
+          "longTaskCount": 5,
+          "maxLongTaskMs": 102,
+          "totalLongTaskMs": 313,
+          "longTasksSample": [
+            {
+              "duration": 102,
+              "startTime": 8208.4,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "duration": 57,
+              "startTime": 8405.6,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "duration": 52,
+              "startTime": 8538,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "duration": 50,
+              "startTime": 8672.9,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "duration": 52,
+              "startTime": 8805.3,
+              "phase": "lang_toggle_6x"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 171,
+          "maxEventTimingMs": 176,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 176,
+              "processingStart": 8208.3,
+              "processingEnd": 8208.3,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 176,
+              "processingStart": 8208.3,
+              "processingEnd": 8208.3,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 176,
+              "processingStart": 8208.3,
+              "processingEnd": 8208.3,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 176,
+              "processingStart": 8208.4,
+              "processingEnd": 8208.4,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 176,
+              "processingStart": 8208.4,
+              "processingEnd": 8208.4,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 176,
+              "processingStart": 8208.4,
+              "processingEnd": 8208.4,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerover",
+              "duration": 176,
+              "processingStart": 8208.4,
+              "processingEnd": 8208.4,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 176,
+              "processingStart": 8208.4,
+              "processingEnd": 8208.4,
+              "phase": "lang_toggle_6x"
+            }
+          ],
+          "maxFrameGapMs": 99.9,
+          "framesOver50": 3,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 98.7,
+          "mutationsTotal": 2082,
+          "mutationObserverBatches": 6,
+          "lsSetCalls": 6,
+          "lsSetMs": 0.7,
+          "lsSetKB": 0,
+          "jsonParseCalls": 18,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3307,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "rapid_nav_20_cycles",
+          "actionToSecondFrameWallMs": 1159.9,
+          "phase": "rapid_nav_20_cycles",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 250,
+          "maxEventTimingMs": 64,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 56,
+              "processingStart": 9105,
+              "processingEnd": 9105,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 9105,
+              "processingEnd": 9105,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 9105,
+              "processingEnd": 9105,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerover",
+              "duration": 56,
+              "processingStart": 9105,
+              "processingEnd": 9105,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 9105,
+              "processingEnd": 9105,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 9105,
+              "processingEnd": 9105,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 9105,
+              "processingEnd": 9105,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 9105,
+              "processingEnd": 9105,
+              "phase": "rapid_nav_20_cycles"
+            }
+          ],
+          "maxFrameGapMs": 33.3,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 32.7,
+          "mutationsTotal": 618,
+          "mutationObserverBatches": 20,
+          "lsSetCalls": 5,
+          "lsSetMs": 0.5,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3308,
+          "usedJSHeapMB": 9.54
+        }
+      ],
+      "leakCheck20Nav": {
+        "domBefore": 3307,
+        "domAfter": 3308,
+        "domDelta": 1,
+        "heapBeforeMB": 9.54,
+        "heapAfterMB": 9.54,
+        "heapDeltaMB": 0
+      },
+      "runtimeErrors": []
+    },
+    "large": {
+      "tier": "large",
+      "config": {
+        "subjectsCount": 10,
+        "chaptersPerSub": 4,
+        "lecsPerChap": 5,
+        "eventsCount": 140,
+        "logsCount": 250,
+        "goalsCount": 40,
+        "pdfPages": 30
+      },
+      "startupWallMs": 958,
+      "startup": {
+        "phase": "startup",
+        "longTaskCount": 1,
+        "maxLongTaskMs": 60,
+        "totalLongTaskMs": 60,
+        "longTasksSample": [
+          {
+            "duration": 60,
+            "startTime": 401.1,
+            "phase": "startup"
+          }
+        ],
+        "eventTimingSupported": true,
+        "eventTimingCount": 0,
+        "maxEventTimingMs": 0,
+        "eventTimingSample": [],
+        "maxFrameGapMs": 100,
+        "framesOver50": 1,
+        "framesOver100": 1,
+        "framesOver500": 0,
+        "maxDriftMs": 99.7,
+        "mutationsTotal": 0,
+        "mutationObserverBatches": 0,
+        "lsSetCalls": 2,
+        "lsSetMs": 0.2,
+        "lsSetKB": 0.2,
+        "jsonParseCalls": 39,
+        "jsonParseMs": 1.6,
+        "jsonStringifyCalls": 6,
+        "jsonStringifyMs": 0.4,
+        "idbOpsCount": 24,
+        "idbTotalMs": 179.3,
+        "idbMaxOpMs": 26,
+        "domNodeCount": 3008,
+        "usedJSHeapMB": 9.54
+      },
+      "steps": [
+        {
+          "step": "idle_4s_dashboard",
+          "actionToSecondFrameWallMs": 4000,
+          "phase": "idle_4s_dashboard",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 0,
+          "mutationObserverBatches": 0,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3008,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "nav_to_subjects",
+          "actionToSecondFrameWallMs": 139.3,
+          "phase": "nav_to_subjects",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 15,
+          "maxEventTimingMs": 80,
+          "eventTimingSample": [
+            {
+              "name": "pointerover",
+              "duration": 80,
+              "processingStart": 5009.9,
+              "processingEnd": 5010,
+              "phase": "nav_to_subjects"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 5010,
+              "processingEnd": 5010,
+              "phase": "nav_to_subjects"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 5010,
+              "processingEnd": 5010,
+              "phase": "nav_to_subjects"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 5010,
+              "processingEnd": 5010,
+              "phase": "nav_to_subjects"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 5010,
+              "processingEnd": 5010,
+              "phase": "nav_to_subjects"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 5010,
+              "processingEnd": 5010,
+              "phase": "nav_to_subjects"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 5010,
+              "processingEnd": 5010,
+              "phase": "nav_to_subjects"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 5010,
+              "processingEnd": 5010,
+              "phase": "nav_to_subjects"
+            }
+          ],
+          "maxFrameGapMs": 33.4,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 58.2,
+          "mutationsTotal": 82,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 1,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3008,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "open_subject_toc",
+          "actionToSecondFrameWallMs": 99,
+          "phase": "open_subject_toc",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 33.4,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 37,
+          "mutationsTotal": 67,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 2,
+          "lsSetMs": 0.1,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3659,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "open_chapter_workspace",
+          "actionToSecondFrameWallMs": 104.8,
+          "phase": "open_chapter_workspace",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 37,
+          "maxEventTimingMs": 48,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 32,
+              "processingStart": 5188,
+              "processingEnd": 5188,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 32,
+              "processingStart": 5188,
+              "processingEnd": 5188,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "pointerover",
+              "duration": 32,
+              "processingStart": 5188,
+              "processingEnd": 5188,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "mouseout",
+              "duration": 32,
+              "processingStart": 5188,
+              "processingEnd": 5188,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "mouseover",
+              "duration": 32,
+              "processingStart": 5188,
+              "processingEnd": 5188,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "pointerout",
+              "duration": 48,
+              "processingStart": 5275.4,
+              "processingEnd": 5275.4,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 48,
+              "processingStart": 5275.4,
+              "processingEnd": 5275.4,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "pointerover",
+              "duration": 48,
+              "processingStart": 5275.4,
+              "processingEnd": 5275.5,
+              "phase": "open_chapter_workspace"
+            }
+          ],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 6,
+          "mutationObserverBatches": 2,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 27,
+          "jsonParseMs": 0.1,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 5,
+          "idbTotalMs": 65.6,
+          "idbMaxOpMs": 13.2,
+          "domNodeCount": 3767,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "cw_search_typing",
+          "actionToSecondFrameWallMs": 145,
+          "focusPreserved": true,
+          "typedValueLen": 7,
+          "phase": "cw_search_typing",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 70,
+          "maxEventTimingMs": 40,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 40,
+              "processingStart": 5375.1,
+              "processingEnd": 5375.2,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 40,
+              "processingStart": 5375.2,
+              "processingEnd": 5375.2,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 40,
+              "processingStart": 5375.2,
+              "processingEnd": 5375.2,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 40,
+              "processingStart": 5375.2,
+              "processingEnd": 5375.2,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 40,
+              "processingStart": 5375.2,
+              "processingEnd": 5375.2,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 40,
+              "processingStart": 5375.2,
+              "processingEnd": 5375.2,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerover",
+              "duration": 40,
+              "processingStart": 5375.2,
+              "processingEnd": 5375.2,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 40,
+              "processingStart": 5375.2,
+              "processingEnd": 5375.2,
+              "phase": "cw_search_typing"
+            }
+          ],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 16.3,
+          "mutationsTotal": 7,
+          "mutationObserverBatches": 7,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3829,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "open_pdf_studio",
+          "actionToSecondFrameWallMs": 208.9,
+          "phase": "open_pdf_studio",
+          "longTaskCount": 1,
+          "maxLongTaskMs": 52,
+          "totalLongTaskMs": 52,
+          "longTasksSample": [
+            {
+              "duration": 52,
+              "startTime": 5778.9,
+              "phase": "open_pdf_studio"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 27,
+          "maxEventTimingMs": 56,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 56,
+              "processingStart": 5741.8,
+              "processingEnd": 5741.8,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 5741.8,
+              "processingEnd": 5741.8,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 5741.8,
+              "processingEnd": 5741.8,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 5741.8,
+              "processingEnd": 5741.8,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 5741.8,
+              "processingEnd": 5741.8,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerover",
+              "duration": 56,
+              "processingStart": 5741.8,
+              "processingEnd": 5741.8,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 5741.8,
+              "processingEnd": 5741.8,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 5741.8,
+              "processingEnd": 5741.8,
+              "phase": "open_pdf_studio"
+            }
+          ],
+          "maxFrameGapMs": 83.3,
+          "framesOver50": 1,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 60.5,
+          "mutationsTotal": 72,
+          "mutationObserverBatches": 5,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 18,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 5,
+          "idbTotalMs": 94,
+          "idbMaxOpMs": 31,
+          "domNodeCount": 4313,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "pdf_scroll_zoom_ink",
+          "actionToSecondFrameWallMs": 1015.5,
+          "phase": "pdf_scroll_zoom_ink",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 136,
+          "maxEventTimingMs": 80,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 80,
+              "processingStart": 5951.8,
+              "processingEnd": 5951.8,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 5951.8,
+              "processingEnd": 5951.8,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 5951.8,
+              "processingEnd": 5951.8,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 5951.8,
+              "processingEnd": 5951.8,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerover",
+              "duration": 80,
+              "processingStart": 5951.8,
+              "processingEnd": 5951.8,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 5951.8,
+              "processingEnd": 5951.8,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 5951.8,
+              "processingEnd": 5951.8,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 5951.8,
+              "processingEnd": 5951.8,
+              "phase": "pdf_scroll_zoom_ink"
+            }
+          ],
+          "maxFrameGapMs": 33.4,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 47.3,
+          "mutationsTotal": 22,
+          "mutationObserverBatches": 10,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 4313,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "close_pdf_studio",
+          "actionToSecondFrameWallMs": 112.4,
+          "phase": "close_pdf_studio",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 59,
+          "maxEventTimingMs": 56,
+          "eventTimingSample": [
+            {
+              "name": "pointerover",
+              "duration": 40,
+              "processingStart": 6824.8,
+              "processingEnd": 6824.8,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 40,
+              "processingStart": 6824.8,
+              "processingEnd": 6824.8,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 40,
+              "processingStart": 6824.8,
+              "processingEnd": 6824.8,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "mouseover",
+              "duration": 40,
+              "processingStart": 6824.8,
+              "processingEnd": 6824.8,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "pointerdown",
+              "duration": 40,
+              "processingStart": 6824.8,
+              "processingEnd": 6824.8,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "mousedown",
+              "duration": 40,
+              "processingStart": 6824.8,
+              "processingEnd": 6824.8,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "pointerup",
+              "duration": 32,
+              "processingStart": 6930.3,
+              "processingEnd": 6930.3,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "mouseup",
+              "duration": 32,
+              "processingStart": 6930.3,
+              "processingEnd": 6930.3,
+              "phase": "close_pdf_studio"
+            }
+          ],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 28.6,
+          "mutationsTotal": 24,
+          "mutationObserverBatches": 2,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 13,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 3,
+          "idbTotalMs": 79.5,
+          "idbMaxOpMs": 28.1,
+          "domNodeCount": 3849,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "nav_to_planner",
+          "actionToSecondFrameWallMs": 134.2,
+          "phase": "nav_to_planner",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 33.4,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 44.4,
+          "mutationsTotal": 31,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 4368,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "planner_week_tab",
+          "actionToSecondFrameWallMs": 159.2,
+          "phase": "planner_week_tab",
+          "longTaskCount": 1,
+          "maxLongTaskMs": 59,
+          "totalLongTaskMs": 59,
+          "longTasksSample": [
+            {
+              "duration": 59,
+              "startTime": 7411.8,
+              "phase": "planner_week_tab"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 21,
+          "maxEventTimingMs": 88,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 88,
+              "processingStart": 7275.4,
+              "processingEnd": 7275.5,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 88,
+              "processingStart": 7275.5,
+              "processingEnd": 7275.5,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 88,
+              "processingStart": 7275.5,
+              "processingEnd": 7275.5,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 88,
+              "processingStart": 7275.5,
+              "processingEnd": 7275.5,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 88,
+              "processingStart": 7275.5,
+              "processingEnd": 7275.5,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 88,
+              "processingStart": 7275.5,
+              "processingEnd": 7275.5,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 88,
+              "processingStart": 7275.5,
+              "processingEnd": 7275.5,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 88,
+              "processingStart": 7275.5,
+              "processingEnd": 7275.5,
+              "phase": "planner_week_tab"
+            }
+          ],
+          "maxFrameGapMs": 66.6,
+          "framesOver50": 1,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 79.5,
+          "mutationsTotal": 23,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 6131,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "planner_goals_tab",
+          "actionToSecondFrameWallMs": 228.6,
+          "phase": "planner_goals_tab",
+          "longTaskCount": 1,
+          "maxLongTaskMs": 102,
+          "totalLongTaskMs": 102,
+          "longTasksSample": [
+            {
+              "duration": 102,
+              "startTime": 7632.5,
+              "phase": "planner_goals_tab"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 22,
+          "maxEventTimingMs": 120,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 120,
+              "processingStart": 7412.4,
+              "processingEnd": 7412.4,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 120,
+              "processingStart": 7412.4,
+              "processingEnd": 7412.4,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 120,
+              "processingStart": 7412.4,
+              "processingEnd": 7412.4,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 120,
+              "processingStart": 7412.4,
+              "processingEnd": 7412.4,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 120,
+              "processingStart": 7412.4,
+              "processingEnd": 7412.4,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 120,
+              "processingStart": 7412.4,
+              "processingEnd": 7412.4,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerover",
+              "duration": 120,
+              "processingStart": 7412.4,
+              "processingEnd": 7412.4,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 120,
+              "processingStart": 7412.4,
+              "processingEnd": 7412.4,
+              "phase": "planner_goals_tab"
+            }
+          ],
+          "maxFrameGapMs": 116.8,
+          "framesOver50": 1,
+          "framesOver100": 1,
+          "framesOver500": 0,
+          "maxDriftMs": 102.3,
+          "mutationsTotal": 21,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 5331,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "nav_to_tracker",
+          "actionToSecondFrameWallMs": 121.5,
+          "phase": "nav_to_tracker",
+          "longTaskCount": 1,
+          "maxLongTaskMs": 51,
+          "totalLongTaskMs": 51,
+          "longTasksSample": [
+            {
+              "duration": 51,
+              "startTime": 7829.4,
+              "phase": "nav_to_tracker"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 13,
+          "maxEventTimingMs": 144,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 144,
+              "processingStart": 7630.3,
+              "processingEnd": 7630.3,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 144,
+              "processingStart": 7630.3,
+              "processingEnd": 7630.3,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 144,
+              "processingStart": 7630.3,
+              "processingEnd": 7630.3,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerover",
+              "duration": 144,
+              "processingStart": 7630.3,
+              "processingEnd": 7630.3,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 144,
+              "processingStart": 7630.3,
+              "processingEnd": 7630.3,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 144,
+              "processingStart": 7630.3,
+              "processingEnd": 7630.3,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "mouseout",
+              "duration": 144,
+              "processingStart": 7630.3,
+              "processingEnd": 7630.3,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "mouseover",
+              "duration": 144,
+              "processingStart": 7630.3,
+              "processingEnd": 7630.3,
+              "phase": "nav_to_tracker"
+            }
+          ],
+          "maxFrameGapMs": 50,
+          "framesOver50": 1,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 39.9,
+          "mutationsTotal": 41,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 4388,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "nav_to_dashboard",
+          "actionToSecondFrameWallMs": 92.6,
+          "phase": "nav_to_dashboard",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 22,
+          "maxEventTimingMs": 88,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 88,
+              "processingStart": 7830,
+              "processingEnd": 7830,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 88,
+              "processingStart": 7830,
+              "processingEnd": 7830,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 88,
+              "processingStart": 7830,
+              "processingEnd": 7830,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 88,
+              "processingStart": 7830,
+              "processingEnd": 7830,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 88,
+              "processingStart": 7830,
+              "processingEnd": 7830,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 88,
+              "processingStart": 7830,
+              "processingEnd": 7830,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 88,
+              "processingStart": 7830,
+              "processingEnd": 7830,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 88,
+              "processingStart": 7830,
+              "processingEnd": 7830,
+              "phase": "nav_to_dashboard"
+            }
+          ],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 25.6,
+          "mutationsTotal": 2,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 4149,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "open_help_modal",
+          "actionToSecondFrameWallMs": 199.2,
+          "phase": "open_help_modal",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 13,
+          "maxEventTimingMs": 48,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 48,
+              "processingStart": 7943.8,
+              "processingEnd": 7943.8,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 48,
+              "processingStart": 7943.8,
+              "processingEnd": 7943.8,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 48,
+              "processingStart": 7943.8,
+              "processingEnd": 7943.8,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerover",
+              "duration": 48,
+              "processingStart": 7943.8,
+              "processingEnd": 7943.8,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 48,
+              "processingStart": 7943.8,
+              "processingEnd": 7943.8,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 48,
+              "processingStart": 7943.8,
+              "processingEnd": 7943.8,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "mouseout",
+              "duration": 48,
+              "processingStart": 7943.8,
+              "processingEnd": 7943.9,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "mouseover",
+              "duration": 48,
+              "processingStart": 7943.9,
+              "processingEnd": 7943.9,
+              "phase": "open_help_modal"
+            }
+          ],
+          "maxFrameGapMs": 66.5,
+          "framesOver50": 1,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 67.5,
+          "mutationsTotal": 93,
+          "mutationObserverBatches": 4,
+          "lsSetCalls": 13,
+          "lsSetMs": 17,
+          "lsSetKB": 1593.5,
+          "jsonParseCalls": 14,
+          "jsonParseMs": 0.1,
+          "jsonStringifyCalls": 459,
+          "jsonStringifyMs": 12,
+          "idbOpsCount": 2,
+          "idbTotalMs": 113.4,
+          "idbMaxOpMs": 56.8,
+          "domNodeCount": 4179,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "lang_toggle_6x",
+          "actionToSecondFrameWallMs": 884.4,
+          "phase": "lang_toggle_6x",
+          "longTaskCount": 1,
+          "maxLongTaskMs": 114,
+          "totalLongTaskMs": 114,
+          "longTasksSample": [
+            {
+              "duration": 114,
+              "startTime": 8650.1,
+              "phase": "lang_toggle_6x"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 171,
+          "maxEventTimingMs": 192,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 192,
+              "processingStart": 8650,
+              "processingEnd": 8650,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 192,
+              "processingStart": 8650,
+              "processingEnd": 8650,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 192,
+              "processingStart": 8650,
+              "processingEnd": 8650,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 192,
+              "processingStart": 8650,
+              "processingEnd": 8650,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 192,
+              "processingStart": 8650,
+              "processingEnd": 8650,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 192,
+              "processingStart": 8650,
+              "processingEnd": 8650,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerover",
+              "duration": 192,
+              "processingStart": 8650,
+              "processingEnd": 8650,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 192,
+              "processingStart": 8650,
+              "processingEnd": 8650,
+              "phase": "lang_toggle_6x"
+            }
+          ],
+          "maxFrameGapMs": 100,
+          "framesOver50": 2,
+          "framesOver100": 1,
+          "framesOver500": 0,
+          "maxDriftMs": 115.3,
+          "mutationsTotal": 2082,
+          "mutationObserverBatches": 6,
+          "lsSetCalls": 6,
+          "lsSetMs": 0.4,
+          "lsSetKB": 0,
+          "jsonParseCalls": 18,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 4178,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "rapid_nav_20_cycles",
+          "actionToSecondFrameWallMs": 1661.1,
+          "phase": "rapid_nav_20_cycles",
+          "longTaskCount": 5,
+          "maxLongTaskMs": 91,
+          "totalLongTaskMs": 405,
+          "longTasksSample": [
+            {
+              "duration": 76,
+              "startTime": 9560.2,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "duration": 91,
+              "startTime": 9865.1,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "duration": 89,
+              "startTime": 10209.6,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "duration": 91,
+              "startTime": 10542.8,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "duration": 58,
+              "startTime": 10926.7,
+              "phase": "rapid_nav_20_cycles"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 250,
+          "maxEventTimingMs": 128,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 56,
+              "processingStart": 9507.6,
+              "processingEnd": 9507.7,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 9507.7,
+              "processingEnd": 9507.7,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 9507.7,
+              "processingEnd": 9507.7,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerover",
+              "duration": 56,
+              "processingStart": 9507.7,
+              "processingEnd": 9507.7,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 9507.7,
+              "processingEnd": 9507.7,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 9507.7,
+              "processingEnd": 9507.7,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 9507.7,
+              "processingEnd": 9507.7,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 9507.7,
+              "processingEnd": 9507.7,
+              "phase": "rapid_nav_20_cycles"
+            }
+          ],
+          "maxFrameGapMs": 83.4,
+          "framesOver50": 5,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 102.6,
+          "mutationsTotal": 618,
+          "mutationObserverBatches": 20,
+          "lsSetCalls": 5,
+          "lsSetMs": 0.4,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 4179,
+          "usedJSHeapMB": 9.54
+        }
+      ],
+      "leakCheck20Nav": {
+        "domBefore": 4178,
+        "domAfter": 4179,
+        "domDelta": 1,
+        "heapBeforeMB": 9.54,
+        "heapAfterMB": 9.54,
+        "heapDeltaMB": 0
+      },
+      "runtimeErrors": []
+    },
+    "tier900": {
+      "tier": "tier900",
+      "config": {
+        "subjectsCount": 10,
+        "chaptersPerSub": 9,
+        "lecsPerChap": 10,
+        "eventsCount": 210,
+        "logsCount": 320,
+        "goalsCount": 50,
+        "pdfPages": 40
+      },
+      "startupWallMs": 971,
+      "startup": {
+        "phase": "startup",
+        "longTaskCount": 1,
+        "maxLongTaskMs": 61,
+        "totalLongTaskMs": 61,
+        "longTasksSample": [
+          {
+            "duration": 61,
+            "startTime": 412,
+            "phase": "startup"
+          }
+        ],
+        "eventTimingSupported": true,
+        "eventTimingCount": 0,
+        "maxEventTimingMs": 0,
+        "eventTimingSample": [],
+        "maxFrameGapMs": 100.1,
+        "framesOver50": 2,
+        "framesOver100": 1,
+        "framesOver500": 0,
+        "maxDriftMs": 99,
+        "mutationsTotal": 0,
+        "mutationObserverBatches": 0,
+        "lsSetCalls": 2,
+        "lsSetMs": 0.1,
+        "lsSetKB": 0.2,
+        "jsonParseCalls": 39,
+        "jsonParseMs": 5.9,
+        "jsonStringifyCalls": 6,
+        "jsonStringifyMs": 0.9,
+        "idbOpsCount": 24,
+        "idbTotalMs": 201.9,
+        "idbMaxOpMs": 26.8,
+        "domNodeCount": 3124,
+        "usedJSHeapMB": 10.11
+      },
+      "steps": [
+        {
+          "step": "idle_4s_dashboard",
+          "actionToSecondFrameWallMs": 4000,
+          "phase": "idle_4s_dashboard",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 0,
+          "mutationObserverBatches": 0,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3124,
+          "usedJSHeapMB": 10.11
+        },
+        {
+          "step": "nav_to_subjects",
+          "actionToSecondFrameWallMs": 123.5,
+          "phase": "nav_to_subjects",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 33.4,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 21.5,
+          "mutationsTotal": 82,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 1,
+          "lsSetMs": 0.1,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3124,
+          "usedJSHeapMB": 10.11
+        },
+        {
+          "step": "open_subject_toc",
+          "actionToSecondFrameWallMs": 113.8,
+          "phase": "open_subject_toc",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 33.3,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 53.2,
+          "mutationsTotal": 67,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 2,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 5808,
+          "usedJSHeapMB": 10.11
+        },
+        {
+          "step": "open_chapter_workspace",
+          "actionToSecondFrameWallMs": 120,
+          "phase": "open_chapter_workspace",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 5,
+          "maxEventTimingMs": 32,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 32,
+              "processingStart": 5190.6,
+              "processingEnd": 5190.6,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 32,
+              "processingStart": 5190.6,
+              "processingEnd": 5190.6,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "pointerover",
+              "duration": 32,
+              "processingStart": 5190.6,
+              "processingEnd": 5190.6,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "mouseout",
+              "duration": 32,
+              "processingStart": 5190.6,
+              "processingEnd": 5190.6,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "mouseover",
+              "duration": 32,
+              "processingStart": 5190.6,
+              "processingEnd": 5190.7,
+              "phase": "open_chapter_workspace"
+            }
+          ],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 6,
+          "mutationObserverBatches": 2,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 52,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 10,
+          "idbTotalMs": 166.9,
+          "idbMaxOpMs": 16.9,
+          "domNodeCount": 5921,
+          "usedJSHeapMB": 10.11
+        },
+        {
+          "step": "cw_search_typing",
+          "actionToSecondFrameWallMs": 167,
+          "focusPreserved": true,
+          "typedValueLen": 7,
+          "phase": "cw_search_typing",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 70,
+          "maxEventTimingMs": 48,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 48,
+              "processingStart": 5407.5,
+              "processingEnd": 5407.5,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 48,
+              "processingStart": 5407.5,
+              "processingEnd": 5407.5,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 48,
+              "processingStart": 5407.5,
+              "processingEnd": 5407.5,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 48,
+              "processingStart": 5407.5,
+              "processingEnd": 5407.5,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 48,
+              "processingStart": 5407.6,
+              "processingEnd": 5407.6,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 48,
+              "processingStart": 5407.6,
+              "processingEnd": 5407.6,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerover",
+              "duration": 48,
+              "processingStart": 5407.6,
+              "processingEnd": 5407.6,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 48,
+              "processingStart": 5407.6,
+              "processingEnd": 5407.6,
+              "phase": "cw_search_typing"
+            }
+          ],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 7,
+          "mutationObserverBatches": 7,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 6078,
+          "usedJSHeapMB": 10.11
+        },
+        {
+          "step": "open_pdf_studio",
+          "actionToSecondFrameWallMs": 279.5,
+          "phase": "open_pdf_studio",
+          "longTaskCount": 1,
+          "maxLongTaskMs": 55,
+          "totalLongTaskMs": 55,
+          "longTasksSample": [
+            {
+              "duration": 55,
+              "startTime": 5878.9,
+              "phase": "open_pdf_studio"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 27,
+          "maxEventTimingMs": 72,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 72,
+              "processingStart": 5807.4,
+              "processingEnd": 5807.4,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 5807.4,
+              "processingEnd": 5807.4,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 5807.4,
+              "processingEnd": 5807.4,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 5807.4,
+              "processingEnd": 5807.4,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 5807.4,
+              "processingEnd": 5807.4,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerover",
+              "duration": 72,
+              "processingStart": 5807.4,
+              "processingEnd": 5807.4,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 72,
+              "processingStart": 5807.4,
+              "processingEnd": 5807.4,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 72,
+              "processingStart": 5807.4,
+              "processingEnd": 5807.4,
+              "phase": "open_pdf_studio"
+            }
+          ],
+          "maxFrameGapMs": 83.3,
+          "framesOver50": 1,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 74.3,
+          "mutationsTotal": 72,
+          "mutationObserverBatches": 5,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 18,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 5,
+          "idbTotalMs": 192,
+          "idbMaxOpMs": 58.4,
+          "domNodeCount": 6727,
+          "usedJSHeapMB": 10.11
+        },
+        {
+          "step": "pdf_scroll_zoom_ink",
+          "actionToSecondFrameWallMs": 1032.8,
+          "phase": "pdf_scroll_zoom_ink",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 142,
+          "maxEventTimingMs": 80,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 80,
+              "processingStart": 6084.5,
+              "processingEnd": 6084.5,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 6084.5,
+              "processingEnd": 6084.5,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 6084.5,
+              "processingEnd": 6084.5,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 6084.5,
+              "processingEnd": 6084.5,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerover",
+              "duration": 80,
+              "processingStart": 6084.5,
+              "processingEnd": 6084.5,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 6084.5,
+              "processingEnd": 6084.5,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 6084.5,
+              "processingEnd": 6084.5,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 6084.5,
+              "processingEnd": 6084.5,
+              "phase": "pdf_scroll_zoom_ink"
+            }
+          ],
+          "maxFrameGapMs": 33.4,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 69.3,
+          "mutationsTotal": 22,
+          "mutationObserverBatches": 10,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 6727,
+          "usedJSHeapMB": 10.11
+        },
+        {
+          "step": "close_pdf_studio",
+          "actionToSecondFrameWallMs": 112.2,
+          "phase": "close_pdf_studio",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 40.5,
+          "mutationsTotal": 24,
+          "mutationObserverBatches": 2,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 13,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 3,
+          "idbTotalMs": 85.6,
+          "idbMaxOpMs": 30.1,
+          "domNodeCount": 6113,
+          "usedJSHeapMB": 10.11
+        },
+        {
+          "step": "nav_to_planner",
+          "actionToSecondFrameWallMs": 148,
+          "phase": "nav_to_planner",
+          "longTaskCount": 1,
+          "maxLongTaskMs": 54,
+          "totalLongTaskMs": 54,
+          "longTasksSample": [
+            {
+              "duration": 54,
+              "startTime": 7424.3,
+              "phase": "nav_to_planner"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 21,
+          "maxEventTimingMs": 104,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 104,
+              "processingStart": 7424.1,
+              "processingEnd": 7424.2,
+              "phase": "nav_to_planner"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 104,
+              "processingStart": 7424.2,
+              "processingEnd": 7424.2,
+              "phase": "nav_to_planner"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 104,
+              "processingStart": 7424.2,
+              "processingEnd": 7424.2,
+              "phase": "nav_to_planner"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 104,
+              "processingStart": 7424.2,
+              "processingEnd": 7424.2,
+              "phase": "nav_to_planner"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 104,
+              "processingStart": 7424.2,
+              "processingEnd": 7424.2,
+              "phase": "nav_to_planner"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 104,
+              "processingStart": 7424.2,
+              "processingEnd": 7424.2,
+              "phase": "nav_to_planner"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 104,
+              "processingStart": 7424.2,
+              "processingEnd": 7424.2,
+              "phase": "nav_to_planner"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 104,
+              "processingStart": 7424.2,
+              "processingEnd": 7424.2,
+              "phase": "nav_to_planner"
+            }
+          ],
+          "maxFrameGapMs": 33.4,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 42.2,
+          "mutationsTotal": 32,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 4147,
+          "usedJSHeapMB": 10.11
+        },
+        {
+          "step": "planner_week_tab",
+          "actionToSecondFrameWallMs": 176.9,
+          "phase": "planner_week_tab",
+          "longTaskCount": 1,
+          "maxLongTaskMs": 60,
+          "totalLongTaskMs": 60,
+          "longTasksSample": [
+            {
+              "duration": 60,
+              "startTime": 7579.6,
+              "phase": "planner_week_tab"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 22,
+          "maxEventTimingMs": 120,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 120,
+              "processingStart": 7578.1,
+              "processingEnd": 7578.2,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 120,
+              "processingStart": 7578.2,
+              "processingEnd": 7578.2,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 120,
+              "processingStart": 7578.2,
+              "processingEnd": 7578.2,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 120,
+              "processingStart": 7578.2,
+              "processingEnd": 7578.2,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 120,
+              "processingStart": 7578.2,
+              "processingEnd": 7578.2,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 120,
+              "processingStart": 7578.2,
+              "processingEnd": 7578.2,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerover",
+              "duration": 120,
+              "processingStart": 7578.2,
+              "processingEnd": 7578.2,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 120,
+              "processingStart": 7578.2,
+              "processingEnd": 7578.2,
+              "phase": "planner_week_tab"
+            }
+          ],
+          "maxFrameGapMs": 66.7,
+          "framesOver50": 1,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 91.6,
+          "mutationsTotal": 23,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 6438,
+          "usedJSHeapMB": 10.11
+        },
+        {
+          "step": "planner_goals_tab",
+          "actionToSecondFrameWallMs": 211.4,
+          "phase": "planner_goals_tab",
+          "longTaskCount": 1,
+          "maxLongTaskMs": 99,
+          "totalLongTaskMs": 99,
+          "longTasksSample": [
+            {
+              "duration": 99,
+              "startTime": 7796.6,
+              "phase": "planner_goals_tab"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 116.7,
+          "framesOver50": 1,
+          "framesOver100": 1,
+          "framesOver500": 0,
+          "maxDriftMs": 104.3,
+          "mutationsTotal": 21,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 4921,
+          "usedJSHeapMB": 10.11
+        },
+        {
+          "step": "nav_to_tracker",
+          "actionToSecondFrameWallMs": 138.9,
+          "phase": "nav_to_tracker",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 13,
+          "maxEventTimingMs": 144,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 144,
+              "processingStart": 7795.2,
+              "processingEnd": 7795.2,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 144,
+              "processingStart": 7795.2,
+              "processingEnd": 7795.2,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 144,
+              "processingStart": 7795.2,
+              "processingEnd": 7795.2,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerover",
+              "duration": 144,
+              "processingStart": 7795.2,
+              "processingEnd": 7795.2,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 144,
+              "processingStart": 7795.2,
+              "processingEnd": 7795.2,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 144,
+              "processingStart": 7795.2,
+              "processingEnd": 7795.2,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "mouseout",
+              "duration": 144,
+              "processingStart": 7795.2,
+              "processingEnd": 7795.2,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "mouseover",
+              "duration": 144,
+              "processingStart": 7795.2,
+              "processingEnd": 7795.2,
+              "phase": "nav_to_tracker"
+            }
+          ],
+          "maxFrameGapMs": 33.3,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 49.3,
+          "mutationsTotal": 41,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 4039,
+          "usedJSHeapMB": 10.11
+        },
+        {
+          "step": "nav_to_dashboard",
+          "actionToSecondFrameWallMs": 94.8,
+          "phase": "nav_to_dashboard",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 22,
+          "maxEventTimingMs": 80,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 80,
+              "processingStart": 7995.5,
+              "processingEnd": 7995.6,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 7995.6,
+              "processingEnd": 7995.6,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 7995.6,
+              "processingEnd": 7995.6,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 7995.6,
+              "processingEnd": 7995.6,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 7995.6,
+              "processingEnd": 7995.6,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 7995.6,
+              "processingEnd": 7995.6,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 7995.6,
+              "processingEnd": 7995.6,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 7995.6,
+              "processingEnd": 7995.6,
+              "phase": "nav_to_dashboard"
+            }
+          ],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 2,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3736,
+          "usedJSHeapMB": 10.11
+        },
+        {
+          "step": "open_help_modal",
+          "actionToSecondFrameWallMs": 268.7,
+          "phase": "open_help_modal",
+          "longTaskCount": 1,
+          "maxLongTaskMs": 57,
+          "totalLongTaskMs": 57,
+          "longTasksSample": [
+            {
+              "duration": 57,
+              "startTime": 8205.5,
+              "phase": "open_help_modal"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 25,
+          "maxEventTimingMs": 80,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 80,
+              "processingStart": 8302.6,
+              "processingEnd": 8302.6,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 8302.6,
+              "processingEnd": 8302.6,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 8302.6,
+              "processingEnd": 8302.6,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 80,
+              "processingStart": 8302.6,
+              "processingEnd": 8302.6,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerover",
+              "duration": 80,
+              "processingStart": 8302.6,
+              "processingEnd": 8302.6,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 8302.6,
+              "processingEnd": 8302.6,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 8302.6,
+              "processingEnd": 8302.6,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 80,
+              "processingStart": 8302.6,
+              "processingEnd": 8302.6,
+              "phase": "open_help_modal"
+            }
+          ],
+          "maxFrameGapMs": 50,
+          "framesOver50": 2,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 51.7,
+          "mutationsTotal": 97,
+          "mutationObserverBatches": 5,
+          "lsSetCalls": 13,
+          "lsSetMs": 28.9,
+          "lsSetKB": 2164.1,
+          "jsonParseCalls": 17,
+          "jsonParseMs": 0.2,
+          "jsonStringifyCalls": 618,
+          "jsonStringifyMs": 16.5,
+          "idbOpsCount": 4,
+          "idbTotalMs": 159.2,
+          "idbMaxOpMs": 44.1,
+          "domNodeCount": 3766,
+          "usedJSHeapMB": 10.11
+        },
+        {
+          "step": "lang_toggle_6x",
+          "actionToSecondFrameWallMs": 977.7,
+          "phase": "lang_toggle_6x",
+          "longTaskCount": 5,
+          "maxLongTaskMs": 117,
+          "totalLongTaskMs": 350,
+          "longTasksSample": [
+            {
+              "duration": 117,
+              "startTime": 8824.3,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "duration": 66,
+              "startTime": 9041.3,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "duration": 61,
+              "startTime": 9207.3,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "duration": 56,
+              "startTime": 9342.3,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "duration": 50,
+              "startTime": 9496.7,
+              "phase": "lang_toggle_6x"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 171,
+          "maxEventTimingMs": 192,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 192,
+              "processingStart": 8824.1,
+              "processingEnd": 8824.1,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 192,
+              "processingStart": 8824.1,
+              "processingEnd": 8824.1,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 192,
+              "processingStart": 8824.1,
+              "processingEnd": 8824.1,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 192,
+              "processingStart": 8824.1,
+              "processingEnd": 8824.1,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 192,
+              "processingStart": 8824.1,
+              "processingEnd": 8824.1,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 192,
+              "processingStart": 8824.1,
+              "processingEnd": 8824.1,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerover",
+              "duration": 192,
+              "processingStart": 8824.1,
+              "processingEnd": 8824.1,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 192,
+              "processingStart": 8824.1,
+              "processingEnd": 8824.1,
+              "phase": "lang_toggle_6x"
+            }
+          ],
+          "maxFrameGapMs": 116.6,
+          "framesOver50": 6,
+          "framesOver100": 1,
+          "framesOver500": 0,
+          "maxDriftMs": 114.3,
+          "mutationsTotal": 2082,
+          "mutationObserverBatches": 6,
+          "lsSetCalls": 6,
+          "lsSetMs": 0.3,
+          "lsSetKB": 0,
+          "jsonParseCalls": 18,
+          "jsonParseMs": 0.1,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3765,
+          "usedJSHeapMB": 10.11
+        },
+        {
+          "step": "rapid_nav_20_cycles",
+          "actionToSecondFrameWallMs": 1544.4,
+          "phase": "rapid_nav_20_cycles",
+          "longTaskCount": 5,
+          "maxLongTaskMs": 92,
+          "totalLongTaskMs": 391,
+          "longTasksSample": [
+            {
+              "duration": 70,
+              "startTime": 9830.2,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "duration": 75,
+              "startTime": 10108.5,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "duration": 76,
+              "startTime": 10409.4,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "duration": 78,
+              "startTime": 10709.7,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "duration": 92,
+              "startTime": 11025.7,
+              "phase": "rapid_nav_20_cycles"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 250,
+          "maxEventTimingMs": 128,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 56,
+              "processingStart": 9773.9,
+              "processingEnd": 9774,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 9774,
+              "processingEnd": 9774,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 9774,
+              "processingEnd": 9774,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerover",
+              "duration": 56,
+              "processingStart": 9774,
+              "processingEnd": 9774,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 9774,
+              "processingEnd": 9774,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 9774,
+              "processingEnd": 9774,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 9774,
+              "processingEnd": 9774,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 9774,
+              "processingEnd": 9774,
+              "phase": "rapid_nav_20_cycles"
+            }
+          ],
+          "maxFrameGapMs": 83.3,
+          "framesOver50": 5,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 85.8,
+          "mutationsTotal": 618,
+          "mutationObserverBatches": 20,
+          "lsSetCalls": 5,
+          "lsSetMs": 0.2,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3766,
+          "usedJSHeapMB": 10.11
+        }
+      ],
+      "leakCheck20Nav": {
+        "domBefore": 3765,
+        "domAfter": 3766,
+        "domDelta": 1,
+        "heapBeforeMB": 10.11,
+        "heapAfterMB": 10.11,
+        "heapDeltaMB": 0
+      },
+      "runtimeErrors": []
+    },
+    "stress": {
+      "tier": "stress",
+      "config": {
+        "subjectsCount": 10,
+        "chaptersPerSub": 9,
+        "lecsPerChap": 10,
+        "eventsCount": 480,
+        "logsCount": 1000,
+        "goalsCount": 90,
+        "pdfPages": 120
+      },
+      "startupWallMs": 884,
+      "startup": {
+        "phase": "startup",
+        "longTaskCount": 2,
+        "maxLongTaskMs": 87,
+        "totalLongTaskMs": 154,
+        "longTasksSample": [
+          {
+            "duration": 67,
+            "startTime": 113.5,
+            "phase": "startup"
+          },
+          {
+            "duration": 87,
+            "startTime": 323.8,
+            "phase": "startup"
+          }
+        ],
+        "eventTimingSupported": true,
+        "eventTimingCount": 0,
+        "maxEventTimingMs": 0,
+        "eventTimingSample": [],
+        "maxFrameGapMs": 83.4,
+        "framesOver50": 3,
+        "framesOver100": 0,
+        "framesOver500": 0,
+        "maxDriftMs": 116.5,
+        "mutationsTotal": 6,
+        "mutationObserverBatches": 1,
+        "lsSetCalls": 2,
+        "lsSetMs": 0,
+        "lsSetKB": 0.2,
+        "jsonParseCalls": 40,
+        "jsonParseMs": 7.2,
+        "jsonStringifyCalls": 6,
+        "jsonStringifyMs": 1.2,
+        "idbOpsCount": 26,
+        "idbTotalMs": 348.3,
+        "idbMaxOpMs": 103.8,
+        "domNodeCount": 3579,
+        "usedJSHeapMB": 9.54
+      },
+      "steps": [
+        {
+          "step": "idle_4s_dashboard",
+          "actionToSecondFrameWallMs": 4000,
+          "phase": "idle_4s_dashboard",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 0,
+          "mutationObserverBatches": 0,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3579,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "nav_to_subjects",
+          "actionToSecondFrameWallMs": 140.3,
+          "phase": "nav_to_subjects",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 15,
+          "maxEventTimingMs": 88,
+          "eventTimingSample": [
+            {
+              "name": "pointerover",
+              "duration": 88,
+              "processingStart": 4937.6,
+              "processingEnd": 4937.6,
+              "phase": "nav_to_subjects"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 88,
+              "processingStart": 4937.6,
+              "processingEnd": 4937.6,
+              "phase": "nav_to_subjects"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 88,
+              "processingStart": 4937.6,
+              "processingEnd": 4937.6,
+              "phase": "nav_to_subjects"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 88,
+              "processingStart": 4937.7,
+              "processingEnd": 4937.7,
+              "phase": "nav_to_subjects"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 88,
+              "processingStart": 4937.7,
+              "processingEnd": 4937.7,
+              "phase": "nav_to_subjects"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 88,
+              "processingStart": 4937.8,
+              "processingEnd": 4937.8,
+              "phase": "nav_to_subjects"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 88,
+              "processingStart": 4937.8,
+              "processingEnd": 4937.8,
+              "phase": "nav_to_subjects"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 88,
+              "processingStart": 4937.8,
+              "processingEnd": 4937.8,
+              "phase": "nav_to_subjects"
+            }
+          ],
+          "maxFrameGapMs": 33.4,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 71.2,
+          "mutationsTotal": 82,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 1,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 3579,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "open_subject_toc",
+          "actionToSecondFrameWallMs": 111,
+          "phase": "open_subject_toc",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 33.2,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 34.1,
+          "mutationsTotal": 67,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 2,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 6263,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "open_chapter_workspace",
+          "actionToSecondFrameWallMs": 122.3,
+          "phase": "open_chapter_workspace",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 37,
+          "maxEventTimingMs": 48,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 40,
+              "processingStart": 5117.6,
+              "processingEnd": 5117.6,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 40,
+              "processingStart": 5117.6,
+              "processingEnd": 5117.6,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "pointerover",
+              "duration": 40,
+              "processingStart": 5117.6,
+              "processingEnd": 5117.6,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "mouseout",
+              "duration": 40,
+              "processingStart": 5117.6,
+              "processingEnd": 5117.6,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "mouseover",
+              "duration": 40,
+              "processingStart": 5117.6,
+              "processingEnd": 5117.6,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "pointerout",
+              "duration": 48,
+              "processingStart": 5236.6,
+              "processingEnd": 5236.6,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 48,
+              "processingStart": 5236.6,
+              "processingEnd": 5236.6,
+              "phase": "open_chapter_workspace"
+            },
+            {
+              "name": "pointerover",
+              "duration": 48,
+              "processingStart": 5236.6,
+              "processingEnd": 5236.6,
+              "phase": "open_chapter_workspace"
+            }
+          ],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 6,
+          "mutationObserverBatches": 2,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 52,
+          "jsonParseMs": 0.1,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 10,
+          "idbTotalMs": 154.3,
+          "idbMaxOpMs": 15.5,
+          "domNodeCount": 6376,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "cw_search_typing",
+          "actionToSecondFrameWallMs": 160,
+          "focusPreserved": true,
+          "typedValueLen": 7,
+          "phase": "cw_search_typing",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 70,
+          "maxEventTimingMs": 40,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 40,
+              "processingStart": 5337,
+              "processingEnd": 5337,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 40,
+              "processingStart": 5337,
+              "processingEnd": 5337,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 40,
+              "processingStart": 5337,
+              "processingEnd": 5337,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 40,
+              "processingStart": 5337,
+              "processingEnd": 5337,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 40,
+              "processingStart": 5337,
+              "processingEnd": 5337,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 40,
+              "processingStart": 5337,
+              "processingEnd": 5337,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerover",
+              "duration": 40,
+              "processingStart": 5337.1,
+              "processingEnd": 5337.1,
+              "phase": "cw_search_typing"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 40,
+              "processingStart": 5337.1,
+              "processingEnd": 5337.1,
+              "phase": "cw_search_typing"
+            }
+          ],
+          "maxFrameGapMs": 0,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 0,
+          "mutationsTotal": 7,
+          "mutationObserverBatches": 7,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 6533,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "open_pdf_studio",
+          "actionToSecondFrameWallMs": 327.4,
+          "phase": "open_pdf_studio",
+          "longTaskCount": 1,
+          "maxLongTaskMs": 85,
+          "totalLongTaskMs": 85,
+          "longTasksSample": [
+            {
+              "duration": 85,
+              "startTime": 5780.6,
+              "phase": "open_pdf_studio"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 27,
+          "maxEventTimingMs": 64,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 64,
+              "processingStart": 5720.4,
+              "processingEnd": 5720.4,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 64,
+              "processingStart": 5720.4,
+              "processingEnd": 5720.4,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 64,
+              "processingStart": 5720.4,
+              "processingEnd": 5720.4,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 64,
+              "processingStart": 5720.5,
+              "processingEnd": 5720.5,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 64,
+              "processingStart": 5720.5,
+              "processingEnd": 5720.5,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerover",
+              "duration": 64,
+              "processingStart": 5720.5,
+              "processingEnd": 5720.5,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 64,
+              "processingStart": 5720.5,
+              "processingEnd": 5720.5,
+              "phase": "open_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 64,
+              "processingStart": 5720.5,
+              "processingEnd": 5720.5,
+              "phase": "open_pdf_studio"
+            }
+          ],
+          "maxFrameGapMs": 116.7,
+          "framesOver50": 1,
+          "framesOver100": 1,
+          "framesOver500": 0,
+          "maxDriftMs": 127.1,
+          "mutationsTotal": 72,
+          "mutationObserverBatches": 5,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 18,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 5,
+          "idbTotalMs": 118.1,
+          "idbMaxOpMs": 40.2,
+          "domNodeCount": 8382,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "pdf_scroll_zoom_ink",
+          "actionToSecondFrameWallMs": 1011.2,
+          "phase": "pdf_scroll_zoom_ink",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 136,
+          "maxEventTimingMs": 64,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 64,
+              "processingStart": 6050.4,
+              "processingEnd": 6050.5,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 64,
+              "processingStart": 6050.5,
+              "processingEnd": 6050.5,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 64,
+              "processingStart": 6050.5,
+              "processingEnd": 6050.5,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 64,
+              "processingStart": 6050.5,
+              "processingEnd": 6050.5,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerover",
+              "duration": 64,
+              "processingStart": 6050.5,
+              "processingEnd": 6050.5,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 64,
+              "processingStart": 6050.5,
+              "processingEnd": 6050.5,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 64,
+              "processingStart": 6050.5,
+              "processingEnd": 6050.5,
+              "phase": "pdf_scroll_zoom_ink"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 64,
+              "processingStart": 6050.5,
+              "processingEnd": 6050.5,
+              "phase": "pdf_scroll_zoom_ink"
+            }
+          ],
+          "maxFrameGapMs": 33.4,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 86.1,
+          "mutationsTotal": 22,
+          "mutationObserverBatches": 10,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 8382,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "close_pdf_studio",
+          "actionToSecondFrameWallMs": 148.1,
+          "phase": "close_pdf_studio",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 62,
+          "maxEventTimingMs": 80,
+          "eventTimingSample": [
+            {
+              "name": "pointerover",
+              "duration": 40,
+              "processingStart": 6906.5,
+              "processingEnd": 6906.5,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 40,
+              "processingStart": 6906.5,
+              "processingEnd": 6906.5,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 40,
+              "processingStart": 6906.5,
+              "processingEnd": 6906.5,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "mouseover",
+              "duration": 40,
+              "processingStart": 6906.5,
+              "processingEnd": 6906.5,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "pointerdown",
+              "duration": 40,
+              "processingStart": 6906.5,
+              "processingEnd": 6906.6,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "mousedown",
+              "duration": 40,
+              "processingStart": 6906.6,
+              "processingEnd": 6906.6,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "pointerup",
+              "duration": 32,
+              "processingStart": 7024.1,
+              "processingEnd": 7024.1,
+              "phase": "close_pdf_studio"
+            },
+            {
+              "name": "mouseup",
+              "duration": 32,
+              "processingStart": 7024.1,
+              "processingEnd": 7024.2,
+              "phase": "close_pdf_studio"
+            }
+          ],
+          "maxFrameGapMs": 33.3,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 55.1,
+          "mutationsTotal": 24,
+          "mutationObserverBatches": 2,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 13,
+          "jsonParseMs": 0.1,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 3,
+          "idbTotalMs": 93.2,
+          "idbMaxOpMs": 32.8,
+          "domNodeCount": 6568,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "nav_to_planner",
+          "actionToSecondFrameWallMs": 144.8,
+          "phase": "nav_to_planner",
+          "longTaskCount": 1,
+          "maxLongTaskMs": 73,
+          "totalLongTaskMs": 73,
+          "longTasksSample": [
+            {
+              "duration": 73,
+              "startTime": 7403.7,
+              "phase": "nav_to_planner"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 0,
+          "maxEventTimingMs": 0,
+          "eventTimingSample": [],
+          "maxFrameGapMs": 66.7,
+          "framesOver50": 1,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 83,
+          "mutationsTotal": 32,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 5325,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "planner_week_tab",
+          "actionToSecondFrameWallMs": 214.1,
+          "phase": "planner_week_tab",
+          "longTaskCount": 1,
+          "maxLongTaskMs": 105,
+          "totalLongTaskMs": 105,
+          "longTasksSample": [
+            {
+              "duration": 105,
+              "startTime": 7557.6,
+              "phase": "planner_week_tab"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 21,
+          "maxEventTimingMs": 120,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 120,
+              "processingStart": 7403.6,
+              "processingEnd": 7403.6,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 120,
+              "processingStart": 7403.6,
+              "processingEnd": 7403.6,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 120,
+              "processingStart": 7403.6,
+              "processingEnd": 7403.6,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 120,
+              "processingStart": 7403.6,
+              "processingEnd": 7403.6,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 120,
+              "processingStart": 7403.6,
+              "processingEnd": 7403.6,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 120,
+              "processingStart": 7403.6,
+              "processingEnd": 7403.6,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 120,
+              "processingStart": 7403.6,
+              "processingEnd": 7403.6,
+              "phase": "planner_week_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 120,
+              "processingStart": 7403.6,
+              "processingEnd": 7403.6,
+              "phase": "planner_week_tab"
+            }
+          ],
+          "maxFrameGapMs": 133.3,
+          "framesOver50": 1,
+          "framesOver100": 1,
+          "framesOver500": 0,
+          "maxDriftMs": 139.6,
+          "mutationsTotal": 23,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 9653,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "planner_goals_tab",
+          "actionToSecondFrameWallMs": 199.5,
+          "phase": "planner_goals_tab",
+          "longTaskCount": 1,
+          "maxLongTaskMs": 106,
+          "totalLongTaskMs": 106,
+          "longTasksSample": [
+            {
+              "duration": 106,
+              "startTime": 7791.2,
+              "phase": "planner_goals_tab"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 22,
+          "maxEventTimingMs": 184,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 184,
+              "processingStart": 7558.1,
+              "processingEnd": 7558.1,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 184,
+              "processingStart": 7558.1,
+              "processingEnd": 7558.1,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 184,
+              "processingStart": 7558.1,
+              "processingEnd": 7558.1,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 184,
+              "processingStart": 7558.1,
+              "processingEnd": 7558.1,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 184,
+              "processingStart": 7558.1,
+              "processingEnd": 7558.1,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 184,
+              "processingStart": 7558.1,
+              "processingEnd": 7558.1,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerover",
+              "duration": 184,
+              "processingStart": 7558.1,
+              "processingEnd": 7558.1,
+              "phase": "planner_goals_tab"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 184,
+              "processingStart": 7558.1,
+              "processingEnd": 7558.1,
+              "phase": "planner_goals_tab"
+            }
+          ],
+          "maxFrameGapMs": 116.6,
+          "framesOver50": 1,
+          "framesOver100": 1,
+          "framesOver500": 0,
+          "maxDriftMs": 102.4,
+          "mutationsTotal": 21,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 5376,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "nav_to_tracker",
+          "actionToSecondFrameWallMs": 139.5,
+          "phase": "nav_to_tracker",
+          "longTaskCount": 1,
+          "maxLongTaskMs": 60,
+          "totalLongTaskMs": 60,
+          "longTasksSample": [
+            {
+              "duration": 60,
+              "startTime": 7990.7,
+              "phase": "nav_to_tracker"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 13,
+          "maxEventTimingMs": 144,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 144,
+              "processingStart": 7791.9,
+              "processingEnd": 7791.9,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 144,
+              "processingStart": 7791.9,
+              "processingEnd": 7791.9,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 144,
+              "processingStart": 7791.9,
+              "processingEnd": 7791.9,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerover",
+              "duration": 144,
+              "processingStart": 7791.9,
+              "processingEnd": 7791.9,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 144,
+              "processingStart": 7791.9,
+              "processingEnd": 7791.9,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 144,
+              "processingStart": 7791.9,
+              "processingEnd": 7791.9,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "mouseout",
+              "duration": 144,
+              "processingStart": 7791.9,
+              "processingEnd": 7791.9,
+              "phase": "nav_to_tracker"
+            },
+            {
+              "name": "mouseover",
+              "duration": 144,
+              "processingStart": 7791.9,
+              "processingEnd": 7791.9,
+              "phase": "nav_to_tracker"
+            }
+          ],
+          "maxFrameGapMs": 50,
+          "framesOver50": 1,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 54.5,
+          "mutationsTotal": 41,
+          "mutationObserverBatches": 1,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 4830,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "nav_to_dashboard",
+          "actionToSecondFrameWallMs": 439.9,
+          "phase": "nav_to_dashboard",
+          "longTaskCount": 2,
+          "maxLongTaskMs": 157,
+          "totalLongTaskMs": 226,
+          "longTasksSample": [
+            {
+              "duration": 157,
+              "startTime": 8178.3,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "duration": 69,
+              "startTime": 8399.2,
+              "phase": "nav_to_dashboard"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 35,
+          "maxEventTimingMs": 96,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 96,
+              "processingStart": 7991.4,
+              "processingEnd": 7991.5,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 96,
+              "processingStart": 7991.5,
+              "processingEnd": 7991.5,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 96,
+              "processingStart": 7991.5,
+              "processingEnd": 7991.5,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 96,
+              "processingStart": 7991.5,
+              "processingEnd": 7991.5,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 96,
+              "processingStart": 7991.5,
+              "processingEnd": 7991.5,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 96,
+              "processingStart": 7991.5,
+              "processingEnd": 7991.5,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 96,
+              "processingStart": 7991.5,
+              "processingEnd": 7991.5,
+              "phase": "nav_to_dashboard"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 96,
+              "processingStart": 7991.5,
+              "processingEnd": 7991.5,
+              "phase": "nav_to_dashboard"
+            }
+          ],
+          "maxFrameGapMs": 166.7,
+          "framesOver50": 2,
+          "framesOver100": 1,
+          "framesOver500": 0,
+          "maxDriftMs": 161.7,
+          "mutationsTotal": 23,
+          "mutationObserverBatches": 4,
+          "lsSetCalls": 13,
+          "lsSetMs": 79.8,
+          "lsSetKB": 6007.9,
+          "jsonParseCalls": 14,
+          "jsonParseMs": 0.6,
+          "jsonStringifyCalls": 1650,
+          "jsonStringifyMs": 47.5,
+          "idbOpsCount": 1,
+          "idbTotalMs": 215,
+          "idbMaxOpMs": 215,
+          "domNodeCount": 4191,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "open_help_modal",
+          "actionToSecondFrameWallMs": 114.2,
+          "phase": "open_help_modal",
+          "longTaskCount": 0,
+          "maxLongTaskMs": 0,
+          "totalLongTaskMs": 0,
+          "longTasksSample": [],
+          "eventTimingSupported": true,
+          "eventTimingCount": 25,
+          "maxEventTimingMs": 72,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 72,
+              "processingStart": 8570.2,
+              "processingEnd": 8570.2,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 8570.2,
+              "processingEnd": 8570.2,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 8570.2,
+              "processingEnd": 8570.2,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 72,
+              "processingStart": 8570.2,
+              "processingEnd": 8570.2,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerover",
+              "duration": 72,
+              "processingStart": 8570.2,
+              "processingEnd": 8570.2,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 72,
+              "processingStart": 8570.2,
+              "processingEnd": 8570.2,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 72,
+              "processingStart": 8570.2,
+              "processingEnd": 8570.2,
+              "phase": "open_help_modal"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 72,
+              "processingStart": 8570.2,
+              "processingEnd": 8570.2,
+              "phase": "open_help_modal"
+            }
+          ],
+          "maxFrameGapMs": 33.2,
+          "framesOver50": 0,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 22.8,
+          "mutationsTotal": 76,
+          "mutationObserverBatches": 2,
+          "lsSetCalls": 0,
+          "lsSetMs": 0,
+          "lsSetKB": 0,
+          "jsonParseCalls": 3,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 2,
+          "idbTotalMs": 171.8,
+          "idbMaxOpMs": 91.1,
+          "domNodeCount": 4221,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "lang_toggle_6x",
+          "actionToSecondFrameWallMs": 1086.7,
+          "phase": "lang_toggle_6x",
+          "longTaskCount": 6,
+          "maxLongTaskMs": 133,
+          "totalLongTaskMs": 477,
+          "longTasksSample": [
+            {
+              "duration": 133,
+              "startTime": 9109.3,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "duration": 74,
+              "startTime": 9339,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "duration": 73,
+              "startTime": 9503.4,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "duration": 67,
+              "startTime": 9653.3,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "duration": 74,
+              "startTime": 9802.5,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "duration": 56,
+              "startTime": 9992.5,
+              "phase": "lang_toggle_6x"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 171,
+          "maxEventTimingMs": 216,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 216,
+              "processingStart": 9109.1,
+              "processingEnd": 9109.1,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 216,
+              "processingStart": 9109.1,
+              "processingEnd": 9109.1,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 216,
+              "processingStart": 9109.1,
+              "processingEnd": 9109.1,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 216,
+              "processingStart": 9109.1,
+              "processingEnd": 9109.1,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 216,
+              "processingStart": 9109.1,
+              "processingEnd": 9109.1,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 216,
+              "processingStart": 9109.1,
+              "processingEnd": 9109.1,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerover",
+              "duration": 216,
+              "processingStart": 9109.1,
+              "processingEnd": 9109.2,
+              "phase": "lang_toggle_6x"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 216,
+              "processingStart": 9109.2,
+              "processingEnd": 9109.2,
+              "phase": "lang_toggle_6x"
+            }
+          ],
+          "maxFrameGapMs": 133.3,
+          "framesOver50": 6,
+          "framesOver100": 1,
+          "framesOver500": 0,
+          "maxDriftMs": 135.5,
+          "mutationsTotal": 2082,
+          "mutationObserverBatches": 6,
+          "lsSetCalls": 6,
+          "lsSetMs": 0.6,
+          "lsSetKB": 0,
+          "jsonParseCalls": 18,
+          "jsonParseMs": 0.1,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 4220,
+          "usedJSHeapMB": 9.54
+        },
+        {
+          "step": "rapid_nav_20_cycles",
+          "actionToSecondFrameWallMs": 1627.9,
+          "phase": "rapid_nav_20_cycles",
+          "longTaskCount": 5,
+          "maxLongTaskMs": 80,
+          "totalLongTaskMs": 382,
+          "longTasksSample": [
+            {
+              "duration": 69,
+              "startTime": 10221.6,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "duration": 76,
+              "startTime": 10539.6,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "duration": 78,
+              "startTime": 10855.3,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "duration": 80,
+              "startTime": 11175.5,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "duration": 79,
+              "startTime": 11520.9,
+              "phase": "rapid_nav_20_cycles"
+            }
+          ],
+          "eventTimingSupported": true,
+          "eventTimingCount": 250,
+          "maxEventTimingMs": 112,
+          "eventTimingSample": [
+            {
+              "name": "pointerout",
+              "duration": 56,
+              "processingStart": 10169.9,
+              "processingEnd": 10169.9,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 10169.9,
+              "processingEnd": 10169.9,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerleave",
+              "duration": 56,
+              "processingStart": 10169.9,
+              "processingEnd": 10169.9,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerover",
+              "duration": 56,
+              "processingStart": 10169.9,
+              "processingEnd": 10169.9,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 10169.9,
+              "processingEnd": 10169.9,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 10169.9,
+              "processingEnd": 10169.9,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 10169.9,
+              "processingEnd": 10169.9,
+              "phase": "rapid_nav_20_cycles"
+            },
+            {
+              "name": "pointerenter",
+              "duration": 56,
+              "processingStart": 10169.9,
+              "processingEnd": 10169.9,
+              "phase": "rapid_nav_20_cycles"
+            }
+          ],
+          "maxFrameGapMs": 66.7,
+          "framesOver50": 5,
+          "framesOver100": 0,
+          "framesOver500": 0,
+          "maxDriftMs": 97.5,
+          "mutationsTotal": 618,
+          "mutationObserverBatches": 20,
+          "lsSetCalls": 5,
+          "lsSetMs": 0.2,
+          "lsSetKB": 0,
+          "jsonParseCalls": 0,
+          "jsonParseMs": 0,
+          "jsonStringifyCalls": 0,
+          "jsonStringifyMs": 0,
+          "idbOpsCount": 0,
+          "idbTotalMs": 0,
+          "idbMaxOpMs": 0,
+          "domNodeCount": 4221,
+          "usedJSHeapMB": 9.54
+        }
+      ],
+      "leakCheck20Nav": {
+        "domBefore": 4220,
+        "domAfter": 4221,
+        "domDelta": 1,
+        "heapBeforeMB": 9.54,
+        "heapAfterMB": 9.54,
+        "heapDeltaMB": 0
+      },
+      "runtimeErrors": []
+    }
+  },
+  "nearFullQuota": {
+    "filledKeys": 18,
+    "wallMs": 24.6,
+    "savePersisted": false,
+    "snap": {
+      "phase": "near_full_quota_save",
+      "longTaskCount": 0,
+      "maxLongTaskMs": 0,
+      "totalLongTaskMs": 0,
+      "longTasksSample": [],
+      "eventTimingSupported": true,
+      "eventTimingCount": 0,
+      "maxEventTimingMs": 0,
+      "eventTimingSample": [],
+      "maxFrameGapMs": 33.3,
+      "framesOver50": 0,
+      "framesOver100": 0,
+      "framesOver500": 0,
+      "maxDriftMs": 0,
+      "mutationsTotal": 13,
+      "mutationObserverBatches": 1,
+      "lsSetCalls": 5,
+      "lsSetMs": 2.6,
+      "lsSetKB": 1284.8,
+      "jsonParseCalls": 5,
+      "jsonParseMs": 0,
+      "jsonStringifyCalls": 48,
+      "jsonStringifyMs": 7.6,
+      "idbOpsCount": 6,
+      "idbTotalMs": 24.2,
+      "idbMaxOpMs": 10.8,
+      "domNodeCount": 2441,
+      "usedJSHeapMB": 9.54
+    }
+  }
+}

@@ -279,14 +279,12 @@ async function run() {
         for (let l = 1; l <= 3; l++) {
           const pages = {};
           for (let p = 1; p <= 40; p++) {
-            pages[String(p)] = {
-              strokes: Array.from({ length: 12 }, (_, sIdx) => ({
-                id: `st_${tag}_${l}_${p}_${sIdx}`,
-                color: tag === 'local' ? '#6b94c8' : '#d7b96f',
-                width: 3,
-                points: [[10 + sIdx, 20], [50 + sIdx, 60], [90, 100]]
-              }))
-            };
+            pages[String(p)] = Array.from({ length: 12 }, (_, sIdx) => ({
+              tool: 'pen',
+              color: tag === 'local' ? '#6b94c8' : '#d7b96f',
+              size: 3,
+              points: [{ x: 0.1 + sIdx * 0.01, y: 0.2 }, { x: 0.5 + sIdx * 0.01, y: 0.6 }, { x: 0.9, y: 0.8 }]
+            }));
           }
           map[`lec_pc_${l}`] = pages;
         }
@@ -302,13 +300,26 @@ async function run() {
           lectures: [1, 2, 3].map(l => ({ id: `lec_pc_${l}`, title: `Lec ${l}`, completed: false }))
         }]
       }];
-      const localSnap = buildWorkspaceSnapshot('local');
-      localSnap.annotations = buildAnns('local');
-      const cloudSnap = buildWorkspaceSnapshot('cloud');
-      cloudSnap.annotations = buildAnns('cloud');
+
+      await restoreAllAnnotationsMapToDB(buildAnns('local'), uid);
+      const localPayload = {
+        user_id: uid,
+        subjects,
+        schedule: { version: 3, events: [], backlog: [], weeklyReports: [] },
+        logs: []
+      };
+      const remoteRow = {
+        user_id: uid,
+        revision: 5,
+        updated_at: new Date().toISOString(),
+        subjects,
+        schedule: { version: 3, events: [], backlog: [], weeklyReports: [] },
+        logs: [],
+        annotations: buildAnns('cloud')
+      };
 
       const t0 = performance.now();
-      await mergeAndApplyCloudConflict(localSnap, cloudSnap);
+      await mergeAndApplyCloudConflict(remoteRow, localPayload);
       await flushPendingConflictRecoveryWrites(uid);
       const durMs = Math.round(performance.now() - t0);
 
@@ -355,7 +366,7 @@ async function run() {
       }
       localMediaCache.pdfs = new Set(lecs.map(l => l.id));
 
-      await openGroupMergedContinuousViewer('sub_pa', 'grp_pa');
+      await openMergedSubjectLecturesStudio(['lec_m_1', 'lec_m_2', 'lec_m_3'], 'sub_pa');
       await new Promise(r => setTimeout(r, 250));
       const snapInitial = window.__exoForensicDiag.captureCanvasSnapshot('wp69_merged_open');
 
@@ -371,8 +382,9 @@ async function run() {
       const snapClosed = window.__exoForensicDiag.captureCanvasSnapshot('wp69_merged_closed');
 
       // Now open 40-page single lecture & export annotated PDF (Probe E)
-      await openLectureViewer('sub_pa', 'grp_pa', 'lec_m_1');
-      await new Promise(r => setTimeout(r, 180));
+      activeSubjectId = 'sub_pa';
+      await openLectureDocument('grp_pa', 'lec_m_1');
+      await new Promise(r => setTimeout(r, 200));
       const ltStartCount = window.__exoForensicDiag.rings.longTasks.totalCount();
       const expT0 = performance.now();
       await exportAnnotatedSlides();
@@ -389,7 +401,7 @@ async function run() {
         initAlloc: snapInitial.allocatedCanvases,
         initMb: snapInitial.estimatedCanvasRgbaMB,
         jumpAlloc: snapAfterJump.allocatedCanvases,
-        closedPdfWrapperCount: document.querySelectorAll('#pdfPagesContainer .pdf-page-wrapper').length,
+        closedPdfWrapperCount: document.querySelectorAll('#pdfPagesScrollContainer .pdf-page-wrapper').length,
         expMs,
         maxExpLt,
         exportDone

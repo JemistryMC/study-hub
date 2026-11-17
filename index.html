@@ -842,15 +842,15 @@
         .sch-pill:hover { color: var(--text-main); background: rgba(255,255,255,0.06); }
         .sch-pill.active {
             background: var(--primary-gradient);
-            color: #0c0d11;
+            color: #191B1D;
             font-weight: 800;
-            box-shadow: 0 4px 14px rgba(45, 212, 191, 0.35);
+            box-shadow: 0 4px 14px rgba(137, 153, 130, 0.28);
         }
         .weekly-metrics-bar {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
             gap: 16px;
-            background: rgba(14, 16, 22, 0.6);
+            background: rgba(25, 27, 29, 0.72);
             padding: 18px 22px;
             border-radius: 16px;
             border: 1px solid var(--border-color);
@@ -892,7 +892,7 @@
         }
         .progress-bar-fill {
             height: 100%;
-            background: linear-gradient(90deg, #10b981, #34d399);
+            background: linear-gradient(90deg, var(--sage-green, #899982), #9EAE97);
             border-radius: 10px;
             transition: width 0.3s ease;
         }
@@ -903,7 +903,7 @@
             margin-bottom: 18px;
             flex-wrap: wrap;
             gap: 12px;
-            background: rgba(14, 16, 22, 0.5);
+            background: rgba(25, 27, 29, 0.65);
             padding: 12px 18px;
             border-radius: 12px;
             border: 1px solid var(--border-color);
@@ -924,24 +924,24 @@
             gap: 6px;
         }
         .l-badge.l-mandatory {
-            background: rgba(244, 63, 94, 0.15);
-            color: #fda4af;
-            border: 1px solid rgba(244, 63, 94, 0.3);
+            background: rgba(196, 125, 96, 0.16);
+            color: #f4d3c5;
+            border: 1px solid rgba(196, 125, 96, 0.35);
         }
         .l-badge.l-important {
-            background: rgba(16, 185, 129, 0.15);
-            color: #6ee7b7;
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            background: rgba(137, 153, 130, 0.16);
+            color: #cde0c5;
+            border: 1px solid rgba(137, 153, 130, 0.35);
         }
         .l-badge.l-urgent {
-            background: rgba(245, 158, 11, 0.15);
-            color: #fcd34d;
-            border: 1px solid rgba(245, 158, 11, 0.3);
+            background: rgba(215, 185, 111, 0.16);
+            color: #f3e1b3;
+            border: 1px solid rgba(215, 185, 111, 0.35);
         }
         .l-badge.l-review {
-            background: rgba(139, 92, 246, 0.15);
-            color: #c4b5fd;
-            border: 1px solid rgba(139, 92, 246, 0.3);
+            background: rgba(120, 152, 172, 0.16);
+            color: #b7cad6;
+            border: 1px solid rgba(120, 152, 172, 0.35);
         }
         .sch-subview-content { display: none; flex-direction: column; }
         .sch-subview-content.active { display: flex; animation: subFade 0.18s ease; }
@@ -979,7 +979,7 @@
             display: inline-block;
             font-size: 0.72rem;
             background: var(--primary);
-            color: #0c0d11;
+            color: #191B1D;
             padding: 2px 8px;
             border-radius: 10px;
             margin-top: 3px;
@@ -1006,9 +1006,9 @@
             position: relative;
             height: 1020px;
             border-left: 1px solid rgba(255,255,255,0.04);
-            background: rgba(14, 16, 22, 0.45);
+            background: #141618;
         }
-        .day-col.today-col { background: rgba(45, 212, 191, 0.03); }
+        .day-col.today-col { background: rgba(137, 153, 130, 0.04); }
         .hour-slot-row {
             height: 60px;
             border-bottom: 1px dashed rgba(255,255,255,0.05);
@@ -1016,7 +1016,7 @@
             cursor: pointer;
             transition: background 0.12s ease;
         }
-        .hour-slot-row:hover { background: rgba(45, 212, 191, 0.08); }
+        .hour-slot-row:hover { background: rgba(137, 153, 130, 0.08); }
         .hour-slot-row:hover::after {
             content: "+ إضافة";
             position: absolute;
@@ -1026,11 +1026,11 @@
             font-size: 0.75rem;
             color: var(--primary);
             font-weight: 800;
-            background: rgba(14, 16, 22, 0.85);
+            background: rgba(25, 27, 29, 0.92);
             padding: 2px 8px;
             border-radius: 6px;
             pointer-events: none;
-            border: 1px solid rgba(45, 212, 191,0.3);
+            border: 1px solid rgba(137, 153, 130, 0.3);
         }
         .session-card-block {
             position: absolute;
@@ -1055,46 +1055,46 @@
             box-shadow: 0 8px 24px rgba(0,0,0,0.45);
         }
         .session-card-block.cat-mandatory {
-            background: linear-gradient(135deg, rgba(244, 63, 94, 0.25), rgba(190, 18, 60, 0.35));
-            border-color: rgba(244, 63, 94, 0.4);
-            border-right: 4px solid var(--mandatory-color);
+            background: linear-gradient(135deg, rgba(196, 125, 96, 0.2), rgba(145, 86, 63, 0.28));
+            border-color: rgba(196, 125, 96, 0.38);
+            border-inline-start: 4px solid var(--mandatory-color);
         }
         .session-card-block.cat-important {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(4, 120, 87, 0.35));
-            border-color: rgba(16, 185, 129, 0.4);
-            border-right: 4px solid var(--important-color);
+            background: linear-gradient(135deg, rgba(137, 153, 130, 0.2), rgba(98, 114, 92, 0.28));
+            border-color: rgba(137, 153, 130, 0.38);
+            border-inline-start: 4px solid var(--important-color);
         }
         .session-card-block.cat-urgent {
-            background: linear-gradient(135deg, rgba(45, 212, 191, 0.25), rgba(179, 94, 35, 0.35));
-            border-color: rgba(45, 212, 191, 0.4);
-            border-right: 4px solid var(--primary);
+            background: linear-gradient(135deg, rgba(215, 185, 111, 0.2), rgba(168, 140, 74, 0.28));
+            border-color: rgba(215, 185, 111, 0.38);
+            border-inline-start: 4px solid var(--urgent-color);
         }
         .session-card-block.cat-review {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(109, 40, 217, 0.35));
-            border-color: rgba(139, 92, 246, 0.4);
-            border-right: 4px solid var(--review-color);
+            background: linear-gradient(135deg, rgba(120, 152, 172, 0.2), rgba(84, 112, 130, 0.28));
+            border-color: rgba(120, 152, 172, 0.38);
+            border-inline-start: 4px solid var(--review-color);
         }
         .session-card-block.is-fixed-routine {
-            background: linear-gradient(135deg, rgba(26, 29, 38, 0.95), rgba(18, 20, 27, 0.95));
-            border: 1px dashed rgba(45, 212, 191, 0.45);
-            border-right: 4px solid var(--primary);
+            background: linear-gradient(135deg, rgba(35, 38, 41, 0.95), rgba(25, 27, 29, 0.95));
+            border: 1px dashed rgba(137, 153, 130, 0.42);
+            border-inline-start: 4px solid var(--primary);
             box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
         }
         .session-card-block.is-fixed-routine .sc-title { color: #fdfbf7; }
         .fixed-badge-tag {
             font-size: 0.72rem;
-            color: #5eead4;
-            background: rgba(45, 212, 191, 0.12);
+            color: #cde0c5;
+            background: rgba(137, 153, 130, 0.14);
             padding: 3px 8px;
             border-radius: 6px;
             font-weight: 700;
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            border: 1px solid rgba(45, 212, 191, 0.25);
+            border: 1px solid rgba(137, 153, 130, 0.28);
         }
         .session-card-block.is-done { opacity: 0.65; }
-        .session-card-block.is-done .sc-title { text-decoration: line-through; color: #94a3b8; }
+        .session-card-block.is-done .sc-title { color: #969188; }
         .sc-top {
             display: flex;
             justify-content: space-between;
@@ -1112,7 +1112,7 @@
         }
         .sc-subject-tag {
             font-size: 0.68rem;
-            background: rgba(14, 16, 22, 0.75);
+            background: rgba(25, 27, 29, 0.78);
             padding: 2px 6px;
             border-radius: 4px;
             color: #fdfbf7;
@@ -1142,7 +1142,7 @@
             padding-top: 4px;
         }
         .sc-check-btn {
-            background: rgba(14, 16, 22, 0.75);
+            background: rgba(25, 27, 29, 0.78);
             border: 1px solid rgba(255,255,255,0.15);
             color: #cbd5e1;
             border-radius: 6px;
@@ -1157,12 +1157,12 @@
         }
         .sc-check-btn:hover {
             background: var(--important-color);
-            color: white;
+            color: #191B1D;
             border-color: var(--important-color);
         }
         .session-card-block.is-done .sc-check-btn {
-            background: rgba(16, 185, 129, 0.3);
-            color: #6ee7b7;
+            background: rgba(137, 153, 130, 0.25);
+            color: #cde0c5;
             border-color: var(--important-color);
         }
         .sc-actions-btn {
@@ -1186,9 +1186,9 @@
             gap: 20px;
         }
         .today-banner {
-            background: linear-gradient(135deg, rgba(45, 212, 191, 0.2), rgba(20, 22, 29, 0.9));
-            border: 1px solid rgba(45, 212, 191, 0.3);
-            border-right: 5px solid var(--primary);
+            background: linear-gradient(135deg, rgba(137, 153, 130, 0.14), rgba(25, 27, 29, 0.94));
+            border: 1px solid rgba(137, 153, 130, 0.28);
+            border-inline-start: 5px solid var(--primary);
             padding: 22px 26px;
             border-radius: 16px;
             display: flex;
@@ -1199,7 +1199,7 @@
         }
         .today-badge {
             background: var(--primary-gradient);
-            color: #0c0d11;
+            color: #191B1D;
             font-size: 0.85rem;
             font-weight: 800;
             padding: 4px 14px;
@@ -1215,7 +1215,7 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 15px;
-            border-right: 5px solid var(--primary);
+            border-inline-start: 5px solid var(--primary);
         }
         .today-timeline-card {
             background: var(--panel-bg);
@@ -1229,7 +1229,7 @@
             justify-content: space-between;
             padding: 15px 18px;
             border-radius: 12px;
-            background: rgba(14, 16, 22, 0.5);
+            background: rgba(25, 27, 29, 0.65);
             border: 1px solid rgba(255,255,255,0.03);
             transition: transform 0.15s ease, background-color 0.15s ease;
             gap: 15px;
@@ -1240,8 +1240,8 @@
             flex-direction: column;
             gap: 20px;
         }
-        .backlog-card:hover { transform: translateY(-4px); border-color: rgba(45, 212, 191, 0.3); }
-        .backlog-card.done .b-title { text-decoration: line-through; color: #94a3b8; }
+        .backlog-card:hover { transform: translateY(-4px); border-color: rgba(137, 153, 130, 0.35); }
+        .backlog-card.done .b-title { color: #969188; }
         .tracker-hero-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -1260,7 +1260,7 @@
             box-shadow: 0 4px 16px rgba(0,0,0,0.25);
             transition: transform 0.18s ease, border-color 0.18s ease;
         }
-        .stat-card-pro:hover { transform: translateY(-4px); border-color: rgba(45, 212, 191, 0.4); }
+        .stat-card-pro:hover { transform: translateY(-4px); border-color: rgba(137, 153, 130, 0.35); }
         .stat-card-pro .sc-header {
             display: flex;
             justify-content: space-between;
@@ -1303,7 +1303,7 @@
             .tracker-widgets-row { grid-template-columns: 1fr; }
         }
         .pomodoro-card {
-            background: linear-gradient(135deg, #181b24, #13151d);
+            background: linear-gradient(135deg, #202225, #191B1D);
             border-radius: 18px;
             padding: 24px;
             border: 1px solid var(--border-color);
@@ -1316,7 +1316,7 @@
         .timer-modes {
             display: flex;
             gap: 6px;
-            background: rgba(14, 16, 22, 0.8);
+            background: rgba(25, 27, 29, 0.85);
             padding: 4px;
             border-radius: 12px;
             margin-bottom: 20px;
@@ -1335,7 +1335,7 @@
         }
         .t-mode-btn.active {
             background: var(--primary-gradient);
-            color: #0c0d11;
+            color: #191B1D;
             font-weight: 800;
         }
         .timer-display {
@@ -1346,7 +1346,7 @@
             line-height: 1;
             margin: 12px 0 16px 0;
             font-variant-numeric: tabular-nums;
-            text-shadow: 0 4px 20px rgba(45, 212, 191, 0.25);
+            text-shadow: 0 4px 18px rgba(137, 153, 130, 0.22);
         }
         .timer-controls {
             display: flex;
@@ -1393,11 +1393,11 @@
         }
         .log-item-pro {
             contain: layout style;
-            background: rgba(14, 16, 22, 0.55);
+            background: rgba(25, 27, 29, 0.65);
             padding: 16px 20px;
             border-radius: 12px;
             border: 1px solid var(--border-color);
-            border-right: 4px solid var(--primary);
+            border-inline-start: 4px solid var(--primary);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -1414,19 +1414,19 @@
         .data-management-bar {
             display: flex;
             gap: 20px;
-            background: linear-gradient(to left, var(--card-bg), rgba(20, 22, 29, 0.7));
+            background: linear-gradient(to left, var(--card-bg), rgba(25, 27, 29, 0.75));
             padding: 20px 24px;
             border-radius: 16px;
             margin-bottom: 24px;
             border: 1px solid var(--border-color);
             justify-content: space-between;
             align-items: center;
-            border-right: 4px solid var(--primary);
+            border-inline-start: 4px solid var(--primary);
             flex-wrap: wrap;
         }
         .glass-overlay.active { opacity: 1; pointer-events: auto; }
         .glass-modal {
-            background: #171922;
+            background: #1d1f22;
             border: 1px solid var(--border-color);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65);
             padding: 28px;
@@ -1450,7 +1450,7 @@
             font-weight: 800;
         }
         .glass-modal p {
-            color: #cbd5e1;
+            color: #cdc7bc;
             margin-bottom: 20px;
             font-size: 0.92rem;
             line-height: 1.5;
@@ -1463,7 +1463,7 @@
             margin-top: 14px;
         }
         #pdfViewerModalOverlay {
-            background: rgba(8, 9, 13, 0.96);
+            background: rgba(14, 15, 17, 0.96);
             backdrop-filter: none !important;
             -webkit-backdrop-filter: none !important;
         }
@@ -1477,9 +1477,9 @@
         .anno-btn:hover { color: var(--text-main); background: rgba(255,255,255,0.06); }
         .anno-btn.active {
             background: var(--primary-gradient);
-            color: #0c0d11;
+            color: #191B1D;
             font-weight: 800;
-            box-shadow: 0 2px 10px rgba(45, 212, 191, 0.35);
+            box-shadow: 0 2px 10px rgba(137, 153, 130, 0.28);
         }
         .anno-btn.laser-active {
             background: linear-gradient(135deg, #ef4444, #f97316);
@@ -1488,9 +1488,9 @@
             box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
         }
         .anno-btn.toggle-hidden {
-            background: rgba(244, 63, 94, 0.15);
-            color: #fda4af;
-            border-color: rgba(244, 63, 94, 0.35);
+            background: rgba(196, 125, 96, 0.16);
+            color: #f4d3c5;
+            border-color: rgba(196, 125, 96, 0.35);
         }
         .color-dot {
             width: 22px;
@@ -1509,7 +1509,7 @@
         .pdf-viewer-body {
             flex: 1;
             position: relative;
-            background: #090b10;
+            background: #141618;
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -1529,7 +1529,7 @@
             transition: all 0.18s ease;
         }
         .pdf-floating-page-nav .nav-step-btn:hover {
-            background: rgba(45, 212, 191, 0.22);
+            background: rgba(137, 153, 130, 0.22);
             border-color: var(--primary);
             color: var(--primary);
         }
@@ -1577,7 +1577,7 @@
             z-index: 30;
             min-width: 210px;
             max-width: 420px;
-            background: rgba(15, 18, 26, 0.94);
+            background: rgba(25, 27, 29, 0.95);
             border: 2px solid var(--primary);
             border-radius: 12px;
             padding: 8px 10px;
@@ -1592,8 +1592,8 @@
             width: 100%;
             min-height: 46px;
             background: rgba(255, 255, 255, 0.97);
-            color: #0f172a;
-            border: 1px solid rgba(45, 212, 191, 0.45);
+            color: #191B1D;
+            border: 1px solid rgba(137, 153, 130, 0.45);
             border-radius: 8px;
             padding: 6px 10px;
             resize: both;
@@ -1616,16 +1616,16 @@
         }
         .anno-font-select-wrap.visible { display: inline-flex; }
         .anno-font-select {
-            background: rgba(14, 16, 22, 0.95);
-            color: #5eead4;
-            border: 1px solid rgba(45, 212, 191, 0.55);
+            background: rgba(25, 27, 29, 0.95);
+            color: #cde0c5;
+            border: 1px solid rgba(137, 153, 130, 0.5);
             border-radius: 8px;
             padding: 4px 10px;
             font-size: 0.8rem;
             font-weight: 800;
             cursor: pointer;
             outline: none;
-            box-shadow: 0 2px 8px rgba(45, 212, 191, 0.18);
+            box-shadow: 0 2px 8px rgba(137, 153, 130, 0.16);
         }
         .pdf-text-layer {
             position: absolute;
@@ -1663,12 +1663,12 @@
         .pdf-font-marhey, .pdf-font-marhey .pdf-text-content { font-family: "Marhey", "Caveat", cursive !important; }
         .pdf-font-ruqaa, .pdf-font-ruqaa .pdf-text-content { font-family: "Aref Ruqaa", "Caveat", serif !important; }
         .pdf-font-academic, .pdf-font-academic .pdf-text-content { font-family: "Amiri", "Crimson Pro", "Georgia", serif !important; }
-        .pdf-text-item:hover { border-color: rgba(45, 212, 191, 0.65); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22); }
+        .pdf-text-item:hover { border-color: rgba(137, 153, 130, 0.65); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22); }
         .pdf-text-item:active { cursor: grabbing; }
         .pdf-text-item.selected {
             border: 2px dashed var(--primary) !important;
             background: rgba(255, 254, 250, 0.96);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32), 0 0 0 3px rgba(45, 212, 191, 0.2);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32), 0 0 0 3px rgba(137, 153, 130, 0.2);
             z-index: 22;
         }
         .pdf-text-resize-handle {
@@ -1691,7 +1691,7 @@
             bottom: calc(100% + 7px);
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(15, 18, 26, 0.96);
+            background: rgba(25, 27, 29, 0.96);
             border: 1px solid var(--primary);
             border-radius: 9px;
             padding: 3px 6px;
@@ -1707,7 +1707,7 @@
         .ptm-btn {
             background: rgba(255,255,255,0.06);
             border: 1px solid rgba(255,255,255,0.1);
-            color: #f8fafc;
+            color: #F0E6D4;
             border-radius: 6px;
             padding: 2px 7px;
             font-size: 0.72rem;
@@ -1720,7 +1720,7 @@
         }
         .ptm-btn:hover {
             background: var(--primary);
-            color: #0c0d11;
+            color: #191B1D;
             border-color: var(--primary);
         }
         .ptm-btn.danger:hover {
@@ -1740,7 +1740,7 @@
             pointer-events: auto;
         }
         .audio-pin-chip {
-            background: rgba(15, 18, 26, 0.92);
+            background: rgba(25, 27, 29, 0.92);
             border: 1px solid var(--primary);
             color: var(--text-main);
             padding: 4px 10px;
@@ -1754,14 +1754,14 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.5);
             transition: transform 0.15s ease, background-color 0.15s ease;
         }
-        .audio-pin-chip:hover { transform: scale(1.04); background: rgba(45, 212, 191, 0.22); }
+        .audio-pin-chip:hover { transform: scale(1.04); background: rgba(137, 153, 130, 0.22); }
         .audio-pin-chip .pin-time {
             color: var(--primary);
             font-family: monospace;
             font-weight: 800;
         }
         .audio-pin-chip .pin-del {
-            color: #fda4af;
+            color: #f4d3c5;
             margin-right: 4px;
             padding: 0 3px;
             font-size: 0.8rem;
@@ -1806,15 +1806,15 @@
             left: 0;
             right: 0;
             height: 30px;
-            background: rgba(45, 212, 191, 0.14);
-            border-bottom: 1px dashed rgba(45, 212, 191, 0.4);
+            background: rgba(137, 153, 130, 0.14);
+            border-bottom: 1px dashed rgba(137, 153, 130, 0.4);
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 0 12px;
             font-size: 0.75rem;
             font-weight: 800;
-            color: #78350f;
+            color: #292B2D;
             z-index: 9;
         }
         .pdf-page-badge {
@@ -1835,7 +1835,7 @@
             width: 100%;
             height: 100%;
             border: none;
-            background: #090a0d;
+            background: #141618;
             display: none;
         }
         .pdf-fallback-box {
@@ -1852,7 +1852,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: #141720;
+            background: #191B1D;
             border-top: 1px solid var(--border-color);
             padding: 10px 18px;
             flex-shrink: 0;
@@ -1872,14 +1872,14 @@
             height: 40px;
             border-radius: 50%;
             background: var(--primary-gradient);
-            color: #0c0d11;
+            color: #191B1D;
             font-size: 1.05rem;
             display: flex;
             align-items: center;
             justify-content: center;
             border: none;
             cursor: pointer;
-            box-shadow: 0 3px 10px rgba(45, 212, 191, 0.35);
+            box-shadow: 0 3px 10px rgba(137, 153, 130, 0.28);
             transition: transform 0.12s ease;
             flex-shrink: 0;
         }
@@ -12567,11 +12567,19 @@
         if (window.pdfjsLib) {
             const cdnWorkerUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
             window.pdfjsLib.GlobalWorkerOptions.workerSrc = cdnWorkerUrl;
-            fetch(cdnWorkerUrl, { cache: 'force-cache' }).then(r => r.ok ? r.blob() : null).then(b => {
-                if (b && window.pdfjsLib) {
-                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(b);
-                }
-            }).catch(() => {});
+            const _workerFetchPromise = fetch(cdnWorkerUrl, { cache: 'force-cache' })
+                .then(r => r.ok ? r.blob() : null)
+                .then(b => {
+                    if (b && window.pdfjsLib) {
+                        window.pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(b);
+                    }
+                    return true;
+                })
+                .catch(() => false);
+            window.__exoPdfWorkerReadyPromise = Promise.race([
+                _workerFetchPromise,
+                new Promise(resolve => setTimeout(() => resolve(false), 900))
+            ]);
         }
     </script>
 
@@ -13289,7 +13297,7 @@
                     </div>
 
                     <div class="time-block-calendar-container">
-                        <div class="calendar-interactive-wrapper" id="calendarInteractiveWrapper"></div>
+                        <div class="calendar-interactive-wrapper" id="calendarInteractiveWrapper" data-exo-no-i18n="1"></div>
                     </div>
                 </div>
 
@@ -13320,7 +13328,7 @@
 
                         <!-- Single-Scroll Hourly Timeline (No inner scrollbar!) -->
                         <div class="notion-hourly-scroll" id="notionHourlyScrollContainer">
-                            <div id="todayTimelineList"></div>
+                            <div id="todayTimelineList" data-exo-no-i18n="1"></div>
                         </div>
                     </div>
                 </div>
@@ -13377,7 +13385,7 @@
                         </div>
 
                         <!-- Organized Goals Cards Grid -->
-                        <div id="tasksBacklogList" class="goals-cards-grid"></div>
+                        <div id="tasksBacklogList" class="goals-cards-grid" data-exo-no-i18n="1"></div>
                     </div>
                 </div>
 
@@ -23823,6 +23831,7 @@
         initScheduleData();
 
         function saveScheduleData(syncToCloud = true) {
+            if (typeof _exoDeferredSchedulePending !== 'undefined') _exoDeferredSchedulePending = false;
             const currentUid = (currentCloudUser && currentCloudUser.id) ? String(currentCloudUser.id) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local');
             if (typeof isImportInProgressOrQuarantined === 'function') {
                 const gateCheck = isImportInProgressOrQuarantined(currentUid);
@@ -24431,7 +24440,7 @@
             return Number((h + (m / 60)).toFixed(4));
         }
 
-        function normalizeSmartTrackedSessions() {
+        function normalizeSmartTrackedSessions(options = {}) {
             let changed = false;
             if (!Array.isArray(scheduleEvents)) return false;
             const minStartH = Number(plannerPrefs?.dayStartHour ?? 6);
@@ -24498,17 +24507,21 @@
                 }
             });
             if (changed) {
-                const schedNormPayload = {
-                    version: 3,
-                    events: scheduleEvents,
-                    backlog: scheduleBacklog,
-                    plannerPrefs: plannerPrefs,
-                    weeklyReports: weeklyReports
-                };
-                const lsNormRes = exoSafeLocalStorageJsonSet('pharmaScheduleV4', schedNormPayload);
-                if (typeof persistWorkspaceDomainToIDB === 'function') {
-                    const uidNorm = (currentCloudUser && currentCloudUser.id) ? String(currentCloudUser.id) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local');
-                    persistWorkspaceDomainToIDB('schedule', schedNormPayload, uidNorm, null, Boolean(lsNormRes && lsNormRes.persisted)).catch(() => {});
+                if (options && options.deferSave && typeof exoQueueDeferredWorkspacePersist === 'function') {
+                    exoQueueDeferredWorkspacePersist({ schedule: true });
+                } else {
+                    const schedNormPayload = {
+                        version: 3,
+                        events: scheduleEvents,
+                        backlog: scheduleBacklog,
+                        plannerPrefs: plannerPrefs,
+                        weeklyReports: weeklyReports
+                    };
+                    const lsNormRes = exoSafeLocalStorageJsonSet('pharmaScheduleV4', schedNormPayload);
+                    if (typeof persistWorkspaceDomainToIDB === 'function') {
+                        const uidNorm = (currentCloudUser && currentCloudUser.id) ? String(currentCloudUser.id) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local');
+                        persistWorkspaceDomainToIDB('schedule', schedNormPayload, uidNorm, null, Boolean(lsNormRes && lsNormRes.persisted)).catch(() => {});
+                    }
                 }
             }
             return changed;
@@ -24586,7 +24599,7 @@
                 if (tasksWrap && tasksWrap.firstChild) tasksWrap.innerHTML = '';
             }
             
-            renderSchedule();
+            renderSchedule({ skipHousekeeping: true });
         }
 
         function renderPlannerJournalSummaryStrip(dayIdxOverride = null) {
@@ -24668,21 +24681,75 @@
             `;
         }
 
-        function renderSchedule() {
-            normalizeSmartTrackedSessions();
-            if (typeof syncAllBacklogGoalsWithLinkedSessions === 'function') {
-                syncAllBacklogGoalsWithLinkedSessions();
+        let _exoDeferredPersistTimer = null;
+        let _exoDeferredPersistIdle = false;
+        let _exoDeferredSchedulePending = false;
+        let _exoDeferredLogsPending = false;
+        function exoFlushDeferredWorkspacePersistNow(asyncStagger = false) {
+            if (_exoDeferredPersistTimer !== null) {
+                if (_exoDeferredPersistIdle && typeof cancelIdleCallback === 'function') {
+                    try { cancelIdleCallback(_exoDeferredPersistTimer); } catch (_) {}
+                } else {
+                    clearTimeout(_exoDeferredPersistTimer);
+                }
+                _exoDeferredPersistTimer = null;
+                _exoDeferredPersistIdle = false;
+            }
+            const doLogs = _exoDeferredLogsPending;
+            const doSched = _exoDeferredSchedulePending;
+            if (asyncStagger && doLogs && doSched) {
+                _exoDeferredLogsPending = false;
+                if (typeof saveLogs === 'function') saveLogs();
+                if (_exoDeferredSchedulePending && _exoDeferredPersistTimer === null) {
+                    _exoDeferredPersistIdle = false;
+                    _exoDeferredPersistTimer = setTimeout(() => exoFlushDeferredWorkspacePersistNow(true), 60);
+                }
+                return;
+            }
+            _exoDeferredLogsPending = false;
+            _exoDeferredSchedulePending = false;
+            if (doLogs && typeof saveLogs === 'function') saveLogs();
+            if (doSched && typeof saveScheduleData === 'function') saveScheduleData();
+        }
+        if (typeof window !== 'undefined' && !window.__exoDeferredPersistUnloadBound) {
+            window.__exoDeferredPersistUnloadBound = true;
+            window.addEventListener('pagehide', () => {
+                if (_exoDeferredSchedulePending || _exoDeferredLogsPending) exoFlushDeferredWorkspacePersistNow(false);
+            });
+            if (typeof document !== 'undefined') {
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'hidden' && (_exoDeferredSchedulePending || _exoDeferredLogsPending)) {
+                        exoFlushDeferredWorkspacePersistNow(false);
+                    }
+                });
+            }
+        }
+        function exoQueueDeferredWorkspacePersist({ schedule = false, logs = false } = {}) {
+            if (schedule) _exoDeferredSchedulePending = true;
+            if (logs) _exoDeferredLogsPending = true;
+            if (_exoDeferredPersistTimer !== null) return;
+            _exoDeferredPersistIdle = false;
+            _exoDeferredPersistTimer = setTimeout(() => exoFlushDeferredWorkspacePersistNow(true), 750);
+        }
+
+        function renderSchedule(options = {}) {
+            const skipHousekeeping = Boolean(options && options.skipHousekeeping);
+            if (!skipHousekeeping) {
+                normalizeSmartTrackedSessions({ deferSave: true });
+                if (typeof syncAllBacklogGoalsWithLinkedSessions === 'function') {
+                    syncAllBacklogGoalsWithLinkedSessions();
+                }
+                checkWeeklyCycleAndRollover({ deferSave: true });
+                evaluatePastAndTodayMissedSessions(false, { deferSave: true });
             }
             syncPlannerPrefsUI();
-            checkWeeklyCycleAndRollover();
-            evaluatePastAndTodayMissedSessions(false);
             populateSubjectDropdowns();
             updateWeeklyMetrics();
             updateLiveTimeSyncBanner();
             renderPlannerJournalSummaryStrip();
             if (currentScheduleSubView === 'week') renderWeekGrid();
             else if (currentScheduleSubView === 'today') renderTodayView();
-            else if (currentScheduleSubView === 'tasks') renderTasksView();
+            else if (currentScheduleSubView === 'tasks') renderTasksView({ skipGoalSync: true });
             if (typeof updateSidebarUI === 'function') updateSidebarUI();
             if (typeof refreshDashboardIfVisible === 'function') refreshDashboardIfVisible();
         }
@@ -25618,9 +25685,21 @@
                         </div>
                     `);
                 } else if (!window.weekGroupBySubjectMode) {
-                    dayEvents.forEach(ev => {
-                        parts.push(renderSingleFluidSessionCardHtml(ev, isToday, currentDecHour, subMap));
-                    });
+                    const expandedDaysSet = window.__exoExpandedWeekDays || (window.__exoExpandedWeekDays = new Set());
+                    const dayWindowCap = 24;
+                    const isDayExpanded = expandedDaysSet.has(dIdx) || dayEvents.length <= dayWindowCap;
+                    const visibleDayEvents = isDayExpanded ? dayEvents : dayEvents.slice(0, dayWindowCap);
+                    for (let ei = 0; ei < visibleDayEvents.length; ei++) {
+                        parts.push(renderSingleFluidSessionCardHtml(visibleDayEvents[ei], isToday, currentDecHour, subMap));
+                    }
+                    if (!isDayExpanded) {
+                        const hiddenCnt = dayEvents.length - visibleDayEvents.length;
+                        parts.push(`
+                            <button type="button" class="fluid-show-all-day-btn" onclick="event.stopPropagation(); (window.__exoExpandedWeekDays || (window.__exoExpandedWeekDays = new Set())).add(${dIdx}); renderWeekGrid();" style="width:100%; padding:8px 10px; border-radius:8px; border:1px dashed rgba(137,153,130,0.4); background:rgba(137,153,130,0.08); color:#d7e5d0; font-weight:700; font-size:0.78rem; cursor:pointer;">
+                                ${isEn ? `Show all ${dayEvents.length} sessions (+${hiddenCnt} more)` : `عرض كل الجلسات (${dayEvents.length}) (+${hiddenCnt})`}
+                            </button>
+                        `);
+                    }
                 } else {
                     const nonFixedCount = dayEvents.filter(e => !isCollegeCommitmentSession(e)).length;
                     const renderSlots = [];
@@ -26105,12 +26184,22 @@
 
         function getGoalLinkedEventsList(goalItem, eventByIdMap = null) {
             if (!goalItem) return [];
-            const idSet = new Set();
-            if (Array.isArray(goalItem.linkedEventIds)) {
-                goalItem.linkedEventIds.forEach(id => { if (id) idSet.add(String(id)); });
+            const arr = Array.isArray(goalItem.linkedEventIds) ? goalItem.linkedEventIds : null;
+            const singleId = goalItem.linkedEventId;
+            if ((!arr || arr.length === 0) && !singleId) return [];
+            if (arr && arr.length === 1 && (!singleId || String(singleId) === String(arr[0]))) {
+                const idStr = String(arr[0]);
+                const ev = eventByIdMap ? eventByIdMap.get(idStr) : scheduleEvents.find(e => String(e.id) === idStr);
+                return (ev && !ev.isFixed && ev.type !== 'mandatory') ? [ev] : [];
             }
-            if (goalItem.linkedEventId) {
-                idSet.add(String(goalItem.linkedEventId));
+            const idSet = new Set();
+            if (arr) {
+                for (let i = 0; i < arr.length; i++) {
+                    if (arr[i]) idSet.add(String(arr[i]));
+                }
+            }
+            if (singleId) {
+                idSet.add(String(singleId));
             }
             const events = [];
             idSet.forEach(idStr => {
@@ -26427,9 +26516,11 @@
                 : `⚡ تم ربط ${matches.length} ${matches.length === 1 ? 'مهمة مطابقة' : 'مهام مطابقة'} بالهدف «${goal.title}» تلقائياً!`);
         }
 
-        function renderTasksView() {
+        function renderTasksView(options = {}) {
             populateSubjectDropdowns();
-            syncAllBacklogGoalsWithLinkedSessions();
+            if (!(options && options.skipGoalSync)) {
+                syncAllBacklogGoalsWithLinkedSessions();
+            }
             const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
 
             const list = document.getElementById('tasksBacklogList');
@@ -27421,6 +27512,7 @@
     <script id="exo-mod-tracker-analytics" data-module="exo-tracker-analytics.js">
         // ================= PAGE 3: السجل ومتابعة الإنتاجية =================
         function saveLogs() {
+            if (typeof _exoDeferredLogsPending !== 'undefined') _exoDeferredLogsPending = false;
             const currentUid = (currentCloudUser && currentCloudUser.id) ? String(currentCloudUser.id) : (typeof getCanonicalUserId === 'function' ? getCanonicalUserId() : 'local');
             if (typeof isImportInProgressOrQuarantined === 'function') {
                 const gateCheck = isImportInProgressOrQuarantined(currentUid);
@@ -29006,7 +29098,7 @@
                 : (isEn ? 'Session link removed from log' : 'تم إلغاء ربط المهمة من السجل'));
         }
 
-        function reconcileRecoveryAndAbsentLogsWithSchedule() {
+        function reconcileRecoveryAndAbsentLogsWithSchedule(options = {}) {
             if (!Array.isArray(logs)) return;
             let logsChanged = false;
 
@@ -29144,7 +29236,11 @@
             }
 
             if (logsChanged) {
-                saveLogs();
+                if (options && options.deferSave && typeof exoQueueDeferredWorkspacePersist === 'function') {
+                    exoQueueDeferredWorkspacePersist({ logs: true });
+                } else {
+                    saveLogs();
+                }
             }
         }
 
@@ -29184,7 +29280,7 @@
             if(!container) return;
             container.innerHTML = '';
 
-            reconcileRecoveryAndAbsentLogsWithSchedule();
+            reconcileRecoveryAndAbsentLogsWithSchedule({ deferSave: true });
 
             const eventByIdMap = new Map();
             for (let i = 0; i < scheduleEvents.length; i++) {
@@ -32265,6 +32361,7 @@
 
         // Export complete Tier A workspace backup (v4 schema with canonical SHA-256 integrity hash)
         async function exportWorkspaceBackupV4(targetUserId = null, ctx = null) {
+            if (typeof exoFlushDeferredWorkspacePersistNow === 'function') exoFlushDeferredWorkspacePersistNow(false);
             const opCtx = resolveAccountOperationContext(targetUserId, ctx);
             if (!opCtx.ok || !opCtx.isCurrent()) {
                 throw new Error('ACCOUNT_CONTEXT_INVALID: Account operation context invalid or switched');
@@ -38552,7 +38649,7 @@ then(onFulfilled, onRejected) {
             syncPalmRejectionButtonUI();
 
             // Load first lecture's audio if available
-            await activateMergedLectureAudioAndContext(firstItem, false);
+            const hasAudio = Boolean(await activateMergedLectureAudioAndContext(firstItem, false));
             document.getElementById('pdfViewerModalOverlay').classList.add('active');
             const audioBarEl = document.getElementById('pdfAudioPlayerBar');
             const audioToggleBtn = document.getElementById('pdfAudioBarToggleBtn');
@@ -38712,8 +38809,10 @@ then(onFulfilled, onRejected) {
                 storedAudioBlob = await downloadMediaFromCloudAccount('audios', item.lec);
             }
             audioEl.pause();
+            let hasAudioOut = false;
             if (storedAudioBlob) {
                 audioEl.src = URL.createObjectURL(storedAudioBlob);
+                hasAudioOut = true;
                 if (attachBtnText) attachBtnText.innerText = 'تغيير الريكورد';
                 setupAudioEventListeners();
                 if (autoPlay) {
@@ -38723,6 +38822,7 @@ then(onFulfilled, onRejected) {
                 }
             } else if (item.lec.audioPath && (item.lec.audioPath.startsWith('http://') || item.lec.audioPath.startsWith('https://'))) {
                 audioEl.src = item.lec.audioPath;
+                hasAudioOut = true;
                 if (attachBtnText) attachBtnText.innerText = 'تغيير الريكورد';
                 setupAudioEventListeners();
             } else {
@@ -38733,6 +38833,7 @@ then(onFulfilled, onRejected) {
                 document.getElementById('audioDurationTime').innerText = '00:00';
             }
             renderMergedLecturesStudioBar();
+            return hasAudioOut;
         }
 
         async function toggleMergedContinuousPdfMode() {
@@ -40204,16 +40305,20 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (!window.pdfjsLib) {
                     throw new Error('PDF.js not loaded');
                 }
+                if (window.__exoPdfWorkerReadyPromise) {
+                    try { await window.__exoPdfWorkerReadyPromise; } catch (_) {}
+                }
                 const arrayBuffer = await pdfBlob.arrayBuffer();
                 try {
-                    const docOpts = { data: arrayBuffer.slice(0), isEvalSupported: false };
+                    const docOpts = { data: new Uint8Array(arrayBuffer), isEvalSupported: false };
                     if (navigator.onLine) {
                         docOpts.cMapUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/';
                         docOpts.cMapPacked = true;
                     }
                     currentPdfDoc = await window.pdfjsLib.getDocument(docOpts).promise;
                 } catch ( innerPdfErr ) {
-                    currentPdfDoc = await window.pdfjsLib.getDocument({ data: arrayBuffer.slice(0), disableFontFace: true, isEvalSupported: false }).promise;
+                    const retryBuffer = await pdfBlob.arrayBuffer();
+                    currentPdfDoc = await window.pdfjsLib.getDocument({ data: new Uint8Array(retryBuffer), disableFontFace: true, isEvalSupported: false }).promise;
                 }
                 totalPdfPages = currentPdfDoc.numPages;
                 const preservePageNum = (options && Number(options.preservePageNum) >= 1) ? Math.min(totalPdfPages, Number(options.preservePageNum)) : null;
@@ -40337,22 +40442,28 @@ function togglePdfAudioPlayerBar(forceState) {
 
                 wrapper.setAttribute('dir', 'ltr');
 
-                // 1. PDF Render Canvas
+                // 1. PDF Render Canvas (starts 1x1 so unrendered pages do not allocate 300x150 GPU surfaces)
                 const pdfCanvas = document.createElement('canvas');
                 pdfCanvas.className = 'pdf-render-canvas';
                 pdfCanvas.id = `pdfRenderCanvas_${pageNum}`;
+                pdfCanvas.width = 1;
+                pdfCanvas.height = 1;
                 pdfCanvas.setAttribute('dir', 'ltr');
 
-                // 2. Permanent Ink & Highlighter Canvas
+                // 2. Permanent Ink & Highlighter Canvas (resized lazily if strokes exist or on draw)
                 const inkCanvas = document.createElement('canvas');
                 inkCanvas.className = 'pdf-ink-canvas';
                 inkCanvas.id = `pdfInkCanvas_${pageNum}`;
+                inkCanvas.width = 1;
+                inkCanvas.height = 1;
                 inkCanvas.style.opacity = annotationsVisible ? '1' : '0';
 
-                // 3. Active Stroke & Vanishing Laser Canvas
+                // 3. Active Stroke & Vanishing Laser Canvas (resized lazily on pointerdown)
                 const laserCanvas = document.createElement('canvas');
                 laserCanvas.className = 'pdf-laser-canvas';
                 laserCanvas.id = `pdfLaserCanvas_${pageNum}`;
+                laserCanvas.width = 1;
+                laserCanvas.height = 1;
 
                 // Audio Pins Rail for this page
                 const pinsRail = document.createElement('div');
@@ -40498,22 +40609,45 @@ function togglePdfAudioPlayerBar(forceState) {
                 offCanvas.width = 0;
                 offCanvas.height = 0;
 
-                // Sync overlay annotation canvases at full HiDPI (targetPixelW x targetPixelH) for silky-smooth zero-grain strokes!
-                inkCanvas.width = targetPixelW;
-                inkCanvas.height = targetPixelH;
-                laserCanvas.width = targetPixelW;
-                laserCanvas.height = targetPixelH;
+                // Sync ink canvas at HiDPI only when strokes exist (else lazy 1x1 until drawing starts)
+                wrapper.dataset.targetPixelW = String(targetPixelW);
+                wrapper.dataset.targetPixelH = String(targetPixelH);
+                const pageHasInk = Array.isArray(pageAnnotations[pageNum]) && pageAnnotations[pageNum].length > 0;
+                if (pageHasInk) {
+                    if (inkCanvas.width !== targetPixelW || inkCanvas.height !== targetPixelH) {
+                        inkCanvas.width = targetPixelW;
+                        inkCanvas.height = targetPixelH;
+                    }
+                } else if (inkCanvas.width !== 1 || inkCanvas.height !== 1) {
+                    inkCanvas.width = 1;
+                    inkCanvas.height = 1;
+                }
+                if (laserCanvas.width !== 1 || laserCanvas.height !== 1) {
+                    laserCanvas.width = 1;
+                    laserCanvas.height = 1;
+                }
 
                 redrawPageAnnotations(pageNum);
                 renderAudioPinsForPage(pageNum);
                 syncExtraNoteSheetSize(pageNum, cssWidth, Math.floor(cssHeight * 0.75));
-                if (totalPdfPages > 36 && typeof renderedPagesSet !== 'undefined') {
+                if ((totalPdfPages > 36 || totalPdfPages > 18) && typeof renderedPagesSet !== 'undefined') {
                     renderedPagesSet.forEach((renderedP) => {
-                        if (typeof renderedP === 'number' && Math.abs(renderedP - pageNum) > 16) {
+                        if (typeof renderedP === 'number' && Math.abs(renderedP - pageNum) > 10) {
                             const distantCanvas = document.getElementById(`pdfRenderCanvas_${renderedP}`);
                             if (distantCanvas) {
                                 distantCanvas.width = 0;
                                 distantCanvas.height = 0;
+                            }
+                            const distantLaser = document.getElementById(`pdfLaserCanvas_${renderedP}`);
+                            if (distantLaser && (distantLaser.width > 1 || distantLaser.height > 1)) {
+                                distantLaser.width = 1;
+                                distantLaser.height = 1;
+                            }
+                            const distantInk = document.getElementById(`pdfInkCanvas_${renderedP}`);
+                            const hasDistInk = Array.isArray(pageAnnotations[renderedP]) && pageAnnotations[renderedP].length > 0;
+                            if (distantInk && !hasDistInk && (distantInk.width > 1 || distantInk.height > 1)) {
+                                distantInk.width = 1;
+                                distantInk.height = 1;
                             }
                             renderedPagesSet.delete(renderedP);
                         }
@@ -40663,10 +40797,22 @@ function togglePdfAudioPlayerBar(forceState) {
                 offCanvas.width = 0;
                 offCanvas.height = 0;
 
-                inkCanvas.width = targetW;
-                inkCanvas.height = targetH;
-                laserCanvas.width = targetW;
-                laserCanvas.height = targetH;
+                wrapper.dataset.targetPixelW = String(targetW);
+                wrapper.dataset.targetPixelH = String(targetH);
+                const slideHasInk = Array.isArray(pageAnnotations[compositeKey]) && pageAnnotations[compositeKey].length > 0;
+                if (slideHasInk) {
+                    if (inkCanvas.width !== targetW || inkCanvas.height !== targetH) {
+                        inkCanvas.width = targetW;
+                        inkCanvas.height = targetH;
+                    }
+                } else if (inkCanvas.width !== 1 || inkCanvas.height !== 1) {
+                    inkCanvas.width = 1;
+                    inkCanvas.height = 1;
+                }
+                if (laserCanvas.width !== 1 || laserCanvas.height !== 1) {
+                    laserCanvas.width = 1;
+                    laserCanvas.height = 1;
+                }
 
                 redrawPageAnnotations(compositeKey);
                 syncExtraNoteSheetSize(compositeKey, w, Math.floor(h * 0.75));
@@ -41590,6 +41736,22 @@ function togglePdfAudioPlayerBar(forceState) {
                 activeToolOnStroke = effectiveTool;
                 lastRawPt = pt;
                 try { inkCanvas.setPointerCapture(e.pointerId); } catch (err) {}
+                // Lazily materialize HiDPI ink & laser backing stores right when a stroke begins
+                if (inkCanvas.width <= 1 || inkCanvas.height <= 1 || laserCanvas.width <= 1 || laserCanvas.height <= 1) {
+                    const pWrap = inkCanvas.parentElement;
+                    const dprNow = Math.min(window.devicePixelRatio || 1, 2);
+                    const tgtW = Math.max(1, Number(pWrap?.dataset?.targetPixelW) || Math.floor(cachedRectW * dprNow));
+                    const tgtH = Math.max(1, Number(pWrap?.dataset?.targetPixelH) || Math.floor(cachedRectH * dprNow));
+                    if (effectiveTool !== 'laser' && effectiveTool !== 'eraser' && (inkCanvas.width <= 1 || inkCanvas.height <= 1)) {
+                        inkCanvas.width = tgtW;
+                        inkCanvas.height = tgtH;
+                        redrawPageInkOnly(pageNum);
+                    }
+                    if (laserCanvas.width <= 1 || laserCanvas.height <= 1) {
+                        laserCanvas.width = Math.max(inkCanvas.width, tgtW);
+                        laserCanvas.height = Math.max(inkCanvas.height, tgtH);
+                    }
+                }
                 currentPoints = [{
                     x: Math.round(pt.x * 10000) / 10000,
                     y: Math.round(pt.y * 10000) / 10000,
@@ -42721,10 +42883,27 @@ function togglePdfAudioPlayerBar(forceState) {
         function redrawPageInkOnly(pageNum) {
             const inkCanvas = document.getElementById(`pdfInkCanvas_${pageNum}`);
             if (!inkCanvas) return;
+            const strokes = pageAnnotations[pageNum] || [];
+            if (strokes.length === 0) {
+                if (inkCanvas.width > 1 && inkCanvas.height > 1) {
+                    const ctxEmpty = inkCanvas.getContext('2d');
+                    if (ctxEmpty) ctxEmpty.clearRect(0, 0, inkCanvas.width, inkCanvas.height);
+                }
+                return;
+            }
+            if (inkCanvas.width <= 1 || inkCanvas.height <= 1) {
+                const pWrap = inkCanvas.parentElement;
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                const w = Number(pWrap?.dataset?.targetPixelW) || Math.floor((pWrap?.clientWidth || 800) * dpr);
+                const h = Number(pWrap?.dataset?.targetPixelH) || Math.floor((pWrap?.clientHeight || 600) * dpr);
+                if (w > 1 && h > 1) {
+                    inkCanvas.width = w;
+                    inkCanvas.height = h;
+                }
+            }
             const ctx = inkCanvas.getContext('2d');
             ctx.clearRect(0, 0, inkCanvas.width, inkCanvas.height);
 
-            const strokes = pageAnnotations[pageNum] || [];
             for (let i = 0; i < strokes.length; i++) {
                 drawSingleStrokeOnCanvas(ctx, inkCanvas.width, inkCanvas.height, strokes[i], false);
             }
@@ -43417,10 +43596,12 @@ function togglePdfAudioPlayerBar(forceState) {
             });
 
             document.querySelectorAll('.pdf-extra-note-sheet').forEach(sheet => {
+                if (sheet.style.display === 'none' && sheet.dataset.headerBuilt !== '1') return;
                 const hdr = sheet.querySelector('.pdf-extra-note-header');
                 const pNum = sheet.dataset.pageNum;
                 if (hdr && pNum) {
                     hdr.innerHTML = renderExtraNoteHeaderHTML(pNum, sheet.dataset.customLabel || null);
+                    sheet.dataset.headerBuilt = '1';
                 }
             });
 
@@ -43438,6 +43619,26 @@ function togglePdfAudioPlayerBar(forceState) {
                 expMenuBtn.classList.remove('vip-locked-extra-note');
             }
             if (expMenuIcon) expMenuIcon.className = 'fa-solid fa-file-export';
+        }
+
+        function ensureExtraNoteSheetInitialized(sheet, pageNum) {
+            if (!sheet) return;
+            const noteKey = `note_${pageNum}`;
+            if (sheet.dataset.headerBuilt !== '1') {
+                const header = sheet.querySelector('.pdf-extra-note-header');
+                if (header) {
+                    header.innerHTML = renderExtraNoteHeaderHTML(pageNum, sheet.dataset.customLabel || null);
+                }
+                sheet.dataset.headerBuilt = '1';
+            }
+            if (sheet.dataset.listenersAttached !== '1') {
+                const inkCanvas = document.getElementById(`pdfInkCanvas_${noteKey}`);
+                const laserCanvas = document.getElementById(`pdfLaserCanvas_${noteKey}`);
+                if (inkCanvas && laserCanvas) {
+                    attachGraphicTabletListeners(inkCanvas, laserCanvas, noteKey);
+                    sheet.dataset.listenersAttached = '1';
+                }
+            }
         }
 
         function buildExtraNoteSheetDOM(pageNum, widthPx, heightPx, customLabel = null) {
@@ -43462,7 +43663,12 @@ function togglePdfAudioPlayerBar(forceState) {
 
             const header = document.createElement('div');
             header.className = 'pdf-extra-note-header';
-            header.innerHTML = renderExtraNoteHeaderHTML(pageNum, customLabel);
+            if (isOpened) {
+                header.innerHTML = renderExtraNoteHeaderHTML(pageNum, customLabel);
+                sheet.dataset.headerBuilt = '1';
+            } else {
+                sheet.dataset.headerBuilt = '0';
+            }
 
             const noteDpr = Math.min(window.devicePixelRatio || 1, 2);
             const inkCanvas = document.createElement('canvas');
@@ -43475,8 +43681,8 @@ function togglePdfAudioPlayerBar(forceState) {
             const laserCanvas = document.createElement('canvas');
             laserCanvas.className = 'pdf-laser-canvas';
             laserCanvas.id = `pdfLaserCanvas_${noteKey}`;
-            laserCanvas.width = isOpened ? Math.max(1, Math.floor(widthPx * noteDpr)) : 1;
-            laserCanvas.height = isOpened ? Math.max(1, Math.floor(heightPx * noteDpr)) : 1;
+            laserCanvas.width = 1;
+            laserCanvas.height = 1;
 
             const textLayer = document.createElement('div');
             textLayer.className = 'pdf-text-layer';
@@ -43488,7 +43694,12 @@ function togglePdfAudioPlayerBar(forceState) {
             sheet.appendChild(laserCanvas);
             sheet.appendChild(textLayer);
 
-            attachGraphicTabletListeners(inkCanvas, laserCanvas, noteKey);
+            if (isOpened) {
+                attachGraphicTabletListeners(inkCanvas, laserCanvas, noteKey);
+                sheet.dataset.listenersAttached = '1';
+            } else {
+                sheet.dataset.listenersAttached = '0';
+            }
             return sheet;
         }
 
@@ -43506,12 +43717,15 @@ function togglePdfAudioPlayerBar(forceState) {
             if (sheet.style.display === 'none') {
                 return;
             }
+            ensureExtraNoteSheetInitialized(sheet, pageNum);
 
             const noteDpr = Math.min(window.devicePixelRatio || 1, 2);
             inkCanvas.width = Math.max(1, Math.floor(widthPx * noteDpr));
             inkCanvas.height = Math.max(1, Math.floor(heightPx * noteDpr));
-            laserCanvas.width = Math.max(1, Math.floor(widthPx * noteDpr));
-            laserCanvas.height = Math.max(1, Math.floor(heightPx * noteDpr));
+            if (laserCanvas.width !== 1 || laserCanvas.height !== 1) {
+                laserCanvas.width = 1;
+                laserCanvas.height = 1;
+            }
             redrawPageAnnotations(noteKey);
         }
 
@@ -43526,21 +43740,17 @@ function togglePdfAudioPlayerBar(forceState) {
             const nextState = isHidden ? true : false;
             if (isHidden) {
                 sheet.style.display = 'block';
+                ensureExtraNoteSheetInitialized(sheet, targetPage);
                 const noteKey = `note_${targetPage}`;
                 const targetW = Number(sheet.dataset.pendingWidth) || sheet.clientWidth || 800;
                 const targetH = Number(sheet.dataset.pendingHeight) || sheet.clientHeight || 600;
                 const inkCanvas = document.getElementById(`pdfInkCanvas_${noteKey}`);
-                const laserCanvas = document.getElementById(`pdfLaserCanvas_${noteKey}`);
                 const noteDpr = Math.min(window.devicePixelRatio || 1, 2);
                 const reqW = Math.max(1, Math.floor(targetW * noteDpr));
                 const reqH = Math.max(1, Math.floor(targetH * noteDpr));
                 if (inkCanvas && (inkCanvas.width !== reqW || inkCanvas.height !== reqH)) {
                     inkCanvas.width = reqW;
                     inkCanvas.height = reqH;
-                }
-                if (laserCanvas && (laserCanvas.width !== reqW || laserCanvas.height !== reqH)) {
-                    laserCanvas.width = reqW;
-                    laserCanvas.height = reqH;
                 }
                 redrawPageAnnotations(noteKey);
                 sheet.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -52522,13 +52732,20 @@ function togglePdfAudioPlayerBar(forceState) {
 
         function computeEntityContentDigest(entity) {
             if (!entity || typeof entity !== 'object') return 'null';
+            const keys = Object.keys(entity).sort();
             const clone = {};
-            Object.keys(entity).sort().forEach(k => {
-                if (k === '_causal' || k === '_causalDigest' || k === '_needsCausalStamp' || k === '_updatedAt' || k === 'groups' || k === 'lectures' || k === 'wirdLogs' || k === 'continuousLogs') return;
+            for (let i = 0; i < keys.length; i++) {
+                const k = keys[i];
+                if (k === '_causal' || k === '_causalDigest' || k === '_needsCausalStamp' || k === '_updatedAt' || k === 'groups' || k === 'lectures' || k === 'wirdLogs' || k === 'continuousLogs') continue;
                 clone[k] = entity[k];
-            });
+            }
             if (Array.isArray(entity.lectures)) {
-                clone._lectureOrder = entity.lectures.map(l => String(l && l.id !== undefined ? l.id : ''));
+                const order = new Array(entity.lectures.length);
+                for (let i = 0; i < entity.lectures.length; i++) {
+                    const l = entity.lectures[i];
+                    order[i] = String(l && l.id !== undefined ? l.id : '');
+                }
+                clone._lectureOrder = order;
             }
             try {
                 return JSON.stringify(clone);
@@ -55833,6 +56050,7 @@ function togglePdfAudioPlayerBar(forceState) {
         }
 
         async function pushWorkspaceToCloud(manualNotify = false, forceIncludeAnnotations = false, ctx = null) {
+            if (typeof exoFlushDeferredWorkspacePersistNow === 'function') exoFlushDeferredWorkspacePersistNow(false);
             if (!currentCloudUser) return Promise.resolve({ status: 'offline', error: 'not_logged_in' });
             const opCtx = resolveAccountOperationContext(ctx?.uid || currentCloudUser.id, ctx);
             if (!opCtx.ok || !opCtx.isCurrent()) {
@@ -55954,6 +56172,10 @@ function togglePdfAudioPlayerBar(forceState) {
                             }
                         } catch (e) {}
                     }
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                    if (!opCtx.isCurrent()) {
+                        return { status: 'aborted', reason: 'account_switched' };
+                    }
                     const nowIso = new Date().toISOString();
                     const userRevKey = 'pharmaWorkspaceRevision_' + syncUserId;
                     const expectedRev = Number(localStorage.getItem(userRevKey) || 1);
@@ -55961,13 +56183,13 @@ function togglePdfAudioPlayerBar(forceState) {
                     const payload = {
                         user_id: syncUserId,
                         user_email: (currentCloudUser?.email || "").toLowerCase(),
-                        subjects: JSON.parse(JSON.stringify(subjects || [])),
+                        subjects: (typeof structuredClone === 'function') ? structuredClone(subjects || []) : JSON.parse(JSON.stringify(subjects || [])),
                         schedule: {
                             version: 3,
-                            events: JSON.parse(JSON.stringify(scheduleEvents || [])),
-                            backlog: JSON.parse(JSON.stringify(scheduleBacklog || [])),
+                            events: (typeof structuredClone === 'function') ? structuredClone(scheduleEvents || []) : JSON.parse(JSON.stringify(scheduleEvents || [])),
+                            backlog: (typeof structuredClone === 'function') ? structuredClone(scheduleBacklog || []) : JSON.parse(JSON.stringify(scheduleBacklog || [])),
                             plannerPrefs: plannerPrefs,
-                            weeklyReports: JSON.parse(JSON.stringify(weeklyReports || [])),
+                            weeklyReports: (typeof structuredClone === 'function') ? structuredClone(weeklyReports || []) : JSON.parse(JSON.stringify(weeklyReports || [])),
                             pdfFitMode: currentPdfFitMode || 'height',
                             cloudMediaRegistry: cloudMediaRegistry || {},
                             _tombstones: getLocalTombstones(syncUserId),
@@ -55980,10 +56202,14 @@ function togglePdfAudioPlayerBar(forceState) {
                                 quotaInfo: localStorage.getItem('exo_gdrive_quota_info') || ''
                             }
                         },
-                        logs: JSON.parse(JSON.stringify(logs || [])),
+                        logs: (typeof structuredClone === 'function') ? structuredClone(logs || []) : JSON.parse(JSON.stringify(logs || [])),
                         academy_progress: completedAcademyModules || [],
                         updated_at: nowIso
                     };
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                    if (!opCtx.isCurrent()) {
+                        return { status: 'aborted', reason: 'account_switched' };
+                    }
 
                     let annotationsActuallyIncluded = false;
                     let currentSig = '';
@@ -57975,6 +58201,7 @@ function togglePdfAudioPlayerBar(forceState) {
         }
 
         async function syncWorkspaceOnLogin(ctx = null) {
+            if (typeof exoFlushDeferredWorkspacePersistNow === 'function') exoFlushDeferredWorkspacePersistNow(false);
             if (typeof window !== 'undefined' && window.__exoSupabaseStartupState) {
                 window.__exoSupabaseStartupState.syncWorkspaceOnLoginCalled = true;
             }
@@ -59549,7 +59776,7 @@ function togglePdfAudioPlayerBar(forceState) {
         }
 
         // --- End-of-Day Missed Task Detection ---
-        function evaluatePastAndTodayMissedSessions(notifyToast = false) {
+        function evaluatePastAndTodayMissedSessions(notifyToast = false, options = {}) {
             const orderedDays = getOrderedWeekDays();
             const dayOrderMap = new Map();
             orderedDays.forEach(d => dayOrderMap.set(d.dayIdx, d));
@@ -59557,9 +59784,10 @@ function togglePdfAudioPlayerBar(forceState) {
             const now = new Date();
             const curDecHour = now.getHours() + (now.getMinutes() / 60);
             const dayEndHour = Number(plannerPrefs.dayEndHour ?? 23);
-            const dateStr = now.toLocaleDateString('ar-EG');
 
             let newlyMissedCount = 0;
+            let existingLogTextSet = null;
+            let subjectNameById = null;
 
             scheduleEvents.forEach(ev => {
                 if (isCollegeCommitmentSession(ev) || isPersonalNeutralSession(ev) || isWastedTimeSession(ev) || ev.completed || ev.missed) return;
@@ -59580,13 +59808,26 @@ function togglePdfAudioPlayerBar(forceState) {
                     ev.missedAt = Date.now();
                     newlyMissedCount++;
 
+                    if (!subjectNameById) {
+                        subjectNameById = new Map();
+                        for (let si = 0; si < subjects.length; si++) {
+                            if (subjects[si]) subjectNameById.set(String(subjects[si].id), subjects[si].name);
+                        }
+                    }
                     let subName = '';
                     if (ev.subjectId) {
-                        const sObj = subjects.find(s => String(s.id) === String(ev.subjectId));
-                        if (sObj) subName = ` [${sObj.name}]`;
+                        const sName = subjectNameById.get(String(ev.subjectId));
+                        if (sName) subName = ` [${sName}]`;
                     }
                     const missedLogTxt = `❌ مهمة لم تتم في يومها (${dInfo.dayName}): ${ev.title}${subName} (${ev.duration} س)`;
-                    if (!logs.some(l => l.text === missedLogTxt)) {
+                    if (!existingLogTextSet) {
+                        existingLogTextSet = new Set();
+                        for (let li = 0; li < logs.length; li++) {
+                            if (logs[li] && logs[li].text) existingLogTextSet.add(logs[li].text);
+                        }
+                    }
+                    if (!existingLogTextSet.has(missedLogTxt)) {
+                        existingLogTextSet.add(missedLogTxt);
                         logs.unshift({
                             id: Date.now() + Math.floor(Math.random() * 1000),
                             date: dInfo.dateObj.toLocaleDateString('ar-EG'),
@@ -59599,8 +59840,12 @@ function togglePdfAudioPlayerBar(forceState) {
             });
 
             if (newlyMissedCount > 0) {
-                saveLogs();
-                saveScheduleData();
+                if (options && options.deferSave && typeof exoQueueDeferredWorkspacePersist === 'function') {
+                    exoQueueDeferredWorkspacePersist({ logs: true, schedule: true });
+                } else {
+                    saveLogs();
+                    saveScheduleData();
+                }
                 if (notifyToast) {
                     showToast(`⚠️ تم تسجيل ${newlyMissedCount} مهام منتهية الوقت كـ «مهمة لم تتم» في الجدول والسجل`, 'error');
                 }
@@ -60082,11 +60327,15 @@ function togglePdfAudioPlayerBar(forceState) {
             };
         }
 
-        function checkWeeklyCycleAndRollover() {
+        function checkWeeklyCycleAndRollover(options = {}) {
             const currentComputedWeekIso = getLocalIsoDate(getWeekStartDateForDate(new Date(), plannerPrefs.weekStartDay));
             if (!plannerPrefs.currentWeekStartIso) {
                 plannerPrefs.currentWeekStartIso = currentComputedWeekIso;
-                saveScheduleData();
+                if (options && options.deferSave && typeof exoQueueDeferredWorkspacePersist === 'function') {
+                    exoQueueDeferredWorkspacePersist({ schedule: true });
+                } else {
+                    saveScheduleData();
+                }
                 return;
             }
             if (currentComputedWeekIso > plannerPrefs.currentWeekStartIso) {
@@ -60095,7 +60344,11 @@ function togglePdfAudioPlayerBar(forceState) {
                     finalizeWeekAndArchiveReport(plannerPrefs.currentWeekStartIso, currentComputedWeekIso, true);
                 } else {
                     plannerPrefs.currentWeekStartIso = currentComputedWeekIso;
-                    saveScheduleData();
+                    if (options && options.deferSave && typeof exoQueueDeferredWorkspacePersist === 'function') {
+                        exoQueueDeferredWorkspacePersist({ schedule: true });
+                    } else {
+                        saveScheduleData();
+                    }
                 }
             }
         }
