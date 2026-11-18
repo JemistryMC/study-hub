@@ -13,7 +13,7 @@
 //      Planner & Tracker with zero Arabic leakage in EN mode
 //   8. Responsive Desktop (1440x900), Tablet (768x1024), Mobile (390x844 & 360x740)
 //      tap targets (>= 44px), zero horizontal overflow, zero runtime errors
-//   9. Captures desktop & mobile EN/AR screenshots to reports/screenshots/wp6-7/
+//   9. Captures desktop & mobile EN/AR runtime screenshots to .playwright-cli/wp6-7/ (gitignored)
 // ============================================================================
 
 const fs = require('fs');
@@ -241,7 +241,7 @@ async function main() {
   console.log('EXO WP 6.7 — THE HANDCRAFTED EXPERIENCE REBUILD E2E VERIFICATION');
   console.log('======================================================================');
 
-  const screenshotDir = path.join(__dirname, 'reports', 'screenshots', 'wp6-7');
+  const screenshotDir = path.join(__dirname, '.playwright-cli', 'wp6-7');
   fs.mkdirSync(screenshotDir, { recursive: true });
 
   const spawnedServer = await ensureLocalServerRunning();
