@@ -83,6 +83,32 @@ async function ensureLocalServerRunning() {
 
 const STRESS_INIT_SCRIPT = `
 (function() {
+  // Deterministic test clock anchored at Saturday 2026-11-14 06:30:00 local time
+  // (matches plannerPrefs.weekStartDay = 6 before 07:00 events so day-of-week auto-missed
+  // reconciliation stays deterministic across calendar days without freezing real timers).
+  const RealDate = Date;
+  const ANCHOR_MS = new RealDate(2026, 10, 14, 6, 30, 0, 0).getTime();
+  const BOOT_PERF = typeof performance !== 'undefined' ? performance.now() : 0;
+  function currentFixedMs() {
+    const elapsed = (typeof performance !== 'undefined' ? performance.now() : 0) - BOOT_PERF;
+    return Math.floor(ANCHOR_MS + Math.max(0, elapsed));
+  }
+  function FixedDate(...args) {
+    if (!(this instanceof FixedDate)) {
+      return args.length === 0 ? new RealDate(currentFixedMs()).toString() : RealDate(...args);
+    }
+    if (args.length === 0) {
+      return new RealDate(currentFixedMs());
+    }
+    return new RealDate(...args);
+  }
+  FixedDate.prototype = RealDate.prototype;
+  Object.setPrototypeOf(FixedDate, RealDate);
+  FixedDate.now = function() { return currentFixedMs(); };
+  FixedDate.parse = RealDate.parse;
+  FixedDate.UTC = RealDate.UTC;
+  window.Date = FixedDate;
+
   function countPdfPagesFromData(data) {
     try {
       const bytes = data instanceof Uint8Array ? data : new Uint8Array(data || []);

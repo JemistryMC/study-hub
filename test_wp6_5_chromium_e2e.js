@@ -833,7 +833,9 @@ async function main() {
       await p.waitForFunction(() => !document.getElementById('btnManualCloudPull')?.disabled, { timeout: 5000 });
       assert(mockState.pushCount > prevPushes && mockState.pullCount > prevPulls, 'S6.3 Manual Push & Pull trigger verified Supabase RPC & SELECT mocks');
 
-      // Link Google Drive + verify post-connection Private-by-Default state + Privacy Check modal
+      // Navigate from Account summary card to single Google Drive Vault (#driveHubModalOverlay), then connect & run Privacy Check
+      await p.click('#btnAccountManageGoogleDrive');
+      await p.waitForSelector('#driveHubModalOverlay.active', { timeout: 4000 });
       await p.click('#btnConnectGoogleDrive');
       await p.waitForFunction(() => {
         const badge = document.getElementById('gdriveStatusBadge')?.innerText || '';

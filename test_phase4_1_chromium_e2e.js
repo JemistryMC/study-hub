@@ -7031,7 +7031,7 @@ async function main() {
         sidebarRight: sidebarRect ? Math.round(sidebarRect.right) : -1,
         vw: window.innerWidth,
         clockHasText: Boolean(document.getElementById('sidebarClockTime')?.innerText.trim()),
-        reorderHasFlip: document.querySelectorAll('.subject-card[data-subject-id="9901"] .move-btn i.exo-rtl-flip').length === 2
+        reorderHasFlip: document.querySelectorAll('.subject-card[data-subject-id="9901"] .exo-card-overflow-item svg.exo-rtl-flip').length === 2
       };
     });
 
@@ -7042,7 +7042,7 @@ async function main() {
       saved: localStorage.getItem('exoAppLang'),
       subjectsStillActive: document.getElementById('subjects')?.classList.contains('active'),
       subTitle: document.querySelector('.subject-card[data-subject-id="9901"] h3')?.innerText || '',
-      reorderHasFlip: document.querySelectorAll('.subject-card[data-subject-id="9901"] .move-btn i.exo-rtl-flip').length === 2
+      reorderHasFlip: document.querySelectorAll('.subject-card[data-subject-id="9901"] .exo-card-overflow-item svg.exo-rtl-flip').length === 2
     }));
 
     // Step 3b: Type non-matching Arabic+URL query into #searchSubjectInput, verify unsaved input & underlying model preserved across EN -> AR -> EN, then clear search and verify card reappears intact
@@ -7067,7 +7067,7 @@ async function main() {
     await pageKK.fill('#searchSubjectInput', '');
     const kk3Cleared = await pageKK.evaluate(() => ({
       subTitle: document.querySelector('.subject-card[data-subject-id="9901"] h3')?.innerText || '',
-      reorderHasFlip: document.querySelectorAll('.subject-card[data-subject-id="9901"] .move-btn i.exo-rtl-flip').length === 2
+      reorderHasFlip: document.querySelectorAll('.subject-card[data-subject-id="9901"] .exo-card-overflow-item svg.exo-rtl-flip').length === 2
     }));
 
     // Step 3c: Reload with 'ar' persisted to verify saved locale is NOT overwritten by EN default
@@ -7310,7 +7310,7 @@ async function main() {
       ll1Shelf.shelfActive === true &&
       ll1Shelf.isList === false &&
       ll1Shelf.cardCount === 3 &&
-      ll1Shelf.cardBg === 'rgb(41, 43, 45)' &&
+      ll1Shelf.cardBg === 'rgb(36, 39, 42)' &&
       ll1Shelf.ribbonSubs === '3 books' &&
       ll1Shelf.ribbonLecs === '4 lectures' &&
       ll1Shelf.ribbonDone === '2 done' &&
@@ -7320,7 +7320,7 @@ async function main() {
       JSON.stringify(ll1FilterCont) === JSON.stringify(['8803']) &&
       JSON.stringify(ll1SortedCourses) === JSON.stringify(['8802', '8801']) &&
       JSON.stringify(ll1Search) === JSON.stringify(['8802']),
-      'Test LL.1: Digital Bookshelf defaults to Shelf view with Charcoal covers (#292b2d), real counts, Shelf/List toggle, Filter, Sort, and Search',
+      'Test LL.1: Digital Bookshelf defaults to Shelf view with Charcoal covers (#24272a), real counts, Shelf/List toggle, Filter, Sort, and Search',
       JSON.stringify({ ll1Shelf, ll1ListOn, ll1FilterCont, ll1SortedCourses, ll1Search })
     );
 
@@ -7337,8 +7337,10 @@ async function main() {
     });
     assert(ll2CreatedId !== null, 'Test LL.2a: Created book Clinical Pharmacy exists in subjects model');
 
-    // Move created book (at index 0) down by 1 position using UI move-btn, then edit its name
+    // Move created book (at index 0) down by 1 position via card overflow menu, then edit its name
+    await pageLL.click(`.subject-card[data-subject-id="${ll2CreatedId}"] .exo-book-card-menu-wrap button.icon-btn`);
     await pageLL.click(`.subject-card[data-subject-id="${ll2CreatedId}"] button[onclick*="moveSubjectOrder(${ll2CreatedId}, 1"]`);
+    await pageLL.click(`.subject-card[data-subject-id="${ll2CreatedId}"] .exo-book-card-menu-wrap button.icon-btn`);
     await pageLL.click(`.subject-card[data-subject-id="${ll2CreatedId}"] button[onclick*="triggerEditSubject(${ll2CreatedId}"]`);
     await pageLL.waitForSelector('#smartSubjectModalOverlay.active', { state: 'visible' });
     await pageLL.fill('#smartSubjectNameInput', 'Clinical Therapeutics');
@@ -7421,11 +7423,13 @@ async function main() {
       Array.from(document.querySelectorAll('#groupsContainer .group-card')).every(c => !c.classList.contains('collapsed'))
     );
 
-    // Move Chapter 1 down via UI reorder button, then move back up
+    // Move Chapter 1 down via chapter overflow menu, then move back up
+    await pageLL.click('#groupCard_8811 .exo-book-card-menu-wrap button.icon-btn');
     await pageLL.click('#groupCard_8811 button[onclick*="moveGroupOrder(8811, 1"]');
     const ll3AfterChapterMove = await pageLL.evaluate(() =>
       Array.from(document.querySelectorAll('#groupsContainer .group-card')).map(c => c.id)
     );
+    await pageLL.click('#groupCard_8811 .exo-book-card-menu-wrap button.icon-btn');
     await pageLL.click('#groupCard_8811 button[onclick*="moveGroupOrder(8811, -1"]');
 
     // Create, rename, and delete a chapter via SingleInputModal / ConfirmModal UI
@@ -7441,6 +7445,7 @@ async function main() {
     });
     assert(ll3NewGrpId !== null, 'Test LL.3a: New chapter Endocrine Unit created via UI modal');
 
+    await pageLL.click(`#groupCard_${ll3NewGrpId} .exo-book-card-menu-wrap button.icon-btn`);
     await pageLL.click(`#groupCard_${ll3NewGrpId} button[onclick*="triggerEditGroup(${ll3NewGrpId})"]`);
     await pageLL.waitForSelector('#singleInputModalOverlay.active', { state: 'visible' });
     await pageLL.fill('#siModalInput', 'Endocrine & Thyroid');
@@ -7463,6 +7468,7 @@ async function main() {
     const ll3HeroAfterCheck = await pageLL.evaluate(() => document.getElementById('subjectHeroStatsRow')?.innerText.trim() || '');
 
     // Delete temporary chapter via ConfirmModal
+    await pageLL.click(`#groupCard_${ll3NewGrpId} .exo-book-card-menu-wrap button.icon-btn`);
     await pageLL.click(`#groupCard_${ll3NewGrpId} button[onclick*="triggerDeleteGroup(${ll3NewGrpId})"]`);
     await pageLL.waitForSelector('#confirmModalOverlay.active', { state: 'visible' });
     await pageLL.click('#confirmModalBtn');
@@ -7498,7 +7504,7 @@ async function main() {
         detailsVisible: getComputedStyle(document.getElementById('subject-details-view')).display !== 'none',
         activeTitle: document.getElementById('activeSubjectTitle')?.innerText.trim(),
         tocSearchVal: document.getElementById('tocSearchInput')?.value || '',
-        backFlip: Boolean(document.querySelector('#backToSubjectsBtn i.exo-rtl-flip')),
+        backFlip: Boolean(document.querySelector('#backToSubjectsBtn i.exo-rtl-flip, #backToSubjectsBtn svg.exo-rtl-flip')),
         noSidebarOverlap: Boolean(mainRect && sideRect && mainRect.right <= sideRect.left + 1)
       };
     });

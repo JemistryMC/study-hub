@@ -9647,9 +9647,11 @@
         #subjects .subject-card:focus-within .card-actions-always {
             opacity: 1;
         }
-        #subjects .subject-card .card-actions-always .icon-btn {
-            width: 34px;
-            height: 34px;
+        #subjects .subject-card .card-actions-always .icon-btn,
+        .exo-card-overflow-trigger,
+        .exo-card-icon-action {
+            width: 36px;
+            height: 36px;
             border-radius: 8px;
             background: rgba(25, 27, 29, 0.72);
             border: 1px solid rgba(240, 230, 212, 0.1);
@@ -10245,11 +10247,13 @@
             border: 1px solid rgba(240, 230, 212, 0.1);
             border-radius: 10px;
         }
-        @media (hover: none), (max-width: 860px) {
+        @media (hover: none), (max-width: 1024px) {
             #subjects .subject-card .card-actions-always {
                 opacity: 1 !important;
             }
             #subjects .subject-card .card-actions-always .icon-btn,
+            .exo-card-overflow-trigger,
+            .exo-card-icon-action,
             #subjects .exo-view-seg-btn,
             #subjects .exo-toc-util-btn,
             #groupsContainer .group-card .card-actions button,
@@ -10258,6 +10262,12 @@
             #subjects .lec-order-btn {
                 min-width: 44px !important;
                 min-height: 44px !important;
+            }
+            #subjects .subject-card .card-actions-always .icon-btn,
+            .exo-card-overflow-trigger,
+            .exo-card-icon-action {
+                width: 44px !important;
+                height: 44px !important;
             }
             #groupsContainer .lec-mobile-study-btn {
                 min-height: 44px !important;
@@ -12411,36 +12421,17 @@
             border-radius: var(--cutout-radius-tab);
         }
 
-        /* Account vs. Google Drive Separation Tabs & Hub */
-        .exo-account-hub-tabs {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 6px;
-            padding: 5px;
-            background: rgba(18, 20, 22, 0.9);
-            border: 1px solid rgba(240, 230, 212, 0.11);
+        .exo-account-drive-summary {
+            margin-top: 10px;
+            padding: 10px 12px;
             border-radius: 10px;
-            margin-bottom: 12px;
-        }
-        .exo-account-hub-tab {
-            min-height: 40px;
-            border: 1px solid transparent;
-            border-radius: 8px;
-            background: transparent;
-            color: var(--text-muted, #ABA69D);
-            font-size: 0.8rem;
-            font-weight: 700;
-            display: inline-flex;
+            background: rgba(25, 27, 29, 0.78);
+            border: 1px solid rgba(240, 230, 212, 0.11);
+            display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 7px;
-            cursor: pointer;
-            transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease;
-        }
-        .exo-account-hub-tab.active {
-            background: rgba(137, 153, 130, 0.2);
-            border-color: rgba(137, 153, 130, 0.52);
-            color: var(--warm-paper, #F0E6D4);
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         #driveHubModalOverlay {
             background: rgba(10, 12, 15, 0.86) !important;
@@ -12452,6 +12443,8 @@
             border: 1px solid rgba(137, 153, 130, 0.28) !important;
             border-radius: var(--cutout-radius-card) !important;
             box-shadow: 0 24px 60px rgba(0, 0, 0, 0.84) !important;
+            max-height: 90dvh;
+            overflow-y: auto;
         }
         .exo-drive-hub-status-banner {
             background: rgba(25, 27, 29, 0.88);
@@ -12503,8 +12496,7 @@
                 flex-wrap: wrap;
                 padding: 12px 13px;
             }
-            .cloud-auth-tab,
-            .exo-account-hub-tab {
+            .cloud-auth-tab {
                 min-height: 44px;
             }
         }
@@ -13082,6 +13074,10 @@
             background: rgba(16, 17, 19, 0.82) !important;
             backdrop-filter: none !important;
             -webkit-backdrop-filter: none !important;
+        }
+        .glass-overlay:not(.active),
+        .glass-overlay:not(.active) * {
+            pointer-events: none !important;
         }
         .glass-modal {
             background: #202225 !important;
@@ -15076,11 +15072,6 @@
 
             <!-- VIEW B: LOGGED IN (STUDENT PROFILE HUB & AUTO-SAVE STATUS) -->
             <div id="cloudLoggedInView" style="display: none;">
-                <div class="exo-account-hub-tabs" id="cloudHubViewTabs" role="tablist" aria-label="Account sections">
-                    <button type="button" class="exo-account-hub-tab active" id="cloudTabAllBtn" onclick="switchCloudHubSection('all')" data-exo-no-i18n="1">Account &amp; Sync</button>
-                    <button type="button" class="exo-account-hub-tab" id="cloudTabDriveBtn" onclick="switchCloudHubSection('drive')" data-exo-no-i18n="1">Google Drive Media</button>
-                </div>
-
                 <div id="cloudAccountSyncSection">
                     <div class="profile-id-card-luxury">
                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
@@ -15120,6 +15111,25 @@
                                     <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-download"/></svg> <span id="btnManualCloudPullText">Pull Cloud Copy</span>
                                 </button>
                             </div>
+                        </div>
+
+                        <!-- Compact Google Drive Connection Status Summary (Single entry point -> #driveHubModalOverlay) -->
+                        <div id="cloudAccountDriveSummaryBox" class="exo-account-drive-summary" data-exo-no-i18n="1">
+                            <div style="display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1 1 200px;">
+                                <div style="width: 32px; height: 32px; border-radius: 9px; background: rgba(137, 153, 130, 0.14); border: 1px solid rgba(137, 153, 130, 0.34); color: var(--sage-green, #899982); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-drive"/></svg>
+                                </div>
+                                <div style="min-width: 0;">
+                                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                        <span id="cloudAccountDriveSummaryTitle" style="font-size: 0.8rem; font-weight: 800; color: var(--warm-paper, #F0E6D4);">Google Drive Media Vault</span>
+                                        <span id="cloudAccountDriveStatusPill" class="studio-pill" style="font-size: 0.68rem; color: var(--stone, #ABA69D); border-color: rgba(240,230,212,0.18);">Disconnected</span>
+                                    </div>
+                                    <div id="cloudAccountDriveSummaryDesc" style="font-size: 0.72rem; color: var(--stone, #ABA69D); margin-top: 2px;">Private PDF &amp; audio media storage is managed in Google Drive Media Vault.</div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline" id="btnAccountManageGoogleDrive" onclick="openGoogleDriveHubModal()" style="padding: 6px 12px; font-size: 0.76rem; border-radius: 8px; flex-shrink: 0;">
+                                <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-drive"/></svg> <span id="btnAccountManageGoogleDriveText">Manage Google Drive</span>
+                            </button>
                         </div>
 
                         <!-- Inline Profile Name & Specialty Editor -->
@@ -15162,47 +15172,73 @@
                     </div>
                 </div>
 
-                <!-- Cloud PDF & Audio Recordings Sync Box (Mounted here OR inside dedicated #driveHubModalOverlay) -->
-                <div class="wp65-drive-panel" id="cloudDriveSectionPanel">
-                    <div id="cloudAuthDriveMount">
-                        <div class="cloud-gdrive-sync-card" id="cloudGdriveSyncCard" style="background: rgba(41, 43, 45, 0.78); border: 1px solid rgba(240, 230, 212, 0.12); border-radius: 10px; padding: 11px 13px; margin: 8px 0 10px 0;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
-                                <div style="font-weight: 800; font-size: 0.86rem; color: var(--ochre, #D7B96F); display: flex; align-items: center; gap: 7px;">
-                                    <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-crown"/></svg> <span id="cloudVipDrivePanelTitle" data-exo-no-i18n="1">Private Media Cloud &amp; VIP Entitlement</span>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                                    <span id="gdrivePrivacySummaryPill" class="wp65-drive-privacy-pill" data-exo-no-i18n="1"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-shield"/></svg> Private-by-Default</span>
-                                    <span id="cloudMediaCountBadge" class="studio-pill" style="font-size: 0.71rem; color: var(--ochre, #D7B96F); cursor: pointer;" onclick="handleCloudVipBadgeClick()">VIP Pro</span>
-                                </div>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                <div style="display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1 1 220px;">
-                                    <div style="width: 32px; height: 32px; border-radius: 9px; background: rgba(137, 153, 130, 0.16); border: 1px solid rgba(137, 153, 130, 0.38); display: flex; align-items: center; justify-content: center; font-size: 1.05rem; color: var(--sage-green, #899982); flex-shrink: 0;">
-                                        <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-drive"/></svg>
-                                    </div>
-                                    <div style="min-width: 0;">
-                                        <div id="gdriveCardHeadline" data-exo-no-i18n="1" style="font-weight: 800; font-size: 0.84rem; color: var(--warm-paper, #F0E6D4);">Google Drive — Private Folder (Exo_Workspace)</div>
-                                        <div id="gdriveAccountInfo" data-exo-no-i18n="1" style="font-size: 0.72rem; color: var(--stone, #ABA69D);">Owner-only private sync inside your personal Google Drive.</div>
-                                    </div>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                                    <span id="gdriveStatusBadge" class="studio-pill" data-exo-no-i18n="1" style="font-size: 0.7rem; color: var(--stone, #ABA69D); border-color: rgba(240,230,212,0.18);"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-circle-xmark"/></svg> Disconnected</span>
-                                    <button type="button" class="btn btn-primary" id="btnConnectGoogleDrive" onclick="connectGoogleDriveAccount()" style="padding: 5px 12px; font-size: 0.75rem; border-radius: 8px;">
-                                        <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-drive"/></svg> <span id="btnConnectGdriveText" data-exo-no-i18n="1">Link Google Drive</span>
-                                    </button>
-                                    <button type="button" class="btn btn-outline" id="btnAuditGdrivePrivacy" onclick="auditAndManageGoogleDrivePermissions()" style="display: none; padding: 5px 10px; font-size: 0.73rem; border-radius: 8px;" data-exo-no-i18n="1">
-                                        <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-shield"/></svg> <span id="btnAuditGdrivePrivacyText">Privacy Check</span>
-                                    </button>
-                                    <button type="button" class="btn btn-outline" id="btnDisconnectGoogleDrive" onclick="disconnectGoogleDriveAccount()" style="display: none; padding: 5px 10px; font-size: 0.73rem; color: var(--terracotta, #C47D60); border-color: rgba(196,125,96,0.4); border-radius: 8px;">
-                                        <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-link-slash"/></svg> <span id="btnDisconnectGdriveText" data-exo-no-i18n="1">Disconnect</span>
-                                    </button>
-                                </div>
-                            </div>
-                            <div id="gdriveMediaRegistryStrip" class="wp65-drive-media-strip" data-exo-no-i18n="1"></div>
-                            <div id="gdriveResumableNotice" style="display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(240, 230, 212, 0.1);"></div>
-                        </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--border-color);">
+                    <button type="button" id="cloudHubForensicExportBtn" class="btn btn-outline" style="padding: 7px 12px; font-size: 0.76rem;" onclick="if(window.exoExportForensicDiagnosticsJson) window.exoExportForensicDiagnosticsJson();">
+                        <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-stethoscope"/></svg> <span data-exo-no-i18n="1" class="exo-forensic-export-lbl">Export Forensic Log (.json)</span>
+                    </button>
+                    <button type="button" id="cloudSignOutBtn" class="btn btn-danger" style="padding: 7px 15px; font-size: 0.8rem;" onclick="handleCloudSignOut()">
+                        <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-sign-out"/></svg> <span id="cloudSignOutBtnText">تسجيل الخروج</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= DEDICATED GOOGLE DRIVE MEDIA HUB MODAL (SINGLE SOURCE OF TRUTH) ================= -->
+    <div class="glass-overlay" id="driveHubModalOverlay" role="dialog" aria-modal="true" aria-labelledby="driveHubModalTitle">
+        <div class="glass-modal" style="max-width: 540px; width: 95%; padding: 20px 22px;">
+            <div class="auth-luxury-hero" style="margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(137, 153, 130, 0.18); border: 1px solid rgba(137, 153, 130, 0.42); color: var(--sage-green, #899982); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                        <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-drive"/></svg>
                     </div>
-                    <!-- Live Upload Progress Bar, Percentage & Speed Monitor inside Account Modal -->
+                    <div>
+                        <h3 id="driveHubModalTitle" data-exo-no-i18n="1" style="margin: 0; font-size: 1.15rem; font-weight: 900; color: var(--warm-paper, #F0E6D4);">Google Drive Media Vault</h3>
+                        <span id="driveHubModalSubtitle" data-exo-no-i18n="1" style="font-size: 0.76rem; color: var(--stone, #ABA69D);">Private PDF &amp; audio media storage inside your own Google Drive (separate from account sync).</span>
+                    </div>
+                </div>
+                <button type="button" class="icon-btn" id="driveHubModalCloseBtn" aria-label="Close Google Drive hub" style="width: 32px; height: 32px;" onclick="closeGoogleDriveHubModal()"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-close"/></svg></button>
+            </div>
+            <div id="driveHubStateBanner" class="exo-cutout-strip" data-exo-no-i18n="1" style="margin-bottom: 12px;"></div>
+            <div id="driveHubModalMount" data-exo-no-i18n="1">
+                <div class="wp65-drive-panel" id="cloudDriveSectionPanel">
+                    <div class="cloud-gdrive-sync-card" id="cloudGdriveSyncCard" style="background: rgba(41, 43, 45, 0.78); border: 1px solid rgba(240, 230, 212, 0.12); border-radius: 10px; padding: 11px 13px; margin: 4px 0 10px 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+                            <div style="font-weight: 800; font-size: 0.86rem; color: var(--ochre, #D7B96F); display: flex; align-items: center; gap: 7px;">
+                                <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-crown"/></svg> <span id="cloudVipDrivePanelTitle" data-exo-no-i18n="1">Private Media Cloud &amp; VIP Entitlement</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                <span id="gdrivePrivacySummaryPill" class="wp65-drive-privacy-pill" data-exo-no-i18n="1"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-shield"/></svg> Private-by-Default</span>
+                                <span id="cloudMediaCountBadge" class="studio-pill" style="font-size: 0.71rem; color: var(--ochre, #D7B96F); cursor: pointer;" onclick="handleCloudVipBadgeClick()">VIP Pro</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1 1 220px;">
+                                <div style="width: 32px; height: 32px; border-radius: 9px; background: rgba(137, 153, 130, 0.16); border: 1px solid rgba(137, 153, 130, 0.38); display: flex; align-items: center; justify-content: center; font-size: 1.05rem; color: var(--sage-green, #899982); flex-shrink: 0;">
+                                    <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-drive"/></svg>
+                                </div>
+                                <div style="min-width: 0;">
+                                    <div id="gdriveCardHeadline" data-exo-no-i18n="1" style="font-weight: 800; font-size: 0.84rem; color: var(--warm-paper, #F0E6D4);">Google Drive — Private Folder (Exo_Workspace)</div>
+                                    <div id="gdriveAccountInfo" data-exo-no-i18n="1" style="font-size: 0.72rem; color: var(--stone, #ABA69D);">Owner-only private sync inside your personal Google Drive.</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                <span id="gdriveStatusBadge" class="studio-pill" data-exo-no-i18n="1" style="font-size: 0.7rem; color: var(--stone, #ABA69D); border-color: rgba(240,230,212,0.18);"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-circle-xmark"/></svg> Disconnected</span>
+                                <button type="button" class="btn btn-primary" id="btnConnectGoogleDrive" onclick="connectGoogleDriveAccount()" style="padding: 5px 12px; font-size: 0.75rem; border-radius: 8px;">
+                                    <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-drive"/></svg> <span id="btnConnectGdriveText" data-exo-no-i18n="1">Link Google Drive</span>
+                                </button>
+                                <button type="button" class="btn btn-outline" id="btnAuditGdrivePrivacy" onclick="auditAndManageGoogleDrivePermissions()" style="display: none; padding: 5px 10px; font-size: 0.73rem; border-radius: 8px;" data-exo-no-i18n="1">
+                                    <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-shield"/></svg> <span id="btnAuditGdrivePrivacyText">Privacy Check</span>
+                                </button>
+                                <button type="button" class="btn btn-outline" id="btnDisconnectGoogleDrive" onclick="disconnectGoogleDriveAccount()" style="display: none; padding: 5px 10px; font-size: 0.73rem; color: var(--terracotta, #C47D60); border-color: rgba(196,125,96,0.4); border-radius: 8px;">
+                                    <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-link-slash"/></svg> <span id="btnDisconnectGdriveText" data-exo-no-i18n="1">Disconnect</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="gdriveMediaRegistryStrip" class="wp65-drive-media-strip" data-exo-no-i18n="1"></div>
+                        <div id="gdriveResumableNotice" style="display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(240, 230, 212, 0.1);"></div>
+                    </div>
+                    <!-- Live Upload Progress Bar, Percentage & Speed Monitor inside Dedicated Drive Hub -->
                     <div class="cloud-upload-monitor-box" id="cloudMediaUploadMonitorBox">
                         <div class="cum-top-row">
                             <span class="cum-filename" id="modalUploadFileName">جاري التحضير...</span>
@@ -15221,36 +15257,7 @@
                     </div>
                     <div id="cloudMediaProgressText" style="display: none; margin-top: 8px; font-size: 0.75rem; color: var(--primary); font-weight: 700; line-height: 1.55;"></div>
                 </div>
-
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--border-color);">
-                    <button type="button" id="cloudHubForensicExportBtn" class="btn btn-outline" style="padding: 7px 12px; font-size: 0.76rem;" onclick="if(window.exoExportForensicDiagnosticsJson) window.exoExportForensicDiagnosticsJson();">
-                        <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-stethoscope"/></svg> <span data-exo-no-i18n="1" class="exo-forensic-export-lbl">Export Forensic Log (.json)</span>
-                    </button>
-                    <button type="button" id="cloudSignOutBtn" class="btn btn-danger" style="padding: 7px 15px; font-size: 0.8rem;" onclick="handleCloudSignOut()">
-                        <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-sign-out"/></svg> <span id="cloudSignOutBtnText">تسجيل الخروج</span>
-                    </button>
-                </div>
             </div>
-        </div>
-    </div>
-
-    <!-- ================= DEDICATED GOOGLE DRIVE MEDIA HUB MODAL ================= -->
-    <div class="glass-overlay" id="driveHubModalOverlay" role="dialog" aria-modal="true" aria-labelledby="driveHubModalTitle">
-        <div class="glass-modal" style="max-width: 540px; width: 95%; padding: 20px 22px;">
-            <div class="auth-luxury-hero" style="margin-bottom: 12px;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(137, 153, 130, 0.18); border: 1px solid rgba(137, 153, 130, 0.42); color: var(--sage-green, #899982); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
-                        <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-drive"/></svg>
-                    </div>
-                    <div>
-                        <h3 id="driveHubModalTitle" data-exo-no-i18n="1" style="margin: 0; font-size: 1.15rem; font-weight: 900; color: var(--warm-paper, #F0E6D4);">Google Drive Media Vault</h3>
-                        <span id="driveHubModalSubtitle" data-exo-no-i18n="1" style="font-size: 0.76rem; color: var(--stone, #ABA69D);">Private PDF &amp; audio media storage inside your own Google Drive (separate from account sync).</span>
-                    </div>
-                </div>
-                <button type="button" class="icon-btn" id="driveHubModalCloseBtn" aria-label="Close Google Drive hub" style="width: 32px; height: 32px;" onclick="closeGoogleDriveHubModal()"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-close"/></svg></button>
-            </div>
-            <div id="driveHubStateBanner" class="exo-cutout-strip" data-exo-no-i18n="1" style="margin-bottom: 12px;"></div>
-            <div id="driveHubModalMount" data-exo-no-i18n="1"></div>
             <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 12px; margin-top: 10px; border-top: 1px solid rgba(240,230,212,0.1);">
                 <button type="button" class="btn btn-outline" id="driveHubOpenAccountBtn" onclick="closeGoogleDriveHubModal(); openCloudAuthModal();" style="padding: 7px 13px; font-size: 0.78rem;" data-exo-no-i18n="1">
                     <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-user"/></svg> <span id="driveHubOpenAccountBtnText">Account &amp; Workspace Sync</span>
@@ -23223,7 +23230,7 @@
                         <div class="exo-cw-title-row">
                             <span class="exo-toc-chapter-num">${summary.chapterIndexLabel}</span>
                             <h2 class="exo-editorial" id="cwActiveChapterTitle" data-exo-no-i18n="1"><bdi>${escapeHtml(group.name)}</bdi></h2>
-                            <button type="button" class="icon-btn edit" style="width:36px; height:36px;" onclick="triggerEditGroup(${serializeCwIdArg(group.id)})" title="${isEn ? 'Rename chapter' : 'تعديل اسم الفصل'}" aria-label="${isEn ? 'Rename chapter' : 'تعديل اسم الفصل'}"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-pen"/></svg></button>
+                            <button type="button" class="icon-btn edit exo-card-icon-action" onclick="triggerEditGroup(${serializeCwIdArg(group.id)})" title="${isEn ? 'Rename chapter' : 'تعديل اسم الفصل'}" aria-label="${isEn ? 'Rename chapter' : 'تعديل اسم الفصل'}"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-pen"/></svg></button>
                         </div>
                         <div class="exo-cw-meta-row" id="cwHeaderMetaRow">
                             <span>${isEn ? `${summary.doneLectures}/${summary.totalLectures} lectures done (${summary.pct}%)` : `${summary.doneLectures}/${summary.totalLectures} محاضرة مكتملة (${summary.pct}%)`}</span>
@@ -23940,7 +23947,7 @@
                                     </div>
                                     <div class="card-actions-always" onclick="event.stopPropagation()">
                                         <div class="exo-book-card-menu-wrap">
-                                            <button type="button" class="icon-btn" style="width:36px; height:36px;" title="${moreTitle}" aria-label="${moreTitle}" aria-haspopup="menu" aria-expanded="false" onclick="toggleExoCardOverflowMenu(this, event)">
+                                            <button type="button" class="icon-btn exo-card-overflow-trigger" title="${moreTitle}" aria-label="${moreTitle}" aria-haspopup="menu" aria-expanded="false" onclick="toggleExoCardOverflowMenu(this, event)">
                                                 <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-sliders"/></svg>
                                             </button>
                                             <div class="exo-card-overflow-menu" role="menu">
@@ -24971,7 +24978,7 @@
                                 </button>
                                 <button type="button" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.82rem; min-height: 36px;" onclick="triggerAddLecture(${g.id})"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-plus"/></svg> ${isEn ? 'New Lecture' : 'محاضرة جديدة'}</button>
                                 <div class="exo-book-card-menu-wrap">
-                                    <button type="button" class="icon-btn" style="width:36px; height:36px;" title="${grpMoreTitle}" aria-label="${grpMoreTitle}" aria-haspopup="menu" aria-expanded="false" onclick="toggleExoCardOverflowMenu(this, event)">
+                                    <button type="button" class="icon-btn exo-card-overflow-trigger" title="${grpMoreTitle}" aria-label="${grpMoreTitle}" aria-haspopup="menu" aria-expanded="false" onclick="toggleExoCardOverflowMenu(this, event)">
                                         <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-sliders"/></svg>
                                     </button>
                                     <div class="exo-card-overflow-menu" role="menu">
@@ -25037,9 +25044,9 @@
 
                         let uploadActionBtnHtml = '';
                         if (isFullyUploaded) {
-                            uploadActionBtnHtml = `<button type="button" class="icon-btn" disabled title="${isEn ? 'Uploaded to cloud (annotations sync automatically)' : 'مرفوع للسحابة مسبقاً'}" style="width:36px; height:36px; color: var(--sage-green); border-color: rgba(137,153,130,0.3); opacity: 0.6; cursor: not-allowed;"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-check"/></svg></button>`;
+                            uploadActionBtnHtml = `<button type="button" class="icon-btn exo-card-icon-action" disabled title="${isEn ? 'Uploaded to cloud (annotations sync automatically)' : 'مرفوع للسحابة مسبقاً'}" style="color: var(--sage-green); border-color: rgba(137,153,130,0.3); opacity: 0.6; cursor: not-allowed;"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-check"/></svg></button>`;
                         } else {
-                            uploadActionBtnHtml = `<button type="button" class="icon-btn" title="${isEn ? 'Upload lecture files to cloud' : 'رفع ملف المحاضرة للسحابة'}" style="width:36px; height:36px; color: var(--muted-blue); border-color: rgba(120,152,172,0.35);" onclick="uploadSingleLectureMediaToCloud(${g.id}, ${lec.id}, event)"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-upload"/></svg></button>`;
+                            uploadActionBtnHtml = `<button type="button" class="icon-btn exo-card-icon-action" title="${isEn ? 'Upload lecture files to cloud' : 'رفع ملف المحاضرة للسحابة'}" style="color: var(--muted-blue); border-color: rgba(120,152,172,0.35);" onclick="uploadSingleLectureMediaToCloud(${g.id}, ${lec.id}, event)"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-upload"/></svg></button>`;
                         }
 
                         const isFirstLec = lecIdx === 0;
@@ -25085,7 +25092,7 @@
                                     <button type="button" class="btn lec-mobile-study-btn" onclick="openLectureDocument(${g.id}, ${lec.id})"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-book"/></svg> <span>${isEn ? 'Open' : 'ابدأ المذاكرة'}</span></button>
                                     ${uploadActionBtnHtml}
                                     <div class="exo-book-card-menu-wrap">
-                                        <button type="button" class="icon-btn" style="width:36px; height:36px;" title="${lecMoreTitle}" aria-label="${lecMoreTitle}" aria-haspopup="menu" aria-expanded="false" onclick="toggleExoCardOverflowMenu(this, event)">
+                                        <button type="button" class="icon-btn exo-card-overflow-trigger" title="${lecMoreTitle}" aria-label="${lecMoreTitle}" aria-haspopup="menu" aria-expanded="false" onclick="toggleExoCardOverflowMenu(this, event)">
                                             <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-sliders"/></svg>
                                         </button>
                                         <div class="exo-card-overflow-menu" role="menu">
@@ -36512,24 +36519,92 @@
                     recoveryActionIds: ['retry_sync', 'export_backup']
                 });
             }
-            if (category === 'missing_rpc' || category === 'function_signature_mismatch' || category === 'postgrest_schema_cache' || category === 'invalid_payload') {
+            if (category === 'missing_rpc') {
                 return Object.assign(base, {
                     severity: 'error',
                     certainty: 'confirmed',
-                    canRetry: category === 'postgrest_schema_cache',
-                    titleEn: 'Cloud Sync Configuration Mismatch',
-                    titleAr: 'خلل في توافق خدمة المزامنة السحابية',
-                    whatHappenedEn: 'The backend rejected the sync request due to an RPC/schema or payload validation mismatch.',
-                    whatHappenedAr: 'رفض الخادم طلب المزامنة بسبب عدم تطابق الدالة السحابية أو صيغة البيانات.',
-                    causeEn: `Server returned ${code || status || category}.`,
-                    causeAr: `أعاد الخادم رمز الخطأ ${code || status || category}.`,
+                    canRetry: false,
+                    titleEn: 'Cloud Sync Function Missing (PGRST202)',
+                    titleAr: 'دالة المزامنة السحابية غير متوفرة (PGRST202)',
+                    whatHappenedEn: 'The backend API could not locate public.sync_workspace_with_concurrency(p_payload, p_expected_revision) in the PostgREST schema cache.',
+                    whatHappenedAr: 'تعذر على واجهة الخادم العثور على الدالة public.sync_workspace_with_concurrency(p_payload, p_expected_revision) في مخطط PostgREST.',
+                    causeEn: `Server returned ${code || status || 'PGRST202'}: database migrations (20261103140000–20261103160000) or EXECUTE grant for authenticated may not be applied yet, or the schema cache needs reload.`,
+                    causeAr: `أعاد الخادم ${code || status || 'PGRST202'}: قد تكون ترقيات قاعدة البيانات غير مطبقة بعد، أو تنقص صلاحية EXECUTE لحساب authenticated، أو تحتاج الذاكرة المؤقتة للتحديث.`,
+                    localSafetyEn: 'Your local workspace, annotations, and unsynced edits remain safely stored on this device.',
+                    localSafetyAr: 'مساحة العمل المحلية وملاحظاتك وتعديلاتك غير المرفوعة محفوظة بأمان على هذا الجهاز.',
+                    cloudSafetyEn: 'Remote workspace was untouched; pending edits remain marked for sync.',
+                    cloudSafetyAr: 'لم تتأثر النسخة السحابية، وتبقى تعديلاتك بانتظار المزامنة.',
+                    stepsEn: [
+                        'Download a local JSON backup right now to safeguard your device edits.',
+                        'Workspace owner should verify migrations 20261103140000–20261103160000 and authenticated EXECUTE grants, then run NOTIFY pgrst, \'reload schema\';.',
+                        'Do not log out until your local changes are exported or backend sync succeeds.'
+                    ],
+                    stepsAr: [
+                        'نزّل نسخة احتياطية محلية (.json) الآن لحماية تعديلاتك.',
+                        'يتحقق مالك المنصة من تطبيق ترقيات قاعدة البيانات ومنح صلاحية EXECUTE ثم تحديث مخطط PostgREST.',
+                        'لا تسجل الخروج قبل تصدير نسخة احتياطية أو إتمام المزامنة السحابية.'
+                    ],
+                    recoveryActionIds: ['export_backup', 'open_account_hub']
+                });
+            }
+            if (category === 'function_signature_mismatch') {
+                return Object.assign(base, {
+                    severity: 'error',
+                    certainty: 'confirmed',
+                    canRetry: false,
+                    titleEn: 'Cloud Sync RPC Signature Mismatch',
+                    titleAr: 'عدم تطابق معاملات دالة المزامنة السحابية',
+                    whatHappenedEn: 'PostgreSQL rejected the RPC parameter signature sent by the client.',
+                    whatHappenedAr: 'رفض خادم قاعدة البيانات توقيع المعاملات المُرسل إلى دالة المزامنة.',
+                    causeEn: `Server returned ${code || status || '42883'}: expected parameter names/types (p_payload jsonb, p_expected_revision integer) differ from the deployed SQL definition.`,
+                    causeAr: `أعاد الخادم ${code || status || '42883'}: اختلاف اسم أو نوع المعاملات عن تعريف الدالة في PostgreSQL.`,
                     localSafetyEn: 'Your local workspace and notes remain safely stored on this device.',
                     localSafetyAr: 'بياناتك وملاحظاتك على هذا الجهاز محفوظة بأمان.',
-                    cloudSafetyEn: 'Remote workspace was not modified by this failed request.',
+                    cloudSafetyEn: 'Remote workspace was not modified by this rejected call.',
                     cloudSafetyAr: 'النسخة السحابية لم تتأثر بهذا الطلب.',
+                    stepsEn: ['Download a local JSON backup right now.', 'Share the redacted technical details with the workspace maintainer to align SQL and client versions.'],
+                    stepsAr: ['صدّر نسخة احتياطية محلية الآن.', 'شارك التفاصيل الفنية المنقّاة مع مالك المنصة لمطابقة نسخة التطبيق والخادم.'],
+                    recoveryActionIds: ['export_backup', 'open_account_hub']
+                });
+            }
+            if (category === 'postgrest_schema_cache') {
+                return Object.assign(base, {
+                    severity: 'warning',
+                    certainty: 'confirmed',
+                    canRetry: true,
+                    titleEn: 'Cloud API Schema Cache Stale',
+                    titleAr: 'الذاكرة المؤقتة لخدمة المزامنة تحتاج تحديثاً',
+                    whatHappenedEn: 'PostgREST reported a stale schema cache entry when resolving the sync endpoint.',
+                    whatHappenedAr: 'أفاد الخادم بأن الذاكرة المؤقتة لمخطط قاعدة البيانات بحاجة إلى إعادة تحميل.',
+                    causeEn: `Server returned ${code || status || 'schema cache error'}.`,
+                    causeAr: `أعاد الخادم رمز ${code || status || 'schema cache'}.`,
+                    localSafetyEn: 'Your local workspace and notes remain safely stored on this device.',
+                    localSafetyAr: 'بياناتك وملاحظاتك على هذا الجهاز محفوظة بأمان.',
+                    cloudSafetyEn: 'Remote workspace was untouched; pending edits stay queued.',
+                    cloudSafetyAr: 'النسخة السحابية لم تتأثر؛ التعديلات المعلقة محفوظة للرفع.',
+                    stepsEn: ['Download a local JSON backup to keep a snapshot.', 'Owner can reload schema via NOTIFY pgrst, \'reload schema\'; then you can Retry Sync Now.'],
+                    stepsAr: ['صدّر نسخة احتياطية محلية للاطمئنان.', 'بعد تحديث المخطط على الخادم (NOTIFY pgrst) اضغط إعادة المزامنة الآن.'],
+                    recoveryActionIds: ['retry_sync', 'export_backup']
+                });
+            }
+            if (category === 'invalid_payload') {
+                return Object.assign(base, {
+                    severity: 'error',
+                    certainty: 'confirmed',
+                    canRetry: false,
+                    titleEn: 'Cloud Sync Payload Validation Rejected',
+                    titleAr: 'رُفضت صيغة بيانات المزامنة من الخادم',
+                    whatHappenedEn: 'The backend database rejected the sync payload structure or violated a constraint check.',
+                    whatHappenedAr: 'رفض الخادم بنية بيانات المزامنة المرسلة أو خالفت أحد قيود التحقق.',
+                    causeEn: `Server returned ${code || status || '400/constraint'}.`,
+                    causeAr: `أعاد الخادم رمز الخطأ ${code || status || '400'}.`,
+                    localSafetyEn: 'Your local workspace and notes remain safely stored on this device.',
+                    localSafetyAr: 'بياناتك وملاحظاتك على هذا الجهاز محفوظة بأمان.',
+                    cloudSafetyEn: 'Remote workspace was protected and left unchanged.',
+                    cloudSafetyAr: 'بقيت النسخة السحابية محمية دون تغيير.',
                     stepsEn: ['Download a local JSON backup right now.', 'Share the redacted technical details with the workspace maintainer if this persists.'],
-                    stepsAr: ['صدّر نسخة احتياطية محلية الآن.', 'إذا استمرت المشكلة، أرسل التفاصيل الفنية المنقّاة لصاحب المنصة.'],
-                    recoveryActionIds: category === 'postgrest_schema_cache' ? ['retry_sync', 'export_backup'] : ['export_backup', 'open_account_hub']
+                    stepsAr: ['صدّر نسخة احتياطية محلية الآن.', 'إذا استمرت المشكلة، شارك التفاصيل الفنية المنقّاة مع مالك المنصة.'],
+                    recoveryActionIds: ['export_backup', 'open_account_hub']
                 });
             }
             if (category === 'server_error') {
@@ -48064,27 +48139,15 @@ function togglePdfAudioPlayerBar(forceState) {
             showToast('✅ تم تحديث بيانات ملفك الشخصي بنجاح!');
         }
 
-        function mountGdriveCardHost(target = 'cloud') {
+        function ensureDriveCardMountedInHub() {
             const card = document.getElementById('cloudGdriveSyncCard');
-            const authMount = document.getElementById('cloudAuthDriveMount');
             const driveMount = document.getElementById('driveHubModalMount');
-            if (!card) return;
-            const hostEl = (target === 'drive' && driveMount) ? driveMount : authMount;
-            if (hostEl && card.parentElement !== hostEl) {
-                hostEl.appendChild(card);
-            }
-        }
-
-        function switchCloudHubSection(mode = 'all') {
-            const targetMode = mode === 'drive' ? 'drive' : 'all';
-            const syncSec = document.getElementById('cloudAccountSyncSection');
             const drivePanel = document.getElementById('cloudDriveSectionPanel');
-            const tabAll = document.getElementById('cloudTabAllBtn');
-            const tabDrive = document.getElementById('cloudTabDriveBtn');
-            if (tabAll) tabAll.classList.toggle('active', targetMode === 'all');
-            if (tabDrive) tabDrive.classList.toggle('active', targetMode === 'drive');
-            if (syncSec) syncSec.style.display = targetMode === 'drive' ? 'none' : '';
-            if (drivePanel) drivePanel.style.display = '';
+            if (!card || !driveMount) return;
+            const hostEl = drivePanel && drivePanel.parentElement === driveMount ? drivePanel : driveMount;
+            if (card.parentElement !== hostEl) {
+                hostEl.prepend(card);
+            }
         }
 
         function renderDriveHubStateBanner() {
@@ -48160,7 +48223,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 closeModal('cloudAuthModalOverlay');
             }
             healSubjectsFromCloudRegistry();
-            mountGdriveCardHost('drive');
+            ensureDriveCardMountedInHub();
             renderDriveHubStateBanner();
             updateCloudMediaStatsUI();
             if (typeof updateWp67BilingualStaticUI === 'function') {
@@ -48170,7 +48233,7 @@ function togglePdfAudioPlayerBar(forceState) {
         }
 
         function closeGoogleDriveHubModal() {
-            mountGdriveCardHost('cloud');
+            ensureDriveCardMountedInHub();
             closeModal('driveHubModalOverlay');
         }
 
@@ -48179,8 +48242,21 @@ function togglePdfAudioPlayerBar(forceState) {
             if (driveModal && driveModal.classList.contains('active')) {
                 driveModal.classList.remove('active');
             }
-            mountGdriveCardHost('cloud');
-            switchCloudHubSection('all');
+            const outView = document.getElementById('cloudLoggedOutView');
+            const inView = document.getElementById('cloudLoggedInView');
+            if (outView) outView.style.display = currentCloudUser ? 'none' : 'block';
+            if (inView) inView.style.display = currentCloudUser ? 'block' : 'none';
+            if (currentCloudUser) {
+                const fullName = currentCloudUser.user_metadata?.full_name || currentCloudUser.name || currentCloudUser.email?.split('@')[0] || 'Exo Student';
+                const email = currentCloudUser.email || '';
+                const nameEl = document.getElementById('cloudUserNameDisplay');
+                const emailEl = document.getElementById('cloudUserEmailDisplay');
+                const avatarEl = document.getElementById('cloudUserAvatar');
+                if (nameEl) nameEl.innerText = fullName;
+                if (emailEl) emailEl.innerText = email;
+                if (avatarEl) avatarEl.innerText = fullName.charAt(0).toUpperCase();
+            }
+            ensureDriveCardMountedInHub();
             healSubjectsFromCloudRegistry();
             updateCloudMediaStatsUI();
             updateStudentProfileStatsInModal();
@@ -49855,6 +49931,51 @@ function togglePdfAudioPlayerBar(forceState) {
 
             const authState = getGoogleDriveAuthState();
             const isLinked = isGoogleDriveAccountLinked() || (isBoundToCurrent && localStorage.getItem('exo_gdrive_connected') === '1' && Boolean(email));
+            const acctSummaryTitle = document.getElementById('cloudAccountDriveSummaryTitle');
+            const acctSummaryPill = document.getElementById('cloudAccountDriveStatusPill');
+            const acctSummaryDesc = document.getElementById('cloudAccountDriveSummaryDesc');
+            const acctManageBtnTxt = document.getElementById('btnAccountManageGoogleDriveText');
+            if (acctSummaryTitle) acctSummaryTitle.textContent = isEn ? 'Google Drive Media Vault' : 'مخزن وسائط Google Drive';
+            if (acctManageBtnTxt) acctManageBtnTxt.textContent = isEn ? 'Manage Google Drive' : 'إدارة Google Drive';
+            if (acctSummaryPill && acctSummaryDesc) {
+                if (!currentCloudUser) {
+                    acctSummaryPill.style.color = 'var(--stone, #ABA69D)';
+                    acctSummaryPill.style.borderColor = 'rgba(240, 230, 212, 0.18)';
+                    acctSummaryPill.textContent = isEn ? 'Sign In Needed' : 'يتطلب تسجيل الدخول';
+                    acctSummaryDesc.textContent = isEn
+                        ? 'Private PDF & audio media storage is configured inside Google Drive Media Vault.'
+                        : 'تُدار إعدادات وسائط Google Drive الخاصة من نافذة مخزن الوسائط.';
+                } else if (!isVip) {
+                    acctSummaryPill.style.color = '#f3e1b3';
+                    acctSummaryPill.style.borderColor = 'rgba(215, 185, 111, 0.42)';
+                    acctSummaryPill.textContent = isEn ? 'Free Local Plan' : 'الخطة المحلية المجانية';
+                    acctSummaryDesc.textContent = isEn
+                        ? 'Local browser storage is active. Manage optional VIP Drive media sync in Drive Vault.'
+                        : 'التخزين المحلي نشط. يمكنك استعراض مزامنة VIP Drive من مخزن الوسائط.';
+                } else if (isLinked && authState === 'connected') {
+                    acctSummaryPill.style.color = '#cde0c5';
+                    acctSummaryPill.style.borderColor = 'rgba(137, 153, 130, 0.5)';
+                    acctSummaryPill.textContent = isEn ? 'Connected' : 'متصل';
+                    acctSummaryDesc.textContent = isEn
+                        ? `${email ? email + ' · ' : ''}Private Exo_Workspace folder active.`
+                        : `${email ? email + ' · ' : ''}مجلد Exo_Workspace الخاص متصل ونشط.`;
+                } else if (isLinked) {
+                    acctSummaryPill.style.color = '#f3e1b3';
+                    acctSummaryPill.style.borderColor = 'rgba(215, 185, 111, 0.45)';
+                    acctSummaryPill.textContent = isEn ? 'Needs Activation' : 'يحتاج تنشيطاً';
+                    acctSummaryDesc.textContent = isEn
+                        ? 'Google Drive link remembered; open Drive Vault to activate on this device.'
+                        : 'ربط Google Drive محفوظ؛ افتح مخزن Drive للتنشيط على هذا الجهاز.';
+                } else {
+                    acctSummaryPill.style.color = 'var(--stone, #ABA69D)';
+                    acctSummaryPill.style.borderColor = 'rgba(240, 230, 212, 0.18)';
+                    acctSummaryPill.textContent = isEn ? 'Not Linked' : 'غير مربوط';
+                    acctSummaryDesc.textContent = isEn
+                        ? 'VIP Pro active — open Drive Vault to link your personal Google Drive.'
+                        : 'VIP Pro نشط — افتح مخزن Drive لربط حساب Google Drive الشخصي.';
+                }
+            }
+
             let mStats = (typeof window !== 'undefined' && window.__exoLastDriveMediaStats) ? window.__exoLastDriveMediaStats : null;
             if (!mStats) {
                 let pdfC = 0, audC = 0, localC = 0, bytesC = 0;
@@ -62961,8 +63082,9 @@ function togglePdfAudioPlayerBar(forceState) {
             setHtml('cloudAuthSecurityNote',
                 '<svg class="exo-svg-icon fa-lock" style="color: var(--primary);" aria-hidden="true"><use href="#exo-ico-lock"/></svg> Your courses, schedule, and annotations stay strictly isolated inside your account.',
                 '<svg class="exo-svg-icon fa-lock" style="color: var(--primary);" aria-hidden="true"><use href="#exo-ico-lock"/></svg> جميع موادك وجدولك وملخصاتك محفوظة ومعزولة داخل حسابك الشخصي تلقائياً.');
-            setText('cloudTabAllBtn', 'Account & Sync', 'الحساب والمزامنة');
-            setText('cloudTabDriveBtn', 'Google Drive Media', 'وسائط Google Drive');
+            setText('cloudAccountDriveSummaryTitle', 'Google Drive Media Vault', 'مخزن وسائط Google Drive');
+            setText('btnAccountManageGoogleDriveText', 'Manage Google Drive', 'إدارة Google Drive');
+            if (typeof updateGoogleDriveUI === 'function') updateGoogleDriveUI();
             setText('cloudProfileEditBtnText', 'Edit Profile', 'تعديل الملف');
             setText('profileEditNameLabel', 'Display Name:', 'الاسم الظاهر في المنصة والـ PDF:');
             setText('profileEditSpecialtyLabel', 'Faculty / Year:', 'الكلية / الفرقة الدراسية:');

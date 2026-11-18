@@ -96,16 +96,22 @@ test('WP 6.7: Tracker asymmetric Living Journal overview preserves all required 
   assert.ok(indexHtml.includes('exo-tracker-journal-overview'), 'Tracker must render asymmetric .exo-tracker-journal-overview');
 });
 
-test('WP 6.7: Dedicated Google Drive Hub modal separates Drive from Account while preventing duplicate IDs', () => {
+test('WP 6.7: Dedicated Google Drive Hub modal is Single Source of Truth with Account modal link', () => {
   assert.ok(indexHtml.includes('id="sidebarGdriveBtn"'), 'Sidebar must include #sidebarGdriveBtn');
   assert.ok(indexHtml.includes('onclick="openGoogleDriveHubModal()"'), 'Sidebar Drive button must open #driveHubModalOverlay');
   assert.ok(indexHtml.includes('id="driveHubModalOverlay"'), 'Dedicated #driveHubModalOverlay must exist');
   assert.ok(indexHtml.includes("'driveHubModalOverlay'"), 'Modal a11y dialogIds must include driveHubModalOverlay');
-  assert.ok(indexHtml.includes('function mountGdriveCardHost('), 'Single-instance host mover mountGdriveCardHost must exist');
-  assert.ok(indexHtml.includes('function switchCloudHubSection('), 'Cloud account modal tab switcher switchCloudHubSection must exist');
-  // Ensure #cloudGdriveSyncCard appears only once in HTML (no duplicate IDs)
+  assert.ok(indexHtml.includes('function ensureDriveCardMountedInHub('), 'Single-hub guard ensureDriveCardMountedInHub must exist');
+  assert.ok(indexHtml.includes('id="cloudAccountDriveSummaryBox"'), 'Account modal must show compact #cloudAccountDriveSummaryBox');
+  assert.ok(indexHtml.includes('id="btnAccountManageGoogleDrive"'), 'Account modal must provide #btnAccountManageGoogleDrive button');
+  assert.ok(!indexHtml.includes('id="cloudTabDriveBtn"'), 'Account modal must NOT duplicate Google Drive tab (#cloudTabDriveBtn)');
+  assert.ok(!indexHtml.includes('id="cloudAuthDriveMount"'), 'Account modal must NOT contain duplicate #cloudAuthDriveMount');
+  // Ensure #cloudGdriveSyncCard appears only once in HTML and lives inside #driveHubModalMount
   const matches = indexHtml.match(/id="cloudGdriveSyncCard"/g) || [];
   assert.equal(matches.length, 1, 'There must be exactly one #cloudGdriveSyncCard instance in DOM');
+  const driveOverlayStart = indexHtml.indexOf('id="driveHubModalOverlay"');
+  const cardPos = indexHtml.indexOf('id="cloudGdriveSyncCard"');
+  assert.ok(driveOverlayStart > 0 && cardPos > driveOverlayStart, '#cloudGdriveSyncCard must reside permanently inside #driveHubModalOverlay');
 });
 
 test('WP 6.7: VIP modal and Help Center comply truthfully with GEMINI.md Section 6 Free vs VIP policy', () => {

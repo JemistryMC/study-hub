@@ -518,25 +518,27 @@ async function main() {
       driveModalOpen: document.getElementById('driveHubModalOverlay')?.classList.contains('active'),
       authModalClosed: !document.getElementById('cloudAuthModalOverlay')?.classList.contains('active'),
       cardCount: document.querySelectorAll('#cloudGdriveSyncCard').length,
-      mountedInDrive: document.getElementById('cloudGdriveSyncCard')?.parentElement?.id === 'driveHubModalMount',
+      mountedInDrive: Boolean(document.getElementById('driveHubModalMount')?.contains(document.getElementById('cloudGdriveSyncCard'))),
       bannerText: document.getElementById('driveHubStateBanner')?.innerText || ''
     }));
-    assert(driveSignedOut.driveModalOpen && driveSignedOut.authModalClosed && driveSignedOut.mountedInDrive, 'Sidebar Drive button opens #driveHubModalOverlay cleanly with #cloudGdriveSyncCard mounted inside');
+    assert(driveSignedOut.driveModalOpen && driveSignedOut.authModalClosed && driveSignedOut.mountedInDrive, 'Sidebar Drive button opens #driveHubModalOverlay cleanly with #cloudGdriveSyncCard inside #driveHubModalMount');
     assert(driveSignedOut.cardCount === 1, 'Zero duplicate #cloudGdriveSyncCard IDs in DOM');
     assert(driveSignedOut.bannerText.toLowerCase().includes('sign-in required'), 'Signed-out Drive Hub explains account requirement clearly');
     await page.screenshot({ path: path.join(screenshotDir, 'desktop-drive-hub-en.png') });
 
     // Simulate Signed-In Free user state & VIP active state
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
       currentCloudUser = { id: '00000000-0000-4000-8000-000000000001', email: 'free@exo.test', user_metadata: { full_name: 'Free User' } };
       currentUserCanUploadMedia = false;
+      if (typeof updateCloudNavUI === 'function') await updateCloudNavUI('synced');
       openGoogleDriveHubModal();
     });
     const freeBanner = await page.evaluate(() => document.getElementById('driveHubStateBanner')?.innerText || '');
     assert(freeBanner.toLowerCase().includes('free plan'), 'Free user Drive Hub banner states local storage is active & free');
 
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
       currentUserCanUploadMedia = true;
+      if (typeof updateCloudNavUI === 'function') await updateCloudNavUI('synced');
       openGoogleDriveHubModal();
     });
     const vipBanner = await page.evaluate(() => document.getElementById('driveHubStateBanner')?.innerText || '');
@@ -546,19 +548,41 @@ async function main() {
     await page.waitForSelector('#cloudAuthModalOverlay.active', { timeout: 5000 });
     const returnedToAuth = await page.evaluate(() => ({
       driveClosed: !document.getElementById('driveHubModalOverlay')?.classList.contains('active'),
-      mountedInAuth: document.getElementById('cloudGdriveSyncCard')?.parentElement?.id === 'cloudAuthDriveMount'
+      noDuplicateDriveTab: !document.getElementById('cloudTabDriveBtn'),
+      authNotHoldingCard: !document.getElementById('cloudAuthModalOverlay')?.contains(document.getElementById('cloudGdriveSyncCard')),
+      stillMountedInDriveHub: Boolean(document.getElementById('driveHubModalMount')?.contains(document.getElementById('cloudGdriveSyncCard'))),
+      hasSummaryBox: Boolean(document.getElementById('cloudAccountDriveSummaryBox')),
+      manageBtnText: document.getElementById('btnAccountManageGoogleDrive')?.innerText || ''
     }));
-    assert(returnedToAuth.driveClosed && returnedToAuth.mountedInAuth, 'Switching from Drive Hub to Account modal cleanly re-mounts Drive card back to Account host');
-    await page.click('#cloudAuthModalCloseBtn');
+    assert(
+      returnedToAuth.driveClosed &&
+      returnedToAuth.noDuplicateDriveTab &&
+      returnedToAuth.authNotHoldingCard &&
+      returnedToAuth.stillMountedInDriveHub &&
+      returnedToAuth.hasSummaryBox &&
+      returnedToAuth.manageBtnText.includes('Manage Google Drive'),
+      'Account modal shows compact Drive status summary + single Manage Google Drive button while full Drive settings stay exclusively inside #driveHubModalOverlay'
+    );
+
+    // Clicking Manage Google Drive from Account modal opens Drive Hub and closes Account modal
+    await page.click('#btnAccountManageGoogleDrive');
+    await page.waitForSelector('#driveHubModalOverlay.active', { timeout: 5000 });
+    const reopenedDriveFromAccount = await page.evaluate(() => ({
+      driveOpen: document.getElementById('driveHubModalOverlay')?.classList.contains('active'),
+      authClosed: !document.getElementById('cloudAuthModalOverlay')?.classList.contains('active')
+    }));
+    assert(reopenedDriveFromAccount.driveOpen && reopenedDriveFromAccount.authClosed, 'Manage Google Drive button navigates cleanly from Account modal to Drive Vault');
+    await page.click('#driveHubModalCloseBtn');
 
     // ------------------------------------------------------------------------
     // 5. Bilingual EN <-> AR Live Switch: Auth Modal, Help Center (Panes 1..6), VIP Modal
     // ------------------------------------------------------------------------
     console.log('\n--- 5. Bilingual EN/AR Checks on Login, Help Center & VIP Modals ---');
     const arRegexCheck = /[\u0600-\u06FF]/;
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
       currentCloudUser = null;
       currentUserCanUploadMedia = false;
+      if (typeof updateCloudNavUI === 'function') await updateCloudNavUI('offline');
       applyExoLanguage('en', false);
       openCloudAuthModal();
     });
