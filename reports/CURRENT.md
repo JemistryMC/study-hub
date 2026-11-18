@@ -1,9 +1,35 @@
 # Current Project Handoff
 
-**آخر تحديث:** 2026-11-14  
+**آخر تحديث:** 2026-11-18  
 **المستودع:** JemistryMC/study-hub  
-**فرع العمل:** main  
+**فرع العمل / الهدف المقصود لـ WP 7.0:** `main` ← `design/wp-7-0-complete-ux-redesign` (بانتظار مراجعة ومزامنة المالك)  
 **آخر Application Source SHA اجتاز GitHub Actions CI بالكامل (WP 6.8 continuation):** c4c2b430564efff3172f1e9003f7a6ab479c271a ([commit](https://github.com/JemistryMC/study-hub/commit/c4c2b430564efff3172f1e9003f7a6ab479c271a) — CI #66 [43619649174](https://github.com/JemistryMC/study-hub/actions/runs/43619649174): SUCCESS عبر جميع مراحل workflow بما فيها PostgreSQL 16 وChromium وnpm test؛ Pages #174 [43619648287](https://github.com/JemistryMC/study-hub/actions/runs/43619648287): SUCCESS).
+
+## WP 7.0 — Complete Visual & UX Redesign (Local Recovery & Verification — 2026-11-18)
+
+**الحالة الحالية:** **`IMPLEMENTED — LOCAL TESTS ONLY`** *(لم يُرفع إلى GitHub بعد؛ ليست `CI VERIFIED` ولا `APPROVED` — بانتظار مراجعة المالك ومزامنته على `design/wp-7-0-complete-ux-redesign`)*  
+- **بصمة المصدر النهائية (`index.html` و`dist/index.html` SHA-256):** `d8abeb6f5fd8f62b7a933034416f5c10e77c527f08ee3bdd9614b7d8de3b0808` (`63,516` سطر، `3,854,373` بايت).
+- **ملخص الاستعادة والتثبيت الموضعي فوق إعادة التصميم المحفوظة:**
+  1. الحفاظ الكامل على إعادة تصميم WP 7.0 (نظام الألوان الداكن Ink/Charcoal `#191B1D` / `#202225` / `#24272A` / `#282B2D` + Warm Paper `#F1E7D5` / `#E8DDC9` + Sage `#899982` + `122` رمز SVG مدمج + `780` استخدام `<use>` + `0` وسوم FontAwesome `<i>` + `0` `backdrop-filter: blur`).
+  2. إصلاح تحجيم `#pdfInkCanvas_${pageNum}` في `renderSinglePdfPage()` للمحاضرات المدمجة (`totalPdfPages <= 18`) مع الإبقاء على `1x1` الكسول في الملفات الضخمة (`> 18` صفحة) وملاحظات التلخيص المطوية؛ مما أصلح انحدار `Test U` في `test_phase4_1_chromium_e2e.js`.
+  3. إصلاح `pushWorkspaceToCloud()` لتجنب تجمد بيئات اختبار Node التي تعطل `setTimeout(..., 0)` عبر `globalThis.setImmediate` خارج المتصفح فقط؛ مما كشف وشغّل كامل اختبارات `test_phase4_regressions.js` (`317/317`) و`test_phase4_2_postgres_integration.js` (`41/41`).
+- **الفحص البصري في Chromium (Desktop `1440x900` EN/AR + Mobile `390x844` EN/AR):**
+  - `0` أخطاء console/page، `0` overflow أفقي على الهاتف (`scrollWidth === 390` في LTR وRTL)، `335` عنصر SVG دون أي قياس صفري، وإغلاق نوافذ Auth / Drive / Help عبر `Escape`.
+  - حفظ **10 لقطات منتقاة** تحت `reports/screenshots/wp7-0/` دون المساس بلقطات `reports/screenshots/wp6-7/` (`34` ملفًا).
+- **نتائج الاختبارات المحلية بعد آخر تعديل (`d8abeb6f...`):**
+  - `npm run lint`: **PASS** (`21` ملف JS) | `npm run build`: **PASS** (`index.html === dist/index.html`).
+  - `npm run test:static`: **`54/54 PASSED`** | `run_comprehensive_verification.js`: **`42/42 PASSED`** | `test_phase3_cross_account_isolation.js`: **`52/52 PASSED`**.
+  - `test_phase4_regressions.js`: **`317/317 PASSED`** | `node --test test_wp6_1..9_unit.js`: **`59/59 PASSED`** | `npm run test:pglite`: **`41/41 PASSED`**.
+  - Chromium E2E: `test_wp6_5_chromium_e2e.js` (**`43/43`**)، `test_wp6_6_chromium_e2e.js` (**`22/22`**)، `test_wp6_7_chromium_e2e.js` (**`50/50`**)، `test_wp6_9_chromium_e2e.js` (**`22/22`**).
+  - Benchmarks: `benchmark:node` (`5/5` tiers)، `benchmark:browser` (`5/5` tiers, `0.00 MB` heap delta حتى `48.51 MB`)، `benchmark:wp68` (DOM delta `2` بعد 20 دورة تنقل، `0 MB` heap delta).
+- **الإخفاقات المفتوحة الموثقة بصدق (دون إضعاف أي اختبار):**
+  1. `test_phase4_1_chromium_e2e.js`: اجتازت الاختبارات `A..JJ` (بما فيها `U.1–U.4`) و`KK.1, KK.2, KK.4, LL.2a`، وتعثرت عند `KK.3` (`i.exo-rtl-flip` بدل `<svg>` داخل `.exo-card-overflow-item`) و`LL.1` (`rgb(36, 39, 42)` `#24272A` بدل `rgb(41, 43, 45)` `#292B2D`) و`LL.2` (السطر `7341`: محاولة النقر على `moveSubjectOrder` دون فتح قائمة `.exo-card-overflow-menu` أولًا؛ وبسبب هذا الانقطاع لم تُنفذ `LL.3–LL.5, MM, OO` ضمن هذا الملف). يُلاحظ أيضًا أن زر القائمة `.exo-book-card-menu-wrap button.icon-btn` بحجم `36px` في `index.html:23943` مقابل اشتراط `LL.5` لحجم `>= 44px`.
+  2. `test_wp6_8_chromium_e2e.js`: **`17/21 PASSED, 4 FAILED`** بسبب تغيّر يوم التشغيل في الحاوية (الأربعاء `2026-11-18` مقابل السبت `2026-11-14`)، حيث تولّد `reconcileRecoveryAndAbsentLogsWithSchedule()` `112` سجلًا فائتًا للأيام السابقة في الأسبوع (`1112` بدل `1000`).
+  3. `test_phase4_2_1_pg16_concurrency.js`: تعذّر محليًا (`connect ECONNREFUSED 127.0.0.1:5432`) لعدم توفر خادم PostgreSQL 16 محلي؛ يُرحّل إلى GitHub Actions CI.
+- **التقرير التفصيلي الكامل:** `reports/PHASE_6_WP_7_0_DESIGN_REPORT.md` و`reports/screenshots/wp7-0/*.png`.
+
+---
+
 **سياق WP 6.5 التاريخي:** سبق أن اجتاز `64e1689b1daac2b01d7422475c125d89a61fee9a` CI #58 (`794/794`)، ثم أضاف `1a8309d99fe9290e51953e86d41c0480395853b1` اختبار `test_wp6_5_chromium_e2e.js` وفشل CI #59 (`43501607489`) في تحقق واحد فقط (`S6.4`: `42/43`)؛ وبعد معالجة سباق الانتظار ونافذة `#gdrivePrivacyAuditOverlay`، اجتاز المصدر المحدّث `7482dcd23db314b14f8fa09ebd473b48c09bb4ec` CI #60 بالكامل (`837/837` شاملة `43/43` WP 6.5 Chromium E2E و`S6.4`).  
 **Phase 6 Status:** WP 6.8 CI VERIFIED — TECHNICAL GATE PASSED; P0 LIVE FREEZE REPRODUCED BY OWNER; NOT FIXED; PHASE 6 NOT APPROVED. Latest uploaded source is c4c2b430564efff3172f1e9003f7a6ab479c271a (CI #66 SUCCESS; Pages #174 SUCCESS). Owner retested the deployed continuation and confirmed at 2026-11-14T17:20:14Z that the freeze remains. The P0 runtime blocker is therefore still OPEN. WP 6.8 automated suites are registered and CI ran lint/build/static/unit/PGlite/native PostgreSQL 16/Chromium E2E/unified runner, but mocks and synthetic data do not prove the live owner workspace is stable. Benchmark artifact/report values also need reconciliation; see the latest WP 6.8 report Section 8. No visual/product acceptance is implied. WP 6.3 Proposals A/B remain HELD.
 **حالة WP 6.0:** READ-ONLY BASELINE AUDIT — ACCEPTED.  
