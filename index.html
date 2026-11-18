@@ -3998,7 +3998,7 @@
             right: 0;
             bottom: 0;
             background: rgba(8, 11, 18, 0.88) !important;
-            z-index: 1000;
+            z-index: 1200;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -7705,9 +7705,18 @@
             }
         }
 
+        .exo-mobile-more-btn {
+            display: none !important;
+        }
+
         /* ================= PURPOSE-BUILT TABLET LAYOUT (768px - 1024px) ================= */
         @media (min-width: 768px) and (max-width: 1024px) and (min-height: 561px) {
             .exo-sidebar { display: none !important; }
+            .exo-mobile-more-btn {
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
             .navbar {
                 display: flex !important;
                 flex-direction: column;
@@ -7717,6 +7726,11 @@
                 border-bottom: 1px solid rgba(240, 230, 212, 0.1) !important;
             }
             .navbar .navbar-header-row { width: 100%; justify-content: space-between; }
+            .navbar .navbar-actions-group button,
+            .navbar .navbar-actions-group .icon-btn {
+                min-height: 44px !important;
+                min-width: 44px !important;
+            }
             .navbar .nav-items {
                 display: flex !important;
                 width: 100%;
@@ -7745,6 +7759,14 @@
 
         /* ================= MOBILE NAVIGATION & RESPONSIVE WORKSPACE (<= 767px or SHORT LANDSCAPE) ================= */
         @media (max-width: 767px), (max-height: 560px) {
+            .exo-mobile-more-btn {
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+            .navbar-date {
+                display: none !important;
+            }
             .mobile-bottom-nav {
                 position: fixed;
                 bottom: 0;
@@ -7800,7 +7822,8 @@
                 color: var(--primary);
             }
             body.in-pdf-studio .mobile-bottom-nav,
-            #pdfViewerModalOverlay.active ~ .mobile-bottom-nav {
+            #pdfViewerModalOverlay.active ~ .mobile-bottom-nav,
+            #mobileMoreSheetOverlay.active ~ .mobile-bottom-nav {
                 display: none !important;
             }
 
@@ -7828,7 +7851,7 @@
                 gap: 6px !important;
             }
             .navbar-brand { flex-shrink: 0; gap: 6px !important; }
-            .navbar-brand span { font-size: 1.12rem !important; }
+            .navbar-brand span { font-size: 1.08rem !important; }
             .navbar-actions-group {
                 gap: 5px !important;
                 min-width: 0 !important;
@@ -7845,10 +7868,10 @@
                 padding: 6px 8px !important;
             }
             .cloud-status-btn {
-                padding: 6px 10px !important;
-                font-size: 0.74rem !important;
+                padding: 6px 9px !important;
+                font-size: 0.72rem !important;
                 min-width: 0 !important;
-                max-width: 132px !important;
+                max-width: 122px !important;
                 flex: 0 1 auto !important;
                 overflow: hidden !important;
             }
@@ -7858,6 +7881,14 @@
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
+            }
+            @media (max-width: 380px) {
+                .navbar { padding: calc(2px + var(--safe-top)) 8px 3px 8px !important; }
+                .navbar-brand span { font-size: 0.98rem !important; }
+                .navbar-actions-group { gap: 4px !important; }
+                .cloud-status-btn { max-width: 88px !important; padding: 4px 7px !important; font-size: 0.68rem !important; }
+                #appLangToggleBtn { padding: 4px 6px !important; }
+                #appLangToggleBtn #appLangToggleText { display: none !important; }
             }
             .navbar .nav-items {
                 display: none !important;
@@ -7924,7 +7955,7 @@
                 width: 100% !important;
                 height: 100% !important;
                 z-index: 10 !important;
-                padding: 44px 4px 48px 4px !important;
+                padding: 58px 8px calc(76px + var(--safe-bottom)) 8px !important;
                 gap: 10px !important;
                 overflow-y: auto !important;
                 overflow-x: auto !important;
@@ -7935,7 +7966,7 @@
             }
             @media (max-height: 560px) {
                 .pdf-pages-scroll-container {
-                    padding: 40px 4px 44px 4px !important;
+                    padding: 54px 8px 72px 8px !important;
                     gap: 8px !important;
                 }
             }
@@ -7945,16 +7976,16 @@
                 box-shadow: 0 4px 18px rgba(0, 0, 0, 0.55) !important;
             }
 
-            /* 2. Floating Sleek Top Header (Overlays over the top edge in ONE single row) */
+            /* 2. Floating Sleek Top Header (44px+ touch targets, single row) */
             .pdf-viewer-header {
                 position: absolute !important;
                 top: 0 !important;
                 left: 0 !important;
                 right: 0 !important;
-                height: 38px !important;
-                min-height: 38px !important;
-                max-height: 38px !important;
-                padding: 0 8px !important;
+                height: 50px !important;
+                min-height: 50px !important;
+                max-height: 50px !important;
+                padding: 0 6px !important;
                 z-index: 50 !important;
                 background: #141618 !important;
                 border-bottom: 1px solid rgba(241, 231, 213, 0.14) !important;
@@ -7984,15 +8015,24 @@
             }
             #pdfAutoSaveStatus {
                 display: inline-flex !important;
-                flex-shrink: 0 !important;
-                max-width: 140px !important;
+                flex-shrink: 1 !important;
+                max-width: 120px !important;
                 overflow: hidden !important;
                 text-overflow: ellipsis !important;
-                font-size: 0.66rem !important;
+                font-size: 0.65rem !important;
                 padding: 3px 8px !important;
                 min-height: 28px !important;
             }
-            @media (max-width: 600px) {
+            .exo-studio-back-chapter-btn {
+                min-width: 44px !important;
+                min-height: 44px !important;
+                padding: 6px 10px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                flex-shrink: 0 !important;
+            }
+            @media (max-width: 640px) {
                 .pdf-viewer-header > div:first-child > div:nth-child(2) { display: none !important; }
                 #pdfViewerTitle {
                     position: absolute !important;
@@ -8004,13 +8044,17 @@
                     margin: 0 !important;
                     padding: 0 !important;
                 }
-                #pdfAutoSaveStatus { max-width: 158px !important; min-width: 0 !important; padding: 3px 8px !important; font-size: 0.65rem !important; flex-shrink: 0 !important; }
+                .exo-studio-back-lbl { display: none !important; }
+                #pdfAutoSaveStatus { max-width: 108px !important; min-width: 0 !important; padding: 3px 7px !important; font-size: 0.63rem !important; flex-shrink: 1 !important; }
                 .pdf-unified-nav-capsule #pdfFullscreenBtn { display: none !important; }
                 #pdfBookmarkCurrentSlideBtn { display: none !important; }
-                .pdf-unified-nav-capsule { padding: 2px 3px !important; gap: 1px !important; }
-                .pdf-header-left-actions { gap: 2px !important; }
-                .pdf-header-left-actions .anno-btn { padding: 3px 4px !important; min-width: 26px !important; width: 26px !important; }
-                #pdfAudioBarToggleBtn { padding: 3px 5px !important; width: 28px !important; }
+                #pdfThumbnailsToggleBtn { display: none !important; }
+                .pdf-unified-nav-capsule { padding: 1px 4px !important; gap: 2px !important; }
+                .pdf-header-left-actions { gap: 3px !important; }
+            }
+            @media (max-width: 520px) {
+                .pdf-unified-nav-capsule button[onclick*="stepPdfPage"] { display: none !important; }
+                #pdfAutoSaveStatus { max-width: 82px !important; font-size: 0.6rem !important; }
             }
 
             /* Minimalist center navigation capsule in header */
@@ -8018,22 +8062,29 @@
                 display: flex !important;
                 align-items: center !important;
                 gap: 2px !important;
-                padding: 2px 5px !important;
+                padding: 1px 5px !important;
                 background: rgba(255, 255, 255, 0.04) !important;
                 border: 1px solid rgba(148, 163, 184, 0.16) !important;
                 border-radius: 999px !important;
                 flex-shrink: 0 !important;
             }
             .pdf-unified-nav-capsule .anno-btn {
-                padding: 2px 4px !important;
-                font-size: 0.7rem !important;
-                min-width: 22px !important;
-                height: 24px !important;
+                padding: 4px !important;
+                font-size: 0.72rem !important;
+                min-width: 44px !important;
+                height: 44px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
             }
             #pdfPageCounterBadge {
-                font-size: 0.68rem !important;
-                min-width: 34px !important;
-                padding: 1px 2px !important;
+                font-size: 0.72rem !important;
+                min-width: 44px !important;
+                min-height: 44px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                padding: 2px 6px !important;
             }
             /* Hide bulky zoom -/+ buttons on mobile header to keep strict 1-row layout */
             .pdf-unified-nav-capsule .pdf-header-divider,
@@ -8046,7 +8097,20 @@
             .pdf-header-left-actions {
                 display: flex !important;
                 align-items: center !important;
-                gap: 3px !important;
+                gap: 4px !important;
+                flex-shrink: 0 !important;
+            }
+            .pdf-header-left-actions .anno-btn,
+            #pdfAudioBarToggleBtn,
+            .pdf-viewer-header .icon-btn.delete {
+                min-width: 44px !important;
+                min-height: 44px !important;
+                width: auto !important;
+                height: 44px !important;
+                padding: 6px 8px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
                 flex-shrink: 0 !important;
             }
             #pdfZenModeBtn, #pdfZenModeText { display: none !important; }
@@ -8064,14 +8128,15 @@
                 border: 1px solid rgba(137, 153, 130, 0.35) !important;
                 border-radius: 999px !important;
                 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.72) !important;
-                padding: 3px 6px !important;
+                padding: 4px 8px !important;
                 display: flex !important;
                 align-items: center !important;
-                justify-content: center !important;
-                gap: 3px !important;
-                max-width: calc(100vw - 16px) !important;
+                justify-content: flex-start !important;
+                gap: 4px !important;
+                max-width: calc(100vw - 12px) !important;
                 width: auto !important;
                 overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
                 scrollbar-width: none !important;
                 transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease !important;
             }
@@ -8079,38 +8144,36 @@
             .pdf-annotation-toolbar .anno-tool-group {
                 display: flex !important;
                 align-items: center !important;
-                gap: 2px !important;
+                gap: 3px !important;
             }
             .pdf-annotation-toolbar .anno-btn {
-                padding: 4px 8px !important;
-                font-size: 0.74rem !important;
-                min-height: 28px !important;
+                padding: 6px !important;
+                font-size: 0.78rem !important;
+                min-width: 44px !important;
+                min-height: 44px !important;
+                flex-shrink: 0 !important;
                 border-radius: 999px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
                 touch-action: manipulation;
             }
-            /* Show 4 essential color dots directly inside toolbar on mobile */
-            .pdf-annotation-toolbar .color-dot[data-mobile-color="true"] {
-                display: inline-block !important;
-                width: 18px !important;
-                height: 18px !important;
-                margin: 0 2px !important;
-                border-radius: 50% !important;
-                cursor: pointer !important;
-            }
-            /* Hide bulky items from floating dock */
-            .pdf-annotation-toolbar #toolBtn_laser,
             .pdf-annotation-toolbar #toolBtn_laserPause,
-            .pdf-annotation-toolbar #toolBtn_palmReject,
-            .pdf-annotation-toolbar #toolBtn_text,
-            .pdf-annotation-toolbar #customAnnoColor,
-            .pdf-annotation-toolbar .stroke-size-control-wrap,
-            .pdf-annotation-toolbar #annoFontSelectWrap,
-            .pdf-annotation-toolbar #toggleAnnoVisBtn,
-            .pdf-annotation-toolbar #pdfToolbarExtraNoteBtn,
-            .pdf-annotation-toolbar .pdf-header-divider,
-            .pdf-annotation-toolbar #pdfMobileColorTriggerBtn,
-            .pdf-annotation-toolbar .color-dot:not([data-mobile-color="true"]) {
+            .pdf-annotation-toolbar #pdfDockPosToggleBtn {
                 display: none !important;
+            }
+            .pdf-annotation-toolbar .pdf-header-divider {
+                flex-shrink: 0 !important;
+            }
+            .pdf-pen-options-flyout {
+                position: absolute !important;
+                bottom: calc(68px + var(--safe-bottom)) !important;
+                left: 50% !important;
+                right: auto !important;
+                top: auto !important;
+                transform: translateX(-50%) !important;
+                width: min(calc(100vw - 24px), 320px) !important;
+                z-index: 65 !important;
             }
             .pdf-mobile-only-btn {
                 display: inline-flex !important;
@@ -8134,8 +8197,8 @@
                 bottom: calc(14px + var(--safe-bottom)) !important;
                 right: 14px !important;
                 z-index: 55 !important;
-                width: 42px !important;
-                height: 42px !important;
+                width: 46px !important;
+                height: 46px !important;
                 border-radius: 999px !important;
                 background: var(--sage-green, #899982) !important;
                 color: #191B1D !important;
@@ -8147,48 +8210,58 @@
                 cursor: pointer !important;
             }
 
-            /* 4. Floating Audio Player Bar */
+            /* 4. Floating Audio Player Bar (Wraps cleanly without clipping) */
             .pdf-audio-player-bar {
                 position: absolute !important;
-                bottom: calc(48px + var(--safe-bottom)) !important;
+                bottom: calc(66px + var(--safe-bottom)) !important;
                 left: 50% !important;
                 transform: translateX(-50%) !important;
-                width: min(94vw, 420px) !important;
+                width: min(calc(100vw - 16px), 440px) !important;
                 z-index: 48 !important;
                 border-radius: 14px !important;
-                padding: 6px 10px !important;
+                padding: 8px 10px !important;
                 background: #181A1D !important;
                 border: 1px solid rgba(137, 153, 130, 0.35) !important;
                 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.72) !important;
                 display: flex !important;
                 flex-direction: column !important;
-                gap: 4px !important;
+                gap: 6px !important;
             }
             .pdf-audio-player-bar.no-audio-attached,
             .pdf-audio-player-bar.minimized-mobile {
                 display: none !important;
             }
-            .audio-controls-left {
+            .pdf-audio-player-bar > div {
                 width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
                 display: flex !important;
+                flex-wrap: wrap !important;
                 align-items: center !important;
                 justify-content: space-between !important;
                 gap: 6px !important;
             }
             .audio-play-btn {
-                width: 38px !important;
-                height: 38px !important;
+                min-width: 44px !important;
+                min-height: 44px !important;
+                width: 44px !important;
+                height: 44px !important;
                 border-radius: 50% !important;
                 font-size: 0.95rem !important;
             }
-            .seek-step-btn {
-                padding: 5px 10px !important;
-                font-size: 0.74rem !important;
-                border-radius: 8px !important;
+            .seek-step-btn,
+            .audio-speed-btn,
+            .pdf-audio-player-bar .icon-btn,
+            .pdf-audio-player-bar .anno-btn {
+                min-height: 44px !important;
+                min-width: 44px !important;
+                padding: 6px 10px !important;
+                font-size: 0.76rem !important;
+                border-radius: 9px !important;
             }
-            .pdf-audio-player-bar > div:last-child {
-                width: 100%;
-                justify-content: space-between !important;
+            #lectureRecordingsSelect {
+                max-width: 120px !important;
+                min-height: 44px !important;
             }
 
             /* --- Mobile Lecture Card & Study Buttons --- */
@@ -8217,6 +8290,7 @@
                 justify-content: center !important;
                 gap: 7px !important;
                 padding: 9px 16px !important;
+                min-height: 44px !important;
                 font-size: 0.86rem !important;
                 font-weight: 800 !important;
                 border-radius: 10px !important;
@@ -8250,18 +8324,19 @@
             .schedule-pills {
                 width: 100% !important;
                 display: grid !important;
-                grid-template-columns: repeat(3, 1fr) !important;
+                grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
                 gap: 4px !important;
             }
             .sch-pill {
                 justify-content: center !important;
                 padding: 8px 4px !important;
                 font-size: 0.78rem !important;
-                min-height: 40px !important;
+                min-height: 44px !important;
+                white-space: nowrap !important;
             }
             .notion-day-topbar { padding: 8px 8px !important; gap: 8px !important; }
             .notion-day-switcher { width: 100%; padding: 4px !important; }
-            .notion-day-pill { padding: 8px 12px !important; font-size: 0.8rem !important; min-height: 40px !important; }
+            .notion-day-pill { padding: 8px 12px !important; font-size: 0.8rem !important; min-height: 44px !important; white-space: nowrap !important; }
             .smart-hourly-stream { padding: 10px 8px !important; }
             .smart-hour-item {
                 flex-direction: column !important;
@@ -11891,12 +11966,23 @@
             }
         }
         @media (max-width: 767px) {
-            .wp65-planner-summary-strip,
+            .wp65-planner-summary-strip {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 8px !important;
+            }
             #tracker .tracker-kpi-strip-4,
             #tracker .smart-recs-grid,
             #tracker .smart-recs-grid.wp65-compass-3,
             .wp65-backup-compare-grid {
                 grid-template-columns: 1fr !important;
+            }
+            .wp65-planner-summary-strip .wp65-summary-cell {
+                padding-inline-start: 0;
+                border-inline-start: none;
+                padding: 6px 8px;
+                border-top: none;
+                background: rgba(25, 27, 29, 0.52);
+                border-radius: 8px;
             }
             .wp65-summary-cell {
                 padding-inline-start: 0;
@@ -13385,15 +13471,53 @@
         /* Multi-Viewport Responsive Polish for Modals & Tablet/Mobile */
         @media (max-width: 1024px) {
             .notion-day-switcher {
-                flex-wrap: wrap !important;
-                overflow-x: visible !important;
+                display: flex !important;
+                flex-wrap: nowrap !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
                 justify-content: flex-start !important;
-                gap: 5px !important;
+                gap: 6px !important;
                 padding: 5px !important;
+                scroll-snap-type: x mandatory !important;
+                -webkit-overflow-scrolling: touch !important;
+                scrollbar-width: none !important;
             }
-            .notion-day-pill {
-                padding: 5px 9px !important;
-                font-size: 0.75rem !important;
+            .notion-day-switcher::-webkit-scrollbar { display: none !important; }
+            .notion-day-pill,
+            #schedule .notion-day-pill {
+                flex: 0 0 auto !important;
+                white-space: nowrap !important;
+                scroll-snap-align: start !important;
+                padding: 8px 14px !important;
+                font-size: 0.82rem !important;
+                min-height: 44px !important;
+            }
+            .sch-pill,
+            #schedule .sch-pill {
+                white-space: nowrap !important;
+                min-height: 44px !important;
+            }
+            #schedule .day-mode-segmented-pill {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                background: #141618 !important;
+                border: 1px solid rgba(240, 230, 212, 0.14) !important;
+                border-radius: 10px !important;
+                padding: 4px !important;
+                gap: 4px !important;
+                box-sizing: border-box !important;
+            }
+            #schedule .day-mode-segmented-pill .filter-chip-btn {
+                width: 100% !important;
+                min-height: 44px !important;
+                justify-content: center !important;
+                border-radius: 7px !important;
+                padding: 6px 10px !important;
+            }
+            #confirmModalOverlay button {
+                min-height: 44px !important;
             }
         }
         @media (max-width: 767px) {
@@ -13410,6 +13534,527 @@
             .vip-pricing-grid {
                 grid-template-columns: 1fr !important;
             }
+            .spotlight-tour-floating-card {
+                bottom: calc(64px + var(--safe-bottom)) !important;
+                width: calc(100vw - 20px) !important;
+                z-index: 9995 !important;
+            }
+            /* Help Center Modal Mobile Header Pinning & Ergonomic Dock */
+            #helpModalOverlay .eg-studio-modal {
+                width: 100vw !important;
+                max-width: 100vw !important;
+                height: 100dvh !important;
+                max-height: 100dvh !important;
+                border-radius: 0 !important;
+                margin: 0 !important;
+            }
+            #helpModalOverlay .eg-studio-header {
+                padding: 12px 14px 10px 14px !important;
+                gap: 8px !important;
+            }
+            #helpModalOverlay .eg-header-top-row {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                align-items: center !important;
+                gap: 8px !important;
+            }
+            #helpModalOverlay .eg-header-top-row > div:first-child {
+                order: 1;
+                flex: 1 1 calc(100% - 54px) !important;
+                min-width: 0 !important;
+            }
+            #helpModalOverlay .exo-help-header-actions {
+                display: contents !important;
+            }
+            #helpModalCloseBtn {
+                order: 2;
+                margin-inline-start: auto !important;
+                min-width: 44px !important;
+                min-height: 44px !important;
+            }
+            #helpStartSpotlightTourBtn,
+            #helpLoadDemoDataBtn {
+                flex: 1 1 calc(50% - 4px) !important;
+                max-width: calc(50% - 4px) !important;
+                min-width: 0 !important;
+                min-height: 44px !important;
+                padding: 6px 10px !important;
+                font-size: 0.74rem !important;
+                justify-content: center !important;
+                overflow: hidden !important;
+            }
+            #helpStartSpotlightTourBtn { order: 3; }
+            #helpLoadDemoDataBtn { order: 4; }
+            #helpStartSpotlightTourText,
+            #helpLoadDemoDataText {
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                white-space: nowrap !important;
+            }
+            #helpSearchInput {
+                min-height: 44px !important;
+                font-size: 16px !important;
+                padding-inline-start: 38px !important;
+            }
+            #helpModalOverlay .eg-dock-arrow-btn,
+            #helpModalOverlay .eg-dock-pill {
+                min-height: 44px !important;
+                min-width: 44px !important;
+            }
+            #helpModalOverlay .acad-footer-nav button,
+            #cloudAuthModalCloseBtn,
+            #driveHubModalCloseBtn,
+            #vipMediaLockCloseBtn,
+            #shareSchedulePdfCloseBtn,
+            #pdfQuickJumpCloseBtn,
+            #sessionModalCloseBtn,
+            #smartStudyVerifyCloseBtn,
+            #goalTaskLinkerCloseBtn,
+            #weeklyReportCloseBtn,
+            #smartSubjectCloseBtn,
+            #subjectExamRadarCloseBtn,
+            #logRecoveryLinkerCloseBtn {
+                min-width: 44px !important;
+                min-height: 44px !important;
+            }
+        }
+
+        /* ================= WP 7.1 MOBILE FULL-VIEWPORT STUDIO, MORE DRAWER & ACTIONABLE HELP CENTER ================= */
+        .exo-studio-touch-tool {
+            display: none !important;
+        }
+        @media (max-width: 900px), (max-height: 560px), (max-width: 1024px) and (orientation: landscape) {
+            .exo-studio-touch-tool {
+                display: inline-flex !important;
+            }
+            body.in-pdf-studio .navbar {
+                display: none !important;
+            }
+            body.in-pdf-studio .view-section.active {
+                transform: none !important;
+                z-index: auto !important;
+            }
+            #pdfViewerModalOverlay.active,
+            #pdfViewerModalOverlay.exo-studio-embedded.active {
+                position: fixed !important;
+                inset: 0 !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                width: 100vw !important;
+                height: 100dvh !important;
+                max-height: 100dvh !important;
+                min-height: 100dvh !important;
+                z-index: 1250 !important;
+                border-radius: 0 !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            #pdfViewerModalOverlay.exo-studio-embedded.active .pdf-modal-container {
+                width: 100vw !important;
+                height: 100dvh !important;
+                max-width: 100vw !important;
+                max-height: 100dvh !important;
+                border-radius: 0 !important;
+            }
+            .exo-cw-studio-desk-bar.active {
+                display: none !important;
+            }
+            .pdf-viewer-header {
+                height: 50px !important;
+                min-height: 50px !important;
+                max-height: 50px !important;
+                padding: 2px 8px !important;
+                gap: 6px !important;
+            }
+            .pdf-pages-scroll-container {
+                padding-right: 12px !important;
+                padding-left: 12px !important;
+                padding-bottom: 86px !important;
+                scroll-padding-right: 12px !important;
+                scroll-padding-bottom: 86px !important;
+            }
+            .pdf-annotation-toolbar,
+            .pdf-annotation-toolbar.dock-top,
+            .pdf-annotation-toolbar.dock-bottom {
+                position: absolute !important;
+                top: auto !important;
+                bottom: calc(10px + var(--safe-bottom)) !important;
+                left: 50% !important;
+                right: auto !important;
+                transform: translateX(-50%) !important;
+                z-index: 50 !important;
+                background: #181A1D !important;
+                border: 1px solid rgba(137, 153, 130, 0.38) !important;
+                border-radius: 999px !important;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.72) !important;
+                padding: 4px 8px !important;
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                justify-content: flex-start !important;
+                gap: 4px !important;
+                width: auto !important;
+                max-width: calc(100vw - 12px) !important;
+                min-height: 54px !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                -webkit-overflow-scrolling: touch !important;
+                scrollbar-width: none !important;
+            }
+            .pdf-annotation-toolbar::-webkit-scrollbar { display: none !important; }
+            .pdf-annotation-toolbar .anno-btn {
+                width: 44px !important;
+                height: 44px !important;
+                min-width: 44px !important;
+                min-height: 44px !important;
+                padding: 6px !important;
+                border-radius: 999px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                flex-shrink: 0 !important;
+                touch-action: manipulation;
+            }
+            .pdf-annotation-toolbar .pdf-header-divider {
+                width: 1px !important;
+                height: 22px !important;
+                margin: 0 2px !important;
+                flex-shrink: 0 !important;
+            }
+            .pdf-annotation-toolbar #toolBtn_laserPause,
+            .pdf-annotation-toolbar #pdfDockPosToggleBtn {
+                display: none !important;
+            }
+            .pdf-modal-container.dock-collapsed .pdf-annotation-toolbar,
+            .pdf-modal-container.dock-collapsed .pdf-annotation-toolbar.dock-top {
+                transform: translateX(-50%) translateY(96px) !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+            }
+            .pdf-modal-container.dock-collapsed #pdfMobileDockFloatingTriggerBtn {
+                display: flex !important;
+                top: auto !important;
+                bottom: calc(14px + var(--safe-bottom)) !important;
+                right: 14px !important;
+                width: 46px !important;
+                height: 46px !important;
+                border-radius: 999px !important;
+                z-index: 55 !important;
+            }
+            .pdf-pen-options-flyout {
+                position: absolute !important;
+                bottom: calc(70px + var(--safe-bottom)) !important;
+                left: 50% !important;
+                right: auto !important;
+                top: auto !important;
+                transform: translateX(-50%) !important;
+                width: min(calc(100vw - 24px), 320px) !important;
+                z-index: 65 !important;
+            }
+            .pdf-audio-player-bar {
+                position: absolute !important;
+                bottom: calc(72px + var(--safe-bottom)) !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                width: min(calc(100vw - 16px), 440px) !important;
+                height: auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                z-index: 48 !important;
+                border-radius: 14px !important;
+                padding: 8px 10px !important;
+                background: #181A1D !important;
+                border: 1px solid rgba(137, 153, 130, 0.35) !important;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.72) !important;
+                display: none;
+                flex-direction: column !important;
+                gap: 6px !important;
+            }
+            .pdf-audio-player-bar.active-audio-dock {
+                display: flex !important;
+            }
+            .pdf-audio-player-bar.no-audio-attached,
+            .pdf-audio-player-bar.minimized-mobile {
+                display: none !important;
+            }
+            .pdf-audio-player-bar #lectureRecordingsSelect {
+                max-width: 152px !important;
+                min-height: 44px !important;
+            }
+            .pdf-audio-player-bar .exo-svg-icon {
+                width: 15px;
+                height: 15px;
+            }
+            .pdf-audio-player-bar button[onclick*="addAudioTimestampPin"] {
+                gap: 5px !important;
+            }
+            .pdf-audio-player-bar button[onclick*="addAudioTimestampPin"] .hide-on-xs {
+                display: inline !important;
+            }
+        }
+        @media (hover: none) and (max-width: 1024px) {
+            .exo-studio-touch-tool {
+                display: inline-flex !important;
+            }
+        }
+        .exo-ctx-help-btn {
+            min-width: 44px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        /* Mobile / Tablet More Sheet (#mobileMoreSheetOverlay) */
+        #mobileMoreSheetOverlay {
+            align-items: flex-end !important;
+            justify-content: center !important;
+            padding: 0 !important;
+            z-index: 1350 !important;
+        }
+        .exo-more-sheet-box {
+            width: 100%;
+            max-width: 560px;
+            background: #1C1E21;
+            border: 1px solid rgba(240, 230, 212, 0.16);
+            border-bottom: none;
+            border-radius: 20px 20px 0 0;
+            padding: 14px 16px calc(18px + var(--safe-bottom)) 16px;
+            box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.72);
+            max-height: 88dvh;
+            overflow-y: auto;
+        }
+        .exo-more-sheet-handle {
+            width: 38px;
+            height: 4px;
+            border-radius: 999px;
+            background: rgba(240, 230, 212, 0.22);
+            margin: 0 auto 10px auto;
+        }
+        .exo-more-sheet-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(240, 230, 212, 0.1);
+            margin-bottom: 12px;
+        }
+        .exo-more-sheet-nav-row {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .exo-more-sheet-nav-btn {
+            min-height: 48px;
+            padding: 6px 4px;
+            border-radius: 10px;
+            background: #24272B;
+            border: 1px solid rgba(240, 230, 212, 0.12);
+            color: var(--warm-paper, #F0E6D4);
+            font-size: 0.74rem;
+            font-weight: 700;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+        .exo-more-sheet-nav-btn.active {
+            background: rgba(137, 153, 130, 0.2);
+            border-color: var(--sage-green, #899982);
+        }
+        .exo-more-sheet-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .exo-more-sheet-item {
+            width: 100%;
+            min-height: 50px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: #24272B;
+            border: 1px solid rgba(240, 230, 212, 0.11);
+            color: var(--warm-paper, #F0E6D4);
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            cursor: pointer;
+            text-align: start;
+        }
+        .exo-more-sheet-item:hover {
+            border-color: rgba(137, 153, 130, 0.45);
+        }
+        .exo-more-sheet-item-left {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            min-width: 0;
+        }
+        .exo-more-sheet-ico {
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            background: rgba(137, 153, 130, 0.14);
+            color: var(--sage-green, #899982);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* Actionable Help Center Components */
+        .exo-help-quick-strip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 2px 0 10px 0;
+            margin-bottom: 10px;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        .exo-help-quick-strip::-webkit-scrollbar { display: none; }
+        .exo-help-quick-btn {
+            flex: 0 0 auto;
+            min-height: 44px;
+            padding: 8px 13px;
+            border-radius: 10px;
+            background: #24272B;
+            border: 1px solid rgba(240, 230, 212, 0.14);
+            color: var(--warm-paper, #F0E6D4);
+            font-family: inherit;
+            font-size: 0.78rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .exo-help-quick-btn:hover {
+            border-color: var(--sage-green, #899982);
+            background: rgba(137, 153, 130, 0.14);
+        }
+        .exo-help-checklist-card {
+            background: #212427;
+            border: 1px solid rgba(137, 153, 130, 0.28);
+            border-inline-start: 4px solid var(--sage-green, #899982);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+        }
+        .exo-help-checklist-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        .exo-help-check-rows {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 8px;
+        }
+        .exo-help-check-row {
+            background: #1A1C1E;
+            border: 1px solid rgba(240, 230, 212, 0.1);
+            border-radius: 10px;
+            padding: 10px 11px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .exo-help-check-row.is-done {
+            border-color: rgba(137, 153, 130, 0.36);
+            background: rgba(137, 153, 130, 0.08);
+        }
+        .exo-help-check-action-btn {
+            min-height: 44px;
+            padding: 6px 11px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+        .exo-help-catalog-mount {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .exo-help-action-card,
+        .exo-help-trouble-card {
+            background: #222528;
+            border: 1px solid rgba(240, 230, 212, 0.13);
+            border-radius: 13px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .exo-help-trouble-card.is-active-issue {
+            border-color: rgba(215, 185, 111, 0.55);
+            border-inline-start: 4px solid var(--warm-gold, #D7B96F);
+            background: rgba(215, 185, 111, 0.07);
+        }
+        .exo-help-action-steps {
+            margin: 0;
+            padding-inline-start: 18px;
+            font-size: 0.77rem;
+            color: var(--stone, #ABA69D);
+            line-height: 1.55;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .exo-help-outcome-note {
+            font-size: 0.74rem;
+            color: #cde0c5;
+            background: rgba(137, 153, 130, 0.1);
+            border: 1px solid rgba(137, 153, 130, 0.24);
+            border-radius: 8px;
+            padding: 7px 9px;
+            line-height: 1.45;
+        }
+        .exo-help-safety-note {
+            font-size: 0.73rem;
+            color: #e7ae96;
+            background: rgba(196, 125, 96, 0.12);
+            border: 1px solid rgba(196, 125, 96, 0.28);
+            border-radius: 8px;
+            padding: 6px 9px;
+            line-height: 1.45;
+        }
+        .exo-help-search-chips {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .exo-help-search-chip {
+            min-height: 44px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: #24272B;
+            border: 1px solid rgba(137, 153, 130, 0.35);
+            color: var(--warm-paper, #F0E6D4);
+            font-family: inherit;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
         }
 </style>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -14233,6 +14878,9 @@
                 <button type="button" class="icon-btn help-btn" onclick="openHelpModal()" title="Platform Guide" aria-label="Platform Guide">
                     <svg class="exo-svg-icon" style="width:18px; height:18px;" aria-hidden="true"><use href="#exo-ico-help"/></svg>
                 </button>
+                <button type="button" class="icon-btn exo-mobile-more-btn" id="mobileMoreMenuBtn" data-exo-no-i18n="1" onclick="openMobileMoreSheet()" title="More Tools &amp; Workspace" aria-label="More tools and settings">
+                    <svg class="exo-svg-icon" style="width:18px; height:18px;" aria-hidden="true"><use href="#exo-ico-menu"/></svg>
+                </button>
             </div>
         </div>
         <div class="nav-items">
@@ -14303,6 +14951,7 @@
                             </div>
                             <div class="hub-add-subject-row" style="display: flex; gap: 6px; align-items: center;">
                                 <button type="button" class="exo-library-primary-btn" id="addSubjectPrimaryBtn" onclick="openSmartSubjectModal()"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-plus"/></svg> <span id="addSubjectBtnLabel">New Book</span></button>
+                                <button type="button" class="icon-btn exo-ctx-help-btn" id="libraryHelpTriggerBtn" data-exo-no-i18n="1" onclick="openHelpModal(2)" title="Study Library Guide" aria-label="Study Library Guide"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-help"/></svg></button>
                             </div>
                             <div style="display: none;" aria-hidden="true">
                                 <input type="text" id="newSubjectName" placeholder="Quick subject name...">
@@ -14439,6 +15088,7 @@
                         <button class="btn btn-outline" id="plannerExportPdfHeaderBtn" style="padding: 8px 14px; font-size: 0.84rem; border-radius: 9px; display: inline-flex; align-items: center; gap: 6px;" onclick="openShareSchedulePdfModal()" title="مشاركة وتصدير الجدول كملف PDF">
                             <svg class="exo-svg-icon" style="width:14px; height:14px;" aria-hidden="true"><use href="#exo-ico-note"/></svg> <span id="plannerExportPdfHeaderLabel">تصدير PDF</span>
                         </button>
+                        <button type="button" class="icon-btn exo-ctx-help-btn" id="plannerHelpTriggerBtn" data-exo-no-i18n="1" onclick="openHelpModal(4)" title="Weekly Planner Guide" aria-label="Weekly Planner Guide"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-help"/></svg></button>
                     </div>
                 </div>
 
@@ -14710,6 +15360,7 @@
                     <button class="backup-drawer-toggle-btn" id="backupDrawerToggleBtn" onclick="toggleBackupDrawer()">
                         <svg class="exo-svg-icon" style="width:14px; height:14px;" aria-hidden="true"><use href="#exo-ico-cloud"/></svg> <span id="trackerBackupToggleText">النسخ والكلاود</span> <svg class="exo-svg-icon" id="backupDrawerChevron" style="width:12px; height:12px;" aria-hidden="true"><use href="#exo-ico-chevron-down"/></svg>
                     </button>
+                    <button type="button" class="icon-btn exo-ctx-help-btn" id="trackerHelpTriggerBtn" data-exo-no-i18n="1" onclick="openHelpModal(5)" title="Tracker &amp; Backup Guide" aria-label="Tracker and Backup Guide"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-help"/></svg></button>
                 </div>
             </div>
 
@@ -14995,7 +15646,10 @@
                         <span id="cloudAuthModalSubtitle" style="font-size: 0.76rem; color: #cbd5e1;">مساحتك الأكاديمية المشفرة • حفظ ومزامنة فورية عبر أجهزتك</span>
                     </div>
                 </div>
-                <button type="button" class="icon-btn" id="cloudAuthModalCloseBtn" aria-label="Close account modal" style="width: 32px; height: 32px;" onclick="closeModal('cloudAuthModalOverlay')"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-close"/></svg></button>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <button type="button" class="icon-btn exo-ctx-help-btn" id="cloudAuthHelpBtn" data-exo-no-i18n="1" aria-label="Account and Sync Help" title="Account and Sync Help" onclick="closeModal('cloudAuthModalOverlay'); openHelpModal(5);"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-help"/></svg></button>
+                    <button type="button" class="icon-btn" id="cloudAuthModalCloseBtn" aria-label="Close account modal" style="width: 32px; height: 32px;" onclick="closeModal('cloudAuthModalOverlay')"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-close"/></svg></button>
+                </div>
             </div>
 
             <!-- VIEW A: LOGGED OUT (LUXURY LOGIN / SIGNUP STUDIO) -->
@@ -15214,7 +15868,10 @@
                         <span id="driveHubModalSubtitle" data-exo-no-i18n="1" style="font-size: 0.76rem; color: var(--stone, #ABA69D);">Private PDF &amp; audio media storage inside your own Google Drive (separate from account sync).</span>
                     </div>
                 </div>
-                <button type="button" class="icon-btn" id="driveHubModalCloseBtn" aria-label="Close Google Drive hub" style="width: 32px; height: 32px;" onclick="closeGoogleDriveHubModal()"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-close"/></svg></button>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <button type="button" class="icon-btn exo-ctx-help-btn" id="driveHubHelpBtn" data-exo-no-i18n="1" aria-label="Google Drive Vault Help" title="Google Drive Vault Help" onclick="closeGoogleDriveHubModal(); openHelpModal(6);"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-help"/></svg></button>
+                    <button type="button" class="icon-btn" id="driveHubModalCloseBtn" aria-label="Close Google Drive hub" style="width: 32px; height: 32px;" onclick="closeGoogleDriveHubModal()"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-close"/></svg></button>
+                </div>
             </div>
             <div id="driveHubStateBanner" class="exo-cutout-strip" data-exo-no-i18n="1" style="margin-bottom: 12px;"></div>
             <div id="driveHubModalMount" data-exo-no-i18n="1">
@@ -15520,6 +16177,9 @@
                             <a id="pdfOpenInTabBtn" href="#" target="_blank" rel="noopener noreferrer" class="pdf-more-item" onclick="closePdfMoreMenu()">
                                 <svg class="exo-svg-icon" style="color: var(--muted-blue);" aria-hidden="true"><use href="#exo-ico-external-link"/></svg> فتح في نافذة خارجية
                             </a>
+                            <button class="pdf-more-item" id="pdfMenuHelpBtn" data-exo-no-i18n="1" onclick="closePdfMoreMenu(); openHelpModal(3);">
+                                <svg class="exo-svg-icon" style="color: var(--sage-green);" aria-hidden="true"><use href="#exo-ico-help"/></svg> <span id="pdfMenuHelpText">Studio Guide &amp; Shortcuts</span>
+                            </button>
                             <div style="height: 1px; background: rgba(241, 231, 213, 0.08); margin: 3px 0;"></div>
                             <button class="pdf-more-item" onclick="togglePdfFullscreen(); closePdfMoreMenu();">
                                 <svg class="exo-svg-icon" id="pdfMenuFullscreenIcon" style="color: var(--text-muted);" aria-hidden="true"><use href="#exo-ico-expand"/></svg> <span id="pdfMenuFullscreenText">Fullscreen (F)</span>
@@ -15618,12 +16278,18 @@
                     <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-chevron-right"/></svg>
                 </button>
 
-                <!-- Hidden compatibility hooks -->
-                <button id="toolBtn_laserPause" onclick="toggleLaserFadePause()" style="display:none;"></button>
-                <button id="toolBtn_palmReject" onclick="togglePalmRejectionMode()" style="display:none;"></button>
-                <button id="pdfToolbarExtraNoteBtn" onclick="toggleExtraNoteForPage(currentActivePageNum)" style="display:none;"></button>
-                <button id="pdfToolbarExportPdfBtn" onclick="exportAnnotatedSlides()" style="display:none;"></button>
-                <button id="pdfDockPosToggleBtn" onclick="togglePdfDockPosition()" style="display:none;"></button>
+                <button type="button" class="anno-btn exo-studio-touch-tool" id="toolBtn_palmReject" onclick="togglePalmRejectionMode()" title="Smart palm rejection" aria-label="Smart palm rejection">
+                    <svg class="exo-svg-icon" id="palmRejectBtnIcon" aria-hidden="true"><use href="#exo-ico-hand"/></svg>
+                </button>
+                <button type="button" class="anno-btn exo-studio-touch-tool" id="pdfToolbarExtraNoteBtn" onclick="toggleExtraNoteForPage(currentActivePageNum)" title="Add summary sheet" aria-label="Add summary sheet">
+                    <svg class="exo-svg-icon" id="pdfToolbarExtraNoteIcon" aria-hidden="true"><use href="#exo-ico-note"/></svg>
+                    <span id="pdfToolbarExtraNoteText" style="display:none;">Summary</span>
+                </button>
+                <button type="button" class="anno-btn exo-studio-touch-tool" id="pdfToolbarExportPdfBtn" onclick="exportAnnotatedSlides()" title="Export annotated PDF" aria-label="Export annotated PDF">
+                    <svg class="exo-svg-icon" id="pdfToolbarExportPdfIcon" aria-hidden="true"><use href="#exo-ico-file-export"/></svg>
+                </button>
+                <button type="button" id="toolBtn_laserPause" onclick="toggleLaserFadePause()" style="display:none;"></button>
+                <button type="button" id="pdfDockPosToggleBtn" onclick="togglePdfDockPosition()" style="display:none;"></button>
             </div>
 
             <!-- Pen Options Flyout (Appears to the left of the vertical dock on demand) -->
@@ -15962,7 +16628,8 @@
 
             <!-- Organized Help Center Body Stage -->
             <div class="eg-bento-stage" id="academyStageContainer">
-                <div id="helpSearchEmptyState" class="exo-help-search-empty">No matching help topics found. Try PDF, audio, planner, goals, sync, or shortcuts.</div>
+                <div id="helpQuickActionsBar" class="exo-help-quick-strip" data-exo-no-i18n="1" aria-label="Quick Actions"></div>
+                <div id="helpSearchEmptyState" class="exo-help-search-empty"></div>
 
                 <!-- ==================== SECTION 1: نظرة عامة ==================== -->
                 <div class="academy-module-pane active" id="acadPane_1">
@@ -16023,6 +16690,9 @@
                             <div style="font-size:0.75rem; color:#cde0c5; font-weight:800;">👈 متابعة دقيقة للاستمرارية وتعويض الفائت</div>
                         </div>
                     </div>
+
+                    <div id="helpGettingStartedChecklistMount" data-exo-no-i18n="1"></div>
+                    <div id="helpActionCatalogMount_1" class="exo-help-catalog-mount" data-exo-no-i18n="1"></div>
 
                     <div class="acad-footer-nav">
                         <button class="btn btn-outline" onclick="startInteractiveSpotlightTour()"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-target"/></svg> بدء الجولة التفاعلية</button>
@@ -16278,6 +16948,9 @@
                             </div>
                         </div>
                     </div>
+
+                    <div id="helpTroubleshootMount" data-exo-no-i18n="1" style="margin-top: 14px;"></div>
+                    <div id="helpActionCatalogMount_6" class="exo-help-catalog-mount" data-exo-no-i18n="1"></div>
 
                     <!-- Hidden compatibility nodes -->
                     <div id="helpModalInteractiveChecklist" style="display:none;"></div>
@@ -18755,6 +19428,380 @@
             ];
         }
 
+        function exoNormalizeHelpSearchText(text) {
+            return String(text || '')
+                .toLowerCase()
+                .replace(/[\u064B-\u065F\u0670]/g, '')
+                .replace(/[أإآ]/g, 'ا')
+                .replace(/ى/g, 'ي')
+                .replace(/ة/g, 'ه')
+                .trim();
+        }
+
+        function exoExpandHelpSearchQuery(rawQuery) {
+            const norm = exoNormalizeHelpSearchText(rawQuery);
+            if (!norm) return { raw: '', normalized: '', tokens: [] };
+
+            const synonymClusters = [
+                ['shortcut', 'shortcuts', 'hotkey', 'hotkeys', 'keyboard', 'key', 'ctrl', 'اختصار', 'اختصارات', 'لوحه المفاتيح', 'كيبورد', 'زر'],
+                ['sync', 'cloud', 'supabase', 'push', 'pull', 'revision', 'conflict', 'مزامنه', 'سحابه', 'سحابي', 'كلاود', 'تعارض', 'رفع', 'سحب'],
+                ['drive', 'gdrive', 'google', 'preview', 'vault', 'درايف', 'جوجل', 'غوغل', 'معاينه', 'وسائط', 'مجلد'],
+                ['pdf', 'ink', 'pen', 'highlighter', 'note', 'notes', 'sheet', 'sheets', 'annotate', 'export', 'laser', 'text', 'palm', 'بي دي اف', 'قلم', 'تظليل', 'ملخص', 'تلخيص', 'ورقه', 'تصدير', 'ليزر', 'سلايد'],
+                ['audio', 'record', 'recording', 'boost', '300%', 'pin', 'pins', 'speed', 'ريكورد', 'صوت', 'تسجيل', 'مضخم', 'دبوس', 'دبابيس'],
+                ['planner', 'schedule', 'week', 'today', 'ruler', 'stream', 'goal', 'goals', 'college', 'absent', 'الجدول', 'تخطيط', 'اسبوع', 'اليوم', 'مسطره', 'هدف', 'اهداف', 'كليه', 'غياب'],
+                ['tracker', 'compass', 'log', 'logs', 'mastery', 'evaluation', 'streak', 'missed', 'wasted', 'السجل', 'بوصله', 'تقارير', 'تقييم', 'اتقان', 'مفقود', 'فائته'],
+                ['backup', 'json', 'restore', 'merge', 'replace', 'sha', 'export', 'import', 'نسخ', 'نسخه', 'احتياطيه', 'استرجاع', 'استعاده', 'دمج', 'استبدال'],
+                ['troubleshoot', 'problem', 'error', 'issue', 'quota', 'fix', 'missing', 'stuck', 'مشكل', 'مشكله', 'خطا', 'حل', 'اصلاح', 'امتلاء', 'بطء'],
+                ['library', 'subject', 'subjects', 'chapter', 'chapters', 'lecture', 'merge lectures', 'exam', 'spaced', 'مكتبه', 'مواد', 'ماده', 'فصل', 'محاضره', 'امتحان', 'مراجعه']
+            ];
+
+            const baseTokens = norm.split(/\s+/).filter(Boolean);
+            const expanded = new Set([norm, ...baseTokens]);
+            synonymClusters.forEach((cluster) => {
+                const hit = cluster.some((term) => norm.includes(term) || baseTokens.some((tok) => tok.length >= 2 && (term.includes(tok) || tok.includes(term))));
+                if (hit) {
+                    cluster.forEach((term) => expanded.add(term));
+                }
+            });
+            return {
+                raw: String(rawQuery || '').trim(),
+                normalized: norm,
+                tokens: Array.from(expanded)
+            };
+        }
+
+        function buildHelpQuickActionsList(isEn) {
+            const en = isEn !== false;
+            return [
+                { id: 'go_library', icon: 'exo-ico-layers', label: en ? 'Open Library' : 'المكتبة والمواد', tone: 'sage' },
+                { id: 'add_session', icon: 'exo-ico-plus', label: en ? 'New Session' : 'إضافة جلسة', tone: 'gold' },
+                { id: 'go_planner', icon: 'exo-ico-calendar', label: en ? 'Today Plan' : 'خطة اليوم', tone: 'blue' },
+                { id: 'go_goals', icon: 'exo-ico-target', label: en ? 'Weekly Goals' : 'أهداف الأسبوع', tone: 'sage' },
+                { id: 'go_tracker', icon: 'exo-ico-chart', label: en ? 'Tracker' : 'السجل والبوصلة', tone: 'blue' },
+                { id: 'open_account', icon: 'exo-ico-cloud', label: en ? 'Account & Sync' : 'الحساب والمزامنة', tone: 'sage' },
+                { id: 'open_drive', icon: 'exo-ico-drive', label: en ? 'Drive Vault' : 'مخزن Drive', tone: 'gold' },
+                { id: 'export_backup', icon: 'exo-ico-download', label: en ? 'Export Backup' : 'تصدير نسخة JSON', tone: 'sage' }
+            ];
+        }
+
+        function buildActionableHelpCatalog(isEn) {
+            const en = isEn !== false;
+            return [
+                // Section A -> Pane 1: Getting Started
+                {
+                    id: 'help_start_daily_journal',
+                    sectionCode: 'A',
+                    paneNum: 1,
+                    title: en ? 'Start from Today Journal & Resume Card' : 'ابدأ من صفحة اليوم ومتابعة آخر فصل',
+                    whenToUse: en ? 'Whenever you open EXO to see today’s study plan and jump back into your last chapter.' : 'عند فتح المنصة لمراجعة جلسات اليوم والعودة فوراً لآخر محاضرة.',
+                    steps: en
+                        ? ['Review your Today focus plan cards and urgent review alerts.', 'Tap Resume on the Active Chapter card to reopen your exact slide & audio moment.', 'Check the top Cloud pill anytime to confirm local vs cloud status.']
+                        : ['راجع بطاقات خطة اليوم وتنبيهات المراجعة المستحقة.', 'اضغط متابعة على بطاقة الفصل النشط للعودة لآخر سلايد ودقيقة صوت.', 'تحقق من مؤشر السحابة العلوي للتأكد من حالة الحفظ والمزامنة.'],
+                    expectedOutcome: en ? 'You resume studying in one tap without hunting through folders.' : 'تستأنف مذاكرتك بضغطة واحدة دون البحث بين المجلدات.',
+                    actionId: 'go_dashboard',
+                    actionLabel: en ? 'Go to Today' : 'افتح صفحة اليوم',
+                    keywords: ['getting started', 'today', 'dashboard', 'resume', 'start', 'البدايه', 'اليوم', 'استئناف', 'متابعه']
+                },
+                // Section B -> Pane 2: Study Library
+                {
+                    id: 'help_lib_books_toc',
+                    sectionCode: 'B',
+                    paneNum: 2,
+                    title: en ? 'Create Subjects, Chapters & Exam Radar' : 'تنظيم المواد والفصول ورادار الامتحانات',
+                    whenToUse: en ? 'When adding courses, splitting chapters, tracking exam dates, or setting continuous habit tracks.' : 'عند إضافة مادة جديدة أو تقسيم الفصول أو تحديد موعد امتحان أو متابعة مسار مستمر.',
+                    steps: en
+                        ? ['Open Subjects and tap New Book to create a course or continuous track.', 'Open a subject Table of Contents to add chapters, attach PDFs/audio, or mark completion.', 'Open Exam Radar inside a subject to set a quiz/exam date and launch bundled slides.']
+                        : ['افتح تبويب المواد واضغط مادة جديدة لإنشاء مقرر أو مسار مستمر.', 'ادخل فهرس المادة لإضافة فصول وإرفاق ملفات PDF أو تسجيلات صوتية.', 'استخدم رادار الامتحان لتحديد موعد الاختبار وفتح كل محاضراته مدمجة.'],
+                    expectedOutcome: en ? 'Clear chapter progress percentages, spaced repetition dates, and ready-to-study decks.' : 'نسب إنجاز واضحة لكل مادة وجدولة تلقائية للمراجعة المتباعدة.',
+                    actionId: 'go_library',
+                    actionLabel: en ? 'Open Study Library' : 'اذهب إلى المكتبة',
+                    keywords: ['library', 'subjects', 'chapters', 'reorder', 'exam radar', 'continuous', 'merge', 'المواد', 'الفصول', 'المكتبه', 'امتحان', 'دمج']
+                },
+                {
+                    id: 'help_lib_merge_lectures',
+                    sectionCode: 'B',
+                    paneNum: 2,
+                    title: en ? 'Merge Multiple Lectures & Continuous Mode' : 'دمج عدة محاضرات في جلسة مراجعة واحدة',
+                    whenToUse: en ? 'When revising multiple related lectures before an exam with seamless audio switching.' : 'عند مراجعة أكثر من محاضرة معاً قبل الامتحان مع التبديل السريع بين تسجيلاتها.',
+                    steps: en
+                        ? ['Open a Subject page and tap Merge Lectures.', 'Check two or more lectures and press Open Selected Merged.', 'Use the continuous slides toggle or top tabs to move cleanly between lectures.']
+                        : ['افتح صفحة المادة واضغط دمج المحاضرات.', 'حدد محاضرتين أو أكثر ثم اضغط فتح المحدد مدمجاً.', 'بدّل بين التسجيلات أو فعّل عرض السلايدات المتتالية من الشريط العلوي.'],
+                    expectedOutcome: en ? 'Sequential slides and audio playlist without losing individual lecture annotations.' : 'تصفح متتابع لكل السلايدات والتسجيلات مع حفظ كتابات كل محاضرة بدقة.',
+                    actionId: 'go_library',
+                    actionLabel: en ? 'Browse Subjects' : 'تصفح المواد',
+                    keywords: ['merge', 'multi lecture', 'continuous', 'pdf', 'دمج', 'محاضرات', 'مستمره']
+                },
+                // Section C -> Pane 3: Chapter Workspace & PDF Studio
+                {
+                    id: 'help_studio_ink_notes',
+                    sectionCode: 'C',
+                    paneNum: 3,
+                    title: en ? 'Annotate PDFs, Extra Note Sheets & Free PDF Export' : 'الكتابة على الـ PDF وأوراق التلخيص وتصدير PDF مجاناً',
+                    whenToUse: en ? 'During lecture review when drawing with stylus/mouse, typing text notes, adding blank summary sheets, or exporting.' : 'أثناء المذاكرة للكتابة بالقلم أو الكيبورد، أو إضافة أوراق تلخيص فارغة، أو تصدير الملف المشروح.',
+                    steps: en
+                        ? ['Open any Chapter Workspace and launch the Study Studio.', 'Pick Pen, Highlighter, Eraser, Text (T), or Laser (L); toggle Eye to test active recall.', 'Use More (+) -> Extra Note Sheet (multiple sheets free) or Export Annotated PDF (free for everyone).']
+                        : ['افتح مساحة الفصل ثم افتح استوديو المذاكرة.', 'اختر القلم أو التظليل أو الممحاة أو النص (T) أو الليزر (L)، وجرّب زر العين للتسميع.', 'من قائمة المزيد أضف أوراق تلخيص متعددة أو صدّر PDF مشروحاً مجاناً للجميع.'],
+                    expectedOutcome: en ? 'Zero-lag local IndexedDB stroke saving plus portable annotated PDF exports.' : 'حفظ فوري وآمن لكتاباتك محلياً مع إمكانية التصدير المجاني بالكامل.',
+                    actionId: 'go_library',
+                    actionLabel: en ? 'Open Chapter Library' : 'افتح المكتبة للدراسة',
+                    keywords: ['studio', 'pdf', 'pen', 'highlighter', 'eraser', 'text', 'laser', 'palm', 'active recall', 'note sheet', 'export', 'free', 'استوديو', 'قلم', 'تلخيص', 'تصدير', 'تسميع', 'ليزر']
+                },
+                {
+                    id: 'help_studio_audio_pins',
+                    sectionCode: 'C',
+                    paneNum: 3,
+                    title: en ? '300% Audio Booster & Slide Timestamp Pins (P)' : 'مضخم الصوت حتى 300% والدبابيس الصوتية (P)',
+                    whenToUse: en ? 'When listening to quiet lecture recordings and linking explanations to exact slides.' : 'عند سماع تسجيلات منخفضة الصوت أو ربط دقيقة الشرح بالسلايد المناسبة.',
+                    steps: en
+                        ? ['Tap the Audio toggle inside PDF Studio to open the synced player bar.', 'Cycle speed (1.0x–2.0x) or tap the 100% boost badge up to 300%.', 'Press Pin Moment (or press P) to anchor a timestamp on the active slide.']
+                        : ['اضغط زر الصوت داخل الاستوديو لفتح شريط المشغل المتزامن.', 'غيّر السرعة أو اضغط مؤشر التكبير للوصول إلى تضخيم 300%.', 'اضغط تثبيت لحظة (أو حرف P) لربط الدقيقة الحالية بالسلايد.'],
+                    expectedOutcome: en ? 'Clearer audio and 1-tap replay of crucial lecture explanations per slide.' : 'صوت أوضح ووصول فوري لأهم دقائق الشرح على كل سلايد.',
+                    actionId: 'go_library',
+                    actionLabel: en ? 'Open Subjects' : 'افتح المواد',
+                    keywords: ['audio', 'booster', '300%', 'pin', 'pins', 'recording', 'صوت', 'ريكورد', 'مضخم', 'دبوس', 'دبابيس']
+                },
+                // Section D -> Pane 4: Weekly Planner & Goals
+                {
+                    id: 'help_planner_timeblocks',
+                    sectionCode: 'D',
+                    paneNum: 4,
+                    title: en ? 'Time-Blocking: Fixed Classes vs Study & Goals' : 'الجدول الأسبوعي: الكلية مقابل جلسات المذاكرة والأهداف',
+                    whenToUse: en ? 'When scheduling your week, separating college hours from net study, or tracking weekly goals.' : 'عند ترتيب أسبوعك وفصل ساعات الكلية عن صافي وقت المذاكرة وربط الأهداف.',
+                    steps: en
+                        ? ['Open Planner and pick Today (Hourly Ruler or Smart Stream), Week Grid, or Study Goals.', 'Add Fixed College slots or Study sessions linked to a Subject or Lecture.', 'Tap any Weekly Goal to link scheduled sessions so progress calculates automatically; mark College Absent to free slots.']
+                        : ['افتح الجدول واختر اليوم (مسطرة الساعات أو العرض المضغوط) أو جدول الأسبوع أو أهداف الأسبوع.', 'أضف حصص الكلية الثابتة أو جلسات مذاكرة مربوطة بمادة أو محاضرة.', 'اضغط على أي هدف أسبوعي لربطه بجلسات الجدول وحساب الإنجاز تلقائياً.'],
+                    expectedOutcome: en ? 'Accurate weekly adherence metrics and zero double-counting between college and study time.' : 'حساب دقيق لنسبة الالتزام وساعات المذاكرة الحقيقية بدون تداخل.',
+                    actionId: 'go_planner',
+                    actionLabel: en ? 'Open Planner' : 'افتح التخطيط',
+                    keywords: ['planner', 'schedule', 'today', 'week', 'ruler', 'stream', 'goals', 'fixed', 'absent', 'rollover', 'pdf', 'الجدول', 'التخطيط', 'مسطره', 'اهداف', 'غياب']
+                },
+                // Section E -> Pane 5: Tracker, Sync, Backup & Shortcuts
+                {
+                    id: 'help_tracker_compass',
+                    sectionCode: 'E',
+                    paneNum: 5,
+                    title: en ? 'Focus Compass, Mastery Reports & Study Logs' : 'البوصلة التحليلية وتقارير الإتقان وسجل الدراسة',
+                    whenToUse: en ? 'When deciding what deserves focus today, logging achievement or distracted time, or saving a weekly evaluation.' : 'لمعرفة أولويات اليوم أو تدوين الإنجازات والوقت الضائع أو إصدار التقييم الأسبوعي.',
+                    steps: en
+                        ? ['Open Tracker to read the Focus Compass recommendations and act directly.', 'Use Add Log to record real study focus or wasted time honestly.', 'Review Subject Mastery bars, Time Distribution, and generate your Weekly Report before rollover.']
+                        : ['افتح المتابعة لقراءة توصيات البوصلة وتنفيذ الخطوة المقترحة.', 'استخدم تدوين إنجاز لتسجيل وقت المذاكرة الفعلي أو الوقت المهدر.', 'تابع نسب إتقان المواد وأصدر تقرير الأسبوع قبل الترحيل.'],
+                    expectedOutcome: en ? 'Clear visibility of real progress, catch-up needs, and week-over-week trends.' : 'رؤية واضحة للتقدم الفعلي والجلسات الفائتة والتطور الأسبوعي.',
+                    actionId: 'go_tracker',
+                    actionLabel: en ? 'Open Tracker' : 'افتح المتابعة',
+                    keywords: ['tracker', 'compass', 'logs', 'mastery', 'evaluation', 'report', 'catch up', 'السجل', 'البوصله', 'اتقان', 'تقرير', 'تعويض']
+                },
+                {
+                    id: 'help_sync_vs_backup',
+                    sectionCode: 'E',
+                    paneNum: 5,
+                    title: en ? 'Local Save vs Supabase Sync vs Google Drive vs JSON Backup' : 'الفرق بين الحفظ المحلي ومزامنة السحابة وGoogle Drive والنسخ JSON',
+                    whenToUse: en ? 'When checking where data lives, running manual Push/Pull, or exporting/importing JSON backups.' : 'لمعرفة مكان حفظ كل نوع من البيانات، أو تنفيذ مزامنة يدوية، أو تصدير/استعادة نسخة JSON.',
+                    steps: en
+                        ? ['Local Storage & IndexedDB keep all subjects, schedule, logs, PDFs, audio, and ink on your device first.', 'Supabase Cloud Sync syncs workspace metadata, schedule, logs, and ink when signed in (Push / Pull anytime).', 'Google Drive Vault stores heavy PDFs/audio privately (VIP Pro). JSON Backup exports everything offline with SHA-256 verification and Smart Merge vs Full Replace.']
+                        : ['الحفظ المحلي وIndexedDB يحتفظان بالمواد والجدول والسجل والـ PDF والصوت والكتابة على جهازك أولاً.', 'مزامنة السحابة (Supabase) تزامن بيانات المساحة والجدول والكتابة عند تسجيل الدخول.', 'مخزن Google Drive يحفظ الملفات الصوتية والـ PDF الكبيرة بخصوصية، بينما النسخ JSON يتيح الدمج الذكي أو الاستبدال الكامل بتحقق SHA-256.'],
+                    expectedOutcome: en ? 'Truthful understanding of all 6 save/sync states and zero accidental data overwrites.' : 'فهم كامل لحالات الحفظ الست وتجنب أي فقدان أو استبدال غير مقصود.',
+                    actionId: 'open_account',
+                    actionLabel: en ? 'Inspect Account & Sync' : 'فحص الحساب والمزامنة',
+                    keywords: ['local', 'supabase', 'sync', 'cloud', 'drive', 'backup', 'json', 'merge', 'replace', 'sha256', 'status', 'حفظ محلي', 'مزامنه', 'نسخه', 'سحابه', 'درايف']
+                },
+                // Section F/G -> Pane 6: Troubleshooting & VIP Policy
+                {
+                    id: 'help_policy_developer',
+                    sectionCode: 'G',
+                    paneNum: 6,
+                    title: en ? 'Free Forever Tools vs VIP Pro Media Vault & Developer Support' : 'الأدوات المجانية للجميع مقابل باقة VIP Pro والتواصل مع المطور',
+                    whenToUse: en ? 'To verify what features are free vs VIP Pro, or contact the developer via WhatsApp.' : 'لمعرفة ما هو مجاني دائماً للجميع مقابل باقة وسائط Drive أو التواصل مع المطور.',
+                    steps: en
+                        ? ['Library, Planner, Tracker, Annotated PDF Export, Multiple Extra Note Sheets, and Supabase workspace + ink sync are Free for Everyone.', 'VIP Pro adds private Google Drive media storage for heavy lecture PDFs & recordings across devices (activated manually by owner).', 'Use the WhatsApp button in this section whenever you need direct assistance.']
+                        : ['المكتبة والتخطيط والمتابعة وتصدير PDF المشروح وأوراق التلخيص المتعددة ومزامنة المساحة والكتابة مجانية دائماً للجميع.', 'باقة VIP Pro تفتح تخزين ومزامنة ملفات PDF والصوت الكبيرة عبر Google Drive الخاص بك.', 'تواصل عبر واتساب في هذا القسم لأي استفسار أو دعم مباشر.'],
+                    expectedOutcome: en ? 'Complete clarity on pricing and full access to all study tools without paywalls.' : 'وضوح تام للسياسة وحصول كامل على كل أدوات المذاكرة بدون قيود.',
+                    actionId: 'open_vip',
+                    actionLabel: en ? 'View VIP Pro Details' : 'تفاصيل باقة VIP Pro',
+                    keywords: ['vip', 'pro', 'free', 'policy', 'annotated pdf export', 'extra note', 'developer', 'whatsapp', 'مجاني', 'تطوير', 'واتساب']
+                }
+            ];
+        }
+
+        function deriveHelpGettingStartedChecklist(snapshot, isEn) {
+            const en = isEn !== false;
+            const s = (snapshot && typeof snapshot === 'object') ? snapshot : {};
+            const steps = [
+                {
+                    id: 'gs_subject',
+                    title: en ? 'Add your first study book or course' : 'أضف أول مادة أو مقرر دراسي',
+                    desc: en ? 'Organize subjects or continuous tracks in Study Library.' : 'رتب موادك أو مساراتك المستمرة داخل المكتبة.',
+                    done: (Number(s.subjectCount) || 0) > 0,
+                    actionId: 'go_library',
+                    actionLabel: en ? 'Add Subject' : 'أضف مادة'
+                },
+                {
+                    id: 'gs_resource',
+                    title: en ? 'Create a chapter and attach a PDF or recording' : 'أنشئ فصلاً وأرفق ملف PDF أو تسجيلًا صوتياً',
+                    desc: en ? 'Files cache locally in IndexedDB for instant offline access.' : 'تُحفظ الملفات محلياً في IndexedDB للعمل فوراً بدون إنترنت.',
+                    done: (Number(s.chapterCount) || 0) > 0 && (Number(s.resourceCount) || 0) > 0,
+                    actionId: 'go_library',
+                    actionLabel: en ? 'Open Library' : 'افتح المكتبة'
+                },
+                {
+                    id: 'gs_studio_notes',
+                    title: en ? 'Try ink notes, extra sheet, or bookmark in Studio' : 'جرّب الكتابة أو ورقة تلخيص أو تمييز سلايد في الاستوديو',
+                    desc: en ? 'Keep slide annotations, text notes, and summary sheets synced safely.' : 'احفظ الملاحظات والكتابة وأوراق التلخيص بأمان داخل الفصل.',
+                    done: Boolean(s.hasStudioNotesOrBookmark),
+                    actionId: 'go_library',
+                    actionLabel: en ? 'Open Studio' : 'افتح الاستوديو'
+                },
+                {
+                    id: 'gs_session',
+                    title: en ? 'Schedule a study session in Planner' : 'جدوِل أول جلسة مذاكرة في التخطيط',
+                    desc: en ? 'Place focused study blocks on Today or Week Grid.' : 'ضع جلسات المذاكرة في يومك أو جدول الأسبوع.',
+                    done: (Number(s.sessionCount) || 0) > 0,
+                    actionId: 'add_session',
+                    actionLabel: en ? 'Add Session' : 'أضف جلسة'
+                },
+                {
+                    id: 'gs_goal',
+                    title: en ? 'Add a weekly goal & link sessions' : 'أضف هدفًا أسبوعيًا واربطه بالجلسات',
+                    desc: en ? 'Track automatic completion % from your linked study time.' : 'احسب نسبة إنجاز الهدف تلقائياً من ساعات الجلسات المرتبطة.',
+                    done: (Number(s.goalCount) || 0) > 0,
+                    actionId: 'go_goals',
+                    actionLabel: en ? 'Open Goals' : 'أهداف الأسبوع'
+                },
+                {
+                    id: 'gs_log',
+                    title: en ? 'Record a study achievement or focus log' : 'دوّن أول إنجاز أو سجل دراسة',
+                    desc: en ? 'Build streaks, mastery metrics, and weekly reports in Tracker.' : 'كوّن سلسلة الاستمرارية وتقارير الإتقان في صفحة المتابعة.',
+                    done: (Number(s.logCount) || 0) > 0,
+                    actionId: 'go_tracker',
+                    actionLabel: en ? 'Open Tracker' : 'افتح المتابعة'
+                },
+                {
+                    id: 'gs_safety',
+                    title: en ? 'Connect cloud sync or export a verified backup' : 'اربط المزامنة السحابية أو صدّر نسخة احتياطية',
+                    desc: en ? 'Keep a cross-device copy in Supabase or an offline SHA-256 JSON file.' : 'احتفظ بنسخة عبر الأجهزة في السحابة أو ملف JSON موثق.',
+                    done: Boolean(s.isSignedIn || s.hasExportedBackup || s.hasRemoteSync),
+                    actionId: 'open_account',
+                    actionLabel: en ? 'Account & Backup' : 'الحساب والنسخ'
+                }
+            ];
+            const completedCount = steps.filter(st => st.done).length;
+            const totalCount = steps.length;
+            const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+            const firstPending = steps.find(st => !st.done) || null;
+            return {
+                completedCount,
+                totalCount,
+                progressPct,
+                nextIncompleteActionId: firstPending ? firstPending.actionId : 'go_dashboard',
+                steps
+            };
+        }
+
+        function deriveHelpTroubleshootingRecommendations(runtimeSnapshot, isEn) {
+            const en = isEn !== false;
+            const r = (runtimeSnapshot && typeof runtimeSnapshot === 'object') ? runtimeSnapshot : {};
+            const items = [
+                {
+                    id: 'ts_cross_device_sync',
+                    active: Boolean(r.hasPendingLocalChanges || (!r.isSignedIn && r.subjectCount > 0)),
+                    severity: r.hasPendingLocalChanges ? 'warn' : 'info',
+                    title: en ? 'Edits not appearing on another device' : 'التعديلات لا تظهر على جهاز آخر',
+                    symptom: en
+                        ? 'Changes are visible here, but your phone or tablet still shows an older workspace state.'
+                        : 'التعديلات موجودة هنا لكن الجهاز الآخر يعرض نسخة أقدم.',
+                    dataSafetyNote: en
+                        ? 'Your edits remain safely saved locally on this device.'
+                        : 'تعديلاتك محفوظة بأمان محلياً على هذا الجهاز ولن تُفقد.',
+                    steps: en
+                        ? ['Open Account & Cloud Sync to verify your account is signed in and online.', 'Tap Sync Now (Push) on this device to acknowledge the latest revision.', 'On the second device, tap Pull Cloud Copy after Sync Now succeeds.']
+                        : ['افتح الحساب والمزامنة للتأكد من تسجيل الدخول وتوفر الإنترنت.', 'اضغط مزامنة الآن (رفع) على هذا الجهاز لتثبيت أحدث مراجعة.', 'على الجهاز الآخر، اضغط سحب النسخة السحابية بعد تأكيد الرفع.'],
+                    actionId: 'open_account',
+                    actionLabel: en ? 'Open Account & Sync' : 'افتح الحساب والمزامنة',
+                    keywords: ['sync', 'device', 'push', 'pull', 'missing', 'troubleshoot', 'مزامنه', 'جهاز', 'مفقود', 'مشكله']
+                },
+                {
+                    id: 'ts_pdf_preview_fallback',
+                    active: Boolean(r.hasPreviewFallbackPdf),
+                    severity: 'warn',
+                    title: en ? 'PDF opened in read-only /preview mode instead of Ink Studio' : 'ملف الـ PDF فُتح في وضع المعاينة بدون أدوات القلم',
+                    symptom: en
+                        ? 'The slide shows an external preview without pen, highlighter, or extra note sheets.'
+                        : 'يعرض الملف معاينة فقط بدون أدوات القلم أو التظليل أو أوراق التلخيص.',
+                    dataSafetyNote: en
+                        ? 'Previous slide ink remains preserved safely in IndexedDB under this lecture.'
+                        : 'كتاباتك السابقة محفوظة بأمان في IndexedDB المرتبطة بهذه المحاضرة.',
+                    steps: en
+                        ? ['Click "Activate Google Drive" on the studio banner or connect inside Google Drive Vault.', 'Or choose a local PDF copy from this device to open immediately with full studio tools.', 'Never delete the lecture entry while switching sources — your ink stays linked by lecture ID.']
+                        : ['اضغط تفعيل Google Drive من الشريط أو اربط الحساب من مخزن Drive.', 'أو اختر ملف PDF من جهازك لفتحه فوراً بكل أدوات الكتابة.', 'لا تحذف المحاضرة أثناء تبديل المصدر حتى تظل كتاباتك مرتبطة بها.'],
+                    actionId: 'open_drive',
+                    actionLabel: en ? 'Open Google Drive Vault' : 'افتح مخزن Drive',
+                    keywords: ['preview', 'pdf', 'ink', 'drive', 'fallback', 'troubleshoot', 'معاينه', 'قلم', 'درايف']
+                },
+                {
+                    id: 'ts_quota_storage',
+                    active: Boolean(r.hasQuotaWarning),
+                    severity: r.hasQuotaWarning ? 'warn' : 'info',
+                    title: en ? 'Browser localStorage quota warning while studying offline' : 'تنبيه امتلاء مساحة localStorage في المتصفح',
+                    symptom: en
+                        ? 'A warning indicates localStorage fallback hit browser limits while IndexedDB stays active.'
+                        : 'يظهر تنبيه بامتلاء مساحة التخزين السريعة بينما قاعدة IndexedDB تعمل.',
+                    dataSafetyNote: en
+                        ? 'Do NOT clear browser storage or delete IndexedDB — export a JSON backup first.'
+                        : 'لا تمسح بيانات المتصفح أو IndexedDB — صدّر نسخة JSON احتياطية أولاً.',
+                    steps: en
+                        ? ['Export a full JSON backup from Tracker or More menu right away.', 'Keep heavy PDFs and audio cached in IndexedDB / Google Drive Vault rather than pasted data URLs.', 'Use "Sync Now" if signed in so the cloud stores your latest metadata revision.']
+                        : ['صدّر نسخة احتياطية JSON فورًا من المتابعة أو قائمة المزيد.', 'احتفظ بالملفات الثقيلة داخل IndexedDB أو Drive وليس كنصوص طويلة.', 'نفّذ مزامنة سحابية إن كنت مسجلاً لحفظ أحدث نسخة من بياناتك.'],
+                    actionId: 'export_backup',
+                    actionLabel: en ? 'Export JSON Backup' : 'تصدير نسخة احتياطية',
+                    keywords: ['quota', 'storage', 'full', 'warning', 'backup', 'troubleshoot', 'امتلاء', 'مساحه', 'تحذير']
+                },
+                {
+                    id: 'ts_conflict_notice',
+                    active: Boolean(r.hasConflict),
+                    severity: r.hasConflict ? 'warn' : 'info',
+                    title: en ? 'Cloud sync revision conflict or interrupted save' : 'تعارض مراجعة المزامنة بين جهازين',
+                    symptom: en
+                        ? 'Another device pushed a newer revision before your local edits were acknowledged.'
+                        : 'جهاز آخر رفع نسخة أحدث قبل تأكيد حفظ تعديلات هذا الجهاز.',
+                    dataSafetyNote: en
+                        ? 'Conflict recovery preserves local state safely; EXO never silently discards pending work.'
+                        : 'سجل الاستعادة يحتفظ بتعديلاتك المحلية بأمان ولا يمسحها صامتاً.',
+                    steps: en
+                        ? ['Export a quick JSON backup to lock in a restore point.', 'Review Account & Sync status card to compare device state vs cloud copy.', 'Use Smart Merge restore or manual Push/Pull once you decide which revision stays primary.']
+                        : ['صدّر نسخة JSON سريعة كنقطة أمان إضافية.', 'افتح بطاقة الحالة في الحساب والمزامنة لمقارنة نسخة الجهاز والسحابة.', 'استخدم الدمج الذكي أو الرفع/السحب اليدوي بعد التحقق.'],
+                    actionId: 'open_account',
+                    actionLabel: en ? 'Review Sync Status' : 'مراجعة حالة المزامنة',
+                    keywords: ['conflict', 'revision', 'recovery', 'sync', 'troubleshoot', 'تعارض', 'استعاده', 'مزامنه']
+                }
+            ];
+            return items.sort((a, b) => Number(b.active) - Number(a.active));
+        }
+
+        function exoComputeMobileViewportBudget(viewportW, viewportH, navH, bnavH, visibleButtons = []) {
+            const w = Math.max(0, Number(viewportW) || 0);
+            const h = Math.max(0, Number(viewportH) || 0);
+            const topH = Math.max(0, Number(navH) || 0);
+            const bottomH = Math.max(0, Number(bnavH) || 0);
+            const stickyHeight = topH + bottomH;
+            const stickyRatio = h > 0 ? (stickyHeight / h) : 0;
+            const isMobileWidth = w > 0 && w < 768;
+            const withinMobileChromeCap = !isMobileWidth || stickyRatio <= 0.155;
+            const undersizedButtons = (Array.isArray(visibleButtons) ? visibleButtons : []).filter((btn) => {
+                if (!btn) return false;
+                const bw = Number(btn.width) || 0;
+                const bh = Number(btn.height) || 0;
+                return bw < 44 || bh < 44;
+            });
+            return {
+                viewportW: w,
+                viewportH: h,
+                stickyHeight,
+                stickyRatio: Number(stickyRatio.toFixed(4)),
+                withinMobileChromeCap,
+                undersizedCount: undersizedButtons.length,
+                undersizedButtons
+            };
+        }
+
         async function exoHandleManualPushClick() {
             const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
             if (!currentCloudUser) {
@@ -18835,6 +19882,13 @@
             window.deriveSchedulePdfExportSummary = deriveSchedulePdfExportSummary;
             window.deriveAcademyGuideMetrics = deriveAcademyGuideMetrics;
             window.exoResolveSpotlightTourSteps = exoResolveSpotlightTourSteps;
+            window.exoNormalizeHelpSearchText = exoNormalizeHelpSearchText;
+            window.exoExpandHelpSearchQuery = exoExpandHelpSearchQuery;
+            window.buildHelpQuickActionsList = buildHelpQuickActionsList;
+            window.buildActionableHelpCatalog = buildActionableHelpCatalog;
+            window.deriveHelpGettingStartedChecklist = deriveHelpGettingStartedChecklist;
+            window.deriveHelpTroubleshootingRecommendations = deriveHelpTroubleshootingRecommendations;
+            window.exoComputeMobileViewportBudget = exoComputeMobileViewportBudget;
             window.exoHandleManualPushClick = exoHandleManualPushClick;
             window.exoHandleManualPullClick = exoHandleManualPullClick;
         }
@@ -20183,7 +21237,8 @@
                 'driveHubModalOverlay',
                 'vipMediaLockModalOverlay',
                 'pdfQuickJumpModalOverlay',
-                'gdrivePrivacyAuditOverlay'
+                'gdrivePrivacyAuditOverlay',
+                'mobileMoreSheetOverlay'
             ];
             const getDialogFocusables = (overlay) => {
                 if (!overlay) return [];
@@ -22537,6 +23592,11 @@
             if (cwView) cwView.style.display = 'flex';
 
             renderChapterWorkspace(false);
+            try {
+                window.scrollTo({ top: 0, behavior: 'auto' });
+                const mc = document.querySelector('.main-content');
+                if (mc) mc.scrollTop = 0;
+            } catch (_) {}
         }
 
         function closeChapterWorkspace() {
@@ -22548,6 +23608,11 @@
             if (detailsView && activeSubjectId) {
                 detailsView.style.display = 'flex';
                 renderGroups();
+                try {
+                    window.scrollTo({ top: 0, behavior: 'auto' });
+                    const mc = document.querySelector('.main-content');
+                    if (mc) mc.scrollTop = 0;
+                } catch (_) {}
             }
         }
 
@@ -34004,6 +35069,10 @@
                 a.click();
                 document.body.removeChild(a);
                 setTimeout(() => URL.revokeObjectURL(url), 1000);
+                try {
+                    exoRuntimeStatusState.lastBackupExportedAt = Date.now();
+                    exoSafeLocalStorageSetItem('pharmaLastBackupExportV1', String(exoRuntimeStatusState.lastBackupExportedAt));
+                } catch (_) {}
                 showToast('تم تصدير النسخة الاحتياطية بنجاح بنظام التحقق المشفر SHA-256 ✓');
             } catch (err) {
                 console.error('Export backup failure:', err);
@@ -40202,10 +41271,8 @@ then(onFulfilled, onRejected) {
         }
 
         async function openMergedSubjectLecturesStudio(specificLectureIds = null, explicitSubId = null) {
-            if (typeof isMobileStudyViewport === 'function' && isMobileStudyViewport()) {
-                const container = document.getElementById('pdfModalContainer');
-                if (container) container.classList.add('dock-collapsed');
-            }
+            const studioContainer = document.getElementById('pdfModalContainer');
+            if (studioContainer) studioContainer.classList.remove('dock-collapsed');
 
             const targetSubId = explicitSubId !== null ? explicitSubId : activeSubjectId;
             const sub = subjects.find(s => String(s.id) === String(targetSubId));
@@ -40689,10 +41756,8 @@ then(onFulfilled, onRejected) {
 
         // --- Open Lecture with Multi-Page PDF Studio & Synced Audio (Local + Cloud Auto-Fetch) ---
         async function openLectureDocument(groupId, lecId, keepMergedBundle = false) {
-            if (typeof isMobileStudyViewport === 'function' && isMobileStudyViewport()) {
-                const container = document.getElementById('pdfModalContainer');
-                if (container) container.classList.add('dock-collapsed');
-            }
+            const studioContainer = document.getElementById('pdfModalContainer');
+            if (studioContainer) studioContainer.classList.remove('dock-collapsed');
 
             if (activeFloatingTextEditor) commitOrCloseFloatingTextEditor(true);
             flushPendingAnnotationsSave(false);
@@ -45903,6 +46968,316 @@ function togglePdfAudioPlayerBar(forceState) {
             `).join('');
         }
 
+        function exoUpdateMoreSheetNavActiveState() {
+            const activeSection = document.querySelector('.view-section.active');
+            const activeTab = activeSection ? activeSection.id : 'dashboard';
+            document.querySelectorAll('#mobileMoreSheetNavRow .exo-more-sheet-nav-btn').forEach((btn) => {
+                btn.classList.toggle('active', btn.getAttribute('data-tab') === activeTab);
+            });
+        }
+
+        function updateMobileMoreSheetLabels(isEnOverride = null) {
+            const isEn = isEnOverride !== null ? Boolean(isEnOverride) : ((typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true);
+            const setTxt = (id, enTxt, arTxt) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = isEn ? enTxt : arTxt;
+            };
+            setTxt('mobileMoreSheetTitle', 'Workspace & Tools', 'التنقل والأدوات');
+            setTxt('moreNavLabel_dashboard', 'Today', 'اليوم');
+            setTxt('moreNavLabel_subjects', 'Subjects', 'المواد');
+            setTxt('moreNavLabel_schedule', 'Planner', 'التخطيط');
+            setTxt('moreNavLabel_tracker', 'Tracker', 'المتابعة');
+            setTxt('moreActionTitle_drive', 'Google Drive Vault', 'مخزن Google Drive');
+            setTxt('moreActionSub_drive', 'Manage private PDF & audio sync', 'إدارة ملفات الـ PDF والتسجيلات الخاصة');
+            setTxt('moreActionTitle_account', 'Account & Cloud Sync', 'الحساب والمزامنة السحابية');
+            setTxt('moreActionSub_account', 'Inspect local durability & push/pull', 'فحص الحفظ المحلي والمزامنة اليدوية');
+            setTxt('moreActionTitle_help', 'Actionable Help Center', 'مركز المساعدة التفاعلي');
+            setTxt('moreActionSub_help', 'Quick actions, guides & live troubleshooting', 'إجراءات سريعة، خطوات عملية وحل الأعطال');
+            setTxt('moreActionTitle_lang', isEn ? 'Switch to العربية (AR)' : 'Switch to English (EN)', 'Switch to English (EN)');
+            setTxt('moreActionSub_lang', isEn ? 'RTL Arabic layout with first-class support' : 'واجهة إنجليزية LTR كاملة', 'واجهة إنجليزية كاملة LTR');
+            setTxt('moreActionTitle_backup', 'Export JSON Backup', 'تصدير نسخة احتياطية JSON');
+            setTxt('moreActionSub_backup', 'SHA-256 verified offline workspace snapshot', 'نسخة موثقة للبيانات والكتابات بدون إنترنت');
+            const closeBtn = document.getElementById('mobileMoreSheetCloseBtn');
+            if (closeBtn) closeBtn.setAttribute('aria-label', isEn ? 'Close tools drawer' : 'إغلاق قائمة الأدوات');
+            exoUpdateMoreSheetNavActiveState();
+        }
+        window.updateMobileMoreSheetLabels = updateMobileMoreSheetLabels;
+
+        function openMobileMoreSheet() {
+            const overlay = document.getElementById('mobileMoreSheetOverlay');
+            if (!overlay) return;
+            updateMobileMoreSheetLabels();
+            overlay.classList.add('active');
+            const closeBtn = document.getElementById('mobileMoreSheetCloseBtn');
+            if (closeBtn && typeof closeBtn.focus === 'function') {
+                setTimeout(() => { try { closeBtn.focus(); } catch (_) {} }, 20);
+            }
+        }
+        window.openMobileMoreSheet = openMobileMoreSheet;
+
+        function exoMobileMoreSelectView(tabId) {
+            closeModal('mobileMoreSheetOverlay');
+            const btn = document.querySelector(`.mobile-nav-item[data-tab="${tabId}"]`)
+                || document.querySelector(`.exo-top-nav-item[data-tab="${tabId}"]`)
+                || document.querySelector(`.nav-item[data-tab="${tabId}"]`)
+                || document.querySelector(`.sidebar-nav-item[data-tab="${tabId}"]`);
+            if (typeof switchView === 'function') switchView(tabId, btn);
+        }
+        window.exoMobileMoreSelectView = exoMobileMoreSelectView;
+
+        function exoExecuteHelpAction(actionId) {
+            const act = String(actionId || '');
+            closeModal('helpModalOverlay');
+            closeModal('mobileMoreSheetOverlay');
+
+            const goTab = (tabId) => {
+                const btn = document.querySelector(`.sidebar-nav-item[data-tab="${tabId}"]`)
+                    || document.querySelector(`.mobile-nav-item[data-tab="${tabId}"]`)
+                    || document.querySelector(`.nav-item[data-tab="${tabId}"]`)
+                    || document.querySelector(`.exo-top-nav-item[data-tab="${tabId}"]`);
+                if (typeof switchView === 'function') switchView(tabId, btn);
+            };
+
+            if (act === 'go_dashboard') {
+                goTab('dashboard');
+            } else if (act === 'go_library') {
+                goTab('subjects');
+            } else if (act === 'go_planner') {
+                goTab('schedule');
+                if (typeof switchScheduleSubView === 'function') {
+                    switchScheduleSubView('today', document.getElementById('schPillToday'));
+                }
+            } else if (act === 'go_goals') {
+                goTab('schedule');
+                if (typeof switchScheduleSubView === 'function') {
+                    switchScheduleSubView('tasks', document.getElementById('schPillTasks'));
+                }
+            } else if (act === 'go_tracker') {
+                goTab('tracker');
+            } else if (act === 'add_session') {
+                goTab('schedule');
+                if (typeof openAddSessionModal === 'function') {
+                    setTimeout(() => openAddSessionModal(), 40);
+                }
+            } else if (act === 'open_account') {
+                if (typeof openCloudAuthModal === 'function') openCloudAuthModal();
+            } else if (act === 'open_drive') {
+                if (typeof openGoogleDriveHubModal === 'function') openGoogleDriveHubModal();
+            } else if (act === 'open_vip') {
+                if (typeof openVipUpgradeModal === 'function') openVipUpgradeModal('VIP Pro — Private Drive Media Sync');
+            } else if (act === 'export_backup') {
+                if (typeof exportData === 'function') exportData();
+            } else if (act === 'start_tour') {
+                if (typeof startInteractiveSpotlightTour === 'function') startInteractiveSpotlightTour();
+            }
+        }
+        window.exoExecuteHelpAction = exoExecuteHelpAction;
+
+        function exoCollectHelpChecklistSnapshot() {
+            const subList = (typeof subjects !== 'undefined' && Array.isArray(subjects)) ? subjects : [];
+            const evList = (typeof scheduleEvents !== 'undefined' && Array.isArray(scheduleEvents)) ? scheduleEvents : [];
+            const goalList = (typeof scheduleBacklog !== 'undefined' && Array.isArray(scheduleBacklog)) ? scheduleBacklog : [];
+            const logList = (typeof logs !== 'undefined' && Array.isArray(logs)) ? logs : [];
+
+            let chapterCount = 0;
+            let resourceCount = 0;
+            let hasStudioNotesOrBookmark = false;
+            subList.forEach((s) => {
+                const groups = Array.isArray(s?.groups) ? s.groups : [];
+                chapterCount += groups.length;
+                groups.forEach((g) => {
+                    const lecs = Array.isArray(g?.lectures) ? g.lectures : [];
+                    lecs.forEach((l) => {
+                        if (l && (l.path || l.audioPath || l.hasLocalPdf || l.hasLocalAudio || l.driveFileId || l.cloudPdfDriveId || l.cloudAudioDriveId)) {
+                            resourceCount += 1;
+                        }
+                        if (l && ((Array.isArray(l.bookmarks) && l.bookmarks.length > 0) || (Array.isArray(l.audioPins) && l.audioPins.length > 0) || l.lastReadPage > 1)) {
+                            hasStudioNotesOrBookmark = true;
+                        }
+                    });
+                });
+                const resList = Array.isArray(s?.resources) ? s.resources : [];
+                resourceCount += resList.length;
+            });
+            try {
+                if (typeof pendingAnnoSaveMap !== 'undefined' && pendingAnnoSaveMap && Object.keys(pendingAnnoSaveMap).length > 0) {
+                    hasStudioNotesOrBookmark = true;
+                }
+                if (typeof localPdfCacheKeys !== 'undefined' && localPdfCacheKeys && localPdfCacheKeys.size > 0) {
+                    resourceCount = Math.max(resourceCount, localPdfCacheKeys.size);
+                }
+            } catch (_) {}
+
+            const hasExported = Boolean(
+                (typeof exoRuntimeStatusState !== 'undefined' && exoRuntimeStatusState.lastBackupExportedAt) ||
+                (typeof localStorage !== 'undefined' && localStorage.getItem('pharmaLastBackupExportV1'))
+            );
+            const hasSignedIn = Boolean(typeof currentCloudUser !== 'undefined' && currentCloudUser && currentCloudUser.id);
+            const hasRemoteSync = Boolean(typeof exoRuntimeStatusState !== 'undefined' && exoRuntimeStatusState.cloudAckConfirmed);
+
+            return {
+                subjectCount: subList.length,
+                chapterCount,
+                resourceCount,
+                hasStudioNotesOrBookmark,
+                sessionCount: evList.length,
+                goalCount: goalList.length,
+                logCount: logList.length,
+                isSignedIn: hasSignedIn,
+                hasRemoteSync,
+                hasExportedBackup: hasExported
+            };
+        }
+
+        window.exoCollectHelpChecklistSnapshot = exoCollectHelpChecklistSnapshot;
+
+        function exoCollectHelpRuntimeSnapshot() {
+            const subList = (typeof subjects !== 'undefined' && Array.isArray(subjects)) ? subjects : [];
+            const bannerEl = document.getElementById('pdfDriveReactivateBanner');
+            const previewBannerVisible = Boolean(bannerEl && getComputedStyle(bannerEl).display !== 'none');
+            const rt = (typeof exoRuntimeStatusState !== 'undefined') ? exoRuntimeStatusState : {};
+            const uid = (typeof exoGetActiveUserIdSafe === 'function') ? exoGetActiveUserIdSafe() : 'local';
+            const dirtyLocal = (typeof exoHasDirtyLocalStateSafe === 'function') ? exoHasDirtyLocalStateSafe(uid) : false;
+            return {
+                subjectCount: subList.length,
+                isSignedIn: Boolean(typeof currentCloudUser !== 'undefined' && currentCloudUser && currentCloudUser.id),
+                hasPendingLocalChanges: Boolean(dirtyLocal || rt.localSaving || (typeof exoHasPendingLocalEditsNow === 'function' && exoHasPendingLocalEditsNow())),
+                hasPreviewFallbackPdf: previewBannerVisible,
+                hasQuotaWarning: Boolean(rt.lsQuotaFallbackActive || (rt.lsQuotaFailedDomains && rt.lsQuotaFailedDomains.size > 0)),
+                hasConflict: Boolean(rt.hasConflictPending)
+            };
+        }
+        window.exoCollectHelpRuntimeSnapshot = exoCollectHelpRuntimeSnapshot;
+
+        function exoRenderHelpActionCardHtml(card, isEn) {
+            const esc = (typeof exoEscapeHtmlSafe === 'function') ? exoEscapeHtmlSafe : (v => String(v ?? ''));
+            const kwStr = esc((card.keywords || []).join(' '));
+            const stepsHtml = (card.steps || []).map((st) => `<li>${esc(st)}</li>`).join('');
+            return `
+                <article class="exo-help-action-card" id="${esc(card.id)}" data-help-keywords="${kwStr}">
+                    <div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
+                            <span class="eg-tag">${esc(isEn ? `Guide ${card.sectionCode}` : `دليل ${card.sectionCode}`)}</span>
+                        </div>
+                        <h4 style="margin:0 0 5px 0; font-size:0.94rem; font-weight:800; color:var(--warm-paper, #F0E6D4);">${esc(card.title)}</h4>
+                        <p style="margin:0 0 8px 0; font-size:0.78rem; color:var(--stone, #ABA69D); line-height:1.5;"><strong>${esc(isEn ? 'When to use:' : 'متى تستخدمه:')}</strong> ${esc(card.whenToUse)}</p>
+                        <ol class="exo-help-action-steps">${stepsHtml}</ol>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        <div class="exo-help-outcome-note"><strong>${esc(isEn ? 'Outcome:' : 'النتيجة:')}</strong> ${esc(card.expectedOutcome)}</div>
+                        <button type="button" class="btn btn-primary" style="min-height:44px; justify-content:center; width:100%;" onclick="exoExecuteHelpAction('${esc(card.actionId)}')">
+                            <svg class="exo-svg-icon exo-rtl-flip" aria-hidden="true"><use href="#exo-ico-arrow-right"/></svg> ${esc(card.actionLabel)}
+                        </button>
+                    </div>
+                </article>`;
+        }
+
+        function renderHelpQuickActionsAndChecklist(isEn) {
+            const esc = (typeof exoEscapeHtmlSafe === 'function') ? exoEscapeHtmlSafe : (v => String(v ?? ''));
+            const quickBar = document.getElementById('helpQuickActionsBar');
+            if (quickBar && typeof buildHelpQuickActionsList === 'function') {
+                const items = buildHelpQuickActionsList(isEn);
+                quickBar.innerHTML = items.map((item) => `
+                    <button type="button" class="exo-help-quick-btn" data-help-action="${esc(item.id)}" onclick="exoExecuteHelpAction('${esc(item.id)}')">
+                        <svg class="exo-svg-icon" style="color:var(--sage-green);" aria-hidden="true"><use href="#${esc(item.icon)}"/></svg>
+                        <span>${esc(item.label)}</span>
+                    </button>
+                `).join('');
+            }
+
+            const checklistMount = document.getElementById('helpGettingStartedChecklistMount');
+            if (checklistMount && typeof deriveHelpGettingStartedChecklist === 'function') {
+                const snap = exoCollectHelpChecklistSnapshot();
+                const checklist = deriveHelpGettingStartedChecklist(snap, isEn);
+                const rowsHtml = checklist.steps.map((st, idx) => `
+                    <div class="exo-help-check-row ${st.done ? 'is-done' : ''}" data-help-step-id="${esc(st.id)}">
+                        <div style="min-width:0; flex:1 1 auto;">
+                            <div style="display:flex; align-items:center; gap:6px; font-size:0.82rem; font-weight:800; color:var(--warm-paper, #F0E6D4);">
+                                <svg class="exo-svg-icon" style="color:${st.done ? 'var(--sage-green, #899982)' : 'var(--warm-gold, #D7B96F)'};" aria-hidden="true"><use href="#${st.done ? 'exo-ico-circle-check' : 'exo-ico-circle-dot'}"/></svg>
+                                <span>${idx + 1}. ${esc(st.title)}</span>
+                            </div>
+                            <div style="font-size:0.73rem; color:var(--stone, #ABA69D); margin-top:2px; line-height:1.4;">${esc(st.desc)}</div>
+                        </div>
+                        <button type="button" class="btn ${st.done ? 'btn-outline' : 'btn-primary'} exo-help-check-action-btn" onclick="exoExecuteHelpAction('${esc(st.actionId)}')">${esc(st.actionLabel)}</button>
+                    </div>
+                `).join('');
+                checklistMount.innerHTML = `
+                    <div class="exo-help-checklist-card" data-help-keywords="checklist getting started start setup steps progress guide">
+                        <div class="exo-help-checklist-head">
+                            <div>
+                                <div style="font-size:0.95rem; font-weight:900; color:var(--warm-paper, #F0E6D4);">${esc(isEn ? 'Getting Started Checklist (Live Workspace Progress)' : 'قائمة البداية التفاعلية (مرتبطة ببياناتك الفعلية)')}</div>
+                                <div style="font-size:0.76rem; color:var(--stone, #ABA69D);">${esc(isEn ? `${checklist.completedCount} of ${checklist.totalCount} steps complete (${checklist.progressPct}%)` : `اكتملت ${checklist.completedCount} من ${checklist.totalCount} خطوات (${checklist.progressPct}%)`)}</div>
+                            </div>
+                            <button type="button" class="btn btn-primary" style="min-height:44px; padding:6px 13px; font-size:0.78rem;" onclick="exoExecuteHelpAction('${esc(checklist.nextIncompleteActionId)}')">
+                                ${esc(isEn ? 'Continue Next Step' : 'تنفيذ الخطوة التالية')}
+                            </button>
+                        </div>
+                        <div class="exo-help-check-rows">${rowsHtml}</div>
+                    </div>`;
+            }
+
+            if (typeof buildActionableHelpCatalog === 'function') {
+                const catalog = buildActionableHelpCatalog(isEn);
+                for (let paneNum = 1; paneNum <= 6; paneNum++) {
+                    const paneEl = document.getElementById(`acadPane_${paneNum}`);
+                    if (!paneEl) continue;
+                    let mount = document.getElementById(`helpActionCatalogMount_${paneNum}`);
+                    if (!mount) {
+                        mount = document.createElement('div');
+                        mount.id = `helpActionCatalogMount_${paneNum}`;
+                        mount.className = 'exo-help-catalog-mount';
+                        mount.setAttribute('data-exo-no-i18n', '1');
+                        const footerNav = paneEl.querySelector('.acad-footer-nav');
+                        if (footerNav) {
+                            paneEl.insertBefore(mount, footerNav);
+                        } else {
+                            paneEl.appendChild(mount);
+                        }
+                    }
+                    const paneCards = catalog.filter(c => c.paneNum === paneNum);
+                    mount.innerHTML = paneCards.map(c => exoRenderHelpActionCardHtml(c, isEn)).join('');
+                }
+            }
+
+            const tsMount = document.getElementById('helpTroubleshootMount');
+            if (tsMount && typeof deriveHelpTroubleshootingRecommendations === 'function') {
+                const rtSnap = exoCollectHelpRuntimeSnapshot();
+                const issues = deriveHelpTroubleshootingRecommendations(rtSnap, isEn);
+                tsMount.innerHTML = `
+                    <div style="margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+                        <h4 style="margin:0; font-size:0.98rem; font-weight:900; color:var(--warm-paper, #F0E6D4);">${esc(isEn ? 'Section F — Live Troubleshooting & Safe Recovery' : 'قسم F — حل المشكلات والاستعادة الآمنة')}</h4>
+                        <span class="studio-pill" style="font-size:0.72rem; color:var(--sage-green, #899982);">${esc(isEn ? 'Live State Diagnostics' : 'تشخيص فوري للحالة')}</span>
+                    </div>
+                    <div class="exo-help-catalog-mount" style="margin-top:0;">
+                        ${issues.map((it) => `
+                            <article class="exo-help-trouble-card ${it.active ? 'is-active-issue' : ''}" id="${esc(it.id)}" data-help-keywords="${esc((it.keywords || []).join(' '))}">
+                                <div>
+                                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
+                                        <span class="eg-tag ${it.active ? 'exo-ts-active-badge' : ''}" style="${it.active ? 'color:#f3e1b3; border-color:rgba(215,185,111,0.45);' : ''}">${esc(it.active ? (isEn ? 'Detected Now' : 'حالة نشطة الآن') : (isEn ? 'Preventive Guide' : 'دليل وقائي'))}</span>
+                                    </div>
+                                    <h4 style="margin:0 0 5px 0; font-size:0.92rem; font-weight:800; color:var(--warm-paper, #F0E6D4);">${esc(it.title)}</h4>
+                                    <p style="margin:0 0 8px 0; font-size:0.77rem; color:var(--stone, #ABA69D); line-height:1.5;">${esc(it.symptom)}</p>
+                                    <ol class="exo-help-action-steps">${(it.steps || []).map(s => `<li>${esc(s)}</li>`).join('')}</ol>
+                                </div>
+                                <div style="display:flex; flex-direction:column; gap:8px;">
+                                    <div class="exo-help-safety-note"><strong>${esc(isEn ? 'Data Safety:' : 'أمان البيانات:')}</strong> ${esc(it.dataSafetyNote)}</div>
+                                    <button type="button" class="btn btn-outline" style="min-height:44px; justify-content:center; width:100%;" onclick="exoExecuteHelpAction('${esc(it.actionId)}')">${esc(it.actionLabel)}</button>
+                                </div>
+                            </article>
+                        `).join('')}
+                    </div>`;
+            }
+        }
+        window.renderHelpQuickActionsAndChecklist = renderHelpQuickActionsAndChecklist;
+
+        function exoSetHelpSearchQuery(chipQuery) {
+            const inp = document.getElementById('helpSearchInput');
+            if (!inp) return;
+            inp.value = chipQuery;
+            filterHelpCenterContent(chipQuery);
+        }
+        window.exoSetHelpSearchQuery = exoSetHelpSearchQuery;
+
         function renderAcademyLocalizedBodies(isEn) {
             const titleEl = document.getElementById('helpModalCenterTitle');
             if (titleEl) {
@@ -45910,8 +47285,8 @@ function togglePdfAudioPlayerBar(forceState) {
                 const subP = titleEl.parentElement ? titleEl.parentElement.querySelector('p') : null;
                 if (subP) {
                     subP.textContent = isEn
-                        ? 'A clear guide to your Study Library, Chapter Workspace, Planner, Tracker, and Cloud Sync.'
-                        : 'دليل منظم ومرتب لشرح كافة أقسام وأدوات المنصة خطوة بخطوة';
+                        ? 'Actionable study workflows, quick actions, and live diagnostics.'
+                        : 'دليل عملي تفاعلي بأزرار تنفيذ مباشرة وتشخيص فوري.';
                 }
             }
             const tourBtnTxt = document.getElementById('helpStartSpotlightTourText');
@@ -45920,14 +47295,21 @@ function togglePdfAudioPlayerBar(forceState) {
             if (demoBtnTxt) demoBtnTxt.textContent = isEn ? 'Load Sample Library' : 'تحميل بيانات تجريبية';
             const helpSearchEl = document.getElementById('helpSearchInput');
             if (helpSearchEl) {
-                helpSearchEl.placeholder = isEn ? 'Search guides, shortcuts, sync...' : 'ابحث في الدليل والاختصارات والمزامنة...';
+                helpSearchEl.placeholder = isEn ? 'Search guides, shortcuts, sync, audio, PDF...' : 'ابحث: مزامنة، اختصارات، صوت، PDF، نسخة احتياطية...';
                 helpSearchEl.setAttribute('aria-label', isEn ? 'Search Help Center' : 'ابحث في مركز المساعدة');
             }
             const helpEmptyEl = document.getElementById('helpSearchEmptyState');
             if (helpEmptyEl) {
-                helpEmptyEl.textContent = isEn
-                    ? 'No matching help topics found. Try searching for PDF, audio, planner, goals, sync, or shortcuts.'
-                    : 'لا توجد نتائج مطابقة في مركز المساعدة. جرّب البحث عن PDF أو الصوت أو التخطيط أو الاختصارات.';
+                const chipTerms = isEn
+                    ? [['PDF & Notes', 'pdf'], ['Sync & Cloud', 'sync'], ['Shortcuts', 'shortcuts'], ['300% Audio', 'audio'], ['Backup JSON', 'backup']]
+                    : [['أدوات PDF والتلخيص', 'pdf'], ['المزامنة والسحابة', 'مزامنة'], ['الاختصارات', 'اختصارات'], ['مضخم الصوت 300%', 'صوت'], ['النسخ الاحتياطي JSON', 'نسخ']];
+                helpEmptyEl.innerHTML = `
+                    <div>${isEn
+                        ? 'No matching help topics found. Pick a common topic below:'
+                        : 'لا توجد نتائج مطابقة لبحثك. جرّب أحد المواضيع الشائعة:'}</div>
+                    <div class="exo-help-search-chips">
+                        ${chipTerms.map(([lbl, term]) => `<button type="button" class="exo-help-search-chip" onclick="exoSetHelpSearchQuery('${term}')">${lbl}</button>`).join('')}
+                    </div>`;
             }
 
             const p1 = document.getElementById('acadPane_1');
@@ -46003,6 +47385,7 @@ function togglePdfAudioPlayerBar(forceState) {
                             </div>
                         </div>
                     </div>
+                    <div id="helpActionCatalogMount_2" class="exo-help-catalog-mount" data-exo-no-i18n="1"></div>
                     <div class="acad-footer-nav">
                         <button class="btn btn-outline" onclick="switchAcademyModule(1)"><svg class="exo-svg-icon exo-rtl-flip" aria-hidden="true"><use href="#exo-ico-arrow-left"/></svg> ${isEn ? 'Previous' : 'السابق'}</button>
                         <button class="btn btn-primary" onclick="switchAcademyModule(3)">${isEn ? 'Next: PDF &amp; Audio Studio' : 'التالي: استوديو PDF والصوت'} <svg class="exo-svg-icon exo-rtl-flip" aria-hidden="true"><use href="#exo-ico-arrow-right"/></svg></button>
@@ -46097,6 +47480,7 @@ function togglePdfAudioPlayerBar(forceState) {
                             </div>
                         </div>
                     </div>
+                    <div id="helpActionCatalogMount_4" class="exo-help-catalog-mount" data-exo-no-i18n="1"></div>
                     <div class="acad-footer-nav">
                         <button class="btn btn-outline" onclick="switchAcademyModule(3)"><svg class="exo-svg-icon exo-rtl-flip" aria-hidden="true"><use href="#exo-ico-arrow-left"/></svg> ${isEn ? 'Previous' : 'السابق'}</button>
                         <button class="btn btn-primary" onclick="switchAcademyModule(5)">${isEn ? 'Next: Logs &amp; Shortcuts' : 'التالي: السجل والاختصارات'} <svg class="exo-svg-icon exo-rtl-flip" aria-hidden="true"><use href="#exo-ico-arrow-right"/></svg></button>
@@ -46127,10 +47511,10 @@ function togglePdfAudioPlayerBar(forceState) {
                 p5.innerHTML = `
                     <div class="eg-khulasa-quote">
                         <div>${isEn
-                            ? '<b style="color:var(--primary);">Keyboard Shortcuts:</b> Work seamlessly in both English and Arabic layouts to keep your flow fast.'
-                            : '<b style="color:var(--primary);">⌨️ اختصارات لوحة المفاتيح:</b> تعمل الاختصارات باللغتين العربية والإنجليزية لتوفير وقتك أثناء المذاكرة.'}</div>
+                            ? '<b style="color:var(--primary);">Keyboard Shortcuts &amp; Sync Guide:</b> Work seamlessly in both English and Arabic layouts, and track local durability vs cloud sync.'
+                            : '<b style="color:var(--primary);">⌨️ اختصارات لوحة المفاتيح والمزامنة:</b> تعمل الاختصارات باللغتين العربية والإنجليزية، مع شرح واضح للحفظ المحلي والمزامنة والنسخ.'}</div>
                     </div>
-                    <div class="eg-bento-card">
+                    <div class="eg-bento-card" data-help-keywords="shortcuts hotkeys keyboard key ctrl 1 2 3 n z h w t p اختصارات لوحه المفاتيح كيبورد">
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px;">
                             ${shortcuts.map(([lbl, key]) => `
                                 <div style="background:#24272A; border:1px solid rgba(241,231,213,0.12); border-radius:10px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between;">
@@ -46140,9 +47524,10 @@ function togglePdfAudioPlayerBar(forceState) {
                             `).join('')}
                         </div>
                     </div>
+                    <div id="helpActionCatalogMount_5" class="exo-help-catalog-mount" data-exo-no-i18n="1"></div>
                     <div class="acad-footer-nav">
                         <button class="btn btn-outline" onclick="switchAcademyModule(4)"><svg class="exo-svg-icon exo-rtl-flip" aria-hidden="true"><use href="#exo-ico-arrow-left"/></svg> ${isEn ? 'Previous' : 'السابق'}</button>
-                        <button class="btn btn-primary" onclick="switchAcademyModule(6)">${isEn ? 'Next: Developer &amp; VIP Pro' : 'التالي: المطور وباقة VIP Pro'} <svg class="exo-svg-icon exo-rtl-flip" aria-hidden="true"><use href="#exo-ico-arrow-right"/></svg></button>
+                        <button class="btn btn-primary" onclick="switchAcademyModule(6)">${isEn ? 'Next: Troubleshoot &amp; VIP Pro' : 'التالي: حل الأعطال وباقة VIP Pro'} <svg class="exo-svg-icon exo-rtl-flip" aria-hidden="true"><use href="#exo-ico-arrow-right"/></svg></button>
                     </div>`;
             }
 
@@ -46192,17 +47577,23 @@ function togglePdfAudioPlayerBar(forceState) {
                     if (doneBtn6) doneBtn6.innerHTML = isEn ? '<svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-check"/></svg> Done — Start Studying' : '<svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-check"/></svg> فهمت الدليل – ابدأ المذاكرة';
                 }
             }
+
+            renderHelpQuickActionsAndChecklist(isEn);
         }
 
         function filterHelpCenterContent(query, skipSwitchReset = false) {
-            const q = String(query || '').trim().toLowerCase();
+            const expanded = (typeof exoExpandHelpSearchQuery === 'function')
+                ? exoExpandHelpSearchQuery(query)
+                : { raw: String(query || '').trim(), normalized: String(query || '').trim().toLowerCase(), tokens: String(query || '').trim() ? [String(query || '').trim().toLowerCase()] : [] };
+            const q = expanded.normalized;
             const emptyEl = document.getElementById('helpSearchEmptyState');
             const panes = Array.from({ length: 6 }, (_, idx) => document.getElementById(`acadPane_${idx + 1}`)).filter(Boolean);
+            const itemSelector = '.eg-bento-card, .eg-khulasa-quote, .wp65-closed-loop-box, .exo-help-checklist-card, .exo-help-action-card, .exo-help-trouble-card';
 
             if (!q) {
                 panes.forEach((pane) => {
                     pane.style.display = '';
-                    pane.querySelectorAll('.eg-bento-card, .eg-khulasa-quote, .wp65-closed-loop-box').forEach((el) => {
+                    pane.querySelectorAll(itemSelector).forEach((el) => {
                         el.style.display = '';
                     });
                 });
@@ -46213,13 +47604,18 @@ function togglePdfAudioPlayerBar(forceState) {
                 return 0;
             }
 
+            const normFn = (typeof exoNormalizeHelpSearchText === 'function')
+                ? exoNormalizeHelpSearchText
+                : (t => String(t || '').toLowerCase());
+            const tokens = expanded.tokens.filter(Boolean);
             let totalMatches = 0;
             panes.forEach((pane) => {
-                const searchableItems = Array.from(pane.querySelectorAll('.eg-bento-card, .eg-khulasa-quote, .wp65-closed-loop-box'));
+                const searchableItems = Array.from(pane.querySelectorAll(itemSelector));
                 let paneMatches = 0;
                 searchableItems.forEach((item) => {
-                    const txt = (item.textContent || '').toLowerCase();
-                    const hit = txt.includes(q);
+                    const kwAttr = item.getAttribute('data-help-keywords') || '';
+                    const haystack = normFn((item.textContent || '') + ' ' + kwAttr);
+                    const hit = haystack.includes(q) || tokens.some(tok => tok.length >= 2 && haystack.includes(tok));
                     item.style.display = hit ? '' : 'none';
                     if (hit) {
                         paneMatches++;
@@ -46494,7 +47890,10 @@ function togglePdfAudioPlayerBar(forceState) {
             }
 
             setTimeout(() => {
-                const targetEl = document.querySelector(step.selector);
+                let targetEl = document.querySelector(step.selector);
+                if ((!targetEl || targetEl.offsetParent === null) && step.selector === '#sidebarUserStatusBadge') {
+                    targetEl = document.getElementById('cloudNavBtn');
+                }
                 if (targetEl) {
                     targetEl.classList.add('spotlight-tour-highlight');
                     targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -63304,9 +64703,33 @@ function togglePdfAudioPlayerBar(forceState) {
             setText('logCatPillRecoverText', 'Needs Catch-up', 'يحتاج تعويض');
             setHtml('logCatPill_absent', '<svg class="exo-svg-icon" style="color:var(--warm-gold, #D7B96F);" aria-hidden="true"><use href="#exo-ico-laptop"/></svg> Freed Time &amp; Reports', '<svg class="exo-svg-icon" style="color:var(--warm-gold, #D7B96F);" aria-hidden="true"><use href="#exo-ico-laptop"/></svg> غياب مستثمر والتقارير');
 
-            // 6. Help Center Panes (#acadPane_1..6)
+            // 6. Help Center Panes (#acadPane_1..6) & Confirm Modal / Contextual Buttons
             if (typeof renderAcademyLocalizedBodies === 'function') {
                 renderAcademyLocalizedBodies(isEn);
+            }
+            const confirmOverlay = document.getElementById('confirmModalOverlay');
+            const confirmTitleEl = document.getElementById('confirmModalTitleText');
+            if (confirmTitleEl && (!confirmOverlay || !confirmOverlay.classList.contains('active') || !confirmTitleEl.dataset.customTitle)) {
+                confirmTitleEl.textContent = isEn ? 'Confirm Action' : 'تأكيد الإجراء';
+            }
+            setText('confirmModalCancelBtn', 'Cancel', 'إلغاء');
+            setText('confirmModalBtn', 'Confirm', 'تأكيد');
+            setText('pdfMenuHelpText', 'Studio Guide & Shortcuts', 'دليل الاستوديو والاختصارات');
+            const setCtxHelpA11y = (id, enLbl, arLbl) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const val = isEn ? enLbl : arLbl;
+                el.setAttribute('aria-label', val);
+                el.setAttribute('title', val);
+            };
+            setCtxHelpA11y('mobileMoreMenuBtn', 'More tools and settings', 'المزيد من الأدوات والإعدادات');
+            setCtxHelpA11y('libraryHelpTriggerBtn', 'Study Library Guide', 'دليل المكتبة والمواد');
+            setCtxHelpA11y('plannerHelpTriggerBtn', 'Weekly Planner Guide', 'دليل التخطيط الأسبوعي');
+            setCtxHelpA11y('trackerHelpTriggerBtn', 'Tracker & Backup Guide', 'دليل المتابعة والنسخ الاحتياطي');
+            setCtxHelpA11y('cloudAuthHelpBtn', 'Account and Sync Help', 'دليل الحساب والمزامنة');
+            setCtxHelpA11y('driveHubHelpBtn', 'Google Drive Vault Help', 'دليل مخزن Google Drive');
+            if (typeof updateMobileMoreSheetLabels === 'function') {
+                updateMobileMoreSheetLabels(isEn);
             }
         }
         window.updateWp67BilingualStaticUI = updateWp67BilingualStaticUI;
@@ -63631,6 +65054,89 @@ function togglePdfAudioPlayerBar(forceState) {
     })();
     </script>
 
+
+    <!-- Mobile / Tablet More Workspace & Tools Sheet -->
+    <div class="glass-overlay" id="mobileMoreSheetOverlay" role="dialog" aria-modal="true" aria-labelledby="mobileMoreSheetTitle" data-exo-no-i18n="1" onclick="if(event.target===this){closeModal('mobileMoreSheetOverlay');}">
+        <div class="exo-more-sheet-box" onclick="event.stopPropagation()">
+            <div class="exo-more-sheet-handle"></div>
+            <div class="exo-more-sheet-header">
+                <h3 id="mobileMoreSheetTitle" style="margin:0; font-size:1.02rem; font-weight:800; color:var(--warm-paper, #F0E6D4);">Workspace &amp; Tools</h3>
+                <button type="button" class="icon-btn" id="mobileMoreSheetCloseBtn" style="min-width:44px; min-height:44px;" onclick="closeModal('mobileMoreSheetOverlay');" aria-label="Close tools drawer">
+                    <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-close"/></svg>
+                </button>
+            </div>
+            <div class="exo-more-sheet-nav-row" id="mobileMoreSheetNavRow">
+                <button type="button" class="exo-more-sheet-nav-btn active" data-tab="dashboard" onclick="exoMobileMoreSelectView('dashboard')">
+                    <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-book"/></svg>
+                    <span id="moreNavLabel_dashboard">Today</span>
+                </button>
+                <button type="button" class="exo-more-sheet-nav-btn" data-tab="subjects" onclick="exoMobileMoreSelectView('subjects')">
+                    <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-layers"/></svg>
+                    <span id="moreNavLabel_subjects">Subjects</span>
+                </button>
+                <button type="button" class="exo-more-sheet-nav-btn" data-tab="schedule" onclick="exoMobileMoreSelectView('schedule')">
+                    <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-calendar"/></svg>
+                    <span id="moreNavLabel_schedule">Planner</span>
+                </button>
+                <button type="button" class="exo-more-sheet-nav-btn" data-tab="tracker" onclick="exoMobileMoreSelectView('tracker')">
+                    <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-chart"/></svg>
+                    <span id="moreNavLabel_tracker">Tracker</span>
+                </button>
+            </div>
+            <div class="exo-more-sheet-list">
+                <button type="button" class="exo-more-sheet-item" id="mobileMoreDriveBtn" onclick="closeModal('mobileMoreSheetOverlay'); openGoogleDriveHubModal();">
+                    <div class="exo-more-sheet-item-left">
+                        <div class="exo-more-sheet-ico"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-drive"/></svg></div>
+                        <div>
+                            <div id="moreActionTitle_drive" style="font-size:0.88rem; font-weight:800;">Google Drive Vault</div>
+                            <div id="moreActionSub_drive" style="font-size:0.74rem; color:var(--stone, #ABA69D);">Manage private PDF &amp; audio sync</div>
+                        </div>
+                    </div>
+                    <svg class="exo-svg-icon exo-rtl-flip" style="color:var(--stone);" aria-hidden="true"><use href="#exo-ico-chevron-right"/></svg>
+                </button>
+                <button type="button" class="exo-more-sheet-item" id="mobileMoreAccountBtn" onclick="closeModal('mobileMoreSheetOverlay'); openCloudAuthModal();">
+                    <div class="exo-more-sheet-item-left">
+                        <div class="exo-more-sheet-ico" style="color:var(--muted-blue, #7898AC);"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-cloud"/></svg></div>
+                        <div>
+                            <div id="moreActionTitle_account" style="font-size:0.88rem; font-weight:800;">Account &amp; Cloud Sync</div>
+                            <div id="moreActionSub_account" style="font-size:0.74rem; color:var(--stone, #ABA69D);">Inspect local durability &amp; push/pull</div>
+                        </div>
+                    </div>
+                    <svg class="exo-svg-icon exo-rtl-flip" style="color:var(--stone);" aria-hidden="true"><use href="#exo-ico-chevron-right"/></svg>
+                </button>
+                <button type="button" class="exo-more-sheet-item" id="mobileMoreHelpBtn" onclick="closeModal('mobileMoreSheetOverlay'); openHelpModal();">
+                    <div class="exo-more-sheet-item-left">
+                        <div class="exo-more-sheet-ico" style="color:var(--warm-gold, #D7B96F);"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-help"/></svg></div>
+                        <div>
+                            <div id="moreActionTitle_help" style="font-size:0.88rem; font-weight:800;">Actionable Help Center</div>
+                            <div id="moreActionSub_help" style="font-size:0.74rem; color:var(--stone, #ABA69D);">Quick actions, guides &amp; live troubleshooting</div>
+                        </div>
+                    </div>
+                    <svg class="exo-svg-icon exo-rtl-flip" style="color:var(--stone);" aria-hidden="true"><use href="#exo-ico-chevron-right"/></svg>
+                </button>
+                <button type="button" class="exo-more-sheet-item" id="mobileMoreLangBtn" onclick="toggleExoLanguage(); updateMobileMoreSheetLabels();">
+                    <div class="exo-more-sheet-item-left">
+                        <div class="exo-more-sheet-ico" style="color:var(--muted-blue, #7898AC);"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-globe"/></svg></div>
+                        <div>
+                            <div id="moreActionTitle_lang" style="font-size:0.88rem; font-weight:800;">Switch to العربية (AR)</div>
+                            <div id="moreActionSub_lang" style="font-size:0.74rem; color:var(--stone, #ABA69D);">RTL Arabic layout with first-class support</div>
+                        </div>
+                    </div>
+                    <svg class="exo-svg-icon exo-rtl-flip" style="color:var(--stone);" aria-hidden="true"><use href="#exo-ico-chevron-right"/></svg>
+                </button>
+                <button type="button" class="exo-more-sheet-item" id="mobileMoreBackupBtn" onclick="closeModal('mobileMoreSheetOverlay'); exportData();">
+                    <div class="exo-more-sheet-item-left">
+                        <div class="exo-more-sheet-ico"><svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-download"/></svg></div>
+                        <div>
+                            <div id="moreActionTitle_backup" style="font-size:0.88rem; font-weight:800;">Export JSON Backup</div>
+                            <div id="moreActionSub_backup" style="font-size:0.74rem; color:var(--stone, #ABA69D);">SHA-256 verified offline workspace snapshot</div>
+                        </div>
+                    </div>
+                    <svg class="exo-svg-icon exo-rtl-flip" style="color:var(--stone);" aria-hidden="true"><use href="#exo-ico-chevron-right"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Mobile Bottom Navigation Bar (Visible on mobile <= 767px or compact landscape) -->
     <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Mobile Navigation" data-exo-no-i18n="1">
