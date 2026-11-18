@@ -1,12 +1,14 @@
 # EXO — WP 7.0 Complete Visual & UX Redesign Report
 ## Server Restart Recovery, Visual Inspection & Full Local Verification
 
+> **Continuation Update (WP 7.0.6 — 2026-11-18):** The redesign documented in this report was subsequently merged to `main` (`d8208815ef06b3f025dec41d1f333840c808ccaf`), followed by Drive consolidation and E2E selector/clock fixes in `396110060942a8fa2362b28aba28ba637719ef82` (**CI #73 `44292533009`: `987/987 PASSED`**) and 44px modal touch-target + screenshot-path hardening in `6f53e2aed8c335195f1cf338776bb4249b5aeb1f` (**CI #74 `44299401863`: `completed / success`**, **Pages #187: `success`**). See `reports/PHASE_6_WP_7_0_6_REPORT.md` for the authoritative continuation record and the still-open P0 hosted Supabase `PGRST202` verification status.
+
 **Date:** 2026-11-18  
 **Repository:** `JemistryMC/study-hub`  
 **Intended Target Branch (External Owner Sync):** `design/wp-7-0-complete-ux-redesign` (from `main`)  
 **Previous Verified Production Baseline (WP 6.9):** `c4c2b430564efff3172f1e9003f7a6ab479c271a` (WP 6.8 CI #66) / WP 6.9 recovery baseline `0736a267dbdb2f64e7859b2a86b23eb304f1a33a`  
-**Local Application Status:** `IMPLEMENTED — LOCAL TESTS ONLY` *(Neither `CI VERIFIED` nor `APPROVED`; pending owner review and branch sync)*  
-**Verified Final `index.html` & `dist/index.html` SHA-256:** `d8abeb6f5fd8f62b7a933034416f5c10e77c527f08ee3bdd9614b7d8de3b0808` (`63,516` lines, `3,854,373` bytes)
+**Snapshot Status at Time of Original WP 7.0 Report:** `IMPLEMENTED — LOCAL TESTS ONLY` *(Subsequently CI-verified on `main` via CI #73 at `39611006` and CI #74 at `6f53e2ae`; Phase 6 overall remains `NOT APPROVED` and P0 live Supabase RPC remains `NOT VERIFIED`)*  
+**Original WP 7.0 Snapshot `index.html` & `dist/index.html` SHA-256:** `d8abeb6f5fd8f62b7a933034416f5c10e77c527f08ee3bdd9614b7d8de3b0808` (`63,516` lines, `3,854,373` bytes)
 
 ---
 

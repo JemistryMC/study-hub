@@ -2,12 +2,31 @@
 
 **آخر تحديث:** 2026-11-18  
 **المستودع:** JemistryMC/study-hub  
-**فرع العمل / الهدف المقصود لـ WP 7.0:** `main` ← `design/wp-7-0-complete-ux-redesign` (بانتظار مراجعة ومزامنة المالك)  
-**آخر Application Source SHA اجتاز GitHub Actions CI بالكامل (WP 6.8 continuation):** c4c2b430564efff3172f1e9003f7a6ab479c271a ([commit](https://github.com/JemistryMC/study-hub/commit/c4c2b430564efff3172f1e9003f7a6ab479c271a) — CI #66 [43619649174](https://github.com/JemistryMC/study-hub/actions/runs/43619649174): SUCCESS عبر جميع مراحل workflow بما فيها PostgreSQL 16 وChromium وnpm test؛ Pages #174 [43619648287](https://github.com/JemistryMC/study-hub/actions/runs/43619648287): SUCCESS).
+**فرع العمل النشط:** `main`  
+**أحدث Commit مرفوع على `main` (WP 7.0.6):** `6f53e2aed8c335195f1cf338776bb4249b5aeb1f` — **GitHub Actions CI #74** ([`44299401863`](https://github.com/JemistryMC/study-hub/actions/runs/44299401863)): **`SUCCESS`** عبر جميع خطوات الـ workflow (بما فيها PostgreSQL 16 وChromium E2E و`npm test`)؛ **GitHub Pages #187** ([`44299401274`](https://github.com/JemistryMC/study-hub/actions/runs/44299401274)): **`SUCCESS`**.  
+**Commit الأساس السابق (CI #73 بالأرقام التفصيلية):** `396110060942a8fa2362b28aba28ba637719ef82` — **GitHub Actions CI #73** (`44292533009`): **`987/987 PASSED`** (`54/54` static, `42/42` comprehensive, `52/52` Phase 3 isolation, `317/317` Phase 4 regressions, `41/41` PGlite, `96/96` PostgreSQL 16, `167/167` Phase 4.1 Chromium, `43/43` WP 6.5, `22/22` WP 6.6, `51/51` WP 6.7, `21/21` WP 6.8, `22/22` WP 6.9 + `59/59` unit suites). *(تلك الأرقام تنتمي لـ `39611006` فقط وليس لـ `6f53e2ae`).*
 
-## WP 7.0 — Complete Visual & UX Redesign (Local Recovery & Verification — 2026-11-18)
+## WP 7.0.6 — Final Continuation, CI #74 & P0 Supabase RPC Audit (2026-11-18)
 
-**الحالة الحالية:** **`IMPLEMENTED — LOCAL TESTS ONLY`** *(لم يُرفع إلى GitHub بعد؛ ليست `CI VERIFIED` ولا `APPROVED` — بانتظار مراجعة المالك ومزامنته على `design/wp-7-0-complete-ux-redesign`)*  
+**الحالة الحالية:** **`CI VERIFIED (WP 7.0.6 CODE); P0 PRODUCTION SUPABASE RPC STILL OPEN (NOT VERIFIED LIVE); PHASE 6 NOT APPROVED`**
+- **تطابق بيئة العمل المحلية مع `6f53e2aed8c335195f1cf338776bb4249b5aeb1f`:**
+  - `index.html` و`dist/index.html` SHA-256: `388141784259db02863e3f9ffcea8606445fac2d425d562774330dfecf2cd664` (`63,656` سطرًا، `3,866,796` بايت) — مطابق بايت لبايت.
+  - `test_wp6_7_chromium_e2e.js` SHA-256: `9d60dab45fd9d0993f4ddabf402cfb9d30178ac119a2724cb467e17df0c820ca` — مطابق بايت لبايت.
+- **ما تم التحقق منه لـ WP 7.0.6 (`6f53e2ae`):**
+  1. **CI #74 (`44299401863`):** اكتمل بنجاح كامل (`conclusion: "success"` في `2026-11-18T12:06:12Z`) شاملةً `npm run lint`، `npm run build`، `test:static`، `test:unit`، `test:pglite`، `test:pg16`، `test:e2e`، و`npm test` (`run_all_tests.js`)؛ واكتمل نشر Pages #187 بنجاح.
+  2. **توحيد Google Drive:** `#driveHubModalOverlay` (`#sidebarGdriveBtn`) هو المرجع الوحيد لإدارة Drive/OAuth/Media Vault/VIP، مع إزالة أي تبويب مكرر من `#cloudAuthModalOverlay` والاكتفاء بملخص `#cloudAccountDriveSummaryBox` وزر `#btnAccountManageGoogleDrive`؛ واجتازت اختبارات `test_wp6_7_unit.js` (`13/13`) وChromium E2E (`mocked OAuth`) — بينما يتطلب التفويض الحي على حساب Google الحقيقي اختبار المالك على النسخة المنشورة.
+  3. **تحقق أهداف اللمس (`>= 44px`) على `390x844` و`768x1024`:** اجتاز في Chromium الفعلي بعد استقرار الانتقال (`44×44` لزر القائمة `.exo-card-overflow-trigger` وعناصر `.exo-card-overflow-item` وأزرار إغلاق وأزرار `#driveHubModalOverlay` و`#cloudAuthModalOverlay`، مع `overflowX: false`).
+  4. **سلامة اللقطات:** `test_wp6_7_chromium_e2e.js` يكتب لقطات التشغيل إلى `.playwright-cli/wp6-7/` (المتجاهل في `.gitignore`) لحماية `reports/screenshots/wp6-7/` (`34` ملفًا)، وتبقى لقطات WP 7.0 العشر تحت `reports/screenshots/wp7-0/`.
+- **P0 المفتوح — خطأ الإنتاج `PGRST202 — ERR_MISSING_RPC` (`public.sync_workspace_with_concurrency`):**
+  - استدعاء العميل (`index.html:57966–57969`) يطابق توقيع الهجرة المعيارية `supabase/migrations/20261103160000_hosted_supabase_auth_compat.sql` (`p_payload jsonb, p_expected_revision integer DEFAULT NULL`) بنسبة 1:1، وتم تحسين تشخيص `PGRST202` وحماية التعديلات المحلية (`preservesDirty: true`).
+  - **لم يتم التحقق من قاعدة Supabase Production الحية** لعدم توفر صلاحية اتصال/CLI للقاعدة الحية في بيئة العمل؛ لذلك يظل P0 مفتوحًا (`NOT VERIFIED`) لحين تشغيل استعلامات الفحص للقراءة فقط وتطبيق أي هجرة ناقصة (`20261103140000`–`20261103160000`) و/أو `NOTIFY pgrst, 'reload schema';` وإثبات استدعاء RPC مصادق عليه، وزيادة `revision`، واختبار تعارض OCC، وإعادة القراءة بنجاح.
+- **التقرير التفصيلي لـ WP 7.0.6:** `reports/PHASE_6_WP_7_0_6_REPORT.md`.
+
+---
+
+## WP 7.0 — Complete Visual & UX Redesign (Historical Local Recovery Snapshot — 2026-11-18)
+
+**الحالة التاريخية وقت التسليم المحلي (قبل رفع `d8208815` ثم `39611006` ثم `6f53e2ae`):** `IMPLEMENTED — LOCAL TESTS ONLY`  
 - **بصمة المصدر النهائية (`index.html` و`dist/index.html` SHA-256):** `d8abeb6f5fd8f62b7a933034416f5c10e77c527f08ee3bdd9614b7d8de3b0808` (`63,516` سطر، `3,854,373` بايت).
 - **ملخص الاستعادة والتثبيت الموضعي فوق إعادة التصميم المحفوظة:**
   1. الحفاظ الكامل على إعادة تصميم WP 7.0 (نظام الألوان الداكن Ink/Charcoal `#191B1D` / `#202225` / `#24272A` / `#282B2D` + Warm Paper `#F1E7D5` / `#E8DDC9` + Sage `#899982` + `122` رمز SVG مدمج + `780` استخدام `<use>` + `0` وسوم FontAwesome `<i>` + `0` `backdrop-filter: blur`).
@@ -22,11 +41,11 @@
   - `test_phase4_regressions.js`: **`317/317 PASSED`** | `node --test test_wp6_1..9_unit.js`: **`59/59 PASSED`** | `npm run test:pglite`: **`41/41 PASSED`**.
   - Chromium E2E: `test_wp6_5_chromium_e2e.js` (**`43/43`**)، `test_wp6_6_chromium_e2e.js` (**`22/22`**)، `test_wp6_7_chromium_e2e.js` (**`50/50`**)، `test_wp6_9_chromium_e2e.js` (**`22/22`**).
   - Benchmarks: `benchmark:node` (`5/5` tiers)، `benchmark:browser` (`5/5` tiers, `0.00 MB` heap delta حتى `48.51 MB`)، `benchmark:wp68` (DOM delta `2` بعد 20 دورة تنقل، `0 MB` heap delta).
-- **الإخفاقات المفتوحة الموثقة بصدق (دون إضعاف أي اختبار):**
+- **الإخفاقات المفتوحة الموثقة بصدق وقت اللقطة المحلية `d8abeb6f...` *(تم حلّ بندَي `1` و`2` لاحقًا في `39611006` واجتازا CI #73 وCI #74، وبقي بند `3` يُختبر في CI PostgreSQL 16)*:**
   1. `test_phase4_1_chromium_e2e.js`: اجتازت الاختبارات `A..JJ` (بما فيها `U.1–U.4`) و`KK.1, KK.2, KK.4, LL.2a`، وتعثرت عند `KK.3` (`i.exo-rtl-flip` بدل `<svg>` داخل `.exo-card-overflow-item`) و`LL.1` (`rgb(36, 39, 42)` `#24272A` بدل `rgb(41, 43, 45)` `#292B2D`) و`LL.2` (السطر `7341`: محاولة النقر على `moveSubjectOrder` دون فتح قائمة `.exo-card-overflow-menu` أولًا؛ وبسبب هذا الانقطاع لم تُنفذ `LL.3–LL.5, MM, OO` ضمن هذا الملف). يُلاحظ أيضًا أن زر القائمة `.exo-book-card-menu-wrap button.icon-btn` بحجم `36px` في `index.html:23943` مقابل اشتراط `LL.5` لحجم `>= 44px`.
   2. `test_wp6_8_chromium_e2e.js`: **`17/21 PASSED, 4 FAILED`** بسبب تغيّر يوم التشغيل في الحاوية (الأربعاء `2026-11-18` مقابل السبت `2026-11-14`)، حيث تولّد `reconcileRecoveryAndAbsentLogsWithSchedule()` `112` سجلًا فائتًا للأيام السابقة في الأسبوع (`1112` بدل `1000`).
   3. `test_phase4_2_1_pg16_concurrency.js`: تعذّر محليًا (`connect ECONNREFUSED 127.0.0.1:5432`) لعدم توفر خادم PostgreSQL 16 محلي؛ يُرحّل إلى GitHub Actions CI.
-- **التقرير التفصيلي الكامل:** `reports/PHASE_6_WP_7_0_DESIGN_REPORT.md` و`reports/screenshots/wp7-0/*.png`.
+- **التقرير التفصيلي الكامل:** `reports/PHASE_6_WP_7_0_DESIGN_REPORT.md` و`reports/PHASE_6_WP_7_0_6_REPORT.md` و`reports/screenshots/wp7-0/*.png`.
 
 ---
 
