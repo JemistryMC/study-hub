@@ -5,7 +5,7 @@
 
 أكد المالك اعتماد التطبيق بشكل عام وتجربة الاستخدام، وأكد أن مشكلة التجمّد التي سُجلت في WP 6.8 قد حُلّت منذ وقت سابق. وعليه، فإن أي إشارات أدناه إلى أن القبول البصري ما زال معلقًا أو أن تجمّد WP 6.8 ما زال مانعًا هي لقطات تاريخية تم تجاوزها.
 
-لم تعد Phase 6 أو إعادة التصميم هي مسار العمل النشط. المشروع انتقل إلى **Final Release Preparation**؛ لا تُفتح ميزات أو تغييرات تصميم جديدة. أكد المالك نجاح فحص Supabase Production البنيوي والحفظ/المزامنة بعد Reload، وGoogle OAuth/Drive مع رفع واسترجاع ملف بحساب VIP، والمزامنة بين جلستين/جهازين، وBackup/Restore. واجتاز اختبار OCC متعدد الاتصالات على PostgreSQL 16 ضمن CI #79. تظل حالة النشر النهائي **NO-GO** حتى Smoke test حي لمرشح الإصدار وPWA، ثم تثبيت النسخة المستقرة وتشغيل CI وإنشاء Tag وGitHub Release. راجع [FINAL_RELEASE_READINESS.md](FINAL_RELEASE_READINESS.md).
+لم تعد Phase 6 أو إعادة التصميم هي مسار العمل النشط. المشروع في **Final Release Preparation**؛ لا تُفتح ميزات أو تغييرات تصميم جديدة. أكد المالك نجاح فحص Supabase Production والحفظ/المزامنة بعد Reload، وGoogle OAuth/Drive مع رفع واسترجاع ملف بحساب VIP، والمزامنة بين جلستين/جهازين، وBackup/Restore. اجتاز مرشح v1.4.2 CI #82 وCI #83 بعد دمجه على `main` عند SHA `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f` مع 1,177/1,177 assertions، ونجح Pages #199. تظل حالة النشر النهائي **NO-GO** حتى تأكيد Smoke test الحي وPWA ثم إنشاء Tag وGitHub Release الرسمي. راجع [FINAL_RELEASE_READINESS.md](FINAL_RELEASE_READINESS.md).
 
 هذا التحديث يسجل اعتماد المنتج على مستوى التطبيق، ولا يغيّر بأثر رجعي نتائج الاختبارات أو تقارير Work Packages التاريخية ولا يمنح تفويضًا بتعديل Supabase Production.
 
