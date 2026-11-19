@@ -10,10 +10,11 @@
 > **Release candidate CI #82:** [44544058217](https://github.com/JemistryMC/study-hub/actions/runs/44544058217) — SUCCESS.
 > **Main CI #83:** [44545562381](https://github.com/JemistryMC/study-hub/actions/runs/44545562381) — SUCCESS على نفس SHA؛ 1,177/1,177 assertions و0 failures، PostgreSQL 16 = 96/96، WP 7.1 Chromium E2E = 186/186.
 > **GitHub Pages #199:** [44545562352](https://github.com/JemistryMC/study-hub/actions/runs/44545562352) — SUCCESS على Stable app SHA.  
-> **GitHub Pages #207:** [44548136100](https://github.com/JemistryMC/study-hub/actions/runs/44548136100) — SUCCESS بعد تحديثات الحالة/التوثيق على `main`.
+> **GitHub Pages #208:** [44548477393](https://github.com/JemistryMC/study-hub/actions/runs/44548477393) — SUCCESS بعد آخر تحديثات التوثيق على `main`.
 > **بوابات مؤكدة من قبل:** Supabase/OCC، Google OAuth/Drive ورفع/استرجاع ملف VIP، المزامنة بين جلستين/جهازين، Backup/Restore — حسب تأكيد المالك.
-> **المتبقي:** R4 تأكيد يدوي لفتح النسخة المنشورة وتثبيت/تشغيل PWA؛ R5-d إنشاء Tag `v1.4.2` وGitHub Release رسمي.
-> **قرار النشر:** NO-GO حتى إغلاق اختبار R4 وإنشاء Tag/Release.
+> **R4:** CLOSED — المالك أكد أن النسخة المنشورة وPWA تعمل بصورة سليمة بتاريخ 2026-11-19.
+> **المتبقي الوحيد:** إنشاء Tag `v1.4.2` من Stable app SHA ثم GitHub Release الرسمي.
+> **قرار النشر:** الموافقة الوظيفية والتقنية مكتملة؛ ينتظر المشروع إجراء Tag/Release الإداري فقط.
 > **المرجع التنفيذي:** [FINAL_RELEASE_READINESS.md](FINAL_RELEASE_READINESS.md).
 
 > **ملاحظة:** مرشح v1.4.2 غيّر أرقام الحزمة والتوثيق فقط؛ لم تتغير ملفات التطبيق أو `sw.js` أو `manifest.json`.

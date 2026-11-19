@@ -9,9 +9,10 @@
 - **حالة `main`:** بعد stable app SHA أضيفت تحديثات توثيق/تسليم فقط؛ لم تتغير ملفات التطبيق أو الاختبارات.
 - **CI #82 على مرشح PR #5:** SUCCESS؛ **CI #83 على main:** SUCCESS؛ 1,177/1,177 assertions، 0 فشل.
 - **PostgreSQL 16:** 96/96؛ **WP 7.1 Chromium E2E:** 186/186.
-- **GitHub Pages #199:** SUCCESS على Stable app SHA؛ **Pages #207:** SUCCESS بعد تحديث الحالة والتوثيق على `main`.
+- **GitHub Pages #199:** SUCCESS على Stable app SHA؛ **Pages #208:** SUCCESS بعد آخر تحديثات التوثيق على `main`.
 - **التكاملات الحية:** Supabase/OCC وGoogle OAuth/Drive ورفع/استرجاع ملف VIP، والمزامنة بين جلستين/جهازين، وBackup/Restore — أكد المالك نجاحها.
-- **المتبقي:** Smoke test يدوي لفتح النسخة المنشورة وتثبيت/تشغيل PWA، ثم إنشاء Tag `v1.4.2` وGitHub Release رسمي.
+- **R4:** CLOSED — أكد المالك أن النسخة المنشورة وPWA تعمل بصورة سليمة.
+- **المتبقي الوحيد:** Tag `v1.4.2` من Stable app SHA ثم GitHub Release الرسمي.
 - المرجع التنفيذي الحالي: [FINAL_RELEASE_READINESS.md](FINAL_RELEASE_READINESS.md).
 
 ---

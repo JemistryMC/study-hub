@@ -11,7 +11,7 @@
 
 ## 1. قرار الإصدار
 
-**الحالة الحالية: RELEASE PREPARATION — NO-GO FOR FINAL RELEASE.**
+**الحالة الحالية: RELEASE APPROVED — AWAITING OFFICIAL GITHUB TAG/RELEASE.**
 
 ### تحديث تحقق Supabase وOCC — 2026-11-19
 أكد المالك نجاح تجربة المزامنة الطبيعية من داخل التطبيق المنشور: حفظ ثم إعادة تحميل، مع استمرار البيانات بصورة سليمة. كما اجتاز CI #83 على PostgreSQL 16 اختبار OCC متعدد الاتصالات: اتصالان مستقلان قرآ revision=1؛ الاتصال الأول حدّث إلى revision=2 واحتفظ بقفل الصف؛ الاتصال الثاني انتظر ثم حاول الكتابة باستخدام revision=1، فتم رفضه بـ`status: conflict` و`current_revision: 2`، وتأكد الاختبار أن بيانات الاتصال الأول لم تُستبدل. الاختبار يتحقق أيضًا من سباق متزامن بحاجز إطلاق مشترك. بذلك تم إثبات منطق OCC والتنافس على مستوى PostgreSQL 16. **حد الدليل:** الاختبار يستخدم PostgreSQL 16 حقيقيًا مع جلسات/claims مصطنعة، وليس طلبين HTTP متزامنين عبر PostgREST على مشروع Supabase Hosted؛ بينما مسار الحفظ الطبيعي الحي أكد المالك نجاحه.
@@ -29,14 +29,14 @@
 | GitHub Actions CI على main | Run #83 — [44545562381](https://github.com/JemistryMC/study-hub/actions/runs/44545562381)، على `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f` | SUCCESS |
 | مراحل CI | npm ci، lint، production build، static security، unit/async، PGlite، PostgreSQL 16، Chromium E2E، unified npm test | جميع الخطوات الأساسية SUCCESS |
 | نتائج الاختبارات المجمعة | 1,177 assertion ناجحة، 0 فشل؛ PostgreSQL 16 = 96/96؛ WP 7.1 Chromium E2E = 186/186 | PASS |
-| GitHub Pages | Run #199 — [44545562352](https://github.com/JemistryMC/study-hub/actions/runs/44545562352) على Stable app SHA، ثم Run #203 — [44547563903](https://github.com/JemistryMC/study-hub/actions/runs/44547563903) بعد تحديثات التوثيق على `main` | SUCCESS |
+| GitHub Pages | Run #199 — [44545562352](https://github.com/JemistryMC/study-hub/actions/runs/44545562352) على Stable app SHA، ثم Run #208 — [44548477393](https://github.com/JemistryMC/study-hub/actions/runs/44548477393) بعد تحديثات التوثيق على `main` | SUCCESS |
 | وجهة Pages | [https://jemistrymc.github.io/study-hub/](https://jemistrymc.github.io/study-hub/) | النشر الآلي ناجح؛ التحقق اليدوي من PWA ما زال مطلوبًا |
 | اعتماد المالك | اعتماد عام للتطبيق وتجربة الاستخدام، 2026-11-19 | APPROVED |
 | التجمّد القديم | المالك أكد أنه حُلّ منذ وقت سابق | RESOLVED — لا يُعاد فتحه |
 | GitHub Release / Tag | لا يوجد حتى الآن Tag `v1.4.2` أو GitHub Release مطابق | Pending |
 | رقم الحزمة | `package.json` و`package-lock.json` = `1.4.2` | VERIFIED |
 
-**مهم:** CI #83 وPages #199 مرتبطان بـStable app SHA `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`. بعد تحديثات التوثيق فقط، نجح Pages #207 على مستودع `main`؛ ولا تتضمن هذه التحديثات أي تغيير في ملفات التطبيق أو Service Worker.
+**مهم:** CI #83 وPages #199 مرتبطان بـStable app SHA `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`. بعد تحديثات التوثيق فقط، نجح Pages #208 على مستودع `main`؛ ولا تتضمن هذه التحديثات أي تغيير في ملفات التطبيق أو Service Worker.
 
 ## 3. بوابات الإصدار المتبقية
 
@@ -90,15 +90,12 @@
 **الحالة:** R3 **VERIFIED BY OWNER CONFIRMATION**. لا نطلب إعادة الاختبار ما دامت النسخة التي اختبرها المالك هي مسار Backup/Restore الحالي ولم تتغير صيغة التخزين أو الاستعادة منذ الاختبار.
 
 **قيود:** لا يتم تنفيذ Restore على حساب المالك الأساسي أثناء التجهيز، ولا تُغيّر صيغ التخزين أو سياسات الاستعادة في هذه المرحلة.
-### R4 — Smoke test حي للنسخة المنشورة وPWA (Pages deployed؛ تأكيد المالك متبقٍ)
+### R4 — Smoke test حي للنسخة المنشورة وPWA (VERIFIED BY OWNER — 2026-11-19)
 
-نجح GitHub Pages #199 على Stable app SHA `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`، ثم نجح Pages #207 بعد تحديثات التوثيق على `main`. لكن نجاح الـworkflow لا يثبت وحده أن المتصفح يعرض التطبيق ويثبّت PWA على جهاز المستخدم. يلزم تأكيد يدوي واحد من المالك:
-- افتح [Exo على GitHub Pages](https://jemistrymc.github.io/study-hub/) مباشرة وتأكد من عدم وجود 404 أو صفحة بيضاء.
-- تأكد أن التطبيق يفتح بصورة طبيعية، وأن تسجيل الدخول والتنقل الأساسي وHelp Center وPDF Studio يعملون.
-- جرّب خيار Install Exo / Install page as app من Chrome، ثم افتح التطبيق المثبّت وتأكد من ظهور الواجهة بصورة سليمة.
-- اختبر المسار تحت `/study-hub/` لأنه GitHub Pages project site.
-- لا يتضمن مرشح v1.4.2 أي تعديل على `index.html` أو `sw.js` أو `manifest.json`؛ لذلك لا يتوقع إصدار Service Worker جديد أو تغيير cache namespace من هذا التحديث metadata-only. المطلوب هنا تأكيد installability والفتح السليم، وليس انتظار تحديث واجهة لم تتغير.
-- تحقق من عدم ظهور بيانات اختبار أو أسرار أو رسائل تشخيصية داخل الواجهة.
+نجح GitHub Pages #199 على Stable app SHA `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`، ثم نجح Pages #208 بعد آخر تحديثات التوثيق على `main`. في 2026-11-19 أكد المالك أن التطبيق المنشور يفتح ويعمل بصورة سليمة وأن PWA تعمل كما هو متوقع. بذلك يُغلق R4 بناءً على اختبار المالك الحي بعد النشر. لم يتغير التطبيق أو Service Worker بعد هذا التأكيد.
+- تأكيد المالك: "كله شغال زبادي" بعد فتح النسخة المنشورة وتجربة PWA؛ لم يذكر أي مشكلة ظاهرة.
+- نتيجة التحقق: التطبيق وPWA يعملان كما هو متوقع على النسخة المنشورة.
+- التحديث v1.4.2 metadata-only ولا يغيّر `index.html` أو `sw.js` أو `manifest.json`؛ لا يتطلب تغيير cache namespace أو Service Worker جديد.
 
 ### R5 — بيانات الإصدار الرسمية (اختيار النسخة المستقرة مكتمل؛ التحقق والنشر متبقيان)
 
@@ -134,10 +131,10 @@
 - [ ] R1-b (اختياري وغير مانع للإصدار): توثيق منفصل لحالات Auth/Drive الطرفية (logout/session recovery/disconnect/reconnect/failure handling) إذا تقرر توسيع نطاق التحقق؛ لا يغيّر هذا حالة بوابات الإصدار المغلقة ولا يتطلب إعادة اختبارات أكد المالك نجاحها.
 - [x] R2: المزامنة الطبيعية بعد Reload + ظهور التعديلات على جلستين/جهازين — تأكيد المالك 2026-11-19، مع إثبات OCC المستقل في PostgreSQL 16 CI.
 - [x] R3: Backup/Restore — المالك أكد نجاح التصدير والاستيراد واستعادة البيانات على اختبار 2026-11-19.
-- [ ] R4: Smoke test حي لفتح النسخة المنشورة وتثبيت/تشغيل PWA.
+- [x] R4: Smoke test حي — المالك أكد فتح النسخة المنشورة وتشغيل PWA بصورة سليمة، 2026-11-19.
 - [x] R5-a: اختيار النسخة المستقرة `1.4.2` وتحديث `package.json` و`package-lock.json`.
 - [x] R5-b: CI الكامل ناجح على PR #5 وعلى `main` النهائي؛ 1,177 assertions و0 failures.
 - [x] R5-c: دمج المرشح على `main` وتشغيل GitHub Pages #199 بنجاح.
-- [ ] R5-d: إنشاء Tag `v1.4.2` وGitHub Release الرسمي بعد اجتياز R4.
+- [ ] R5-d: إنشاء Tag `v1.4.2` من Stable app SHA `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f` وإنشاء GitHub Release الرسمي.
 
-**قرار الإصدار الحالي: NO-GO** حتى تأكيد R4 وإنشاء Tag/Release في R5-d. تم إغلاق R0 وR1-a وR2 وR3 وR5-a/R5-b/R5-c وفق الأدلة وتأكيد المالك أعلاه. بعد إغلاق المتبقي، ينتقل القرار إلى **GO** مع تسجيل الأدلة وSHA النهائي، دون إعادة فتح اعتماد التصميم أو المنتج.
+**قرار الإصدار الحالي: NO-GO إداري فقط** حتى إنشاء Tag وGitHub Release (R5-d). أُغلقت جميع بوابات التحقق الوظيفي والتقني، بما فيها R4، وفق الأدلة وتأكيد المالك. لا توجد بوابة اختبار أخرى مطلوبة قبل إنشاء الإصدار الرسمي.

@@ -40,7 +40,7 @@
 
 ## الحالة الحالية — تجهيز الإصدار النهائي
 
-اعتمد المالك التطبيق بشكل عام وتجربة الاستخدام. النسخة المستقرة المقترحة `1.4.2` مدمجة على `main` عند SHA `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`. اجتاز المرشح CI #82 واجتاز `main` CI #83 بنجاح (1,177/1,177 assertions)، كما نجح GitHub Pages #199 على SHA نفسه. أكد المالك نجاح Supabase/OCC وGoogle Drive والمزامنة بين الجلسات وBackup/Restore. المتبقي هو Smoke test يدوي لفتح النسخة المنشورة وتثبيت/تشغيل PWA، ثم إنشاء Tag `v1.4.2` وGitHub Release الرسمي. التفاصيل في [تقرير جاهزية الإصدار النهائي](reports/FINAL_RELEASE_READINESS.md).
+اعتمد المالك التطبيق بشكل عام وتجربة الاستخدام. النسخة المستقرة المقترحة `1.4.2` مدمجة على `main` عند SHA `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`. اجتاز المرشح CI #82 واجتاز `main` CI #83 بنجاح (1,177/1,177 assertions)، كما نجح GitHub Pages #199 على SHA نفسه. أكد المالك نجاح Supabase/OCC وGoogle Drive والمزامنة بين الجلسات وBackup/Restore. أكد المالك نجاح Smoke test الحي وفتح النسخة المنشورة وPWA بتاريخ 2026-11-19؛ المتبقي إداريًا إنشاء Tag `v1.4.2` من Stable app SHA ثم GitHub Release الرسمي. التفاصيل في [تقرير جاهزية الإصدار النهائي](reports/FINAL_RELEASE_READINESS.md).
 
 ## دورة العمل — تحكم المالك
 
