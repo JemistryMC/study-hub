@@ -8,7 +8,7 @@
 > **GitHub CI #79:** `44528632061` — SUCCESS على نفس SHA.
 > **GitHub Pages #196:** `44528631312` — SUCCESS على نفس SHA.
 > **المرحلة الحالية:** Final Release Preparation — لا ميزات أو إعادة تصميم إضافية.
-> **قرار النشر:** NO-GO مؤقتًا حتى إغلاق التحقق الحي من Supabase Production RPC وAuth/OAuth/Drive والمزامنة وBackup/Restore.
+> **قرار النشر:** NO-GO مؤقتًا. فحص SQL البنيوي لـSupabase Production وتجربة الحفظ/المزامنة/Reload الطبيعية أكدهما المالك بنجاح؛ المتبقي اختبار OCC متعمد بقيمة revision قديمة، ثم Auth/OAuth/Drive وBackup/Restore.
 > **المرجع التنفيذي الحالي:** [FINAL_RELEASE_READINESS.md](FINAL_RELEASE_READINESS.md).
 >
 > **ملاحظة أرشيفية:** الأقسام التفصيلية التالية تحتفظ بسجل Work Packages وحالاتها وقت إعدادها. أي عبارات قديمة مثل `OWNER ACCEPTANCE PENDING` أو `P0 FREEZE OPEN` أو HEAD `5d9464b4` تصف لقطة سابقة، وقد تم تجاوزها بالتحديث أعلاه. لا تُستخدم هذه اللقطات التاريخية لتحديد قرار الإصدار الحالي.
