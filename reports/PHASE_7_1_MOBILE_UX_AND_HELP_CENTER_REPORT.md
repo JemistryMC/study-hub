@@ -1,4 +1,16 @@
 # EXO — WP 7.1 Verification & Corrective Pass Report
+
+
+## تحديث المالك وحالة الإصدار — 2026-11-19
+
+**هذا التحديث يحل محل أي حالة قبول قديمة في هذا التقرير:** أكد المالك اعتماد التطبيق بشكل عام وتجربة الاستخدام؛ لذا فإن إشارات `OWNER REVIEW & ACCEPTANCE PENDING` أدناه تاريخية وتم تجاوزها. كما أكد المالك أن مشكلة التجمّد القديمة حُلّت منذ وقت سابق.
+
+**آخر خط أساس للمستودع ليس SHA هذا التقرير التاريخي:** Source Commit الحالي عند إعداد هذا التحديث هو `cf47e5698a212c1e1ef64d837cf1987a807f337e`، وقد نجح CI #79 (`44528632061`) وPages #196 (`44528631312`) على SHA نفسه.
+
+هذا التقرير يظل دليلًا تاريخيًا لنطاق WP 7.1 ونتائجه؛ أما قرار Go/No-Go والإجراءات الحية المطلوبة للنشر فتوجد في [FINAL_RELEASE_READINESS.md](FINAL_RELEASE_READINESS.md). لا تُعد mocks الخاصة بـ Supabase وGoogle OAuth دليلًا على نجاح خدمات Production.
+
+---
+
 ## Mobile UX, Sticky Topbar Scroll, Anti-Fake-Progress Help Center, Touch Targets & Google Drive Diagnostics
 
 **آخر تحديث:** 2026-11-19  

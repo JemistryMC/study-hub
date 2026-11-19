@@ -4,7 +4,8 @@
 
 ## ابدأ من هنا
 
-1. اقرأ [الحالة الحالية للمشروع](reports/CURRENT.md) لمعرفة المرحلة النشطة والخطوة المصرح بها.
+1. اقرأ [الحالة الحالية للمشروع](reports/CURRENT.md) لمعرفة خط الأساس والحالة الحالية.
+2. راجع [جاهزية الإصدار النهائي](reports/FINAL_RELEASE_READINESS.md) لمعرفة بوابات Go/No-Go قبل النشر الرسمي.
 2. اقرأ [العقد الهندسي الدائم لـGemini](GEMINI.md) قبل أي تعديل.
 3. عند العمل على الواجهة وتجربة الاستخدام، اقرأ [EXO — Personal Study Journal Design Contract](reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md).
 4. اقرأ [Phase 6 — Experience Redesign Plan](reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md) لمعرفة مراحل التنفيذ وبوابات المراجعة.
@@ -37,9 +38,9 @@
 - `reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md` هو المرجع المعتمد لقرارات الشكل وتجربة الاستخدام.
 - `reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md` يحدد مراحل إعادة التصميم وبوابات مراجعتها.
 
-## الحالة الحالية
+## الحالة الحالية — تجهيز الإصدار النهائي
 
-المرحلة النشطة هي **Phase 6 — EXO Personal Study Journal Experience Redesign**. اجتازت **WP 6.1** التحقق الفني عبر GitHub Actions CI #53 على Source SHA `86fda9824880c00268db117f1ab8780b106f6fe0`، وحزمة العمل النشطة الآن **WP 6.2 — Library, Subjects & Table of Contents**. تستمر حزم العمل بالتسلسل بعد استيفاء الاختبارات وCI دون طلب اعتماد منفصل بعد كل حزمة؛ المراجعة والاعتماد النهائيان من المالك في نهاية Phase 6. راجع `reports/CURRENT.md` والخطة لمعرفة النطاق الحالي.
+اعتمد المالك التطبيق بشكل عام وتجربة الاستخدام بتاريخ 2026-11-19، وأكد حل مشكلة التجمّد القديمة. أحدث Source Commit على `main` هو `cf47e5698a212c1e1ef64d837cf1987a807f337e`؛ اجتاز CI #79 وGitHub Pages #196 على SHA نفسه. المشروع الآن في مرحلة **Final Release Preparation** وليس في مرحلة إعادة التصميم. حالة الإصدار ما زالت **NO-GO** حتى إثبات Supabase Production RPC والتكاملات الحية ودورة المزامنة والنسخ الاحتياطي على حسابات اختبار. التفاصيل في [تقرير جاهزية الإصدار النهائي](reports/FINAL_RELEASE_READINESS.md).
 
 ## دورة العمل — تحكم المالك
 
