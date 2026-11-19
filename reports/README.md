@@ -5,10 +5,11 @@
 
 - **اعتماد المنتج:** APPROVED BY OWNER؛ اعتماد عام للتطبيق وتجربة الاستخدام.
 - **النسخة المستقرة المقترحة:** `1.4.2`؛ `package.json` و`package-lock.json` متوافقان.
-- **Repository HEAD:** `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f` على `main`.
+- **Stable app/release SHA:** `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`.  
+- **آخر Repository HEAD:** `d09778e0ea7960dddd35118e33e489cc95a90233` على `main` (تحديثات توثيق فقط).
 - **CI #82 على مرشح PR #5:** SUCCESS؛ **CI #83 على main:** SUCCESS؛ 1,177/1,177 assertions، 0 فشل.
 - **PostgreSQL 16:** 96/96؛ **WP 7.1 Chromium E2E:** 186/186.
-- **GitHub Pages #199:** SUCCESS على SHA النهائي نفسه.
+- **GitHub Pages #199:** SUCCESS على Stable app SHA؛ **Pages #203:** SUCCESS بعد تحديث التوثيق على `main`.
 - **التكاملات الحية:** Supabase/OCC وGoogle OAuth/Drive ورفع/استرجاع ملف VIP، والمزامنة بين جلستين/جهازين، وBackup/Restore — أكد المالك نجاحها.
 - **المتبقي:** Smoke test يدوي لفتح النسخة المنشورة وتثبيت/تشغيل PWA، ثم إنشاء Tag `v1.4.2` وGitHub Release رسمي.
 - المرجع التنفيذي الحالي: [FINAL_RELEASE_READINESS.md](FINAL_RELEASE_READINESS.md).
