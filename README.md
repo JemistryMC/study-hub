@@ -6,10 +6,10 @@
 
 1. اقرأ [الحالة الحالية للمشروع](reports/CURRENT.md) لمعرفة خط الأساس والحالة الحالية.
 2. راجع [جاهزية الإصدار النهائي](reports/FINAL_RELEASE_READINESS.md) لمعرفة بوابات Go/No-Go قبل النشر الرسمي.
-2. اقرأ [العقد الهندسي الدائم لـGemini](GEMINI.md) قبل أي تعديل.
-3. عند العمل على الواجهة وتجربة الاستخدام، اقرأ [EXO — Personal Study Journal Design Contract](reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md).
-4. اقرأ [Phase 6 — Experience Redesign Plan](reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md) لمعرفة مراحل التنفيذ وبوابات المراجعة.
-5. راجع [طريقة العمل والتقارير](reports/README.md).
+3. اقرأ [العقد الهندسي الدائم لـGemini](GEMINI.md) قبل أي تعديل.
+4. عند العمل على الواجهة وتجربة الاستخدام، اقرأ [EXO — Personal Study Journal Design Contract](reports/EXO_PERSONAL_STUDY_JOURNAL_DESIGN.md).
+5. اقرأ [Phase 6 — Experience Redesign Plan](reports/PHASE_6_EXPERIENCE_REDESIGN_PLAN.md) للرجوع إلى سجل قرارات التصميم السابقة.
+6. راجع [طريقة العمل والتقارير](reports/README.md).
 
 ## خريطة المشروع
 
