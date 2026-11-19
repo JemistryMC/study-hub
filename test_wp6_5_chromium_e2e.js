@@ -925,37 +925,60 @@ async function main() {
     }
 
     // ------------------------------------------------------------------------
-    // S7: Help Center (6-Module Academy + 5-Station Loop), Spotlight Tour & EN/AR Toggle
+    // S7: Rebuilt Help Center (5 Sections + Single-Level Accordions), Spotlight Tour & EN/AR Toggle
     // ------------------------------------------------------------------------
-    console.log('\n--- S7: Academy Guide, 5-Station Loop, Spotlight Tour & EN/AR Toggle ---');
+    console.log('\n--- S7: Rebuilt Help Center, Spotlight Tour & EN/AR Toggle ---');
     const s7 = await openFreshPage(browser, mockState);
     try {
       const p = s7.page;
       await p.click('.sidebar-tool-btn[onclick="openHelpModal()"]');
       await p.waitForSelector('#helpModalOverlay.active', { timeout: 4000 });
 
-      const stationCount = await p.locator('#wp65ClosedLoopStationsGrid .wp65-loop-station').count();
-      assert(stationCount === 5, 'S7.1 Help center displays 5 connected closed-loop stations', `count=${stationCount}`);
+      const helpStructure = await p.evaluate(() => ({
+        hasIntro: Boolean(document.getElementById('helpSectionIntro')),
+        hasStartHere: Boolean(document.getElementById('helpSectionStartHere')),
+        hasGuide: Boolean(document.getElementById('helpSectionGuide')),
+        hasSync: Boolean(document.getElementById('helpSectionSync')),
+        hasFaq: Boolean(document.getElementById('helpSectionFaq')),
+        startSteps: document.querySelectorAll('#helpSectionStartHere .exo-help-start-card').length,
+        openAccordions: document.querySelectorAll('#helpCenterContent .exo-help-accordion.is-open').length,
+        nestedAccordions: document.querySelectorAll('#helpCenterContent .exo-help-accordion .exo-help-accordion').length
+      }));
+      assert(
+        helpStructure.hasIntro && helpStructure.hasStartHere && helpStructure.hasGuide &&
+        helpStructure.hasSync && helpStructure.hasFaq && helpStructure.startSteps === 3 &&
+        helpStructure.openAccordions === 0 && helpStructure.nestedAccordions === 0,
+        'S7.1 Rebuilt Help Center renders all 5 sections, 3 Start Here steps, all accordions collapsed, and zero nested accordions',
+        JSON.stringify(helpStructure)
+      );
 
-      // Step panes via module Next / Prev buttons and dock navigation
-      await p.click('#egDockNextBtn');
-      await p.click('#acadPane_1 .acad-footer-nav button[onclick*="switchAcademyModule(2)"]');
-      const pane2Active = await p.locator('#acadPane_2.active').count();
-      await p.click('#egDockPrevBtn');
-      await p.click('#acadPane_2 .acad-footer-nav button[onclick*="switchAcademyModule(1)"]');
-      const pane1Active = await p.locator('#acadPane_1.active').count();
-      assert(pane2Active === 1 && pane1Active === 1, 'S7.2 Academy guide Next/Prev stepper transitions cleanly between panes');
+      // Expand & collapse single-level accordions cleanly
+      await p.click('#helpTrigger_topic_planner');
+      const plannerOpen = await p.evaluate(() => ({
+        expanded: document.getElementById('helpTrigger_topic_planner')?.getAttribute('aria-expanded') === 'true',
+        panelVisible: !document.getElementById('helpPanel_topic_planner')?.hidden,
+        totalOpen: document.querySelectorAll('#helpCenterContent .exo-help-accordion.is-open').length
+      }));
+      await p.click('#helpTrigger_topic_tracker');
+      const trackerSwitched = await p.evaluate(() => ({
+        plannerClosed: document.getElementById('helpTrigger_topic_planner')?.getAttribute('aria-expanded') === 'false',
+        trackerOpen: document.getElementById('helpTrigger_topic_tracker')?.getAttribute('aria-expanded') === 'true',
+        totalOpen: document.querySelectorAll('#helpCenterContent .exo-help-accordion.is-open').length
+      }));
+      assert(
+        plannerOpen.expanded && plannerOpen.panelVisible && plannerOpen.totalOpen === 1 &&
+        trackerSwitched.plannerClosed && trackerSwitched.trackerOpen && trackerSwitched.totalOpen === 1,
+        'S7.2 Rebuilt Help Center single-level accordion expands one item at a time cleanly'
+      );
 
-      // Click station 4 (Study Compass) -> closes Help modal and navigates to Tracker
-      await p.locator('#wp65ClosedLoopStationsGrid .wp65-loop-station').nth(3).click();
+      // Click Open Tracker button inside expanded topic_tracker -> closes Help modal and navigates to Tracker
+      await p.click('#helpPanel_topic_tracker button[data-help-action="go_tracker"]');
       await p.waitForFunction(() => !document.getElementById('helpModalOverlay')?.classList.contains('active'));
-      const activeAfterStation = await p.locator('.view-section.active').getAttribute('id');
-      assert(activeAfterStation === 'tracker', 'S7.3 Clicking Study Compass station jumps directly to Tracker workspace');
+      const activeAfterJump = await p.locator('.view-section.active').getAttribute('id');
+      assert(activeAfterJump === 'tracker', 'S7.3 Clicking Open Tracker action closes Help and jumps directly to Tracker workspace');
 
-      // Reopen Help -> launch Spotlight Tour -> step -> Escape dismisses tour
-      await p.click('.sidebar-tool-btn[onclick="openHelpModal()"]');
-      await p.waitForSelector('#helpModalOverlay.active', { timeout: 3000 });
-      await p.click('#helpStartSpotlightTourBtn');
+      // Launch Spotlight Tour -> step -> Escape dismisses tour
+      await p.evaluate(() => { startInteractiveSpotlightTour(); });
       await p.waitForSelector('#spotlightTourFloatingCard.active', { timeout: 4000 });
       const step1Body = await p.locator('#spotlightTourFloatingCard').innerText();
       await p.click('#spotlightNextBtn');

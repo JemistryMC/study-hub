@@ -212,21 +212,20 @@ test('WP 6.5: deriveSchedulePdfExportSummary builds Printable Paper vs Digital D
   assert.match(darkAr.configSummaryText, /300 DPI/);
 });
 
-test('WP 6.5: deriveAcademyGuideMetrics & exoResolveSpotlightTourSteps preserve 6-pane guide, 5-station loop, and valid DOM selectors', () => {
-  const deriveAcademyGuideMetrics = extractTopLevelHelper('deriveAcademyGuideMetrics');
+test('WP 6.5: buildExoHelpCenterModel, resolveExoHelpTarget & exoResolveSpotlightTourSteps preserve bilingual Help Center and valid Spotlight selectors', () => {
+  const buildExoHelpCenterModel = extractTopLevelHelper('buildExoHelpCenterModel');
+  const resolveExoHelpTarget = extractTopLevelHelper('resolveExoHelpTarget');
   const exoResolveSpotlightTourSteps = extractTopLevelHelper('exoResolveSpotlightTourSteps');
 
-  const m = deriveAcademyGuideMetrics(4, 6, true);
-  assert.equal(m.activeModule, 4);
-  assert.equal(m.progressPct, 67);
-  assert.equal(m.panes.length, 6);
-  assert.equal(m.closedLoopStations.length, 5);
-  assert.equal(m.closedLoopStations[0].label, 'Weekly Goals');
-  assert.equal(m.closedLoopStations[4].label, 'Evaluate & Rollover');
-
-  const mAr = deriveAcademyGuideMetrics(99, 6, false);
-  assert.equal(mAr.activeModule, 6);
-  assert.equal(mAr.closedLoopStations[0].label, 'الأهداف الأسبوعية');
+  const enModel = buildExoHelpCenterModel(true);
+  const arModel = buildExoHelpCenterModel(false);
+  assert.equal(enModel.startHere.steps.length, 3);
+  assert.equal(enModel.guide.groups.length, 5);
+  assert.equal(enModel.sync.items.length, 4);
+  assert.equal(enModel.faq.items.length, 6);
+  assert.equal(arModel.startHere.steps.length, 3);
+  assert.deepEqual(resolveExoHelpTarget(4), { sectionId: 'helpSectionGuide', itemId: 'topic_planner' });
+  assert.deepEqual(resolveExoHelpTarget('sync'), { sectionId: 'helpSectionSync', itemId: 'sync_how' });
 
   const enSteps = exoResolveSpotlightTourSteps(true);
   const arSteps = exoResolveSpotlightTourSteps(false);
@@ -245,9 +244,10 @@ test('WP 6.5: production UI callers wire all Pass 2 helpers and declare spotligh
   assert.ok(indexHtml.includes('deriveBackupComparisonSummary('), 'showBackupImportPreflightModal must invoke deriveBackupComparisonSummary');
   assert.ok(indexHtml.includes('deriveSchedulePdfExportSummary('), 'updateSchedulePdfSummaryBar must invoke deriveSchedulePdfExportSummary');
   assert.ok(indexHtml.includes('deriveDrivePrivacyAndMediaSummary('), 'updateGoogleDriveUI must invoke deriveDrivePrivacyAndMediaSummary');
-  assert.ok(indexHtml.includes('deriveAcademyGuideMetrics('), 'switchAcademyModule and updateWp65StaticLabels must invoke deriveAcademyGuideMetrics');
+  assert.ok(indexHtml.includes('renderExoHelpCenter('), 'openHelpModal and updateWp65StaticLabels must invoke renderExoHelpCenter');
   assert.ok(indexHtml.includes('let spotlightTourIdx = 0;'), 'spotlightTourIdx must be explicitly declared');
   assert.ok(!indexHtml.includes('SPOTLIGHT_TOUR_STEPS'), 'Legacy undefined SPOTLIGHT_TOUR_STEPS reference must not remain');
   assert.ok(indexHtml.includes('function updateWp65StaticLabels('), 'updateWp65StaticLabels must exist');
 });
+
 

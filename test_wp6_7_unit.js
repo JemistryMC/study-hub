@@ -128,7 +128,7 @@ test('WP 6.7: VIP modal and Help Center comply truthfully with GEMINI.md Section
 
 test('WP 6.7: updateWp67BilingualStaticUI handles Auth, Drive, VIP, Help, Planner & Tracker cleanly', () => {
   assert.ok(indexHtml.includes('function updateWp67BilingualStaticUI(targetLang)'), 'updateWp67BilingualStaticUI must exist');
-  assert.ok(indexHtml.includes('function renderAcademyLocalizedBodies(isEn)'), 'renderAcademyLocalizedBodies must exist');
+  assert.ok(indexHtml.includes('function renderExoHelpCenter('), 'renderExoHelpCenter must exist');
   const applyLangMatch = indexHtml.match(/function applyExoLanguage\([\s\S]*?\n        \}/);
   assert.ok(applyLangMatch && applyLangMatch[0].includes('updateWp65StaticLabels(targetLang)'), 'applyExoLanguage must invoke static label updaters');
   const wp65Match = indexHtml.match(/function updateWp65StaticLabels\(targetLang\)\s*\{[\s\S]*?\n        \}/);
@@ -206,9 +206,12 @@ test('WP 6.7 Steps E-F: TASK_TYPE_ARCHITECTURE hintEn, Goal Linker escaping, Hel
   const linkerFn = indexHtml.match(/function renderGoalTaskLinkerModalContent\(\)\s*\{[\s\S]*?\n        \}/)?.[0] || '';
   assert.ok(linkerFn.includes('escapeHtml(subName)') && linkerFn.includes('escapeHtml(goal.title'), 'renderGoalTaskLinkerModalContent must escape subName and goal.title');
 
-  assert.ok(indexHtml.includes('id="helpSearchInput"'), 'Help Center must contain #helpSearchInput');
-  assert.ok(indexHtml.includes('id="helpSearchEmptyState"'), 'Help Center must contain #helpSearchEmptyState');
-  assert.ok(indexHtml.includes('function filterHelpCenterContent('), 'filterHelpCenterContent helper must exist');
+  assert.ok(indexHtml.includes('id="helpCenterContent"'), 'Rebuilt Help Center must contain #helpCenterContent');
+  assert.ok(indexHtml.includes('id="helpFooterCloseBtn"'), 'Rebuilt Help Center must contain #helpFooterCloseBtn');
+  assert.ok(indexHtml.includes('id="helpSupportLink"'), 'Rebuilt Help Center must contain #helpSupportLink');
+  assert.ok(indexHtml.includes('function buildExoHelpCenterModel('), 'buildExoHelpCenterModel helper must exist');
+  assert.ok(!indexHtml.includes('id="helpSearchInput"'), 'Legacy Help search clutter must be removed');
+  assert.ok(!indexHtml.includes('id="acadPane_1"'), 'Legacy 6-tab Academy panes must be removed');
   assert.ok(!indexHtml.includes('helpFullscreenBtn'), 'Help modal must not include a fullscreen button');
 });
 

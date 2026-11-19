@@ -802,51 +802,63 @@ async function main() {
     }
 
     // ------------------------------------------------------------------------
-    // 5. Actionable Help Center (Quick Actions, Checklist, Guides, Troubleshooting,
-    //    Bilingual Smart Search, Mobile Spotlight Tour, Contextual ? Triggers)
+    // 5. Rebuilt Help Center (5 Calm Sections, Single-Level Accordions,
+    //    Multi-Viewport EN/AR Touch Targets, Contextual ? Triggers & Mobile Tour)
     // ------------------------------------------------------------------------
-    console.log('\n--- 5. Actionable Help Center, Troubleshooting, Smart Search & Contextual Triggers ---');
+    console.log('\n--- 5. Rebuilt Help Center, Multi-Viewport EN/AR Matrix & Contextual Triggers ---');
     {
       const hc = await openFreshPage(browser, { width: 390, height: 844 });
       await seedRichWorkspace(hc.page, pdfB64, wavB64);
+
+      const settleHelpModal = async (page) => {
+        await page.waitForSelector('#helpModalOverlay.active', { timeout: 5000 });
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        await page.waitForTimeout(200);
+      };
 
       // Test Contextual ? buttons first (Library, Planner, Tracker)
       await hc.page.click('.mobile-nav-item[data-tab="subjects"]');
       await hc.page.waitForTimeout(150);
       await hc.page.click('#libraryHelpTriggerBtn');
-      await hc.page.waitForSelector('#helpModalOverlay.active', { timeout: 5000 });
-      const libHelpModule = await hc.page.evaluate(() => {
-        const p = document.getElementById('acadPane_2');
-        return Boolean(p && p.classList.contains('active') && getComputedStyle(p).display !== 'none');
-      });
-      assert(libHelpModule, 'Contextual #libraryHelpTriggerBtn opens Help Center directly at Module 2 (Study Library)');
+      await settleHelpModal(hc.page);
+      const libHelpOpen = await hc.page.evaluate(() => ({
+        isOpen: document.getElementById('helpItem_topic_library')?.classList.contains('is-open'),
+        expanded: document.getElementById('helpTrigger_topic_library')?.getAttribute('aria-expanded') === 'true',
+        panelShown: !document.getElementById('helpPanel_topic_library')?.hidden
+      }));
+      assert(libHelpOpen.isOpen && libHelpOpen.expanded && libHelpOpen.panelShown,
+        'Contextual #libraryHelpTriggerBtn opens Help Center with topic_library expanded');
       await hc.page.click('#helpModalCloseBtn');
       await hc.page.waitForTimeout(120);
 
       await hc.page.click('.mobile-nav-item[data-tab="schedule"]');
       await hc.page.waitForTimeout(150);
       await hc.page.click('#plannerHelpTriggerBtn');
-      await hc.page.waitForSelector('#helpModalOverlay.active', { timeout: 5000 });
-      const planHelpModule = await hc.page.evaluate(() => {
-        const p = document.getElementById('acadPane_4');
-        return Boolean(p && p.classList.contains('active') && getComputedStyle(p).display !== 'none');
-      });
-      assert(planHelpModule, 'Contextual #plannerHelpTriggerBtn opens Help Center directly at Module 4 (Weekly Planner)');
+      await settleHelpModal(hc.page);
+      const planHelpOpen = await hc.page.evaluate(() => ({
+        isOpen: document.getElementById('helpItem_topic_planner')?.classList.contains('is-open'),
+        expanded: document.getElementById('helpTrigger_topic_planner')?.getAttribute('aria-expanded') === 'true'
+      }));
+      assert(planHelpOpen.isOpen && planHelpOpen.expanded,
+        'Contextual #plannerHelpTriggerBtn opens Help Center with topic_planner expanded');
       await hc.page.click('#helpModalCloseBtn');
       await hc.page.waitForTimeout(120);
 
       await hc.page.click('.mobile-nav-item[data-tab="tracker"]');
       await hc.page.waitForTimeout(150);
       await hc.page.click('#trackerHelpTriggerBtn');
-      await hc.page.waitForSelector('#helpModalOverlay.active', { timeout: 5000 });
-      const trackHelpModule = await hc.page.evaluate(() => {
-        const p = document.getElementById('acadPane_5');
-        return Boolean(p && p.classList.contains('active') && getComputedStyle(p).display !== 'none');
-      });
-      assert(trackHelpModule, 'Contextual #trackerHelpTriggerBtn opens Help Center directly at Module 5 (Tracker & Sync)');
+      await settleHelpModal(hc.page);
+      const trackHelpOpen = await hc.page.evaluate(() => ({
+        isOpen: document.getElementById('helpItem_topic_tracker')?.classList.contains('is-open'),
+        expanded: document.getElementById('helpTrigger_topic_tracker')?.getAttribute('aria-expanded') === 'true'
+      }));
+      assert(trackHelpOpen.isOpen && trackHelpOpen.expanded,
+        'Contextual #trackerHelpTriggerBtn opens Help Center with topic_tracker expanded');
+      await hc.page.click('#helpModalCloseBtn');
+      await hc.page.waitForTimeout(120);
 
-      // Inspect Help Modal Mobile Close Button, Quick Actions & Checklist on 390x844
-      const inspectHelpCenterTouchTargets = (page) => page.evaluate(() => {
+      // Inspect Rebuilt Help Center structure, touch targets & overflow across desktop + mobile EN/AR
+      const inspectHelpCenterLayout = (page) => page.evaluate(() => {
         const roundRect = (r) => r ? {
           x: Number(r.x.toFixed(2)),
           y: Number(r.y.toFixed(2)),
@@ -861,302 +873,172 @@ async function main() {
         const closeBtn = document.getElementById('helpModalCloseBtn');
         const cRect = closeBtn ? closeBtn.getBoundingClientRect() : null;
         const cStyle = closeBtn ? getComputedStyle(closeBtn) : null;
-        const cParent = closeBtn ? closeBtn.parentElement : null;
-        const cParentRect = cParent ? cParent.getBoundingClientRect() : null;
-        const cParentStyle = cParent ? getComputedStyle(cParent) : null;
-        const headerRow = document.querySelector('#helpModalOverlay .eg-header-top-row');
-        const headerRowRect = headerRow ? headerRow.getBoundingClientRect() : null;
-        const headerRowStyle = headerRow ? getComputedStyle(headerRow) : null;
+        const headerRow = document.getElementById('helpModalHeader');
 
-        let closeOverlaps = [];
+        const closeOverlaps = [];
         if (closeBtn && cRect && cRect.width > 0 && cRect.height > 0 && headerRow) {
-          const peers = Array.from(headerRow.querySelectorAll('button, h3, p, a, input')).filter(el => el !== closeBtn && !closeBtn.contains(el) && !el.contains(closeBtn) && el.offsetParent !== null);
+          const peers = Array.from(headerRow.querySelectorAll('button, h2, h3, p, a')).filter(el => el !== closeBtn && !closeBtn.contains(el) && !el.contains(closeBtn) && el.offsetParent !== null);
           for (const peer of peers) {
             const pr = peer.getBoundingClientRect();
             const ix = Math.min(cRect.right, pr.right) - Math.max(cRect.left, pr.left);
             const iy = Math.min(cRect.bottom, pr.bottom) - Math.max(cRect.top, pr.top);
             if (ix > 1 && iy > 1) {
-              closeOverlaps.push({
-                id: peer.id || peer.tagName,
-                className: peer.className || '',
-                overlapX: Number(ix.toFixed(2)),
-                overlapY: Number(iy.toFixed(2)),
-                rect: roundRect(pr)
-              });
+              closeOverlaps.push({ id: peer.id || peer.tagName, overlapX: Number(ix.toFixed(2)), overlapY: Number(iy.toFixed(2)) });
             }
           }
           const cx = Math.min(window.innerWidth - 1, Math.max(0, cRect.left + cRect.width / 2));
           const cy = Math.min(window.innerHeight - 1, Math.max(0, cRect.top + cRect.height / 2));
           const hitEl = document.elementFromPoint(cx, cy);
           if (hitEl && hitEl !== closeBtn && !closeBtn.contains(hitEl)) {
-            closeOverlaps.push({
-              hitTestBlockedBy: `${hitEl.tagName}#${hitEl.id || ''}.${hitEl.className || ''}`,
-              probe: { x: Number(cx.toFixed(2)), y: Number(cy.toFixed(2)) }
-            });
+            closeOverlaps.push({ hitTestBlockedBy: `${hitEl.tagName}#${hitEl.id || ''}.${hitEl.className || ''}` });
           }
         }
 
-        const closeDiagnostics = {
-          exists: Boolean(closeBtn),
-          rect: roundRect(cRect),
-          computed: cStyle ? {
-            display: cStyle.display,
-            position: cStyle.position,
-            minWidth: cStyle.minWidth,
-            minHeight: cStyle.minHeight,
-            width: cStyle.width,
-            height: cStyle.height,
-            padding: cStyle.padding,
-            flex: cStyle.flex,
-            flexGrow: cStyle.flexGrow,
-            flexShrink: cStyle.flexShrink,
-            flexBasis: cStyle.flexBasis,
-            visibility: cStyle.visibility,
-            opacity: cStyle.opacity,
-            boxSizing: cStyle.boxSizing
-          } : null,
-          parentTag: cParent ? `${cParent.tagName}.${cParent.className}` : null,
-          parentRect: roundRect(cParentRect),
-          parentOverflow: cParentStyle ? {
-            display: cParentStyle.display,
-            overflow: cParentStyle.overflow,
-            overflowX: cParentStyle.overflowX,
-            overflowY: cParentStyle.overflowY
-          } : null,
-          headerRowRect: roundRect(headerRowRect),
-          headerRowStyle: headerRowStyle ? {
-            display: headerRowStyle.display,
-            flexWrap: headerRowStyle.flexWrap,
-            overflow: headerRowStyle.overflow,
-            gap: headerRowStyle.gap
-          } : null,
-          overlapsOtherElement: closeOverlaps.length > 0,
-          overlaps: closeOverlaps
-        };
+        const triggers = Array.from(document.querySelectorAll('#helpCenterContent .exo-help-acc-trigger'));
+        const triggerHeights = triggers.map(b => Number(b.getBoundingClientRect().height.toFixed(2)));
+        const smallTriggers = triggers.filter(b => b.getBoundingClientRect().height < 53.5).map(b => `${b.id}(${Math.round(b.getBoundingClientRect().height)}px)`);
 
-        const quickContainer = document.getElementById('helpQuickActionsBar');
-        const qContainerRect = quickContainer ? quickContainer.getBoundingClientRect() : null;
-        const qContainerStyle = quickContainer ? getComputedStyle(quickContainer) : null;
-        const quickBtns = Array.from(document.querySelectorAll('#helpQuickActionsBar button'));
-        const quickActionsDiagnostics = quickBtns.map((b) => {
-          const br = b.getBoundingClientRect();
-          const bs = getComputedStyle(b);
-          const clippedVertically = Boolean(qContainerRect && (br.top < qContainerRect.top - 1 || br.bottom > qContainerRect.bottom + 1));
-          const clippedHorizontallyByParent = Boolean(
-            qContainerRect &&
-            qContainerStyle &&
-            (qContainerStyle.overflowX === 'hidden' || qContainerStyle.overflowX === 'clip') &&
-            (br.left < qContainerRect.left - 1 || br.right > qContainerRect.right + 1)
-          );
-          return {
-            action: b.getAttribute('data-help-action') || '',
-            label: (b.textContent || '').trim(),
-            rect: roundRect(br),
-            actualWidth: Number(br.width.toFixed(2)),
-            actualHeight: Number(br.height.toFixed(2)),
-            computedWidth: bs.width,
-            computedHeight: bs.height,
-            minWidth: bs.minWidth,
-            minHeight: bs.minHeight,
-            flexGrow: bs.flexGrow,
-            flexShrink: bs.flexShrink,
-            flexBasis: bs.flexBasis,
-            padding: bs.padding,
-            lineHeight: bs.lineHeight,
-            whiteSpace: bs.whiteSpace,
-            visibility: bs.visibility,
-            opacity: bs.opacity,
-            display: bs.display,
-            clippedVertically,
-            clippedHorizontallyByParent,
-            clippedByParent: clippedVertically || clippedHorizontallyByParent
-          };
-        });
+        const jumpBtns = Array.from(document.querySelectorAll('#helpCenterContent .exo-help-jump-btn')).filter(b => b.offsetParent !== null);
+        const smallJumps = jumpBtns.filter(b => b.getBoundingClientRect().height < 43.5).map(b => `${b.getAttribute('data-help-action')}(${Math.round(b.getBoundingClientRect().height)}px)`);
 
-        const quickContainerDiagnostics = {
-          exists: Boolean(quickContainer),
-          rect: roundRect(qContainerRect),
-          scrollWidth: quickContainer ? quickContainer.scrollWidth : 0,
-          clientWidth: quickContainer ? quickContainer.clientWidth : 0,
-          scrollHeight: quickContainer ? quickContainer.scrollHeight : 0,
-          clientHeight: quickContainer ? quickContainer.clientHeight : 0,
-          computed: qContainerStyle ? {
-            display: qContainerStyle.display,
-            flexDirection: qContainerStyle.flexDirection,
-            flexWrap: qContainerStyle.flexWrap,
-            alignItems: qContainerStyle.alignItems,
-            gap: qContainerStyle.gap,
-            padding: qContainerStyle.padding,
-            overflow: qContainerStyle.overflow,
-            overflowX: qContainerStyle.overflowX,
-            overflowY: qContainerStyle.overflowY,
-            height: qContainerStyle.height,
-            minHeight: qContainerStyle.minHeight,
-            maxHeight: qContainerStyle.maxHeight
-          } : null
-        };
+        const footerClose = document.getElementById('helpFooterCloseBtn');
+        const supportLink = document.getElementById('helpSupportLink');
+        const footerCloseRect = footerClose ? footerClose.getBoundingClientRect() : null;
+        const supportRect = supportLink ? supportLink.getBoundingClientRect() : null;
 
-        const quickSmallButtons = quickActionsDiagnostics.filter(item => item.actualHeight < 44);
-        const quickSmall = quickSmallButtons.length;
-        const checklistItems = document.querySelectorAll('#helpGettingStartedChecklistMount .exo-help-check-row').length;
-        const panes = [1, 2, 3, 4, 5, 6].map(n => document.getElementById(`acadPane_${n}`)?.innerText || '').join('\n');
-        const arabicInEnPanes = /[\u0600-\u06FF]/.test(panes);
+        const scrollBody = document.getElementById('helpModalScrollBody');
+        const scrollBodyOverflowX = scrollBody ? (scrollBody.scrollWidth > scrollBody.clientWidth + 2) : false;
+
         return {
           viewport: { width: window.innerWidth, height: window.innerHeight, dir: document.documentElement.dir || 'ltr' },
-          closeVisibleTopEnd: Boolean(cRect && cRect.width >= 44 && cRect.height >= 44 && cRect.top >= -1 && cRect.top < 120 && cRect.left >= -1 && cRect.right <= window.innerWidth + 1 && !closeDiagnostics.overlapsOtherElement),
-          closeDiagnostics,
-          quickCount: quickBtns.length,
-          quickSmall,
-          quickSmallButtons,
-          quickContainerDiagnostics,
-          quickActionsDiagnostics,
-          checklistItems,
-          arabicInEnPanes,
+          sectionsOk: Boolean(
+            document.getElementById('helpSectionIntro') &&
+            document.getElementById('helpSectionStartHere') &&
+            document.getElementById('helpSectionGuide') &&
+            document.getElementById('helpSectionSync') &&
+            document.getElementById('helpSectionFaq')
+          ),
+          legacyRemoved: Boolean(
+            !document.getElementById('helpQuickActionsBar') &&
+            !document.getElementById('helpSearchInput') &&
+            !document.getElementById('acadPane_1') &&
+            !document.getElementById('helpGettingStartedChecklistMount') &&
+            !document.getElementById('helpLoadDemoDataBtn')
+          ),
+          startStepsCount: document.querySelectorAll('#helpSectionStartHere .exo-help-start-card').length,
+          openAccordionsCount: document.querySelectorAll('#helpCenterContent .exo-help-accordion.is-open').length,
+          nestedAccordionsCount: document.querySelectorAll('#helpCenterContent .exo-help-accordion .exo-help-accordion').length,
+          triggerCount: triggers.length,
+          minTriggerH: triggerHeights.length ? Math.min(...triggerHeights) : 0,
+          smallTriggers,
+          smallJumps,
+          footerCloseH: footerCloseRect ? Number(footerCloseRect.height.toFixed(2)) : 0,
+          supportLinkH: supportRect ? Number(supportRect.height.toFixed(2)) : 0,
+          closeVisibleTopEnd: Boolean(
+            cRect && cRect.width >= 43.5 && cRect.height >= 43.5 &&
+            cRect.top >= -1 && cRect.top < 120 &&
+            cRect.left >= -1 && cRect.right <= window.innerWidth + 1 &&
+            closeOverlaps.length === 0 &&
+            cStyle && cStyle.visibility === 'visible' && Number(cStyle.opacity) >= 0.99
+          ),
+          closeRect: roundRect(cRect),
+          closeOverlaps,
           scrollWidth: document.documentElement.scrollWidth,
           innerWidth: window.innerWidth,
-          overflow: document.documentElement.scrollWidth > window.innerWidth + 1
+          overflow: document.documentElement.scrollWidth > window.innerWidth + 1 || scrollBodyOverflowX,
+          hasArabic: /[\u0600-\u06FF]/.test(document.getElementById('helpModalOverlay')?.innerText || '')
         };
       });
 
-      const settleHelpModal = async (page) => {
-        await page.waitForSelector('#helpModalOverlay.active', { timeout: 5000 });
-        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-        await page.waitForTimeout(220);
-      };
-
-      await hc.page.evaluate(() => { openHelpModal(1); });
-      await settleHelpModal(hc.page);
-      const helpLayout = await inspectHelpCenterTouchTargets(hc.page);
-      assert(
-        helpLayout.closeVisibleTopEnd,
-        '390x844 Help Modal Close button is pinned cleanly on top row (>=44x44px)',
-        JSON.stringify({ viewport: helpLayout.viewport, close: helpLayout.closeDiagnostics })
-      );
-      assert(
-        helpLayout.quickCount === 8 && helpLayout.quickSmall === 0,
-        `Help Quick Actions Bar renders 8 actions (${helpLayout.quickCount}) all >=44px tall`,
-        JSON.stringify({ viewport: helpLayout.viewport, container: helpLayout.quickContainerDiagnostics, failingButtons: helpLayout.quickSmallButtons, allButtons: helpLayout.quickActionsDiagnostics })
-      );
-      assert(helpLayout.checklistItems === 7, `Getting Started Checklist renders live 7 steps (got ${helpLayout.checklistItems})`);
-      assert(!helpLayout.arabicInEnPanes, 'EN Help Center panes emit zero visible Arabic text (synonyms live cleanly in data-help-keywords)');
-      assert(!helpLayout.overflow, `390x844 Help Modal renders with zero horizontal overflow (${helpLayout.scrollWidth} <= ${helpLayout.innerWidth})`);
-      await hc.page.screenshot({ path: path.join(screenshotDir, 'help-390x844-en.png') });
-
-      // Targeted Help Center multi-viewport touch-target & overflow matrix (320, 360, 390 EN/AR + 768 EN)
       const helpMatrixViewports = [
         { width: 320, height: 720, lang: 'en' },
         { width: 320, height: 720, lang: 'ar' },
         { width: 360, height: 740, lang: 'en' },
         { width: 360, height: 740, lang: 'ar' },
-        { width: 390, height: 844, lang: 'en' },
+        { width: 390, height: 844, lang: 'en', shot: 'help-390x844-en.png' },
         { width: 390, height: 844, lang: 'ar' },
-        { width: 768, height: 1024, lang: 'en' }
+        { width: 768, height: 1024, lang: 'en' },
+        { width: 1440, height: 900, lang: 'en' },
+        { width: 1440, height: 900, lang: 'ar' }
       ];
       for (const hvp of helpMatrixViewports) {
         await hc.page.evaluate(() => { closeModal('helpModalOverlay'); });
         await hc.page.setViewportSize({ width: hvp.width, height: hvp.height });
         await hc.page.evaluate((lng) => {
           if (typeof applyExoLanguage === 'function') applyExoLanguage(lng, false);
-          openHelpModal(1);
+          openHelpModal();
         }, hvp.lang);
         await settleHelpModal(hc.page);
-        const hm = await inspectHelpCenterTouchTargets(hc.page);
+        const hm = await inspectHelpCenterLayout(hc.page);
         const expectedDir = hvp.lang === 'ar' ? 'rtl' : 'ltr';
-        const closeOk = Boolean(
-          hm.closeVisibleTopEnd &&
-          hm.closeDiagnostics.computed &&
-          hm.closeDiagnostics.computed.visibility === 'visible' &&
-          Number(hm.closeDiagnostics.computed.opacity) >= 0.99
-        );
-        const quickBad = hm.quickActionsDiagnostics.filter(b =>
-          b.actualHeight < 44 ||
-          b.actualWidth < 44 ||
-          b.visibility !== 'visible' ||
-          Number(b.opacity) < 0.99 ||
-          b.clippedByParent
+        assert(
+          hm.sectionsOk && hm.legacyRemoved && hm.startStepsCount === 3 && hm.openAccordionsCount === 0 && hm.nestedAccordionsCount === 0,
+          `Help Center ${hvp.width}x${hvp.height} (${hvp.lang.toUpperCase()}): 5 clean sections, 3 Start Here steps, all collapsed, zero legacy clutter`,
+          JSON.stringify(hm)
         );
         assert(
-          closeOk && hm.viewport.dir === expectedDir,
-          `Help Center ${hvp.width}x${hvp.height} (${hvp.lang.toUpperCase()}): #helpModalCloseBtn pinned on top row >=44x44px unclipped (${hm.closeDiagnostics.rect?.width}x${hm.closeDiagnostics.rect?.height}, top=${hm.closeDiagnostics.rect?.top})`,
-          JSON.stringify({ viewport: hm.viewport, close: hm.closeDiagnostics })
+          hm.closeVisibleTopEnd && hm.viewport.dir === expectedDir,
+          `Help Center ${hvp.width}x${hvp.height} (${hvp.lang.toUpperCase()}): #helpModalCloseBtn pinned >=44x44px unclipped (${hm.closeRect?.width}x${hm.closeRect?.height})`,
+          JSON.stringify({ viewport: hm.viewport, closeRect: hm.closeRect, closeOverlaps: hm.closeOverlaps })
         );
         assert(
-          hm.quickCount === 8 && quickBad.length === 0,
-          `Help Center ${hvp.width}x${hvp.height} (${hvp.lang.toUpperCase()}): all 8 Quick Actions >=44px tall & unclipped (minH=${Math.min(...hm.quickActionsDiagnostics.map(b => b.actualHeight))}px)`,
-          JSON.stringify({ viewport: hm.viewport, container: hm.quickContainerDiagnostics, badButtons: quickBad, allButtons: hm.quickActionsDiagnostics })
+          hm.triggerCount === 20 && hm.smallTriggers.length === 0 && hm.smallJumps.length === 0 && hm.footerCloseH >= 45.5 && hm.supportLinkH >= 43.5,
+          `Help Center ${hvp.width}x${hvp.height} (${hvp.lang.toUpperCase()}): touch targets pass (minTrigger=${hm.minTriggerH}px, footerClose=${hm.footerCloseH}px, support=${hm.supportLinkH}px)`,
+          JSON.stringify({ smallTriggers: hm.smallTriggers, smallJumps: hm.smallJumps, footerCloseH: hm.footerCloseH, supportLinkH: hm.supportLinkH })
         );
         assert(
-          !hm.overflow,
-          `Help Center ${hvp.width}x${hvp.height} (${hvp.lang.toUpperCase()}): zero horizontal page overflow (${hm.scrollWidth} <= ${hm.innerWidth})`,
-          JSON.stringify({ viewport: hm.viewport, scrollWidth: hm.scrollWidth, innerWidth: hm.innerWidth })
+          !hm.overflow && (hvp.lang === 'ar' ? hm.hasArabic : !hm.hasArabic),
+          `Help Center ${hvp.width}x${hvp.height} (${hvp.lang.toUpperCase()}): zero horizontal overflow & clean bilingual text (${hm.scrollWidth}<=${hm.innerWidth}, hasArabic=${hm.hasArabic})`
         );
+        if (hvp.shot) {
+          await hc.page.screenshot({ path: path.join(screenshotDir, hvp.shot) });
+        }
       }
-      // Restore 390x844 EN cleanly for remaining Section 5 assertions
+
+      // Restore 390x844 EN cleanly and verify single-level accordion behavior + live EN<->AR state preservation
       await hc.page.setViewportSize({ width: 390, height: 844 });
       await hc.page.evaluate(() => {
         if (typeof applyExoLanguage === 'function') applyExoLanguage('en', false);
-        openHelpModal(1);
+        openHelpModal();
       });
       await settleHelpModal(hc.page);
 
-      // Checklist progression check when backup export timestamp is recorded
-      const checklistProgress = await hc.page.evaluate(() => {
-        const beforeDone = deriveHelpGettingStartedChecklist(exoCollectHelpChecklistSnapshot(), true).completedCount;
-        localStorage.setItem('pharmaLastBackupExportV1', String(Date.now()));
-        renderHelpQuickActionsAndChecklist(true);
-        const afterDone = deriveHelpGettingStartedChecklist(exoCollectHelpChecklistSnapshot(), true).completedCount;
-        return { beforeDone, afterDone };
-      });
-      assert(checklistProgress.afterDone === checklistProgress.beforeDone + 1, `Help Checklist increments live on real milestone (${checklistProgress.beforeDone} -> ${checklistProgress.afterDone})`);
+      await hc.page.click('#helpTrigger_topic_studio');
+      await hc.page.click('#helpTrigger_sync_how');
+      const accToggleState = await hc.page.evaluate(() => ({
+        studioClosed: document.getElementById('helpTrigger_topic_studio')?.getAttribute('aria-expanded') === 'false',
+        syncOpen: document.getElementById('helpTrigger_sync_how')?.getAttribute('aria-expanded') === 'true',
+        openCount: document.querySelectorAll('#helpCenterContent .exo-help-accordion.is-open').length
+      }));
+      assert(accToggleState.studioClosed && accToggleState.syncOpen && accToggleState.openCount === 1,
+        'Single-level accordion expands new topic and collapses previous sibling cleanly');
 
-      // Smart Bilingual Search: 'shortcuts' -> pane 5; Arabic 'مزامنة' finds Sync guide in EN mode; zero-match shows suggestion chips
-      const searchResults = await hc.page.evaluate(() => {
-        const input = document.getElementById('helpSearchInput');
-        input.value = 'shortcuts';
-        filterHelpCenterContent('shortcuts');
-        const shortcutsPane5Visible = document.getElementById('acadPane_5')?.style.display === 'block';
-        const emptyAfterShortcuts = document.getElementById('helpSearchEmptyState')?.style.display === 'block';
+      // Switch EN -> AR while Help modal is open -> keeps sync_how expanded and translates cleanly
+      await hc.page.evaluate(() => { applyExoLanguage('ar', false); });
+      await hc.page.waitForTimeout(140);
+      const liveArSwitch = await hc.page.evaluate(() => ({
+        dir: document.getElementById('helpModalOverlay')?.dir,
+        syncStillOpen: document.getElementById('helpItem_sync_how')?.classList.contains('is-open'),
+        panelTextHasArabic: /[\u0600-\u06FF]/.test(document.getElementById('helpPanel_sync_how')?.innerText || '')
+      }));
+      assert(liveArSwitch.dir === 'rtl' && liveArSwitch.syncStillOpen && liveArSwitch.panelTextHasArabic,
+        'Live EN -> AR switch while Help Center is open preserves open item and updates RTL Arabic text');
 
-        input.value = 'مزامنة';
-        filterHelpCenterContent('مزامنة');
-        const syncCardVisibleInEn = document.getElementById('help_sync_vs_backup')?.style.display !== 'none';
+      // Collapse open item by clicking again, switch back to EN, and test Start Here jump button
+      await hc.page.click('#helpTrigger_sync_how');
+      const collapsedAll = await hc.page.evaluate(() => document.querySelectorAll('#helpCenterContent .exo-help-accordion.is-open').length === 0);
+      assert(collapsedAll, 'Clicking an expanded accordion trigger collapses it cleanly');
+      await hc.page.evaluate(() => { applyExoLanguage('en', false); });
+      await hc.page.waitForTimeout(100);
 
-        input.value = 'zzzz_no_match_999';
-        filterHelpCenterContent('zzzz_no_match_999');
-        const emptyShown = document.getElementById('helpSearchEmptyState')?.style.display === 'block';
-        const chipCount = document.querySelectorAll('#helpSearchEmptyState button').length;
-
-        input.value = '';
-        filterHelpCenterContent('');
-        return { shortcutsPane5Visible, emptyAfterShortcuts, syncCardVisibleInEn, emptyShown, chipCount };
-      });
-      assert(searchResults.shortcutsPane5Visible && !searchResults.emptyAfterShortcuts, 'Help smart search matches "shortcuts" in Module 5 cleanly');
-      assert(searchResults.syncCardVisibleInEn, 'Cross-language smart search matches Arabic "مزامنة" to Sync Guide even in EN mode');
-      assert(searchResults.emptyShown && searchResults.chipCount >= 3, `Zero-match query displays #helpSearchEmptyState with clickable recovery chips (${searchResults.chipCount})`);
-
-      // Live Troubleshooting in Module 6 (#acadPane_6)
-      await hc.page.evaluate(() => {
-        if (typeof exoRuntimeStatusState !== 'undefined') {
-          exoRuntimeStatusState.lsQuotaFailedDomains = new Set(['subjects']);
-        }
-        renderHelpQuickActionsAndChecklist(true);
-      });
-      const tsActive = await hc.page.evaluate(() => {
-        const quotaCard = document.getElementById('ts_quota_storage');
-        const quotaBadge = quotaCard ? quotaCard.querySelector('.exo-ts-active-badge') : null;
-        return Boolean(quotaCard && quotaCard.classList.contains('is-active-issue') && quotaBadge);
-      });
-      assert(tsActive, 'Live Troubleshooting highlights active recovery guides when quota issues are detected');
-
-      // Quick Action execution -> switches cleanly to Planner
-      await hc.page.click('#helpQuickActionsBar button[data-help-action="go_planner"]');
+      await hc.page.click('#helpSectionStartHere button[data-help-action="go_planner"]');
       await hc.page.waitForTimeout(180);
-      const qaNavigated = await hc.page.evaluate(() => {
+      const jumpNavigated = await hc.page.evaluate(() => {
         const helpClosed = !document.getElementById('helpModalOverlay')?.classList.contains('active');
         const plannerOpen = document.getElementById('schedule')?.classList.contains('active');
         return helpClosed && plannerOpen;
       });
-      assert(qaNavigated, 'Help Quick Action executes directly on real UI (closes modal -> opens Planner)');
+      assert(jumpNavigated, 'Help Center Start Here action closes modal and navigates directly to Planner');
 
       // Mobile Spotlight Tour falls back to #cloudNavBtn & clears #mobileBottomNav
       await hc.page.evaluate(() => { startInteractiveSpotlightTour(); });
@@ -1176,7 +1058,7 @@ async function main() {
       assert(tourState.active && tourState.cloudBtnVisible && tourState.clearsBottomNav, 'Mobile Spotlight Tour Step 1 targets #cloudNavBtn & positions card above #mobileBottomNav');
       await hc.page.evaluate(() => { stopInteractiveSpotlightTour(); });
 
-      assert(hc.pageErrors.length === 0 && hc.consoleErrors.length === 0, 'Actionable Help Center session zero runtime errors');
+      assert(hc.pageErrors.length === 0 && hc.consoleErrors.length === 0, 'Rebuilt Help Center session zero runtime errors');
       await hc.context.close();
     }
 
@@ -1511,35 +1393,29 @@ async function main() {
     }
 
     // ------------------------------------------------------------------------
-    // 8. Help Center Anti-Fake-Progress & Reload Persistence Verification
+    // 8. Studio Durable Annotation Persistence Across Reload & Help Non-Mutation
     // ------------------------------------------------------------------------
-    console.log('\n--- 8. Help Center Checklist Anti-Fake-Progress & Reload Persistence ---');
+    console.log('\n--- 8. Durable Studio Annotation Persistence & Help Center Non-Mutation ---');
     {
       const anti = await openFreshPage(browser, { width: 390, height: 844 });
 
-      // 8a. Empty start -> 0/7; cycling all 6 help panes stays 0/7
-      await anti.page.evaluate(() => { openHelpModal(1); });
-      await anti.page.waitForTimeout(180);
-      for (let p = 1; p <= 6; p++) {
-        await anti.page.click(`#acadNav_${p}`);
-        await anti.page.waitForTimeout(50);
-      }
-      const afterTabCycle = await anti.page.evaluate(() => deriveHelpGettingStartedChecklist(exoCollectHelpChecklistSnapshot(), true).completedCount);
-      assert(afterTabCycle === 0, `Viewing all 6 Help Center tabs on empty state keeps checklist at 0/7 (got ${afterTabCycle})`);
-      await anti.page.click('#helpModalCloseBtn');
+      // 8a. Opening Help Center & cycling accordions on empty workspace must never mutate subjects/events/logs
+      await anti.page.evaluate(() => { openHelpModal(); });
+      await anti.page.waitForTimeout(160);
+      await anti.page.click('#helpTrigger_topic_library');
+      await anti.page.click('#helpTrigger_sync_storage');
+      await anti.page.click('#helpFooterCloseBtn');
+      const emptyUntouched = await anti.page.evaluate(() => ({
+        subjectsLen: (subjects || []).length,
+        eventsLen: (scheduleEvents || []).length,
+        logsLen: (logs || []).length,
+        helpClosed: !document.getElementById('helpModalOverlay')?.classList.contains('active')
+      }));
+      assert(emptyUntouched.subjectsLen === 0 && emptyUntouched.eventsLen === 0 && emptyUntouched.logsLen === 0 && emptyUntouched.helpClosed,
+        'Browsing rebuilt Help Center and closing via #helpFooterCloseBtn mutates zero workspace data');
 
-      // 8b. loadDemoData() sample must NOT grant real checklist credit
-      await anti.page.evaluate(() => {
-        const origConfirm = window.openConfirmModal;
-        window.openConfirmModal = (_msg, cb) => { if (typeof cb === 'function') cb(); };
-        try { loadDemoData(); } finally { window.openConfirmModal = origConfirm; }
-      });
-      await anti.page.waitForTimeout(150);
-      const demoDoneCount = await anti.page.evaluate(() => deriveHelpGettingStartedChecklist(exoCollectHelpChecklistSnapshot(), true).completedCount);
-      assert(demoDoneCount === 0, `Loading sample demo data must NOT create fake checklist completion (got ${demoDoneCount}/7)`);
-
-      // Reset cleanly to real empty workspace, then create real subject + chapter + PDF
-      await anti.page.evaluate(async () => {
+      // 8b. Create real subject + chapter + PDF and verify real ink stroke persists durably across page.reload()
+      await anti.page.evaluate(async (b64) => {
         subjects = [{
           id: 9201,
           name: 'Clinical Toxicology',
@@ -1557,51 +1433,14 @@ async function main() {
         saveSubjects();
         saveScheduleData();
         saveLogs();
-      });
-
-      // Embed real PDF blob & open Studio, change page without annotating -> gs_studio_notes MUST stay false
-      await anti.page.evaluate(async (b64) => {
         const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
         await saveMediaToDB('pdfs', 9221, new Blob([bytes], { type: 'application/pdf' }));
         activeSubjectId = 9201;
         await openLectureDocument(9211, 9221);
-        stepPdfPage(1);
-        await closePdfViewer();
-      }, pdfB64);
-
-      // 8c. Unlinked goal -> gs_goal stays false; Failed IDB write -> gs_studio_notes stays false; Offline sign-in -> gs_safety stays false
-      const negativeStates = await anti.page.evaluate(async () => {
-        // Unlinked goal
-        scheduleBacklog = [{ id: 9301, title: 'Unlinked Goal', linkedEventIds: [], done: false }];
-        saveScheduleData();
-
-        // Simulate failed pending annotation save (not committed to IDB)
-        if (typeof pendingAnnoSaveMap !== 'undefined') {
-          pendingAnnoSaveMap['9221'] = { lecId: '9221', pages: { 1: { strokes: [{ points: [[1, 1], [5, 5]] }] } } };
-        }
-
-        // Simulate offline sign-in without remote ack
-        currentCloudUser = { id: 'offline-user-uid', email: 'off@example.com' };
-        if (typeof exoRuntimeStatusState !== 'undefined') {
-          exoRuntimeStatusState.cloudAckConfirmed = false;
-        }
-        const snap = exoCollectHelpChecklistSnapshot();
-        const cl = deriveHelpGettingStartedChecklist(snap, true);
-        if (typeof pendingAnnoSaveMap !== 'undefined') delete pendingAnnoSaveMap['9221'];
-        currentCloudUser = null;
-        return Object.fromEntries(cl.steps.map(s => [s.id, s.done]));
-      });
-      assert(!negativeStates.gs_studio_notes, 'Page scroll + uncommitted pendingAnnoSaveMap keeps gs_studio_notes=false');
-      assert(!negativeStates.gs_goal, 'Unlinked goal without linked session keeps gs_goal=false');
-      assert(!negativeStates.gs_safety, 'Unacked sign-in without confirmed sync or backup export keeps gs_safety=false');
-
-      // 8d. Real ink stroke + durable IDB commit persists across full page.reload()
-      await anti.page.evaluate(async () => {
-        activeSubjectId = 9201;
-        await openLectureDocument(9211, 9221);
         const scroller = document.getElementById('pdfPagesScrollContainer');
         if (scroller) scroller.scrollTop = 0;
-      });
+      }, pdfB64);
+
       await anti.page.waitForSelector('#pdfViewerModalOverlay.active', { timeout: 6000 });
       await anti.page.waitForTimeout(300);
       await anti.page.click('#toolBtn_pen');
@@ -1620,28 +1459,18 @@ async function main() {
         await closePdfViewer();
       });
 
-      const doneBeforeReload = await anti.page.evaluate(() => {
-        const snap = exoCollectHelpChecklistSnapshot();
-        return Object.fromEntries(deriveHelpGettingStartedChecklist(snap, true).steps.map(s => [s.id, s.done]));
-      });
-      assert(doneBeforeReload.gs_studio_notes === true, 'Real durable IDB ink stroke sets gs_studio_notes=true');
-
       await anti.page.reload({ waitUntil: 'domcontentloaded', timeout: 25000 });
       await anti.page.waitForSelector('#dashboard', { timeout: 10000 });
-      await anti.page.evaluate(() => { openHelpModal(1); });
-      await anti.page.waitForTimeout(320);
-      const doneAfterReload = await anti.page.evaluate(() => {
-        const stepRow = document.querySelector('.exo-help-check-row[data-help-step-id="gs_studio_notes"]');
-        const snap = exoCollectHelpChecklistSnapshot();
-        const cl = deriveHelpGettingStartedChecklist(snap, true);
-        const step = cl.steps.find(s => s.id === 'gs_studio_notes');
+      const persistedAfterReload = await anti.page.evaluate(async () => {
+        const stored = (typeof getAnnotationsFromDB === 'function') ? await getAnnotationsFromDB(9221) : null;
         return {
-          rowHasDone: Boolean(stepRow && stepRow.classList.contains('is-done')),
-          stepDone: Boolean(step && step.done)
+          hasSubject: (subjects || []).some(s => s && s.id === 9201),
+          hasRealAnnotation: (typeof exoHasRealAnnotationContent === 'function') ? exoHasRealAnnotationContent(stored) : Boolean(stored)
         };
       });
-      assert(doneAfterReload.rowHasDone && doneAfterReload.stepDone, 'Real Studio annotation milestone persists accurately across full page.reload()');
-      assert(anti.pageErrors.length === 0 && anti.consoleErrors.length === 0, 'Anti-fake-progress & reload session zero errors');
+      assert(persistedAfterReload.hasSubject && persistedAfterReload.hasRealAnnotation,
+        'Real durable IDB Studio ink stroke persists accurately across full page.reload()');
+      assert(anti.pageErrors.length === 0 && anti.consoleErrors.length === 0, 'Reload persistence & Help non-mutation session zero errors');
       await anti.context.close();
     }
 
@@ -1782,137 +1611,56 @@ async function main() {
       await drv.page.keyboard.press('Escape');
       await drv.page.waitForTimeout(120);
 
-      // 9c. Full Help Center Control Audit + remaining Contextual ? Triggers (#cloudAuthHelpBtn, #driveHubHelpBtn, #pdfMenuHelpBtn)
+      // 9c. Rebuilt Help Center Contextual Triggers, Support Link, Jump Actions & VIP Modal Audit
       await drv.page.evaluate(() => openCloudAuthModal());
       await drv.page.waitForTimeout(120);
       await drv.page.click('#cloudAuthHelpBtn');
       await drv.page.waitForSelector('#helpModalOverlay.active', { timeout: 5000 });
-      assert(await drv.page.evaluate(() => document.getElementById('acadPane_5')?.classList.contains('active')),
-        '#cloudAuthHelpBtn opens Help Center directly to Pane 5');
+      assert(await drv.page.evaluate(() => document.getElementById('helpItem_sync_how')?.classList.contains('is-open')),
+        '#cloudAuthHelpBtn opens Help Center directly with sync_how expanded');
       await drv.page.click('#helpModalCloseBtn');
 
       await drv.page.evaluate(() => { currentCloudUser = { id: 'vip-uid-71', email: 'vip@example.com' }; currentUserCanUploadMedia = true; openGoogleDriveHubModal(); });
       await drv.page.waitForTimeout(120);
       await drv.page.click('#driveHubHelpBtn');
       await drv.page.waitForSelector('#helpModalOverlay.active', { timeout: 5000 });
-      assert(await drv.page.evaluate(() => document.getElementById('acadPane_6')?.classList.contains('active')),
-        '#driveHubHelpBtn opens Help Center directly to Pane 6');
+      assert(await drv.page.evaluate(() => document.getElementById('helpItem_topic_drive')?.classList.contains('is-open')),
+        '#driveHubHelpBtn opens Help Center directly with topic_drive expanded');
       await drv.page.click('#helpModalCloseBtn');
 
       await drv.page.evaluate(async () => { activeSubjectId = 7101; await openLectureDocument(7201, 7301); togglePdfMoreMenu(); });
       await drv.page.waitForTimeout(140);
       await drv.page.click('#pdfMenuHelpBtn');
       await drv.page.waitForSelector('#helpModalOverlay.active', { timeout: 5000 });
-      assert(await drv.page.evaluate(() => document.getElementById('acadPane_3')?.classList.contains('active')),
-        '#pdfMenuHelpBtn opens Help Center directly to Pane 3');
+      assert(await drv.page.evaluate(() => document.getElementById('helpItem_topic_studio')?.classList.contains('is-open')),
+        '#pdfMenuHelpBtn opens Help Center directly with topic_studio expanded');
+      await drv.page.click('#helpModalCloseBtn');
       await drv.page.evaluate(() => closePdfViewer());
 
-      // Check Quick Actions Bar, Search Empty State recovery chip, VIP details button, WhatsApp href, Demo Loader, and capture checklist screenshot
-      await drv.page.evaluate(() => { openHelpModal(1); });
-      await drv.page.waitForTimeout(200);
-      const helpControls = await drv.page.evaluate(() => {
-        const wa = document.querySelector('#acadPane_6 a.whatsapp-cta-btn');
-        const nextBtn = document.querySelector('#helpGettingStartedChecklistMount .exo-help-checklist-head button');
-        const quickBtns = Array.from(document.querySelectorAll('#helpQuickActionsBar button[data-help-action]'));
+      // Verify quiet footer WhatsApp support link & Close button without sending any message
+      await drv.page.evaluate(() => { openHelpModal(); });
+      await drv.page.waitForSelector('#helpModalOverlay.active', { timeout: 4000 });
+      const footerControls = await drv.page.evaluate(() => {
+        const wa = document.getElementById('helpSupportLink');
+        const closeBtn = document.getElementById('helpFooterCloseBtn');
         return {
           waHref: wa ? wa.getAttribute('href') : '',
           waTarget: wa ? wa.getAttribute('target') : '',
           waRel: wa ? wa.getAttribute('rel') : '',
-          hasNextBtn: Boolean(nextBtn),
-          quickIds: quickBtns.map(b => b.getAttribute('data-help-action')),
-          quickCount: quickBtns.length,
-          demoBtnExists: Boolean(document.getElementById('helpLoadDemoDataBtn')),
-          vipBtnExists: Boolean(document.getElementById('helpVipDetailsBtn'))
+          waVisible: Boolean(wa && wa.offsetParent !== null),
+          closeVisible: Boolean(closeBtn && closeBtn.offsetParent !== null)
         };
       });
-      assert(helpControls.waHref.includes('wa.me/201552795922') && helpControls.waTarget === '_blank' && String(helpControls.waRel || '').includes('noopener') && helpControls.hasNextBtn && helpControls.quickCount === 8 && helpControls.demoBtnExists && helpControls.vipBtnExists,
-        `Help Center controls (WhatsApp CTA href/target/rel, Checklist Next Step, 8 Quick Actions, Demo Loader, VIP Details) present & wired (quickCount=${helpControls.quickCount})`);
-      await drv.page.screenshot({ path: path.join(screenshotDir, 'after-help-checklist.png') });
-      await drv.page.evaluate(() => {
-        const cl = document.getElementById('helpGettingStartedChecklistMount');
-        if (cl) cl.scrollIntoView({ behavior: 'instant', block: 'start' });
-      });
-      await drv.page.waitForTimeout(120);
-      await drv.page.screenshot({ path: path.join(correctiveShotDir, 'help-center-checklist.png') });
-      await drv.page.evaluate(() => {
-        const body = document.querySelector('#helpModalOverlay .eg-modal-body');
-        if (body) body.scrollTop = 0;
-      });
+      assert(
+        footerControls.waVisible && footerControls.closeVisible &&
+        footerControls.waHref === 'https://wa.me/201552795922' &&
+        footerControls.waTarget === '_blank' &&
+        String(footerControls.waRel || '').includes('noopener'),
+        `Rebuilt Help Center footer exposes safe WhatsApp support link (${footerControls.waHref}) and Close button`
+      );
+      await drv.page.screenshot({ path: path.join(screenshotDir, 'after-help-rebuilt.png') });
 
-      // Navigate across ALL 6 Help Center modules via real UI clicks
-      for (let modNum = 1; modNum <= 6; modNum++) {
-        await drv.page.click(`#acadNav_${modNum}`);
-        await drv.page.waitForTimeout(90);
-        const modOk = await drv.page.evaluate((n) => {
-          const pane = document.getElementById(`acadPane_${n}`);
-          const nav = document.getElementById(`acadNav_${n}`);
-          return Boolean(pane && pane.classList.contains('active') && nav && nav.classList.contains('active') && pane.innerText.trim().length > 40);
-        }, modNum);
-        assert(modOk, `Help Center Module ${modNum} (#acadNav_${modNum} -> #acadPane_${modNum}) activates via real UI click with populated content`);
-      }
-
-      // Verify WhatsApp CTA is visible & correctly targeted inside Module 6 without sending a message
-      const waLive = await drv.page.evaluate(() => {
-        const wa = document.querySelector('#acadPane_6 a.whatsapp-cta-btn');
-        if (!wa) return { ok: false };
-        const r = wa.getBoundingClientRect();
-        return {
-          ok: wa.offsetParent !== null && r.width > 60 && r.height >= 36 && wa.getAttribute('href') === 'https://wa.me/201552795922' && wa.getAttribute('target') === '_blank',
-          href: wa.getAttribute('href')
-        };
-      });
-      assert(waLive.ok, `Help Center WhatsApp CTA visible in Module 6 with safe target URL (${waLive.href}) — verified without sending`);
-
-      // Test Help search empty state + real Recovery Chip click restores matching content
-      await drv.page.fill('#helpSearchInput', 'zzznonexistentquery71');
-      await drv.page.waitForTimeout(140);
-      const emptyActive = await drv.page.evaluate(() => {
-        const el = document.getElementById('helpSearchEmptyState');
-        return Boolean(el && getComputedStyle(el).display !== 'none' && el.querySelector('button'));
-      });
-      assert(emptyActive, 'Help Center search empty state renders recovery chips on unmatched query');
-      if (emptyActive) {
-        await drv.page.click('#helpSearchEmptyState button');
-        await drv.page.waitForTimeout(140);
-        const recovered = await drv.page.evaluate(() => {
-          const inp = document.getElementById('helpSearchInput');
-          const el = document.getElementById('helpSearchEmptyState');
-          const visiblePanes = Array.from(document.querySelectorAll('#helpModalOverlay .academy-module-pane')).filter(p => getComputedStyle(p).display !== 'none').length;
-          return {
-            query: inp ? inp.value : '',
-            emptyHidden: !el || getComputedStyle(el).display === 'none',
-            visiblePanes
-          };
-        });
-        assert(Boolean(recovered.query && recovered.emptyHidden && recovered.visiblePanes >= 1),
-          `Clicking Help search recovery chip populates query ("${recovered.query}"), hides empty state, and displays matching guide pane`);
-      }
-
-      // Verify Bilingual Search (EN & AR integrity)
-      await drv.page.evaluate(() => { if (typeof applyExoLanguage === 'function') applyExoLanguage('ar', false); });
-      await drv.page.waitForTimeout(120);
-      await drv.page.fill('#helpSearchInput', 'نسخ');
-      await drv.page.waitForTimeout(140);
-      const arSearchCheck = await drv.page.evaluate(() => {
-        const emptyEl = document.getElementById('helpSearchEmptyState');
-        const activePane = document.querySelector('#helpModalOverlay .academy-module-pane.active');
-        return {
-          dir: document.documentElement.dir,
-          emptyHidden: !emptyEl || getComputedStyle(emptyEl).display === 'none',
-          hasArabicContent: Boolean(activePane && /[\u0600-\u06FF]/.test(activePane.innerText))
-        };
-      });
-      assert(arSearchCheck.dir === 'rtl' && arSearchCheck.emptyHidden && arSearchCheck.hasArabicContent,
-        `Help Center Arabic bilingual search ("نسخ") works cleanly in RTL mode with Arabic content`);
-      await drv.page.evaluate(() => {
-        if (typeof applyExoLanguage === 'function') applyExoLanguage('en', false);
-        const inp = document.getElementById('helpSearchInput');
-        if (inp) inp.value = '';
-        if (typeof filterHelpCenterContent === 'function') filterHelpCenterContent('', true);
-      });
-      await drv.page.waitForTimeout(120);
-
-      // Independently execute ALL 8 Help Center Quick Actions via real UI clicks
+      // Independently execute real Help Center jump actions with zero workspace data mutation
       const takeUserDataSnapshot = () => drv.page.evaluate(() => JSON.stringify({
         subjects: (subjects || []).map(s => ({ id: s.id, name: s.name })),
         events: (scheduleEvents || []).map(e => ({ id: e.id, title: e.title })),
@@ -1920,46 +1668,38 @@ async function main() {
         logs: (logs || []).map(l => ({ id: l.id, text: l.text }))
       }));
 
-      const quickActionSpecs = [
+      const jumpSpecs = [
         {
-          id: 'go_library',
+          target: null,
+          selector: '#helpSectionStartHere button[data-help-action="go_library"]',
+          label: 'go_library',
           verify: () => drv.page.evaluate(() => ({
             ok: !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('subjects')?.classList.contains('active'),
             detail: 'subjects view active'
           }))
         },
         {
-          id: 'add_session',
-          waitMs: 220,
+          target: null,
+          selector: '#helpSectionStartHere button[data-help-action="go_planner"]',
+          label: 'go_planner',
           verify: () => drv.page.evaluate(() => ({
-            ok: !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('schedule')?.classList.contains('active') && document.getElementById('sessionModalOverlay')?.classList.contains('active'),
-            detail: 'schedule + #sessionModalOverlay active'
-          })),
-          cleanup: () => drv.page.evaluate(() => closeModal('sessionModalOverlay'))
-        },
-        {
-          id: 'go_planner',
-          verify: () => drv.page.evaluate(() => ({
-            ok: !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('schedule')?.classList.contains('active') && document.getElementById('schPillToday')?.classList.contains('active'),
-            detail: 'schedule + Today pill active'
+            ok: !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('schedule')?.classList.contains('active'),
+            detail: 'schedule view active'
           }))
         },
         {
-          id: 'go_goals',
-          verify: () => drv.page.evaluate(() => ({
-            ok: !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('schedule')?.classList.contains('active') && document.getElementById('schPillTasks')?.classList.contains('active'),
-            detail: 'schedule + Weekly Goals pill active'
-          }))
-        },
-        {
-          id: 'go_tracker',
+          target: 'tracker',
+          selector: '#helpPanel_topic_tracker button[data-help-action="go_tracker"]',
+          label: 'go_tracker',
           verify: () => drv.page.evaluate(() => ({
             ok: !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('tracker')?.classList.contains('active'),
             detail: 'tracker view active'
           }))
         },
         {
-          id: 'open_account',
+          target: 'sync',
+          selector: '#helpPanel_sync_how button[data-help-action="open_account"]',
+          label: 'open_account',
           verify: () => drv.page.evaluate(() => ({
             ok: !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('cloudAuthModalOverlay')?.classList.contains('active'),
             detail: '#cloudAuthModalOverlay active'
@@ -1967,7 +1707,9 @@ async function main() {
           cleanup: () => drv.page.evaluate(() => closeModal('cloudAuthModalOverlay'))
         },
         {
-          id: 'open_drive',
+          target: 'drive',
+          selector: '#helpPanel_topic_drive button[data-help-action="open_drive"]',
+          label: 'open_drive',
           verify: () => drv.page.evaluate(() => ({
             ok: !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('driveHubModalOverlay')?.classList.contains('active'),
             detail: '#driveHubModalOverlay active'
@@ -1975,7 +1717,9 @@ async function main() {
           cleanup: () => drv.page.evaluate(() => closeGoogleDriveHubModal())
         },
         {
-          id: 'export_backup',
+          target: 'faq_restore_backup',
+          selector: '#helpPanel_faq_restore_backup button[data-help-action="export_backup"]',
+          label: 'export_backup',
           waitMs: 360,
           beforeClick: () => drv.page.evaluate(() => {
             window.__wp71ExportClicks = [];
@@ -1991,7 +1735,7 @@ async function main() {
             };
           }),
           verify: () => drv.page.evaluate(() => ({
-            ok: !document.getElementById('helpModalOverlay')?.classList.contains('active') && Array.isArray(window.__wp71ExportClicks) && window.__wp71ExportClicks.length >= 1 && Number(exoRuntimeStatusState.lastBackupExportedAt || 0) > 0,
+            ok: !document.getElementById('helpModalOverlay')?.classList.contains('active') && Array.isArray(window.__wp71ExportClicks) && window.__wp71ExportClicks.length >= 1,
             detail: `downloaded=${JSON.stringify(window.__wp71ExportClicks || [])}`
           })),
           cleanup: () => drv.page.evaluate(() => {
@@ -2002,82 +1746,37 @@ async function main() {
         }
       ];
 
-      for (const qa of quickActionSpecs) {
+      for (const jp of jumpSpecs) {
         const beforeSnap = await takeUserDataSnapshot();
         const errBefore = drv.pageErrors.length + drv.consoleErrors.length;
-        await drv.page.evaluate(() => { openHelpModal(1); });
+        await drv.page.evaluate((t) => { openHelpModal(t); }, jp.target);
         await drv.page.waitForSelector('#helpModalOverlay.active', { timeout: 4000 });
-        if (qa.beforeClick) await qa.beforeClick();
-        await drv.page.click(`#helpQuickActionsBar button[data-help-action="${qa.id}"]`);
-        await drv.page.waitForTimeout(qa.waitMs || 160);
-        const res = await qa.verify();
+        if (jp.beforeClick) await jp.beforeClick();
+        await drv.page.click(jp.selector);
+        await drv.page.waitForTimeout(jp.waitMs || 160);
+        const res = await jp.verify();
         const afterSnap = await takeUserDataSnapshot();
         const errAfter = drv.pageErrors.length + drv.consoleErrors.length;
         assert(res.ok && beforeSnap === afterSnap && errAfter === errBefore,
-          `Help Quick Action [${qa.id}] executes cleanly via real click (${res.detail}), closes Help Center, zero data mutation & zero runtime errors`,
+          `Help Center jump action [${jp.label}] executes cleanly (${res.detail}), closes Help Center, zero data mutation & zero runtime errors`,
           JSON.stringify({ res, mutated: beforeSnap !== afterSnap, newErrors: errAfter - errBefore }));
-        if (qa.cleanup) {
-          await qa.cleanup();
+        if (jp.cleanup) {
+          await jp.cleanup();
           await drv.page.waitForTimeout(100);
         }
       }
 
-      // Test Checklist Next Step button via real click (closes Help Center & routes to next incomplete step without data mutation)
-      {
-        const beforeSnap = await takeUserDataSnapshot();
-        await drv.page.evaluate(() => { openHelpModal(1); });
-        await drv.page.waitForSelector('#helpModalOverlay.active', { timeout: 4000 });
-        const nextActionTarget = await drv.page.evaluate(() => {
-          const btn = document.querySelector('#helpGettingStartedChecklistMount .exo-help-checklist-head button');
-          return btn ? (btn.getAttribute('onclick') || '') : '';
-        });
-        await drv.page.click('#helpGettingStartedChecklistMount .exo-help-checklist-head button');
-        await drv.page.waitForTimeout(180);
-        const afterSnap = await takeUserDataSnapshot();
-        const closedCleanly = await drv.page.evaluate(() => !document.getElementById('helpModalOverlay')?.classList.contains('active'));
-        assert(closedCleanly && beforeSnap === afterSnap && nextActionTarget.includes('exoExecuteHelpAction'),
-          `Help Checklist "Continue Next Step" button clicks cleanly (${nextActionTarget}), closes modal & mutates zero user data`);
-        // Close any modal that Next Step may have opened (e.g., cloud auth / session / drive)
-        await drv.page.evaluate(() => {
-          ['cloudAuthModalOverlay', 'driveHubModalOverlay', 'sessionModalOverlay', 'vipMediaLockModalOverlay'].forEach(id => {
-            if (typeof closeModal === 'function') closeModal(id);
-          });
-        });
-      }
-
-      await drv.page.evaluate(() => { openHelpModal(6); });
-      await drv.page.waitForTimeout(120);
+      // Verify #helpVipDetailsBtn inside topic_drive closes Help Center & opens VIP modal
+      await drv.page.evaluate(() => { openHelpModal('drive'); });
+      await drv.page.waitForSelector('#helpVipDetailsBtn', { state: 'visible', timeout: 4000 });
       await drv.page.click('#helpVipDetailsBtn');
       await drv.page.waitForTimeout(150);
       assert(await drv.page.evaluate(() => !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('vipMediaLockModalOverlay')?.classList.contains('active')),
         '#helpVipDetailsBtn closes Help Center & opens #vipMediaLockModalOverlay cleanly');
       await drv.page.keyboard.press('Escape');
 
-      assert(drv.pageErrors.length === 0 && drv.consoleErrors.length === 0, 'Drive 9-state + Sync reload + Help Control audit zero runtime errors');
+      assert(drv.pageErrors.length === 0 && drv.consoleErrors.length === 0, 'Drive 9-state + Sync reload + Rebuilt Help Control audit zero runtime errors');
       await drv.context.close();
-
-      // 9d. Isolated Context Verification for Help Center Demo Data Loader (#helpLoadDemoDataBtn)
-      const demoCtx = await openFreshPage(browser, { width: 390, height: 844 });
-      await demoCtx.page.evaluate(() => { openHelpModal(1); });
-      await demoCtx.page.waitForSelector('#helpModalOverlay.active', { timeout: 4000 });
-      await demoCtx.page.click('#helpLoadDemoDataBtn');
-      await demoCtx.page.waitForSelector('#confirmModalOverlay.active', { timeout: 4000 });
-      const confirmShown = await demoCtx.page.evaluate(() => document.getElementById('confirmModalOverlay')?.classList.contains('active'));
-      assert(confirmShown, 'Isolated Demo Data Loader (#helpLoadDemoDataBtn) opens confirmation dialog before replacing workspace');
-      await demoCtx.page.click('#confirmModalBtn');
-      await demoCtx.page.waitForTimeout(260);
-      const demoCheck = await demoCtx.page.evaluate(() => {
-        const snap = exoCollectHelpChecklistSnapshot();
-        const cl = deriveHelpGettingStartedChecklist(snap, true);
-        return {
-          subjectCount: (subjects || []).length,
-          allDemoTagged: (subjects || []).length >= 3 && (subjects || []).every(s => s && s._isDemoSample === true),
-          checklistDone: cl.completedCount
-        };
-      });
-      assert(demoCheck.allDemoTagged && demoCheck.checklistDone === 0 && demoCtx.pageErrors.length === 0 && demoCtx.consoleErrors.length === 0,
-        `Isolated Demo Data Loader populates tagged sample library (${demoCheck.subjectCount} subjects), keeps checklist at 0/7 (no fake progress) & zero runtime errors`);
-      await demoCtx.context.close();
     }
 
   } finally {

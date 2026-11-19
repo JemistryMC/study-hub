@@ -595,44 +595,39 @@ async function main() {
     assert(!arRegexCheck.test(authEnLeaks), 'Login / Account modal & select dropdowns have zero Arabic text in EN mode');
     await page.click('#cloudAuthModalCloseBtn');
 
-    // Open Help Center and check panes 1..6 in EN
+    // Open Rebuilt Help Center and check every expandable item in EN for zero Arabic leaks
     await page.click('#sidebarHelpBtn');
     await page.waitForSelector('#helpModalOverlay.active', { timeout: 5000 });
-    let helpEnOk = true;
-    for (let mod = 1; mod <= 6; mod++) {
-      await page.click(`#acadNav_${mod}`);
-      await page.waitForTimeout(60);
-      const paneTxt = await page.evaluate((m) => document.getElementById(`acadPane_${m}`)?.innerText || '', mod);
-      if (arRegexCheck.test(paneTxt)) {
-        helpEnOk = false;
-        console.error(`    Arabic text leaked in #acadPane_${mod} EN mode:`, paneTxt.slice(0, 120));
+    const helpEnAudit = await page.evaluate(() => {
+      const arRe = /[\u0600-\u06FF]/;
+      const triggers = Array.from(document.querySelectorAll('#helpCenterContent .exo-help-acc-trigger'));
+      const leakedIds = [];
+      let allExpandedText = document.getElementById('helpModalOverlay')?.innerText || '';
+      if (arRe.test(allExpandedText)) leakedIds.push('modal_shell');
+      for (const btn of triggers) {
+        btn.click();
+        const card = btn.closest('.exo-help-accordion');
+        const id = card ? card.getAttribute('data-help-item') : 'unknown';
+        const txt = card ? card.innerText : '';
+        allExpandedText += '\n' + txt;
+        if (arRe.test(txt)) leakedIds.push(id);
       }
-    }
-    assert(helpEnOk, 'All 6 Help Center panes render cleanly in English with zero Arabic leaks');
-
-    const vipCopyCheck = await page.evaluate(() => {
-      const p6 = document.getElementById('acadPane_6')?.innerText || '';
-      return p6.toLowerCase().includes('free for everyone') && p6.toLowerCase().includes('annotated pdf export');
+      const lower = allExpandedText.toLowerCase();
+      return {
+        triggerCount: triggers.length,
+        leakedIds,
+        marksExportFree: lower.includes('annotated pdf export') && lower.includes('free'),
+        marksExtraNotesFree: lower.includes('extra note sheets') && lower.includes('free')
+      };
     });
-    assert(vipCopyCheck, 'Help Center Section 6 truthfully marks Annotated PDF Export & Extra Note Sheets as free');
+    assert(helpEnAudit.triggerCount === 20 && helpEnAudit.leakedIds.length === 0,
+      `All ${helpEnAudit.triggerCount} rebuilt Help Center items render cleanly in English with zero Arabic leaks (leaks=${helpEnAudit.leakedIds.join(',')})`);
+    assert(helpEnAudit.marksExportFree && helpEnAudit.marksExtraNotesFree,
+      'Rebuilt Help Center truthfully marks Annotated PDF Export & multiple Extra Note Sheets as free');
 
-    // Test Help Center search filtering & toast vs clock non-overlap
-    await page.fill('#helpSearchInput', 'shortcuts');
-    await page.waitForTimeout(80);
-    const helpSearchHit = await page.evaluate(() => ({
-      pane5Shown: document.getElementById('acadPane_5')?.style.display === 'block',
-      emptyHidden: document.getElementById('helpSearchEmptyState')?.style.display !== 'block'
-    }));
-    assert(helpSearchHit.pane5Shown && helpSearchHit.emptyHidden, 'Help Center search reveals matching Shortcuts pane cleanly');
-
-    await page.fill('#helpSearchInput', 'zzzz_no_match_999');
-    await page.waitForTimeout(80);
-    const helpSearchEmpty = await page.evaluate(() => document.getElementById('helpSearchEmptyState')?.style.display === 'block');
-    assert(helpSearchEmpty, 'Help Center search displays #helpSearchEmptyState on unmatched queries');
-
-    await page.fill('#helpSearchInput', '');
-    await page.waitForTimeout(80);
-
+    // Expand Google Drive & VIP topic and click #helpVipDetailsBtn -> opens VIP modal
+    await page.click('#helpTrigger_topic_drive');
+    await page.waitForSelector('#helpVipDetailsBtn', { state: 'visible', timeout: 3000 });
     await page.click('#helpVipDetailsBtn');
     await page.waitForSelector('#vipMediaLockModalOverlay.active', { timeout: 5000 });
     const vipModalEn = await page.evaluate(() => document.getElementById('vipMediaLockModalOverlay')?.innerText || '');

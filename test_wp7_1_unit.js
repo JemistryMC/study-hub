@@ -1,15 +1,12 @@
 // ============================================================================
-// Exo Personal Study Journal — Phase 7 / WP 7.1 Unit Tests
-// Tests pure WP 7.1 helpers extracted from index.html via node:test:
-//   1. exoNormalizeHelpSearchText (Arabic diacritic & letter normalization)
-//   2. exoExpandHelpSearchQuery (bilingual AR/EN synonym clusters)
-//   3. buildHelpQuickActionsList (8 quick action pills in EN/AR)
-//   4. buildActionableHelpCatalog (Sections A-G with EN zero-Arabic-leak check)
-//   5. deriveHelpGettingStartedChecklist (live 7-step progress tracking)
-//   6. deriveHelpTroubleshootingRecommendations (sorting, safety notes, no cache wipe)
-//   8. deriveGoogleDriveDiagnosticsModel (all 9 Drive states, dual badges, redaction)
-//   9. exoHasRealAnnotationContent (strict ink/text/extra-sheet truthiness)
-//  10. deriveAcademyGuideMetrics (6 aligned help modules + closed-loop stations)
+// Exo Personal Study Journal — Phase 7 / WP 7.1 & Rebuilt Help Center Unit Tests
+// Tests pure helpers extracted from index.html via node:test:
+//   1. buildExoHelpCenterModel (5 calm sections, EN/AR bilingual integrity, Free/VIP truth,
+//      local-save vs cloud-sync honesty, zero dangerous reset/clear-storage advice)
+//   2. resolveExoHelpTarget (neutral open vs contextual ? triggers)
+//   3. exoHasRealAnnotationContent (strict ink/text/extra-sheet truthiness)
+//   4. deriveGoogleDriveDiagnosticsModel (all 9 Drive states, dual badges, redaction)
+//   5. exoComputeMobileViewportBudget (15.5% sticky chrome cap & >=44px hitboxes)
 // ============================================================================
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -29,159 +26,129 @@ function extractFunctionSource(fnName) {
 }
 
 const helpersFactory = new Function(`
-  ${extractFunctionSource('exoNormalizeHelpSearchText')}
-  ${extractFunctionSource('exoExpandHelpSearchQuery')}
-  ${extractFunctionSource('buildHelpQuickActionsList')}
-  ${extractFunctionSource('buildActionableHelpCatalog')}
-  ${extractFunctionSource('deriveHelpGettingStartedChecklist')}
-  ${extractFunctionSource('deriveHelpTroubleshootingRecommendations')}
+  ${extractFunctionSource('buildExoHelpCenterModel')}
+  ${extractFunctionSource('resolveExoHelpTarget')}
   ${extractFunctionSource('exoComputeMobileViewportBudget')}
   ${extractFunctionSource('deriveGoogleDriveDiagnosticsModel')}
   ${extractFunctionSource('exoHasRealAnnotationContent')}
-  ${extractFunctionSource('deriveAcademyGuideMetrics')}
   return {
-    exoNormalizeHelpSearchText,
-    exoExpandHelpSearchQuery,
-    buildHelpQuickActionsList,
-    buildActionableHelpCatalog,
-    deriveHelpGettingStartedChecklist,
-    deriveHelpTroubleshootingRecommendations,
+    buildExoHelpCenterModel,
+    resolveExoHelpTarget,
     exoComputeMobileViewportBudget,
     deriveGoogleDriveDiagnosticsModel,
-    exoHasRealAnnotationContent,
-    deriveAcademyGuideMetrics
+    exoHasRealAnnotationContent
   };
 `);
 
 const h = helpersFactory();
 
-test('WP 7.1: exoNormalizeHelpSearchText normalizes Arabic Alef, Yeh, Teh Marbuta and diacritics', () => {
-  assert.equal(h.exoNormalizeHelpSearchText('المُزَامَنَةُ'), 'المزامنه');
-  assert.equal(h.exoNormalizeHelpSearchText('أهداف إضافية إلى'), 'اهداف اضافيه الي');
-  assert.equal(h.exoNormalizeHelpSearchText('  PDF & Audio  '), 'pdf & audio');
-});
+function collectAllModelText(model) {
+  const parts = [
+    model.header.title, model.header.subtitle, model.header.closeLabel, model.header.supportLabel,
+    model.intro.text,
+    model.startHere.title, model.startHere.subtitle,
+    ...model.startHere.steps.flatMap(s => [s.title, s.desc, s.actionLabel || '']),
+    model.guide.title, model.guide.subtitle,
+    ...model.guide.groups.flatMap(g => [
+      g.title,
+      ...g.items.flatMap(it => [it.title, it.summary || '', it.lead || '', ...(it.steps || []), it.outcome || '', it.note || '', it.safety || '', it.actionLabel || '', it.secondaryActionLabel || ''])
+    ]),
+    model.sync.title, model.sync.subtitle,
+    ...model.sync.items.flatMap(it => [it.title, it.summary || '', it.lead || '', ...(it.steps || []), it.outcome || '', it.note || '', it.safety || '', it.actionLabel || '']),
+    model.faq.title, model.faq.subtitle,
+    ...model.faq.items.flatMap(it => [it.title, it.summary || '', it.lead || '', ...(it.steps || []), it.outcome || '', it.note || '', it.safety || '', it.actionLabel || ''])
+  ];
+  return parts.join('\n');
+}
 
-test('WP 7.1: exoExpandHelpSearchQuery expands bilingual AR/EN synonyms and handles empty queries', () => {
-  const emptyRes = h.exoExpandHelpSearchQuery('   ');
-  assert.equal(emptyRes.normalized, '');
-  assert.deepEqual(emptyRes.tokens, []);
-
-  const syncEn = h.exoExpandHelpSearchQuery('sync');
-  assert.ok(syncEn.tokens.includes('cloud'));
-  assert.ok(syncEn.tokens.includes('supabase'));
-  assert.ok(syncEn.tokens.includes('مزامنه'));
-
-  const pdfAr = h.exoExpandHelpSearchQuery('تصدير الورقة');
-  assert.ok(pdfAr.tokens.includes('pdf'));
-  assert.ok(pdfAr.tokens.includes('export'));
-
-  const kbEn = h.exoExpandHelpSearchQuery('shortcuts');
-  assert.ok(kbEn.tokens.includes('keyboard'));
-  assert.ok(kbEn.tokens.includes('اختصارات'));
-});
-
-test('WP 7.1: buildHelpQuickActionsList returns 8 localized quick actions in EN & AR', () => {
-  const enList = h.buildHelpQuickActionsList(true);
-  const arList = h.buildHelpQuickActionsList(false);
-  assert.equal(enList.length, 8);
-  assert.equal(arList.length, 8);
+test('Help Center: buildExoHelpCenterModel defines the exact 5-section editorial structure in EN and AR', () => {
+  const en = h.buildExoHelpCenterModel(true);
+  const ar = h.buildExoHelpCenterModel(false);
   const arRegex = /[\u0600-\u06FF]/;
-  for (const item of enList) {
-    assert.ok(item.id && item.label && item.icon);
-    assert.ok(!arRegex.test(item.label), `EN quick action leaked Arabic: ${item.label}`);
-  }
-  for (const item of arList) {
-    assert.ok(arRegex.test(item.label), `AR quick action missing Arabic: ${item.label}`);
+
+  // 1. Intro & Start Here (3 numbered steps)
+  assert.ok(en.intro.text.length > 20 && en.intro.text.length < 360, 'EN intro should be 1-2 concise sentences');
+  assert.ok(ar.intro.text.length > 20 && ar.intro.text.length < 360, 'AR intro should be 1-2 concise sentences');
+  assert.equal(en.startHere.id, 'helpSectionStartHere');
+  assert.equal(en.startHere.steps.length, 3);
+  assert.equal(ar.startHere.steps.length, 3);
+  assert.deepEqual(en.startHere.steps.map(s => s.num), [1, 2, 3]);
+
+  // 2. App Sections Guide (5 logical groups, 10 topics)
+  assert.equal(en.guide.id, 'helpSectionGuide');
+  assert.equal(en.guide.groups.length, 5);
+  assert.equal(ar.guide.groups.length, 5);
+  const enTopics = en.guide.groups.flatMap(g => g.items);
+  const arTopics = ar.guide.groups.flatMap(g => g.items);
+  assert.equal(enTopics.length, 10);
+  assert.equal(arTopics.length, 10);
+  assert.deepEqual(enTopics.map(t => t.id), arTopics.map(t => t.id), 'EN and AR guide item IDs must stay 1:1 aligned');
+
+  // 3. Sync & Data Protection (4 clear items)
+  assert.equal(en.sync.id, 'helpSectionSync');
+  assert.equal(en.sync.items.length, 4);
+  assert.equal(ar.sync.items.length, 4);
+  assert.deepEqual(en.sync.items.map(t => t.id), ar.sync.items.map(t => t.id));
+
+  // 4. Common Questions & Troubleshooting (6 real items)
+  assert.equal(en.faq.id, 'helpSectionFaq');
+  assert.equal(en.faq.items.length, 6);
+  assert.equal(ar.faq.items.length, 6);
+  assert.deepEqual(en.faq.items.map(t => t.id), ar.faq.items.map(t => t.id));
+
+  // Strict bilingual purity: zero Arabic characters in EN model, full Arabic in AR model
+  const enBlob = collectAllModelText(en);
+  const arBlob = collectAllModelText(ar);
+  assert.ok(!arRegex.test(enBlob), 'EN Help Center model must contain zero Arabic characters');
+  assert.ok(arRegex.test(ar.header.title) && arRegex.test(ar.intro.text) && arRegex.test(ar.startHere.title), 'AR Help Center model must be natively localized in Arabic');
+  for (const item of [...arTopics, ...ar.sync.items, ...ar.faq.items]) {
+    assert.ok(arRegex.test(item.title), `AR item "${item.id}" title must be Arabic`);
   }
 });
 
-test('WP 7.1: buildActionableHelpCatalog covers Guides A-G cleanly with EN zero-Arabic visible text', () => {
-  const enCatalog = h.buildActionableHelpCatalog(true);
-  const arCatalog = h.buildActionableHelpCatalog(false);
-  assert.ok(enCatalog.length >= 8);
-  assert.equal(enCatalog.length, arCatalog.length);
+test('Help Center: upholds GEMINI.md §6 Free vs VIP policy and §13.4 truthful data-safety rules', () => {
+  const en = h.buildExoHelpCenterModel(true);
+  const ar = h.buildExoHelpCenterModel(false);
+  const enAllLower = collectAllModelText(en).toLowerCase();
+  const arAll = collectAllModelText(ar);
 
-  const codes = new Set(enCatalog.map(g => g.sectionCode));
-  for (const requiredCode of ['A', 'B', 'C', 'D', 'E', 'G']) {
-    assert.ok(codes.has(requiredCode), `Missing guide sectionCode ${requiredCode}`);
+  // Free vs VIP accuracy
+  const driveTopicEn = en.guide.groups.flatMap(g => g.items).find(it => it.id === 'topic_drive');
+  assert.ok(driveTopicEn, 'topic_drive must exist');
+  assert.equal(driveTopicEn.secondaryActionId, 'open_vip');
+  assert.equal(driveTopicEn.secondaryButtonId, 'helpVipDetailsBtn');
+  assert.ok(enAllLower.includes('annotated pdf export'), 'Must explicitly confirm Annotated PDF Export is free');
+  assert.ok(enAllLower.includes('extra note sheets') || enAllLower.includes('extra note sheet'), 'Must explicitly confirm multiple Extra Note Sheets are free');
+  assert.ok(enAllLower.includes('manual') && enAllLower.includes('vip'), 'Must explain VIP activation is manual');
+  assert.ok(!enAllLower.includes('annotated pdf export requires vip'), 'Must never claim Annotated PDF Export requires VIP');
+
+  // Local durable save vs confirmed cloud sync distinction + zero destructive reset/wipe advice
+  const syncBlobEn = en.sync.items.map(it => [it.title, it.summary, it.lead, ...(it.steps || []), it.safety || ''].join(' ')).join(' ').toLowerCase();
+  assert.ok(syncBlobEn.includes('device') || syncBlobEn.includes('locally'), 'Must distinguish local device save');
+  assert.ok(syncBlobEn.includes('cloud') && syncBlobEn.includes('confirm'), 'Must explain cloud sync requires server confirmation');
+  // Every mention of clearing browser storage must be an explicit warning against doing so
+  assert.ok(enAllLower.includes('never clear browser storage') && enAllLower.includes('do not clear browser storage'),
+    'Help Center must explicitly warn users NOT to clear browser storage');
+  assert.ok(!/(?<!never\s)(?<!do not\s)(?<!don't\s)clear browser (cache|storage)|delete indexeddb|wipe localstorage|reset the app/i.test(enAllLower),
+    'Help Center must never advise clearing browser storage, wiping IndexedDB/LocalStorage, or resetting the app');
+  for (const forbiddenAr of ['جرب مسح بيانات المتصفح', 'قم بمسح ذاكرة المتصفح', 'احذف IndexedDB', 'إعادة ضبط التطبيق بالكامل']) {
+    assert.ok(!arAll.includes(forbiddenAr), `Arabic Help Center must never advise "${forbiddenAr}"`);
   }
-
-  const arRegex = /[\u0600-\u06FF]/;
-  for (const g of enCatalog) {
-    assert.ok(g.paneNum >= 1 && g.paneNum <= 6);
-    assert.ok(g.whenToUse && Array.isArray(g.steps) && g.steps.length >= 2 && g.expectedOutcome && g.actionId && g.actionLabel);
-    const visibleEn = [g.title, g.whenToUse, ...g.steps, g.expectedOutcome, g.actionLabel].join(' ');
-    assert.ok(!arRegex.test(visibleEn), `EN catalog guide "${g.id}" leaked Arabic in visible strings`);
-    assert.ok(Array.isArray(g.keywords) && g.keywords.length > 0, `Guide "${g.id}" needs bilingual search keywords`);
-  }
-
-  const policyGuide = enCatalog.find(g => g.id === 'help_policy_developer');
-  assert.ok(policyGuide);
-  assert.ok(policyGuide.steps.join(' ').toLowerCase().includes('free for everyone'));
-  assert.ok(policyGuide.steps.join(' ').toLowerCase().includes('annotated pdf export'));
 });
 
-test('WP 7.1: deriveHelpGettingStartedChecklist computes 0/7 empty vs 7/7 verified milestones & blocks fake progress', () => {
-  const emptyChecklist = h.deriveHelpGettingStartedChecklist({}, true);
-  assert.equal(emptyChecklist.totalCount, 7);
-  assert.equal(emptyChecklist.completedCount, 0);
-  assert.equal(emptyChecklist.progressPct, 0);
-  assert.equal(emptyChecklist.nextIncompleteActionId, 'go_library');
-
-  // Negative anti-fake-progress checks: unlinked goals, offline unacked sign-in, 0 persisted annotations
-  const antiFake = h.deriveHelpGettingStartedChecklist({
-    subjectCount: 1,
-    chapterCount: 1,
-    resourceCount: 1,
-    hasStudioNotesOrBookmark: false,
-    persistedAnnotationCount: 0,
-    sessionCount: 1,
-    goalCount: 3,
-    linkedGoalCount: 0,
-    logCount: 1,
-    isSignedIn: true,
-    hasRemoteSync: false,
-    hasExportedBackup: false
-  }, true);
-  const stepMap = Object.fromEntries(antiFake.steps.map(s => [s.id, s]));
-  assert.equal(stepMap.gs_studio_notes.done, false, 'Page view alone without real persisted notes must keep gs_studio_notes incomplete');
-  assert.equal(stepMap.gs_goal.done, false, 'Unlinked weekly goal (linkedGoalCount=0) must keep gs_goal incomplete');
-  assert.equal(stepMap.gs_safety.done, false, 'Offline/unacked sign-in without backup export must keep gs_safety incomplete');
-  assert.equal(antiFake.completedCount, 4);
-
-  const partialChecklist = h.deriveHelpGettingStartedChecklist({
-    subjectCount: 2,
-    chapterCount: 3,
-    resourceCount: 1,
-    hasStudioNotesOrBookmark: true,
-    persistedAnnotationCount: 1,
-    sessionCount: 0,
-    goalCount: 0,
-    linkedGoalCount: 0,
-    logCount: 0,
-    isSignedIn: false,
-    hasRemoteSync: false
-  }, false);
-  assert.equal(partialChecklist.completedCount, 3);
-  assert.equal(partialChecklist.progressPct, 43);
-  assert.equal(partialChecklist.nextIncompleteActionId, 'add_session');
-
-  const fullChecklist = h.deriveHelpGettingStartedChecklist({
-    subjectCount: 3,
-    chapterCount: 4,
-    resourceCount: 4,
-    hasStudioNotesOrBookmark: true,
-    persistedAnnotationCount: 1,
-    sessionCount: 5,
-    goalCount: 2,
-    linkedGoalCount: 2,
-    logCount: 3,
-    isSignedIn: true,
-    hasRemoteSync: true
-  }, true);
-  assert.equal(fullChecklist.completedCount, 7);
-  assert.equal(fullChecklist.progressPct, 100);
-  assert.equal(fullChecklist.nextIncompleteActionId, 'go_dashboard');
+test('Help Center: resolveExoHelpTarget maps neutral and contextual ? triggers accurately', () => {
+  assert.deepEqual(h.resolveExoHelpTarget(null), { sectionId: 'helpSectionStartHere', itemId: null });
+  assert.deepEqual(h.resolveExoHelpTarget(''), { sectionId: 'helpSectionStartHere', itemId: null });
+  assert.deepEqual(h.resolveExoHelpTarget(1), { sectionId: 'helpSectionStartHere', itemId: null });
+  assert.deepEqual(h.resolveExoHelpTarget(2), { sectionId: 'helpSectionGuide', itemId: 'topic_library' });
+  assert.deepEqual(h.resolveExoHelpTarget(3), { sectionId: 'helpSectionGuide', itemId: 'topic_studio' });
+  assert.deepEqual(h.resolveExoHelpTarget(4), { sectionId: 'helpSectionGuide', itemId: 'topic_planner' });
+  assert.deepEqual(h.resolveExoHelpTarget(5), { sectionId: 'helpSectionGuide', itemId: 'topic_tracker' });
+  assert.deepEqual(h.resolveExoHelpTarget('sync'), { sectionId: 'helpSectionSync', itemId: 'sync_how' });
+  assert.deepEqual(h.resolveExoHelpTarget('drive'), { sectionId: 'helpSectionGuide', itemId: 'topic_drive' });
+  assert.deepEqual(h.resolveExoHelpTarget('backup'), { sectionId: 'helpSectionSync', itemId: 'sync_drive_vs_backup' });
+  assert.deepEqual(h.resolveExoHelpTarget('faq_pdf_preview'), { sectionId: 'helpSectionFaq', itemId: 'faq_pdf_preview' });
+  assert.deepEqual(h.resolveExoHelpTarget('unknown_token'), { sectionId: 'helpSectionStartHere', itemId: null });
 });
 
 test('WP 7.1: exoHasRealAnnotationContent distinguishes empty/placeholder maps from real persisted annotations', () => {
@@ -194,26 +161,6 @@ test('WP 7.1: exoHasRealAnnotationContent distinguishes empty/placeholder maps f
   assert.equal(h.exoHasRealAnnotationContent({ 3: { isExtraSheet: true, strokes: [] } }), true);
 });
 
-test('WP 7.1: deriveHelpTroubleshootingRecommendations prioritizes active conditions and upholds GEMINI.md safety rules', () => {
-  const recList = h.deriveHelpTroubleshootingRecommendations({
-    hasQuotaWarning: true,
-    hasPreviewFallbackPdf: true,
-    hasConflict: false,
-    hasPendingLocalChanges: false,
-    subjectCount: 1,
-    isSignedIn: true
-  }, true);
-  assert.equal(recList.length, 4);
-  assert.ok(recList[0].active === true && recList[1].active === true, 'Active diagnostics sort to top');
-  assert.ok(recList[2].active === false && recList[3].active === false, 'Inactive diagnostics follow after active ones');
-
-  for (const item of recList) {
-    assert.ok(item.dataSafetyNote && item.steps.length >= 2 && item.actionId);
-    const fullText = [item.title, item.symptom, item.dataSafetyNote, ...item.steps].join(' ').toLowerCase();
-    assert.ok(!fullText.includes('clear browser cache'), 'Must never advise wiping browser storage');
-    assert.ok(!fullText.includes('reset the app'), 'Must never advise resetting app');
-  }
-});
 
 test('WP 7.1: deriveGoogleDriveDiagnosticsModel covers all 9 states, separates connection/sync badges, and redacts secrets', () => {
   const arRegex = /[\u0600-\u06FF]/;
@@ -292,18 +239,6 @@ test('WP 7.1: deriveGoogleDriveDiagnosticsModel covers all 9 states, separates c
   assert.ok(!redactedModel.redactedDetail.includes('tok123'), 'access_token query secret must be redacted');
   assert.ok(!redactedModel.redactedDetail.includes('up99'), 'upload_id secret must be redacted');
   assert.ok(redactedModel.redactedDetail.includes('[REDACTED]'));
-});
-
-test('WP 7.1: deriveAcademyGuideMetrics aligns all 6 Help Center module titles cleanly', () => {
-  const en = h.deriveAcademyGuideMetrics(3, 6, true);
-  const ar = h.deriveAcademyGuideMetrics(3, 6, false);
-  assert.equal(en.panes.length, 6);
-  assert.equal(en.panes[0].title, 'Overview & Closed Loop');
-  assert.equal(en.panes[2].title, 'Chapter Workspace & Studio');
-  assert.equal(en.panes[5].title, 'Troubleshoot, VIP & Support');
-  assert.equal(ar.panes.length, 6);
-  assert.equal(en.closedLoopStations[0].label, 'Weekly Goals');
-  assert.equal(en.closedLoopStations[4].label, 'Evaluate & Rollover');
 });
 
 test('WP 7.1: exoComputeMobileViewportBudget enforces 15.5% sticky chrome budget and >=44px hitboxes', () => {
