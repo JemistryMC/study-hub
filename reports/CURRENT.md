@@ -2,21 +2,19 @@
 
 > ## أحدث حالة معتمدة من المالك — 2026-11-19
 >
-> **حالة المنتج:** APPROVED BY OWNER — المالك أكد اعتماد التطبيق بشكل عام وتجربة الاستخدام.
-> **مشكلة التجمّد:** RESOLVED — المالك أكد أنها حُلّت منذ وقت سابق؛ أي إشارات قديمة إلى أنها مفتوحة أدناه هي سجلات تاريخية وليست الحالة الحالية.
-> **Repository HEAD على `main`:** `a2ba2078c4e44bc34d976904b1f4c98dd5af3771` (دمج PR #3، توثيق فقط).
-> **آخر Source SHA اجتاز CI:** `cf47e5698a212c1e1ef64d837cf1987a807f337e`.
-> **مرشح النسخة المستقرة:** `1.4.2` على الفرع `release/v1.4.2`؛ تحديث package metadata فقط، وCI الكامل على المرشح قيد الانتظار.
-> **GitHub CI #79:** `44528632061` — SUCCESS على Source SHA؛ 1,177 assertion ناجحة وWP 7.1 Chromium E2E = 186/186.
-> **GitHub Pages #196:** `44528631312` — SUCCESS على Source SHA؛ وPages #197 `44534280479` — SUCCESS بعد دمج توثيق PR #3 على `main`.
-> **بوابات تم تأكيدها:** R0 (فحص Supabase البنيوي + الحفظ/Reload + اختبار OCC على PostgreSQL 16)، R1-a (Google OAuth/Drive ورفع/استرجاع ملف بحساب اختبار VIP)، R2 (المزامنة بين جلستين/جهازين)، R3 (Backup/Restore) — حسب تأكيد المالك.
-> **المتبقي:** R4 (Smoke test حي للمرشح المنشور وPWA)، R5-b/R5-c (نجاح CI، دمج المرشح، ثم Tag وGitHub Release).
-> **المرحلة الحالية:** Final Release Preparation — لا ميزات أو إعادة تصميم إضافية.
-> **قرار النشر:** NO-GO حتى إغلاق البنود المتبقية أعلاه.
-> **المرجع التنفيذي الحالي:** [FINAL_RELEASE_READINESS.md](FINAL_RELEASE_READINESS.md).
->
-> **ملاحظة أرشيفية:** الأقسام التفصيلية التالية تحتفظ بسجل Work Packages وحالاتها وقت إعدادها. أي عبارات قديمة مثل `OWNER ACCEPTANCE PENDING` أو `P0 FREEZE OPEN` أو HEAD `5d9464b4` تصف لقطة سابقة، وقد تم تجاوزها بالتحديث أعلاه. لا تُستخدم هذه اللقطات التاريخية لتحديد قرار الإصدار الحالي.
+> **حالة المنتج:** APPROVED BY OWNER — اعتماد عام للتطبيق وتجربة الاستخدام.
+> **مشكلة التجمّد:** RESOLVED وفق تأكيد المالك.
+> **Stable package version:** `1.4.2` في `package.json` و`package-lock.json`.
+> **Repository HEAD على `main`:** `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f` — دمج مرشح الإصدار v1.4.2 عبر PR #5.
+> **Release candidate CI #82:** [44544058217](https://github.com/JemistryMC/study-hub/actions/runs/44544058217) — SUCCESS.
+> **Main CI #83:** [44545562381](https://github.com/JemistryMC/study-hub/actions/runs/44545562381) — SUCCESS على نفس SHA؛ 1,177/1,177 assertions و0 failures، PostgreSQL 16 = 96/96، WP 7.1 Chromium E2E = 186/186.
+> **GitHub Pages #199:** [44545562352](https://github.com/JemistryMC/study-hub/actions/runs/44545562352) — SUCCESS على SHA النهائي نفسه.
+> **بوابات مؤكدة من قبل:** Supabase/OCC، Google OAuth/Drive ورفع/استرجاع ملف VIP، المزامنة بين جلستين/جهازين، Backup/Restore — حسب تأكيد المالك.
+> **المتبقي:** R4 تأكيد يدوي لفتح النسخة المنشورة وتثبيت/تشغيل PWA؛ R5-d إنشاء Tag `v1.4.2` وGitHub Release رسمي.
+> **قرار النشر:** NO-GO حتى إغلاق اختبار R4 وإنشاء Tag/Release.
+> **المرجع التنفيذي:** [FINAL_RELEASE_READINESS.md](FINAL_RELEASE_READINESS.md).
 
+> **ملاحظة:** مرشح v1.4.2 غيّر أرقام الحزمة والتوثيق فقط؛ لم تتغير ملفات التطبيق أو `sw.js` أو `manifest.json`.
 ---
 
 
