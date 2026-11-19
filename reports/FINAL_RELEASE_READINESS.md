@@ -5,7 +5,8 @@
 **فرع المصدر المرجعي عند إعداد التقرير:** `main`  
 **Stable release source SHA:** `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f` — دمج مرشح v1.4.2 (package metadata فقط، دون تغيير ملفات التطبيق).  
 **Release candidate SHA:** `b2c526e0c0091e9373b9783a98a280ee6ab01a24` (PR #5).  
-**Current `main` HEAD:** `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`.  
+**Current `main` HEAD after documentation synchronization:** `d09778e0ea7960dddd35118e33e489cc95a90233` (docs-only updates).  
+**Stable app/release source SHA:** `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`.  
 **نطاق الإصدار المفترض:** تطبيق الويب/PWA المنشور عبر GitHub Pages؛ لا يفترض هذا التقرير نشر تطبيق Native على متجر.
 
 ## 1. قرار الإصدار
@@ -13,7 +14,7 @@
 **الحالة الحالية: RELEASE PREPARATION — NO-GO FOR FINAL RELEASE.**
 
 ### تحديث تحقق Supabase وOCC — 2026-11-19
-أكد المالك نجاح تجربة المزامنة الطبيعية من داخل التطبيق المنشور: حفظ ثم إعادة تحميل، مع استمرار البيانات بصورة سليمة. كما اجتاز CI #79 على PostgreSQL 16 اختبار OCC متعدد الاتصالات: اتصالان مستقلان قرآ revision=1؛ الاتصال الأول حدّث إلى revision=2 واحتفظ بقفل الصف؛ الاتصال الثاني انتظر ثم حاول الكتابة باستخدام revision=1، فتم رفضه بـ`status: conflict` و`current_revision: 2`، وتأكد الاختبار أن بيانات الاتصال الأول لم تُستبدل. الاختبار يتحقق أيضًا من سباق متزامن بحاجز إطلاق مشترك. بذلك تم إثبات منطق OCC والتنافس على مستوى PostgreSQL 16. **حد الدليل:** الاختبار يستخدم PostgreSQL 16 حقيقيًا مع جلسات/claims مصطنعة، وليس طلبين HTTP متزامنين عبر PostgREST على مشروع Supabase Hosted؛ بينما مسار الحفظ الطبيعي الحي أكد المالك نجاحه.
+أكد المالك نجاح تجربة المزامنة الطبيعية من داخل التطبيق المنشور: حفظ ثم إعادة تحميل، مع استمرار البيانات بصورة سليمة. كما اجتاز CI #83 على PostgreSQL 16 اختبار OCC متعدد الاتصالات: اتصالان مستقلان قرآ revision=1؛ الاتصال الأول حدّث إلى revision=2 واحتفظ بقفل الصف؛ الاتصال الثاني انتظر ثم حاول الكتابة باستخدام revision=1، فتم رفضه بـ`status: conflict` و`current_revision: 2`، وتأكد الاختبار أن بيانات الاتصال الأول لم تُستبدل. الاختبار يتحقق أيضًا من سباق متزامن بحاجز إطلاق مشترك. بذلك تم إثبات منطق OCC والتنافس على مستوى PostgreSQL 16. **حد الدليل:** الاختبار يستخدم PostgreSQL 16 حقيقيًا مع جلسات/claims مصطنعة، وليس طلبين HTTP متزامنين عبر PostgREST على مشروع Supabase Hosted؛ بينما مسار الحفظ الطبيعي الحي أكد المالك نجاحه.
 
 هذا ليس رفضًا للمنتج أو لتجربة الاستخدام. المالك أكد في 2026-11-19 اعتماد التطبيق بشكل عام، واعتماده البصري/المنتجي، وأكد أن مشكلة التجمّد القديمة حُلّت منذ وقت سابق. لا تُفتح مرحلة إعادة تصميم أو ميزات جديدة بسبب هذه المراجعة.
 
@@ -28,14 +29,14 @@
 | GitHub Actions CI على main | Run #83 — [44545562381](https://github.com/JemistryMC/study-hub/actions/runs/44545562381)، على `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f` | SUCCESS |
 | مراحل CI | npm ci، lint، production build، static security، unit/async، PGlite، PostgreSQL 16، Chromium E2E، unified npm test | جميع الخطوات الأساسية SUCCESS |
 | نتائج الاختبارات المجمعة | 1,177 assertion ناجحة، 0 فشل؛ PostgreSQL 16 = 96/96؛ WP 7.1 Chromium E2E = 186/186 | PASS |
-| GitHub Pages | Run #199 — [44545562352](https://github.com/JemistryMC/study-hub/actions/runs/44545562352)، على SHA النهائي نفسه | SUCCESS |
+| GitHub Pages | Run #199 — [44545562352](https://github.com/JemistryMC/study-hub/actions/runs/44545562352) على Stable app SHA، ثم Run #203 — [44547563903](https://github.com/JemistryMC/study-hub/actions/runs/44547563903) بعد تحديثات التوثيق على `main` | SUCCESS |
 | وجهة Pages | [https://jemistrymc.github.io/study-hub/](https://jemistrymc.github.io/study-hub/) | النشر الآلي ناجح؛ التحقق اليدوي من PWA ما زال مطلوبًا |
 | اعتماد المالك | اعتماد عام للتطبيق وتجربة الاستخدام، 2026-11-19 | APPROVED |
 | التجمّد القديم | المالك أكد أنه حُلّ منذ وقت سابق | RESOLVED — لا يُعاد فتحه |
 | GitHub Release / Tag | لا يوجد حتى الآن Tag `v1.4.2` أو GitHub Release مطابق | Pending |
 | رقم الحزمة | `package.json` و`package-lock.json` = `1.4.2` | VERIFIED |
 
-**مهم:** CI #83 وPages #199 مرتبطان بالـSHA النهائي `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`. مرشح PR #5 ودمجه لا يغيران ملفات التطبيق؛ التعديل مقتصر على رقم الحزمة والتوثيق.
+**مهم:** CI #83 وPages #199 مرتبطان بـStable app SHA `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`. بعد تحديثات التوثيق فقط، أصبح `main` HEAD هو `d09778e0ea7960dddd35118e33e489cc95a90233`، واجتاز Pages #203 النشر على هذا HEAD. لم تتغير ملفات التطبيق أو Service Worker.
 
 ## 3. بوابات الإصدار المتبقية
 
@@ -74,7 +75,7 @@
 **ما تم تأكيده من المالك بتاريخ 2026-11-19:**
 - نجاح الحفظ والمزامنة الطبيعية على Production ثم إعادة تحميل التطبيق مع استمرار البيانات.
 - اختبار نفس حساب Exo على جلستين/جهازين مستقلين، والتأكد من ظهور التعديلات التي تتم على أحدهما في الآخر.
-- CI #79 أثبت stale-revision rejection وlock contention على PostgreSQL 16 الحقيقي عبر اتصالات قاعدة بيانات مستقلة، مع حماية بيانات الكاتب الفائز من الاستبدال.
+- CI #83 أثبت stale-revision rejection وlock contention على PostgreSQL 16 الحقيقي عبر اتصالات قاعدة بيانات مستقلة، مع حماية بيانات الكاتب الفائز من الاستبدال.
 
 **الحالة:** R2 الأساسي (الحفظ/Reload + انتقال التعديلات بين جلستين + منطق OCC) **VERIFIED BY OWNER / CI**. هذا يغلق بوابة المزامنة متعددة الجلسات المطلوبة للإصدار.
 
@@ -91,7 +92,7 @@
 **قيود:** لا يتم تنفيذ Restore على حساب المالك الأساسي أثناء التجهيز، ولا تُغيّر صيغ التخزين أو سياسات الاستعادة في هذه المرحلة.
 ### R4 — Smoke test حي للنسخة المنشورة وPWA (Pages deployed؛ تأكيد المالك متبقٍ)
 
-نجح GitHub Pages #199 على SHA النهائي `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`، لكن نجاح الـworkflow لا يثبت وحده أن المتصفح يعرض التطبيق ويثبّت PWA على جهاز المستخدم. يلزم تأكيد يدوي واحد من المالك:
+نجح GitHub Pages #199 على Stable app SHA `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`، ثم نجح Pages #203 على `main` HEAD التوثيقي `d09778e0ea7960dddd35118e33e489cc95a90233`. لكن نجاح الـworkflow لا يثبت وحده أن المتصفح يعرض التطبيق ويثبّت PWA على جهاز المستخدم. يلزم تأكيد يدوي واحد من المالك:
 - افتح [Exo على GitHub Pages](https://jemistrymc.github.io/study-hub/) مباشرة وتأكد من عدم وجود 404 أو صفحة بيضاء.
 - تأكد أن التطبيق يفتح بصورة طبيعية، وأن تسجيل الدخول والتنقل الأساسي وHelp Center وPDF Studio يعملون.
 - جرّب خيار Install Exo / Install page as app من Chrome، ثم افتح التطبيق المثبّت وتأكد من ظهور الواجهة بصورة سليمة.
@@ -130,7 +131,7 @@
 - [x] R0-a: فحص بنية Supabase Production للقراءة فقط، وتأكيد المالك نجاح الحفظ والمزامنة بعد Reload من التطبيق.
 
 - [x] R1-a: Google OAuth واتصال Drive ورفع/استرجاع ملف فعلي بحساب اختبار VIP — تأكيد المالك 2026-11-19.
-- [ ] R1-b: توثيق منفصل لحالات Auth/Drive الطرفية (logout/session recovery/disconnect/reconnect/failure handling) إن كانت ضمن نطاق الإصدار.
+- [ ] R1-b (اختياري وغير مانع للإصدار): توثيق منفصل لحالات Auth/Drive الطرفية (logout/session recovery/disconnect/reconnect/failure handling) إذا تقرر توسيع نطاق التحقق؛ لا يغيّر هذا حالة بوابات الإصدار المغلقة ولا يتطلب إعادة اختبارات أكد المالك نجاحها.
 - [x] R2: المزامنة الطبيعية بعد Reload + ظهور التعديلات على جلستين/جهازين — تأكيد المالك 2026-11-19، مع إثبات OCC المستقل في PostgreSQL 16 CI.
 - [x] R3: Backup/Restore — المالك أكد نجاح التصدير والاستيراد واستعادة البيانات على اختبار 2026-11-19.
 - [ ] R4: Smoke test حي لفتح النسخة المنشورة وتثبيت/تشغيل PWA.
