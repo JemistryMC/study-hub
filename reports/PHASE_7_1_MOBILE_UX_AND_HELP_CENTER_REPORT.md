@@ -4,15 +4,16 @@
 **آخر تحديث:** 2026-11-19  
 **المستودع:** `JemistryMC/study-hub`  
 **فرع العمل:** `main`  
-**أحدث Source Commit SHA على `main`:** `5d9464b45170de5b6942cdfcf577e1308d21497d`  
-**GitHub Actions CI #78:** [`44502700226`](https://github.com/JemistryMC/study-hub/actions/runs/44502700226) (Job `135486281406`) — **`COMPLETED / SUCCESS`** (`2026-11-19T10:07:30Z` → `2026-11-19T10:17:29Z`)  
-**GitHub Pages #192:** [`44502699882`](https://github.com/JemistryMC/study-hub/actions/runs/44502699882) — **`COMPLETED / SUCCESS`** (`2026-11-19T10:07:30Z` → `2026-11-19T10:08:15Z`)  
+**Latest Repository HEAD (Documentation-Only Commit):** `7f8967af08c432353c756dd93c0b0a3dbb271282` (`2026-11-19T10:35:02Z`) — تحديث `reports/CURRENT.md` و`reports/PHASE_7_1_MOBILE_UX_AND_HELP_CENTER_REPORT.md`؛ **GitHub Pages #193:** [`44507018990`](https://github.com/JemistryMC/study-hub/actions/runs/44507018990) — **`COMPLETED / SUCCESS`** (`2026-11-19T10:35:46Z`). *(لم يُشغَّل CI جديد على `7f8967a` بشكل مقصود لأن `.github/workflows/ci.yml` يستثني `reports/**` و`**/*.md` عبر `paths-ignore`؛ ولا يُنسب CI #78 إلى `7f8967a`).*  
+**Latest Source Commit (آخر Commit للتطبيق والاختبارات — CI-Verified):** `5d9464b45170de5b6942cdfcf577e1308d21497d` (`2026-11-19T10:07:28Z`)  
+**GitHub Actions CI #78 (على Source Commit `5d9464b4`):** [`44502700226`](https://github.com/JemistryMC/study-hub/actions/runs/44502700226) (Job `135486281406`) — **`COMPLETED / SUCCESS`** (`2026-11-19T10:07:30Z` → `2026-11-19T10:17:29Z`)  
+**GitHub Pages #192 (على Source Commit `5d9464b4`):** [`44502699882`](https://github.com/JemistryMC/study-hub/actions/runs/44502699882) — **`COMPLETED / SUCCESS`** (`2026-11-19T10:07:30Z` → `2026-11-19T10:08:15Z`)  
 **Base Commit SHA السابق (WP 7.0.6):** `6f53e2aed8c335195f1cf338776bb4249b5aeb1f` (CI #74 `44299401863` `SUCCESS` / Pages #187)  
 **الحالة الحالية:** **`CI VERIFIED (5d9464b4) — TECHNICAL GATE PASSED; OWNER REVIEW & ACCEPTANCE PENDING (NOT APPROVED); P0 PRODUCTION SUPABASE RPC STILL OPEN; PHASE 6 NOT APPROVED`**
 
 ---
 
-## 1. تسلسل الرفع ونتائج CI من WP 7.0.6 حتى CI #78 (`5d9464b4`)
+## 1. تسلسل الرفع ونتائج CI من WP 7.0.6 حتى HEAD الحالي (`7f8967af`)
 
 | Commit SHA | التاريخ (UTC) | GitHub Actions CI | GitHub Pages | الملاحظة |
 | :--- | :--- | :--- | :--- | :--- |
@@ -20,13 +21,14 @@
 | `bb5ec928` | `2026-11-18T14:55:41Z` | **CI #75** (`44329699774`): `FAILURE` | #189: `SUCCESS` | أول رفع لـ WP 7.1 |
 | `ed00c870` | `2026-11-19T07:18:19Z` | **CI #76** (`44478583935`): `FAILURE` | #190: `SUCCESS` | تمريرة تصحيحية أولى |
 | `ba544310` | `2026-11-19T09:28:39Z` | **CI #77** (`44496770459`): `FAILURE` | #191: `SUCCESS` | اجتاز إصلاح هندسة PDF؛ أوقف الفحص تراجع أهداف اللمس في Help Center |
-| **`5d9464b4`** | `2026-11-19T10:07:28Z` | **CI #78** (`44502700226`): **`SUCCESS`** | **#192: `SUCCESS`** | **إصلاح `#helpModalCloseBtn` وأزرار Quick Actions + مصفوفة 7 شاشات EN/AR + نجاح كامل لكل خطوات CI** |
+| **`5d9464b4`** | `2026-11-19T10:07:28Z` | **CI #78** (`44502700226`): **`SUCCESS`** | **#192: `SUCCESS`** | **Latest Source Commit:** إصلاح `#helpModalCloseBtn` وأزرار Quick Actions + مصفوفة 7 شاشات EN/AR + نجاح كامل لكل خطوات CI |
+| **`7f8967af`** | `2026-11-19T10:35:02Z` | *لم يُشغَّل مقصودًا (`paths-ignore`)* | **#193 (`44507018990`): `SUCCESS`** | **Latest Repository HEAD (Documentation-Only):** رفع تحديثات `reports/CURRENT.md` و`reports/PHASE_7_1_MOBILE_UX_AND_HELP_CENTER_REPORT.md` دون تغيير المصدر أو الاختبارات |
 
 ---
 
-## 2. تطابق ملفات `5d9464b45170de5b6942cdfcf577e1308d21497d` (التحقق من البصمات)
+## 2. تطابق ملفات Source Commit `5d9464b45170de5b6942cdfcf577e1308d21497d` (التحقق من البصمات)
 
-*(ملاحظة بيئة: مساحة العمل `/app/applet` لا تحتوي على `.git`؛ تم إثبات تطابق ملفات المصدر والاختبارات المحلية مع GitHub HEAD `5d9464b4` عبر حساب `git blob SHA-1` ومقارنته مباشرة باستجابة GitHub API).*
+*(ملاحظة بيئة: مساحة العمل `/app/applet` لا تحتوي على `.git`؛ تم إثبات تطابق ملفات المصدر والاختبارات المحلية مع Latest Source Commit `5d9464b4` عبر حساب `git blob SHA-1` ومقارنته مباشرة باستجابة GitHub API).*
 
 | الملف | Git Blob SHA-1 (محلي = GitHub `5d9464b4`) | SHA-256 | الحجم / الأسطر | الملخص |
 | :--- | :--- | :--- | :--- | :--- |
@@ -103,5 +105,5 @@
 1. **التمييز بين `CI VERIFIED` و`APPROVED`:** اجتياز CI #78 (`44502700226`) هو تحقق تقني (`CI VERIFIED`) فقط ولا يُعلن اعتماد WP 7.1 أو Phase 6؛ يظل الفحص البصري والمنتجي والاعتماد قرارًا حصريًا للمالك.
 2. **حدود المحاكاة في E2E:** اختبارات Chromium (في CI ومحليًا) تستخدم اعتراض شبكة (`page.route`) لـ Supabase وGoogle Identity Services (`gsi/client`) و`PDFJS_DETERMINISTIC_SHIM`، ولا تثبت اتصال OAuth حيًا بحساب Google حقيقي.
 3. **بند P0 المفتوح في Production Supabase (`PGRST202`):** لم تتصل هذه الجولة بقاعدة Supabase Production ولا تزال حالة تنفيذ `public.sync_workspace_with_concurrency` الحية **`OPEN (NOT VERIFIED LIVE)`** وفق خطة الفحص للقراءة فقط الموثقة في `reports/PHASE_6_WP_7_0_6_REPORT.md` (§6).
-4. **تحديثات التوثيق المحلية (Docs-Only):** التعديلان المحليان على `reports/CURRENT.md` و`reports/PHASE_7_1_MOBILE_UX_AND_HELP_CENTER_REPORT.md` لم يُرفعا إلى GitHub (لم يُنفّذ أي `commit` أو `push`)، ولا توجد أي تغييرات على ملفات المصدر أو الاختبارات أو SQL أو أسرار البيئة؛ وعند مزامنة المالك لملفات التوثيق فقط، فإن `.github/workflows/ci.yml` يتجاهل `reports/**` و`**/*.md` مما يحفظ إثبات CI #78 مرتبطًا بـ Source SHA `5d9464b45170de5b6942cdfcf577e1308d21497d`.
+4. **مرجع التوثيق المرفوع والفصل بين Source Commit وDocumentation Commit:** تم رفع تحديثات تقريرَي WP 7.1 بالفعل إلى `main` في Documentation-Only Commit `7f8967af08c432353c756dd93c0b0a3dbb271282` (`2026-11-19T10:35:02Z`) مع نجاح **GitHub Pages #193** (`44507018990`). ونظرًا لاستثناء `reports/**` و`**/*.md` عبر `paths-ignore` في `.github/workflows/ci.yml`، فإن عدم تشغيل CI جديد على `7f8967a` مقصود، ويظل إثبات **CI #78** (`44502700226`) مرتبطًا حصرًا بـ **Latest Source Commit** `5d9464b45170de5b6942cdfcf577e1308d21497d` (وليس بـ `7f8967a`). يقتصر هذا التصحيح اللاحق للبيانات الوصفية على ملفَي `reports/CURRENT.md` و`reports/PHASE_7_1_MOBILE_UX_AND_HELP_CENTER_REPORT.md` فقط، دون أي تعديل على ملفات المصدر أو الاختبارات أو SQL أو أسرار البيئة، وبانتظار مراجعة المالك قبل أي مزامنة.
 
