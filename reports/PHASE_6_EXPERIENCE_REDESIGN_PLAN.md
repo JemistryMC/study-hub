@@ -1,4 +1,16 @@
 # Phase 6 — EXO Personal Study Journal Experience Redesign
+
+
+## تحديث اعتماد المالك والتحويل إلى تجهيز الإصدار — 2026-11-19
+
+أكد المالك اعتماد التطبيق بشكل عام وتجربة الاستخدام، وأكد أن مشكلة التجمّد التي سُجلت في WP 6.8 قد حُلّت منذ وقت سابق. وعليه، فإن أي إشارات أدناه إلى أن القبول البصري ما زال معلقًا أو أن تجمّد WP 6.8 ما زال مانعًا هي لقطات تاريخية تم تجاوزها.
+
+لم تعد Phase 6 أو إعادة التصميم هي مسار العمل النشط. المشروع انتقل إلى **Final Release Preparation**؛ لا تُفتح ميزات أو تغييرات تصميم جديدة. تظل حالة النشر النهائي **NO-GO** إلى أن تُثبت خدمات Production الحية، خصوصًا Supabase RPC وAuth/OAuth/Drive والمزامنة والنسخ الاحتياطي. راجع [FINAL_RELEASE_READINESS.md](FINAL_RELEASE_READINESS.md).
+
+هذا التحديث يسجل اعتماد المنتج على مستوى التطبيق، ولا يغيّر بأثر رجعي نتائج الاختبارات أو تقارير Work Packages التاريخية ولا يمنح تفويضًا بتعديل Supabase Production.
+
+---
+
 ## Incremental Implementation Plan and Acceptance Gates
 
 **Status:** WP 6.8 CI VERIFIED — TECHNICAL GATE PASSED; P0 LIVE FREEZE REPRODUCED BY OWNER; NOT FIXED; PHASE 6 NOT APPROVED. Latest uploaded source c4c2b430564efff3172f1e9003f7a6ab479c271a passed GitHub Actions CI #66 (all workflow stages including PostgreSQL 16, Chromium E2E, and unified runner) and Pages #174. The owner retested the deployed build and confirmed that the freeze persists at 2026-11-14T17:20:14Z. The runtime blocker remains OPEN. Automated offline/mock tests do not prove live owner-workspace stability, and committed benchmark JSON values/timestamps differ from parts of the narrative comparison; see WP 6.8 report Section 8. Visual/artistic Phase 6 acceptance remains pending.
