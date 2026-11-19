@@ -8,8 +8,8 @@
 > **آخر Source SHA اجتاز CI:** `cf47e5698a212c1e1ef64d837cf1987a807f337e`.
 > **GitHub CI #79:** `44528632061` — SUCCESS على Source SHA؛ 1,177 assertion ناجحة وWP 7.1 Chromium E2E = 186/186.
 > **GitHub Pages #196:** `44528631312` — SUCCESS على Source SHA؛ وPages #197 `44534280479` — SUCCESS بعد دمج توثيق PR #3 على `main`.
-> **بوابات تم تأكيدها:** R0 (فحص Supabase البنيوي + الحفظ/Reload + اختبار OCC على PostgreSQL 16)، R1-a (Google OAuth/Drive ورفع/استرجاع ملف بحساب اختبار VIP)، R3 (Backup/Restore) — حسب نتائج CI وتأكيد المالك.
-> **المتبقي:** R2 (اختبار جلستين/جهازين من واجهة التطبيق)، R4 (Smoke test حي لمرشح الإصدار وPWA)، R5 (رقم stable + CI للمرشح + Tag + GitHub Release).
+> **بوابات تم تأكيدها:** R0 (فحص Supabase البنيوي + الحفظ/Reload + اختبار OCC على PostgreSQL 16)، R1-a (Google OAuth/Drive ورفع/استرجاع ملف بحساب اختبار VIP)، R2 (المزامنة بين جلستين/جهازين)، R3 (Backup/Restore) — حسب تأكيد المالك.
+> **المتبقي:** R4 (Smoke test حي لمرشح الإصدار وPWA)، R5 (رقم stable + CI للمرشح + Tag + GitHub Release).
 > **المرحلة الحالية:** Final Release Preparation — لا ميزات أو إعادة تصميم إضافية.
 > **قرار النشر:** NO-GO حتى إغلاق البنود المتبقية أعلاه.
 > **المرجع التنفيذي الحالي:** [FINAL_RELEASE_READINESS.md](FINAL_RELEASE_READINESS.md).
