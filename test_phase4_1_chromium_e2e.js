@@ -7866,15 +7866,15 @@ async function main() {
       return Boolean(firstRow && firstRow.classList.contains('is-note'));
     });
 
-    // Add Web Link via Chapter Workspace Add Menu -> real UI modal
+    // Add Web Link via WP 7.2 Workspace-Native Resource Intake modal
     await pageMM.click('#cwAddResourceBtn');
-    await pageMM.waitForSelector('#cwAddResourceMenu.open', { state: 'visible' });
-    await pageMM.click('#cwAddLinkMenuBtn');
-    await pageMM.waitForSelector('#doubleInputModalOverlay.active', { state: 'visible' });
-    await pageMM.fill('#diModalInput1', 'Goodman & Gilman Summary');
-    await pageMM.fill('#diModalInput2', 'https://example.org/goodman-summary');
-    await pageMM.click('#diModalSaveBtn');
-    await pageMM.waitForFunction(() => !document.getElementById('doubleInputModalOverlay')?.classList.contains('active'));
+    await pageMM.waitForSelector('#cwResourceIntakeOverlay.active', { state: 'visible' });
+    await pageMM.click('#cwIntakeTypeBtn_link');
+    await pageMM.waitForSelector('#cwIntakeUrlInput', { state: 'visible' });
+    await pageMM.fill('#cwIntakeUrlInput', 'https://example.org/goodman-summary');
+    await pageMM.fill('#cwIntakeTitleInput', 'Goodman & Gilman Summary');
+    await pageMM.click('#cwIntakeSaveBtn');
+    await pageMM.waitForFunction(() => !document.getElementById('cwResourceIntakeOverlay')?.classList.contains('active'));
 
     // Check Audio & Pins tab + Notes & Sheets tab counts and Audio Preview bar
     await pageMM.click('#cwTabBtn_audio');
