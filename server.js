@@ -44,15 +44,25 @@ function startServer() {
       }
     });
 
-    app.listen(PORT, HOST, () => {
+    const server = app.listen(PORT, HOST, () => {
       console.log(`Exo server listening on http://${HOST}:${PORT}`);
+    });
+    server.on('error', (err) => {
+      console.error('Exo server error:', err && err.message ? err.message : err);
     });
   } catch {
     // Fallback to built-in http server if express is not yet installed
     const server = http.createServer((req, res) => {
-      const reqUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
-      let pathname = decodeURIComponent(reqUrl.pathname);
-      if (pathname === '/') pathname = '/index.html';
+      let pathname = '/index.html';
+      try {
+        const reqUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+        pathname = decodeURIComponent(reqUrl.pathname);
+        if (pathname === '/') pathname = '/index.html';
+      } catch {
+        res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Bad Request');
+        return;
+      }
 
       const safePath = path.normalize(pathname).replace(/^(\.\.[/\\])+/, '');
       const filePath = path.join(ROOT_DIR, safePath);
@@ -63,6 +73,18 @@ function startServer() {
         return;
       }
 
+      const streamFile = (targetPath, headers) => {
+        const stream = fs.createReadStream(targetPath);
+        stream.on('error', () => {
+          if (!res.headersSent) {
+            res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+          }
+          res.end('Internal Server Error');
+        });
+        res.writeHead(200, headers);
+        stream.pipe(res);
+      };
+
       fs.stat(filePath, (err, stats) => {
         if (!err && stats.isFile()) {
           const ext = path.extname(filePath).toLowerCase();
@@ -71,16 +93,18 @@ function startServer() {
           if (filePath.endsWith('sw.js')) {
             headers['Cache-Control'] = 'no-cache';
           }
-          res.writeHead(200, headers);
-          fs.createReadStream(filePath).pipe(res);
+          streamFile(filePath, headers);
         } else if (req.method === 'GET' && (req.headers.accept || '').includes('text/html')) {
-          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-          fs.createReadStream(path.join(ROOT_DIR, 'index.html')).pipe(res);
+          streamFile(path.join(ROOT_DIR, 'index.html'), { 'Content-Type': 'text/html; charset=utf-8' });
         } else {
           res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
           res.end('Not Found');
         }
       });
+    });
+
+    server.on('error', (err) => {
+      console.error('Exo static server error:', err && err.message ? err.message : err);
     });
 
     server.listen(PORT, HOST, () => {

@@ -846,31 +846,258 @@ async function main() {
       assert(trackHelpModule, 'Contextual #trackerHelpTriggerBtn opens Help Center directly at Module 5 (Tracker & Sync)');
 
       // Inspect Help Modal Mobile Close Button, Quick Actions & Checklist on 390x844
-      await hc.page.evaluate(() => { openHelpModal(1); });
-      await hc.page.waitForTimeout(180);
-      const helpLayout = await hc.page.evaluate(() => {
+      const inspectHelpCenterTouchTargets = (page) => page.evaluate(() => {
+        const roundRect = (r) => r ? {
+          x: Number(r.x.toFixed(2)),
+          y: Number(r.y.toFixed(2)),
+          width: Number(r.width.toFixed(2)),
+          height: Number(r.height.toFixed(2)),
+          top: Number(r.top.toFixed(2)),
+          right: Number(r.right.toFixed(2)),
+          bottom: Number(r.bottom.toFixed(2)),
+          left: Number(r.left.toFixed(2))
+        } : null;
+
         const closeBtn = document.getElementById('helpModalCloseBtn');
         const cRect = closeBtn ? closeBtn.getBoundingClientRect() : null;
+        const cStyle = closeBtn ? getComputedStyle(closeBtn) : null;
+        const cParent = closeBtn ? closeBtn.parentElement : null;
+        const cParentRect = cParent ? cParent.getBoundingClientRect() : null;
+        const cParentStyle = cParent ? getComputedStyle(cParent) : null;
+        const headerRow = document.querySelector('#helpModalOverlay .eg-header-top-row');
+        const headerRowRect = headerRow ? headerRow.getBoundingClientRect() : null;
+        const headerRowStyle = headerRow ? getComputedStyle(headerRow) : null;
+
+        let closeOverlaps = [];
+        if (closeBtn && cRect && cRect.width > 0 && cRect.height > 0 && headerRow) {
+          const peers = Array.from(headerRow.querySelectorAll('button, h3, p, a, input')).filter(el => el !== closeBtn && !closeBtn.contains(el) && !el.contains(closeBtn) && el.offsetParent !== null);
+          for (const peer of peers) {
+            const pr = peer.getBoundingClientRect();
+            const ix = Math.min(cRect.right, pr.right) - Math.max(cRect.left, pr.left);
+            const iy = Math.min(cRect.bottom, pr.bottom) - Math.max(cRect.top, pr.top);
+            if (ix > 1 && iy > 1) {
+              closeOverlaps.push({
+                id: peer.id || peer.tagName,
+                className: peer.className || '',
+                overlapX: Number(ix.toFixed(2)),
+                overlapY: Number(iy.toFixed(2)),
+                rect: roundRect(pr)
+              });
+            }
+          }
+          const cx = Math.min(window.innerWidth - 1, Math.max(0, cRect.left + cRect.width / 2));
+          const cy = Math.min(window.innerHeight - 1, Math.max(0, cRect.top + cRect.height / 2));
+          const hitEl = document.elementFromPoint(cx, cy);
+          if (hitEl && hitEl !== closeBtn && !closeBtn.contains(hitEl)) {
+            closeOverlaps.push({
+              hitTestBlockedBy: `${hitEl.tagName}#${hitEl.id || ''}.${hitEl.className || ''}`,
+              probe: { x: Number(cx.toFixed(2)), y: Number(cy.toFixed(2)) }
+            });
+          }
+        }
+
+        const closeDiagnostics = {
+          exists: Boolean(closeBtn),
+          rect: roundRect(cRect),
+          computed: cStyle ? {
+            display: cStyle.display,
+            position: cStyle.position,
+            minWidth: cStyle.minWidth,
+            minHeight: cStyle.minHeight,
+            width: cStyle.width,
+            height: cStyle.height,
+            padding: cStyle.padding,
+            flex: cStyle.flex,
+            flexGrow: cStyle.flexGrow,
+            flexShrink: cStyle.flexShrink,
+            flexBasis: cStyle.flexBasis,
+            visibility: cStyle.visibility,
+            opacity: cStyle.opacity,
+            boxSizing: cStyle.boxSizing
+          } : null,
+          parentTag: cParent ? `${cParent.tagName}.${cParent.className}` : null,
+          parentRect: roundRect(cParentRect),
+          parentOverflow: cParentStyle ? {
+            display: cParentStyle.display,
+            overflow: cParentStyle.overflow,
+            overflowX: cParentStyle.overflowX,
+            overflowY: cParentStyle.overflowY
+          } : null,
+          headerRowRect: roundRect(headerRowRect),
+          headerRowStyle: headerRowStyle ? {
+            display: headerRowStyle.display,
+            flexWrap: headerRowStyle.flexWrap,
+            overflow: headerRowStyle.overflow,
+            gap: headerRowStyle.gap
+          } : null,
+          overlapsOtherElement: closeOverlaps.length > 0,
+          overlaps: closeOverlaps
+        };
+
+        const quickContainer = document.getElementById('helpQuickActionsBar');
+        const qContainerRect = quickContainer ? quickContainer.getBoundingClientRect() : null;
+        const qContainerStyle = quickContainer ? getComputedStyle(quickContainer) : null;
         const quickBtns = Array.from(document.querySelectorAll('#helpQuickActionsBar button'));
-        const quickSmall = quickBtns.filter(b => b.getBoundingClientRect().height < 44).length;
+        const quickActionsDiagnostics = quickBtns.map((b) => {
+          const br = b.getBoundingClientRect();
+          const bs = getComputedStyle(b);
+          const clippedVertically = Boolean(qContainerRect && (br.top < qContainerRect.top - 1 || br.bottom > qContainerRect.bottom + 1));
+          const clippedHorizontallyByParent = Boolean(
+            qContainerRect &&
+            qContainerStyle &&
+            (qContainerStyle.overflowX === 'hidden' || qContainerStyle.overflowX === 'clip') &&
+            (br.left < qContainerRect.left - 1 || br.right > qContainerRect.right + 1)
+          );
+          return {
+            action: b.getAttribute('data-help-action') || '',
+            label: (b.textContent || '').trim(),
+            rect: roundRect(br),
+            actualWidth: Number(br.width.toFixed(2)),
+            actualHeight: Number(br.height.toFixed(2)),
+            computedWidth: bs.width,
+            computedHeight: bs.height,
+            minWidth: bs.minWidth,
+            minHeight: bs.minHeight,
+            flexGrow: bs.flexGrow,
+            flexShrink: bs.flexShrink,
+            flexBasis: bs.flexBasis,
+            padding: bs.padding,
+            lineHeight: bs.lineHeight,
+            whiteSpace: bs.whiteSpace,
+            visibility: bs.visibility,
+            opacity: bs.opacity,
+            display: bs.display,
+            clippedVertically,
+            clippedHorizontallyByParent,
+            clippedByParent: clippedVertically || clippedHorizontallyByParent
+          };
+        });
+
+        const quickContainerDiagnostics = {
+          exists: Boolean(quickContainer),
+          rect: roundRect(qContainerRect),
+          scrollWidth: quickContainer ? quickContainer.scrollWidth : 0,
+          clientWidth: quickContainer ? quickContainer.clientWidth : 0,
+          scrollHeight: quickContainer ? quickContainer.scrollHeight : 0,
+          clientHeight: quickContainer ? quickContainer.clientHeight : 0,
+          computed: qContainerStyle ? {
+            display: qContainerStyle.display,
+            flexDirection: qContainerStyle.flexDirection,
+            flexWrap: qContainerStyle.flexWrap,
+            alignItems: qContainerStyle.alignItems,
+            gap: qContainerStyle.gap,
+            padding: qContainerStyle.padding,
+            overflow: qContainerStyle.overflow,
+            overflowX: qContainerStyle.overflowX,
+            overflowY: qContainerStyle.overflowY,
+            height: qContainerStyle.height,
+            minHeight: qContainerStyle.minHeight,
+            maxHeight: qContainerStyle.maxHeight
+          } : null
+        };
+
+        const quickSmallButtons = quickActionsDiagnostics.filter(item => item.actualHeight < 44);
+        const quickSmall = quickSmallButtons.length;
         const checklistItems = document.querySelectorAll('#helpGettingStartedChecklistMount .exo-help-check-row').length;
         const panes = [1, 2, 3, 4, 5, 6].map(n => document.getElementById(`acadPane_${n}`)?.innerText || '').join('\n');
         const arabicInEnPanes = /[\u0600-\u06FF]/.test(panes);
         return {
-          closeVisibleTopEnd: Boolean(cRect && cRect.width >= 44 && cRect.height >= 44 && cRect.top < 120 && cRect.right <= window.innerWidth + 1),
+          viewport: { width: window.innerWidth, height: window.innerHeight, dir: document.documentElement.dir || 'ltr' },
+          closeVisibleTopEnd: Boolean(cRect && cRect.width >= 44 && cRect.height >= 44 && cRect.top >= -1 && cRect.top < 120 && cRect.left >= -1 && cRect.right <= window.innerWidth + 1 && !closeDiagnostics.overlapsOtherElement),
+          closeDiagnostics,
           quickCount: quickBtns.length,
           quickSmall,
+          quickSmallButtons,
+          quickContainerDiagnostics,
+          quickActionsDiagnostics,
           checklistItems,
           arabicInEnPanes,
+          scrollWidth: document.documentElement.scrollWidth,
+          innerWidth: window.innerWidth,
           overflow: document.documentElement.scrollWidth > window.innerWidth + 1
         };
       });
-      assert(helpLayout.closeVisibleTopEnd, '390x844 Help Modal Close button is pinned cleanly on top row (>=44x44px)');
-      assert(helpLayout.quickCount === 8 && helpLayout.quickSmall === 0, `Help Quick Actions Bar renders 8 actions (${helpLayout.quickCount}) all >=44px tall`);
+
+      const settleHelpModal = async (page) => {
+        await page.waitForSelector('#helpModalOverlay.active', { timeout: 5000 });
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        await page.waitForTimeout(220);
+      };
+
+      await hc.page.evaluate(() => { openHelpModal(1); });
+      await settleHelpModal(hc.page);
+      const helpLayout = await inspectHelpCenterTouchTargets(hc.page);
+      assert(
+        helpLayout.closeVisibleTopEnd,
+        '390x844 Help Modal Close button is pinned cleanly on top row (>=44x44px)',
+        JSON.stringify({ viewport: helpLayout.viewport, close: helpLayout.closeDiagnostics })
+      );
+      assert(
+        helpLayout.quickCount === 8 && helpLayout.quickSmall === 0,
+        `Help Quick Actions Bar renders 8 actions (${helpLayout.quickCount}) all >=44px tall`,
+        JSON.stringify({ viewport: helpLayout.viewport, container: helpLayout.quickContainerDiagnostics, failingButtons: helpLayout.quickSmallButtons, allButtons: helpLayout.quickActionsDiagnostics })
+      );
       assert(helpLayout.checklistItems === 7, `Getting Started Checklist renders live 7 steps (got ${helpLayout.checklistItems})`);
       assert(!helpLayout.arabicInEnPanes, 'EN Help Center panes emit zero visible Arabic text (synonyms live cleanly in data-help-keywords)');
-      assert(!helpLayout.overflow, '390x844 Help Modal renders with zero horizontal overflow');
+      assert(!helpLayout.overflow, `390x844 Help Modal renders with zero horizontal overflow (${helpLayout.scrollWidth} <= ${helpLayout.innerWidth})`);
       await hc.page.screenshot({ path: path.join(screenshotDir, 'help-390x844-en.png') });
+
+      // Targeted Help Center multi-viewport touch-target & overflow matrix (320, 360, 390 EN/AR + 768 EN)
+      const helpMatrixViewports = [
+        { width: 320, height: 720, lang: 'en' },
+        { width: 320, height: 720, lang: 'ar' },
+        { width: 360, height: 740, lang: 'en' },
+        { width: 360, height: 740, lang: 'ar' },
+        { width: 390, height: 844, lang: 'en' },
+        { width: 390, height: 844, lang: 'ar' },
+        { width: 768, height: 1024, lang: 'en' }
+      ];
+      for (const hvp of helpMatrixViewports) {
+        await hc.page.evaluate(() => { closeModal('helpModalOverlay'); });
+        await hc.page.setViewportSize({ width: hvp.width, height: hvp.height });
+        await hc.page.evaluate((lng) => {
+          if (typeof applyExoLanguage === 'function') applyExoLanguage(lng, false);
+          openHelpModal(1);
+        }, hvp.lang);
+        await settleHelpModal(hc.page);
+        const hm = await inspectHelpCenterTouchTargets(hc.page);
+        const expectedDir = hvp.lang === 'ar' ? 'rtl' : 'ltr';
+        const closeOk = Boolean(
+          hm.closeVisibleTopEnd &&
+          hm.closeDiagnostics.computed &&
+          hm.closeDiagnostics.computed.visibility === 'visible' &&
+          Number(hm.closeDiagnostics.computed.opacity) >= 0.99
+        );
+        const quickBad = hm.quickActionsDiagnostics.filter(b =>
+          b.actualHeight < 44 ||
+          b.actualWidth < 44 ||
+          b.visibility !== 'visible' ||
+          Number(b.opacity) < 0.99 ||
+          b.clippedByParent
+        );
+        assert(
+          closeOk && hm.viewport.dir === expectedDir,
+          `Help Center ${hvp.width}x${hvp.height} (${hvp.lang.toUpperCase()}): #helpModalCloseBtn pinned on top row >=44x44px unclipped (${hm.closeDiagnostics.rect?.width}x${hm.closeDiagnostics.rect?.height}, top=${hm.closeDiagnostics.rect?.top})`,
+          JSON.stringify({ viewport: hm.viewport, close: hm.closeDiagnostics })
+        );
+        assert(
+          hm.quickCount === 8 && quickBad.length === 0,
+          `Help Center ${hvp.width}x${hvp.height} (${hvp.lang.toUpperCase()}): all 8 Quick Actions >=44px tall & unclipped (minH=${Math.min(...hm.quickActionsDiagnostics.map(b => b.actualHeight))}px)`,
+          JSON.stringify({ viewport: hm.viewport, container: hm.quickContainerDiagnostics, badButtons: quickBad, allButtons: hm.quickActionsDiagnostics })
+        );
+        assert(
+          !hm.overflow,
+          `Help Center ${hvp.width}x${hvp.height} (${hvp.lang.toUpperCase()}): zero horizontal page overflow (${hm.scrollWidth} <= ${hm.innerWidth})`,
+          JSON.stringify({ viewport: hm.viewport, scrollWidth: hm.scrollWidth, innerWidth: hm.innerWidth })
+        );
+      }
+      // Restore 390x844 EN cleanly for remaining Section 5 assertions
+      await hc.page.setViewportSize({ width: 390, height: 844 });
+      await hc.page.evaluate(() => {
+        if (typeof applyExoLanguage === 'function') applyExoLanguage('en', false);
+        openHelpModal(1);
+      });
+      await settleHelpModal(hc.page);
 
       // Checklist progression check when backup export timestamp is recorded
       const checklistProgress = await hc.page.evaluate(() => {
