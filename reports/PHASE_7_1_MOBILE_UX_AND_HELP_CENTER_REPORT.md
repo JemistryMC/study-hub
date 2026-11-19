@@ -4,7 +4,7 @@
 **آخر تحديث:** 2026-11-19  
 **المستودع:** `JemistryMC/study-hub`  
 **فرع العمل:** `main`  
-**Latest Repository HEAD (Documentation-Only Commit):** `7f8967af08c432353c756dd93c0b0a3dbb271282` (`2026-11-19T10:35:02Z`) — تحديث `reports/CURRENT.md` و`reports/PHASE_7_1_MOBILE_UX_AND_HELP_CENTER_REPORT.md`؛ **GitHub Pages #193:** [`44507018990`](https://github.com/JemistryMC/study-hub/actions/runs/44507018990) — **`COMPLETED / SUCCESS`** (`2026-11-19T10:35:46Z`). *(لم يُشغَّل CI جديد على `7f8967a` بشكل مقصود لأن `.github/workflows/ci.yml` يستثني `reports/**` و`**/*.md` عبر `paths-ignore`؛ ولا يُنسب CI #78 إلى `7f8967a`).*  
+**Previous Documentation-Only Sync:** `7f8967af08c432353c756dd93c0b0a3dbb271282` (`2026-11-19T10:35:02Z`) — آخر مزامنة توثيقية سابقة للتقريرين؛ **GitHub Pages #193:** [`44507018990`](https://github.com/JemistryMC/study-hub/actions/runs/44507018990) — **`COMPLETED / SUCCESS`** (`2026-11-19T10:35:46Z`). *(هذا مرجع تاريخي للمزامنة السابقة وليس تعريفًا لـ Latest Repository HEAD؛ ولا يُنسب CI #78 إليه).*  
 **Latest Source Commit (آخر Commit للتطبيق والاختبارات — CI-Verified):** `5d9464b45170de5b6942cdfcf577e1308d21497d` (`2026-11-19T10:07:28Z`)  
 **GitHub Actions CI #78 (على Source Commit `5d9464b4`):** [`44502700226`](https://github.com/JemistryMC/study-hub/actions/runs/44502700226) (Job `135486281406`) — **`COMPLETED / SUCCESS`** (`2026-11-19T10:07:30Z` → `2026-11-19T10:17:29Z`)  
 **GitHub Pages #192 (على Source Commit `5d9464b4`):** [`44502699882`](https://github.com/JemistryMC/study-hub/actions/runs/44502699882) — **`COMPLETED / SUCCESS`** (`2026-11-19T10:07:30Z` → `2026-11-19T10:08:15Z`)  
@@ -13,7 +13,7 @@
 
 ---
 
-## 1. تسلسل الرفع ونتائج CI من WP 7.0.6 حتى HEAD الحالي (`7f8967af`)
+## 1. تسلسل الرفع ونتائج CI من WP 7.0.6 حتى آخر مزامنة توثيقية سابقة (`7f8967af`)
 
 | Commit SHA | التاريخ (UTC) | GitHub Actions CI | GitHub Pages | الملاحظة |
 | :--- | :--- | :--- | :--- | :--- |
@@ -22,7 +22,7 @@
 | `ed00c870` | `2026-11-19T07:18:19Z` | **CI #76** (`44478583935`): `FAILURE` | #190: `SUCCESS` | تمريرة تصحيحية أولى |
 | `ba544310` | `2026-11-19T09:28:39Z` | **CI #77** (`44496770459`): `FAILURE` | #191: `SUCCESS` | اجتاز إصلاح هندسة PDF؛ أوقف الفحص تراجع أهداف اللمس في Help Center |
 | **`5d9464b4`** | `2026-11-19T10:07:28Z` | **CI #78** (`44502700226`): **`SUCCESS`** | **#192: `SUCCESS`** | **Latest Source Commit:** إصلاح `#helpModalCloseBtn` وأزرار Quick Actions + مصفوفة 7 شاشات EN/AR + نجاح كامل لكل خطوات CI |
-| **`7f8967af`** | `2026-11-19T10:35:02Z` | *لم يُشغَّل مقصودًا (`paths-ignore`)* | **#193 (`44507018990`): `SUCCESS`** | **Latest Repository HEAD (Documentation-Only):** رفع تحديثات `reports/CURRENT.md` و`reports/PHASE_7_1_MOBILE_UX_AND_HELP_CENTER_REPORT.md` دون تغيير المصدر أو الاختبارات |
+| **`7f8967af`** | `2026-11-19T10:35:02Z` | *لم يُشغَّل مقصودًا (`paths-ignore`)* | **#193 (`44507018990`): `SUCCESS`** | **Previous Documentation-Only Sync:** رفع تحديثات التقريرين دون تغيير المصدر أو الاختبارات؛ ليس مرجعًا لـ Repository HEAD الحالي |
 
 ---
 
@@ -105,5 +105,5 @@
 1. **التمييز بين `CI VERIFIED` و`APPROVED`:** اجتياز CI #78 (`44502700226`) هو تحقق تقني (`CI VERIFIED`) فقط ولا يُعلن اعتماد WP 7.1 أو Phase 6؛ يظل الفحص البصري والمنتجي والاعتماد قرارًا حصريًا للمالك.
 2. **حدود المحاكاة في E2E:** اختبارات Chromium (في CI ومحليًا) تستخدم اعتراض شبكة (`page.route`) لـ Supabase وGoogle Identity Services (`gsi/client`) و`PDFJS_DETERMINISTIC_SHIM`، ولا تثبت اتصال OAuth حيًا بحساب Google حقيقي.
 3. **بند P0 المفتوح في Production Supabase (`PGRST202`):** لم تتصل هذه الجولة بقاعدة Supabase Production ولا تزال حالة تنفيذ `public.sync_workspace_with_concurrency` الحية **`OPEN (NOT VERIFIED LIVE)`** وفق خطة الفحص للقراءة فقط الموثقة في `reports/PHASE_6_WP_7_0_6_REPORT.md` (§6).
-4. **مرجع التوثيق المرفوع والفصل بين Source Commit وDocumentation Commit:** تم رفع تحديثات تقريرَي WP 7.1 بالفعل إلى `main` في Documentation-Only Commit `7f8967af08c432353c756dd93c0b0a3dbb271282` (`2026-11-19T10:35:02Z`) مع نجاح **GitHub Pages #193** (`44507018990`). ونظرًا لاستثناء `reports/**` و`**/*.md` عبر `paths-ignore` في `.github/workflows/ci.yml`، فإن عدم تشغيل CI جديد على `7f8967a` مقصود، ويظل إثبات **CI #78** (`44502700226`) مرتبطًا حصرًا بـ **Latest Source Commit** `5d9464b45170de5b6942cdfcf577e1308d21497d` (وليس بـ `7f8967a`). يقتصر هذا التصحيح اللاحق للبيانات الوصفية على ملفَي `reports/CURRENT.md` و`reports/PHASE_7_1_MOBILE_UX_AND_HELP_CENTER_REPORT.md` فقط، دون أي تعديل على ملفات المصدر أو الاختبارات أو SQL أو أسرار البيئة، وبانتظار مراجعة المالك قبل أي مزامنة.
+4. **الفصل بين آخر مزامنة توثيقية سابقة وSource Commit:** تم رفع تحديثات التقريرين سابقًا في Documentation-Only Commit `7f8967af08c432353c756dd93c0b0a3dbb271282` (`2026-11-19T10:35:02Z`) مع نجاح **GitHub Pages #193** (`44507018990`). ونظرًا لاستثناء `reports/**` و`**/*.md` عبر `paths-ignore` في `.github/workflows/ci.yml`، فإن عدم تشغيل CI جديد على هذا التحديث التوثيقي كان مقصودًا. يظل إثبات **CI #78** (`44502700226`) مرتبطًا حصرًا بـ **Latest Source Commit** `5d9464b45170de5b6942cdfcf577e1308d21497d`، ولا يُنسب إلى أي تحديث توثيقي. يقتصر هذا التصحيح على البيانات الوصفية في ملفَي التقرير فقط، دون تغيير ملفات المصدر أو الاختبارات أو SQL أو أسرار البيئة.
 

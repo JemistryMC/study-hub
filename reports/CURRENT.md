@@ -3,7 +3,7 @@
 **آخر تحديث:** 2026-11-19  
 **المستودع:** JemistryMC/study-hub  
 **فرع العمل النشط:** `main`  
-**Latest Repository HEAD (Documentation-Only Commit):** `7f8967af08c432353c756dd93c0b0a3dbb271282` (`2026-11-19T10:35:02Z`) — تحديث توثيقي فقط لملفَي `reports/CURRENT.md` و`reports/PHASE_7_1_MOBILE_UX_AND_HELP_CENTER_REPORT.md`؛ **GitHub Pages #193** ([`44507018990`](https://github.com/JemistryMC/study-hub/actions/runs/44507018990)): **`SUCCESS`** (`2026-11-19T10:35:46Z`). *(عدم تشغيل GitHub Actions CI جديد على `7f8967a` مقصود لأن `.github/workflows/ci.yml` يستثني `reports/**` و`**/*.md` عبر `paths-ignore`؛ ولا يُنسب CI #78 إلى `7f8967a`).*  
+**Repository Reference Policy:** لا يُدرج SHA الخاص بتحديث التوثيق الذي يحتوي هذا الملف لتجنب المرجع الذاتي؛ يظل `5d9464b4` آخر Source Commit للكود والاختبارات اجتاز CI #78.  
 **Latest Source Commit (آخر Commit للتطبيق والاختبارات — CI-Verified):** `5d9464b45170de5b6942cdfcf577e1308d21497d` (`2026-11-19T10:07:28Z`) — **GitHub Actions CI #78** ([`44502700226`](https://github.com/JemistryMC/study-hub/actions/runs/44502700226)): **`SUCCESS`** (`2026-11-19T10:07:30Z` ← `2026-11-19T10:17:29Z`)؛ **GitHub Pages #192** ([`44502699882`](https://github.com/JemistryMC/study-hub/actions/runs/44502699882)): **`SUCCESS`** (`2026-11-19T10:08:15Z`).  
 **سجل Commits المرفوعة بين WP 7.0.6 وWP 7.1:**
 - `6f53e2aed8c335195f1cf338776bb4249b5aeb1f` (WP 7.0.6): CI #74 (`44299401863`) **`SUCCESS`** / Pages #187 (`44299401274`) **`SUCCESS`**.
@@ -12,7 +12,7 @@
 - `ed00c870c61db929269de061d83db509e8fbf7b2`: CI #76 (`44478583935`) **`FAILURE`**.
 - `ba544310948e3fa4ea7a5a40074012daa7b1eaa7`: CI #77 (`44496770459`) **`FAILURE`** (اجتازت هندسة PDF، وأوقف الفحص تراجع أهداف اللمس في Help Center).
 - `5d9464b45170de5b6942cdfcf577e1308d21497d` (**Latest Source Commit**): **CI #78 (`44502700226`) `SUCCESS`** / **Pages #192 (`44502699882`) `SUCCESS`**.
-- `7f8967af08c432353c756dd93c0b0a3dbb271282` (**Latest Repository HEAD — Documentation-Only**): تحديث `reports/CURRENT.md` و`reports/PHASE_7_1_MOBILE_UX_AND_HELP_CENTER_REPORT.md`؛ **Pages #193 (`44507018990`) `SUCCESS`** (بدون تشغيل CI بموجب `paths-ignore`).
+- `7f8967af08c432353c756dd93c0b0a3dbb271282` (**Previous Documentation-Only Sync**): تحديث `reports/CURRENT.md` و`reports/PHASE_7_1_MOBILE_UX_AND_HELP_CENTER_REPORT.md`؛ **Pages #193 (`44507018990`) `SUCCESS`** (لم يُشغَّل CI بموجب `paths-ignore`؛ ولا يُعد هذا السطر إعلانًا عن Repository HEAD الحالي).
 
 ## WP 7.1 — Mobile UX, Sticky Topbar Scroll, Help Center Touch Targets & Drive Diagnostics (2026-11-19)
 
@@ -22,7 +22,7 @@
   - `server.js`: `git blob SHA-1 = 4dcb3e644f5cfc8946a5e924ebabf4172e21af90`، `SHA-256 = 0b254a96400d63a5d8c35ae495faa86cc2916316695b683da47ffad1ee072f85` (`3,747` بايت — مطابق لـ `5d9464b4`).
   - `test_wp7_1_mobile_ux_e2e.js`: `git blob SHA-1 = 7bfdfa59e4e499d20a135b37aa6a2c4675474ea4`، `SHA-256 = d957630407b7ac29fdba503111aff512af491e201307a7f88a74b6411e12ebea` (`2,098` سطرًا، `114,963` بايت — مطابق لـ `5d9464b4`).
   - `test_wp7_1_unit.js`: `SHA-256 = b8968d5a5a6d9277b3dc75b5baf76bba03417497cb72aac19d42d7d02cbf0013`؛ `package.json`: `9f0bff53...`؛ `run_all_tests.js`: `bdc2d4a1...`.
-  - **حالة التوثيق والمزامنة:** تم رفع تحديث تقارير WP 7.1 بالفعل في Documentation-Only Commit `7f8967af08c432353c756dd93c0b0a3dbb271282` (Pages #193 `SUCCESS`). ويقتصر تصحيح البيانات الوصفية اللاحق على ملفَي `reports/CURRENT.md` و`reports/PHASE_7_1_MOBILE_UX_AND_HELP_CENTER_REPORT.md` فقط دون أي تعديل على المصدر أو الاختبارات أو SQL، ويظل `5d9464b4` آخر Source Commit اختبره CI #78.
+  - **حالة التوثيق والمزامنة:** يُسجَّل `7f8967af` بوصفه آخر مزامنة توثيقية سابقة (Pages #193 `SUCCESS`) وليس بوصفه Repository HEAD الحالي. يقتصر هذا التصحيح على تسميات المراجع والبيانات الوصفية في ملفَي التقرير فقط، دون أي تعديل على المصدر أو الاختبارات أو SQL؛ ويظل `5d9464b4` آخر Source Commit اختبره CI #78.
 - **نتائج GitHub Actions CI #78 الفعلية (`44502700226` / Job `135486281406` على `5d9464b45170de5b6942cdfcf577e1308d21497d`):**
   - `[7]` **Run Syntax & Lint Verification (`npm run lint`)**: **`SUCCESS`** (`10:11:06Z → 10:11:07Z`).
   - `[8]` **Run Production Build (`npm run build`)**: **`SUCCESS`** (`10:11:07Z → 10:11:07Z`).
