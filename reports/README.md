@@ -5,12 +5,12 @@
 
 - **اعتماد المنتج:** APPROVED BY OWNER؛ اعتماد عام للتطبيق وتجربة الاستخدام.
 - **مشكلة التجمّد:** RESOLVED وفق تأكيد المالك.
-- **آخر Source SHA:** `cf47e5698a212c1e1ef64d837cf1987a807f337e`.
-- **CI #79:** `44528632061` SUCCESS؛ **Pages #196:** `44528631312` SUCCESS، وكلاهما على SHA نفسه.
-- **حالة الإصدار:** `NO-GO` حتى إثبات Supabase Production RPC والتكاملات الحية وبيانات الحساب والنسخ الاحتياطي.
-- المرجع الحالي: [FINAL_RELEASE_READINESS.md](FINAL_RELEASE_READINESS.md).
-
-السطور القديمة تحت عناوين Work Packages أدناه تُحفظ كسجل تاريخي للحالة وقت تنفيذ كل حزمة. لا تعكس موافقة المالك الحالية ولا يجوز استخدام أي إشعار تاريخي بأن التجمّد أو القبول البصري ما زال مفتوحًا بوصفه الحالة الراهنة.
+- **آخر Source SHA:** `cf47e5698a212c1e1ef64d837cf1987a807f337e`؛ و`main` HEAD التوثيقي `a2ba2078c4e44bc34d976904b1f4c98dd5af3771`.
+- **CI #79:** `44528632061` SUCCESS على Source SHA؛ **Pages #196:** `44528631312` SUCCESS على Source SHA، و**Pages #197:** `44534280479` SUCCESS بعد دمج التوثيق.
+- **Supabase/OCC:** فحص Production للقراءة فقط وتجربة الحفظ/Reload أكدهما المالك؛ اختبار OCC متعدد الاتصالات على PostgreSQL 16 اجتاز CI #79.
+- **التكاملات الحية:** Google OAuth/Drive مع رفع واسترجاع ملف بحساب VIP، والمزامنة بين جلستين/جهازين، وBackup/Restore — أكد المالك نجاحها.
+- **حالة الإصدار:** `NO-GO` حتى Smoke test حي لمرشح الإصدار وPWA، ثم stable version وCI وTag وGitHub Release.
+- المرجع التنفيذي الحالي: [FINAL_RELEASE_READINESS.md](FINAL_RELEASE_READINESS.md).
 
 ---
 
@@ -27,20 +27,7 @@
 
 ## المرحلة النشطة
 
-**Phase 6 — EXO Personal Study Journal Experience Redesign**
-
-الحالة: **Phase 6 — WP 6.8 CI VERIFIED — TECHNICAL GATE PASSED; P0 LIVE FREEZE REPRODUCED BY OWNER; NOT FIXED; PHASE 6 NOT APPROVED.** Latest source c4c2b430564efff3172f1e9003f7a6ab479c271a passed CI #66 (all workflow stages including PostgreSQL 16, Chromium E2E, and unified runner) and Pages #174; however, the owner confirmed that the freeze persists after deployment at 2026-11-14T17:20:14Z. The P0 blocker remains OPEN. WP 6.8 automated tests use synthetic data and offline mocked external integrations; committed benchmark JSON values/timestamps also differ from the narrative report and require a controlled rerun. CI success does not prove owner-workspace runtime stability or Phase 6 acceptance. WP 6.3 Proposal A & B remain HELD. Historical details remain below.
-
-**تقرير WP 6.1:** [PHASE_6_WP_6_1_REPORT.md](PHASE_6_WP_6_1_REPORT.md) — CI Run #53 (`43450226930`) SUCCESS على SHA `86fda9824880c00268db117f1ab8780b106f6fe0`.  
-**تقرير WP 6.2:** [PHASE_6_WP_6_2_REPORT.md](PHASE_6_WP_6_2_REPORT.md) — CI Run #54 (`43458938490`) SUCCESS على SHA `70d1a8446cf9bf2a84af2035788bf7db56e4d589` بإجمالي `766/766`؛ Pages Run #149 SUCCESS.  
-**تقرير WP 6.3:** [PHASE_6_WP_6_3_REPORT.md](PHASE_6_WP_6_3_REPORT.md) — CI Run #55 (`43467239963`) SUCCESS على SHA `c97499e35c006236854a2a43982fb4923e77d838` بإجمالي `776/776`؛ Chromium E2E `161/161`؛ PostgreSQL 16 `96/96`؛ PGlite `41/41`؛ Pages Run #151 (`43467237937`) SUCCESS. Chapter Workspace والتكامل الأساسي اجتازا CI، مع وجود حدود معلنة لم تثبت بعد بعض رحلات إنشاء الموارد من واجهة المستخدم.  
-**تقرير WP 6.4:** [PHASE_6_WP_6_4_REPORT.md](PHASE_6_WP_6_4_REPORT.md) — **CI VERIFIED — TECHNICALLY COMPLETE** على SHA `d7010ff03ac8db3f401f4a4a38a822dca760709d`؛ CI #56 (`43480486440`) نجح بإجمالي **`787/787`**، منها Chromium E2E `167/167` وPostgreSQL 16.16 `96/96` وPGlite `41/41` وWP6.4 unit `5/5`؛ Pages #153 (`43480485880`) SUCCESS.  
-**تقرير WP 6.5:** [PHASE_6_WP_6_5_REPORT.md](PHASE_6_WP_6_5_REPORT.md) — **`CI VERIFIED — TECHNICALLY COMPLETE`** على Source SHA `7482dcd23db314b14f8fa09ebd473b48c09bb4ec`؛ CI #60 (`43582133533`) **SUCCESS** بإجمالي **`837/837`**؛ Pages #158 (`43582132737`) **SUCCESS**. *(مع الاحتفاظ بسجل تعثّر CI #59 السابق على `1a8309d` في `S6.4`، والتنبيه أن CI تحقق تقني لا يعني `APPROVED` ولا يثبت خدمات الإنتاج الحية مكان mocks).*  
-**تقرير WP 6.6:** [PHASE_6_WP_6_6_REPORT.md](PHASE_6_WP_6_6_REPORT.md) — **`CI VERIFIED — TECHNICALLY COMPLETE`** على Source SHA `f4b4ac3fd33d0b81a8ad5e2d745887bfd7078c3a`؛ CI #61 [(`43586175424`)](https://github.com/JemistryMC/study-hub/actions/runs/43586175424) **SUCCESS — `864/864 PASSED`**.  
-**تقرير WP 6.7:** [PHASE_6_WP_6_7_REPORT.md](PHASE_6_WP_6_7_REPORT.md) — **`CI VERIFIED — TECHNICAL GATE PASSED; OWNER VISUAL/PRODUCT ACCEPTANCE PENDING`** على SHA `efcc665a84790172874fbb813eea7e9da21b099e`؛ CI #64 `927/927` وPages #164 SUCCESS. تشمل الأدلة اختبارات WP 6.7 Unit `13/13` وChromium E2E `50/50`، مع بقاء إعادة البناء الفني وقبول المالك النهائي قيد المراجعة.  
-**تقرير WP 6.8:** [PHASE_6_WP_6_8_REPORT.md](PHASE_6_WP_6_8_REPORT.md) — CI VERIFIED — TECHNICAL GATE PASSED; P0 LIVE FREEZE REPRODUCED BY OWNER; NOT FIXED على source SHA c4c2b430564efff3172f1e9003f7a6ab479c271a (CI #66 SUCCESS؛ Pages #174 SUCCESS). المالك اختبر النسخة المنشورة وأكد استمرار التجمّد؛ راجع Section 8. كما أن مقارنة JSON والتقرير تحتاج reconciliation قبل اعتماد الأرقام الدقيقة.
-**Scope holds:** Proposal A (المجموعات المختلطة ونموذج الموارد) وProposal B (تعدد أوراق الملاحظات في الصفحة) موثقان كـ`HELD FOR SEPARATE OWNER REVIEW — NOT IMPLEMENTED IN CODE`؛ لا تنفذ أي تغييرات تخزين أو مزامنة مرتبطة بهما دون تفويض صريح مستقل.  
-**ملاحظة المالك (2026-11-13):** المطلوب إعادة تصميم تجربة العمل لا مجرد Skin؛ يجب أن تبرهن كل حزمة على تغييرات فعلية في رحلة المستخدم والتفاعل وسلوك النظام، مع Before/After evidence.
+**Final Release Preparation** — لا ميزات جديدة ولا إعادة تصميم. اعتماد المنتج من المالك مكتمل. البوابات الوظيفية الحية الأساسية (Supabase/OCC وDrive وBackup/Restore والمزامنة بين الجلسات) مؤكدة؛ المتبقي التحقق الحي من مرشح الإصدار وPWA ثم إجراءات الإصدار الرسمي. تفاصيل Go/No-Go الحالية في [FINAL_RELEASE_READINESS.md](FINAL_RELEASE_READINESS.md). ما يلي من سجلات Work Packages السابقة توثيق تاريخي ولا يمثل المرحلة الحالية.
 
 ## حالة Phase 5.2 السابقة
 
