@@ -6,10 +6,11 @@
 > **مشكلة التجمّد:** RESOLVED — المالك أكد أنها حُلّت منذ وقت سابق؛ أي إشارات قديمة إلى أنها مفتوحة أدناه هي سجلات تاريخية وليست الحالة الحالية.
 > **Repository HEAD على `main`:** `a2ba2078c4e44bc34d976904b1f4c98dd5af3771` (دمج PR #3، توثيق فقط).
 > **آخر Source SHA اجتاز CI:** `cf47e5698a212c1e1ef64d837cf1987a807f337e`.
+> **مرشح النسخة المستقرة:** `1.4.2` على الفرع `release/v1.4.2`؛ تحديث package metadata فقط، وCI الكامل على المرشح قيد الانتظار.
 > **GitHub CI #79:** `44528632061` — SUCCESS على Source SHA؛ 1,177 assertion ناجحة وWP 7.1 Chromium E2E = 186/186.
 > **GitHub Pages #196:** `44528631312` — SUCCESS على Source SHA؛ وPages #197 `44534280479` — SUCCESS بعد دمج توثيق PR #3 على `main`.
 > **بوابات تم تأكيدها:** R0 (فحص Supabase البنيوي + الحفظ/Reload + اختبار OCC على PostgreSQL 16)، R1-a (Google OAuth/Drive ورفع/استرجاع ملف بحساب اختبار VIP)، R2 (المزامنة بين جلستين/جهازين)، R3 (Backup/Restore) — حسب تأكيد المالك.
-> **المتبقي:** R4 (Smoke test حي لمرشح الإصدار وPWA)، R5 (رقم stable + CI للمرشح + Tag + GitHub Release).
+> **المتبقي:** R4 (Smoke test حي للمرشح المنشور وPWA)، R5-b/R5-c (نجاح CI، دمج المرشح، ثم Tag وGitHub Release).
 > **المرحلة الحالية:** Final Release Preparation — لا ميزات أو إعادة تصميم إضافية.
 > **قرار النشر:** NO-GO حتى إغلاق البنود المتبقية أعلاه.
 > **المرجع التنفيذي الحالي:** [FINAL_RELEASE_READINESS.md](FINAL_RELEASE_READINESS.md).
