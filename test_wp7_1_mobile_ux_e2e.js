@@ -407,6 +407,8 @@ async function main() {
 
   const screenshotDir = path.join(__dirname, '.playwright-cli', 'wp7-1', 'after');
   fs.mkdirSync(screenshotDir, { recursive: true });
+  const correctiveShotDir = path.join(__dirname, 'reports', 'screenshots', 'wp7-1-corrective');
+  fs.mkdirSync(correctiveShotDir, { recursive: true });
 
   const pdfB64 = buildMinimalMultiPagePdfBytes(3).toString('base64');
   const wavB64 = buildMinimalWavBytes(400).toString('base64');
@@ -1042,8 +1044,10 @@ async function main() {
 
           if (vp.tag === '360') {
             await sc.page.screenshot({ path: path.join(screenshotDir, `after-scroll-360-${pos.name}.png`) });
+            await sc.page.screenshot({ path: path.join(correctiveShotDir, `sticky-topbar-360-${pos.name}.png`) });
           } else if (pos.name === 'mid') {
             await sc.page.screenshot({ path: path.join(screenshotDir, `after-scroll-390-subjects-mid.png`) });
+            await sc.page.screenshot({ path: path.join(correctiveShotDir, `sticky-topbar-390-subjects.png`) });
           }
         }
 
@@ -1090,6 +1094,7 @@ async function main() {
         assert(plannerHit.ok, `${vp.tag} Planner bottom scroll: .navbar remains pinned above content (top=${plannerHit.top})`);
         if (vp.tag === '390') {
           await sc.page.screenshot({ path: path.join(screenshotDir, 'after-scroll-390-planner-bottom.png') });
+          await sc.page.screenshot({ path: path.join(correctiveShotDir, 'sticky-topbar-390-planner.png') });
         }
 
         assert(sc.pageErrors.length === 0 && sc.consoleErrors.length === 0, `${vp.tag} scroll session zero runtime errors`);
@@ -1113,65 +1118,122 @@ async function main() {
       await studioPage.page.waitForTimeout(350);
 
       const studioViewports = [
-        { width: 320, height: 720, lang: 'en', shot: null },
-        { width: 360, height: 740, lang: 'en', shot: 'after-pdf-badge-360.png' },
-        { width: 390, height: 844, lang: 'en', shot: 'after-pdf-badge-390.png' },
-        { width: 390, height: 844, lang: 'ar', shot: null },
-        { width: 768, height: 1024, lang: 'en', shot: null },
-        { width: 1440, height: 900, lang: 'en', shot: null }
+        { width: 320, height: 720, lang: 'en', shot: null, cShot: 'pdf-studio-320-en.png' },
+        { width: 320, height: 720, lang: 'ar', shot: null, cShot: null },
+        { width: 360, height: 740, lang: 'en', shot: 'after-pdf-badge-360.png', cShot: 'pdf-studio-360-en.png' },
+        { width: 360, height: 740, lang: 'ar', shot: null, cShot: null },
+        { width: 390, height: 844, lang: 'en', shot: 'after-pdf-badge-390.png', cShot: 'pdf-studio-390-en.png' },
+        { width: 390, height: 844, lang: 'ar', shot: null, cShot: 'pdf-studio-390-ar.png' },
+        { width: 768, height: 1024, lang: 'en', shot: null, cShot: null },
+        { width: 1440, height: 900, lang: 'en', shot: null, cShot: null }
       ];
 
-      for (const sv of studioViewports) {
-        await studioPage.page.setViewportSize({ width: sv.width, height: sv.height });
-        await studioPage.page.evaluate((lng) => {
-          if (typeof applyExoLanguage === 'function') applyExoLanguage(lng, false);
-          if (typeof exoWp64Diagnostics !== 'undefined') {
-            exoWp64Diagnostics.recordIncident('cloud_sync', { status: 401, message: 'Unauthorized' }, { domain: 'cloud_sync' });
-          }
-          if (typeof exoRefreshStudioSaveBadge === 'function') exoRefreshStudioSaveBadge();
-        }, sv.lang);
-        await studioPage.page.waitForTimeout(180);
-
-        const badgeCheck = await studioPage.page.evaluate(() => {
+      async function inspectStudioHeaderGeometry(page) {
+        return page.evaluate(() => {
           const badge = document.getElementById('pdfAutoSaveStatus');
           const header = document.querySelector('.pdf-viewer-header');
           const navCap = document.querySelector('.pdf-unified-nav-capsule');
           const headerRect = header ? header.getBoundingClientRect() : { height: 0 };
-          const bRect = badge ? badge.getBoundingClientRect() : { width: 0, height: 0, right: 0, left: 0 };
+          const bRect = badge ? badge.getBoundingClientRect() : { width: 0, height: 0, left: 0, right: 0, top: 0, bottom: 0 };
           const navRect = navCap ? navCap.getBoundingClientRect() : null;
-          const isRtl = document.documentElement.dir === 'rtl';
-          const noBadgeOverlap = !navRect || (isRtl ? (navRect.right <= bRect.left + 1) : (bRect.right <= navRect.left + 1));
+          // True 2D bounding-box intersection check (direction-agnostic across LTR & RTL)
+          const rawOverlapX = navRect ? (Math.min(bRect.right, navRect.right) - Math.max(bRect.left, navRect.left)) : -999;
+          const rawOverlapY = navRect ? (Math.min(bRect.bottom, navRect.bottom) - Math.max(bRect.top, navRect.top)) : -999;
+          const intersectX = navRect ? Math.max(0, rawOverlapX) : 0;
+          const intersectY = navRect ? Math.max(0, rawOverlapY) : 0;
+          const overlapArea = Math.round(intersectX * intersectY);
+          const rectsIntersect = Boolean(navRect && intersectX > 1 && intersectY > 1);
+          const noBadgeOverlap = !rectsIntersect;
           const bs = badge ? getComputedStyle(badge) : null;
+          const ns = navCap ? getComputedStyle(navCap) : null;
+          const hs = header ? getComputedStyle(header) : null;
           const visibleHeaderBtns = header ? Array.from(header.querySelectorAll('button')).filter(b => b.offsetParent !== null) : [];
           const smallHeaderBtns = visibleHeaderBtns.filter(b => {
             const r = b.getBoundingClientRect();
             return r.width < 43.5 || r.height < 43.5;
           }).map(b => `${b.id || b.title}(${Math.round(b.getBoundingClientRect().width)}x${Math.round(b.getBoundingClientRect().height)})`);
           return {
+            dir: document.documentElement.dir || 'ltr',
             visible: Boolean(badge && badge.offsetParent !== null && bs && bs.display !== 'none' && bRect.width > 20),
-            notTruncated: Boolean(badge && badge.scrollWidth <= (badge.clientWidth + 2)),
+            notTruncatedX: Boolean(badge && badge.scrollWidth <= (badge.clientWidth + 2)),
+            notTruncatedY: Boolean(badge && badge.scrollHeight <= (badge.clientHeight + 2)),
             noBadgeOverlap,
-            badgeRight: Math.round(bRect.right),
-            navLeft: navRect ? Math.round(navRect.left) : -1,
+            rectsIntersect,
+            intersectX: Math.round(intersectX),
+            intersectY: Math.round(intersectY),
+            overlapArea,
+            gapX: navRect ? Math.round(-rawOverlapX) : -1,
+            badgeRect: { l: Math.round(bRect.left), r: Math.round(bRect.right), t: Math.round(bRect.top), b: Math.round(bRect.bottom), w: Math.round(bRect.width), h: Math.round(bRect.height) },
+            navRect: navRect ? { l: Math.round(navRect.left), r: Math.round(navRect.right), t: Math.round(navRect.top), b: Math.round(navRect.bottom), w: Math.round(navRect.width), h: Math.round(navRect.height) } : null,
             scrollW: badge ? badge.scrollWidth : -1,
             clientW: badge ? badge.clientWidth : -1,
+            scrollH: badge ? badge.scrollHeight : -1,
+            clientH: badge ? badge.clientHeight : -1,
             badgeText: badge ? badge.textContent.trim() : '',
             headerHeight: Math.round(headerRect.height),
             smallHeaderBtns,
-            overflow: document.documentElement.scrollWidth > window.innerWidth + 1
+            overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+            computedStyles: {
+              badge: bs ? { display: bs.display, fontSize: bs.fontSize, whiteSpace: bs.whiteSpace, maxWidth: bs.maxWidth, flex: bs.flex, padding: bs.padding } : null,
+              nav: ns ? { display: ns.display, padding: ns.padding, gap: ns.gap, flexShrink: ns.flexShrink } : null,
+              header: hs ? { display: hs.display, height: hs.height, padding: hs.padding, gap: hs.gap } : null
+            }
           };
         });
+      }
 
-        assert(badgeCheck.visible && badgeCheck.notTruncated && badgeCheck.noBadgeOverlap && !badgeCheck.overflow,
-          `${sv.width}x${sv.height} (${sv.lang}): #pdfAutoSaveStatus visible, unclipped & non-overlapping (${badgeCheck.scrollW}<=${badgeCheck.clientW}+2, right=${badgeCheck.badgeRight}<=nav=${badgeCheck.navLeft}, text="${badgeCheck.badgeText}")`, JSON.stringify(badgeCheck));
+      for (const sv of studioViewports) {
+        await studioPage.page.setViewportSize({ width: sv.width, height: sv.height });
+        await studioPage.page.evaluate((lng) => {
+          if (typeof applyExoLanguage === 'function') applyExoLanguage(lng, false);
+          if (typeof updatePdfPageCounterUI === 'function') updatePdfPageCounterUI(currentActivePageNum || 1);
+          if (typeof exoWp64Diagnostics !== 'undefined') {
+            exoWp64Diagnostics.recordIncident('cloud_sync', { status: 401, message: 'Unauthorized' }, { domain: 'cloud_sync' });
+          }
+          if (typeof exoUpdatePdfAutoSaveBadge === 'function') exoUpdatePdfAutoSaveBadge();
+        }, sv.lang);
+        await studioPage.page.waitForTimeout(180);
+
+        const badgeCheck = await inspectStudioHeaderGeometry(studioPage.page);
+
+        assert(badgeCheck.visible && badgeCheck.notTruncatedX && badgeCheck.notTruncatedY && badgeCheck.noBadgeOverlap && badgeCheck.overlapArea === 0 && !badgeCheck.overflow,
+          `${sv.width}x${sv.height} (${sv.lang}): #pdfAutoSaveStatus visible, unclipped & 2D non-overlapping (dir=${badgeCheck.dir}, overlapArea=${badgeCheck.overlapArea}px2, gapX=${badgeCheck.gapX}px, badge=${JSON.stringify(badgeCheck.badgeRect)}, nav=${JSON.stringify(badgeCheck.navRect)}, text="${badgeCheck.badgeText}")`, JSON.stringify(badgeCheck));
         if (sv.width < 768) {
           assert(badgeCheck.headerHeight <= 56 && badgeCheck.smallHeaderBtns.length === 0,
-            `${sv.width}x${sv.height}: Studio mobile header <=56px (${badgeCheck.headerHeight}px) and header buttons >=44px (${badgeCheck.smallHeaderBtns.join(',')})`);
+            `${sv.width}x${sv.height} (${sv.lang}): Studio mobile header <=56px (${badgeCheck.headerHeight}px) and header buttons >=44px (${badgeCheck.smallHeaderBtns.join(',')})`);
         }
         if (sv.shot) {
           await studioPage.page.screenshot({ path: path.join(screenshotDir, sv.shot) });
         }
+        if (sv.cShot) {
+          await studioPage.page.screenshot({ path: path.join(correctiveShotDir, sv.cShot) });
+        }
       }
+
+      // Also verify worst-case longest sync-issue badge ("Saved on device · Sync issue" / Arabic) on 320px & 390px EN/AR
+      for (const lv of [
+        { width: 320, height: 720, lang: 'en' },
+        { width: 320, height: 720, lang: 'ar' },
+        { width: 390, height: 844, lang: 'en' },
+        { width: 390, height: 844, lang: 'ar' }
+      ]) {
+        await studioPage.page.setViewportSize({ width: lv.width, height: lv.height });
+        await studioPage.page.evaluate((lng) => {
+          currentCloudUser = { id: 'studio-geo-uid', email: 'geo@example.com' };
+          if (typeof exoRuntimeStatusState !== 'undefined') exoRuntimeStatusState.localVerified = true;
+          if (typeof applyExoLanguage === 'function') applyExoLanguage(lng, false);
+          if (typeof updatePdfPageCounterUI === 'function') updatePdfPageCounterUI(currentActivePageNum || 1);
+          if (typeof exoWp64Diagnostics !== 'undefined') {
+            exoWp64Diagnostics.recordIncident('cloud_sync', { status: 401, message: 'Unauthorized' }, { domain: 'cloud_sync' });
+          }
+          if (typeof exoUpdatePdfAutoSaveBadge === 'function') exoUpdatePdfAutoSaveBadge();
+        }, lv.lang);
+        await studioPage.page.waitForTimeout(140);
+        const longCheck = await inspectStudioHeaderGeometry(studioPage.page);
+        assert(longCheck.visible && longCheck.notTruncatedX && longCheck.notTruncatedY && longCheck.noBadgeOverlap && longCheck.overlapArea === 0 && !longCheck.overflow && longCheck.headerHeight <= 56 && longCheck.smallHeaderBtns.length === 0,
+          `${lv.width}x${lv.height} (${lv.lang}) long sync-issue badge: 2D non-overlapping, unclipped & <=56px header (overlapArea=${longCheck.overlapArea}px2, gapX=${longCheck.gapX}px, text="${longCheck.badgeText}")`, JSON.stringify(longCheck));
+      }
+      await studioPage.page.evaluate(() => { currentCloudUser = null; });
 
       // Reset diagnostic + exercise core Studio features (Pen stroke, Zoom, Extra Note Sheet, Chapter Context in More Menu)
       await studioPage.page.setViewportSize({ width: 390, height: 844 });
@@ -1436,6 +1498,7 @@ async function main() {
       }
       await drv.page.waitForTimeout(260);
       await drv.page.screenshot({ path: path.join(screenshotDir, 'after-drive-9states.png') });
+      await drv.page.screenshot({ path: path.join(correctiveShotDir, 'help-center-drive-9states.png') });
       await drv.page.click('#driveHubModalCloseBtn');
       await drv.page.waitForTimeout(120);
 
@@ -1517,7 +1580,7 @@ async function main() {
         '#pdfMenuHelpBtn opens Help Center directly to Pane 3');
       await drv.page.evaluate(() => closePdfViewer());
 
-      // Check Quick Actions Bar, Search Empty State recovery chip, VIP details button, WhatsApp href, Demo Loader, and capture after-help-checklist.png
+      // Check Quick Actions Bar, Search Empty State recovery chip, VIP details button, WhatsApp href, Demo Loader, and capture checklist screenshot
       await drv.page.evaluate(() => { openHelpModal(1); });
       await drv.page.waitForTimeout(200);
       const helpControls = await drv.page.evaluate(() => {
@@ -1526,19 +1589,56 @@ async function main() {
         const quickBtns = Array.from(document.querySelectorAll('#helpQuickActionsBar button[data-help-action]'));
         return {
           waHref: wa ? wa.getAttribute('href') : '',
+          waTarget: wa ? wa.getAttribute('target') : '',
+          waRel: wa ? wa.getAttribute('rel') : '',
           hasNextBtn: Boolean(nextBtn),
+          quickIds: quickBtns.map(b => b.getAttribute('data-help-action')),
           quickCount: quickBtns.length,
           demoBtnExists: Boolean(document.getElementById('helpLoadDemoDataBtn')),
           vipBtnExists: Boolean(document.getElementById('helpVipDetailsBtn'))
         };
       });
-      assert(helpControls.waHref.includes('wa.me/201552795922') && helpControls.hasNextBtn && helpControls.quickCount === 8 && helpControls.demoBtnExists && helpControls.vipBtnExists,
-        `Help Center controls (WhatsApp CTA, Checklist Next Step, 8 Quick Actions, Demo Loader, VIP Details) present & wired (quickCount=${helpControls.quickCount})`);
+      assert(helpControls.waHref.includes('wa.me/201552795922') && helpControls.waTarget === '_blank' && String(helpControls.waRel || '').includes('noopener') && helpControls.hasNextBtn && helpControls.quickCount === 8 && helpControls.demoBtnExists && helpControls.vipBtnExists,
+        `Help Center controls (WhatsApp CTA href/target/rel, Checklist Next Step, 8 Quick Actions, Demo Loader, VIP Details) present & wired (quickCount=${helpControls.quickCount})`);
       await drv.page.screenshot({ path: path.join(screenshotDir, 'after-help-checklist.png') });
-
-      // Test Help search empty state + recovery chip reset
-      await drv.page.fill('#helpSearchInput', 'zzznonexistentquery71');
+      await drv.page.evaluate(() => {
+        const cl = document.getElementById('helpGettingStartedChecklistMount');
+        if (cl) cl.scrollIntoView({ behavior: 'instant', block: 'start' });
+      });
       await drv.page.waitForTimeout(120);
+      await drv.page.screenshot({ path: path.join(correctiveShotDir, 'help-center-checklist.png') });
+      await drv.page.evaluate(() => {
+        const body = document.querySelector('#helpModalOverlay .eg-modal-body');
+        if (body) body.scrollTop = 0;
+      });
+
+      // Navigate across ALL 6 Help Center modules via real UI clicks
+      for (let modNum = 1; modNum <= 6; modNum++) {
+        await drv.page.click(`#acadNav_${modNum}`);
+        await drv.page.waitForTimeout(90);
+        const modOk = await drv.page.evaluate((n) => {
+          const pane = document.getElementById(`acadPane_${n}`);
+          const nav = document.getElementById(`acadNav_${n}`);
+          return Boolean(pane && pane.classList.contains('active') && nav && nav.classList.contains('active') && pane.innerText.trim().length > 40);
+        }, modNum);
+        assert(modOk, `Help Center Module ${modNum} (#acadNav_${modNum} -> #acadPane_${modNum}) activates via real UI click with populated content`);
+      }
+
+      // Verify WhatsApp CTA is visible & correctly targeted inside Module 6 without sending a message
+      const waLive = await drv.page.evaluate(() => {
+        const wa = document.querySelector('#acadPane_6 a.whatsapp-cta-btn');
+        if (!wa) return { ok: false };
+        const r = wa.getBoundingClientRect();
+        return {
+          ok: wa.offsetParent !== null && r.width > 60 && r.height >= 36 && wa.getAttribute('href') === 'https://wa.me/201552795922' && wa.getAttribute('target') === '_blank',
+          href: wa.getAttribute('href')
+        };
+      });
+      assert(waLive.ok, `Help Center WhatsApp CTA visible in Module 6 with safe target URL (${waLive.href}) — verified without sending`);
+
+      // Test Help search empty state + real Recovery Chip click restores matching content
+      await drv.page.fill('#helpSearchInput', 'zzznonexistentquery71');
+      await drv.page.waitForTimeout(140);
       const emptyActive = await drv.page.evaluate(() => {
         const el = document.getElementById('helpSearchEmptyState');
         return Boolean(el && getComputedStyle(el).display !== 'none' && el.querySelector('button'));
@@ -1546,25 +1646,211 @@ async function main() {
       assert(emptyActive, 'Help Center search empty state renders recovery chips on unmatched query');
       if (emptyActive) {
         await drv.page.click('#helpSearchEmptyState button');
-        await drv.page.waitForTimeout(120);
+        await drv.page.waitForTimeout(140);
+        const recovered = await drv.page.evaluate(() => {
+          const inp = document.getElementById('helpSearchInput');
+          const el = document.getElementById('helpSearchEmptyState');
+          const visiblePanes = Array.from(document.querySelectorAll('#helpModalOverlay .academy-module-pane')).filter(p => getComputedStyle(p).display !== 'none').length;
+          return {
+            query: inp ? inp.value : '',
+            emptyHidden: !el || getComputedStyle(el).display === 'none',
+            visiblePanes
+          };
+        });
+        assert(Boolean(recovered.query && recovered.emptyHidden && recovered.visiblePanes >= 1),
+          `Clicking Help search recovery chip populates query ("${recovered.query}"), hides empty state, and displays matching guide pane`);
       }
 
-      // Test Quick Action button navigation cleanly closes Help Center & opens Library
-      await drv.page.click('#helpQuickActionsBar button[data-help-action="go_library"]');
-      await drv.page.waitForTimeout(150);
-      assert(await drv.page.evaluate(() => !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('subjects')?.classList.contains('active')),
-        'Help Quick Action (go_library) closes Help Center & opens Subjects Library');
+      // Verify Bilingual Search (EN & AR integrity)
+      await drv.page.evaluate(() => { if (typeof applyExoLanguage === 'function') applyExoLanguage('ar', false); });
+      await drv.page.waitForTimeout(120);
+      await drv.page.fill('#helpSearchInput', 'نسخ');
+      await drv.page.waitForTimeout(140);
+      const arSearchCheck = await drv.page.evaluate(() => {
+        const emptyEl = document.getElementById('helpSearchEmptyState');
+        const activePane = document.querySelector('#helpModalOverlay .academy-module-pane.active');
+        return {
+          dir: document.documentElement.dir,
+          emptyHidden: !emptyEl || getComputedStyle(emptyEl).display === 'none',
+          hasArabicContent: Boolean(activePane && /[\u0600-\u06FF]/.test(activePane.innerText))
+        };
+      });
+      assert(arSearchCheck.dir === 'rtl' && arSearchCheck.emptyHidden && arSearchCheck.hasArabicContent,
+        `Help Center Arabic bilingual search ("نسخ") works cleanly in RTL mode with Arabic content`);
+      await drv.page.evaluate(() => {
+        if (typeof applyExoLanguage === 'function') applyExoLanguage('en', false);
+        const inp = document.getElementById('helpSearchInput');
+        if (inp) inp.value = '';
+        if (typeof filterHelpCenterContent === 'function') filterHelpCenterContent('', true);
+      });
+      await drv.page.waitForTimeout(120);
+
+      // Independently execute ALL 8 Help Center Quick Actions via real UI clicks
+      const takeUserDataSnapshot = () => drv.page.evaluate(() => JSON.stringify({
+        subjects: (subjects || []).map(s => ({ id: s.id, name: s.name })),
+        events: (scheduleEvents || []).map(e => ({ id: e.id, title: e.title })),
+        goals: (scheduleBacklog || []).map(g => ({ id: g.id, title: g.title })),
+        logs: (logs || []).map(l => ({ id: l.id, text: l.text }))
+      }));
+
+      const quickActionSpecs = [
+        {
+          id: 'go_library',
+          verify: () => drv.page.evaluate(() => ({
+            ok: !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('subjects')?.classList.contains('active'),
+            detail: 'subjects view active'
+          }))
+        },
+        {
+          id: 'add_session',
+          waitMs: 220,
+          verify: () => drv.page.evaluate(() => ({
+            ok: !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('schedule')?.classList.contains('active') && document.getElementById('sessionModalOverlay')?.classList.contains('active'),
+            detail: 'schedule + #sessionModalOverlay active'
+          })),
+          cleanup: () => drv.page.evaluate(() => closeModal('sessionModalOverlay'))
+        },
+        {
+          id: 'go_planner',
+          verify: () => drv.page.evaluate(() => ({
+            ok: !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('schedule')?.classList.contains('active') && document.getElementById('schPillToday')?.classList.contains('active'),
+            detail: 'schedule + Today pill active'
+          }))
+        },
+        {
+          id: 'go_goals',
+          verify: () => drv.page.evaluate(() => ({
+            ok: !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('schedule')?.classList.contains('active') && document.getElementById('schPillTasks')?.classList.contains('active'),
+            detail: 'schedule + Weekly Goals pill active'
+          }))
+        },
+        {
+          id: 'go_tracker',
+          verify: () => drv.page.evaluate(() => ({
+            ok: !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('tracker')?.classList.contains('active'),
+            detail: 'tracker view active'
+          }))
+        },
+        {
+          id: 'open_account',
+          verify: () => drv.page.evaluate(() => ({
+            ok: !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('cloudAuthModalOverlay')?.classList.contains('active'),
+            detail: '#cloudAuthModalOverlay active'
+          })),
+          cleanup: () => drv.page.evaluate(() => closeModal('cloudAuthModalOverlay'))
+        },
+        {
+          id: 'open_drive',
+          verify: () => drv.page.evaluate(() => ({
+            ok: !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('driveHubModalOverlay')?.classList.contains('active'),
+            detail: '#driveHubModalOverlay active'
+          })),
+          cleanup: () => drv.page.evaluate(() => closeGoogleDriveHubModal())
+        },
+        {
+          id: 'export_backup',
+          waitMs: 360,
+          beforeClick: () => drv.page.evaluate(() => {
+            window.__wp71ExportClicks = [];
+            if (!window.__wp71OrigAnchorClick) {
+              window.__wp71OrigAnchorClick = HTMLAnchorElement.prototype.click;
+            }
+            HTMLAnchorElement.prototype.click = function() {
+              if (this.download && this.download.includes('Exo_Workspace_Backup')) {
+                window.__wp71ExportClicks.push(this.download);
+                return;
+              }
+              return window.__wp71OrigAnchorClick.apply(this, arguments);
+            };
+          }),
+          verify: () => drv.page.evaluate(() => ({
+            ok: !document.getElementById('helpModalOverlay')?.classList.contains('active') && Array.isArray(window.__wp71ExportClicks) && window.__wp71ExportClicks.length >= 1 && Number(exoRuntimeStatusState.lastBackupExportedAt || 0) > 0,
+            detail: `downloaded=${JSON.stringify(window.__wp71ExportClicks || [])}`
+          })),
+          cleanup: () => drv.page.evaluate(() => {
+            if (window.__wp71OrigAnchorClick) {
+              HTMLAnchorElement.prototype.click = window.__wp71OrigAnchorClick;
+            }
+          })
+        }
+      ];
+
+      for (const qa of quickActionSpecs) {
+        const beforeSnap = await takeUserDataSnapshot();
+        const errBefore = drv.pageErrors.length + drv.consoleErrors.length;
+        await drv.page.evaluate(() => { openHelpModal(1); });
+        await drv.page.waitForSelector('#helpModalOverlay.active', { timeout: 4000 });
+        if (qa.beforeClick) await qa.beforeClick();
+        await drv.page.click(`#helpQuickActionsBar button[data-help-action="${qa.id}"]`);
+        await drv.page.waitForTimeout(qa.waitMs || 160);
+        const res = await qa.verify();
+        const afterSnap = await takeUserDataSnapshot();
+        const errAfter = drv.pageErrors.length + drv.consoleErrors.length;
+        assert(res.ok && beforeSnap === afterSnap && errAfter === errBefore,
+          `Help Quick Action [${qa.id}] executes cleanly via real click (${res.detail}), closes Help Center, zero data mutation & zero runtime errors`,
+          JSON.stringify({ res, mutated: beforeSnap !== afterSnap, newErrors: errAfter - errBefore }));
+        if (qa.cleanup) {
+          await qa.cleanup();
+          await drv.page.waitForTimeout(100);
+        }
+      }
+
+      // Test Checklist Next Step button via real click (closes Help Center & routes to next incomplete step without data mutation)
+      {
+        const beforeSnap = await takeUserDataSnapshot();
+        await drv.page.evaluate(() => { openHelpModal(1); });
+        await drv.page.waitForSelector('#helpModalOverlay.active', { timeout: 4000 });
+        const nextActionTarget = await drv.page.evaluate(() => {
+          const btn = document.querySelector('#helpGettingStartedChecklistMount .exo-help-checklist-head button');
+          return btn ? (btn.getAttribute('onclick') || '') : '';
+        });
+        await drv.page.click('#helpGettingStartedChecklistMount .exo-help-checklist-head button');
+        await drv.page.waitForTimeout(180);
+        const afterSnap = await takeUserDataSnapshot();
+        const closedCleanly = await drv.page.evaluate(() => !document.getElementById('helpModalOverlay')?.classList.contains('active'));
+        assert(closedCleanly && beforeSnap === afterSnap && nextActionTarget.includes('exoExecuteHelpAction'),
+          `Help Checklist "Continue Next Step" button clicks cleanly (${nextActionTarget}), closes modal & mutates zero user data`);
+        // Close any modal that Next Step may have opened (e.g., cloud auth / session / drive)
+        await drv.page.evaluate(() => {
+          ['cloudAuthModalOverlay', 'driveHubModalOverlay', 'sessionModalOverlay', 'vipMediaLockModalOverlay'].forEach(id => {
+            if (typeof closeModal === 'function') closeModal(id);
+          });
+        });
+      }
 
       await drv.page.evaluate(() => { openHelpModal(6); });
       await drv.page.waitForTimeout(120);
       await drv.page.click('#helpVipDetailsBtn');
       await drv.page.waitForTimeout(150);
-      assert(await drv.page.evaluate(() => document.getElementById('vipMediaLockModalOverlay')?.classList.contains('active')),
-        '#helpVipDetailsBtn opens #vipMediaLockModalOverlay cleanly');
+      assert(await drv.page.evaluate(() => !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('vipMediaLockModalOverlay')?.classList.contains('active')),
+        '#helpVipDetailsBtn closes Help Center & opens #vipMediaLockModalOverlay cleanly');
       await drv.page.keyboard.press('Escape');
 
       assert(drv.pageErrors.length === 0 && drv.consoleErrors.length === 0, 'Drive 9-state + Sync reload + Help Control audit zero runtime errors');
       await drv.context.close();
+
+      // 9d. Isolated Context Verification for Help Center Demo Data Loader (#helpLoadDemoDataBtn)
+      const demoCtx = await openFreshPage(browser, { width: 390, height: 844 });
+      await demoCtx.page.evaluate(() => { openHelpModal(1); });
+      await demoCtx.page.waitForSelector('#helpModalOverlay.active', { timeout: 4000 });
+      await demoCtx.page.click('#helpLoadDemoDataBtn');
+      await demoCtx.page.waitForSelector('#confirmModalOverlay.active', { timeout: 4000 });
+      const confirmShown = await demoCtx.page.evaluate(() => document.getElementById('confirmModalOverlay')?.classList.contains('active'));
+      assert(confirmShown, 'Isolated Demo Data Loader (#helpLoadDemoDataBtn) opens confirmation dialog before replacing workspace');
+      await demoCtx.page.click('#confirmModalBtn');
+      await demoCtx.page.waitForTimeout(260);
+      const demoCheck = await demoCtx.page.evaluate(() => {
+        const snap = exoCollectHelpChecklistSnapshot();
+        const cl = deriveHelpGettingStartedChecklist(snap, true);
+        return {
+          subjectCount: (subjects || []).length,
+          allDemoTagged: (subjects || []).length >= 3 && (subjects || []).every(s => s && s._isDemoSample === true),
+          checklistDone: cl.completedCount
+        };
+      });
+      assert(demoCheck.allDemoTagged && demoCheck.checklistDone === 0 && demoCtx.pageErrors.length === 0 && demoCtx.consoleErrors.length === 0,
+        `Isolated Demo Data Loader populates tagged sample library (${demoCheck.subjectCount} subjects), keeps checklist at 0/7 (no fake progress) & zero runtime errors`);
+      await demoCtx.context.close();
     }
 
   } finally {

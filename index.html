@@ -8024,16 +8024,19 @@
                 align-items: center !important;
                 gap: 4px !important;
                 min-width: 0 !important;
-                flex: 1 1 auto !important;
+                flex: 1 1 0% !important;
                 overflow: visible !important;
             }
             .pdf-viewer-header .pdf-header-title-badge-wrap {
-                flex: 1 1 auto !important;
+                flex: 1 1 0% !important;
                 min-width: 0 !important;
+                max-width: 100% !important;
                 overflow: visible !important;
                 gap: 6px !important;
             }
             #pdfViewerTitle {
+                flex: 0 1 95px !important;
+                min-width: 0 !important;
                 max-width: 95px !important;
                 font-size: 0.78rem !important;
                 white-space: nowrap !important;
@@ -8043,18 +8046,25 @@
             .pdf-viewer-header #pdfAutoSaveStatus {
                 display: inline-flex !important;
                 align-items: center !important;
-                flex: 0 0 auto !important;
-                min-width: max-content !important;
-                max-width: none !important;
-                width: max-content !important;
+                flex: 0 1 auto !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                width: auto !important;
                 overflow: visible !important;
                 text-overflow: clip !important;
-                white-space: nowrap !important;
+                white-space: normal !important;
+                overflow-wrap: break-word !important;
+                line-height: 1.18 !important;
                 font-size: 0.66rem !important;
                 padding: 3px 8px !important;
                 min-height: 26px !important;
                 max-height: 44px !important;
                 gap: 4px !important;
+            }
+            .pdf-viewer-header #pdfAutoSaveStatus > span {
+                min-width: 0 !important;
+                white-space: normal !important;
+                overflow: visible !important;
             }
             .exo-studio-back-chapter-btn {
                 min-width: 44px !important;
@@ -8085,24 +8095,39 @@
                     margin: 0 !important;
                     padding: 0 !important;
                 }
+                .pdf-page-counter-prefix {
+                    display: none !important;
+                }
                 .pdf-viewer-header {
                     padding: 2px 4px !important;
-                    gap: 3px !important;
+                    gap: 4px !important;
                 }
                 .pdf-viewer-header #pdfAutoSaveStatus {
-                    max-width: none !important;
-                    min-width: max-content !important;
-                    width: max-content !important;
+                    max-width: 100% !important;
+                    min-width: 0 !important;
+                    width: auto !important;
                     overflow: visible !important;
                     text-overflow: clip !important;
-                    white-space: nowrap !important;
-                    line-height: 1.15 !important;
+                    white-space: normal !important;
+                    overflow-wrap: break-word !important;
+                    line-height: 1.16 !important;
                     padding: 3px 6px !important;
-                    font-size: 0.60rem !important;
+                    font-size: 0.63rem !important;
                     min-height: 24px !important;
-                    max-height: 40px !important;
-                    border-radius: 9px !important;
-                    flex: 0 0 auto !important;
+                    max-height: 44px !important;
+                    border-radius: 8px !important;
+                    flex: 0 1 auto !important;
+                    gap: 4px !important;
+                }
+                .pdf-viewer-header #pdfAutoSaveStatus > span {
+                    min-width: 0 !important;
+                    white-space: normal !important;
+                    overflow: visible !important;
+                }
+                .pdf-viewer-header #pdfAutoSaveStatus svg {
+                    width: 11px !important;
+                    height: 11px !important;
+                    flex-shrink: 0 !important;
                 }
                 .pdf-unified-nav-capsule #pdfFullscreenBtn { display: none !important; }
                 #pdfBookmarkCurrentSlideBtn { display: none !important; }
@@ -8113,7 +8138,7 @@
             @media (max-width: 520px) {
                 .pdf-unified-nav-capsule button[onclick*="stepPdfPage"] { display: none !important; }
                 #pdfChapterContextToggleBtn { display: none !important; }
-                #pdfPageCounterBadge { min-width: 30px !important; padding: 2px 3px !important; font-size: 0.68rem !important; }
+                #pdfPageCounterBadge { min-width: 28px !important; padding: 2px 3px !important; font-size: 0.68rem !important; }
                 .exo-studio-back-chapter-btn {
                     width: 44px !important;
                     min-width: 44px !important;
@@ -8122,8 +8147,8 @@
                     padding: 4px !important;
                 }
                 .pdf-viewer-header #pdfAutoSaveStatus {
-                    font-size: 0.59rem !important;
-                    line-height: 1.12 !important;
+                    font-size: 0.62rem !important;
+                    line-height: 1.15 !important;
                     padding: 2px 6px !important;
                     gap: 3px !important;
                 }
@@ -8197,14 +8222,15 @@
                 .pdf-viewer-header #pdfAudioBarToggleBtn { display: none !important; }
             }
             @media (max-width: 345px) {
-                .pdf-viewer-header { padding: 4px 4px !important; gap: 2px !important; }
+                .pdf-viewer-header { padding: 2px 4px !important; gap: 3px !important; }
                 .pdf-viewer-header #pdfAutoSaveStatus {
-                    font-size: 0.54rem !important;
-                    padding: 2px 4px !important;
-                    gap: 2px !important;
+                    font-size: 0.60rem !important;
+                    padding: 2px 5px !important;
+                    gap: 3px !important;
+                    line-height: 1.14 !important;
                 }
-                .pdf-unified-nav-capsule { padding: 0 2px !important; }
-                #pdfPageCounterBadge { font-size: 0.61rem !important; min-width: 22px !important; padding: 2px 3px !important; }
+                .pdf-unified-nav-capsule { padding: 0 3px !important; }
+                #pdfPageCounterBadge { font-size: 0.66rem !important; min-width: 26px !important; padding: 2px 3px !important; }
             }
 
             /* 3. Floating Bottom Study Dock (.pdf-annotation-toolbar) */
@@ -13766,6 +13792,12 @@
                 gap: 4px !important;
                 overflow: visible !important;
             }
+            @media (max-width: 640px) {
+                .pdf-viewer-header {
+                    padding: 2px 4px !important;
+                    gap: 4px !important;
+                }
+            }
             .pdf-unified-nav-capsule #pdfFullscreenBtn,
             #pdfFullscreenBtn {
                 display: none !important;
@@ -13859,6 +13891,7 @@
                 position: absolute !important;
                 bottom: calc(72px + var(--safe-bottom)) !important;
                 left: 50% !important;
+                right: auto !important;
                 transform: translateX(-50%) !important;
                 width: min(calc(100vw - 16px), 440px) !important;
                 height: auto !important;
@@ -41529,13 +41562,21 @@ then(onFulfilled, onRejected) {
             showToast(`🎙️ تم اختيار ريكورد محاضرة: «${item.lec.title}»`);
         }
 
+        function exoSetPdfPageCounterText(badgeEl, current, total) {
+            if (!badgeEl) return;
+            const isEnPdf = (typeof exoGetLang === 'function' ? exoGetLang() : 'en') === 'en';
+            const prefix = isEnPdf ? 'Page ' : 'صفحة ';
+            badgeEl.innerHTML = `<span class="pdf-page-counter-val"><span class="pdf-page-counter-prefix">${prefix}</span>${current} / ${total}</span>`;
+            badgeEl.setAttribute('aria-label', isEnPdf ? `Page ${current} of ${total}` : `صفحة ${current} من ${total}`);
+        }
+
         function updateMergedSlideCounterUI(compositeKey) {
             if (!mergedContinuousPdfMode || mergedSlideKeysOrder.length === 0) return;
             currentActivePageNum = compositeKey;
             const idx = Math.max(0, mergedSlideKeysOrder.indexOf(String(compositeKey)));
             const total = mergedSlideKeysOrder.length;
             const badgeEl = document.getElementById('pdfPageCounterBadge');
-            if (badgeEl) badgeEl.innerText = exoGetLang() === 'en' ? `Page ${idx + 1} / ${total}` : `صفحة ${idx + 1} / ${total}`;
+            exoSetPdfPageCounterText(badgeEl, idx + 1, total);
             const floatBadge = document.getElementById('pdfFloatingPageBadge');
             if (floatBadge) floatBadge.innerText = `${idx + 1} / ${total}`;
             const mInfo = mergedPageToLectureMap[compositeKey];
@@ -43193,7 +43234,7 @@ function togglePdfAudioPlayerBar(forceState) {
             currentActivePageNum = p;
             const badgeEl = document.getElementById('pdfPageCounterBadge');
             const isEnPdf = exoGetLang() === 'en';
-            if (badgeEl) badgeEl.innerText = isEnPdf ? `Page ${p} / ${totalPdfPages}` : `صفحة ${p} / ${totalPdfPages}`;
+            exoSetPdfPageCounterText(badgeEl, p, totalPdfPages);
             const floatBadge = document.getElementById('pdfFloatingPageBadge');
             if (floatBadge) floatBadge.innerText = `${p} / ${totalPdfPages}`;
 
@@ -44729,7 +44770,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (typeof pageNum === 'number' && currentActivePageNum !== pageNum) {
                     currentActivePageNum = pageNum;
                     const badgeEl = document.getElementById('pdfPageCounterBadge');
-                    if (badgeEl) badgeEl.innerText = exoGetLang() === 'en' ? `Page ${pageNum} / ${totalPdfPages}` : `صفحة ${pageNum} / ${totalPdfPages}`;
+                    exoSetPdfPageCounterText(badgeEl, pageNum, totalPdfPages);
                 } else if (typeof pageNum === 'string' && !pageNum.startsWith('note_')) {
                     currentActivePageNum = pageNum;
                 }
