@@ -40,7 +40,7 @@
 
 ## الحالة الحالية — تجهيز الإصدار النهائي
 
-اعتمد المالك التطبيق بشكل عام وتجربة الاستخدام بتاريخ 2026-11-19، وأكد حل مشكلة التجمّد القديمة. آخر Source SHA اجتاز CI هو `cf47e5698a212c1e1ef64d837cf1987a807f337e`؛ و`main` HEAD عند المراجعة `a2ba2078c4e44bc34d976904b1f4c98dd5af3771` يتضمن توثيقًا فقط. نجح CI #79 وPages #196 على Source SHA، كما نجح Pages #197 بعد دمج التوثيق. أكد المالك نجاح فحوص Supabase وOCC على PostgreSQL 16 وGoogle OAuth/Drive ورفع/استرجاع ملف بحساب VIP والمزامنة بين جلستين/جهازين وBackup/Restore. المشروع في **Final Release Preparation**؛ المتبقي Smoke test حي لمرشح الإصدار وPWA، ثم تثبيت النسخة المستقرة وتشغيل CI وإنشاء Tag وGitHub Release. التفاصيل في [تقرير جاهزية الإصدار النهائي](reports/FINAL_RELEASE_READINESS.md).
+اعتمد المالك التطبيق بشكل عام وتجربة الاستخدام. النسخة المستقرة المقترحة `1.4.2` مدمجة على `main` عند SHA `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`. اجتاز المرشح CI #82 واجتاز `main` CI #83 بنجاح (1,177/1,177 assertions)، كما نجح GitHub Pages #199 على SHA نفسه. أكد المالك نجاح Supabase/OCC وGoogle Drive والمزامنة بين الجلسات وBackup/Restore. المتبقي هو Smoke test يدوي لفتح النسخة المنشورة وتثبيت/تشغيل PWA، ثم إنشاء Tag `v1.4.2` وGitHub Release الرسمي. التفاصيل في [تقرير جاهزية الإصدار النهائي](reports/FINAL_RELEASE_READINESS.md).
 
 ## دورة العمل — تحكم المالك
 
