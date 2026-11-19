@@ -951,6 +951,622 @@ async function main() {
       await hc.context.close();
     }
 
+    // ------------------------------------------------------------------------
+    // 6. Real Mobile Sticky Topbar (.navbar) Scroll & Stacking Verification
+    //    Widths: 360x740 & 390x844 on populated Subjects & Planner (top -> mid -> bottom)
+    // ------------------------------------------------------------------------
+    console.log('\n--- 6. Real Mobile Sticky Topbar Scroll & ElementFromPoint Hit-Testing ---');
+    {
+      for (const vp of [{ width: 360, height: 740, tag: '360' }, { width: 390, height: 844, tag: '390' }]) {
+        const sc = await openFreshPage(browser, { width: vp.width, height: vp.height });
+        await seedRichWorkspace(sc.page, pdfB64, wavB64);
+
+        // Add extra subjects/events so page scrollHeight significantly exceeds viewport height
+        await sc.page.evaluate(() => {
+          for (let i = 0; i < 8; i++) {
+            subjects.push({
+              id: 7500 + i,
+              name: `Pharmacology Module ${i + 3} — Autonomic & Clinical Block`,
+              color: i % 2 === 0 ? '#899982' : '#7898AC',
+              icon: 'fa-book',
+              isDivided: true,
+              groups: [{ id: 7600 + i, name: `Chapter ${i + 1}`, lectures: [{ id: 7700 + i, title: `Lecture ${i + 1}` }] }]
+            });
+          }
+          saveSubjects();
+          const todayDay = new Date().getDay();
+          for (let i = 0; i < 10; i++) {
+            scheduleEvents.push({
+              id: 8500 + i,
+              title: `Deep Review Block ${i + 1}`,
+              day: todayDay,
+              startHour: 8 + (i % 10),
+              duration: 1,
+              type: 'study',
+              subjectId: 7101,
+              completed: i % 2 === 0
+            });
+          }
+          saveScheduleData();
+          if (typeof renderSubjectsList === 'function') renderSubjectsList();
+          if (typeof renderSchedule === 'function') renderSchedule();
+        });
+
+        // Switch to Subjects and test top -> mid -> bottom scroll
+        await sc.page.click('.mobile-nav-item[data-tab="subjects"]');
+        await sc.page.waitForSelector('.subject-card.exo-cutout-card', { timeout: 6000 });
+        await sc.page.waitForTimeout(200);
+
+        const scrollTargets = await sc.page.evaluate(() => {
+          const maxScroll = Math.max(0, Math.max(document.documentElement.scrollHeight, document.body.scrollHeight) - window.innerHeight);
+          return { maxScroll, mid: Math.round(maxScroll * 0.45), bottom: Math.round(maxScroll) };
+        });
+        assert(scrollTargets.maxScroll > 350, `${vp.tag}: Subjects view is tall enough for real scroll (${scrollTargets.maxScroll}px)`);
+
+        const positions = [
+          { name: 'top', y: 0 },
+          { name: 'mid', y: scrollTargets.mid },
+          { name: 'bottom', y: scrollTargets.bottom }
+        ];
+        for (const pos of positions) {
+          await sc.page.evaluate((scrollY) => {
+            window.scrollTo(0, scrollY);
+            const mc = document.querySelector('.main-content');
+            if (mc && mc.scrollHeight > mc.clientHeight) mc.scrollTop = scrollY;
+          }, pos.y);
+          await sc.page.waitForTimeout(160);
+
+          const hit = await sc.page.evaluate((scrollYExpected) => {
+            const nav = document.querySelector('.navbar');
+            const rect = nav ? nav.getBoundingClientRect() : null;
+            if (!rect) return { ok: false, reason: 'no_navbar' };
+            const yProbe = Math.max(4, Math.min(rect.bottom - 4, rect.top + rect.height / 2));
+            const xs = [32, Math.round(window.innerWidth * 0.5), Math.max(40, window.innerWidth - 32)];
+            const hits = xs.map((x) => {
+              const el = document.elementFromPoint(x, yProbe);
+              return {
+                x,
+                insideNav: Boolean(el && nav.contains(el)),
+                tag: el ? `${el.tagName}#${el.id || ''}.${el.className || ''}` : 'null'
+              };
+            });
+            return {
+              ok: rect.top >= -1 && rect.top <= 8 && rect.height >= 44 && hits.every(h => h.insideNav) && (scrollYExpected === 0 || window.scrollY > 50),
+              top: Math.round(rect.top),
+              height: Math.round(rect.height),
+              scrollY: Math.round(window.scrollY),
+              hits
+            };
+          }, pos.y);
+          assert(hit.ok, `${vp.tag} Subjects scroll (${pos.name}, y=${hit.scrollY}): .navbar pinned on top & wins elementFromPoint at left/mid/right (top=${hit.top}, h=${hit.height})`, JSON.stringify(hit));
+
+          if (vp.tag === '360') {
+            await sc.page.screenshot({ path: path.join(screenshotDir, `after-scroll-360-${pos.name}.png`) });
+          } else if (pos.name === 'mid') {
+            await sc.page.screenshot({ path: path.join(screenshotDir, `after-scroll-390-subjects-mid.png`) });
+          }
+        }
+
+        // Open card overflow menu then scroll -> verify menu auto-dismisses cleanly
+        await sc.page.evaluate(() => window.scrollTo(0, 0));
+        await sc.page.waitForTimeout(120);
+        const menuDismissedOnScroll = await sc.page.evaluate(async () => {
+          const trigger = document.querySelector('.exo-card-overflow-trigger');
+          if (!trigger) return { skip: true };
+          trigger.click();
+          await new Promise(r => setTimeout(r, 80));
+          const openedBefore = document.querySelectorAll('.exo-card-overflow-menu.open').length;
+          window.scrollBy(0, 260);
+          window.dispatchEvent(new Event('scroll'));
+          await new Promise(r => setTimeout(r, 140));
+          const openAfter = document.querySelectorAll('.exo-card-overflow-menu.open').length;
+          return { skip: false, openedBefore, openAfter };
+        });
+        assert(menuDismissedOnScroll.skip || (menuDismissedOnScroll.openedBefore >= 1 && menuDismissedOnScroll.openAfter === 0),
+          `${vp.tag}: Scrolling dismisses open .exo-card-overflow-menu (${JSON.stringify(menuDismissedOnScroll)})`);
+
+        // Switch to Planner & scroll to bottom -> check .navbar elementFromPoint
+        await sc.page.click('.mobile-nav-item[data-tab="schedule"]');
+        await sc.page.waitForTimeout(220);
+        await sc.page.click('#schPillToday');
+        await sc.page.waitForTimeout(180);
+        await sc.page.evaluate(() => {
+          const maxY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+          window.scrollTo(0, maxY);
+        });
+        await sc.page.waitForTimeout(180);
+        const plannerHit = await sc.page.evaluate(() => {
+          const nav = document.querySelector('.navbar');
+          const rect = nav ? nav.getBoundingClientRect() : null;
+          if (!rect) return { ok: false };
+          const yProbe = Math.max(4, rect.top + rect.height / 2);
+          const xs = [32, Math.round(window.innerWidth * 0.5), Math.max(40, window.innerWidth - 32)];
+          const allNav = xs.every(x => {
+            const el = document.elementFromPoint(x, yProbe);
+            return Boolean(el && nav.contains(el));
+          });
+          return { ok: rect.top >= -1 && rect.top <= 8 && allNav, top: Math.round(rect.top) };
+        });
+        assert(plannerHit.ok, `${vp.tag} Planner bottom scroll: .navbar remains pinned above content (top=${plannerHit.top})`);
+        if (vp.tag === '390') {
+          await sc.page.screenshot({ path: path.join(screenshotDir, 'after-scroll-390-planner-bottom.png') });
+        }
+
+        assert(sc.pageErrors.length === 0 && sc.consoleErrors.length === 0, `${vp.tag} scroll session zero runtime errors`);
+        await sc.context.close();
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // 7. PDF Studio Badge (#pdfAutoSaveStatus) Unclipped Across All Widths + Studio Regression
+    // ------------------------------------------------------------------------
+    console.log('\n--- 7. PDF Studio Badge (#pdfAutoSaveStatus) Multi-Width & Functional Regression ---');
+    {
+      const studioPage = await openFreshPage(browser, { width: 390, height: 844 });
+      await seedRichWorkspace(studioPage.page, pdfB64, wavB64);
+
+      await studioPage.page.evaluate(async () => {
+        activeSubjectId = 7101;
+        await openLectureDocument(7201, 7301);
+      });
+      await studioPage.page.waitForSelector('#pdfViewerModalOverlay.active', { timeout: 6000 });
+      await studioPage.page.waitForTimeout(350);
+
+      const studioViewports = [
+        { width: 320, height: 720, lang: 'en', shot: null },
+        { width: 360, height: 740, lang: 'en', shot: 'after-pdf-badge-360.png' },
+        { width: 390, height: 844, lang: 'en', shot: 'after-pdf-badge-390.png' },
+        { width: 390, height: 844, lang: 'ar', shot: null },
+        { width: 768, height: 1024, lang: 'en', shot: null },
+        { width: 1440, height: 900, lang: 'en', shot: null }
+      ];
+
+      for (const sv of studioViewports) {
+        await studioPage.page.setViewportSize({ width: sv.width, height: sv.height });
+        await studioPage.page.evaluate((lng) => {
+          if (typeof applyExoLanguage === 'function') applyExoLanguage(lng, false);
+          if (typeof exoWp64Diagnostics !== 'undefined') {
+            exoWp64Diagnostics.recordIncident('cloud_sync', { status: 401, message: 'Unauthorized' }, { domain: 'cloud_sync' });
+          }
+          if (typeof exoRefreshStudioSaveBadge === 'function') exoRefreshStudioSaveBadge();
+        }, sv.lang);
+        await studioPage.page.waitForTimeout(180);
+
+        const badgeCheck = await studioPage.page.evaluate(() => {
+          const badge = document.getElementById('pdfAutoSaveStatus');
+          const header = document.querySelector('.pdf-viewer-header');
+          const navCap = document.querySelector('.pdf-unified-nav-capsule');
+          const headerRect = header ? header.getBoundingClientRect() : { height: 0 };
+          const bRect = badge ? badge.getBoundingClientRect() : { width: 0, height: 0, right: 0, left: 0 };
+          const navRect = navCap ? navCap.getBoundingClientRect() : null;
+          const isRtl = document.documentElement.dir === 'rtl';
+          const noBadgeOverlap = !navRect || (isRtl ? (navRect.right <= bRect.left + 1) : (bRect.right <= navRect.left + 1));
+          const bs = badge ? getComputedStyle(badge) : null;
+          const visibleHeaderBtns = header ? Array.from(header.querySelectorAll('button')).filter(b => b.offsetParent !== null) : [];
+          const smallHeaderBtns = visibleHeaderBtns.filter(b => {
+            const r = b.getBoundingClientRect();
+            return r.width < 43.5 || r.height < 43.5;
+          }).map(b => `${b.id || b.title}(${Math.round(b.getBoundingClientRect().width)}x${Math.round(b.getBoundingClientRect().height)})`);
+          return {
+            visible: Boolean(badge && badge.offsetParent !== null && bs && bs.display !== 'none' && bRect.width > 20),
+            notTruncated: Boolean(badge && badge.scrollWidth <= (badge.clientWidth + 2)),
+            noBadgeOverlap,
+            badgeRight: Math.round(bRect.right),
+            navLeft: navRect ? Math.round(navRect.left) : -1,
+            scrollW: badge ? badge.scrollWidth : -1,
+            clientW: badge ? badge.clientWidth : -1,
+            badgeText: badge ? badge.textContent.trim() : '',
+            headerHeight: Math.round(headerRect.height),
+            smallHeaderBtns,
+            overflow: document.documentElement.scrollWidth > window.innerWidth + 1
+          };
+        });
+
+        assert(badgeCheck.visible && badgeCheck.notTruncated && badgeCheck.noBadgeOverlap && !badgeCheck.overflow,
+          `${sv.width}x${sv.height} (${sv.lang}): #pdfAutoSaveStatus visible, unclipped & non-overlapping (${badgeCheck.scrollW}<=${badgeCheck.clientW}+2, right=${badgeCheck.badgeRight}<=nav=${badgeCheck.navLeft}, text="${badgeCheck.badgeText}")`, JSON.stringify(badgeCheck));
+        if (sv.width < 768) {
+          assert(badgeCheck.headerHeight <= 56 && badgeCheck.smallHeaderBtns.length === 0,
+            `${sv.width}x${sv.height}: Studio mobile header <=56px (${badgeCheck.headerHeight}px) and header buttons >=44px (${badgeCheck.smallHeaderBtns.join(',')})`);
+        }
+        if (sv.shot) {
+          await studioPage.page.screenshot({ path: path.join(screenshotDir, sv.shot) });
+        }
+      }
+
+      // Reset diagnostic + exercise core Studio features (Pen stroke, Zoom, Extra Note Sheet, Chapter Context in More Menu)
+      await studioPage.page.setViewportSize({ width: 390, height: 844 });
+      await studioPage.page.evaluate(() => {
+        applyExoLanguage('en', false);
+        if (typeof exoWp64Diagnostics !== 'undefined') exoWp64Diagnostics.resolveIncident('cloud_sync');
+      });
+      await studioPage.page.evaluate(() => {
+        const scroller = document.getElementById('pdfPagesScrollContainer');
+        if (scroller) scroller.scrollTop = 0;
+      });
+      await studioPage.page.waitForTimeout(100);
+      await studioPage.page.click('#toolBtn_pen');
+      const canvasBox = await studioPage.page.locator('#pdfInkCanvas_1').boundingBox();
+      const scrollerBox = await studioPage.page.locator('#pdfPagesScrollContainer').boundingBox();
+      assert(Boolean(canvasBox && canvasBox.width > 50), 'PDF Studio renders interactive #pdfInkCanvas_1');
+      if (canvasBox) {
+        const startX = canvasBox.x + Math.round(canvasBox.width * 0.35);
+        const startY = Math.max(canvasBox.y + 40, (scrollerBox ? scrollerBox.y : canvasBox.y) + 40);
+        await studioPage.page.mouse.move(startX, startY);
+        await studioPage.page.mouse.down();
+        await studioPage.page.mouse.move(startX + 80, startY + 50, { steps: 5 });
+        await studioPage.page.mouse.up();
+      }
+      const zoomBefore = await studioPage.page.textContent('#pdfZoomLevelText');
+      await studioPage.page.evaluate(() => changePdfZoom(0.15));
+      await studioPage.page.waitForTimeout(140);
+      const zoomAfter = await studioPage.page.textContent('#pdfZoomLevelText');
+      assert(zoomBefore !== zoomAfter, `PDF Zoom changes cleanly (${zoomBefore?.trim()} -> ${zoomAfter?.trim()})`);
+
+      await studioPage.page.click('#pdfToolbarExtraNoteBtn');
+      await studioPage.page.waitForTimeout(160);
+      const extraSheetCreated = await studioPage.page.evaluate(() => {
+        const pages = document.querySelectorAll('.pdf-page-wrapper').length;
+        return pages >= 4;
+      });
+      assert(extraSheetCreated, 'Extra Summary Note button creates extra sheet page without VIP lock or regression');
+
+      await studioPage.page.evaluate(() => togglePdfMoreMenu());
+      await studioPage.page.waitForTimeout(120);
+      const chapterMenuVisible = await studioPage.page.isVisible('#pdfMenuChapterContextBtn');
+      assert(chapterMenuVisible, '#pdfMoreDropdownMenu exposes #pdfMenuChapterContextBtn on mobile');
+      await studioPage.page.click('#pdfBackToChapterBtn');
+      await studioPage.page.waitForTimeout(160);
+
+      assert(studioPage.pageErrors.length === 0 && studioPage.consoleErrors.length === 0, 'PDF Studio multi-width + regression zero errors');
+      await studioPage.context.close();
+    }
+
+    // ------------------------------------------------------------------------
+    // 8. Help Center Anti-Fake-Progress & Reload Persistence Verification
+    // ------------------------------------------------------------------------
+    console.log('\n--- 8. Help Center Checklist Anti-Fake-Progress & Reload Persistence ---');
+    {
+      const anti = await openFreshPage(browser, { width: 390, height: 844 });
+
+      // 8a. Empty start -> 0/7; cycling all 6 help panes stays 0/7
+      await anti.page.evaluate(() => { openHelpModal(1); });
+      await anti.page.waitForTimeout(180);
+      for (let p = 1; p <= 6; p++) {
+        await anti.page.click(`#acadNav_${p}`);
+        await anti.page.waitForTimeout(50);
+      }
+      const afterTabCycle = await anti.page.evaluate(() => deriveHelpGettingStartedChecklist(exoCollectHelpChecklistSnapshot(), true).completedCount);
+      assert(afterTabCycle === 0, `Viewing all 6 Help Center tabs on empty state keeps checklist at 0/7 (got ${afterTabCycle})`);
+      await anti.page.click('#helpModalCloseBtn');
+
+      // 8b. loadDemoData() sample must NOT grant real checklist credit
+      await anti.page.evaluate(() => {
+        const origConfirm = window.openConfirmModal;
+        window.openConfirmModal = (_msg, cb) => { if (typeof cb === 'function') cb(); };
+        try { loadDemoData(); } finally { window.openConfirmModal = origConfirm; }
+      });
+      await anti.page.waitForTimeout(150);
+      const demoDoneCount = await anti.page.evaluate(() => deriveHelpGettingStartedChecklist(exoCollectHelpChecklistSnapshot(), true).completedCount);
+      assert(demoDoneCount === 0, `Loading sample demo data must NOT create fake checklist completion (got ${demoDoneCount}/7)`);
+
+      // Reset cleanly to real empty workspace, then create real subject + chapter + PDF
+      await anti.page.evaluate(async () => {
+        subjects = [{
+          id: 9201,
+          name: 'Clinical Toxicology',
+          color: '#899982',
+          isDivided: true,
+          groups: [{
+            id: 9211,
+            name: 'Chapter 1: Antidotes',
+            lectures: [{ id: 9221, title: 'Lecture 1', pdfPath: 'tox.pdf', hasLocalPdf: true, totalPages: 3 }]
+          }]
+        }];
+        scheduleEvents = [];
+        scheduleBacklog = [];
+        logs = [];
+        saveSubjects();
+        saveScheduleData();
+        saveLogs();
+      });
+
+      // Embed real PDF blob & open Studio, change page without annotating -> gs_studio_notes MUST stay false
+      await anti.page.evaluate(async (b64) => {
+        const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+        await saveMediaToDB('pdfs', 9221, new Blob([bytes], { type: 'application/pdf' }));
+        activeSubjectId = 9201;
+        await openLectureDocument(9211, 9221);
+        stepPdfPage(1);
+        await closePdfViewer();
+      }, pdfB64);
+
+      // 8c. Unlinked goal -> gs_goal stays false; Failed IDB write -> gs_studio_notes stays false; Offline sign-in -> gs_safety stays false
+      const negativeStates = await anti.page.evaluate(async () => {
+        // Unlinked goal
+        scheduleBacklog = [{ id: 9301, title: 'Unlinked Goal', linkedEventIds: [], done: false }];
+        saveScheduleData();
+
+        // Simulate failed pending annotation save (not committed to IDB)
+        if (typeof pendingAnnoSaveMap !== 'undefined') {
+          pendingAnnoSaveMap['9221'] = { lecId: '9221', pages: { 1: { strokes: [{ points: [[1, 1], [5, 5]] }] } } };
+        }
+
+        // Simulate offline sign-in without remote ack
+        currentCloudUser = { id: 'offline-user-uid', email: 'off@example.com' };
+        if (typeof exoRuntimeStatusState !== 'undefined') {
+          exoRuntimeStatusState.cloudAckConfirmed = false;
+        }
+        const snap = exoCollectHelpChecklistSnapshot();
+        const cl = deriveHelpGettingStartedChecklist(snap, true);
+        if (typeof pendingAnnoSaveMap !== 'undefined') delete pendingAnnoSaveMap['9221'];
+        currentCloudUser = null;
+        return Object.fromEntries(cl.steps.map(s => [s.id, s.done]));
+      });
+      assert(!negativeStates.gs_studio_notes, 'Page scroll + uncommitted pendingAnnoSaveMap keeps gs_studio_notes=false');
+      assert(!negativeStates.gs_goal, 'Unlinked goal without linked session keeps gs_goal=false');
+      assert(!negativeStates.gs_safety, 'Unacked sign-in without confirmed sync or backup export keeps gs_safety=false');
+
+      // 8d. Real ink stroke + durable IDB commit persists across full page.reload()
+      await anti.page.evaluate(async () => {
+        activeSubjectId = 9201;
+        await openLectureDocument(9211, 9221);
+        const scroller = document.getElementById('pdfPagesScrollContainer');
+        if (scroller) scroller.scrollTop = 0;
+      });
+      await anti.page.waitForSelector('#pdfViewerModalOverlay.active', { timeout: 6000 });
+      await anti.page.waitForTimeout(300);
+      await anti.page.click('#toolBtn_pen');
+      const box = await anti.page.locator('#pdfInkCanvas_1').boundingBox();
+      const scrollRect = await anti.page.locator('#pdfPagesScrollContainer').boundingBox();
+      if (box) {
+        const drawStartX = box.x + Math.round(box.width * 0.35);
+        const drawStartY = Math.max(box.y + 40, (scrollRect ? scrollRect.y : box.y) + 40);
+        await anti.page.mouse.move(drawStartX, drawStartY);
+        await anti.page.mouse.down();
+        await anti.page.mouse.move(drawStartX + 70, drawStartY + 50, { steps: 5 });
+        await anti.page.mouse.up();
+      }
+      await anti.page.evaluate(async () => {
+        await flushPendingAnnotationsSave(false);
+        await closePdfViewer();
+      });
+
+      const doneBeforeReload = await anti.page.evaluate(() => {
+        const snap = exoCollectHelpChecklistSnapshot();
+        return Object.fromEntries(deriveHelpGettingStartedChecklist(snap, true).steps.map(s => [s.id, s.done]));
+      });
+      assert(doneBeforeReload.gs_studio_notes === true, 'Real durable IDB ink stroke sets gs_studio_notes=true');
+
+      await anti.page.reload({ waitUntil: 'domcontentloaded', timeout: 25000 });
+      await anti.page.waitForSelector('#dashboard', { timeout: 10000 });
+      await anti.page.evaluate(() => { openHelpModal(1); });
+      await anti.page.waitForTimeout(320);
+      const doneAfterReload = await anti.page.evaluate(() => {
+        const stepRow = document.querySelector('.exo-help-check-row[data-help-step-id="gs_studio_notes"]');
+        const snap = exoCollectHelpChecklistSnapshot();
+        const cl = deriveHelpGettingStartedChecklist(snap, true);
+        const step = cl.steps.find(s => s.id === 'gs_studio_notes');
+        return {
+          rowHasDone: Boolean(stepRow && stepRow.classList.contains('is-done')),
+          stepDone: Boolean(step && step.done)
+        };
+      });
+      assert(doneAfterReload.rowHasDone && doneAfterReload.stepDone, 'Real Studio annotation milestone persists accurately across full page.reload()');
+      assert(anti.pageErrors.length === 0 && anti.consoleErrors.length === 0, 'Anti-fake-progress & reload session zero errors');
+      await anti.context.close();
+    }
+
+    // ------------------------------------------------------------------------
+    // 9. Google Drive 9-State Diagnostics UI, Secret Redaction, Sync Timestamp Reload
+    //    Persistence & Complete Help Center Interactive Control Audit
+    // ------------------------------------------------------------------------
+    console.log('\n--- 9. Google Drive 9-State Diagnostics, Sync Timestamp Reload & Help Control Audit ---');
+    {
+      const drv = await openFreshPage(browser, { width: 390, height: 844 });
+      await seedRichWorkspace(drv.page, pdfB64, wavB64);
+
+      // 9a. Drive 9 states UI rendering + secret redaction check inside #driveHubModalOverlay
+      const driveStatesCheck = await drv.page.evaluate(async () => {
+        const results = [];
+        currentCloudUser = { id: 'vip-uid-71', email: 'vip@example.com' };
+        currentUserCanUploadMedia = true;
+        openGoogleDriveHubModal();
+
+        const resetDriveBase = (linked = true) => {
+          localStorage.setItem('exo_gdrive_bound_user_id', 'vip-uid-71');
+          if (linked) {
+            localStorage.setItem('exo_gdrive_connected', '1');
+            localStorage.setItem('exo_gdrive_user_email', 'doc@example.com');
+            googleAccessToken = 'ya29.valid_mem_tok';
+            googleTokenExpiry = Date.now() + 600000;
+            googleDriveAuthState = 'connected';
+          } else {
+            localStorage.removeItem('exo_gdrive_connected');
+            localStorage.removeItem('exo_gdrive_user_email');
+            googleAccessToken = null;
+            googleTokenExpiry = 0;
+            googleDriveAuthState = 'disconnected';
+          }
+          exoDriveDiagState.lastErrorCode = '';
+          exoDriveDiagState.lastErrorStatus = 0;
+          exoDriveDiagState.lastErrorMessage = '';
+          exoRuntimeStatusState.hasConflictPending = false;
+          exoRuntimeStatusState.cloudAckConfirmed = false;
+          exoRuntimeStatusState.lastCloudSyncAt = 0;
+        };
+
+        const scenarios = [
+          { tag: 'not_linked', setup: () => { resetDriveBase(false); } },
+          { tag: 'offline', setup: () => { resetDriveBase(true); exoDriveDiagState.lastErrorCode = 'network_error'; } },
+          { tag: 'connected', setup: () => { resetDriveBase(true); } },
+          { tag: 'auth_expired', setup: () => { resetDriveBase(true); googleAccessToken = null; googleTokenExpiry = 0; googleDriveAuthState = 'reauth_required'; exoDriveDiagState.lastErrorStatus = 401; exoDriveDiagState.lastErrorCode = 'token_expired'; } },
+          { tag: 'permission_denied', setup: () => { resetDriveBase(true); googleAccessToken = null; googleTokenExpiry = 0; googleDriveAuthState = 'permission_denied'; exoDriveDiagState.lastErrorStatus = 403; exoDriveDiagState.lastErrorCode = 'google_account_mismatch'; } },
+          { tag: 'file_access_error', setup: () => { resetDriveBase(true); exoDriveDiagState.lastErrorStatus = 404; exoDriveDiagState.lastErrorCode = 'not_found'; } },
+          { tag: 'media_transfer_failed', setup: () => { resetDriveBase(true); exoDriveDiagState.lastErrorStatus = 500; exoDriveDiagState.lastErrorCode = 'gdrive_upload_failed'; exoDriveDiagState.lastErrorMessage = 'Error Bearer ya29.SECRET_TOKEN_LEAK access_token=SECRET_QRY_123 upload_id=SECRET_UP'; } },
+          { tag: 'workspace_sync_issue', setup: () => { resetDriveBase(true); exoDriveDiagState.lastErrorCode = 'occ_conflict'; exoRuntimeStatusState.hasConflictPending = true; } },
+          { tag: 'sync_confirmed', setup: () => {
+            resetDriveBase(true);
+            localStorage.removeItem('pharmaWorkspaceDirty');
+            localStorage.removeItem('pharmaWorkspaceDirty_vip-uid-71');
+            localStorage.removeItem('pharmaAnnotationsDirty_vip-uid-71');
+            if (typeof dirtyAnnotationsForCloud !== 'undefined') dirtyAnnotationsForCloud = false;
+            exoRuntimeStatusState.cloudAckConfirmed = true;
+            exoRuntimeStatusState.cloudAckRevision = 9;
+            exoRuntimeStatusState.lastCloudSyncAt = Date.now();
+          } }
+        ];
+
+        for (const sc of scenarios) {
+          sc.setup();
+          updateGoogleDriveUI();
+          const banner = document.getElementById('driveHubStateBanner');
+          const actualState = banner ? banner.getAttribute('data-drive-diagnostic-state') : '';
+          const conn = document.getElementById('driveHubConnectionBadge')?.textContent?.trim() || '';
+          const sync = document.getElementById('driveHubSyncBadge')?.textContent?.trim() || '';
+          const txt = banner ? banner.innerText : '';
+          const leakedSecret = txt.includes('SECRET_TOKEN_LEAK') || txt.includes('SECRET_QRY_123') || txt.includes('SECRET_UP');
+          results.push({ tag: sc.tag, actualState, hasBanner: Boolean(txt.length > 20), conn, sync, leakedSecret });
+        }
+        return results;
+      });
+      assert(driveStatesCheck.length === 9, `Evaluated all 9 Google Drive diagnostic states (got ${driveStatesCheck.length})`);
+      for (const r of driveStatesCheck) {
+        assert(r.hasBanner && r.actualState === r.tag && r.conn && r.sync && !r.leakedSecret,
+          `Drive Hub scenario "${r.tag}" matches state & renders separate connection/sync pills & zero secret leakage (actual="${r.actualState}", conn="${r.conn}", sync="${r.sync}")`);
+      }
+      await drv.page.waitForTimeout(260);
+      await drv.page.screenshot({ path: path.join(screenshotDir, 'after-drive-9states.png') });
+      await drv.page.click('#driveHubModalCloseBtn');
+      await drv.page.waitForTimeout(120);
+
+      // 9b. Sync timestamp persistence across page.reload() while staying honest when Offline
+      await drv.page.evaluate(() => {
+        const uid = 'sync-persist-uid';
+        currentCloudUser = { id: uid, email: 'sync@example.com' };
+        const iso = '2026-11-18T11:22:33.000Z';
+        const ms = Date.parse(iso);
+        localStorage.setItem('pharmaLastCloudSyncIso_' + uid, iso);
+        localStorage.setItem('pharmaCloudSyncRev_' + uid, '12');
+        localStorage.setItem('pharmaWorkspaceDirty_' + uid, '1');
+        localStorage.setItem('pharmaWorkspaceDirty', '1');
+        exoRuntimeStatusState.lastCloudSyncAt = ms;
+        exoRuntimeStatusState.cloudAckRevision = 12;
+        exoRuntimeStatusState.cloudAckConfirmed = false;
+      });
+      await drv.context.setOffline(true);
+      await drv.page.evaluate(() => {
+        openCloudAuthModal();
+        if (typeof exoRenderCloudAccountStatusCards === 'function') exoRenderCloudAccountStatusCards();
+      });
+      await drv.page.waitForTimeout(150);
+      const offlineSyncUi = await drv.page.evaluate(() => {
+        const badge = document.getElementById('cloudLiveSyncBadge')?.textContent?.trim() || '';
+        const timeEl = document.getElementById('cloudLastSyncedTime')?.textContent?.trim() || '';
+        return {
+          badge,
+          timeEl,
+          dirtyProtected: localStorage.getItem('pharmaWorkspaceDirty_sync-persist-uid') === '1'
+        };
+      });
+      assert(!offlineSyncUi.badge.toLowerCase().includes('synced ·') && offlineSyncUi.timeEl && !offlineSyncUi.timeEl.includes('No remote sync'),
+        `Offline account card refuses false "Synced" while preserving historical confirmed timestamp ("${offlineSyncUi.timeEl}") & protecting dirty edits`);
+      await drv.context.setOffline(false);
+      await drv.page.click('#cloudAuthModalOverlay .icon-btn');
+      await drv.page.waitForTimeout(120);
+
+      // Verify actual page.reload preserves confirmed sync timestamp via pharmaLastCloudSyncIso_<uid>
+      await drv.page.reload({ waitUntil: 'domcontentloaded', timeout: 25000 });
+      await drv.page.waitForSelector('#dashboard', { timeout: 10000 });
+      const reloadedTs = await drv.page.evaluate(async () => {
+        await handleAuthSessionChange({ id: 'sync-persist-uid', email: 'sync@example.com' }, false);
+        openCloudAuthModal();
+        if (typeof exoRenderCloudAccountStatusCards === 'function') exoRenderCloudAccountStatusCards();
+        return {
+          hydratedMs: Number(exoRuntimeStatusState.lastCloudSyncAt || 0),
+          expectedMs: Date.parse('2026-11-18T11:22:33.000Z'),
+          timeEl: document.getElementById('cloudLastSyncedTime')?.textContent?.trim() || ''
+        };
+      });
+      assert(reloadedTs.hydratedMs === reloadedTs.expectedMs && reloadedTs.timeEl && !reloadedTs.timeEl.includes('No remote sync'),
+        `Confirmed server sync timestamp persists across full page.reload() ("${reloadedTs.timeEl}")`);
+      await drv.page.keyboard.press('Escape');
+      await drv.page.waitForTimeout(120);
+
+      // 9c. Full Help Center Control Audit + remaining Contextual ? Triggers (#cloudAuthHelpBtn, #driveHubHelpBtn, #pdfMenuHelpBtn)
+      await drv.page.evaluate(() => openCloudAuthModal());
+      await drv.page.waitForTimeout(120);
+      await drv.page.click('#cloudAuthHelpBtn');
+      await drv.page.waitForSelector('#helpModalOverlay.active', { timeout: 5000 });
+      assert(await drv.page.evaluate(() => document.getElementById('acadPane_5')?.classList.contains('active')),
+        '#cloudAuthHelpBtn opens Help Center directly to Pane 5');
+      await drv.page.click('#helpModalCloseBtn');
+
+      await drv.page.evaluate(() => { currentCloudUser = { id: 'vip-uid-71', email: 'vip@example.com' }; currentUserCanUploadMedia = true; openGoogleDriveHubModal(); });
+      await drv.page.waitForTimeout(120);
+      await drv.page.click('#driveHubHelpBtn');
+      await drv.page.waitForSelector('#helpModalOverlay.active', { timeout: 5000 });
+      assert(await drv.page.evaluate(() => document.getElementById('acadPane_6')?.classList.contains('active')),
+        '#driveHubHelpBtn opens Help Center directly to Pane 6');
+      await drv.page.click('#helpModalCloseBtn');
+
+      await drv.page.evaluate(async () => { activeSubjectId = 7101; await openLectureDocument(7201, 7301); togglePdfMoreMenu(); });
+      await drv.page.waitForTimeout(140);
+      await drv.page.click('#pdfMenuHelpBtn');
+      await drv.page.waitForSelector('#helpModalOverlay.active', { timeout: 5000 });
+      assert(await drv.page.evaluate(() => document.getElementById('acadPane_3')?.classList.contains('active')),
+        '#pdfMenuHelpBtn opens Help Center directly to Pane 3');
+      await drv.page.evaluate(() => closePdfViewer());
+
+      // Check Quick Actions Bar, Search Empty State recovery chip, VIP details button, WhatsApp href, Demo Loader, and capture after-help-checklist.png
+      await drv.page.evaluate(() => { openHelpModal(1); });
+      await drv.page.waitForTimeout(200);
+      const helpControls = await drv.page.evaluate(() => {
+        const wa = document.querySelector('#acadPane_6 a.whatsapp-cta-btn');
+        const nextBtn = document.querySelector('#helpGettingStartedChecklistMount .exo-help-checklist-head button');
+        const quickBtns = Array.from(document.querySelectorAll('#helpQuickActionsBar button[data-help-action]'));
+        return {
+          waHref: wa ? wa.getAttribute('href') : '',
+          hasNextBtn: Boolean(nextBtn),
+          quickCount: quickBtns.length,
+          demoBtnExists: Boolean(document.getElementById('helpLoadDemoDataBtn')),
+          vipBtnExists: Boolean(document.getElementById('helpVipDetailsBtn'))
+        };
+      });
+      assert(helpControls.waHref.includes('wa.me/201552795922') && helpControls.hasNextBtn && helpControls.quickCount === 8 && helpControls.demoBtnExists && helpControls.vipBtnExists,
+        `Help Center controls (WhatsApp CTA, Checklist Next Step, 8 Quick Actions, Demo Loader, VIP Details) present & wired (quickCount=${helpControls.quickCount})`);
+      await drv.page.screenshot({ path: path.join(screenshotDir, 'after-help-checklist.png') });
+
+      // Test Help search empty state + recovery chip reset
+      await drv.page.fill('#helpSearchInput', 'zzznonexistentquery71');
+      await drv.page.waitForTimeout(120);
+      const emptyActive = await drv.page.evaluate(() => {
+        const el = document.getElementById('helpSearchEmptyState');
+        return Boolean(el && getComputedStyle(el).display !== 'none' && el.querySelector('button'));
+      });
+      assert(emptyActive, 'Help Center search empty state renders recovery chips on unmatched query');
+      if (emptyActive) {
+        await drv.page.click('#helpSearchEmptyState button');
+        await drv.page.waitForTimeout(120);
+      }
+
+      // Test Quick Action button navigation cleanly closes Help Center & opens Library
+      await drv.page.click('#helpQuickActionsBar button[data-help-action="go_library"]');
+      await drv.page.waitForTimeout(150);
+      assert(await drv.page.evaluate(() => !document.getElementById('helpModalOverlay')?.classList.contains('active') && document.getElementById('subjects')?.classList.contains('active')),
+        'Help Quick Action (go_library) closes Help Center & opens Subjects Library');
+
+      await drv.page.evaluate(() => { openHelpModal(6); });
+      await drv.page.waitForTimeout(120);
+      await drv.page.click('#helpVipDetailsBtn');
+      await drv.page.waitForTimeout(150);
+      assert(await drv.page.evaluate(() => document.getElementById('vipMediaLockModalOverlay')?.classList.contains('active')),
+        '#helpVipDetailsBtn opens #vipMediaLockModalOverlay cleanly');
+      await drv.page.keyboard.press('Escape');
+
+      assert(drv.pageErrors.length === 0 && drv.consoleErrors.length === 0, 'Drive 9-state + Sync reload + Help Control audit zero runtime errors');
+      await drv.context.close();
+    }
+
   } finally {
     await browser.close();
     if (spawnedServer) spawnedServer.kill();

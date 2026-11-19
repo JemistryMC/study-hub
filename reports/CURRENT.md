@@ -3,12 +3,34 @@
 **آخر تحديث:** 2026-11-18  
 **المستودع:** JemistryMC/study-hub  
 **فرع العمل النشط:** `main`  
-**أحدث Commit مرفوع على `main` (WP 7.0.6):** `6f53e2aed8c335195f1cf338776bb4249b5aeb1f` — **GitHub Actions CI #74** ([`44299401863`](https://github.com/JemistryMC/study-hub/actions/runs/44299401863)): **`SUCCESS`** عبر جميع خطوات الـ workflow (بما فيها PostgreSQL 16 وChromium E2E و`npm test`)؛ **GitHub Pages #187** ([`44299401274`](https://github.com/JemistryMC/study-hub/actions/runs/44299401274)): **`SUCCESS`**.  
-**Commit الأساس السابق (CI #73 بالأرقام التفصيلية):** `396110060942a8fa2362b28aba28ba637719ef82` — **GitHub Actions CI #73** (`44292533009`): **`987/987 PASSED`** (`54/54` static, `42/42` comprehensive, `52/52` Phase 3 isolation, `317/317` Phase 4 regressions, `41/41` PGlite, `96/96` PostgreSQL 16, `167/167` Phase 4.1 Chromium, `43/43` WP 6.5, `22/22` WP 6.6, `51/51` WP 6.7, `21/21` WP 6.8, `22/22` WP 6.9 + `59/59` unit suites). *(تلك الأرقام تنتمي لـ `39611006` فقط وليس لـ `6f53e2ae`).*
+**أحدث Commit مرفوع على `main` (WP 7.0.6):** `6f53e2aed8c335195f1cf338776bb4249b5aeb1f` — **GitHub Actions CI #74** ([`44299401863`](https://github.com/JemistryMC/study-hub/actions/runs/44299401863)): **`SUCCESS`**؛ **GitHub Pages #187** ([`44299401274`](https://github.com/JemistryMC/study-hub/actions/runs/44299401274)): **`SUCCESS`**.  
+**Commit الأساس السابق (CI #73 بالأرقام التفصيلية):** `396110060942a8fa2362b28aba28ba637719ef82` — **GitHub Actions CI #73** (`44292533009`): **`987/987 PASSED`**. *(تلك الأرقام تنتمي لـ `39611006` فقط وليس لـ `6f53e2ae` ولا للتعديل المحلي التالي).*
+
+## WP 7.1 Corrective Pass — Mobile UX, Sticky Topbar Scroll, Anti-Fake-Progress Help Center & Drive Diagnostics (2026-11-18)
+
+**الحالة الحالية:** **`IMPLEMENTED — LOCAL TESTS ONLY (PENDING OWNER REVIEW & CI); P0 PRODUCTION SUPABASE RPC STILL OPEN; PHASE 6 NOT APPROVED`**
+- **نطاق التعديل المحلي (غير مرفوع بعد على GitHub؛ مساحة العمل `/app/applet` بدون `.git`):**
+  - `index.html` و`dist/index.html` SHA-256: `490553b836308a959b5a04585c1a11f3b19862499ab57bf92d90189cd22cf3bc` (`65,864` سطرًا، `4,014,460` بايت — متطابقان بايت لبايت بعد `npm run build`).
+  - `test_wp7_1_unit.js` SHA-256: `b8968d5a5a6d9277b3dc75b5baf76bba03417497cb72aac19d42d7d02cbf0013` (`10/10` unit tests).
+  - `test_wp7_1_mobile_ux_e2e.js` SHA-256: `88c64a67986cf18c2eb4d711cdb901ce1935a3010e1254e48961d67512088063` (`150/150` Chromium E2E checks).
+  - `package.json` (`9f0bff53...`) و`run_all_tests.js` (`bdc2d4a1...`): تسجيل `test_wp7_1_unit.js` و`test_wp7_1_mobile_ux_e2e.js` في `lint` و`test:unit` و`test:e2e` والمنفذ الموحد.
+- **ما تم إصلاحه والتحقق منه على `490553b8...`:**
+  1. **شارة PDF واستعادة التوافق (`#pdfAutoSaveStatus`):** إزالة القصّ والتداخل عبر `320x720`, `360x740`, `390x844` (EN/AR), `768x1024`, `1440x900` بإصلاح ترتيب `@media (max-width: 375px)` و`max-width: 345px` و`overflow: visible`، مع الحفاظ على `'Free Plan'` في `deriveGoogleDriveDiagnosticsModel()` (`line 19424`) وحماية نقرات `.toast` (`pointer-events: none`) في `index.html`.
+  2. **إثبات ثبات `.navbar` بالتمرير الحقيقي على الموبايل (`360x740` و`390x844`):** `html, body { overflow-y: visible; overflow-x: clip; }` و`.navbar { position: sticky; top: 0; z-index: 999; isolation: isolate; }` مع اختبار `elementFromPoint` من أعلى إلى منتصف إلى أسفل في **Subjects** و**Planner** ولقطات `after-scroll-*.png` في `.playwright-cli/wp7-1/after/`.
+  3. **منع التقدم الوهمي في Help Center وإثبات الحفظ عبر `page.reload()`:** `exoHasRealAnnotationContent()` + تتبع IndexedDB الموثّق عبر `exoPersistedAnnotationLecturesByUid` و`pharmaPersistedAnnoCountV1_<uid>` واستبعاد `_isDemoSample` وسجلات `missed`/`absent` والأهداف غير المربوطة و`pendingAnnoSaveMap` والدخول غير المؤكد.
+  4. **تشخيصات Google Drive التسعة + توقيت المزامنة عبر Reload + تدقيق أزرار Help:** الحالات التسع مع فصل شارتَي Connection وSync وتنقيح الأسرار (`[REDACTED]`)، واستعادة `pharmaLastCloudSyncIso_<uid>` عبر Reload دون ادعاء `Synced` أثناء Offline، وتغطية أزرار `?` السياقية والـ Quick Actions.
+- **نتائج الاختبار المحلي على `490553b8...`:**
+  - `npm run lint` (`25` ملف JS) و`npm run build`: **PASS**.
+  - **`1,051 / 1,051 PASSED (0 FAILED)`** عبر كل المجموعات المتاحة محليًا: Static `54/54` + Comprehensive `42/42` + Phase 3 Isolation `52/52` + Phase 4 Regressions `317/317` + Unit `69/69` (تشمل `10/10` WP 7.1) + PGlite `41/41` + Chromium E2E `476/476` (`167/167` Phase 4.1 + `43/43` WP 6.5 + `22/22` WP 6.6 + `51/51` WP 6.7 + `21/21` WP 6.8 + `22/22` WP 6.9 + `150/150` WP 7.1).
+  - `npm run benchmark:node`: **`5/5` Tiers PASSED**.
+  - **غير منفذ محليًا / حدود الموثوقية:** `test:pg16` تعذر محليًا (`ECONNREFUSED 127.0.0.1:5432` لعدم وجود خادم PostgreSQL 16 محلي، ومُرحّل إلى CI)؛ اختبارات Chromium تعمل بـ route mocks و`PDFJS_DETERMINISTIC_SHIM`؛ وبند P0 لقاعدة Supabase Production (`PGRST202`) ما زال `NOT VERIFIED LIVE`.
+- **التقرير التفصيلي لـ WP 7.1 Corrective Pass:** `reports/PHASE_7_1_MOBILE_UX_AND_HELP_CENTER_REPORT.md`.
+
+---
 
 ## WP 7.0.6 — Final Continuation, CI #74 & P0 Supabase RPC Audit (2026-11-18)
 
-**الحالة الحالية:** **`CI VERIFIED (WP 7.0.6 CODE); P0 PRODUCTION SUPABASE RPC STILL OPEN (NOT VERIFIED LIVE); PHASE 6 NOT APPROVED`**
+**الحالة التاريخية لنسخة `6f53e2ae` المرفوعة:** **`CI VERIFIED (WP 7.0.6 CODE); P0 PRODUCTION SUPABASE RPC STILL OPEN (NOT VERIFIED LIVE); PHASE 6 NOT APPROVED`**
 - **تطابق بيئة العمل المحلية مع `6f53e2aed8c335195f1cf338776bb4249b5aeb1f`:**
   - `index.html` و`dist/index.html` SHA-256: `388141784259db02863e3f9ffcea8606445fac2d425d562774330dfecf2cd664` (`63,656` سطرًا، `3,866,796` بايت) — مطابق بايت لبايت.
   - `test_wp6_7_chromium_e2e.js` SHA-256: `9d60dab45fd9d0993f4ddabf402cfb9d30178ac119a2724cb467e17df0c820ca` — مطابق بايت لبايت.

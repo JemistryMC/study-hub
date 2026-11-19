@@ -7,7 +7,9 @@
 //   4. buildActionableHelpCatalog (Sections A-G with EN zero-Arabic-leak check)
 //   5. deriveHelpGettingStartedChecklist (live 7-step progress tracking)
 //   6. deriveHelpTroubleshootingRecommendations (sorting, safety notes, no cache wipe)
-//   7. exoComputeMobileViewportBudget (<= 15.5% chrome cap & >= 44px touch targets)
+//   8. deriveGoogleDriveDiagnosticsModel (all 9 Drive states, dual badges, redaction)
+//   9. exoHasRealAnnotationContent (strict ink/text/extra-sheet truthiness)
+//  10. deriveAcademyGuideMetrics (6 aligned help modules + closed-loop stations)
 // ============================================================================
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -34,6 +36,9 @@ const helpersFactory = new Function(`
   ${extractFunctionSource('deriveHelpGettingStartedChecklist')}
   ${extractFunctionSource('deriveHelpTroubleshootingRecommendations')}
   ${extractFunctionSource('exoComputeMobileViewportBudget')}
+  ${extractFunctionSource('deriveGoogleDriveDiagnosticsModel')}
+  ${extractFunctionSource('exoHasRealAnnotationContent')}
+  ${extractFunctionSource('deriveAcademyGuideMetrics')}
   return {
     exoNormalizeHelpSearchText,
     exoExpandHelpSearchQuery,
@@ -41,7 +46,10 @@ const helpersFactory = new Function(`
     buildActionableHelpCatalog,
     deriveHelpGettingStartedChecklist,
     deriveHelpTroubleshootingRecommendations,
-    exoComputeMobileViewportBudget
+    exoComputeMobileViewportBudget,
+    deriveGoogleDriveDiagnosticsModel,
+    exoHasRealAnnotationContent,
+    deriveAcademyGuideMetrics
   };
 `);
 
@@ -113,22 +121,46 @@ test('WP 7.1: buildActionableHelpCatalog covers Guides A-G cleanly with EN zero-
   assert.ok(policyGuide.steps.join(' ').toLowerCase().includes('annotated pdf export'));
 });
 
-test('WP 7.1: deriveHelpGettingStartedChecklist computes 0/7 empty vs 7/7 completed progress cleanly', () => {
+test('WP 7.1: deriveHelpGettingStartedChecklist computes 0/7 empty vs 7/7 verified milestones & blocks fake progress', () => {
   const emptyChecklist = h.deriveHelpGettingStartedChecklist({}, true);
   assert.equal(emptyChecklist.totalCount, 7);
   assert.equal(emptyChecklist.completedCount, 0);
   assert.equal(emptyChecklist.progressPct, 0);
   assert.equal(emptyChecklist.nextIncompleteActionId, 'go_library');
 
+  // Negative anti-fake-progress checks: unlinked goals, offline unacked sign-in, 0 persisted annotations
+  const antiFake = h.deriveHelpGettingStartedChecklist({
+    subjectCount: 1,
+    chapterCount: 1,
+    resourceCount: 1,
+    hasStudioNotesOrBookmark: false,
+    persistedAnnotationCount: 0,
+    sessionCount: 1,
+    goalCount: 3,
+    linkedGoalCount: 0,
+    logCount: 1,
+    isSignedIn: true,
+    hasRemoteSync: false,
+    hasExportedBackup: false
+  }, true);
+  const stepMap = Object.fromEntries(antiFake.steps.map(s => [s.id, s]));
+  assert.equal(stepMap.gs_studio_notes.done, false, 'Page view alone without real persisted notes must keep gs_studio_notes incomplete');
+  assert.equal(stepMap.gs_goal.done, false, 'Unlinked weekly goal (linkedGoalCount=0) must keep gs_goal incomplete');
+  assert.equal(stepMap.gs_safety.done, false, 'Offline/unacked sign-in without backup export must keep gs_safety incomplete');
+  assert.equal(antiFake.completedCount, 4);
+
   const partialChecklist = h.deriveHelpGettingStartedChecklist({
     subjectCount: 2,
     chapterCount: 3,
     resourceCount: 1,
     hasStudioNotesOrBookmark: true,
+    persistedAnnotationCount: 1,
     sessionCount: 0,
     goalCount: 0,
+    linkedGoalCount: 0,
     logCount: 0,
-    isSignedIn: false
+    isSignedIn: false,
+    hasRemoteSync: false
   }, false);
   assert.equal(partialChecklist.completedCount, 3);
   assert.equal(partialChecklist.progressPct, 43);
@@ -139,14 +171,27 @@ test('WP 7.1: deriveHelpGettingStartedChecklist computes 0/7 empty vs 7/7 comple
     chapterCount: 4,
     resourceCount: 4,
     hasStudioNotesOrBookmark: true,
+    persistedAnnotationCount: 1,
     sessionCount: 5,
     goalCount: 2,
+    linkedGoalCount: 2,
     logCount: 3,
-    isSignedIn: true
+    isSignedIn: true,
+    hasRemoteSync: true
   }, true);
   assert.equal(fullChecklist.completedCount, 7);
   assert.equal(fullChecklist.progressPct, 100);
   assert.equal(fullChecklist.nextIncompleteActionId, 'go_dashboard');
+});
+
+test('WP 7.1: exoHasRealAnnotationContent distinguishes empty/placeholder maps from real persisted annotations', () => {
+  assert.equal(h.exoHasRealAnnotationContent(null), false);
+  assert.equal(h.exoHasRealAnnotationContent({}), false);
+  assert.equal(h.exoHasRealAnnotationContent({ 1: {} }), false);
+  assert.equal(h.exoHasRealAnnotationContent({ 1: { strokes: [], paths: [], texts: [], items: [], lines: [] } }), false);
+  assert.equal(h.exoHasRealAnnotationContent({ 1: { strokes: [{ points: [[10, 10], [20, 20]] }] } }), true);
+  assert.equal(h.exoHasRealAnnotationContent({ 2: { texts: [{ text: 'Important receptor' }] } }), true);
+  assert.equal(h.exoHasRealAnnotationContent({ 3: { isExtraSheet: true, strokes: [] } }), true);
 });
 
 test('WP 7.1: deriveHelpTroubleshootingRecommendations prioritizes active conditions and upholds GEMINI.md safety rules', () => {
@@ -168,6 +213,97 @@ test('WP 7.1: deriveHelpTroubleshootingRecommendations prioritizes active condit
     assert.ok(!fullText.includes('clear browser cache'), 'Must never advise wiping browser storage');
     assert.ok(!fullText.includes('reset the app'), 'Must never advise resetting app');
   }
+});
+
+test('WP 7.1: deriveGoogleDriveDiagnosticsModel covers all 9 states, separates connection/sync badges, and redacts secrets', () => {
+  const arRegex = /[\u0600-\u06FF]/;
+  const cases = [
+    {
+      expect: 'not_linked',
+      opts: { isSignedIn: true, hasVipEntitlement: true, isOnline: true, isLinked: false, authState: 'disconnected' }
+    },
+    {
+      expect: 'connected',
+      opts: { isSignedIn: true, hasVipEntitlement: true, isOnline: true, isLinked: true, authState: 'connected', syncStatus: 'idle', email: 'doc@example.com' }
+    },
+    {
+      expect: 'auth_expired',
+      opts: { isSignedIn: true, hasVipEntitlement: true, isOnline: true, isLinked: true, authState: 'reauth_required', lastErrorStatus: 401 }
+    },
+    {
+      expect: 'permission_denied',
+      opts: { isSignedIn: true, hasVipEntitlement: true, isOnline: true, isLinked: true, authState: 'permission_denied', lastErrorStatus: 403, lastErrorCode: 'google_account_mismatch', email: 'saved@example.com' }
+    },
+    {
+      expect: 'file_access_error',
+      opts: { isSignedIn: true, hasVipEntitlement: true, isOnline: true, isLinked: true, authState: 'connected', lastErrorStatus: 404, lastErrorCode: 'not_found' }
+    },
+    {
+      expect: 'offline',
+      opts: { isSignedIn: true, hasVipEntitlement: true, isOnline: false, isLinked: true, authState: 'connected', hasConfirmedSync: true, lastConfirmedSyncLabel: '12:30' }
+    },
+    {
+      expect: 'media_transfer_failed',
+      opts: {
+        isSignedIn: true,
+        hasVipEntitlement: true,
+        isOnline: true,
+        isLinked: true,
+        authState: 'connected',
+        lastErrorStatus: 500,
+        lastErrorCode: 'gdrive_upload_failed',
+        lastErrorMessage: 'Bearer ya29.superSecretTokenXYZ access_token=tok123 upload_id=up99 failed https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=up99'
+      }
+    },
+    {
+      expect: 'workspace_sync_issue',
+      opts: { isSignedIn: true, hasVipEntitlement: true, isOnline: true, isLinked: true, authState: 'connected', syncStatus: 'conflict', lastErrorCode: 'occ_conflict' }
+    },
+    {
+      expect: 'sync_confirmed',
+      opts: { isSignedIn: true, hasVipEntitlement: true, isOnline: true, isLinked: true, authState: 'connected', syncStatus: 'synced', hasConfirmedSync: true, cloudRevision: 7, lastConfirmedSyncLabel: '14:15' }
+    }
+  ];
+
+  const seenStates = new Set();
+  for (const c of cases) {
+    const enModel = h.deriveGoogleDriveDiagnosticsModel(c.opts, true);
+    const arModel = h.deriveGoogleDriveDiagnosticsModel(c.opts, false);
+    assert.equal(enModel.diagnosticState, c.expect, `Expected state ${c.expect}`);
+    seenStates.add(enModel.diagnosticState);
+    assert.ok(enModel.connectionBadge && enModel.connectionBadge.label, `${c.expect}: connectionBadge present`);
+    assert.ok(enModel.syncBadge && enModel.syncBadge.label, `${c.expect}: syncBadge present`);
+    assert.notEqual(enModel.connectionBadge.label, enModel.syncBadge.label, `${c.expect}: connection & sync badges remain distinct`);
+    assert.ok(enModel.title && enModel.whatHappened && enModel.dataSafetyNote, `${c.expect}: diagnostic fields complete`);
+    const enBlob = [enModel.title, enModel.whatHappened, enModel.cause, enModel.dataSafetyNote, enModel.nextActionLabel, enModel.connectionBadge.label, enModel.syncBadge.label, enModel.redactedDetail].join(' ');
+    assert.ok(!arRegex.test(enBlob), `${c.expect}: EN diagnostics leaked Arabic`);
+    assert.ok(arRegex.test(arModel.title), `${c.expect}: AR diagnostics must be localized`);
+  }
+  assert.equal(seenStates.size, 9, 'All 9 Google Drive diagnostic states must be covered');
+
+  // Verify offline keeps historical timestamp on syncBadge without falsely claiming Online/Synced
+  const offlineSynced = h.deriveGoogleDriveDiagnosticsModel(cases[5].opts, true);
+  assert.equal(offlineSynced.connectionBadge.label, 'Offline');
+  assert.ok(offlineSynced.syncBadge.label.includes('Offline') && offlineSynced.syncBadge.label.includes('12:30'));
+
+  // Verify token/secret redaction
+  const redactedModel = h.deriveGoogleDriveDiagnosticsModel(cases[6].opts, true);
+  assert.ok(!redactedModel.redactedDetail.includes('superSecretTokenXYZ'), 'Bearer ya29 token must be redacted');
+  assert.ok(!redactedModel.redactedDetail.includes('tok123'), 'access_token query secret must be redacted');
+  assert.ok(!redactedModel.redactedDetail.includes('up99'), 'upload_id secret must be redacted');
+  assert.ok(redactedModel.redactedDetail.includes('[REDACTED]'));
+});
+
+test('WP 7.1: deriveAcademyGuideMetrics aligns all 6 Help Center module titles cleanly', () => {
+  const en = h.deriveAcademyGuideMetrics(3, 6, true);
+  const ar = h.deriveAcademyGuideMetrics(3, 6, false);
+  assert.equal(en.panes.length, 6);
+  assert.equal(en.panes[0].title, 'Overview & Closed Loop');
+  assert.equal(en.panes[2].title, 'Chapter Workspace & Studio');
+  assert.equal(en.panes[5].title, 'Troubleshoot, VIP & Support');
+  assert.equal(ar.panes.length, 6);
+  assert.equal(en.closedLoopStations[0].label, 'Weekly Goals');
+  assert.equal(en.closedLoopStations[4].label, 'Evaluate & Rollover');
 });
 
 test('WP 7.1: exoComputeMobileViewportBudget enforces 15.5% sticky chrome budget and >=44px hitboxes', () => {

@@ -2294,6 +2294,10 @@
             border: 1px solid rgba(240, 230, 212, 0.14);
             border-inline-start: 4px solid var(--sage-green, #899982);
             animation: slideInToast 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            pointer-events: none;
+        }
+        .toast button,
+        .toast a {
             pointer-events: auto;
         }
         .toast.success { border-inline-start-color: var(--sage-green, #899982); }
@@ -4018,8 +4022,10 @@
             flex: 1;
             padding: 20px 24px;
             overflow-y: auto;
-            overflow-x: hidden;
+            overflow-x: clip;
+            overscroll-behavior-y: contain;
             position: relative;
+            z-index: 1;
             max-width: 1380px;
             width: 100%;
             margin: 0 auto;
@@ -5271,7 +5277,7 @@
             font-variant-numeric: tabular-nums;
         }
         #pdfMergedLecturesBar { display: none !important; }
-        #vipMediaLockModalOverlay, #cloudAuthModalOverlay, #singleInputModalOverlay, #confirmModalOverlay, #backupImportPreflightModalOverlay { z-index: 4000 !important; }
+        #vipMediaLockModalOverlay, #cloudAuthModalOverlay, #driveHubModalOverlay, #singleInputModalOverlay, #confirmModalOverlay, #backupImportPreflightModalOverlay { z-index: 4000 !important; }
         .vip-locked-extra-note {
             opacity: 0.65 !important;
             border: 1px solid rgba(171, 166, 157, 0.2) !important;
@@ -6015,8 +6021,7 @@
                 flex-shrink: 0;
             }
             .academy-nav-item { min-width: 190px; }
-            html, body { height: 100%; overflow-x: hidden; }
-            body { overflow-y: auto; }
+            html, body { height: auto; min-height: 100dvh; overflow-x: clip; overflow-y: visible; }
             .navbar {
                 height: auto;
                 min-height: 70px;
@@ -6042,7 +6047,7 @@
                 font-size: 0.9rem;
                 gap: 6px;
             }
-            .main-content { padding: 16px 12px; overflow-x: hidden; }
+            .main-content { padding: 16px 12px; overflow-x: clip; }
             .panel { padding: 18px 14px; border-radius: 16px; }
             .panel-header {
                 flex-direction: column;
@@ -6532,7 +6537,9 @@
             align-items: center;
             justify-content: space-between;
             border-bottom: 1px solid var(--border-color);
-            z-index: 100;
+            position: sticky;
+            top: 0;
+            z-index: 999 !important;
             flex-shrink: 0;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
         }
@@ -7830,17 +7837,31 @@
             html, body {
                 width: 100%;
                 max-width: 100vw;
-                overflow-x: hidden !important;
+                height: auto !important;
+                min-height: 100dvh;
+                overflow-x: clip !important;
+                overflow-y: visible !important;
+            }
+            .main-content {
+                position: relative;
+                z-index: 1;
+            }
+            .view-section.active {
+                transform: none !important;
+                position: relative;
+                z-index: 1;
             }
             .navbar {
                 width: 100% !important;
                 max-width: 100vw !important;
                 box-sizing: border-box !important;
-                overflow-x: hidden !important;
-                padding: calc(2px + var(--safe-top)) 10px 3px 10px !important;
+                overflow: visible !important;
+                padding: calc(4px + var(--safe-top)) 10px 4px 10px !important;
                 gap: 4px !important;
-                position: sticky;
-                top: 0;
+                position: sticky !important;
+                top: 0 !important;
+                z-index: 999 !important;
+                isolation: isolate;
                 background: #16181A !important;
                 border-bottom: 1px solid rgba(240, 230, 212, 0.1) !important;
             }
@@ -7887,7 +7908,7 @@
                 .navbar-brand span { font-size: 0.98rem !important; }
                 .navbar-actions-group { gap: 4px !important; }
                 .cloud-status-btn { max-width: 88px !important; padding: 4px 7px !important; font-size: 0.68rem !important; }
-                #appLangToggleBtn { padding: 4px 6px !important; }
+                #appLangToggleBtn { padding: 4px !important; width: 44px !important; min-width: 44px !important; justify-content: center !important; }
                 #appLangToggleBtn #appLangToggleText { display: none !important; }
             }
             .navbar .nav-items {
@@ -7982,10 +8003,10 @@
                 top: 0 !important;
                 left: 0 !important;
                 right: 0 !important;
-                height: 50px !important;
-                min-height: 50px !important;
-                max-height: 50px !important;
-                padding: 0 6px !important;
+                height: 52px !important;
+                min-height: 52px !important;
+                max-height: 54px !important;
+                padding: 2px 6px !important;
                 z-index: 50 !important;
                 background: #141618 !important;
                 border-bottom: 1px solid rgba(241, 231, 213, 0.14) !important;
@@ -7995,16 +8016,22 @@
                 align-items: center !important;
                 justify-content: space-between !important;
                 gap: 4px !important;
-                overflow: hidden !important;
+                overflow: visible !important;
                 white-space: nowrap !important;
             }
             .pdf-viewer-header > div:first-child {
                 display: flex !important;
                 align-items: center !important;
-                gap: 5px !important;
+                gap: 4px !important;
                 min-width: 0 !important;
                 flex: 1 1 auto !important;
-                overflow: hidden !important;
+                overflow: visible !important;
+            }
+            .pdf-viewer-header .pdf-header-title-badge-wrap {
+                flex: 1 1 auto !important;
+                min-width: 0 !important;
+                overflow: visible !important;
+                gap: 6px !important;
             }
             #pdfViewerTitle {
                 max-width: 95px !important;
@@ -8013,15 +8040,21 @@
                 overflow: hidden !important;
                 text-overflow: ellipsis !important;
             }
-            #pdfAutoSaveStatus {
+            .pdf-viewer-header #pdfAutoSaveStatus {
                 display: inline-flex !important;
-                flex-shrink: 1 !important;
-                max-width: 120px !important;
-                overflow: hidden !important;
-                text-overflow: ellipsis !important;
-                font-size: 0.65rem !important;
+                align-items: center !important;
+                flex: 0 0 auto !important;
+                min-width: max-content !important;
+                max-width: none !important;
+                width: max-content !important;
+                overflow: visible !important;
+                text-overflow: clip !important;
+                white-space: nowrap !important;
+                font-size: 0.66rem !important;
                 padding: 3px 8px !important;
-                min-height: 28px !important;
+                min-height: 26px !important;
+                max-height: 44px !important;
+                gap: 4px !important;
             }
             .exo-studio-back-chapter-btn {
                 min-width: 44px !important;
@@ -8032,8 +8065,16 @@
                 justify-content: center !important;
                 flex-shrink: 0 !important;
             }
-            @media (max-width: 640px) {
+            @media (max-width: 820px) {
                 .pdf-viewer-header > div:first-child > div:nth-child(2) { display: none !important; }
+                .exo-studio-back-lbl { display: none !important; }
+                .exo-studio-back-chapter-btn {
+                    width: 44px !important;
+                    min-width: 44px !important;
+                    padding: 4px !important;
+                }
+            }
+            @media (max-width: 640px) {
                 #pdfViewerTitle {
                     position: absolute !important;
                     width: 1px !important;
@@ -8044,17 +8085,53 @@
                     margin: 0 !important;
                     padding: 0 !important;
                 }
-                .exo-studio-back-lbl { display: none !important; }
-                #pdfAutoSaveStatus { max-width: 108px !important; min-width: 0 !important; padding: 3px 7px !important; font-size: 0.63rem !important; flex-shrink: 1 !important; }
+                .pdf-viewer-header {
+                    padding: 2px 4px !important;
+                    gap: 3px !important;
+                }
+                .pdf-viewer-header #pdfAutoSaveStatus {
+                    max-width: none !important;
+                    min-width: max-content !important;
+                    width: max-content !important;
+                    overflow: visible !important;
+                    text-overflow: clip !important;
+                    white-space: nowrap !important;
+                    line-height: 1.15 !important;
+                    padding: 3px 6px !important;
+                    font-size: 0.60rem !important;
+                    min-height: 24px !important;
+                    max-height: 40px !important;
+                    border-radius: 9px !important;
+                    flex: 0 0 auto !important;
+                }
                 .pdf-unified-nav-capsule #pdfFullscreenBtn { display: none !important; }
                 #pdfBookmarkCurrentSlideBtn { display: none !important; }
                 #pdfThumbnailsToggleBtn { display: none !important; }
                 .pdf-unified-nav-capsule { padding: 1px 4px !important; gap: 2px !important; }
-                .pdf-header-left-actions { gap: 3px !important; }
+                .pdf-header-left-actions { gap: 2px !important; }
             }
             @media (max-width: 520px) {
                 .pdf-unified-nav-capsule button[onclick*="stepPdfPage"] { display: none !important; }
-                #pdfAutoSaveStatus { max-width: 82px !important; font-size: 0.6rem !important; }
+                #pdfChapterContextToggleBtn { display: none !important; }
+                #pdfPageCounterBadge { min-width: 30px !important; padding: 2px 3px !important; font-size: 0.68rem !important; }
+                .exo-studio-back-chapter-btn {
+                    width: 44px !important;
+                    min-width: 44px !important;
+                    height: 44px !important;
+                    min-height: 44px !important;
+                    padding: 4px !important;
+                }
+                .pdf-viewer-header #pdfAutoSaveStatus {
+                    font-size: 0.59rem !important;
+                    line-height: 1.12 !important;
+                    padding: 2px 6px !important;
+                    gap: 3px !important;
+                }
+                .pdf-viewer-header #pdfAutoSaveStatus svg {
+                    width: 10px !important;
+                    height: 10px !important;
+                    flex-shrink: 0 !important;
+                }
             }
 
             /* Minimalist center navigation capsule in header */
@@ -8062,7 +8139,7 @@
                 display: flex !important;
                 align-items: center !important;
                 gap: 2px !important;
-                padding: 1px 5px !important;
+                padding: 1px 4px !important;
                 background: rgba(255, 255, 255, 0.04) !important;
                 border: 1px solid rgba(148, 163, 184, 0.16) !important;
                 border-radius: 999px !important;
@@ -8078,13 +8155,13 @@
                 justify-content: center !important;
             }
             #pdfPageCounterBadge {
-                font-size: 0.72rem !important;
-                min-width: 44px !important;
+                font-size: 0.7rem !important;
+                min-width: 34px !important;
                 min-height: 44px !important;
                 display: inline-flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                padding: 2px 6px !important;
+                padding: 2px 4px !important;
             }
             /* Hide bulky zoom -/+ buttons on mobile header to keep strict 1-row layout */
             .pdf-unified-nav-capsule .pdf-header-divider,
@@ -8097,7 +8174,7 @@
             .pdf-header-left-actions {
                 display: flex !important;
                 align-items: center !important;
-                gap: 4px !important;
+                gap: 2px !important;
                 flex-shrink: 0 !important;
             }
             .pdf-header-left-actions .anno-btn,
@@ -8105,9 +8182,9 @@
             .pdf-viewer-header .icon-btn.delete {
                 min-width: 44px !important;
                 min-height: 44px !important;
-                width: auto !important;
+                width: 44px !important;
                 height: 44px !important;
-                padding: 6px 8px !important;
+                padding: 4px !important;
                 display: inline-flex !important;
                 align-items: center !important;
                 justify-content: center !important;
@@ -8116,6 +8193,19 @@
             #pdfZenModeBtn, #pdfZenModeText { display: none !important; }
             #pdfCollapseDockBtn { display: none !important; }
             #pdfHeaderSmartTrackMiniBtn { display: none !important; }
+            @media (max-width: 375px) {
+                .pdf-viewer-header #pdfAudioBarToggleBtn { display: none !important; }
+            }
+            @media (max-width: 345px) {
+                .pdf-viewer-header { padding: 4px 4px !important; gap: 2px !important; }
+                .pdf-viewer-header #pdfAutoSaveStatus {
+                    font-size: 0.54rem !important;
+                    padding: 2px 4px !important;
+                    gap: 2px !important;
+                }
+                .pdf-unified-nav-capsule { padding: 0 2px !important; }
+                #pdfPageCounterBadge { font-size: 0.61rem !important; min-width: 22px !important; padding: 2px 3px !important; }
+            }
 
             /* 3. Floating Bottom Study Dock (.pdf-annotation-toolbar) */
             .pdf-annotation-toolbar {
@@ -12541,6 +12631,9 @@
             backdrop-filter: none !important;
             -webkit-backdrop-filter: none !important;
         }
+        #driveHubModalOverlay.active {
+            opacity: 1 !important;
+        }
         #driveHubModalOverlay .glass-modal {
             background: #1C1E21 !important;
             border: 1px solid rgba(137, 153, 130, 0.28) !important;
@@ -12548,6 +12641,9 @@
             box-shadow: 0 24px 60px rgba(0, 0, 0, 0.84) !important;
             max-height: 90dvh;
             overflow-y: auto;
+        }
+        #driveHubModalOverlay.active .glass-modal {
+            opacity: 1 !important;
         }
         .exo-drive-hub-status-banner {
             background: rgba(25, 27, 29, 0.88);
@@ -12569,9 +12665,9 @@
         }
         @media (max-width: 767px), (max-height: 560px) {
             .navbar {
-                padding: calc(2px + var(--safe-top)) 10px 3px 10px !important;
-                min-height: 48px !important;
-                max-height: 52px !important;
+                padding: calc(4px + var(--safe-top)) 10px 4px 10px !important;
+                min-height: calc(50px + var(--safe-top)) !important;
+                max-height: none !important;
             }
             .navbar-brand img.exo-brand-logo-img {
                 width: 28px !important;
@@ -13663,11 +13759,16 @@
                 display: none !important;
             }
             .pdf-viewer-header {
-                height: 50px !important;
-                min-height: 50px !important;
-                max-height: 50px !important;
-                padding: 2px 8px !important;
-                gap: 6px !important;
+                height: 52px !important;
+                min-height: 52px !important;
+                max-height: 54px !important;
+                padding: 2px 6px !important;
+                gap: 4px !important;
+                overflow: visible !important;
+            }
+            .pdf-unified-nav-capsule #pdfFullscreenBtn,
+            #pdfFullscreenBtn {
+                display: none !important;
             }
             .pdf-pages-scroll-container {
                 padding-right: 12px !important;
@@ -16082,7 +16183,7 @@
                     <div style="width: 28px; height: 28px; border-radius: 7px; background: rgba(137, 153, 130, 0.16); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                         <svg class="exo-svg-icon" style="color: var(--primary); font-size: 0.9rem;" aria-hidden="true"><use href="#exo-ico-note"/></svg>
                     </div>
-                    <div style="min-width: 0; display: flex; align-items: center; gap: 8px;">
+                    <div class="pdf-header-title-badge-wrap" style="min-width: 0; display: flex; align-items: center; gap: 8px;">
                         <h3 id="pdfViewerTitle" style="margin: 0; font-size: 0.88rem; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px;">Lecture Studio</h3>
                         <span id="pdfAutoSaveStatus" data-exo-no-i18n="1" role="status" tabindex="0" onclick="exoHandlePdfStatusBadgeClick()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();exoHandlePdfStatusBadgeClick();}" title="Click to save edits on device or inspect sync status">
                             <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-circle-dot"/></svg> Ready
@@ -16127,7 +16228,7 @@
                     <button type="button" class="anno-btn icon-only" id="pdfThumbnailsToggleBtn" onclick="togglePdfThumbnailsDrawer()" title="Slides index & thumbnails (M)">
                         <svg class="exo-svg-icon" aria-hidden="true"><use href="#exo-ico-thumbs"/></svg>
                     </button>
-                    <button type="button" class="anno-btn" id="pdfAudioBarToggleBtn" onclick="togglePdfAudioPlayerBar()" title="Audio player bar" style="padding: 4px 10px !important; gap: 5px !important; border: 1px solid rgba(137, 153, 130, 0.38); border-radius: 999px;">
+                    <button type="button" class="anno-btn" id="pdfAudioBarToggleBtn" onclick="togglePdfAudioPlayerBar()" title="Audio player bar" style="padding: 4px 10px; gap: 5px; border: 1px solid rgba(137, 153, 130, 0.38); border-radius: 999px;">
                         <svg class="exo-svg-icon" id="pdfAudioBarToggleIcon" aria-hidden="true"><use href="#exo-ico-audio"/></svg> <span id="pdfAudioBarToggleText" class="hide-on-xs" style="font-size: 0.74rem; font-weight: 800;">Audio</span>
                     </button>
                     <button type="button" class="anno-btn icon-only" id="pdfCollapseDockBtn" onclick="togglePdfAnnotationDock()" title="Show / hide drawing dock">
@@ -16177,6 +16278,12 @@
                             <a id="pdfOpenInTabBtn" href="#" target="_blank" rel="noopener noreferrer" class="pdf-more-item" onclick="closePdfMoreMenu()">
                                 <svg class="exo-svg-icon" style="color: var(--muted-blue);" aria-hidden="true"><use href="#exo-ico-external-link"/></svg> فتح في نافذة خارجية
                             </a>
+                            <button class="pdf-more-item" id="pdfMenuAudioBarBtn" data-exo-no-i18n="1" onclick="togglePdfAudioPlayerBar(); closePdfMoreMenu();">
+                                <svg class="exo-svg-icon" style="color: var(--sage-green);" aria-hidden="true"><use href="#exo-ico-audio"/></svg> <span id="pdfMenuAudioBarText">Audio Player &amp; Pins</span>
+                            </button>
+                            <button class="pdf-more-item" id="pdfMenuChapterContextBtn" data-exo-no-i18n="1" onclick="togglePdfChapterContextDrawer(); closePdfMoreMenu();">
+                                <svg class="exo-svg-icon" style="color: var(--sage-green);" aria-hidden="true"><use href="#exo-ico-layers"/></svg> <span id="pdfMenuChapterContextText">Chapter Context &amp; Switcher</span>
+                            </button>
                             <button class="pdf-more-item" id="pdfMenuHelpBtn" data-exo-no-i18n="1" onclick="closePdfMoreMenu(); openHelpModal(3);">
                                 <svg class="exo-svg-icon" style="color: var(--sage-green);" aria-hidden="true"><use href="#exo-ico-help"/></svg> <span id="pdfMenuHelpText">Studio Guide &amp; Shortcuts</span>
                             </button>
@@ -18663,11 +18770,20 @@
             }
 
             if (timeEl) {
-                if (signals.cloudAckConfirmed && exoRuntimeStatusState.lastCloudSyncAt && model.cloud.state === 'synced') {
+                const isRemoteSignedIn = Boolean(signals.isLoggedIn && !signals.isLocalOnlyAccount);
+                if (isRemoteSignedIn && exoRuntimeStatusState.lastCloudSyncAt) {
                     const t = exoFormatTimeLabel(exoRuntimeStatusState.lastCloudSyncAt);
-                    timeEl.innerText = isEn
-                        ? `Confirmed server sync (v${signals.cloudRevision || 1}): ${t}`
-                        : `آخر مزامنة مؤكدة (v${signals.cloudRevision || 1}): ${t}`;
+                    const revNum = signals.cloudRevision || 1;
+                    if (signals.cloudAckConfirmed && model.cloud.state === 'synced') {
+                        timeEl.innerText = isEn
+                            ? `Confirmed server sync (v${revNum}): ${t}`
+                            : `آخر مزامنة مؤكدة (v${revNum}): ${t}`;
+                    } else {
+                        const statusLbl = isEn ? model.cloud.labelEn : model.cloud.labelAr;
+                        timeEl.innerText = isEn
+                            ? `${statusLbl} · Last confirmed sync (v${revNum}): ${t}`
+                            : `${statusLbl} · آخر مزامنة مؤكدة (v${revNum}): ${t}`;
+                    }
                 } else {
                     timeEl.innerText = isEn ? model.cloud.labelEn : model.cloud.labelAr;
                 }
@@ -19218,6 +19334,223 @@
             };
         }
 
+        function deriveGoogleDriveDiagnosticsModel(opts, isEn) {
+            const en = isEn !== false;
+            const o = (opts && typeof opts === 'object') ? opts : {};
+            const isSignedIn = Boolean(o.isSignedIn);
+            const hasVip = Boolean(o.hasVipEntitlement);
+            const isOnline = o.isOnline !== false;
+            const isLinked = Boolean(o.isLinked);
+            const authState = String(o.authState || 'disconnected');
+            const syncStatus = String(o.syncStatus || 'idle');
+            const hasConfirmedSync = Boolean(o.hasConfirmedSync);
+            const lastConfirmedSyncLabel = String(o.lastConfirmedSyncLabel || '').trim();
+            const cloudRevision = Math.max(0, Number(o.cloudRevision) || 0);
+            const folderName = String(o.folderName || 'Exo_Workspace');
+            const email = String(o.email || '').trim();
+            const errStatus = Number(o.lastErrorStatus || 0);
+            const errCode = String(o.lastErrorCode || '').toLowerCase();
+
+            const scrubSecrets = (raw) => {
+                let text = typeof raw === 'string' ? raw : (raw && raw.message ? String(raw.message) : String(raw || ''));
+                if (!text) return '';
+                text = text.replace(/Bearer\s+[A-Za-z0-9\-._~+/]+=*/gi, 'Bearer [REDACTED]');
+                text = text.replace(/ya29\.[A-Za-z0-9\-._~+/]+/g, 'ya29.[REDACTED]');
+                text = text.replace(/(access_token|token|authorization)=([^&\s"']+)/gi, '$1=[REDACTED]');
+                text = text.replace(/upload_id=[^&\s"']+/gi, 'upload_id=[REDACTED]');
+                text = text.replace(/https:\/\/www\.googleapis\.com\/upload\/drive\/v3\/files[^\s"']*/gi, 'https://www.googleapis.com/upload/drive/v3/files?[REDACTED]');
+                return text;
+            };
+            const redactedDetail = scrubSecrets(o.lastErrorMessage || '').slice(0, 180);
+
+            const hasTransferFailCode = ['gdrive_upload_failed', 'drive_download_failed', 'invalid_pdf_blob', 'empty_blob', 'rate_limited', 'server_error', 'http_error', 'retry_exhausted'].includes(errCode) || errStatus === 422 || errStatus === 429 || errStatus >= 500;
+            const hasFileAccessError = errStatus === 404 || ['not_found', '404', 'trashed', 'unreadable', 'file_not_found'].includes(errCode);
+            const hasPermissionDenied = authState === 'permission_denied' || errStatus === 403 || ['permission_denied', 'google_account_mismatch', 'missing_required_drive_scopes', 'access_denied'].includes(errCode);
+            const hasAuthExpired = (isLinked && (authState === 'reauth_required' || authState === 'token_expired')) || errStatus === 401 || ['reauth_required', 'token_expired', 'http_401', 'empty_token_response', 'silent_token_timeout', 'missing_access_token'].includes(errCode);
+            const hasWorkspaceSyncIssue = syncStatus === 'conflict' || syncStatus === 'failed' || ['occ_conflict', 'workspace_sync_failed', 'sync_failed', 'conflict'].includes(errCode);
+
+            const connectionBadge = !isSignedIn
+                ? { tone: 'neutral', label: en ? 'Sign In Required' : 'يتطلب تسجيل الدخول' }
+                : (!hasVip
+                    ? { tone: 'info', label: en ? 'Free Local Active' : 'التخزين المحلي نشط' }
+                    : (!isOnline
+                        ? { tone: 'warn', label: en ? 'Offline' : 'غير متصل بالإنترنت' }
+                        : (hasPermissionDenied
+                            ? { tone: 'error', label: en ? 'Permission Denied' : 'الصلاحية مرفوضة' }
+                            : (hasAuthExpired
+                                ? { tone: 'warn', label: en ? 'Auth Expired' : 'انتهت الجلسة' }
+                                : (isLinked && authState === 'connected'
+                                    ? { tone: 'ok', label: en ? 'Drive Connected' : 'متصل بـ Drive' }
+                                    : { tone: 'neutral', label: en ? 'Not Linked' : 'غير مربوط' })))));
+
+            const syncBadge = !isOnline
+                ? { tone: 'warn', label: hasConfirmedSync && lastConfirmedSyncLabel ? (en ? `Offline · Last sync ${lastConfirmedSyncLabel}` : `أوفلاين · آخر مزامنة ${lastConfirmedSyncLabel}`) : (en ? 'Sync Pending (Offline)' : 'المزامنة معلقة (أوفلاين)') }
+                : (hasWorkspaceSyncIssue
+                    ? { tone: 'error', label: syncStatus === 'conflict' || errCode === 'occ_conflict' ? (en ? 'Sync Conflict (OCC)' : 'تعارض مزامنة (OCC)') : (en ? 'Workspace Sync Issue' : 'تعذر مزامنة المساحة') }
+                    : (hasTransferFailCode
+                        ? { tone: 'error', label: en ? 'Media Transfer Failed' : 'فشل نقل الوسائط' }
+                        : (hasFileAccessError
+                            ? { tone: 'error', label: en ? 'Drive File Missing (404)' : 'ملف Drive مفقود (404)' }
+                            : (syncStatus === 'syncing'
+                                ? { tone: 'info', label: en ? 'Syncing...' : 'جاري المزامنة...' }
+                                : (syncStatus === 'pending'
+                                    ? { tone: 'warn', label: en ? 'Pending Sync' : 'بانتظار المزامنة' }
+                                    : (hasConfirmedSync && syncStatus === 'synced'
+                                        ? { tone: 'ok', label: lastConfirmedSyncLabel ? (en ? `Confirmed Sync (v${cloudRevision || 1}): ${lastConfirmedSyncLabel}` : `مزامنة مؤكدة (v${cloudRevision || 1}): ${lastConfirmedSyncLabel}`) : (en ? 'Confirmed Server Sync' : 'تمت المزامنة مع الخادم') }
+                                        : { tone: 'neutral', label: en ? 'No Remote Media Sync Yet' : 'لم تُرفع وسائط سحابية بعد' }))))));
+
+            let diagnosticState = 'not_linked';
+            let tone = 'neutral';
+            let title = '';
+            let whatHappened = '';
+            let cause = '';
+            let dataSafetyNote = en
+                ? 'Local IndexedDB files, slides, and handwritten ink on this device remain safe and untouched.'
+                : 'ملفاتك وكتاباتك المحفوظة محلياً في IndexedDB على هذا الجهاز آمنة ولن تتأثر.';
+            let nextActionLabel = '';
+            let nextActionType = 'none';
+
+            if (!isSignedIn) {
+                diagnosticState = 'not_linked';
+                tone = 'info';
+                title = en ? 'Account Sign-In Required for Cloud Drive' : 'يلزم تسجيل الدخول لإدارة سحابة Drive';
+                whatHappened = en ? 'No EXO account session is active yet.' : 'لا توجد جلسة حساب EXO مسجلة حالياً.';
+                cause = en ? 'Cloud account ownership isolates Drive folders per user UID.' : 'ملكية مجلدات Drive مربوطة بهوية حساب EXO لمنع اختلاط الملفات.';
+                nextActionLabel = en ? 'Open Account Sign-In' : 'تسجيل الدخول للحساب';
+                nextActionType = 'sign_in';
+            } else if (!hasVip) {
+                diagnosticState = 'not_linked';
+                tone = 'info';
+                title = en ? 'Free Plan Active — Local Storage Ready (Drive Optional)' : 'الباقة المجانية نشطة — التخزين المحلي جاهز (Drive اختياري)';
+                whatHappened = en ? 'Annotated PDF export, multiple summary sheets, and core study sync work freely without Drive upload.' : 'تصدير PDF المشروح وأوراق التلخيص ومزامنة المساحة الأساسية مجانية بالكامل.';
+                cause = en ? 'Google Drive heavy media backup is enabled only for VIP Pro accounts.' : 'تخزين ملفات PDF والصوت الكبيرة عبر Google Drive مخصص لحسابات VIP Pro.';
+                nextActionLabel = en ? 'View VIP Pro Info' : 'تفاصيل باقة VIP Pro';
+                nextActionType = 'upgrade_vip';
+            } else if (!isOnline || errCode === 'network_error' || errCode === 'offline') {
+                diagnosticState = 'offline';
+                tone = 'warn';
+                title = en ? 'Offline — Local Media Ready, Cloud Upload Paused' : 'غير متصل — الملفات المحلية جاهزة والرفع السحابي متوقف مؤقتاً';
+                whatHappened = en ? 'Network connection is offline or Google Drive API is unreachable.' : 'الاتصال بالإنترنت مقطوع أو تعذر الوصول لخادم Google Drive.';
+                cause = en ? 'Device browser reported offline status or a network fetch failure occurred.' : 'المتصفح في وضع عدم الاتصال أو حدث انقطاع شبكة أثناء طلب Drive.';
+                nextActionLabel = en ? 'Open Account & Retry When Online' : 'فحص حالة الحساب وإعادة المحاولة';
+                nextActionType = 'open_account_sync';
+            } else if (hasPermissionDenied) {
+                diagnosticState = 'permission_denied';
+                tone = 'error';
+                const isMismatch = errCode === 'google_account_mismatch';
+                const isScopes = errCode === 'missing_required_drive_scopes';
+                title = isMismatch
+                    ? (en ? 'Wrong Google Account Selected' : 'تم اختيار حساب Google مختلف')
+                    : (isScopes
+                        ? (en ? 'Missing Required Drive Permissions' : 'صلاحيات Google Drive غير مكتملة')
+                        : (en ? 'Google Drive Permission Denied (403)' : 'تم رفض صلاحية Google Drive (403)'));
+                whatHappened = isMismatch
+                    ? (en ? `Selected Google account does not match your linked account (${email || 'saved account'}).` : `حساب Google المختار لا يطابق الحساب المربوط (${email || 'الحساب المسجل'}).`)
+                    : (en ? 'Google Drive rejected the request or required private drive.file scope was not granted.' : 'رفض Google Drive الطلب أو لم تُمنح أذونات مجلد Exo_Workspace المطلوبة.');
+                cause = isScopes
+                    ? (en ? 'OAuth consent lacked drive.file / drive.readonly permissions.' : 'جلسة التفويض تفتقد صلاحيات drive.file / drive.readonly.')
+                    : (en ? 'Permission error (HTTP 403), denied consent, or mismatched Google email.' : 'خطأ صلاحيات (403) أو رفض الأذونات أو اختلاف البريد الإلكتروني.');
+                nextActionLabel = en ? 'Re-grant Drive Permissions' : 'إعادة منح صلاحيات Drive';
+                nextActionType = 'reconnect_permissions';
+            } else if (hasAuthExpired) {
+                diagnosticState = 'auth_expired';
+                tone = 'warn';
+                title = en ? 'Google Drive Session Expired — Re-activate' : 'انتهت جلسة Google Drive — يلزم إعادة التنشيط';
+                whatHappened = en ? 'Google OAuth access token expired or returned HTTP 401.' : 'انتهت صلاحية رمز الدخول لـ Google Drive أو أعاد الخادم رمز 401.';
+                cause = en ? 'Short-lived OAuth tokens stay in RAM only (never saved in localStorage) and expire periodically.' : 'رموز Google OAuth المؤقتة تُحفظ بالذاكرة فقط للأمان وتنتهي دورياً.';
+                nextActionLabel = en ? 'Activate Google Drive' : 'تنشيط Google Drive';
+                nextActionType = 'reactivate';
+            } else if (hasFileAccessError) {
+                diagnosticState = 'file_access_error';
+                tone = 'error';
+                title = en ? 'Drive File Not Found or Inaccessible (404)' : 'الملف غير موجود أو تعذر الوصول إليه في Drive (404)';
+                whatHappened = en ? 'The target file or folder could not be found in your private Exo_Workspace folder.' : 'تعذر العثور على الملف أو المجلد المطلوب داخل Exo_Workspace.';
+                cause = en ? 'File was deleted, moved to Trash, or removed from Google Drive.' : 'ربما حُذف الملف من Google Drive أو نُقل إلى سلة المهملات.';
+                nextActionLabel = en ? 'Check Local Cache & Re-upload' : 'فحص النسخة المحلية وإعادة الرفع';
+                nextActionType = 'open_drive_vault';
+            } else if (hasTransferFailCode) {
+                diagnosticState = 'media_transfer_failed';
+                tone = 'error';
+                title = errCode === 'invalid_pdf_blob'
+                    ? (en ? 'Downloaded Drive File Was Not a Valid PDF' : 'الملف المسترجع من Drive ليس ملف PDF صالحاً')
+                    : (en ? 'Drive Upload or Download Failed' : 'تعذر رفع أو تنزيل ملف الوسائط عبر Drive');
+                whatHappened = en ? 'The media transfer could not be verified and completed on Google Drive.' : 'لم تكتمل عملية نقل أو التحقق من سلامة ملف الوسائط مع Google Drive.';
+                cause = redactedDetail || (en ? 'Network interruption, rate limit, or corrupted response body.' : 'انقطاع بالشبكة أو تقييد مؤقت للطلبات أو استجابة غير مكتملة.');
+                nextActionLabel = en ? 'Retry Transfer' : 'إعادة محاولة النقل';
+                nextActionType = 'retry_check';
+            } else if (hasWorkspaceSyncIssue) {
+                diagnosticState = 'workspace_sync_issue';
+                tone = 'error';
+                title = syncStatus === 'conflict' || errCode === 'occ_conflict'
+                    ? (en ? 'Workspace Sync Conflict (OCC) — Action Needed' : 'تعارض مراجعة المزامنة السحابية (OCC)')
+                    : (en ? 'Workspace Sync Issue — Local Copy Protected' : 'تعذر مزامنة مساحة العمل — نسختك المحلية محمية');
+                whatHappened = en ? 'Google Drive is linked, but Supabase workspace metadata sync encountered a conflict or error.' : 'اتصال Google Drive سليم، لكن مزامنة بيانات المساحة السحابية واجهت تعارضاً أو خطأ.';
+                cause = redactedDetail || (en ? 'Another device updated the cloud revision before local changes were acknowledged.' : 'قام جهاز آخر بتحديث المراجعة السحابية قبل تأكيد تعديلات هذا الجهاز.');
+                nextActionLabel = en ? 'Open Account & Review Sync' : 'مراجعة المزامنة في الحساب';
+                nextActionType = 'open_account_sync';
+            } else if (!isLinked || authState === 'disconnected') {
+                diagnosticState = 'not_linked';
+                tone = 'neutral';
+                title = en ? 'VIP Pro Active — Google Drive Not Linked Yet' : 'VIP Pro نشط — Google Drive غير مربوط بعد';
+                whatHappened = en ? 'Your personal Google Drive has not been linked on this account yet.' : 'لم يتم ربط حساب Google Drive الشخصي بهذا الحساب بعد.';
+                cause = en ? 'Click Link Google Drive to create your private Exo_Workspace folder.' : 'اضغط ربط Google Drive لإنشاء مجلد Exo_Workspace الخاص بك.';
+                nextActionLabel = en ? 'Link Google Drive' : 'ربط Google Drive';
+                nextActionType = 'link';
+            } else if (hasConfirmedSync && syncStatus === 'synced') {
+                diagnosticState = 'sync_confirmed';
+                tone = 'ok';
+                title = en ? `Drive Connected & Workspace Sync Confirmed (v${cloudRevision || 1})` : `Drive متصل والمزامنة مؤكدة (v${cloudRevision || 1})`;
+                whatHappened = en
+                    ? `Private folder "${folderName}" is connected${email ? ` (${email})` : ''} and latest workspace revision is server-confirmed.`
+                    : `مجلد "${folderName}" الخاص متصل${email ? ` (${email})` : ''} وآخر مراجعة للمساحة مؤكدة من الخادم.`;
+                cause = lastConfirmedSyncLabel ? (en ? `Confirmed at ${lastConfirmedSyncLabel}.` : `توقيت التأكيد: ${lastConfirmedSyncLabel}.`) : '';
+                nextActionLabel = en ? 'Privacy Check' : 'فحص الخصوصية';
+                nextActionType = 'retry_check';
+            } else {
+                diagnosticState = 'connected';
+                tone = 'ok';
+                title = en ? 'Google Drive Connected & Private-by-Default' : 'Google Drive متصل وبخصوصية افتراضية كاملة';
+                whatHappened = en
+                    ? `Private "${folderName}" session is active${email ? ` for ${email}` : ''}.`
+                    : `جلسة مجلد "${folderName}" الخاصة نشطة${email ? ` (${email})` : ''}.`;
+                cause = en ? 'Media stays private (drive.file scope). Never shared publicly unless you explicitly choose.' : 'الملفات خاصة بصلاحيات drive.file ولا تُنشر للعامة تلقائياً.';
+                nextActionLabel = '';
+                nextActionType = 'none';
+            }
+
+            return {
+                diagnosticState,
+                tone,
+                connectionBadge,
+                syncBadge,
+                title,
+                whatHappened,
+                cause,
+                dataSafetyNote,
+                nextActionLabel,
+                nextActionType,
+                redactedDetail
+            };
+        }
+
+        function exoHasRealAnnotationContent(pagesMap) {
+            if (!pagesMap || typeof pagesMap !== 'object') return false;
+            const entries = Array.isArray(pagesMap) ? pagesMap : Object.values(pagesMap);
+            for (const p of entries) {
+                if (!p) continue;
+                if (Array.isArray(p) && p.length > 0) return true;
+                if (typeof p === 'object') {
+                    if (p.isExtraSheet === true) return true;
+                    if (Array.isArray(p.strokes) && p.strokes.length > 0) return true;
+                    if (Array.isArray(p.paths) && p.paths.length > 0) return true;
+                    if (Array.isArray(p.texts) && p.texts.length > 0) return true;
+                    if (Array.isArray(p.items) && p.items.length > 0) return true;
+                    if (Array.isArray(p.lines) && p.lines.length > 0) return true;
+                }
+            }
+            return false;
+        }
+
         function deriveSchedulePdfExportSummary(opts, pageSpecs, activeIdx, isEn) {
             const en = isEn !== false;
             const o = opts && typeof opts === 'object' ? opts : {};
@@ -19279,45 +19612,45 @@
             const paneDefinitions = [
                 {
                     num: 1,
-                    titleEn: 'Architecture & Closed Loop',
-                    titleAr: 'معمارية التطبيق والحلقة المغلقة',
-                    tagEn: 'Core Workflow',
-                    tagAr: 'مسار العمل'
+                    titleEn: 'Overview & Closed Loop',
+                    titleAr: 'نظرة عامة والحلقة المغلقة',
+                    tagEn: 'Getting Started',
+                    tagAr: 'مسار البداية'
                 },
                 {
                     num: 2,
-                    titleEn: 'Smart Planner (Today · Week · Goals)',
-                    titleAr: 'المخطط الذكي (اليوم · الأسبوع · الأهداف)',
+                    titleEn: 'Study Library & Chapters',
+                    titleAr: 'المكتبة والمواد والفصول',
+                    tagEn: 'Library',
+                    tagAr: 'المكتبة'
+                },
+                {
+                    num: 3,
+                    titleEn: 'Chapter Workspace & Studio',
+                    titleAr: 'استوديو PDF والصوت',
+                    tagEn: 'Study Studio',
+                    tagAr: 'استوديو المذاكرة'
+                },
+                {
+                    num: 4,
+                    titleEn: 'Weekly Planner & Goals',
+                    titleAr: 'التخطيط الأسبوعي والأهداف',
                     tagEn: 'Planning',
                     tagAr: 'التخطيط'
                 },
                 {
-                    num: 3,
-                    titleEn: 'PDF Study Studio & Workspace',
-                    titleAr: 'استوديو المذاكرة وملفات المادة',
-                    tagEn: 'Study Desk',
-                    tagAr: 'مكتب الدراسة'
-                },
-                {
-                    num: 4,
-                    titleEn: 'Tracker, Compass & Evaluations',
-                    titleAr: 'البوصلة التحليلية والتقييم الأسبوعي',
-                    tagEn: 'Analytics',
-                    tagAr: 'التحليلات'
-                },
-                {
                     num: 5,
-                    titleEn: 'Local Save, Cloud Sync & Backups',
-                    titleAr: 'الحفظ المحلي والمزامنة والنسخ الاحتياطي',
-                    tagEn: 'Safety & Sync',
-                    tagAr: 'الأمان والمزامنة'
+                    titleEn: 'Tracker, Sync & Shortcuts',
+                    titleAr: 'السجل والمزامنة والاختصارات',
+                    tagEn: 'Sync & Shortcuts',
+                    tagAr: 'المزامنة والاختصارات'
                 },
                 {
                     num: 6,
-                    titleEn: 'Shortcuts & Bilingual Power Tips',
-                    titleAr: 'الاختصارات ومهارات الاستخدام السريع',
-                    tagEn: 'Power Guide',
-                    tagAr: 'الاختصارات'
+                    titleEn: 'Troubleshoot, VIP & Support',
+                    titleAr: 'حل الأعطال وVIP والدعم',
+                    tagEn: 'Diagnostics & VIP',
+                    tagAr: 'التشخيص والدعم'
                 }
             ];
 
@@ -19625,6 +19958,9 @@
         function deriveHelpGettingStartedChecklist(snapshot, isEn) {
             const en = isEn !== false;
             const s = (snapshot && typeof snapshot === 'object') ? snapshot : {};
+            const hasGoalAndLink = (Number(s.goalCount) || 0) > 0 && (Number(s.linkedGoalCount) || 0) > 0;
+            const hasStudioWork = Boolean(s.hasStudioNotesOrBookmark || (Number(s.persistedAnnotationCount) || 0) > 0);
+            const hasConfirmedRemoteOrBackup = Boolean(s.hasRemoteSync || s.hasExportedBackup);
             const steps = [
                 {
                     id: 'gs_subject',
@@ -19644,9 +19980,9 @@
                 },
                 {
                     id: 'gs_studio_notes',
-                    title: en ? 'Try ink notes, extra sheet, or bookmark in Studio' : 'جرّب الكتابة أو ورقة تلخيص أو تمييز سلايد في الاستوديو',
-                    desc: en ? 'Keep slide annotations, text notes, and summary sheets synced safely.' : 'احفظ الملاحظات والكتابة وأوراق التلخيص بأمان داخل الفصل.',
-                    done: Boolean(s.hasStudioNotesOrBookmark),
+                    title: en ? 'Save real ink, text note, extra sheet, bookmark, or pin' : 'احفظ كتابة أو ملاحظة نصية أو ورقة تلخيص أو تمييزاً فعلياً',
+                    desc: en ? 'Completed only after strokes, summary sheets, or pins save durably.' : 'تكتمل فقط بعد الحفظ الفعلي للكتابة أو أوراق التلخيص أو الدبابيس.',
+                    done: hasStudioWork,
                     actionId: 'go_library',
                     actionLabel: en ? 'Open Studio' : 'افتح الاستوديو'
                 },
@@ -19660,9 +19996,9 @@
                 },
                 {
                     id: 'gs_goal',
-                    title: en ? 'Add a weekly goal & link sessions' : 'أضف هدفًا أسبوعيًا واربطه بالجلسات',
-                    desc: en ? 'Track automatic completion % from your linked study time.' : 'احسب نسبة إنجاز الهدف تلقائياً من ساعات الجلسات المرتبطة.',
-                    done: (Number(s.goalCount) || 0) > 0,
+                    title: en ? 'Add a weekly goal & link at least one session' : 'أضف هدفًا أسبوعيًا واربطه بجلسة في الجدول',
+                    desc: en ? 'Track automatic completion % from linked study sessions.' : 'تكتمل بعد إنشاء هدف وربطه فعلياً بجلسة مجدولة.',
+                    done: hasGoalAndLink,
                     actionId: 'go_goals',
                     actionLabel: en ? 'Open Goals' : 'أهداف الأسبوع'
                 },
@@ -19676,9 +20012,9 @@
                 },
                 {
                     id: 'gs_safety',
-                    title: en ? 'Connect cloud sync or export a verified backup' : 'اربط المزامنة السحابية أو صدّر نسخة احتياطية',
-                    desc: en ? 'Keep a cross-device copy in Supabase or an offline SHA-256 JSON file.' : 'احتفظ بنسخة عبر الأجهزة في السحابة أو ملف JSON موثق.',
-                    done: Boolean(s.isSignedIn || s.hasExportedBackup || s.hasRemoteSync),
+                    title: en ? 'Confirm cloud sync or export a verified SHA-256 backup' : 'أكّد مزامنة السحابة أو صدّر نسخة احتياطية موثقة',
+                    desc: en ? 'Requires a server-confirmed sync acknowledgement or completed backup download.' : 'يتطلب تأكيد مزامنة من الخادم أو إتمام تحميل نسخة JSON.',
+                    done: hasConfirmedRemoteOrBackup,
                     actionId: 'open_account',
                     actionLabel: en ? 'Account & Backup' : 'الحساب والنسخ'
                 }
@@ -19879,6 +20215,8 @@
             window.deriveCompassPriorityMeta = deriveCompassPriorityMeta;
             window.deriveBackupComparisonSummary = deriveBackupComparisonSummary;
             window.deriveDrivePrivacyAndMediaSummary = deriveDrivePrivacyAndMediaSummary;
+            window.deriveGoogleDriveDiagnosticsModel = deriveGoogleDriveDiagnosticsModel;
+            window.exoHasRealAnnotationContent = exoHasRealAnnotationContent;
             window.deriveSchedulePdfExportSummary = deriveSchedulePdfExportSummary;
             window.deriveAcademyGuideMetrics = deriveAcademyGuideMetrics;
             window.exoResolveSpotlightTourSteps = exoResolveSpotlightTourSteps;
@@ -24809,6 +25147,10 @@
             });
         }
 
+        let exoMenuOpenedScrollY = 0;
+        let exoMenuOpenedMainTop = 0;
+        let exoMenuOpenedAtMs = 0;
+
         function toggleExoCardOverflowMenu(btn, event) {
             if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
             if (!btn || !btn.parentElement) return;
@@ -24817,6 +25159,10 @@
             const willOpen = !menu.classList.contains('open');
             closeAllExoCardOverflowMenus();
             if (willOpen) {
+                exoMenuOpenedScrollY = window.scrollY || window.pageYOffset || 0;
+                const mainScrollEl = document.querySelector('.main-content');
+                exoMenuOpenedMainTop = mainScrollEl ? mainScrollEl.scrollTop : 0;
+                exoMenuOpenedAtMs = Date.now();
                 menu.classList.add('open');
                 btn.setAttribute('aria-expanded', 'true');
             }
@@ -24834,6 +25180,27 @@
                     closeAllExoCardOverflowMenus();
                 }
             });
+            const closeMenusOnScroll = () => {
+                const openMenu = document.querySelector('.exo-card-overflow-menu.open');
+                if (!openMenu) return;
+                const curWinY = window.scrollY || window.pageYOffset || 0;
+                const mainScrollEl = document.querySelector('.main-content');
+                const curMainTop = mainScrollEl ? mainScrollEl.scrollTop : 0;
+                const delta = Math.max(
+                    Math.abs(curWinY - exoMenuOpenedScrollY),
+                    Math.abs(curMainTop - exoMenuOpenedMainTop)
+                );
+                const trigger = openMenu.parentElement ? openMenu.parentElement.querySelector('.exo-card-overflow-trigger, button.icon-btn') : null;
+                const tRect = trigger ? trigger.getBoundingClientRect() : null;
+                const triggerStillVisible = Boolean(tRect && tRect.bottom > 48 && tRect.top < (window.innerHeight - 16));
+                if (delta < 200 && triggerStillVisible) return;
+                closeAllExoCardOverflowMenus();
+            };
+            window.addEventListener('scroll', closeMenusOnScroll, { passive: true });
+            const mainScrollEl = document.querySelector('.main-content');
+            if (mainScrollEl) {
+                mainScrollEl.addEventListener('scroll', closeMenusOnScroll, { passive: true });
+            }
         }
 
         function renderSubjectsList() {
@@ -35070,8 +35437,12 @@
                 document.body.removeChild(a);
                 setTimeout(() => URL.revokeObjectURL(url), 1000);
                 try {
+                    const exportUid = (typeof exoGetActiveUserIdSafe === 'function') ? exoGetActiveUserIdSafe() : 'local';
                     exoRuntimeStatusState.lastBackupExportedAt = Date.now();
-                    exoSafeLocalStorageSetItem('pharmaLastBackupExportV1', String(exoRuntimeStatusState.lastBackupExportedAt));
+                    exoSafeLocalStorageSetItem('pharmaLastBackupExportV1_' + exportUid, String(exoRuntimeStatusState.lastBackupExportedAt), { targetUid: exportUid });
+                    if (exportUid === 'local') {
+                        exoSafeLocalStorageSetItem('pharmaLastBackupExportV1', String(exoRuntimeStatusState.lastBackupExportedAt), { targetUid: 'local' });
+                    }
                 } catch (_) {}
                 showToast('تم تصدير النسخة الاحتياطية بنجاح بنظام التحقق المشفر SHA-256 ✓');
             } catch (err) {
@@ -40621,9 +40992,28 @@
                 }
             });
             if (ctx.isCurrent()) {
+                const uidSet = (typeof exoPersistedAnnotationLecturesByUid !== 'undefined')
+                    ? (exoPersistedAnnotationLecturesByUid.get(canonicalUid) || new Set())
+                    : null;
                 entriesToSave.forEach(entry => {
                     inMemoryAnnotationsCache[entry.id] = entry.pages;
+                    if (uidSet) {
+                        const rawId = (typeof extractRawIdFromScopedKey === 'function')
+                            ? String(extractRawIdFromScopedKey(entry.id, canonicalUid))
+                            : String(entry.id);
+                        if (typeof exoHasRealAnnotationContent === 'function' && exoHasRealAnnotationContent(entry.pages)) {
+                            uidSet.add(rawId);
+                        } else {
+                            uidSet.delete(rawId);
+                        }
+                    }
                 });
+                if (uidSet && typeof exoPersistedAnnotationLecturesByUid !== 'undefined') {
+                    exoPersistedAnnotationLecturesByUid.set(canonicalUid, uidSet);
+                    try {
+                        exoSafeLocalStorageSetItem('pharmaPersistedAnnoCountV1_' + canonicalUid, String(uidSet.size), { targetUid: canonicalUid });
+                    } catch (_) {}
+                }
             }
 
             // Step 4: Now that primary annotations are durably committed, delete ONLY these committed entries from vault
@@ -46884,6 +47274,8 @@ function togglePdfAudioPlayerBar(forceState) {
         let sb4State = { hasFixed: false, hasStudyDone: false, cleared: false };
         let sb6ClickedKeys = new Set();
 
+        const exoPersistedAnnotationLecturesByUid = new Map();
+
         function openHelpModal(targetMod = null) {
             if (typeof renderNewUserOnboardingHub === 'function') {
                 renderNewUserOnboardingHub();
@@ -46903,6 +47295,19 @@ function togglePdfAudioPlayerBar(forceState) {
                 sb3Inited = true;
             }
             updateAcademyXpUI();
+            if (typeof getAllAnnotationsMapFromDB === 'function') {
+                const uidNow = (typeof exoGetActiveUserIdSafe === 'function') ? exoGetActiveUserIdSafe() : 'local';
+                const refreshHelpAfterDb = () => getAllAnnotationsMapFromDB(uidNow).then((res) => {
+                    if (res && res.ok) {
+                        renderHelpQuickActionsAndChecklist((typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true);
+                    }
+                }).catch(() => {});
+                if (typeof dbInstance !== 'undefined' && dbInstance) {
+                    refreshHelpAfterDb();
+                } else if (typeof initPdfDB === 'function') {
+                    initPdfDB().then(() => refreshHelpAfterDb()).catch(() => {});
+                }
+            }
         }
 
         function exoJumpToClosedLoopStation(stepNum) {
@@ -47074,24 +47479,30 @@ function togglePdfAudioPlayerBar(forceState) {
         window.exoExecuteHelpAction = exoExecuteHelpAction;
 
         function exoCollectHelpChecklistSnapshot() {
-            const subList = (typeof subjects !== 'undefined' && Array.isArray(subjects)) ? subjects : [];
-            const evList = (typeof scheduleEvents !== 'undefined' && Array.isArray(scheduleEvents)) ? scheduleEvents : [];
-            const goalList = (typeof scheduleBacklog !== 'undefined' && Array.isArray(scheduleBacklog)) ? scheduleBacklog : [];
-            const logList = (typeof logs !== 'undefined' && Array.isArray(logs)) ? logs : [];
+            const subList = ((typeof subjects !== 'undefined' && Array.isArray(subjects)) ? subjects : []).filter(s => s && !s._isDemoSample);
+            const evList = ((typeof scheduleEvents !== 'undefined' && Array.isArray(scheduleEvents)) ? scheduleEvents : []).filter(ev => ev && !ev._isDemoSample);
+            const goalList = ((typeof scheduleBacklog !== 'undefined' && Array.isArray(scheduleBacklog)) ? scheduleBacklog : []).filter(g => g && !g._isDemoSample);
+            const logList = ((typeof logs !== 'undefined' && Array.isArray(logs)) ? logs : []).filter(lg => lg && !lg._isDemoSample && lg.mood !== 'missed' && lg.mood !== 'absent');
+            const uid = (typeof exoGetActiveUserIdSafe === 'function') ? exoGetActiveUserIdSafe() : 'local';
 
             let chapterCount = 0;
             let resourceCount = 0;
             let hasStudioNotesOrBookmark = false;
+            const realLectureIds = new Set();
             subList.forEach((s) => {
                 const groups = Array.isArray(s?.groups) ? s.groups : [];
                 chapterCount += groups.length;
                 groups.forEach((g) => {
                     const lecs = Array.isArray(g?.lectures) ? g.lectures : [];
                     lecs.forEach((l) => {
-                        if (l && (l.path || l.audioPath || l.hasLocalPdf || l.hasLocalAudio || l.driveFileId || l.cloudPdfDriveId || l.cloudAudioDriveId)) {
+                        if (!l || l._isDemoSample) return;
+                        realLectureIds.add(String(l.id));
+                        const hasLocalPdf = typeof localMediaCache !== 'undefined' && localMediaCache.pdfs?.has(String(l.id));
+                        const hasLocalAud = typeof localMediaCache !== 'undefined' && localMediaCache.audios?.has(String(l.id));
+                        if (l.path || l.audioPath || l.hasLocalPdf || l.hasLocalAudio || hasLocalPdf || hasLocalAud || l.driveFileId || l.cloudPdfDriveId || l.cloudAudioDriveId) {
                             resourceCount += 1;
                         }
-                        if (l && ((Array.isArray(l.bookmarks) && l.bookmarks.length > 0) || (Array.isArray(l.audioPins) && l.audioPins.length > 0) || l.lastReadPage > 1)) {
+                        if ((Array.isArray(l.bookmarks) && l.bookmarks.length > 0) || (Array.isArray(l.audioPins) && l.audioPins.length > 0)) {
                             hasStudioNotesOrBookmark = true;
                         }
                     });
@@ -47099,29 +47510,82 @@ function togglePdfAudioPlayerBar(forceState) {
                 const resList = Array.isArray(s?.resources) ? s.resources : [];
                 resourceCount += resList.length;
             });
+
+            let persistedAnnotationCount = 0;
             try {
-                if (typeof pendingAnnoSaveMap !== 'undefined' && pendingAnnoSaveMap && Object.keys(pendingAnnoSaveMap).length > 0) {
-                    hasStudioNotesOrBookmark = true;
+                const memSet = exoPersistedAnnotationLecturesByUid.get(uid);
+                if (memSet && memSet.size > 0) {
+                    persistedAnnotationCount = memSet.size;
                 }
-                if (typeof localPdfCacheKeys !== 'undefined' && localPdfCacheKeys && localPdfCacheKeys.size > 0) {
-                    resourceCount = Math.max(resourceCount, localPdfCacheKeys.size);
+                if (typeof inMemoryAnnotationsCache !== 'undefined' && inMemoryAnnotationsCache && typeof exoHasRealAnnotationContent === 'function') {
+                    let cachedRealCount = 0;
+                    Object.keys(inMemoryAnnotationsCache).forEach((k) => {
+                        if (String(k).startsWith('_cloudMedia_')) return;
+                        const prefixUid = (typeof extractUserIdFromScopedKey === 'function') ? extractUserIdFromScopedKey(k) : null;
+                        if (prefixUid && String(prefixUid) !== String(uid) && String(prefixUid) !== String((typeof sanitizeForScopedKey === 'function') ? sanitizeForScopedKey(uid) : uid)) {
+                            return;
+                        }
+                        if (exoHasRealAnnotationContent(inMemoryAnnotationsCache[k])) {
+                            cachedRealCount += 1;
+                        }
+                    });
+                    if (cachedRealCount > persistedAnnotationCount) {
+                        persistedAnnotationCount = cachedRealCount;
+                    }
+                }
+                const storedPersistedCount = Number((typeof localStorage !== 'undefined' ? localStorage.getItem('pharmaPersistedAnnoCountV1_' + uid) : 0) || 0);
+                if (storedPersistedCount > persistedAnnotationCount && persistedAnnotationCount === 0) {
+                    persistedAnnotationCount = storedPersistedCount;
+                }
+                if (typeof localPdfCacheKeys !== 'undefined' && localPdfCacheKeys && localPdfCacheKeys.size > 0 && realLectureIds.size > 0) {
+                    let matchedCached = 0;
+                    localPdfCacheKeys.forEach((k) => { if (realLectureIds.has(String(k))) matchedCached += 1; });
+                    resourceCount = Math.max(resourceCount, matchedCached);
                 }
             } catch (_) {}
+            if (persistedAnnotationCount > 0) {
+                hasStudioNotesOrBookmark = true;
+            }
 
+            const evIdSet = new Set(evList.map(ev => String(ev.id)));
+            const linkedGoalCount = goalList.filter((g) => {
+                const hasForwardLink = (Array.isArray(g.linkedEventIds) && g.linkedEventIds.some(eid => evIdSet.has(String(eid))))
+                    || (g.linkedEventId && evIdSet.has(String(g.linkedEventId)));
+                const hasReverseLink = evList.some(ev => ev.goalId && String(ev.goalId) === String(g.id));
+                return Boolean(hasForwardLink || hasReverseLink);
+            }).length;
+
+            let scopedBackupVal = null;
+            try {
+                if (typeof localStorage !== 'undefined') {
+                    scopedBackupVal = localStorage.getItem('pharmaLastBackupExportV1_' + uid)
+                        || (uid === 'local' ? localStorage.getItem('pharmaLastBackupExportV1') : null);
+                }
+            } catch (_) {}
             const hasExported = Boolean(
                 (typeof exoRuntimeStatusState !== 'undefined' && exoRuntimeStatusState.lastBackupExportedAt) ||
-                (typeof localStorage !== 'undefined' && localStorage.getItem('pharmaLastBackupExportV1'))
+                scopedBackupVal
             );
             const hasSignedIn = Boolean(typeof currentCloudUser !== 'undefined' && currentCloudUser && currentCloudUser.id);
-            const hasRemoteSync = Boolean(typeof exoRuntimeStatusState !== 'undefined' && exoRuntimeStatusState.cloudAckConfirmed);
+            const isLocalFallbackUser = Boolean(hasSignedIn && (currentCloudUser.isLocalFallback || String(uid).startsWith('usr_')));
+            const isOnline = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
+            const hasRemoteSync = Boolean(
+                hasSignedIn &&
+                !isLocalFallbackUser &&
+                isOnline &&
+                typeof exoRuntimeStatusState !== 'undefined' &&
+                exoRuntimeStatusState.cloudAckConfirmed
+            );
 
             return {
                 subjectCount: subList.length,
                 chapterCount,
                 resourceCount,
                 hasStudioNotesOrBookmark,
+                persistedAnnotationCount,
                 sessionCount: evList.length,
                 goalCount: goalList.length,
+                linkedGoalCount,
                 logCount: logList.length,
                 isSignedIn: hasSignedIn,
                 hasRemoteSync,
@@ -48117,40 +48581,43 @@ function togglePdfAudioPlayerBar(forceState) {
                 subjects = [
                     {
                         id: 101,
+                        _isDemoSample: true,
                         name: 'علم الأدوية (Pharmacology I)',
                         groups: [
                             {
                                 id: 201,
                                 name: 'الوحدة 1: Autonomic Nervous System',
                                 lectures: [
-                                    { id: 301, title: 'Lec 1 - Cholinergic Agonists', path: 'Lec1_ANS.pdf', completed: true },
-                                    { id: 302, title: 'Lec 2 - Adrenergic Antagonists', path: 'Lec2_Adrenergic.pdf', completed: false }
+                                    { id: 301, title: 'Lec 1 - Cholinergic Agonists', path: 'Lec1_ANS.pdf', completed: true, _isDemoSample: true },
+                                    { id: 302, title: 'Lec 2 - Adrenergic Antagonists', path: 'Lec2_Adrenergic.pdf', completed: false, _isDemoSample: true }
                                 ]
                             }
                         ]
                     },
                     {
                         id: 102,
+                        _isDemoSample: true,
                         name: 'الكيمياء الحيوية (Biochemistry)',
                         groups: [
                             {
                                 id: 202,
                                 name: 'الوحدة 1: Carbohydrate Metabolism',
                                 lectures: [
-                                    { id: 303, title: 'Lec 1 - Glycolysis Cycle', path: 'Biochem_Lec1.pdf', completed: true }
+                                    { id: 303, title: 'Lec 1 - Glycolysis Cycle', path: 'Biochem_Lec1.pdf', completed: true, _isDemoSample: true }
                                 ]
                             }
                         ]
                     },
                     {
                         id: 103,
+                        _isDemoSample: true,
                         name: 'الصيدلانيات (Pharmaceutics)',
                         groups: [
                             {
                                 id: 203,
                                 name: 'الوحدة 1: Dosage Forms',
                                 lectures: [
-                                    { id: 304, title: 'Lec 1 - Solutions & Suspensions', path: 'Pharmaceutics_1.pdf', completed: false }
+                                    { id: 304, title: 'Lec 1 - Solutions & Suspensions', path: 'Pharmaceutics_1.pdf', completed: false, _isDemoSample: true }
                                 ]
                             }
                         ]
@@ -48160,6 +48627,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 scheduleEvents = [
                     {
                         id: 401,
+                        _isDemoSample: true,
                         title: 'حضور الكلية والمعامل (يوم الأحد)',
                         subjectId: '',
                         day: 0,
@@ -48172,6 +48640,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     },
                     {
                         id: 402,
+                        _isDemoSample: true,
                         title: 'مذاكرة وتلخيص Adrenergic Drugs',
                         subjectId: '101',
                         day: 1,
@@ -48184,6 +48653,7 @@ function togglePdfAudioPlayerBar(forceState) {
                     },
                     {
                         id: 403,
+                        _isDemoSample: true,
                         title: 'حل أسئلة كويز الكيمياء الحيوية',
                         subjectId: '102',
                         day: 2,
@@ -48197,15 +48667,15 @@ function togglePdfAudioPlayerBar(forceState) {
                 ];
 
                 scheduleBacklog = [
-                    { id: 601, title: 'مذاكرة وتلخيص Adrenergic Drugs', subjectId: '101', duration: 2.5, done: true, scheduledDay: 1, scheduledHour: 17, linkedEventId: 402 },
-                    { id: 602, title: 'حل أسئلة كويز الكيمياء الحيوية', subjectId: '102', duration: 1.5, done: false, scheduledDay: 2, scheduledHour: 19, linkedEventId: 403 },
-                    { id: 603, title: 'تجهيز برزنتيشن الصيدلانيات (Dosage Forms)', subjectId: '103', duration: 2, done: false, scheduledDay: null, scheduledHour: null, linkedEventId: null }
+                    { id: 601, _isDemoSample: true, title: 'مذاكرة وتلخيص Adrenergic Drugs', subjectId: '101', duration: 2.5, done: true, scheduledDay: 1, scheduledHour: 17, linkedEventId: 402 },
+                    { id: 602, _isDemoSample: true, title: 'حل أسئلة كويز الكيمياء الحيوية', subjectId: '102', duration: 1.5, done: false, scheduledDay: 2, scheduledHour: 19, linkedEventId: 403 },
+                    { id: 603, _isDemoSample: true, title: 'تجهيز برزنتيشن الصيدلانيات (Dosage Forms)', subjectId: '103', duration: 2, done: false, scheduledDay: null, scheduledHour: null, linkedEventId: null }
                 ];
 
                 const todayStr = new Date().toLocaleDateString('ar-EG');
                 logs = [
-                    { id: 501, date: todayStr, text: 'إنهاء دراسة محاضرة: Lec 1 - Cholinergic Agonists [علم الأدوية]', mood: 'fire', subjectId: '101' },
-                    { id: 502, date: todayStr, text: '🤖 إتمام ذكي تلقائي للمهمة: مراجعة Glycolysis Cycle [الكيمياء الحيوية] (1 س و 20 د)', mood: 'bolt', subjectId: '102' }
+                    { id: 501, _isDemoSample: true, date: todayStr, text: 'إنهاء دراسة محاضرة: Lec 1 - Cholinergic Agonists [علم الأدوية]', mood: 'fire', subjectId: '101' },
+                    { id: 502, _isDemoSample: true, date: todayStr, text: '🤖 إتمام ذكي تلقائي للمهمة: مراجعة Glycolysis Cycle [الكيمياء الحيوية] (1 س و 20 د)', mood: 'bolt', subjectId: '102' }
                 ];
 
                 saveSubjects();
@@ -48776,6 +49246,21 @@ function togglePdfAudioPlayerBar(forceState) {
                     cloudAutoSaveTimer = null;
                 }
                 bumpAccountSessionGeneration();
+                if (typeof exoRuntimeStatusState !== 'undefined') {
+                    exoRuntimeStatusState.lastCloudSyncAt = 0;
+                    exoRuntimeStatusState.cloudAckConfirmed = false;
+                    exoRuntimeStatusState.cloudAckRevision = 0;
+                    exoRuntimeStatusState.lastBackupExportedAt = 0;
+                    exoRuntimeStatusState.hasConflictPending = false;
+                }
+                if (typeof exoDriveDiagState !== 'undefined') {
+                    exoDriveDiagState.lastOperation = '';
+                    exoDriveDiagState.lastErrorCode = '';
+                    exoDriveDiagState.lastErrorStatus = 0;
+                    exoDriveDiagState.lastErrorMessage = '';
+                    exoDriveDiagState.lastFileName = '';
+                    exoDriveDiagState.updatedAt = 0;
+                }
                 currentUserCanUploadMedia = false;
                 googleAccessToken = null;
                 googleTokenExpiry = 0;
@@ -48914,7 +49399,33 @@ function togglePdfAudioPlayerBar(forceState) {
                 if (emailEl) emailEl.innerText = email;
                 if (avatarEl) avatarEl.innerText = fullName.charAt(0).toUpperCase();
 
-                updateCloudNavUI('synced');
+                const isRemoteAccount = !Boolean(currentCloudUser.isLocalFallback || String(activeCtx.uid).startsWith('usr_'));
+                if (isRemoteAccount && typeof exoRuntimeStatusState !== 'undefined') {
+                    try {
+                        const lastCloudUidStored = localStorage.getItem('pharmaLastActiveCloudUid') || '';
+                        const scopedIso = localStorage.getItem('pharmaLastCloudSyncIso_' + activeCtx.uid)
+                            || (lastCloudUidStored === activeCtx.uid ? localStorage.getItem('pharmaLastCloudSyncIso') : '')
+                            || '';
+                        const parsedIsoMs = scopedIso ? Date.parse(scopedIso) : NaN;
+                        if (Number.isFinite(parsedIsoMs) && parsedIsoMs > 0) {
+                            exoRuntimeStatusState.lastCloudSyncAt = parsedIsoMs;
+                        }
+                        const storedRev = Number(localStorage.getItem('pharmaWorkspaceRevision_' + activeCtx.uid) || 0);
+                        if (storedRev > 0) {
+                            exoRuntimeStatusState.cloudAckRevision = storedRev;
+                        }
+                        const isDirtyNow = (typeof exoHasDirtyLocalStateSafe === 'function') ? exoHasDirtyLocalStateSafe(activeCtx.uid) : false;
+                        const isOnlineNow = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
+                        exoRuntimeStatusState.cloudAckConfirmed = Boolean(
+                            isOnlineNow &&
+                            !isDirtyNow &&
+                            exoRuntimeStatusState.lastCloudSyncAt > 0 &&
+                            storedRev > 0
+                        );
+                    } catch (_) {}
+                }
+
+                updateCloudNavUI((typeof navigator !== 'undefined' && navigator.onLine === false) ? 'offline' : 'synced');
                 if (supabaseClient) {
                     setupRealtimeWorkspaceSubscription();
                 }
@@ -49566,63 +50077,124 @@ function togglePdfAudioPlayerBar(forceState) {
             }
         }
 
+        function exoBuildDriveDiagnosticsFromRuntime(isEn) {
+            const isSignedIn = Boolean(currentCloudUser);
+            const isVip = Boolean(currentCloudUser && currentUserCanUploadMedia);
+            const isOnline = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
+            const authState = (typeof getGoogleDriveAuthState === 'function') ? getGoogleDriveAuthState() : 'disconnected';
+            const boundUser = localStorage.getItem('exo_gdrive_bound_user_id');
+            const isBoundToCurrent = !boundUser || (currentCloudUser && String(boundUser) === String(currentCloudUser.id));
+            const email = isBoundToCurrent ? (localStorage.getItem('exo_gdrive_user_email') || '') : '';
+            const isLinked = (typeof isGoogleDriveAccountLinked === 'function' && isGoogleDriveAccountLinked())
+                || (isBoundToCurrent && localStorage.getItem('exo_gdrive_connected') === '1' && Boolean(email));
+            const uid = (typeof exoGetActiveUserIdSafe === 'function') ? exoGetActiveUserIdSafe() : 'local';
+            const rt = (typeof exoRuntimeStatusState !== 'undefined') ? exoRuntimeStatusState : {};
+            const diag = (typeof exoDriveDiagState !== 'undefined') ? exoDriveDiagState : {};
+            const signals = (typeof exoBuildSignalsFromRuntime === 'function') ? exoBuildSignalsFromRuntime() : {};
+            const model = (typeof deriveWorkspaceSaveSyncModel === 'function') ? deriveWorkspaceSaveSyncModel(signals) : null;
+            const cloudState = model && model.cloud ? model.cloud.state : 'unknown';
+
+            let syncStatus = 'idle';
+            if (rt.cloudSyncing || (typeof isCloudSyncing !== 'undefined' && isCloudSyncing)) syncStatus = 'syncing';
+            else if (rt.hasConflictPending || cloudState === 'conflict') syncStatus = 'conflict';
+            else if (cloudState === 'sync_failed' || cloudState === 'rate_limited' || cloudState === 'auth_required' || cloudState === 'quarantined') syncStatus = 'failed';
+            else if ((typeof exoHasDirtyLocalStateSafe === 'function' && exoHasDirtyLocalStateSafe(uid)) || cloudState === 'pending_sync') syncStatus = 'pending';
+            else if (rt.cloudAckConfirmed && rt.lastCloudSyncAt > 0) syncStatus = 'synced';
+
+            const lastSyncedTimeLabel = rt.lastCloudSyncAt && typeof exoFormatTimeLabel === 'function'
+                ? exoFormatTimeLabel(rt.lastCloudSyncAt)
+                : '';
+
+            let errCode = diag.lastErrorCode || '';
+            let errStatus = Number(diag.lastErrorStatus || 0);
+            let errMsg = diag.lastErrorMessage || (typeof googleDriveLastError !== 'undefined' && googleDriveLastError ? googleDriveLastError : '');
+            if (!errCode && authState === 'permission_denied') errCode = 'permission_denied';
+            else if (!errCode && (authState === 'reauth_required' || authState === 'token_expired')) errCode = authState;
+
+            return deriveGoogleDriveDiagnosticsModel({
+                isSignedIn,
+                hasVipEntitlement: isVip,
+                isOnline,
+                isLinked,
+                authState,
+                syncStatus,
+                lastErrorCode: errCode,
+                lastErrorStatus: errStatus,
+                lastErrorMessage: errMsg,
+                email,
+                folderName: 'Exo_Workspace',
+                hasConfirmedSync: Boolean(rt.cloudAckConfirmed && rt.lastCloudSyncAt > 0),
+                lastConfirmedSyncLabel: lastSyncedTimeLabel,
+                cloudRevision: Number(signals.cloudRevision || rt.cloudAckRevision || 0)
+            }, isEn);
+        }
+        window.exoBuildDriveDiagnosticsFromRuntime = exoBuildDriveDiagnosticsFromRuntime;
+
+        function exoRunDriveDiagnosticAction(actionType) {
+            const act = String(actionType || 'none');
+            if (act === 'sign_in') {
+                closeGoogleDriveHubModal();
+                if (typeof openCloudAuthModal === 'function') openCloudAuthModal();
+            } else if (act === 'upgrade_vip') {
+                if (typeof openVipUpgradeModal === 'function') openVipUpgradeModal('VIP Pro — Private Drive Media Sync');
+            } else if (act === 'open_account_sync') {
+                closeGoogleDriveHubModal();
+                if (typeof openCloudAuthModal === 'function') openCloudAuthModal();
+            } else if (act === 'reconnect_permissions') {
+                if (typeof connectGoogleDriveAccount === 'function') connectGoogleDriveAccount(true, null, false);
+            } else if (act === 'reactivate' || act === 'link') {
+                if (typeof connectGoogleDriveAccount === 'function') connectGoogleDriveAccount(true);
+            } else if (act === 'retry_check') {
+                if (typeof auditAndManageGoogleDrivePermissions === 'function' && isGoogleDriveConnected() && isGoogleDriveTokenActive()) {
+                    auditAndManageGoogleDrivePermissions();
+                } else {
+                    renderDriveHubStateBanner();
+                    if (typeof updateGoogleDriveUI === 'function') updateGoogleDriveUI();
+                }
+            } else if (act === 'open_drive_vault') {
+                if (typeof openGoogleDriveHubModal === 'function') openGoogleDriveHubModal();
+            }
+        }
+        window.exoRunDriveDiagnosticAction = exoRunDriveDiagnosticAction;
+
         function renderDriveHubStateBanner() {
             const banner = document.getElementById('driveHubStateBanner');
             if (!banner) return;
             const isEn = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : true;
-            const isSignedIn = Boolean(currentCloudUser);
-            const isVip = Boolean(currentCloudUser && currentUserCanUploadMedia);
-            const authState = (typeof getGoogleDriveAuthState === 'function') ? getGoogleDriveAuthState() : 'disconnected';
-            const isLinked = (typeof isGoogleDriveAccountLinked === 'function' && isGoogleDriveAccountLinked()) || localStorage.getItem('exo_gdrive_connected') === '1';
+            const diag = exoBuildDriveDiagnosticsFromRuntime(isEn);
 
-            let icon = 'fa-circle-info';
-            let color = 'var(--muted-blue, #7898AC)';
-            let title = '';
-            let desc = '';
+            const toneColors = {
+                ok: { icon: 'fa-circle-check', color: 'var(--sage-green, #899982)', border: 'rgba(137, 153, 130, 0.45)', bg: 'rgba(137, 153, 130, 0.12)', text: '#cde0c5' },
+                warn: { icon: 'fa-bolt', color: 'var(--warm-gold, #D7B96F)', border: 'rgba(215, 185, 111, 0.45)', bg: 'rgba(215, 185, 111, 0.10)', text: '#f3e1b3' },
+                error: { icon: 'fa-triangle-exclamation', color: 'var(--terracotta, #C47D60)', border: 'rgba(196, 125, 96, 0.5)', bg: 'rgba(196, 125, 96, 0.12)', text: '#f4d3c5' },
+                info: { icon: 'fa-circle-info', color: 'var(--muted-blue, #7898AC)', border: 'rgba(120, 152, 172, 0.42)', bg: 'rgba(120, 152, 172, 0.10)', text: '#c9dfec' },
+                neutral: { icon: 'fa-hard-drive', color: 'var(--stone, #ABA69D)', border: 'rgba(240, 230, 212, 0.22)', bg: 'rgba(41, 43, 45, 0.6)', text: 'var(--stone, #ABA69D)' }
+            };
+            const palette = toneColors[diag.tone] || toneColors.neutral;
+            const connPal = toneColors[diag.connectionBadge.tone] || toneColors.neutral;
+            const syncPal = toneColors[diag.syncBadge.tone] || toneColors.neutral;
 
-            if (!isSignedIn) {
-                icon = 'fa-user-lock';
-                color = 'var(--ochre, #D7B96F)';
-                title = isEn ? 'Account Sign-In Required for Cloud Media' : 'سجّل الدخول لحسابك لتفعيل سحابة الوسائط';
-                desc = isEn
-                    ? 'Your local PDFs and audio stay saved in this browser for free. Sign in to Exo Account to manage private Google Drive media sync.'
-                    : 'ملفاتك المحلية محفوظة على جهازك مجاناً. سجّل الدخول إلى حساب Exo أولاً لإدارة مزامنة وسائط Google Drive الخاصة.';
-            } else if (!isVip) {
-                icon = 'fa-crown';
-                color = 'var(--ochre, #D7B96F)';
-                title = isEn ? 'Free Plan — Local Device Storage Active' : 'الخطة المجانية — التخزين المحلي فعّال بالكامل';
-                desc = isEn
-                    ? 'Annotated PDF export, multiple summary sheets, and core workspace sync are free. VIP Pro adds private Google Drive PDF & audio sync across devices.'
-                    : 'تصدير PDF المشروح، أوراق التلخيص المتعددة، ومزامنة مساحة العمل الأساسية مجانية. باقة VIP Pro تضيف مزامنة ملفات PDF والصوت عبر Google Drive الخاص بك.';
-            } else if (isLinked && authState === 'connected') {
-                icon = 'fa-circle-check';
-                color = 'var(--sage-green, #899982)';
-                title = isEn ? 'Google Drive Connected & Private-by-Default' : 'Google Drive متصل وبخصوصية افتراضية كاملة';
-                desc = isEn
-                    ? 'Media uploads stay private inside your personal Exo_Workspace Drive folder. Never shared publicly by default.'
-                    : 'الملفات المرفوعة تبقى خاصة داخل مجلد Exo_Workspace في حسابك بـ Google Drive ولا تُشارك للعامة افتراضياً.';
-            } else if (isLinked) {
-                icon = 'fa-bolt';
-                color = 'var(--terracotta, #C47D60)';
-                title = isEn ? 'Google Drive Needs Re-activation on This Device' : 'حساب Google Drive يحتاج تنشيطاً على هذا الجهاز';
-                desc = isEn
-                    ? 'Your VIP entitlement is active, and your Drive link is remembered. Click Activate below to refresh your session.'
-                    : 'اشتراك VIP Pro نشط وربط Google Drive محفوظ. اضغط تنشيط بالأسفل لتجديد الجلسة على هذا الجهاز.';
-            } else {
-                icon = 'fa-brands fa-google-drive';
-                color = 'var(--sage-green, #899982)';
-                title = isEn ? 'VIP Pro Active — Link Your Google Drive' : 'VIP Pro مفعّل — اربط حساب Google Drive';
-                desc = isEn
-                    ? 'Link your personal Google Drive to privately back up heavy lecture PDFs and recordings.'
-                    : 'اربط حساب Google Drive الشخصي لحفظ ومزامنة ملفات المحاضرات والتسجيلات بخصوصية تامة.';
-            }
-
+            banner.setAttribute('data-drive-diagnostic-state', diag.diagnosticState);
             banner.innerHTML = `
-                <div style="display:flex; align-items:flex-start; gap:10px;">
-                    ${exoSvgIconHtml(`fa-solid ${icon}`, { style: `color:${color}; font-size:1.05rem; margin-top:2px;` })}
-                    <div style="min-width:0;">
-                        <div style="font-weight:800; font-size:0.86rem; color:var(--warm-paper, #F0E6D4); margin-bottom:2px;">${escapeHtml(title)}</div>
-                        <div style="font-size:0.75rem; color:var(--stone, #ABA69D); line-height:1.48;">${escapeHtml(desc)}</div>
+                <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+                    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px;">
+                        <span id="driveHubConnectionBadge" class="studio-pill" style="font-size:0.69rem; color:${connPal.text}; border-color:${connPal.border}; background:${connPal.bg};">${escapeHtml(isEn ? 'Connection: ' : 'الاتصال: ')}${escapeHtml(diag.connectionBadge.label)}</span>
+                        <span id="driveHubSyncBadge" class="studio-pill" style="font-size:0.69rem; color:${syncPal.text}; border-color:${syncPal.border}; background:${syncPal.bg};">${escapeHtml(isEn ? 'Sync: ' : 'المزامنة: ')}${escapeHtml(diag.syncBadge.label)}</span>
+                    </div>
+                    <div style="display:flex; align-items:flex-start; gap:10px;">
+                        ${exoSvgIconHtml(`fa-solid ${palette.icon}`, { style: `color:${palette.color}; font-size:1.05rem; margin-top:2px; flex-shrink:0;` })}
+                        <div style="min-width:0; flex:1 1 auto;">
+                            <div style="font-weight:800; font-size:0.86rem; color:var(--warm-paper, #F0E6D4); margin-bottom:2px;">${escapeHtml(diag.title)}</div>
+                            <div style="font-size:0.75rem; color:var(--stone, #ABA69D); line-height:1.48;">${escapeHtml(diag.whatHappened)}</div>
+                            ${diag.cause ? `<div style="font-size:0.72rem; color:#B7CAD6; margin-top:3px; line-height:1.42;">${escapeHtml(diag.cause)}</div>` : ''}
+                            <div style="font-size:0.71rem; color:#cde0c5; margin-top:4px; line-height:1.42;">${escapeHtml(diag.dataSafetyNote)}</div>
+                            ${diag.nextActionLabel && diag.nextActionType !== 'none' ? `
+                                <div style="margin-top:8px;">
+                                    <button type="button" id="driveHubDiagnosticActionBtn" class="btn btn-outline" style="min-height:44px; padding:6px 12px; font-size:0.75rem;" onclick="exoRunDriveDiagnosticAction('${escapeHtml(diag.nextActionType)}')">
+                                        ${escapeHtml(diag.nextActionLabel)}
+                                    </button>
+                                </div>` : ''}
+                        </div>
                     </div>
                 </div>
             `;
@@ -50437,6 +51009,14 @@ function togglePdfAudioPlayerBar(forceState) {
         let pendingGoogleTokenPromise = null;
         let googleDriveAuthState = 'disconnected'; // 'connected' | 'token_expired' | 'reauth_required' | 'permission_denied' | 'disconnected'
         let googleDriveLastError = null;
+        const exoDriveDiagState = {
+            lastOperation: '',
+            lastErrorCode: '',
+            lastErrorStatus: 0,
+            lastErrorMessage: '',
+            lastFileName: '',
+            updatedAt: 0
+        };
         const gdriveSubfolderCache = new Map();
         const gdriveInFlightFolderOps = new Map();
 
@@ -50490,6 +51070,20 @@ function togglePdfAudioPlayerBar(forceState) {
         function setGoogleDriveAuthState(state, errDetail = null) {
             googleDriveAuthState = state || 'disconnected';
             googleDriveLastError = errDetail ? redactDriveSecrets(errDetail) : null;
+            if (typeof exoDriveDiagState !== 'undefined') {
+                if (state === 'connected' || state === 'disconnected') {
+                    exoDriveDiagState.lastErrorCode = '';
+                    exoDriveDiagState.lastErrorStatus = 0;
+                    exoDriveDiagState.lastErrorMessage = '';
+                    exoDriveDiagState.updatedAt = Date.now();
+                } else {
+                    exoDriveDiagState.lastOperation = 'auth';
+                    exoDriveDiagState.lastErrorCode = String(errDetail || state || '');
+                    exoDriveDiagState.lastErrorStatus = state === 'permission_denied' ? 403 : 401;
+                    exoDriveDiagState.lastErrorMessage = googleDriveLastError || '';
+                    exoDriveDiagState.updatedAt = Date.now();
+                }
+            }
             if (state === 'reauth_required' || state === 'permission_denied' || state === 'disconnected' || state === 'token_expired') {
                 googleAccessToken = null;
                 googleTokenExpiry = 0;
@@ -50817,6 +51411,16 @@ function togglePdfAudioPlayerBar(forceState) {
                     }
 
                     if (status === 404) {
+                        if (typeof exoDriveDiagState !== 'undefined') {
+                            exoDriveDiagState.lastOperation = 'api_request';
+                            exoDriveDiagState.lastErrorCode = 'not_found';
+                            exoDriveDiagState.lastErrorStatus = 404;
+                            exoDriveDiagState.lastErrorMessage = 'Drive file or folder not found (404)';
+                            exoDriveDiagState.updatedAt = Date.now();
+                        }
+                        if (typeof updateGoogleDriveUI === 'function') {
+                            try { updateGoogleDriveUI(); } catch (_) {}
+                        }
                         if (typeof exoRecordIncident === 'function') {
                             exoRecordIncident('drive_media', { status: 404, code: 'not_found', message: 'Drive file not found (404)' }, { domain: 'drive_media', status: 404 });
                         }
@@ -50843,16 +51447,28 @@ function togglePdfAudioPlayerBar(forceState) {
                         let errBody = '';
                         try { errBody = await res.text(); } catch (_) {}
                         const parsedRetrySec = (typeof exoParseRetryAfterSeconds === 'function') ? exoParseRetryAfterSeconds({ headers: res.headers }) : 0;
+                        const errCodeRes = status === 429 ? 'rate_limited' : (status >= 500 ? 'server_error' : 'http_error');
+                        const errMsgClean = redactDriveSecrets(`HTTP ${status}: ${errBody || 'Drive API error'}`);
+                        if (typeof exoDriveDiagState !== 'undefined') {
+                            exoDriveDiagState.lastOperation = 'api_request';
+                            exoDriveDiagState.lastErrorCode = errCodeRes;
+                            exoDriveDiagState.lastErrorStatus = status;
+                            exoDriveDiagState.lastErrorMessage = errMsgClean;
+                            exoDriveDiagState.updatedAt = Date.now();
+                        }
+                        if (typeof updateGoogleDriveUI === 'function') {
+                            try { updateGoogleDriveUI(); } catch (_) {}
+                        }
                         if (typeof exoRecordIncident === 'function') {
-                            exoRecordIncident('drive_media', { status, retryAfterSec: parsedRetrySec, message: redactDriveSecrets(`HTTP ${status}: ${errBody || 'Drive API error'}`) }, { domain: 'drive_media', status, retryAfterSec: parsedRetrySec });
+                            exoRecordIncident('drive_media', { status, retryAfterSec: parsedRetrySec, message: errMsgClean }, { domain: 'drive_media', status, retryAfterSec: parsedRetrySec });
                         }
                         return {
                             ok: false,
                             status,
-                            code: status === 429 ? 'rate_limited' : (status >= 500 ? 'server_error' : 'http_error'),
+                            code: errCodeRes,
                             retryable: status === 429 || status >= 500,
                             data: null,
-                            message: redactDriveSecrets(`HTTP ${status}: ${errBody || 'Drive API error'}`)
+                            message: errMsgClean
                         };
                     }
 
@@ -50864,6 +51480,12 @@ function togglePdfAudioPlayerBar(forceState) {
                     } else {
                         try { payload = await res.text(); } catch (_) { payload = ''; }
                     }
+                    if (typeof exoDriveDiagState !== 'undefined') {
+                        exoDriveDiagState.lastErrorCode = '';
+                        exoDriveDiagState.lastErrorStatus = 0;
+                        exoDriveDiagState.lastErrorMessage = '';
+                        exoDriveDiagState.updatedAt = Date.now();
+                    }
                     if (typeof exoResolveIncident === 'function') exoResolveIncident('drive_media');
                     return { ok: true, status, code: 'ok', retryable: false, data: payload, headers: res.headers, response: res };
                 } catch (netErr) {
@@ -50872,6 +51494,17 @@ function togglePdfAudioPlayerBar(forceState) {
                         const delayMs = Number.isFinite(window.__exoDriveRetryDelayMs) ? Number(window.__exoDriveRetryDelayMs) : (350 * Math.pow(2, attempt - 1));
                         await new Promise(r => setTimeout(r, delayMs));
                         continue;
+                    }
+                    const netMsgClean = redactDriveSecrets(netErr?.message || 'خطأ في الاتصال بشبكة Google Drive');
+                    if (typeof exoDriveDiagState !== 'undefined') {
+                        exoDriveDiagState.lastOperation = 'api_request';
+                        exoDriveDiagState.lastErrorCode = 'network_error';
+                        exoDriveDiagState.lastErrorStatus = 0;
+                        exoDriveDiagState.lastErrorMessage = netMsgClean;
+                        exoDriveDiagState.updatedAt = Date.now();
+                    }
+                    if (typeof updateGoogleDriveUI === 'function') {
+                        try { updateGoogleDriveUI(); } catch (_) {}
                     }
                     if (typeof exoRecordIncident === 'function') {
                         exoRecordIncident('drive_media', netErr, { domain: 'drive_media' });
@@ -50882,7 +51515,7 @@ function togglePdfAudioPlayerBar(forceState) {
                         code: 'network_error',
                         retryable: true,
                         data: null,
-                        message: redactDriveSecrets(netErr?.message || 'خطأ في الاتصال بشبكة Google Drive')
+                        message: netMsgClean
                     };
                 }
             }
@@ -51345,6 +51978,9 @@ function togglePdfAudioPlayerBar(forceState) {
             if (cardHeadlineEl) cardHeadlineEl.innerText = isEn ? 'Google Drive — Private Folder (Exo_Workspace)' : 'Google Drive — مجلد خاص (Exo_Workspace)';
             if (btnAuditText) btnAuditText.innerText = isEn ? 'Privacy Check' : 'فحص الخصوصية';
 
+            const diagModel = (typeof exoBuildDriveDiagnosticsFromRuntime === 'function')
+                ? exoBuildDriveDiagnosticsFromRuntime(isEn)
+                : null;
             const authState = getGoogleDriveAuthState();
             const isLinked = isGoogleDriveAccountLinked() || (isBoundToCurrent && localStorage.getItem('exo_gdrive_connected') === '1' && Boolean(email));
             const acctSummaryTitle = document.getElementById('cloudAccountDriveSummaryTitle');
@@ -51353,43 +51989,19 @@ function togglePdfAudioPlayerBar(forceState) {
             const acctManageBtnTxt = document.getElementById('btnAccountManageGoogleDriveText');
             if (acctSummaryTitle) acctSummaryTitle.textContent = isEn ? 'Google Drive Media Vault' : 'مخزن وسائط Google Drive';
             if (acctManageBtnTxt) acctManageBtnTxt.textContent = isEn ? 'Manage Google Drive' : 'إدارة Google Drive';
-            if (acctSummaryPill && acctSummaryDesc) {
-                if (!currentCloudUser) {
-                    acctSummaryPill.style.color = 'var(--stone, #ABA69D)';
-                    acctSummaryPill.style.borderColor = 'rgba(240, 230, 212, 0.18)';
-                    acctSummaryPill.textContent = isEn ? 'Sign In Needed' : 'يتطلب تسجيل الدخول';
-                    acctSummaryDesc.textContent = isEn
-                        ? 'Private PDF & audio media storage is configured inside Google Drive Media Vault.'
-                        : 'تُدار إعدادات وسائط Google Drive الخاصة من نافذة مخزن الوسائط.';
-                } else if (!isVip) {
-                    acctSummaryPill.style.color = '#f3e1b3';
-                    acctSummaryPill.style.borderColor = 'rgba(215, 185, 111, 0.42)';
-                    acctSummaryPill.textContent = isEn ? 'Free Local Plan' : 'الخطة المحلية المجانية';
-                    acctSummaryDesc.textContent = isEn
-                        ? 'Local browser storage is active. Manage optional VIP Drive media sync in Drive Vault.'
-                        : 'التخزين المحلي نشط. يمكنك استعراض مزامنة VIP Drive من مخزن الوسائط.';
-                } else if (isLinked && authState === 'connected') {
-                    acctSummaryPill.style.color = '#cde0c5';
-                    acctSummaryPill.style.borderColor = 'rgba(137, 153, 130, 0.5)';
-                    acctSummaryPill.textContent = isEn ? 'Connected' : 'متصل';
-                    acctSummaryDesc.textContent = isEn
-                        ? `${email ? email + ' · ' : ''}Private Exo_Workspace folder active.`
-                        : `${email ? email + ' · ' : ''}مجلد Exo_Workspace الخاص متصل ونشط.`;
-                } else if (isLinked) {
-                    acctSummaryPill.style.color = '#f3e1b3';
-                    acctSummaryPill.style.borderColor = 'rgba(215, 185, 111, 0.45)';
-                    acctSummaryPill.textContent = isEn ? 'Needs Activation' : 'يحتاج تنشيطاً';
-                    acctSummaryDesc.textContent = isEn
-                        ? 'Google Drive link remembered; open Drive Vault to activate on this device.'
-                        : 'ربط Google Drive محفوظ؛ افتح مخزن Drive للتنشيط على هذا الجهاز.';
-                } else {
-                    acctSummaryPill.style.color = 'var(--stone, #ABA69D)';
-                    acctSummaryPill.style.borderColor = 'rgba(240, 230, 212, 0.18)';
-                    acctSummaryPill.textContent = isEn ? 'Not Linked' : 'غير مربوط';
-                    acctSummaryDesc.textContent = isEn
-                        ? 'VIP Pro active — open Drive Vault to link your personal Google Drive.'
-                        : 'VIP Pro نشط — افتح مخزن Drive لربط حساب Google Drive الشخصي.';
-                }
+            if (acctSummaryPill && acctSummaryDesc && diagModel) {
+                const pillPalette = {
+                    ok: { color: '#cde0c5', border: 'rgba(137, 153, 130, 0.5)' },
+                    warn: { color: '#f3e1b3', border: 'rgba(215, 185, 111, 0.45)' },
+                    error: { color: '#f4d3c5', border: 'rgba(196, 125, 96, 0.5)' },
+                    info: { color: '#c9dfec', border: 'rgba(120, 152, 172, 0.45)' },
+                    neutral: { color: 'var(--stone, #ABA69D)', border: 'rgba(240, 230, 212, 0.18)' }
+                };
+                const cp = pillPalette[diagModel.connectionBadge.tone] || pillPalette.neutral;
+                acctSummaryPill.style.color = cp.color;
+                acctSummaryPill.style.borderColor = cp.border;
+                acctSummaryPill.textContent = diagModel.connectionBadge.label;
+                acctSummaryDesc.textContent = `${diagModel.title}${diagModel.syncBadge && diagModel.syncBadge.label ? ' · ' + diagModel.syncBadge.label : ''}`;
             }
 
             let mStats = (typeof window !== 'undefined' && window.__exoLastDriveMediaStats) ? window.__exoLastDriveMediaStats : null;
@@ -51433,8 +52045,11 @@ function togglePdfAudioPlayerBar(forceState) {
                 mediaStripEl.innerHTML = `
                     <div style="color: var(--warm-paper, #F0E6D4); font-weight: 700;">${escapeHtml(driveSummary.mediaSummaryLine)}</div>
                     <div>${escapeHtml(driveSummary.privacyDetail)}</div>
-                    <div style="color: #b7cad6;">${escapeHtml(driveSummary.nextActionHint)}</div>
+                    <div style="color: #b7cad6;">${escapeHtml(diagModel ? diagModel.whatHappened : driveSummary.nextActionHint)}</div>
                 `;
+            }
+            if (typeof renderDriveHubStateBanner === 'function') {
+                try { renderDriveHubStateBanner(); } catch (_) {}
             }
             if (btnAudit) {
                 btnAudit.style.display = (driveSummary && driveSummary.canAuditPermissions) ? 'inline-flex' : 'none';
@@ -52424,8 +53039,18 @@ function togglePdfAudioPlayerBar(forceState) {
                     setTimeout(() => updateLiveUploadMonitorUI({ active: false }), 1800);
                 }
 
+                if (typeof exoDriveDiagState !== 'undefined') {
+                    exoDriveDiagState.lastErrorCode = '';
+                    exoDriveDiagState.lastErrorStatus = 0;
+                    exoDriveDiagState.lastErrorMessage = '';
+                    exoDriveDiagState.lastOperation = 'upload';
+                    exoDriveDiagState.updatedAt = Date.now();
+                }
                 if (typeof exoResolveIncident === 'function') {
                     exoResolveIncident('drive_media');
+                }
+                if (typeof updateGoogleDriveUI === 'function') {
+                    try { updateGoogleDriveUI(); } catch (_) {}
                 }
                 if (typeof exoUpdatePdfAutoSaveBadge === 'function') {
                     exoUpdatePdfAutoSaveBadge();
@@ -52443,6 +53068,17 @@ function togglePdfAudioPlayerBar(forceState) {
                     setTimeout(() => updateLiveUploadMonitorUI({ active: false }), 1500);
                 }
                 const cleanErr = redactDriveSecrets(uploadRes?.error || 'gdrive_upload_failed');
+                if (typeof exoDriveDiagState !== 'undefined') {
+                    exoDriveDiagState.lastOperation = 'upload';
+                    exoDriveDiagState.lastErrorCode = uploadRes?.code || 'gdrive_upload_failed';
+                    exoDriveDiagState.lastErrorStatus = Number(uploadRes?.status || 0);
+                    exoDriveDiagState.lastErrorMessage = cleanErr;
+                    exoDriveDiagState.lastFileName = lecObj.title || '';
+                    exoDriveDiagState.updatedAt = Date.now();
+                }
+                if (typeof updateGoogleDriveUI === 'function') {
+                    try { updateGoogleDriveUI(); } catch (_) {}
+                }
                 try { if (window.__exoForensicDiag && window.__exoForensicDiag.markSyncPhase) window.__exoForensicDiag.markSyncPhase('drive_upload', 'error', { store: storeName, status: uploadRes?.status || 0 }); } catch (e) {}
                 if (typeof exoRecordIncident === 'function') {
                     exoRecordIncident('drive_media', { status: uploadRes?.status || 0, code: uploadRes?.code || 'gdrive_upload_failed', message: cleanErr }, { domain: 'drive_media', status: uploadRes?.status || 0 });
@@ -52518,6 +53154,17 @@ function togglePdfAudioPlayerBar(forceState) {
                     });
 
                     if (!dlRes.ok) {
+                        if (typeof exoDriveDiagState !== 'undefined') {
+                            exoDriveDiagState.lastOperation = 'download';
+                            exoDriveDiagState.lastErrorCode = dlRes.code || 'drive_download_failed';
+                            exoDriveDiagState.lastErrorStatus = Number(dlRes.status || 0);
+                            exoDriveDiagState.lastErrorMessage = redactDriveSecrets(dlRes.message || 'drive_download_failed');
+                            exoDriveDiagState.lastFileName = lecObj.title || '';
+                            exoDriveDiagState.updatedAt = Date.now();
+                        }
+                        if (typeof updateGoogleDriveUI === 'function') {
+                            try { updateGoogleDriveUI(); } catch (_) {}
+                        }
                         return {
                             ok: false,
                             blob: null,
@@ -52532,14 +53179,41 @@ function togglePdfAudioPlayerBar(forceState) {
                         if (isPdf) {
                             const isRealPdf = await isValidPdfBlob(blob);
                             if (!isRealPdf) {
+                                if (typeof exoDriveDiagState !== 'undefined') {
+                                    exoDriveDiagState.lastOperation = 'download';
+                                    exoDriveDiagState.lastErrorCode = 'invalid_pdf_blob';
+                                    exoDriveDiagState.lastErrorStatus = 422;
+                                    exoDriveDiagState.lastErrorMessage = 'Downloaded Drive payload is not a valid PDF';
+                                    exoDriveDiagState.lastFileName = lecObj.title || '';
+                                    exoDriveDiagState.updatedAt = Date.now();
+                                }
+                                if (typeof updateGoogleDriveUI === 'function') {
+                                    try { updateGoogleDriveUI(); } catch (_) {}
+                                }
                                 return { ok: false, blob: null, status: 422, code: 'invalid_pdf_blob', message: 'الملف المسترجع ليس PDF صالحاً' };
                             }
+                        }
+                        if (typeof exoDriveDiagState !== 'undefined') {
+                            exoDriveDiagState.lastErrorCode = '';
+                            exoDriveDiagState.lastErrorStatus = 0;
+                            exoDriveDiagState.lastErrorMessage = '';
+                            exoDriveDiagState.updatedAt = Date.now();
                         }
                         await saveMediaToDB(storeName, storageKey, blob);
                         if (localMediaCache && localMediaCache[storeName]) {
                             localMediaCache[storeName].add(storageKey);
                         }
                         return { ok: true, blob, status: 200, code: 'ok', source: 'gdrive' };
+                    }
+                    if (typeof exoDriveDiagState !== 'undefined') {
+                        exoDriveDiagState.lastOperation = 'download';
+                        exoDriveDiagState.lastErrorCode = 'empty_blob';
+                        exoDriveDiagState.lastErrorStatus = 0;
+                        exoDriveDiagState.lastErrorMessage = 'Downloaded file was empty';
+                        exoDriveDiagState.updatedAt = Date.now();
+                    }
+                    if (typeof updateGoogleDriveUI === 'function') {
+                        try { updateGoogleDriveUI(); } catch (_) {}
                     }
                     return { ok: false, blob: null, status: 0, code: 'empty_blob', message: 'الملف المسترجع فارغ' };
                 }
@@ -53648,6 +54322,7 @@ function togglePdfAudioPlayerBar(forceState) {
                         }
                         const verifiedMap = {};
                         const quarantined = [];
+                        const persistedUidSet = (typeof exoPersistedAnnotationLecturesByUid !== 'undefined') ? new Set() : null;
                         (req.result || []).forEach(item => {
                             if (!item || !item.pages || String(item.id).startsWith('_cloudMedia_')) return;
 
@@ -53662,6 +54337,9 @@ function togglePdfAudioPlayerBar(forceState) {
                             if (hasStrictDualRecordOwnership(item, canonicalUid)) {
                                 const rawLecId = extractRawIdFromScopedKey(itemKey, canonicalUid);
                                 verifiedMap[rawLecId] = item.pages;
+                                if (persistedUidSet && typeof exoHasRealAnnotationContent === 'function' && exoHasRealAnnotationContent(item.pages)) {
+                                    persistedUidSet.add(String(rawLecId));
+                                }
                                 if (opCtx.isCurrent()) {
                                     inMemoryAnnotationsCache[itemKey] = item.pages;
                                 }
@@ -53679,6 +54357,12 @@ function togglePdfAudioPlayerBar(forceState) {
                                 }
                             }
                         });
+                        if (persistedUidSet && opCtx.isCurrent()) {
+                            exoPersistedAnnotationLecturesByUid.set(canonicalUid, persistedUidSet);
+                            try {
+                                exoSafeLocalStorageSetItem('pharmaPersistedAnnoCountV1_' + canonicalUid, String(persistedUidSet.size), { targetUid: canonicalUid });
+                            } catch (_) {}
+                        }
                         finish({
                             ok: true,
                             verifiedMap,
@@ -53827,10 +54511,22 @@ function togglePdfAudioPlayerBar(forceState) {
                     tx.oncomplete = () => {
                         // Update inMemoryAnnotationsCache ONLY after transaction commits and if context is still current
                         if (opCtx.isCurrent()) {
+                            const uidSet = (typeof exoPersistedAnnotationLecturesByUid !== 'undefined')
+                                ? (exoPersistedAnnotationLecturesByUid.get(canonicalUid) || new Set())
+                                : null;
                             stagedRecords.forEach(item => {
                                 inMemoryAnnotationsCache[item.scopedKey] = item.normPages;
                                 inMemoryAnnotationsCacheNormalized[item.scopedKey] = true;
+                                if (uidSet && typeof exoHasRealAnnotationContent === 'function' && exoHasRealAnnotationContent(item.normPages)) {
+                                    uidSet.add(String(item.rawId));
+                                }
                             });
+                            if (uidSet && typeof exoPersistedAnnotationLecturesByUid !== 'undefined') {
+                                exoPersistedAnnotationLecturesByUid.set(canonicalUid, uidSet);
+                                try {
+                                    exoSafeLocalStorageSetItem('pharmaPersistedAnnoCountV1_' + canonicalUid, String(uidSet.size), { targetUid: canonicalUid });
+                                } catch (_) {}
+                            }
                         }
                         finish({ ok: true, restoredCount: stagedRecords.length });
                     };
@@ -58938,7 +59634,9 @@ function togglePdfAudioPlayerBar(forceState) {
             currentCloudWorkspaceRevision = Number(remoteRow.revision || 1);
             const userRevKey = 'pharmaWorkspaceRevision_' + uid;
             exoSafeLocalStorageSetItem(userRevKey, String(currentCloudWorkspaceRevision), { targetUid: uid });
-            exoSafeLocalStorageSetItem('pharmaLastCloudSyncIso', remoteRow.updated_at || new Date().toISOString(), { targetUid: uid });
+            const syncIso = remoteRow.updated_at || new Date().toISOString();
+            exoSafeLocalStorageSetItem('pharmaLastCloudSyncIso', syncIso, { targetUid: uid });
+            exoSafeLocalStorageSetItem('pharmaLastCloudSyncIso_' + uid, syncIso, { targetUid: uid });
             exoSafeLocalStorageSetItem('pharmaWorkspaceUpdatedAt', String(Date.now()), { targetUid: uid });
             exoSafeLocalStorageSetItem('pharmaWorkspaceDirty', '1', { targetUid: uid });
             exoSafeLocalStorageSetItem('pharmaWorkspaceDirty_' + uid, '1', { targetUid: uid });
@@ -59492,6 +60190,9 @@ function togglePdfAudioPlayerBar(forceState) {
 
                         try {
                             localStorage.setItem('pharmaLastCloudSyncIso', nowIso);
+                            if (syncUserId) {
+                                localStorage.setItem('pharmaLastCloudSyncIso_' + syncUserId, nowIso);
+                            }
                         } catch (e) {}
 
                         let postPushJournal = { ok: true, available: true, hasDirtyAnnotations: false, hasDirtyWorkspace: false };
@@ -60121,6 +60822,7 @@ function togglePdfAudioPlayerBar(forceState) {
             }
             if (cloudRow.updated_at) {
                 exoSafeLocalStorageSetItem('pharmaLastCloudSyncIso', cloudRow.updated_at, { targetUid });
+                exoSafeLocalStorageSetItem('pharmaLastCloudSyncIso_' + targetUid, cloudRow.updated_at, { targetUid });
             }
             if (cloudRow.dirty || localStorage.getItem('pharmaWorkspaceDirty_' + targetUid) === '1' || durableApplyJournal.hasDirtyWorkspace || durableApplyJournal.hasDirtyAnnotations) {
                 exoSafeLocalStorageSetItem('pharmaWorkspaceDirty', '1', { targetUid });
@@ -60150,12 +60852,12 @@ function togglePdfAudioPlayerBar(forceState) {
                 exoRuntimeStatusState.lastLocalMethod = 'ls+idb';
                 exoRuntimeStatusState.cloudAckConfirmed = !hasRemainingDirty && Boolean(cloudRow.revision) && !exoRuntimeStatusState.hasConflictPending;
                 exoRuntimeStatusState.cloudAckRevision = Number(cloudRow.revision || currentCloudWorkspaceRevision || 0);
-                if (cloudRow.updated_at && !hasRemainingDirty) {
+                if (cloudRow.updated_at) {
                     const parsedUpd = Date.parse(cloudRow.updated_at);
                     if (!Number.isNaN(parsedUpd)) exoRuntimeStatusState.lastCloudSyncAt = parsedUpd;
                 }
             }
-            updateCloudNavUI(hasRemainingDirty ? 'pending' : 'synced');
+            updateCloudNavUI((typeof navigator !== 'undefined' && navigator.onLine === false) ? 'offline' : (hasRemainingDirty ? 'pending' : 'synced'));
             if (typeof refreshWp64StatusSurfaces === 'function') refreshWp64StatusSurfaces();
             if (showSuccessToast) {
                 const isEnT = (typeof exoGetLang === 'function') ? (exoGetLang() !== 'ar') : false;
@@ -62103,7 +62805,7 @@ function togglePdfAudioPlayerBar(forceState) {
                 }
                 if (error || !metaRow) return { status: 'no_remote_row' };
                 currentUserCanUploadMedia = Boolean(metaRow.can_upload_media);
-                const lastLocalSyncIso = localStorage.getItem('pharmaLastCloudSyncIso') || '';
+                const lastLocalSyncIso = localStorage.getItem('pharmaLastCloudSyncIso_' + opCtx.uid) || localStorage.getItem('pharmaLastCloudSyncIso') || '';
                 if (metaRow.updated_at && (!lastLocalSyncIso || new Date(metaRow.updated_at).getTime() > new Date(lastLocalSyncIso).getTime() + 2000)) {
                     return await pullWorkspaceFromCloud(false, opCtx);
                 }
@@ -63035,7 +63737,8 @@ function togglePdfAudioPlayerBar(forceState) {
                             date: dInfo.dateObj.toLocaleDateString('ar-EG'),
                             text: missedLogTxt,
                             mood: 'missed',
-                            subjectId: ev.subjectId || ''
+                            subjectId: ev.subjectId || '',
+                            ...(ev._isDemoSample ? { _isDemoSample: true } : {})
                         });
                     }
                 }
