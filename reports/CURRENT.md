@@ -6,11 +6,11 @@
 > **مشكلة التجمّد:** RESOLVED وفق تأكيد المالك.
 > **Stable package version:** `1.4.2` في `package.json` و`package-lock.json`.
 > **Stable app/release SHA:** `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f` — دمج مرشح v1.4.2 عبر PR #5.  
-> **آخر Repository HEAD على `main`:** `d09778e0ea7960dddd35118e33e489cc95a90233` — تحديثات توثيق فقط بعد دمج الإصدار.
+> **حالة `main`:** بعد stable app SHA أعلاه، أضيفت تحديثات توثيق/تسليم فقط؛ لم تتغير ملفات التطبيق أو الاختبارات.
 > **Release candidate CI #82:** [44544058217](https://github.com/JemistryMC/study-hub/actions/runs/44544058217) — SUCCESS.
 > **Main CI #83:** [44545562381](https://github.com/JemistryMC/study-hub/actions/runs/44545562381) — SUCCESS على نفس SHA؛ 1,177/1,177 assertions و0 failures، PostgreSQL 16 = 96/96، WP 7.1 Chromium E2E = 186/186.
 > **GitHub Pages #199:** [44545562352](https://github.com/JemistryMC/study-hub/actions/runs/44545562352) — SUCCESS على Stable app SHA.  
-> **GitHub Pages #203:** [44547563903](https://github.com/JemistryMC/study-hub/actions/runs/44547563903) — SUCCESS بعد تحديثات التوثيق على `main`.
+> **GitHub Pages #207:** [44548136100](https://github.com/JemistryMC/study-hub/actions/runs/44548136100) — SUCCESS بعد تحديثات الحالة/التوثيق على `main`.
 > **بوابات مؤكدة من قبل:** Supabase/OCC، Google OAuth/Drive ورفع/استرجاع ملف VIP، المزامنة بين جلستين/جهازين، Backup/Restore — حسب تأكيد المالك.
 > **المتبقي:** R4 تأكيد يدوي لفتح النسخة المنشورة وتثبيت/تشغيل PWA؛ R5-d إنشاء Tag `v1.4.2` وGitHub Release رسمي.
 > **قرار النشر:** NO-GO حتى إغلاق اختبار R4 وإنشاء Tag/Release.

@@ -5,7 +5,7 @@
 **فرع المصدر المرجعي عند إعداد التقرير:** `main`  
 **Stable release source SHA:** `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f` — دمج مرشح v1.4.2 (package metadata فقط، دون تغيير ملفات التطبيق).  
 **Release candidate SHA:** `b2c526e0c0091e9373b9783a98a280ee6ab01a24` (PR #5).  
-**Current `main` HEAD after documentation synchronization:** `d09778e0ea7960dddd35118e33e489cc95a90233` (docs-only updates).  
+**`main` after release merge:** subsequent commits are documentation-only status synchronization; the stable app source remains the SHA below.  
 **Stable app/release source SHA:** `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`.  
 **نطاق الإصدار المفترض:** تطبيق الويب/PWA المنشور عبر GitHub Pages؛ لا يفترض هذا التقرير نشر تطبيق Native على متجر.
 
@@ -36,7 +36,7 @@
 | GitHub Release / Tag | لا يوجد حتى الآن Tag `v1.4.2` أو GitHub Release مطابق | Pending |
 | رقم الحزمة | `package.json` و`package-lock.json` = `1.4.2` | VERIFIED |
 
-**مهم:** CI #83 وPages #199 مرتبطان بـStable app SHA `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`. بعد تحديثات التوثيق فقط، أصبح `main` HEAD هو `d09778e0ea7960dddd35118e33e489cc95a90233`، واجتاز Pages #203 النشر على هذا HEAD. لم تتغير ملفات التطبيق أو Service Worker.
+**مهم:** CI #83 وPages #199 مرتبطان بـStable app SHA `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`. بعد تحديثات التوثيق فقط، نجح Pages #207 على مستودع `main`؛ ولا تتضمن هذه التحديثات أي تغيير في ملفات التطبيق أو Service Worker.
 
 ## 3. بوابات الإصدار المتبقية
 
@@ -92,7 +92,7 @@
 **قيود:** لا يتم تنفيذ Restore على حساب المالك الأساسي أثناء التجهيز، ولا تُغيّر صيغ التخزين أو سياسات الاستعادة في هذه المرحلة.
 ### R4 — Smoke test حي للنسخة المنشورة وPWA (Pages deployed؛ تأكيد المالك متبقٍ)
 
-نجح GitHub Pages #199 على Stable app SHA `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`، ثم نجح Pages #203 على `main` HEAD التوثيقي `d09778e0ea7960dddd35118e33e489cc95a90233`. لكن نجاح الـworkflow لا يثبت وحده أن المتصفح يعرض التطبيق ويثبّت PWA على جهاز المستخدم. يلزم تأكيد يدوي واحد من المالك:
+نجح GitHub Pages #199 على Stable app SHA `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f`، ثم نجح Pages #207 بعد تحديثات التوثيق على `main`. لكن نجاح الـworkflow لا يثبت وحده أن المتصفح يعرض التطبيق ويثبّت PWA على جهاز المستخدم. يلزم تأكيد يدوي واحد من المالك:
 - افتح [Exo على GitHub Pages](https://jemistrymc.github.io/study-hub/) مباشرة وتأكد من عدم وجود 404 أو صفحة بيضاء.
 - تأكد أن التطبيق يفتح بصورة طبيعية، وأن تسجيل الدخول والتنقل الأساسي وHelp Center وPDF Studio يعملون.
 - جرّب خيار Install Exo / Install page as app من Chrome، ثم افتح التطبيق المثبّت وتأكد من ظهور الواجهة بصورة سليمة.
