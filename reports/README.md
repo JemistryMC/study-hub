@@ -4,12 +4,13 @@
 ## الحالة الراهنة — Final Release Preparation (2026-11-19)
 
 - **اعتماد المنتج:** APPROVED BY OWNER؛ اعتماد عام للتطبيق وتجربة الاستخدام.
-- **مشكلة التجمّد:** RESOLVED وفق تأكيد المالك.
-- **آخر Source SHA:** `cf47e5698a212c1e1ef64d837cf1987a807f337e`؛ و`main` HEAD التوثيقي `a2ba2078c4e44bc34d976904b1f4c98dd5af3771`.
-- **CI #79:** `44528632061` SUCCESS على Source SHA؛ **Pages #196:** `44528631312` SUCCESS على Source SHA، و**Pages #197:** `44534280479` SUCCESS بعد دمج التوثيق.
-- **Supabase/OCC:** فحص Production للقراءة فقط وتجربة الحفظ/Reload أكدهما المالك؛ اختبار OCC متعدد الاتصالات على PostgreSQL 16 اجتاز CI #79.
-- **التكاملات الحية:** Google OAuth/Drive مع رفع واسترجاع ملف بحساب VIP، والمزامنة بين جلستين/جهازين، وBackup/Restore — أكد المالك نجاحها.
-- **حالة الإصدار:** `NO-GO` حتى Smoke test حي لمرشح الإصدار وPWA، ثم stable version وCI وTag وGitHub Release.
+- **النسخة المستقرة المقترحة:** `1.4.2`؛ `package.json` و`package-lock.json` متوافقان.
+- **Repository HEAD:** `c1bddcadf35dc5d6e4776dfbb7e3d6d977f8483f` على `main`.
+- **CI #82 على مرشح PR #5:** SUCCESS؛ **CI #83 على main:** SUCCESS؛ 1,177/1,177 assertions، 0 فشل.
+- **PostgreSQL 16:** 96/96؛ **WP 7.1 Chromium E2E:** 186/186.
+- **GitHub Pages #199:** SUCCESS على SHA النهائي نفسه.
+- **التكاملات الحية:** Supabase/OCC وGoogle OAuth/Drive ورفع/استرجاع ملف VIP، والمزامنة بين جلستين/جهازين، وBackup/Restore — أكد المالك نجاحها.
+- **المتبقي:** Smoke test يدوي لفتح النسخة المنشورة وتثبيت/تشغيل PWA، ثم إنشاء Tag `v1.4.2` وGitHub Release رسمي.
 - المرجع التنفيذي الحالي: [FINAL_RELEASE_READINESS.md](FINAL_RELEASE_READINESS.md).
 
 ---
